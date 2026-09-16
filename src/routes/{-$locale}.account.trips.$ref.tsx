@@ -1,3 +1,4 @@
+import { AppLink } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
 import { BookingDetail } from "@/components/booking/booking-detail";
 import { btnClass, EmptyState } from "@/components/kit";
