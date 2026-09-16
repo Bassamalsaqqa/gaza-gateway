@@ -164,7 +164,7 @@ function ConfirmationPage() {
             <AppLink to="/manage/$ref" params={{ ref: booking.ref }} className={btnClass("primary", "md")}>
               {t("book.viewBooking")}
             </AppLink>
-            {booking.checkedIn ? (
+            {anyCheckedIn(booking) ? (
               <AppLink
                 to="/boarding-pass/$ref/$pax"
                 params={{ ref: booking.ref, pax: "0" }}
@@ -172,21 +172,25 @@ function ConfirmationPage() {
               >
                 {t("book.boardingPass")}
               </AppLink>
-            ) : (
-              <AppLink to="/manage/$ref" params={{ ref: booking.ref }} className={btnClass("outline", "md")}>
+            ) : booking.status === "confirmed" ? (
+              <AppLink to="/manage/$ref/check-in" params={{ ref: booking.ref }} className={btnClass("outline", "md")}>
                 <Ticket aria-hidden="true" className="size-4" />
                 {t("manage.checkin")}
               </AppLink>
-            )}
+            ) : null}
             {!account ? (
               <AppLink to="/register" className={btnClass("clay", "md")}>
                 <UserPlus aria-hidden="true" className="size-4" />
                 {t("book.createAccount")}
               </AppLink>
-            ) : (
+            ) : booking.ownerEmail === account.email ? (
               <AppLink to="/account/trips" className={btnClass("outline", "md")}>
                 {t("account.trips")}
               </AppLink>
+            ) : (
+              <button type="button" onClick={() => claimBooking(booking.ref)} className={btnClass("clay", "md")}>
+                {t("conf.linkAccount")}
+              </button>
             )}
           </div>
           <div className="mt-4">
