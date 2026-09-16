@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
+import { Route as AccessDeniedRouteImport } from './routes/access-denied'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as AirportRouteImport } from './routes/airport'
 import { Route as BookRouteImport } from './routes/book'
@@ -21,8 +22,10 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as GalleryRouteImport } from './routes/gallery'
 import { Route as ManageRouteImport } from './routes/manage'
 import { Route as RegisterRouteImport } from './routes/register'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SigninRouteImport } from './routes/signin'
 import { Route as TravelRouteImport } from './routes/travel'
+import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as AccountIndexRouteImport } from './routes/account.index'
 import { Route as AccountBoardingPassesRouteImport } from './routes/account.boarding-passes'
 import { Route as AccountPreferencesRouteImport } from './routes/account.preferences'
@@ -47,6 +50,11 @@ const IndexRoute = IndexRouteImport.update({
 const AboutRoute = AboutRouteImport.update({
   id: '/about',
   path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccessDeniedRoute = AccessDeniedRouteImport.update({
+  id: '/access-denied',
+  path: '/access-denied',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AccountRoute = AccountRouteImport.update({
@@ -99,6 +107,11 @@ const RegisterRoute = RegisterRouteImport.update({
   path: '/register',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SigninRoute = SigninRouteImport.update({
   id: '/signin',
   path: '/signin',
@@ -107,6 +120,11 @@ const SigninRoute = SigninRouteImport.update({
 const TravelRoute = TravelRouteImport.update({
   id: '/travel',
   path: '/travel',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VerifyEmailRoute = VerifyEmailRouteImport.update({
+  id: '/verify-email',
+  path: '/verify-email',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AccountIndexRoute = AccountIndexRouteImport.update({
@@ -188,6 +206,7 @@ const AccountTripsRefRoute = AccountTripsRefRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/access-denied': typeof AccessDeniedRoute
   '/account': typeof AccountRouteWithChildren
   '/airport': typeof AirportRouteWithChildren
   '/book': typeof BookRoute
@@ -198,8 +217,10 @@ export interface FileRoutesByFullPath {
   '/gallery': typeof GalleryRoute
   '/manage': typeof ManageRoute
   '/register': typeof RegisterRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/signin': typeof SigninRoute
   '/travel': typeof TravelRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/account/boarding-passes': typeof AccountBoardingPassesRoute
   '/account/preferences': typeof AccountPreferencesRoute
   '/account/profile': typeof AccountProfileRoute
@@ -219,6 +240,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/access-denied': typeof AccessDeniedRoute
   '/book': typeof BookRoute
   '/contact': typeof ContactRoute
   '/destinations': typeof DestinationsRouteWithChildren
@@ -227,8 +249,10 @@ export interface FileRoutesByTo {
   '/gallery': typeof GalleryRoute
   '/manage': typeof ManageRoute
   '/register': typeof RegisterRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/signin': typeof SigninRoute
   '/travel': typeof TravelRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/account/boarding-passes': typeof AccountBoardingPassesRoute
   '/account/preferences': typeof AccountPreferencesRoute
   '/account/profile': typeof AccountProfileRoute
@@ -248,6 +272,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/access-denied': typeof AccessDeniedRoute
   '/account': typeof AccountRouteWithChildren
   '/airport': typeof AirportRouteWithChildren
   '/book': typeof BookRoute
@@ -258,8 +283,10 @@ export interface FileRoutesById {
   '/gallery': typeof GalleryRoute
   '/manage': typeof ManageRoute
   '/register': typeof RegisterRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/signin': typeof SigninRoute
   '/travel': typeof TravelRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/account/boarding-passes': typeof AccountBoardingPassesRoute
   '/account/preferences': typeof AccountPreferencesRoute
   '/account/profile': typeof AccountProfileRoute
@@ -281,6 +308,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/about'
+    | '/access-denied'
     | '/account'
     | '/airport'
     | '/book'
@@ -291,8 +319,10 @@ export interface FileRouteTypes {
     | '/gallery'
     | '/manage'
     | '/register'
+    | '/reset-password'
     | '/signin'
     | '/travel'
+    | '/verify-email'
     | '/account/boarding-passes'
     | '/account/preferences'
     | '/account/profile'
@@ -312,6 +342,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
+    | '/access-denied'
     | '/book'
     | '/contact'
     | '/destinations'
@@ -320,8 +351,10 @@ export interface FileRouteTypes {
     | '/gallery'
     | '/manage'
     | '/register'
+    | '/reset-password'
     | '/signin'
     | '/travel'
+    | '/verify-email'
     | '/account/boarding-passes'
     | '/account/preferences'
     | '/account/profile'
@@ -340,6 +373,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/about'
+    | '/access-denied'
     | '/account'
     | '/airport'
     | '/book'
@@ -350,8 +384,10 @@ export interface FileRouteTypes {
     | '/gallery'
     | '/manage'
     | '/register'
+    | '/reset-password'
     | '/signin'
     | '/travel'
+    | '/verify-email'
     | '/account/boarding-passes'
     | '/account/preferences'
     | '/account/profile'
@@ -372,6 +408,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
+  AccessDeniedRoute: typeof AccessDeniedRoute
   AccountRoute: typeof AccountRouteWithChildren
   AirportRoute: typeof AirportRouteWithChildren
   BookRoute: typeof BookRoute
@@ -382,8 +419,10 @@ export interface RootRouteChildren {
   GalleryRoute: typeof GalleryRoute
   ManageRoute: typeof ManageRoute
   RegisterRoute: typeof RegisterRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   SigninRoute: typeof SigninRoute
   TravelRoute: typeof TravelRoute
+  VerifyEmailRoute: typeof VerifyEmailRoute
   FlightFlightIdRoute: typeof FlightFlightIdRoute
 }
 
@@ -401,6 +440,13 @@ declare module '@tanstack/react-router' {
       path: '/about'
       fullPath: '/about'
       preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/access-denied': {
+      id: '/access-denied'
+      path: '/access-denied'
+      fullPath: '/access-denied'
+      preLoaderRoute: typeof AccessDeniedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/account': {
@@ -473,6 +519,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RegisterRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/signin': {
       id: '/signin'
       path: '/signin'
@@ -485,6 +538,13 @@ declare module '@tanstack/react-router' {
       path: '/travel'
       fullPath: '/travel'
       preLoaderRoute: typeof TravelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/verify-email': {
+      id: '/verify-email'
+      path: '/verify-email'
+      fullPath: '/verify-email'
+      preLoaderRoute: typeof VerifyEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/account/': {
@@ -664,6 +724,7 @@ const DestinationsRouteWithChildren = DestinationsRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
+  AccessDeniedRoute: AccessDeniedRoute,
   AccountRoute: AccountRouteWithChildren,
   AirportRoute: AirportRouteWithChildren,
   BookRoute: BookRoute,
@@ -674,8 +735,10 @@ const rootRouteChildren: RootRouteChildren = {
   GalleryRoute: GalleryRoute,
   ManageRoute: ManageRoute,
   RegisterRoute: RegisterRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   SigninRoute: SigninRoute,
   TravelRoute: TravelRoute,
+  VerifyEmailRoute: VerifyEmailRoute,
   FlightFlightIdRoute: FlightFlightIdRoute,
 }
 export const routeTree = rootRouteImport
