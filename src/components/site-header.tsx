@@ -19,6 +19,7 @@ const secondaryNav = [
   { to: "/about", key: "nav.about" },
   { to: "/contact", key: "nav.contact" },
   { to: "/manage", key: "nav.manage" },
+  { to: "/check-in", key: "nav.checkin" },
 ] as const;
 
 function LanguageToggle({ tone = "dark" }: { tone?: "dark" | "light" }) {
@@ -91,6 +92,12 @@ export function SiteHeader() {
             >
               <Ticket aria-hidden="true" className="size-3.5" />
               {t("nav.manage")}
+            </AppLink>
+            <AppLink
+              to="/check-in"
+              className="hidden items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-ink-muted transition-colors hover:text-ink-foreground sm:inline-flex"
+            >
+              {t("nav.checkin")}
             </AppLink>
             <AppLink
               to={account ? "/account" : "/signin"}

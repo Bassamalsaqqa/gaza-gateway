@@ -5,7 +5,8 @@ import { btnClass, Code, EmptyState, Panel, Pill } from "@/components/kit";
 import { airportByCode } from "@/lib/data";
 import { dateLong, money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
-import { useStore } from "@/lib/store";
+import { useState } from "react";
+import { passCount, useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/{-$locale}/account/trips/")({
   head: () => ({
@@ -19,9 +20,26 @@ export const Route = createFileRoute("/{-$locale}/account/trips/")({
   component: TripsPage,
 });
 
+type Group = "upcoming" | "past" | "cancelled";
+
 function TripsPage() {
   const { t, lang } = useI18n();
   const { myBookings: bookings } = useStore();
+  const [group, setGroup] = useState<Group>("upcoming");
+
+  const today = new Date().toISOString().slice(0, 10);
+  const grouped: Record<Group, typeof bookings> = {
+    cancelled: bookings.filter((b) => b.status === "cancelled"),
+    upcoming: bookings.filter((b) => b.status !== "cancelled" && b.outbound.date >= today),
+    past: bookings.filter((b) => b.status !== "cancelled" && b.outbound.date < today),
+  };
+  const list = grouped[group];
+
+  const tabs: { id: Group; label: string }[] = [
+    { id: "upcoming", label: t("account.tabUpcoming") },
+    { id: "past", label: t("account.tabPast") },
+    { id: "cancelled", label: t("account.tabCancelled") },
+  ];
 
   if (bookings.length === 0) {
     return (
@@ -38,8 +56,36 @@ function TripsPage() {
   }
 
   return (
-    <ul className="space-y-4">
-      {bookings.map((booking) => (
+    <div className="space-y-4">
+      <div role="tablist" aria-label={t("account.trips")} className="flex flex-wrap gap-2">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={group === tab.id}
+            onClick={() => setGroup(tab.id)}
+            className={btnClass(group === tab.id ? "ink" : "outline", "sm")}
+          >
+            {tab.label}
+            <span className="numeral ms-1">{grouped[tab.id].length}</span>
+          </button>
+        ))}
+      </div>
+
+      {list.length === 0 ? (
+        <EmptyState
+          title={t(`account.empty.${group}`)}
+          description={t("account.emptyGroupSub")}
+          action={
+            <AppLink to="/book" className={btnClass("primary", "md")}>
+              {t("account.bookNow")}
+            </AppLink>
+          }
+        />
+      ) : (
+        <ul className="space-y-4" role="tabpanel">
+          {list.map((booking) => (
         <li key={booking.ref}>
           <Panel>
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -72,7 +118,9 @@ function TripsPage() {
                 ) : (
                   <StatusBadge status={booking.outbound.status} />
                 )}
-                {booking.checkedIn ? <Pill tone="brand">{t("manage.checkedIn")}</Pill> : null}
+                {booking.status !== "cancelled" && passCount(booking) > 0 ? (
+                  <Pill tone="brand">{t("manage.checkedIn")}</Pill>
+                ) : null}
               </div>
             </div>
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
@@ -85,7 +133,10 @@ function TripsPage() {
             </div>
           </Panel>
         </li>
-      ))}
-    </ul>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
+

@@ -43,8 +43,8 @@ function ContactPage() {
               <h2 className="text-xl font-bold">{t("contact.sent")}</h2>
               <p className="mt-2 text-sm text-muted-foreground">
                 {pick(lang, {
-                  en: "This is a prototype form — nothing was actually sent.",
-                  ar: "هذا نموذج تجريبي — لم يُرسل شيء فعلياً.",
+                  en: "Your message has not been sent anywhere yet — messaging is not connected.",
+                  ar: "لم تُرسل رسالتك إلى أي جهة بعد — خدمة الرسائل غير مرتبطة حالياً.",
                 })}
               </p>
               <button type="button" onClick={() => setSent(false)} className={btnClass("outline", "md", "mt-4")}>

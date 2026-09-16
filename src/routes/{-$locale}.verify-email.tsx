@@ -20,12 +20,16 @@ export const Route = createFileRoute("/{-$locale}/verify-email")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
+  validateSearch: (search: Record<string, unknown>) => ({
+    ref: typeof search["ref"] === "string" ? (search["ref"] as string) : undefined,
+  }),
   component: VerifyEmailPage,
 });
 
 function VerifyEmailPage() {
   const { t } = useI18n();
-  const { account } = useStore();
+  const { account, claimBooking } = useStore();
+  const { ref } = Route.useSearch();
   const [verified, setVerified] = useState(false);
   const [resent, setResent] = useState(false);
   const email = account?.email ?? "your email";
@@ -41,8 +45,14 @@ function VerifyEmailPage() {
           {verified ? (
             <>
               <p className="text-sm font-semibold">{t("auth.verifyDone")}</p>
+              {ref ? <p className="text-sm text-muted-foreground">{t("auth.bookingSaved", { ref })}</p> : null}
               <div className="flex flex-col gap-2 sm:flex-row">
-                <AppLink to="/account" className={btnClass("primary", "md")}>
+                {ref ? (
+                  <AppLink to="/account/trips/$ref" params={{ ref }} className={btnClass("primary", "md")}>
+                    {t("auth.viewTrip")}
+                  </AppLink>
+                ) : null}
+                <AppLink to="/account" className={btnClass(ref ? "outline" : "primary", "md")}>
                   {t("auth.goToAccount")}
                 </AppLink>
                 <AppLink to="/book" className={btnClass("outline", "md")}>
@@ -52,7 +62,14 @@ function VerifyEmailPage() {
             </>
           ) : (
             <>
-              <button type="button" onClick={() => setVerified(true)} className={btnClass("primary", "md", "w-full")}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (ref) claimBooking(ref);
+                  setVerified(true);
+                }}
+                className={btnClass("primary", "md", "w-full")}
+              >
                 {t("auth.verifyNow")}
               </button>
               <button

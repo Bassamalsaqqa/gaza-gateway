@@ -10,6 +10,7 @@ const columns = [
       { to: "/flights", key: "nav.flights" },
       { to: "/destinations", key: "nav.destinations" },
       { to: "/manage", key: "nav.manage" },
+      { to: "/check-in", key: "nav.checkin" },
     ],
   },
   {

@@ -78,8 +78,8 @@ function BoardingPassesPage() {
             <BoardingPassCard item={item} compact />
             <div className="flex flex-wrap gap-2">
               <AppLink
-                to="/boarding-pass/$ref/$pax"
-                params={{ ref: item.booking.ref, pax: String(item.paxIndex) }}
+                to="/boarding-pass/$ref/$leg/$pax"
+                params={{ ref: item.booking.ref, leg: item.leg, pax: String(item.paxIndex) }}
                 className={btnClass("primary", "sm")}
               >
                 {t("bp.view")}

@@ -5,7 +5,7 @@ import { EXTRA_BAG_PRICE, airportByCode, fares, mealOptions } from "@/lib/data";
 import { btnClass, Code, Container, EmptyState, Notice, Panel } from "@/components/kit";
 import { dateLong, money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
-import { anyCheckedIn, useStore } from "@/lib/store";
+import { anyCheckedIn, extrasFor, totalExtraBags, useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/{-$locale}/booking-confirmation/$ref")({
   head: ({ params }) => ({
@@ -61,7 +61,7 @@ function ConfirmationPage() {
   }
 
   const fare = fares.find((f) => f.id === booking.fareId);
-  const meal = mealOptions.find((m) => m.id === booking.extras.meal);
+  const extraBags = totalExtraBags(booking.extras);
 
   return (
     <Container className="py-10 sm:py-14">
@@ -141,14 +141,25 @@ function ConfirmationPage() {
               <div className="flex justify-between gap-3">
                 <dt className="text-muted-foreground">{t("book.extraBag")}</dt>
                 <dd className="numeral font-medium">
-                  {booking.extras.extraBags > 0
-                    ? `${booking.extras.extraBags} · ${money(booking.extras.extraBags * EXTRA_BAG_PRICE, lang)}`
-                    : "—"}
+                  {extraBags > 0 ? `${extraBags} · ${money(extraBags * EXTRA_BAG_PRICE, lang)}` : "—"}
                 </dd>
               </div>
-              <div className="flex justify-between gap-3">
+              <div className="flex flex-col gap-1">
                 <dt className="text-muted-foreground">{t("book.meal")}</dt>
-                <dd className="font-medium">{meal ? pick(lang, meal.label) : "—"}</dd>
+                <dd className="space-y-0.5">
+                  {booking.passengers.map((p, i) => {
+                    const paxExtras = extrasFor(booking.extras, i);
+                    const paxMeal = mealOptions.find((m) => m.id === paxExtras.meal);
+                    return (
+                      <span key={`conf-meal-${i}`} className="flex justify-between gap-3 font-medium">
+                        <span className="text-muted-foreground">
+                          {`${p.firstName} ${p.lastName}`.trim() || `${t("book.passenger")} ${i + 1}`}
+                        </span>
+                        <span>{paxMeal ? pick(lang, paxMeal.label) : "—"}</span>
+                      </span>
+                    );
+                  })}
+                </dd>
               </div>
               <div className="flex justify-between gap-3 border-t border-border pt-2">
                 <dt className="font-semibold">{t("book.total")}</dt>
@@ -179,7 +190,7 @@ function ConfirmationPage() {
               </AppLink>
             ) : null}
             {!account ? (
-              <AppLink to="/register" className={btnClass("clay", "md")}>
+              <AppLink to="/register" search={{ ref: booking.ref }} className={btnClass("clay", "md")}>
                 <UserPlus aria-hidden="true" className="size-4" />
                 {t("book.createAccount")}
               </AppLink>

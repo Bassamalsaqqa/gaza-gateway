@@ -69,7 +69,7 @@ function PreferencesPage() {
         </div>
       </form>
       <div className="mt-5">
-        <Notice>{t("auth.demoNote")}</Notice>
+        <Notice>{t("account.prefNote")}</Notice>
       </div>
     </Panel>
   );

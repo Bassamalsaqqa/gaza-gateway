@@ -1,27 +1,36 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { AppLink, useAppNavigate } from "@/components/app-link";
-import { btnClass, Code, Container, EmptyState, Field, PageHeader, Panel, Select } from "@/components/kit";
+import { btnClass, Container, EmptyState, Field, PageHeader, Panel, Select } from "@/components/kit";
 import { EXTRA_BAG_PRICE, assistanceOptions, mealOptions } from "@/lib/data";
 import { money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
-import { bookingTotal, type Extras, useStore } from "@/lib/store";
+import { pageHead } from "@/lib/head";
+import {
+  bookingTotal,
+  emptyPaxExtras,
+  extrasForPassengers,
+  totalExtraBags,
+  type Extras,
+  type PaxExtras,
+  useStore,
+} from "@/lib/store";
 
 export const Route = createFileRoute("/{-$locale}/manage/$ref_/extras")({
-  head: ({ params }) => ({
-    meta: [
-      { title: `Bags and extras — booking ${params.ref} — Gaza International Airport (GZA)` },
-      {
-        name: "description",
-        content: "Add extra baggage, choose a meal and request special assistance for your Palestinian Airlines booking.",
+  head: ({ params }) =>
+    pageHead({
+      locale: params.locale,
+      path: `/manage/${params.ref}/extras`,
+      noindex: true,
+      en: {
+        title: `Bags and extras — booking ${params.ref} — Gaza International Airport (GZA)`,
+        description: "Add extra baggage, choose a meal and request assistance for each traveller on your booking.",
       },
-      { property: "og:title", content: "Bags and extras — Palestinian Airlines" },
-      { property: "og:description", content: "Update the baggage, meal and assistance on your booking." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "robots", content: "noindex" },
-    ],
-  }),
+      ar: {
+        title: `الأمتعة والإضافات — الحجز ${params.ref} — مطار غزة الدولي`,
+        description: "أضف أمتعة إضافية واختر وجبة واطلب المساعدة لكل مسافر في حجزك.",
+      },
+    }),
   component: ManageExtrasPage,
 });
 
@@ -32,7 +41,9 @@ function ManageExtrasPage() {
   const { ready, findBooking, updateBooking } = useStore();
   const booking = findBooking(ref);
   const [extras, setExtras] = useState<Extras>(
-    booking?.extras ?? { extraBags: 0, meal: "none", assistance: [] },
+    booking
+      ? extrasForPassengers(booking.extras, booking.passengers.length)
+      : { pax: [emptyPaxExtras()] },
   );
 
   if (!ready) {
@@ -84,6 +95,11 @@ function ManageExtrasPage() {
     extras,
   });
 
+  const setPax = (index: number, patch: Partial<PaxExtras>) =>
+    setExtras((prev) => ({
+      pax: prev.pax.map((item, i) => (i === index ? { ...item, ...patch } : item)),
+    }));
+
   const save = () => {
     updateBooking(booking.ref, { extras, total: totals.total });
     void navigate({ to: "/manage/$ref", params: { ref: booking.ref } });
@@ -98,70 +114,92 @@ function ManageExtrasPage() {
       />
 
       <Panel className="mt-6">
-        <fieldset>
-          <legend className="text-sm font-bold">{t("book.extraBag")}</legend>
-          <p className="mt-1 text-sm text-muted-foreground">{money(EXTRA_BAG_PRICE, lang)}</p>
-          <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label={t("book.extraBag")}>
-            {[0, 1, 2, 3, 4].map((count) => (
-              <button
-                key={count}
-                type="button"
-                aria-pressed={extras.extraBags === count}
-                onClick={() => setExtras((prev) => ({ ...prev, extraBags: count }))}
-                className={
-                  extras.extraBags === count
-                    ? "min-w-11 rounded-full border border-primary bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
-                    : "min-w-11 rounded-full border border-input bg-card px-4 py-2 text-sm font-semibold text-muted-foreground"
-                }
-              >
-                <span className="numeral">{count}</span>
-              </button>
-            ))}
-          </div>
-        </fieldset>
+        <p className="text-sm text-muted-foreground">{t("book.extrasPaxNote")}</p>
 
-        <div className="mt-6 max-w-sm">
-          <Field label={t("book.meal")} htmlFor="meal">
-            <Select
-              id="meal"
-              value={extras.meal}
-              onChange={(e) => setExtras((prev) => ({ ...prev, meal: e.target.value }))}
-            >
-              {mealOptions.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {pick(lang, option.label)}
-                </option>
-              ))}
-            </Select>
-          </Field>
-        </div>
+        <ul className="mt-4 divide-y divide-border">
+          {booking.passengers.map((passenger, index) => {
+            const value = extras.pax[index] ?? emptyPaxExtras();
+            const label =
+              `${passenger.firstName} ${passenger.lastName}`.trim() || `${t("book.passenger")} ${index + 1}`;
+            return (
+              <li key={`pax-extras-${index}`} className="py-4 first:pt-0">
+                <h2 className="text-sm font-bold">{label}</h2>
 
-        <fieldset className="mt-6">
-          <legend className="text-sm font-bold">{t("book.assistance")}</legend>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2">
-            {assistanceOptions.map((option) => (
-              <label key={option.id} className="flex items-center gap-3 text-sm">
-                <input
-                  type="checkbox"
-                  className="size-5 rounded border-input accent-[var(--color-primary)]"
-                  checked={extras.assistance.includes(option.id)}
-                  onChange={(e) =>
-                    setExtras((prev) => ({
-                      ...prev,
-                      assistance: e.target.checked
-                        ? [...prev.assistance, option.id]
-                        : prev.assistance.filter((id) => id !== option.id),
-                    }))
-                  }
-                />
-                {pick(lang, option.label)}
-              </label>
-            ))}
-          </div>
-          <p className="mt-2 text-xs text-muted-foreground">{t("book.assistanceNote")}</p>
-        </fieldset>
+                <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                  <fieldset>
+                    <legend className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      {t("book.bagsFor")} · {money(EXTRA_BAG_PRICE, lang)}
+                    </legend>
+                    <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label={`${t("book.extraBag")} — ${label}`}>
+                      {[0, 1, 2, 3, 4].map((count) => (
+                        <button
+                          key={count}
+                          type="button"
+                          aria-pressed={value.extraBags === count}
+                          onClick={() => setPax(index, { extraBags: count })}
+                          className={
+                            value.extraBags === count
+                              ? "min-h-11 min-w-11 rounded-full border border-primary bg-primary px-4 text-sm font-semibold text-primary-foreground"
+                              : "min-h-11 min-w-11 rounded-full border border-input bg-card px-4 text-sm font-semibold text-muted-foreground"
+                          }
+                        >
+                          <span className="numeral">{count}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </fieldset>
+
+                  <Field label={t("book.meal")} htmlFor={`meal-${index}`}>
+                    <Select
+                      id={`meal-${index}`}
+                      value={value.meal}
+                      onChange={(e) => setPax(index, { meal: e.target.value })}
+                    >
+                      {mealOptions.map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {pick(lang, option.label)}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+                </div>
+
+                <fieldset className="mt-3">
+                  <legend className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    {t("book.assistance")}
+                  </legend>
+                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                    {assistanceOptions.map((option) => (
+                      <label key={option.id} className="flex items-center gap-3 text-sm">
+                        <input
+                          type="checkbox"
+                          className="size-5 rounded border-input accent-[var(--color-primary)]"
+                          checked={value.assistance.includes(option.id)}
+                          onChange={(e) =>
+                            setPax(index, {
+                              assistance: e.target.checked
+                                ? [...value.assistance, option.id]
+                                : value.assistance.filter((id) => id !== option.id),
+                            })
+                          }
+                        />
+                        {pick(lang, option.label)}
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+              </li>
+            );
+          })}
+        </ul>
+
+        <p className="mt-4 text-xs text-muted-foreground">{t("book.assistanceNote")}</p>
 
         <dl className="mt-6 space-y-2 border-t border-border pt-4 text-sm">
+          <div className="flex items-baseline justify-between">
+            <dt className="text-muted-foreground">{t("book.extraBag")}</dt>
+            <dd className="numeral font-semibold">{totalExtraBags(extras)}</dd>
+          </div>
           <div className="flex items-baseline justify-between">
             <dt className="text-muted-foreground">{t("book.extrasTotal")}</dt>
             <dd className="font-semibold">{money(totals.extras, lang)}</dd>

@@ -25,7 +25,8 @@ export const Route = createFileRoute("/{-$locale}/boarding-pass/$ref/$leg/$pax")
 });
 
 function BoardingPassDetailPage() {
-  const { ref, pax } = Route.useParams();
+  const { ref, leg: legParam, pax } = Route.useParams();
+  const leg = legParam === "in" ? "in" : "out";
   const { t } = useI18n();
   const { findBooking, ready } = useStore();
   const booking = findBooking(ref);
@@ -55,7 +56,7 @@ function BoardingPassDetailPage() {
     );
   }
 
-  const passes = passesForBooking(booking).filter((p) => p.paxIndex === paxIndex);
+  const passes = passesForBooking(booking).filter((p) => p.paxIndex === paxIndex && p.leg === leg);
   const passenger = booking.passengers[paxIndex];
 
   if (passes.length === 0 || !passenger) {
@@ -124,8 +125,8 @@ function BoardingPassDetailPage() {
               {booking.passengers.map((p, i) => (p.type === "infant" ? null : (
                 <AppLink
                   key={`${p.lastName}-${i}`}
-                  to="/boarding-pass/$ref/$pax"
-                  params={{ ref: booking.ref, pax: String(i) }}
+                  to="/boarding-pass/$ref/$leg/$pax"
+                  params={{ ref: booking.ref, leg, pax: String(i) }}
                   className={btnClass(i === paxIndex ? "ink" : "outline", "sm")}
                 >
                   {p.firstName} {p.lastName}
