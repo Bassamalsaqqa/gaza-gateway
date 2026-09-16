@@ -21,9 +21,11 @@ import { Route as FlightsRouteImport } from './routes/flights'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as GalleryRouteImport } from './routes/gallery'
 import { Route as ManageRouteImport } from './routes/manage'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SigninRouteImport } from './routes/signin'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as TravelRouteImport } from './routes/travel'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as AccountIndexRouteImport } from './routes/account.index'
@@ -102,6 +104,11 @@ const ManageRoute = ManageRouteImport.update({
   path: '/manage',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
@@ -115,6 +122,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const SigninRoute = SigninRouteImport.update({
   id: '/signin',
   path: '/signin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TravelRoute = TravelRouteImport.update({
@@ -216,9 +228,11 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/gallery': typeof GalleryRoute
   '/manage': typeof ManageRoute
+  '/privacy': typeof PrivacyRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signin': typeof SigninRoute
+  '/terms': typeof TermsRoute
   '/travel': typeof TravelRoute
   '/verify-email': typeof VerifyEmailRoute
   '/account/boarding-passes': typeof AccountBoardingPassesRoute
@@ -248,9 +262,11 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/gallery': typeof GalleryRoute
   '/manage': typeof ManageRoute
+  '/privacy': typeof PrivacyRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signin': typeof SigninRoute
+  '/terms': typeof TermsRoute
   '/travel': typeof TravelRoute
   '/verify-email': typeof VerifyEmailRoute
   '/account/boarding-passes': typeof AccountBoardingPassesRoute
@@ -282,9 +298,11 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/gallery': typeof GalleryRoute
   '/manage': typeof ManageRoute
+  '/privacy': typeof PrivacyRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signin': typeof SigninRoute
+  '/terms': typeof TermsRoute
   '/travel': typeof TravelRoute
   '/verify-email': typeof VerifyEmailRoute
   '/account/boarding-passes': typeof AccountBoardingPassesRoute
@@ -318,9 +336,11 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/gallery'
     | '/manage'
+    | '/privacy'
     | '/register'
     | '/reset-password'
     | '/signin'
+    | '/terms'
     | '/travel'
     | '/verify-email'
     | '/account/boarding-passes'
@@ -350,9 +370,11 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/gallery'
     | '/manage'
+    | '/privacy'
     | '/register'
     | '/reset-password'
     | '/signin'
+    | '/terms'
     | '/travel'
     | '/verify-email'
     | '/account/boarding-passes'
@@ -383,9 +405,11 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/gallery'
     | '/manage'
+    | '/privacy'
     | '/register'
     | '/reset-password'
     | '/signin'
+    | '/terms'
     | '/travel'
     | '/verify-email'
     | '/account/boarding-passes'
@@ -418,9 +442,11 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   GalleryRoute: typeof GalleryRoute
   ManageRoute: typeof ManageRoute
+  PrivacyRoute: typeof PrivacyRoute
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SigninRoute: typeof SigninRoute
+  TermsRoute: typeof TermsRoute
   TravelRoute: typeof TravelRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
   FlightFlightIdRoute: typeof FlightFlightIdRoute
@@ -512,6 +538,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ManageRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/register': {
       id: '/register'
       path: '/register'
@@ -531,6 +564,13 @@ declare module '@tanstack/react-router' {
       path: '/signin'
       fullPath: '/signin'
       preLoaderRoute: typeof SigninRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/travel': {
@@ -734,9 +774,11 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   GalleryRoute: GalleryRoute,
   ManageRoute: ManageRoute,
+  PrivacyRoute: PrivacyRoute,
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SigninRoute: SigninRoute,
+  TermsRoute: TermsRoute,
   TravelRoute: TravelRoute,
   VerifyEmailRoute: VerifyEmailRoute,
   FlightFlightIdRoute: FlightFlightIdRoute,
