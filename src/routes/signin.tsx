@@ -60,6 +60,11 @@ function SignInPage() {
               required
             />
           </Field>
+          <p className="text-sm">
+            <Link to="/forgot-password" className="font-semibold text-brand-deep underline">
+              {t("auth.forgotLink")}
+            </Link>
+          </p>
           <button type="submit" className={btnClass("primary", "md", "w-full")}>
             {t("auth.signin")}
           </button>
