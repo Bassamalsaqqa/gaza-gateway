@@ -1,5 +1,5 @@
-import { AppLink } from "@/components/app-link";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { AppLink, useAppNavigate } from "@/components/app-link";
+import { createFileRoute } from "@tanstack/react-router";
 import { ArrowRight, Plane } from "lucide-react";
 import { StatusBadge } from "@/components/flight-status";
 import { btnClass, Code, Container, EmptyState, Notice, Panel, Pill } from "@/components/kit";
@@ -74,7 +74,7 @@ function FlightDetail({
   lang: "en" | "ar";
   t: (key: string, vars?: Record<string, string | number>) => string;
 }) {
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
   const { resetDraft, setDraft } = useStore();
   const from = airportByCode(flight.originCode) ?? GZA;
   const to = airportByCode(flight.destinationCode) ?? GZA;

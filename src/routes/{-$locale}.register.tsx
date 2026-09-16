@@ -1,5 +1,5 @@
-import { AppLink } from "@/components/app-link";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { AppLink, useAppNavigate } from "@/components/app-link";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { btnClass, Container, Field, Input, Notice } from "@/components/kit";
 import { useI18n } from "@/lib/i18n";
@@ -22,7 +22,7 @@ export const Route = createFileRoute("/{-$locale}/register")({
 
 function RegisterPage() {
   const { t } = useI18n();
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
   const { signIn } = useStore();
   const [form, setForm] = useState({ firstName: "", lastName: "", email: "", password: "" });
 

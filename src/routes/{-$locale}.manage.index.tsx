@@ -1,5 +1,5 @@
-import { AppLink } from "@/components/app-link";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { AppLink, useAppNavigate } from "@/components/app-link";
+import { createFileRoute } from "@tanstack/react-router";
 import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { btnClass, Container, EmptyState, Field, Input, Notice, PageHeader } from "@/components/kit";
@@ -31,7 +31,7 @@ export const Route = createFileRoute("/{-$locale}/manage/")({
 
 function ManageLookupPage() {
   const { t } = useI18n();
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
   const { ref: refParam } = Route.useSearch();
   const { findBooking, bookings, ready } = useStore();
   const [ref, setRef] = useState(refParam ?? "");

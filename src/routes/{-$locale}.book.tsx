@@ -1,4 +1,5 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useAppNavigate } from "@/components/app-link";
+import { createFileRoute } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight, Baby, Check, Luggage, Ticket, Utensils } from "lucide-react";
 import { useMemo, useState } from "react";
 import { FlightSearchForm } from "@/components/flight-search-form";
@@ -52,7 +53,7 @@ export const Route = createFileRoute("/{-$locale}/book")({
 
 function BookPage() {
   const { t, lang } = useI18n();
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
   const { draft, setDraft, addBooking } = useStore();
   const [step, setStep] = useState<BookingStep>(draft.entry === "results" ? "results" : "search");
   const [errors, setErrors] = useState(false);

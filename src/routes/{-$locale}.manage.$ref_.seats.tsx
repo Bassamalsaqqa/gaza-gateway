@@ -107,7 +107,7 @@ function ManageSeatsPage() {
   return (
     <Container className="py-8 sm:py-12">
       <PageHeader
-        eyebrow={<Code>{booking.ref}</Code>}
+        eyebrow={t("nav.manage")}
         title={t("manage.seatsTitle")}
         description={t("manage.seatsSub", { ref: booking.ref })}
       />

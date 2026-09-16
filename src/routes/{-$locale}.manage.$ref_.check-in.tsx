@@ -146,7 +146,7 @@ function CheckInPage() {
   return (
     <Container className="py-8 sm:py-12">
       <PageHeader
-        eyebrow={<Code>{booking.ref}</Code>}
+        eyebrow={t("nav.manage")}
         title={t("ci.title")}
         description={t("ci.sub", { ref: booking.ref })}
       />
@@ -348,7 +348,7 @@ function CheckInPage() {
             </AppLink>
           </div>
           {openLegs.filter((l) => l !== leg).length > 0 ? (
-            <Notice className="mt-5">
+            <Notice>
               <button
                 type="button"
                 onClick={() => {
