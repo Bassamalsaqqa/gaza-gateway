@@ -32,7 +32,7 @@ import {
 } from "@/lib/data";
 import { dateLong, money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
-import { bookingTotal, emptyPassenger, paxCount, useStore } from "@/lib/store";
+import { bookingTotal, emptyPassenger, passengersFor, paxCount, useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/{-$locale}/book")({
@@ -311,20 +311,63 @@ function BookPage() {
                 ) : null}
 
                 <div className="mt-6 space-y-4">
-                  {Array.from({ length: pax }, (_, i) => {
-                    const p = draft.passengers[i] ?? emptyPassenger();
+                  {paxList.map((p, i) => {
                     const update = (patch: Partial<typeof p>) =>
                       setDraft((prev) => {
-                        const passengers = [...prev.passengers];
+                        const passengers = prev.passengers.length ? [...prev.passengers] : passengersFor(prev.criteria);
                         while (passengers.length < pax) passengers.push(emptyPassenger());
                         passengers[i] = { ...(passengers[i] ?? emptyPassenger()), ...patch };
                         return { ...prev, passengers };
                       });
+                    const isInfant = p.type === "infant";
                     return (
                       <Panel key={i}>
-                        <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
-                          {t("book.pax", { n: i + 1 })}
-                        </h2>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                            {t("book.pax", { n: i + 1 })}
+                          </h2>
+                          <Pill>
+                            {t(p.type === "infant" ? "book.infant" : p.type === "child" ? "book.child" : "book.adult")}
+                          </Pill>
+                        </div>
+                        {isInfant ? (
+                          <p className="mt-2 text-xs text-muted-foreground">
+                            {t("book.onLapWith", { name: paxName(p.withAdult ?? 0) })} · {t("book.noSeatInfant")}
+                          </p>
+                        ) : null}
+                        {account && !isInfant ? (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {i === 0 ? (
+                              <button
+                                type="button"
+                                className={btnClass("outline", "sm")}
+                                onClick={() => {
+                                  const [first = "", ...restName] = (account.name ?? "").split(" ");
+                                  update({ firstName: first, lastName: restName.join(" ") });
+                                }}
+                              >
+                                {t("book.useProfile")}
+                              </button>
+                            ) : null}
+                            {travelers.map((traveler) => (
+                              <button
+                                key={traveler.id}
+                                type="button"
+                                className={btnClass("ghost", "sm")}
+                                onClick={() =>
+                                  update({
+                                    firstName: traveler.firstName,
+                                    lastName: traveler.lastName,
+                                    nationality: traveler.nationality,
+                                    document: traveler.document,
+                                  })
+                                }
+                              >
+                                {t("book.useSaved")}: {traveler.firstName} {traveler.lastName}
+                              </button>
+                            ))}
+                          </div>
+                        ) : null}
                         <div className="mt-4 grid gap-3 sm:grid-cols-2">
                           <Field label={t("book.firstName")} htmlFor={`fn-${i}`}>
                             <Input
