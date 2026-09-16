@@ -5,7 +5,7 @@ import { EXTRA_BAG_PRICE, airportByCode, fares, mealOptions } from "@/lib/data";
 import { btnClass, Code, Container, EmptyState, Notice, Panel } from "@/components/kit";
 import { dateLong, money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
-import { useStore } from "@/lib/store";
+import { anyCheckedIn, useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/{-$locale}/booking-confirmation/$ref")({
   head: ({ params }) => ({
@@ -28,7 +28,7 @@ export const Route = createFileRoute("/{-$locale}/booking-confirmation/$ref")({
 function ConfirmationPage() {
   const { ref } = Route.useParams();
   const { t, lang } = useI18n();
-  const { findBooking, account, ready } = useStore();
+  const { findBooking, account, claimBooking, ready } = useStore();
   const booking = findBooking(ref);
 
   if (!ready) {
