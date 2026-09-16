@@ -1,3 +1,4 @@
+import { AppLink } from "@/components/app-link";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { btnClass, Container, Field, Input, Notice } from "@/components/kit";
@@ -87,9 +88,9 @@ function RegisterPage() {
 
         <p className="mt-5 text-sm text-muted-foreground">
           {t("auth.haveAccount")}{" "}
-          <Link to="/signin" className="font-semibold text-brand-deep underline">
+          <AppLink to="/signin" className="font-semibold text-brand-deep underline">
             {t("auth.signin")}
-          </Link>
+          </AppLink>
         </p>
       </div>
     </Container>

@@ -1,3 +1,4 @@
+import { AppLink } from "@/components/app-link";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Plane } from "lucide-react";
 import { StatusBadge } from "@/components/flight-status";
@@ -52,9 +53,9 @@ function FlightDetailPage() {
           title={t("fd.notFound")}
           description={t("fd.notFoundSub")}
           action={
-            <Link to="/flights" className={btnClass("primary", "md")}>
+            <AppLink to="/flights" className={btnClass("primary", "md")}>
               {t("fd.openBoard")}
-            </Link>
+            </AppLink>
           }
         />
       </Container>
@@ -129,9 +130,9 @@ function FlightDetail({
               {t("fd.bookThis")}
               <ArrowRight aria-hidden="true" className="size-4 rtl:-scale-x-100" />
             </button>
-            <Link to="/destinations/$code" params={{ code: routeCode }} className={btnClass("outline", "lg")}>
+            <AppLink to="/destinations/$code" params={{ code: routeCode }} className={btnClass("outline", "lg")}>
               {t("flights.book")}
-            </Link>
+            </AppLink>
             <p className="numeral text-sm text-ink-muted">{t("fd.fromPrice", { price: money(price, lang) })}</p>
           </div>
         </Container>
@@ -162,12 +163,12 @@ function FlightDetail({
               <AirportBlock label={t("flights.destination")} lang={lang} airport={to} />
             </div>
             <div className="mt-5 flex flex-wrap gap-2">
-              <Link to="/flights" className={btnClass("outline", "sm")}>
+              <AppLink to="/flights" className={btnClass("outline", "sm")}>
                 {t("fd.openBoard")}
-              </Link>
-              <Link to="/travel" className={btnClass("ghost", "sm")}>
+              </AppLink>
+              <AppLink to="/travel" className={btnClass("ghost", "sm")}>
                 {t("nav.travel")}
-              </Link>
+              </AppLink>
             </div>
           </Panel>
         </div>

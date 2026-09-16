@@ -1,4 +1,5 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { AppLink } from "@/components/app-link";
+import { createFileRoute } from "@tanstack/react-router";
 import { ArrowRight, Building2, Plane, Sparkles } from "lucide-react";
 import { btnClass, Container, Eyebrow, Notice, Panel } from "@/components/kit";
 import { destinations, img } from "@/lib/data";
@@ -117,18 +118,18 @@ function FuturePage() {
                 >
                   <span className="code-id">{destination.code}</span>
                   {pick(lang, destination.city)}
-                </Link>
+                </AppLink>
               </li>
             ))}
           </ul>
           <div className="mt-6 flex flex-wrap gap-2">
-            <Link to="/gallery" className={btnClass("primary", "md")}>
+            <AppLink to="/gallery" className={btnClass("primary", "md")}>
               {t("home.openArchive")}
               <ArrowRight aria-hidden="true" className="size-4 rtl:rotate-180" />
-            </Link>
-            <Link to="/airport/past" className={btnClass("outline", "md")}>
+            </AppLink>
+            <AppLink to="/airport/past" className={btnClass("outline", "md")}>
               {t("airport.past")}
-            </Link>
+            </AppLink>
           </div>
         </Panel>
       </Container>

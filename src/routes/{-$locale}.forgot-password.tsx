@@ -1,4 +1,5 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { AppLink } from "@/components/app-link";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { btnClass, Container, Field, Input, Notice, Panel } from "@/components/kit";
 import { useI18n } from "@/lib/i18n";
@@ -36,12 +37,12 @@ function ForgotPasswordPage() {
           <Panel className="mt-6 space-y-4">
             <p className="text-sm font-semibold">{t("auth.forgotSent", { email })}</p>
             <div className="flex flex-col gap-2 sm:flex-row">
-              <Link to="/reset-password" className={btnClass("primary", "md")}>
+              <AppLink to="/reset-password" className={btnClass("primary", "md")}>
                 {t("auth.openReset")}
-              </Link>
-              <Link to="/signin" className={btnClass("outline", "md")}>
+              </AppLink>
+              <AppLink to="/signin" className={btnClass("outline", "md")}>
                 {t("auth.backToSignIn")}
-              </Link>
+              </AppLink>
             </div>
             <Notice>{t("auth.recoveryNote")}</Notice>
           </Panel>
@@ -71,9 +72,9 @@ function ForgotPasswordPage() {
         )}
 
         <p className="mt-5 text-sm text-muted-foreground">
-          <Link to="/signin" className="font-semibold text-brand-deep underline">
+          <AppLink to="/signin" className="font-semibold text-brand-deep underline">
             {t("auth.backToSignIn")}
-          </Link>
+          </AppLink>
         </p>
       </div>
     </Container>

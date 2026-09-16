@@ -1,4 +1,5 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { AppLink } from "@/components/app-link";
+import { createFileRoute } from "@tanstack/react-router";
 import { Ticket } from "lucide-react";
 import { BoardingPassCard, passesForBooking } from "@/components/booking/boarding-pass";
 import { btnClass, EmptyState, Notice, Panel, Pill } from "@/components/kit";
@@ -45,14 +46,14 @@ function BoardingPassesPage() {
                   className={btnClass("primary", "md")}
                 >
                   {t("bp.checkinCta")}
-                </Link>
+                </AppLink>
               ) : null}
-              <Link to="/manage" className={btnClass("outline", "md")}>
+              <AppLink to="/manage" className={btnClass("outline", "md")}>
                 {t("manage.title")}
-              </Link>
-              <Link to="/book" className={btnClass("ghost", "md")}>
+              </AppLink>
+              <AppLink to="/book" className={btnClass("ghost", "md")}>
                 {t("nav.book")}
-              </Link>
+              </AppLink>
             </div>
           }
         />
@@ -64,9 +65,9 @@ function BoardingPassesPage() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Pill tone="brand">{passes.length === 1 ? t("bp.countOne") : t("bp.count", { n: passes.length })}</Pill>
-        <Link to="/manage" className={btnClass("outline", "sm")}>
+        <AppLink to="/manage" className={btnClass("outline", "sm")}>
           {t("manage.title")}
-        </Link>
+        </AppLink>
       </div>
 
       <Notice>{t("bp.notReal")}</Notice>
@@ -82,14 +83,14 @@ function BoardingPassesPage() {
                 className={btnClass("primary", "sm")}
               >
                 {t("bp.view")}
-              </Link>
+              </AppLink>
               <Link
                 to="/account/trips/$ref"
                 params={{ ref: item.booking.ref }}
                 className={btnClass("outline", "sm")}
               >
                 {t("book.viewBooking")}
-              </Link>
+              </AppLink>
             </div>
           </li>
         ))}
@@ -102,9 +103,9 @@ function BoardingPassesPage() {
             {pendingCheckin.map((b) => (
               <li key={b.ref} className="flex flex-wrap items-center justify-between gap-2 text-sm">
                 <span className="code-id font-semibold">{b.ref}</span>
-                <Link to="/manage/$ref" params={{ ref: b.ref }} className={btnClass("outline", "sm")}>
+                <AppLink to="/manage/$ref" params={{ ref: b.ref }} className={btnClass("outline", "sm")}>
                   {t("bp.checkinCta")}
-                </Link>
+                </AppLink>
               </li>
             ))}
           </ul>

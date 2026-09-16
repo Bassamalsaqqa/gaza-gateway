@@ -1,4 +1,5 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { AppLink } from "@/components/app-link";
+import { createFileRoute } from "@tanstack/react-router";
 import { Check, Ticket, UserPlus } from "lucide-react";
 import { EXTRA_BAG_PRICE, airportByCode, fares, mealOptions } from "@/lib/data";
 import { btnClass, Code, Container, EmptyState, Notice, Panel } from "@/components/kit";
@@ -46,12 +47,12 @@ function ConfirmationPage() {
           description={t("conf.notFoundSub")}
           action={
             <div className="flex flex-wrap justify-center gap-2">
-              <Link to="/manage" className={btnClass("primary", "md")}>
+              <AppLink to="/manage" className={btnClass("primary", "md")}>
                 {t("manage.title")}
-              </Link>
-              <Link to="/book" className={btnClass("outline", "md")}>
+              </AppLink>
+              <AppLink to="/book" className={btnClass("outline", "md")}>
                 {t("nav.book")}
-              </Link>
+              </AppLink>
             </div>
           }
         />
@@ -160,9 +161,9 @@ function ConfirmationPage() {
         <Panel>
           <p className="eyebrow text-clay">{t("conf.next")}</p>
           <div className="mt-4 flex flex-wrap gap-2">
-            <Link to="/manage/$ref" params={{ ref: booking.ref }} className={btnClass("primary", "md")}>
+            <AppLink to="/manage/$ref" params={{ ref: booking.ref }} className={btnClass("primary", "md")}>
               {t("book.viewBooking")}
-            </Link>
+            </AppLink>
             {booking.checkedIn ? (
               <Link
                 to="/boarding-pass/$ref/$pax"
@@ -170,22 +171,22 @@ function ConfirmationPage() {
                 className={btnClass("outline", "md")}
               >
                 {t("book.boardingPass")}
-              </Link>
+              </AppLink>
             ) : (
-              <Link to="/manage/$ref" params={{ ref: booking.ref }} className={btnClass("outline", "md")}>
+              <AppLink to="/manage/$ref" params={{ ref: booking.ref }} className={btnClass("outline", "md")}>
                 <Ticket aria-hidden="true" className="size-4" />
                 {t("manage.checkin")}
-              </Link>
+              </AppLink>
             )}
             {!account ? (
-              <Link to="/register" className={btnClass("clay", "md")}>
+              <AppLink to="/register" className={btnClass("clay", "md")}>
                 <UserPlus aria-hidden="true" className="size-4" />
                 {t("book.createAccount")}
-              </Link>
+              </AppLink>
             ) : (
-              <Link to="/account/trips" className={btnClass("outline", "md")}>
+              <AppLink to="/account/trips" className={btnClass("outline", "md")}>
                 {t("account.trips")}
-              </Link>
+              </AppLink>
             )}
           </div>
           <div className="mt-4">

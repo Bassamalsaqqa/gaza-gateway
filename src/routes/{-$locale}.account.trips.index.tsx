@@ -1,4 +1,5 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { AppLink } from "@/components/app-link";
+import { createFileRoute } from "@tanstack/react-router";
 import { StatusBadge } from "@/components/flight-status";
 import { btnClass, Code, EmptyState, Panel, Pill } from "@/components/kit";
 import { airportByCode } from "@/lib/data";
@@ -28,9 +29,9 @@ function TripsPage() {
         title={t("account.noTrips")}
         description={t("account.noTripsSub")}
         action={
-          <Link to="/book" className={btnClass("primary", "md")}>
+          <AppLink to="/book" className={btnClass("primary", "md")}>
             {t("account.bookNow")}
-          </Link>
+          </AppLink>
         }
       />
     );
@@ -78,9 +79,9 @@ function TripsPage() {
               <p className="text-sm text-muted-foreground">
                 {t("book.total")}: <span className="font-semibold text-foreground">{money(booking.total, lang)}</span>
               </p>
-              <Link to="/account/trips/$ref" params={{ ref: booking.ref }} className={btnClass("outline", "sm")}>
+              <AppLink to="/account/trips/$ref" params={{ ref: booking.ref }} className={btnClass("outline", "sm")}>
                 {t("account.viewTrip")}
-              </Link>
+              </AppLink>
             </div>
           </Panel>
         </li>

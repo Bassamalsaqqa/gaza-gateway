@@ -1,4 +1,5 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { AppLink } from "@/components/app-link";
+import { createFileRoute } from "@tanstack/react-router";
 import { MailCheck } from "lucide-react";
 import { useState } from "react";
 import { btnClass, Container, Notice, Panel } from "@/components/kit";
@@ -41,12 +42,12 @@ function VerifyEmailPage() {
             <>
               <p className="text-sm font-semibold">{t("auth.verifyDone")}</p>
               <div className="flex flex-col gap-2 sm:flex-row">
-                <Link to="/account" className={btnClass("primary", "md")}>
+                <AppLink to="/account" className={btnClass("primary", "md")}>
                   {t("auth.goToAccount")}
-                </Link>
-                <Link to="/book" className={btnClass("outline", "md")}>
+                </AppLink>
+                <AppLink to="/book" className={btnClass("outline", "md")}>
                   {t("nav.book")}
-                </Link>
+                </AppLink>
               </div>
             </>
           ) : (
@@ -68,9 +69,9 @@ function VerifyEmailPage() {
         </Panel>
 
         <p className="mt-5 text-sm text-muted-foreground">
-          <Link to="/signin" className="font-semibold text-brand-deep underline">
+          <AppLink to="/signin" className="font-semibold text-brand-deep underline">
             {t("auth.backToSignIn")}
-          </Link>
+          </AppLink>
         </p>
       </div>
     </Container>

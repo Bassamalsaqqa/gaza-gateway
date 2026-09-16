@@ -674,7 +674,7 @@ const ar: Dict = {
   "book.summary": "ملخص الرحلة",
   "book.route": "الخط",
   "book.passengersLabel": "المسافرون",
-  "book.seatFees": "Seat fees",
+  "book.seatFees": "رسوم المقاعد",
   "book.seatsLabel": "المقاعد",
   "book.none": "لا شيء",
   "book.required": "يرجى إكمال الحقول المطلوبة.",

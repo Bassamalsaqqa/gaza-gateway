@@ -1,3 +1,4 @@
+import { AppLink } from "@/components/app-link";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -103,7 +104,7 @@ function ManageLookupPage() {
                       className="code-id block rounded-md border border-input bg-card px-2.5 py-1.5 text-xs font-semibold"
                     >
                       {b.ref}
-                    </Link>
+                    </AppLink>
                   </li>
                 ))}
               </ul>
@@ -117,9 +118,9 @@ function ManageLookupPage() {
               title={t("manage.notFound")}
               description={t("manage.demoHint")}
               action={
-                <Link to="/book" className={btnClass("outline", "md")}>
+                <AppLink to="/book" className={btnClass("outline", "md")}>
                   {t("nav.book")}
-                </Link>
+                </AppLink>
               }
             />
           ) : (
@@ -127,9 +128,9 @@ function ManageLookupPage() {
               title={t("manage.title")}
               description={t("manage.sub")}
               action={
-                <Link to="/book" className={btnClass("outline", "md")}>
+                <AppLink to="/book" className={btnClass("outline", "md")}>
                   {t("nav.book")}
-                </Link>
+                </AppLink>
               }
             />
           )}

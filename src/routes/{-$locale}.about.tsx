@@ -1,4 +1,5 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { AppLink } from "@/components/app-link";
+import { createFileRoute } from "@tanstack/react-router";
 import { btnClass, Code, Container, PageHeader, Panel } from "@/components/kit";
 import { AIRLINE, destinations, img } from "@/lib/data";
 import { pick, useI18n } from "@/lib/i18n";
@@ -42,9 +43,9 @@ function AboutPage() {
               ar: "افتُتح مطار غزة الدولي (GZA) عام 1998 مطاراً مدنياً يخدم غزة. يعرض هذا الموقع تاريخه وحاضره ورؤية مستقبله، مع فصل واضح بين المواد الموثّقة والعناصر المؤقتة.",
             })}
           </p>
-          <Link to="/airport" className={btnClass("outline", "md", "mt-5")}>
+          <AppLink to="/airport" className={btnClass("outline", "md", "mt-5")}>
             {t("airport.title")}
-          </Link>
+          </AppLink>
         </Panel>
 
         <Panel>
@@ -64,9 +65,9 @@ function AboutPage() {
               </li>
             ))}
           </ul>
-          <Link to="/destinations" className={btnClass("outline", "md", "mt-5")}>
+          <AppLink to="/destinations" className={btnClass("outline", "md", "mt-5")}>
             {t("dest.title")}
-          </Link>
+          </AppLink>
         </Panel>
 
         <Panel className="lg:col-span-2">

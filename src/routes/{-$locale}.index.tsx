@@ -1,4 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { AppLink } from "@/components/app-link";
+import { createFileRoute } from "@tanstack/react-router";
 import { ArrowRight, Camera, Luggage, Plane, Ticket } from "lucide-react";
 import { useMemo, useState } from "react";
 import { FlightSearchForm } from "@/components/flight-search-form";
@@ -53,16 +54,16 @@ function Home() {
           <h1 className="mt-4 max-w-3xl text-3xl leading-[1.08] font-bold sm:text-5xl lg:text-6xl">{t("home.h1")}</h1>
           <p className="mt-5 max-w-xl text-sm text-ink-muted sm:text-base">{t("home.sub")}</p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link to="/airport" className={btnClass("clay", "md")}>
+            <AppLink to="/airport" className={btnClass("clay", "md")}>
               {t("home.exploreAirport")}
               <ArrowRight aria-hidden="true" className="size-4 rtl:rotate-180" />
-            </Link>
+            </AppLink>
             <Link
               to="/flights"
               className={btnClass("ghost", "md", "border border-ink-border text-ink-foreground hover:bg-ink-border")}
             >
               {t("home.viewFlights")}
-            </Link>
+            </AppLink>
           </div>
         </Container>
       </section>
@@ -79,9 +80,9 @@ function Home() {
           title={t("home.boardTitle")}
           description={t("home.boardSub")}
           action={
-            <Link to="/flights" className={btnClass("outline", "sm")}>
+            <AppLink to="/flights" className={btnClass("outline", "sm")}>
               {t("home.fullBoard")}
-            </Link>
+            </AppLink>
           }
         />
         <div className="mt-6 rounded-xl border border-border bg-card p-4 sm:p-6">
@@ -115,9 +116,9 @@ function Home() {
           title={t("home.destTitle")}
           description={t("home.destSub")}
           action={
-            <Link to="/destinations" className={btnClass("outline", "sm")}>
+            <AppLink to="/destinations" className={btnClass("outline", "sm")}>
               {t("home.allDest")}
-            </Link>
+            </AppLink>
           }
         />
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -164,7 +165,7 @@ function Home() {
                     <ArrowRight aria-hidden="true" className="size-3.5 rtl:rotate-180" />
                   </span>
                 </div>
-              </Link>
+              </AppLink>
             ))}
           </div>
         </Container>
@@ -177,12 +178,12 @@ function Home() {
           <h2 className="mt-4 text-2xl font-bold">{t("home.manageTitle")}</h2>
           <p className="mt-2 max-w-md text-sm text-muted-foreground">{t("home.manageSub")}</p>
           <div className="mt-5 flex flex-wrap gap-2">
-            <Link to="/manage" className={btnClass("primary", "md")}>
+            <AppLink to="/manage" className={btnClass("primary", "md")}>
               {t("nav.manage")}
-            </Link>
-            <Link to="/signin" className={btnClass("outline", "md")}>
+            </AppLink>
+            <AppLink to="/signin" className={btnClass("outline", "md")}>
               {t("nav.signin")}
-            </Link>
+            </AppLink>
           </div>
         </div>
         <div className="rounded-xl border border-border bg-card p-6">
@@ -197,10 +198,10 @@ function Home() {
               ] as const
             ).map((item, i) => (
               <li key={i}>
-                <Link to={item.to} className="flex items-center justify-between gap-2 text-foreground hover:text-primary">
+                <AppLink to={item.to} className="flex items-center justify-between gap-2 text-foreground hover:text-primary">
                   {[t("book.baggage"), t("book.docNumber"), t("book.assistance")][i]}
                   <ArrowRight aria-hidden="true" className="size-4 text-muted-foreground rtl:rotate-180" />
-                </Link>
+                </AppLink>
               </li>
             ))}
           </ul>
@@ -214,22 +215,22 @@ function Home() {
           title={t("home.archiveTitle")}
           description={t("home.archiveSub")}
           action={
-            <Link to="/gallery" className={btnClass("outline", "sm")}>
+            <AppLink to="/gallery" className={btnClass("outline", "sm")}>
               {t("home.openArchive")}
-            </Link>
+            </AppLink>
           }
         />
         <ul className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {archive.map((item) => (
             <li key={item.id} className="overflow-hidden rounded-lg border border-border">
-              <Link to="/gallery" aria-label={item.title[lang === "ar" ? "ar" : "en"]}>
+              <AppLink to="/gallery" aria-label={item.title[lang === "ar" ? "ar" : "en"]}>
                 <img
                   src={img(item.imageSeed, 400, 400)}
                   alt=""
                   loading="lazy"
                   className="aspect-square size-full object-cover transition-opacity hover:opacity-85"
                 />
-              </Link>
+              </AppLink>
             </li>
           ))}
         </ul>
@@ -246,10 +247,10 @@ function Home() {
               {t("footer.rights")}
             </p>
           </div>
-          <Link to="/about" className={btnClass("outline", "sm")}>
+          <AppLink to="/about" className={btnClass("outline", "sm")}>
             <Camera aria-hidden="true" className="size-4" />
             {t("nav.about")}
-          </Link>
+          </AppLink>
         </div>
       </Container>
     </>
