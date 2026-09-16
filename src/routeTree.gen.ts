@@ -10,13 +10,61 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AboutRouteImport } from './routes/about'
+import { Route as AccountRouteImport } from './routes/account'
+import { Route as AirportRouteImport } from './routes/airport'
+import { Route as BookRouteImport } from './routes/book'
+import { Route as ContactRouteImport } from './routes/contact'
 import { Route as DestinationsRouteImport } from './routes/destinations'
 import { Route as FlightsRouteImport } from './routes/flights'
+import { Route as GalleryRouteImport } from './routes/gallery'
+import { Route as ManageRouteImport } from './routes/manage'
+import { Route as RegisterRouteImport } from './routes/register'
+import { Route as SigninRouteImport } from './routes/signin'
+import { Route as TravelRouteImport } from './routes/travel'
+import { Route as AccountIndexRouteImport } from './routes/account.index'
+import { Route as AccountBoardingPassesRouteImport } from './routes/account.boarding-passes'
+import { Route as AccountPreferencesRouteImport } from './routes/account.preferences'
+import { Route as AccountProfileRouteImport } from './routes/account.profile'
+import { Route as AccountSecurityRouteImport } from './routes/account.security'
+import { Route as AccountTravelersRouteImport } from './routes/account.travelers'
+import { Route as AccountTripsRouteImport } from './routes/account.trips'
+import { Route as AirportIndexRouteImport } from './routes/airport.index'
+import { Route as AirportFutureRouteImport } from './routes/airport.future'
+import { Route as AirportPastRouteImport } from './routes/airport.past'
+import { Route as AirportPresentRouteImport } from './routes/airport.present'
 import { Route as DestinationsCodeRouteImport } from './routes/destinations.$code'
+import { Route as AccountTripsIndexRouteImport } from './routes/account.trips.index'
+import { Route as AccountTripsRefRouteImport } from './routes/account.trips.$ref'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccountRoute = AccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AirportRoute = AirportRouteImport.update({
+  id: '/airport',
+  path: '/airport',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BookRoute = BookRouteImport.update({
+  id: '/book',
+  path: '/book',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DestinationsRoute = DestinationsRouteImport.update({
@@ -29,43 +77,288 @@ const FlightsRoute = FlightsRouteImport.update({
   path: '/flights',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GalleryRoute = GalleryRouteImport.update({
+  id: '/gallery',
+  path: '/gallery',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ManageRoute = ManageRouteImport.update({
+  id: '/manage',
+  path: '/manage',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SigninRoute = SigninRouteImport.update({
+  id: '/signin',
+  path: '/signin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TravelRoute = TravelRouteImport.update({
+  id: '/travel',
+  path: '/travel',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccountIndexRoute = AccountIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AccountRoute,
+} as any)
+const AccountBoardingPassesRoute = AccountBoardingPassesRouteImport.update({
+  id: '/boarding-passes',
+  path: '/boarding-passes',
+  getParentRoute: () => AccountRoute,
+} as any)
+const AccountPreferencesRoute = AccountPreferencesRouteImport.update({
+  id: '/preferences',
+  path: '/preferences',
+  getParentRoute: () => AccountRoute,
+} as any)
+const AccountProfileRoute = AccountProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AccountRoute,
+} as any)
+const AccountSecurityRoute = AccountSecurityRouteImport.update({
+  id: '/security',
+  path: '/security',
+  getParentRoute: () => AccountRoute,
+} as any)
+const AccountTravelersRoute = AccountTravelersRouteImport.update({
+  id: '/travelers',
+  path: '/travelers',
+  getParentRoute: () => AccountRoute,
+} as any)
+const AccountTripsRoute = AccountTripsRouteImport.update({
+  id: '/trips',
+  path: '/trips',
+  getParentRoute: () => AccountRoute,
+} as any)
+const AirportIndexRoute = AirportIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AirportRoute,
+} as any)
+const AirportFutureRoute = AirportFutureRouteImport.update({
+  id: '/future',
+  path: '/future',
+  getParentRoute: () => AirportRoute,
+} as any)
+const AirportPastRoute = AirportPastRouteImport.update({
+  id: '/past',
+  path: '/past',
+  getParentRoute: () => AirportRoute,
+} as any)
+const AirportPresentRoute = AirportPresentRouteImport.update({
+  id: '/present',
+  path: '/present',
+  getParentRoute: () => AirportRoute,
+} as any)
 const DestinationsCodeRoute = DestinationsCodeRouteImport.update({
   id: '/$code',
   path: '/$code',
   getParentRoute: () => DestinationsRoute,
 } as any)
+const AccountTripsIndexRoute = AccountTripsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AccountTripsRoute,
+} as any)
+const AccountTripsRefRoute = AccountTripsRefRouteImport.update({
+  id: '/$ref',
+  path: '/$ref',
+  getParentRoute: () => AccountTripsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/account': typeof AccountRouteWithChildren
+  '/airport': typeof AirportRouteWithChildren
+  '/book': typeof BookRoute
+  '/contact': typeof ContactRoute
   '/destinations': typeof DestinationsRouteWithChildren
   '/flights': typeof FlightsRoute
+  '/gallery': typeof GalleryRoute
+  '/manage': typeof ManageRoute
+  '/register': typeof RegisterRoute
+  '/signin': typeof SigninRoute
+  '/travel': typeof TravelRoute
+  '/account/boarding-passes': typeof AccountBoardingPassesRoute
+  '/account/preferences': typeof AccountPreferencesRoute
+  '/account/profile': typeof AccountProfileRoute
+  '/account/security': typeof AccountSecurityRoute
+  '/account/travelers': typeof AccountTravelersRoute
+  '/account/trips': typeof AccountTripsRouteWithChildren
+  '/airport/future': typeof AirportFutureRoute
+  '/airport/past': typeof AirportPastRoute
+  '/airport/present': typeof AirportPresentRoute
   '/destinations/$code': typeof DestinationsCodeRoute
+  '/account/': typeof AccountIndexRoute
+  '/airport/': typeof AirportIndexRoute
+  '/account/trips/$ref': typeof AccountTripsRefRoute
+  '/account/trips/': typeof AccountTripsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/book': typeof BookRoute
+  '/contact': typeof ContactRoute
   '/destinations': typeof DestinationsRouteWithChildren
   '/flights': typeof FlightsRoute
+  '/gallery': typeof GalleryRoute
+  '/manage': typeof ManageRoute
+  '/register': typeof RegisterRoute
+  '/signin': typeof SigninRoute
+  '/travel': typeof TravelRoute
+  '/account/boarding-passes': typeof AccountBoardingPassesRoute
+  '/account/preferences': typeof AccountPreferencesRoute
+  '/account/profile': typeof AccountProfileRoute
+  '/account/security': typeof AccountSecurityRoute
+  '/account/travelers': typeof AccountTravelersRoute
+  '/airport/future': typeof AirportFutureRoute
+  '/airport/past': typeof AirportPastRoute
+  '/airport/present': typeof AirportPresentRoute
   '/destinations/$code': typeof DestinationsCodeRoute
+  '/account': typeof AccountIndexRoute
+  '/airport': typeof AirportIndexRoute
+  '/account/trips/$ref': typeof AccountTripsRefRoute
+  '/account/trips': typeof AccountTripsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/account': typeof AccountRouteWithChildren
+  '/airport': typeof AirportRouteWithChildren
+  '/book': typeof BookRoute
+  '/contact': typeof ContactRoute
   '/destinations': typeof DestinationsRouteWithChildren
   '/flights': typeof FlightsRoute
+  '/gallery': typeof GalleryRoute
+  '/manage': typeof ManageRoute
+  '/register': typeof RegisterRoute
+  '/signin': typeof SigninRoute
+  '/travel': typeof TravelRoute
+  '/account/boarding-passes': typeof AccountBoardingPassesRoute
+  '/account/preferences': typeof AccountPreferencesRoute
+  '/account/profile': typeof AccountProfileRoute
+  '/account/security': typeof AccountSecurityRoute
+  '/account/travelers': typeof AccountTravelersRoute
+  '/account/trips': typeof AccountTripsRouteWithChildren
+  '/airport/future': typeof AirportFutureRoute
+  '/airport/past': typeof AirportPastRoute
+  '/airport/present': typeof AirportPresentRoute
   '/destinations/$code': typeof DestinationsCodeRoute
+  '/account/': typeof AccountIndexRoute
+  '/airport/': typeof AirportIndexRoute
+  '/account/trips/$ref': typeof AccountTripsRefRoute
+  '/account/trips/': typeof AccountTripsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/destinations' | '/flights' | '/destinations/$code'
+  fullPaths:
+    | '/'
+    | '/about'
+    | '/account'
+    | '/airport'
+    | '/book'
+    | '/contact'
+    | '/destinations'
+    | '/flights'
+    | '/gallery'
+    | '/manage'
+    | '/register'
+    | '/signin'
+    | '/travel'
+    | '/account/boarding-passes'
+    | '/account/preferences'
+    | '/account/profile'
+    | '/account/security'
+    | '/account/travelers'
+    | '/account/trips'
+    | '/airport/future'
+    | '/airport/past'
+    | '/airport/present'
+    | '/destinations/$code'
+    | '/account/'
+    | '/airport/'
+    | '/account/trips/$ref'
+    | '/account/trips/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/destinations' | '/flights' | '/destinations/$code'
-  id: '__root__' | '/' | '/destinations' | '/flights' | '/destinations/$code'
+  to:
+    | '/'
+    | '/about'
+    | '/book'
+    | '/contact'
+    | '/destinations'
+    | '/flights'
+    | '/gallery'
+    | '/manage'
+    | '/register'
+    | '/signin'
+    | '/travel'
+    | '/account/boarding-passes'
+    | '/account/preferences'
+    | '/account/profile'
+    | '/account/security'
+    | '/account/travelers'
+    | '/airport/future'
+    | '/airport/past'
+    | '/airport/present'
+    | '/destinations/$code'
+    | '/account'
+    | '/airport'
+    | '/account/trips/$ref'
+    | '/account/trips'
+  id:
+    | '__root__'
+    | '/'
+    | '/about'
+    | '/account'
+    | '/airport'
+    | '/book'
+    | '/contact'
+    | '/destinations'
+    | '/flights'
+    | '/gallery'
+    | '/manage'
+    | '/register'
+    | '/signin'
+    | '/travel'
+    | '/account/boarding-passes'
+    | '/account/preferences'
+    | '/account/profile'
+    | '/account/security'
+    | '/account/travelers'
+    | '/account/trips'
+    | '/airport/future'
+    | '/airport/past'
+    | '/airport/present'
+    | '/destinations/$code'
+    | '/account/'
+    | '/airport/'
+    | '/account/trips/$ref'
+    | '/account/trips/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
+  AccountRoute: typeof AccountRouteWithChildren
+  AirportRoute: typeof AirportRouteWithChildren
+  BookRoute: typeof BookRoute
+  ContactRoute: typeof ContactRoute
   DestinationsRoute: typeof DestinationsRouteWithChildren
   FlightsRoute: typeof FlightsRoute
+  GalleryRoute: typeof GalleryRoute
+  ManageRoute: typeof ManageRoute
+  RegisterRoute: typeof RegisterRoute
+  SigninRoute: typeof SigninRoute
+  TravelRoute: typeof TravelRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -75,6 +368,41 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/account': {
+      id: '/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/airport': {
+      id: '/airport'
+      path: '/airport'
+      fullPath: '/airport'
+      preLoaderRoute: typeof AirportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/book': {
+      id: '/book'
+      path: '/book'
+      fullPath: '/book'
+      preLoaderRoute: typeof BookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/destinations': {
@@ -91,6 +419,118 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FlightsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/gallery': {
+      id: '/gallery'
+      path: '/gallery'
+      fullPath: '/gallery'
+      preLoaderRoute: typeof GalleryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/manage': {
+      id: '/manage'
+      path: '/manage'
+      fullPath: '/manage'
+      preLoaderRoute: typeof ManageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signin': {
+      id: '/signin'
+      path: '/signin'
+      fullPath: '/signin'
+      preLoaderRoute: typeof SigninRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/travel': {
+      id: '/travel'
+      path: '/travel'
+      fullPath: '/travel'
+      preLoaderRoute: typeof TravelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/account/': {
+      id: '/account/'
+      path: '/'
+      fullPath: '/account/'
+      preLoaderRoute: typeof AccountIndexRouteImport
+      parentRoute: typeof AccountRoute
+    }
+    '/account/boarding-passes': {
+      id: '/account/boarding-passes'
+      path: '/boarding-passes'
+      fullPath: '/account/boarding-passes'
+      preLoaderRoute: typeof AccountBoardingPassesRouteImport
+      parentRoute: typeof AccountRoute
+    }
+    '/account/preferences': {
+      id: '/account/preferences'
+      path: '/preferences'
+      fullPath: '/account/preferences'
+      preLoaderRoute: typeof AccountPreferencesRouteImport
+      parentRoute: typeof AccountRoute
+    }
+    '/account/profile': {
+      id: '/account/profile'
+      path: '/profile'
+      fullPath: '/account/profile'
+      preLoaderRoute: typeof AccountProfileRouteImport
+      parentRoute: typeof AccountRoute
+    }
+    '/account/security': {
+      id: '/account/security'
+      path: '/security'
+      fullPath: '/account/security'
+      preLoaderRoute: typeof AccountSecurityRouteImport
+      parentRoute: typeof AccountRoute
+    }
+    '/account/travelers': {
+      id: '/account/travelers'
+      path: '/travelers'
+      fullPath: '/account/travelers'
+      preLoaderRoute: typeof AccountTravelersRouteImport
+      parentRoute: typeof AccountRoute
+    }
+    '/account/trips': {
+      id: '/account/trips'
+      path: '/trips'
+      fullPath: '/account/trips'
+      preLoaderRoute: typeof AccountTripsRouteImport
+      parentRoute: typeof AccountRoute
+    }
+    '/airport/': {
+      id: '/airport/'
+      path: '/'
+      fullPath: '/airport/'
+      preLoaderRoute: typeof AirportIndexRouteImport
+      parentRoute: typeof AirportRoute
+    }
+    '/airport/future': {
+      id: '/airport/future'
+      path: '/future'
+      fullPath: '/airport/future'
+      preLoaderRoute: typeof AirportFutureRouteImport
+      parentRoute: typeof AirportRoute
+    }
+    '/airport/past': {
+      id: '/airport/past'
+      path: '/past'
+      fullPath: '/airport/past'
+      preLoaderRoute: typeof AirportPastRouteImport
+      parentRoute: typeof AirportRoute
+    }
+    '/airport/present': {
+      id: '/airport/present'
+      path: '/present'
+      fullPath: '/airport/present'
+      preLoaderRoute: typeof AirportPresentRouteImport
+      parentRoute: typeof AirportRoute
+    }
     '/destinations/$code': {
       id: '/destinations/$code'
       path: '/$code'
@@ -98,8 +538,76 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DestinationsCodeRouteImport
       parentRoute: typeof DestinationsRoute
     }
+    '/account/trips/': {
+      id: '/account/trips/'
+      path: '/'
+      fullPath: '/account/trips/'
+      preLoaderRoute: typeof AccountTripsIndexRouteImport
+      parentRoute: typeof AccountTripsRoute
+    }
+    '/account/trips/$ref': {
+      id: '/account/trips/$ref'
+      path: '/$ref'
+      fullPath: '/account/trips/$ref'
+      preLoaderRoute: typeof AccountTripsRefRouteImport
+      parentRoute: typeof AccountTripsRoute
+    }
   }
 }
+
+interface AccountTripsRouteChildren {
+  AccountTripsRefRoute: typeof AccountTripsRefRoute
+  AccountTripsIndexRoute: typeof AccountTripsIndexRoute
+}
+
+const AccountTripsRouteChildren: AccountTripsRouteChildren = {
+  AccountTripsRefRoute: AccountTripsRefRoute,
+  AccountTripsIndexRoute: AccountTripsIndexRoute,
+}
+
+const AccountTripsRouteWithChildren = AccountTripsRoute._addFileChildren(
+  AccountTripsRouteChildren,
+)
+
+interface AccountRouteChildren {
+  AccountBoardingPassesRoute: typeof AccountBoardingPassesRoute
+  AccountPreferencesRoute: typeof AccountPreferencesRoute
+  AccountProfileRoute: typeof AccountProfileRoute
+  AccountSecurityRoute: typeof AccountSecurityRoute
+  AccountTravelersRoute: typeof AccountTravelersRoute
+  AccountTripsRoute: typeof AccountTripsRouteWithChildren
+  AccountIndexRoute: typeof AccountIndexRoute
+}
+
+const AccountRouteChildren: AccountRouteChildren = {
+  AccountBoardingPassesRoute: AccountBoardingPassesRoute,
+  AccountPreferencesRoute: AccountPreferencesRoute,
+  AccountProfileRoute: AccountProfileRoute,
+  AccountSecurityRoute: AccountSecurityRoute,
+  AccountTravelersRoute: AccountTravelersRoute,
+  AccountTripsRoute: AccountTripsRouteWithChildren,
+  AccountIndexRoute: AccountIndexRoute,
+}
+
+const AccountRouteWithChildren =
+  AccountRoute._addFileChildren(AccountRouteChildren)
+
+interface AirportRouteChildren {
+  AirportFutureRoute: typeof AirportFutureRoute
+  AirportPastRoute: typeof AirportPastRoute
+  AirportPresentRoute: typeof AirportPresentRoute
+  AirportIndexRoute: typeof AirportIndexRoute
+}
+
+const AirportRouteChildren: AirportRouteChildren = {
+  AirportFutureRoute: AirportFutureRoute,
+  AirportPastRoute: AirportPastRoute,
+  AirportPresentRoute: AirportPresentRoute,
+  AirportIndexRoute: AirportIndexRoute,
+}
+
+const AirportRouteWithChildren =
+  AirportRoute._addFileChildren(AirportRouteChildren)
 
 interface DestinationsRouteChildren {
   DestinationsCodeRoute: typeof DestinationsCodeRoute
@@ -115,8 +623,18 @@ const DestinationsRouteWithChildren = DestinationsRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutRoute: AboutRoute,
+  AccountRoute: AccountRouteWithChildren,
+  AirportRoute: AirportRouteWithChildren,
+  BookRoute: BookRoute,
+  ContactRoute: ContactRoute,
   DestinationsRoute: DestinationsRouteWithChildren,
   FlightsRoute: FlightsRoute,
+  GalleryRoute: GalleryRoute,
+  ManageRoute: ManageRoute,
+  RegisterRoute: RegisterRoute,
+  SigninRoute: SigninRoute,
+  TravelRoute: TravelRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
