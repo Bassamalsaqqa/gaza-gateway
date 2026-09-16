@@ -342,8 +342,7 @@ function BookPage() {
                                 type="button"
                                 className={btnClass("outline", "sm")}
                                 onClick={() => {
-                                  const [first = "", ...restName] = (account.name ?? "").split(" ");
-                                  update({ firstName: first, lastName: restName.join(" ") });
+                                  update({ firstName: account.firstName, lastName: account.lastName });
                                 }}
                               >
                                 {t("book.useProfile")}
