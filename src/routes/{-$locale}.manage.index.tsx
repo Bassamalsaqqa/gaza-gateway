@@ -97,7 +97,6 @@ function ManageLookupPage() {
                   setError(null);
                 }}
                 aria-invalid={error ? true : undefined}
-                aria-describedby={error ? "identifier-error" : undefined}
                 required
               />
             </Field>
