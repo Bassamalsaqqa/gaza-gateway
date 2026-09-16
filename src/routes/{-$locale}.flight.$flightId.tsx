@@ -16,7 +16,7 @@ import { dateLong, money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
 import { defaultCriteria, useStore } from "@/lib/store";
 
-export const Route = createFileRoute("/flight/$flightId")({
+export const Route = createFileRoute("/{-$locale}/flight/$flightId")({
   head: ({ params }) => {
     const flight = flightById(params.flightId);
     const title = flight

@@ -6,7 +6,7 @@ import { travelSections } from "@/lib/data";
 import { pick, useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/travel")({
+export const Route = createFileRoute("/{-$locale}/travel")({
   head: () => ({
     meta: [
       { title: "Travel information — Gaza International Airport (GZA)" },

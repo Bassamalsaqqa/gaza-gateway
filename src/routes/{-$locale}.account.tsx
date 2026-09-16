@@ -3,7 +3,7 @@ import { btnClass, Container, EmptyState, PageHeader } from "@/components/kit";
 import { useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 
-export const Route = createFileRoute("/account")({
+export const Route = createFileRoute("/{-$locale}/account")({
   component: AccountLayout,
 });
 

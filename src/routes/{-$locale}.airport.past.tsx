@@ -5,7 +5,7 @@ import { img, timeline } from "@/lib/data";
 import { pick, useI18n } from "@/lib/i18n";
 import { btnClass } from "@/components/kit";
 
-export const Route = createFileRoute("/airport/past")({
+export const Route = createFileRoute("/{-$locale}/airport/past")({
   head: () => ({
     meta: [
       { title: "The past — history and archive of Gaza International Airport" },

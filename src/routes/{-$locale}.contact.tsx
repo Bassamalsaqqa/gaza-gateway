@@ -4,7 +4,7 @@ import { useState } from "react";
 import { btnClass, Container, Field, Input, Notice, PageHeader, Panel, Select, Textarea } from "@/components/kit";
 import { pick, useI18n } from "@/lib/i18n";
 
-export const Route = createFileRoute("/contact")({
+export const Route = createFileRoute("/{-$locale}/contact")({
   head: () => ({
     meta: [
       { title: "Contact — Gaza International Airport (GZA)" },

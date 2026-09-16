@@ -6,7 +6,7 @@ import { dateLong, money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 
-export const Route = createFileRoute("/account/trips/")({
+export const Route = createFileRoute("/{-$locale}/account/trips/")({
   head: () => ({
     meta: [
       { title: "My trips — Gaza International Airport (GZA)" },

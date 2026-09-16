@@ -7,7 +7,7 @@ import { dateLong } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 
-export const Route = createFileRoute("/account/")({
+export const Route = createFileRoute("/{-$locale}/account/")({
   head: () => ({
     meta: [
       { title: "Account overview — Gaza International Airport (GZA)" },

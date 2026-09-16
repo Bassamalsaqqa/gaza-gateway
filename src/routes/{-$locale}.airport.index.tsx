@@ -4,7 +4,7 @@ import { Container, Eyebrow, PageHeader } from "@/components/kit";
 import { img } from "@/lib/data";
 import { pick, useI18n } from "@/lib/i18n";
 
-export const Route = createFileRoute("/airport/")({
+export const Route = createFileRoute("/{-$locale}/airport/")({
   head: () => ({
     meta: [
       { title: "The airport — past, present and future of GZA" },

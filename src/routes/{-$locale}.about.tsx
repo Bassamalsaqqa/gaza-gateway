@@ -3,7 +3,7 @@ import { btnClass, Code, Container, PageHeader, Panel } from "@/components/kit";
 import { AIRLINE, destinations, img } from "@/lib/data";
 import { pick, useI18n } from "@/lib/i18n";
 
-export const Route = createFileRoute("/about")({
+export const Route = createFileRoute("/{-$locale}/about")({
   head: () => ({
     meta: [
       { title: "About — Gaza International Airport and Palestinian Airlines" },

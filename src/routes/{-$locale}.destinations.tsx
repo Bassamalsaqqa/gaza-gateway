@@ -5,7 +5,7 @@ import { Container, Field, Input, PageHeader } from "@/components/kit";
 import { destinations } from "@/lib/data";
 import { pick, useI18n } from "@/lib/i18n";
 
-export const Route = createFileRoute("/destinations")({
+export const Route = createFileRoute("/{-$locale}/destinations")({
   head: () => ({
     meta: [
       { title: "Destinations — Palestinian Airlines from Gaza (GZA)" },

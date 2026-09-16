@@ -3,7 +3,7 @@ import { useState } from "react";
 import { btnClass, Container, Field, Input, Notice, Panel } from "@/components/kit";
 import { useI18n } from "@/lib/i18n";
 
-export const Route = createFileRoute("/reset-password")({
+export const Route = createFileRoute("/{-$locale}/reset-password")({
   head: () => ({
     meta: [
       { title: "Choose a new password — Gaza International Airport (GZA)" },

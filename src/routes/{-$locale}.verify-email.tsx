@@ -5,7 +5,7 @@ import { btnClass, Container, Notice, Panel } from "@/components/kit";
 import { useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 
-export const Route = createFileRoute("/verify-email")({
+export const Route = createFileRoute("/{-$locale}/verify-email")({
   head: () => ({
     meta: [
       { title: "Verify your email — Gaza International Airport (GZA)" },

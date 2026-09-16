@@ -4,7 +4,7 @@ import { btnClass, Container, Field, Input, Notice } from "@/components/kit";
 import { useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 
-export const Route = createFileRoute("/signin")({
+export const Route = createFileRoute("/{-$locale}/signin")({
   head: () => ({
     meta: [
       { title: "Sign in — Gaza International Airport (GZA)" },

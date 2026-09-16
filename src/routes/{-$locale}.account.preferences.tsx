@@ -5,7 +5,7 @@ import { mealOptions } from "@/lib/data";
 import { pick, useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 
-export const Route = createFileRoute("/account/preferences")({
+export const Route = createFileRoute("/{-$locale}/account/preferences")({
   head: () => ({
     meta: [
       { title: "Travel preferences — Gaza International Airport (GZA)" },

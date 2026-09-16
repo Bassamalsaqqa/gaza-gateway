@@ -12,7 +12,7 @@ import {
 import { pick, useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/gallery")({
+export const Route = createFileRoute("/{-$locale}/gallery")({
   head: () => ({
     meta: [
       { title: "Gallery and archive — Gaza International Airport (GZA)" },

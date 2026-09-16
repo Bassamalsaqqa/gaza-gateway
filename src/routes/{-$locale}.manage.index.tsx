@@ -7,7 +7,7 @@ import { useStore } from "@/lib/store";
 
 type ManageSearch = { ref?: string | undefined };
 
-export const Route = createFileRoute("/manage/")({
+export const Route = createFileRoute("/{-$locale}/manage/")({
   validateSearch: (search: Record<string, unknown>): ManageSearch => ({
     ref: typeof search["ref"] === "string" ? (search["ref"] as string) : undefined,
   }),

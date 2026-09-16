@@ -14,7 +14,7 @@ import { money, weekdayName } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/destinations/$code")({
+export const Route = createFileRoute("/{-$locale}/destinations/$code")({
   head: ({ params }) => {
     const destination = destinationByCode(params.code);
     const city = destination ? destination.city.en : "Destination";

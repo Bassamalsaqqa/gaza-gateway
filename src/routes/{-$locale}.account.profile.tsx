@@ -4,7 +4,7 @@ import { btnClass, Field, Input, Notice, Panel } from "@/components/kit";
 import { useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 
-export const Route = createFileRoute("/account/profile")({
+export const Route = createFileRoute("/{-$locale}/account/profile")({
   head: () => ({
     meta: [
       { title: "Profile — Gaza International Airport (GZA)" },

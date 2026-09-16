@@ -4,7 +4,7 @@ import { btnClass, EmptyState } from "@/components/kit";
 import { useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 
-export const Route = createFileRoute("/account/trips/$ref")({
+export const Route = createFileRoute("/{-$locale}/account/trips/$ref")({
   head: ({ params }) => ({
     meta: [
       { title: `Trip ${params.ref} — Gaza International Airport (GZA)` },

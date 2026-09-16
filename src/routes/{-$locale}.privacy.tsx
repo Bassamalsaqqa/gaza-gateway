@@ -3,7 +3,7 @@ import { Container, Notice, PageHeader, Panel } from "@/components/kit";
 import type { Bilingual } from "@/lib/data";
 import { pick, useI18n } from "@/lib/i18n";
 
-export const Route = createFileRoute("/privacy")({
+export const Route = createFileRoute("/{-$locale}/privacy")({
   head: () => ({
     meta: [
       { title: "Privacy notice — Gaza International Airport (GZA)" },

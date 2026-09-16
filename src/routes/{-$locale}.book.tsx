@@ -34,7 +34,7 @@ import { pick, useI18n } from "@/lib/i18n";
 import { bookingTotal, emptyPassenger, paxCount, useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/book")({
+export const Route = createFileRoute("/{-$locale}/book")({
   head: () => ({
     meta: [
       { title: "Book a flight — Palestinian Airlines from Gaza (GZA)" },

@@ -3,7 +3,7 @@ import { btnClass, Container, Eyebrow, Notice, Panel } from "@/components/kit";
 import { img } from "@/lib/data";
 import { pick, useI18n } from "@/lib/i18n";
 
-export const Route = createFileRoute("/airport/present")({
+export const Route = createFileRoute("/{-$locale}/airport/present")({
   head: () => ({
     meta: [
       { title: "The present — Gaza International Airport today" },

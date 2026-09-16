@@ -5,7 +5,7 @@ import { btnClass, Container, EmptyState, Notice, PageHeader } from "@/component
 import { useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 
-export const Route = createFileRoute("/boarding-pass/$ref/$pax")({
+export const Route = createFileRoute("/{-$locale}/boarding-pass/$ref/$pax")({
   head: ({ params }) => ({
     meta: [
       { title: `Boarding pass ${params.ref} — Gaza International Airport (GZA)` },
