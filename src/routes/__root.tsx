@@ -19,22 +19,30 @@ import { btnClass } from "@/components/kit";
 
 function NotFoundComponent() {
   const { t } = useI18n();
+  const links = [
+    { to: "/", label: t("nav.home") },
+    { to: "/flights", label: t("nav.flights") },
+    { to: "/manage", label: t("nav.manage") },
+    { to: "/contact", label: t("nav.contact") },
+  ] as const;
+
   return (
-    <div className="flex min-h-[60vh] items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <p className="code-id text-6xl font-bold text-brand-soft">404</p>
-        <h1 className="mt-4 text-2xl font-bold text-foreground">{t("notfound.title")}</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {t("dest.notFoundSub")}
-        </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <Link to="/" className={btnClass("primary", "md")}>
-            {t("brand.airportShort")}
-          </Link>
-          <Link to="/flights" className={btnClass("outline", "md")}>
-            {t("nav.flights")}
-          </Link>
-        </div>
+    <div className="bg-background px-4 py-16 sm:py-24">
+      <div className="mx-auto max-w-2xl">
+        <p className="code-id text-5xl font-bold text-clay sm:text-7xl">404</p>
+        <h1 className="mt-4 text-2xl font-bold text-foreground sm:text-4xl">{t("notfound.title")}</h1>
+        <p className="mt-3 max-w-lg text-sm text-muted-foreground sm:text-base">{t("notfound.sub")}</p>
+
+        <p className="eyebrow mt-8 text-muted-foreground">{t("notfound.help")}</p>
+        <ul className="mt-3 flex flex-wrap gap-2">
+          {links.map((link) => (
+            <li key={link.to}>
+              <Link to={link.to} className={btnClass(link.to === "/" ? "primary" : "outline", "md")}>
+                {link.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );

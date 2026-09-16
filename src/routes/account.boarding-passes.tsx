@@ -1,100 +1,115 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { Plane } from "lucide-react";
-import { btnClass, Code, EmptyState } from "@/components/kit";
-import { airportByCode } from "@/lib/data";
-import { dateShort } from "@/lib/format";
-import { pick, useI18n } from "@/lib/i18n";
+import { Ticket } from "lucide-react";
+import { BoardingPassCard, passesForBooking } from "@/components/booking/boarding-pass";
+import { btnClass, EmptyState, Notice, Panel, Pill } from "@/components/kit";
+import { useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/account/boarding-passes")({
   head: () => ({
     meta: [
       { title: "Boarding passes — Gaza International Airport (GZA)" },
-      { name: "description", content: "Boarding passes for checked-in Palestinian Airlines flights from Gaza." },
-      { property: "og:title", content: "Boarding passes — Gaza International Airport" },
-      { property: "og:description", content: "Your boarding passes for checked-in flights." },
+      {
+        name: "description",
+        content: "All boarding passes for your checked-in Palestinian Airlines flights, ready to view and print.",
+      },
+      { property: "og:title", content: "Boarding passes — Palestinian Airlines" },
+      { property: "og:description", content: "View and print boarding passes for checked-in flights." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: BoardingPassesPage,
 });
 
 function BoardingPassesPage() {
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
   const { bookings } = useStore();
-  const passes = bookings.filter((b) => b.checkedIn && b.status === "confirmed");
+
+  const passes = bookings.flatMap((b) => passesForBooking(b));
+  const pendingCheckin = bookings.filter((b) => b.status === "confirmed" && !b.checkedIn);
 
   if (passes.length === 0) {
     return (
-      <EmptyState
-        title={t("account.noPasses")}
-        description={t("account.noPassesSub")}
-        action={
-          <Link to="/manage" className={btnClass("primary", "md")}>
-            {t("manage.checkin")}
-          </Link>
-        }
-      />
+      <div className="space-y-4">
+        <EmptyState
+          title={t("account.noPasses")}
+          description={t("account.noPassesSub")}
+          icon={<Ticket aria-hidden="true" className="size-6" />}
+          action={
+            <div className="flex flex-wrap justify-center gap-2">
+              {pendingCheckin[0] ? (
+                <Link
+                  to="/manage/$ref"
+                  params={{ ref: pendingCheckin[0].ref }}
+                  className={btnClass("primary", "md")}
+                >
+                  {t("bp.checkinCta")}
+                </Link>
+              ) : null}
+              <Link to="/manage" className={btnClass("outline", "md")}>
+                {t("manage.title")}
+              </Link>
+              <Link to="/book" className={btnClass("ghost", "md")}>
+                {t("nav.book")}
+              </Link>
+            </div>
+          }
+        />
+      </div>
     );
   }
 
   return (
-    <ul className="space-y-4">
-      {passes.flatMap((booking) =>
-        booking.passengers.map((passenger, index) => (
-          <li key={`${booking.ref}-${index}`}>
-            <article className="overflow-hidden rounded-2xl border border-border bg-card">
-              <div className="flex items-center justify-between gap-3 bg-ink px-5 py-3 text-ink-foreground">
-                <span className="flex items-center gap-2 text-sm font-semibold">
-                  <Plane aria-hidden="true" className="size-4 rtl:-scale-x-100" />
-                  {t("brand.airline")}
-                </span>
-                <Code className="text-sm">{booking.outbound.number}</Code>
-              </div>
-              <div className="grid gap-4 p-5 sm:grid-cols-[1.4fr_auto]">
-                <div>
-                  <p className="eyebrow text-muted-foreground">{t("book.passengersLabel")}</p>
-                  <p className="mt-1 text-lg font-bold uppercase">
-                    {passenger.lastName} / {passenger.firstName}
-                  </p>
-                  <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-                    <Cell label={t("book.from")} value={booking.outbound.originCode} mono />
-                    <Cell label={t("search.to")} value={booking.outbound.destinationCode} mono />
-                    <Cell label={t("flights.date")} value={dateShort(booking.outbound.date, lang)} />
-                    <Cell label={t("flights.gate")} value={booking.outbound.gate} mono />
-                    <Cell label={t("search.depart")} value={booking.outbound.departTime} mono />
-                    <Cell label={t("book.seatsLabel")} value={booking.seats[`out-${index}`] ?? "—"} mono />
-                    <Cell label={t("flights.terminal")} value={booking.outbound.terminal} mono />
-                    <Cell label={t("book.reference")} value={booking.ref} mono />
-                  </div>
-                  <p className="mt-4 text-xs text-muted-foreground">
-                    {pick(lang, {
-                      en: `${
-                        airportByCode(booking.outbound.originCode)?.city.en ?? ""
-                      } — boarding closes 20 minutes before departure.`,
-                      ar: `${
-                        airportByCode(booking.outbound.originCode)?.city.ar ?? ""
-                      } — يُغلق الصعود قبل 20 دقيقة من المغادرة.`,
-                    })}
-                  </p>
-                </div>
-                <div
-                  aria-hidden="true"
-                  className="hidden w-28 shrink-0 rounded-lg bg-[repeating-linear-gradient(90deg,var(--color-foreground)_0_3px,transparent_3px_7px)] sm:block"
-                />
-              </div>
-            </article>
-          </li>
-        )),
-      )}
-    </ul>
-  );
-}
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Pill tone="brand">{passes.length === 1 ? t("bp.countOne") : t("bp.count", { n: passes.length })}</Pill>
+        <Link to="/manage" className={btnClass("outline", "sm")}>
+          {t("manage.title")}
+        </Link>
+      </div>
 
-function Cell({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <div>
-      <p className="eyebrow text-muted-foreground">{label}</p>
-      <p className={mono ? "code-id mt-1 text-base font-bold" : "mt-1 text-base font-bold"}>{value}</p>
+      <Notice>{t("bp.notReal")}</Notice>
+
+      <ul className="space-y-5">
+        {passes.map((item) => (
+          <li key={`${item.booking.ref}-${item.leg}-${item.paxIndex}`} className="space-y-2">
+            <BoardingPassCard item={item} compact />
+            <div className="flex flex-wrap gap-2">
+              <Link
+                to="/boarding-pass/$ref/$pax"
+                params={{ ref: item.booking.ref, pax: String(item.paxIndex) }}
+                className={btnClass("primary", "sm")}
+              >
+                {t("bp.view")}
+              </Link>
+              <Link
+                to="/account/trips/$ref"
+                params={{ ref: item.booking.ref }}
+                className={btnClass("outline", "sm")}
+              >
+                {t("book.viewBooking")}
+              </Link>
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      {pendingCheckin.length > 0 ? (
+        <Panel>
+          <p className="eyebrow text-clay">{t("manage.checkin")}</p>
+          <ul className="mt-3 space-y-2">
+            {pendingCheckin.map((b) => (
+              <li key={b.ref} className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                <span className="code-id font-semibold">{b.ref}</span>
+                <Link to="/manage/$ref" params={{ ref: b.ref }} className={btnClass("outline", "sm")}>
+                  {t("bp.checkinCta")}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      ) : null}
     </div>
   );
 }

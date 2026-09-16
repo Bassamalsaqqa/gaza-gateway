@@ -1,5 +1,5 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { BookingDetail } from "@/routes/manage";
+import { BookingDetail } from "@/components/booking/booking-detail";
 import { btnClass, EmptyState } from "@/components/kit";
 import { useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";

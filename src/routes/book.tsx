@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, ArrowRight, Baby, Check, Luggage, Ticket, UserPlus, Utensils } from "lucide-react";
+import { ArrowLeft, ArrowRight, Baby, Check, Luggage, Ticket, Utensils } from "lucide-react";
 import { useMemo, useState } from "react";
 import { FlightSearchForm } from "@/components/flight-search-form";
 import { FlightOption } from "@/components/booking/flight-option";
@@ -31,7 +31,7 @@ import {
 } from "@/lib/data";
 import { dateLong, money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
-import { bookingTotal, emptyPassenger, paxCount, useStore, type Booking } from "@/lib/store";
+import { bookingTotal, emptyPassenger, paxCount, useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/book")({
@@ -53,10 +53,9 @@ export const Route = createFileRoute("/book")({
 function BookPage() {
   const { t, lang } = useI18n();
   const navigate = useNavigate();
-  const { draft, setDraft, addBooking, account } = useStore();
+  const { draft, setDraft, addBooking } = useStore();
   const [step, setStep] = useState<BookingStep>(draft.entry === "results" ? "results" : "search");
   const [errors, setErrors] = useState(false);
-  const [booking, setBooking] = useState<Booking | null>(null);
   const [activePax, setActivePax] = useState(0);
   const [seatLeg, setSeatLeg] = useState<"out" | "in">("out");
 
@@ -142,8 +141,7 @@ function BookPage() {
       contact: draft.contact,
       total: totals.total,
     });
-    setBooking(created);
-    go("confirmation");
+    void navigate({ to: "/booking-confirmation/$ref", params: { ref: created.ref } });
   };
 
   const totals = bookingTotal(draft);
@@ -672,74 +670,7 @@ function BookPage() {
               </section>
             ) : null}
 
-            {/* ----------------------------- confirmation --------------------------- */}
-            {step === "confirmation" && booking ? (
-              <section aria-labelledby="confirm-title">
-                <div className="rounded-xl border border-primary/30 bg-brand-soft/60 p-6">
-                  <span className="grid size-11 place-items-center rounded-full bg-primary text-primary-foreground">
-                    <Check aria-hidden="true" className="size-5" />
-                  </span>
-                  <h1 id="confirm-title" className="mt-4 text-2xl font-bold sm:text-3xl">
-                    {t("book.confirmed")}
-                  </h1>
-                  <p className="mt-2 max-w-lg text-sm text-muted-foreground">{t("book.confirmedSub")}</p>
-                  <div className="mt-5 inline-flex flex-col rounded-lg border border-border bg-card px-5 py-3">
-                    <span className="eyebrow text-muted-foreground">{t("book.reference")}</span>
-                    <span className="code-id mt-1 text-3xl font-bold tracking-[0.18em]">{booking.ref}</span>
-                  </div>
-                </div>
 
-                <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                  <Panel>
-                    <p className="eyebrow text-clay">{t("book.route")}</p>
-                    <p className="mt-2 font-semibold">
-                      <Code>{booking.outbound.originCode}</Code> → <Code>{booking.outbound.destinationCode}</Code>
-                      {booking.inbound ? (
-                        <>
-                          {" · "}
-                          <Code>{booking.inbound.originCode}</Code> → <Code>{booking.inbound.destinationCode}</Code>
-                        </>
-                      ) : null}
-                    </p>
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      {dateLong(booking.outbound.date, lang)} · <Code>{booking.outbound.number}</Code>
-                    </p>
-                  </Panel>
-                  <Panel>
-                    <p className="eyebrow text-clay">{t("book.passengersLabel")}</p>
-                    <ul className="mt-2 space-y-1 text-sm">
-                      {booking.passengers.map((p, i) => (
-                        <li key={i} className="flex justify-between gap-3">
-                          <span>
-                            {p.firstName} {p.lastName}
-                          </span>
-                          <span className="code-id text-muted-foreground">{booking.seats[`out-${i}`] ?? "—"}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </Panel>
-                </div>
-
-                <div className="mt-6 flex flex-wrap gap-2">
-                  <Link to="/manage" search={{ ref: booking.ref }} className={btnClass("primary", "md")}>
-                    {t("book.viewBooking")}
-                  </Link>
-                  <Link to="/account/boarding-passes" className={btnClass("outline", "md")}>
-                    {t("book.boardingPass")}
-                  </Link>
-                  {!account ? (
-                    <button
-                      type="button"
-                      onClick={() => void navigate({ to: "/register" })}
-                      className={btnClass("clay", "md")}
-                    >
-                      <UserPlus aria-hidden="true" className="size-4" />
-                      {t("book.createAccount")}
-                    </button>
-                  ) : null}
-                </div>
-              </section>
-            ) : null}
           </div>
 
           {step !== "confirmation" ? (
