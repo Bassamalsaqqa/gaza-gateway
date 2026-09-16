@@ -505,126 +505,126 @@ function BookPage() {
                 </h1>
                 <p className="mt-1 text-sm text-muted-foreground">{t("book.extrasSub")}</p>
 
+                <p className="mt-1 text-sm text-muted-foreground">{t("book.extrasPaxNote")}</p>
+
                 <div className="mt-6 space-y-4">
-                  <Panel>
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <h2 className="flex items-center gap-2 text-base font-bold">
-                          <Luggage aria-hidden="true" className="size-4 text-brand-deep" />
-                          {t("book.baggage")}
-                        </h2>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          {t("book.included")}:{" "}
-                          <span className="numeral">
-                            {(fares.find((f) => f.id === draft.fareId)?.checkedBags ?? 0) === 0
-                              ? pick(lang, { en: "cabin bag only", ar: "حقيبة كابينة فقط" })
-                              : `${fares.find((f) => f.id === draft.fareId)?.checkedBags} × 23 kg`}
-                          </span>
-                        </p>
-                      </div>
-                    </div>
-                    <div className="mt-4 flex items-center justify-between rounded-lg bg-sand p-3">
-                      <span className="text-sm font-medium">
-                        {t("book.extraBag")} · {money(EXTRA_BAG_PRICE, lang)}
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          className="size-9 rounded-md border border-input bg-card disabled:opacity-40"
-                          disabled={draft.extras.extraBags === 0}
-                          onClick={() =>
-                            setDraft((prev) => ({
-                              ...prev,
-                              extras: { ...prev.extras, extraBags: Math.max(0, prev.extras.extraBags - 1) },
-                            }))
-                          }
-                          aria-label={`${t("book.extraBag")} −`}
-                        >
-                          −
-                        </button>
-                        <span className="numeral w-6 text-center font-semibold">{draft.extras.extraBags}</span>
-                        <button
-                          type="button"
-                          className="size-9 rounded-md border border-input bg-card disabled:opacity-40"
-                          disabled={draft.extras.extraBags >= 4}
-                          onClick={() =>
-                            setDraft((prev) => ({
-                              ...prev,
-                              extras: { ...prev.extras, extraBags: Math.min(4, prev.extras.extraBags + 1) },
-                            }))
-                          }
-                          aria-label={`${t("book.extraBag")} +`}
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-                  </Panel>
+                  {paxList.map((passenger, index) => {
+                    const extras = extrasFor(draft.extras, index);
+                    const label =
+                      `${passenger.firstName} ${passenger.lastName}`.trim() ||
+                      `${t("book.passenger")} ${index + 1}`;
+                    const setPax = (patch: Partial<PaxExtras>) =>
+                      setDraft((prev) => ({
+                        ...prev,
+                        extras: {
+                          pax: prev.extras.pax.map((item, i) =>
+                            i === index ? { ...item, ...patch } : item,
+                          ),
+                        },
+                      }));
+                    return (
+                      <Panel key={`extras-${index}`}>
+                        <h2 className="text-base font-bold">{t("book.extrasFor", { name: label })}</h2>
 
-                  <Panel>
-                    <h2 className="flex items-center gap-2 text-base font-bold">
-                      <Utensils aria-hidden="true" className="size-4 text-brand-deep" />
-                      {t("book.meal")}
-                    </h2>
-                    <div className="mt-4 max-w-sm">
-                      <Field label={t("book.meal")} htmlFor="meal">
-                        <Select
-                          id="meal"
-                          value={draft.extras.meal}
-                          onChange={(e) =>
-                            setDraft((prev) => ({ ...prev, extras: { ...prev.extras, meal: e.target.value } }))
-                          }
-                        >
-                          {mealOptions.map((option) => (
-                            <option key={option.id} value={option.id}>
-                              {pick(lang, option.label)}
-                            </option>
-                          ))}
-                        </Select>
-                      </Field>
-                    </div>
-                  </Panel>
+                        <div className="mt-4 space-y-4">
+                          <div>
+                            <h3 className="flex items-center gap-2 text-sm font-semibold">
+                              <Luggage aria-hidden="true" className="size-4 text-brand-deep" />
+                              {t("book.baggage")}
+                            </h3>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                              {t("book.included")}:{" "}
+                              <span className="numeral">
+                                {(fares.find((f) => f.id === draft.fareId)?.checkedBags ?? 0) === 0
+                                  ? pick(lang, { en: "cabin bag only", ar: "حقيبة كابينة فقط" })
+                                  : `${fares.find((f) => f.id === draft.fareId)?.checkedBags} × 23 kg`}
+                              </span>
+                            </p>
+                            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-sand p-3">
+                              <span className="text-sm font-medium">
+                                {t("book.bagsFor")} · {money(EXTRA_BAG_PRICE, lang)}
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  className="size-11 rounded-md border border-input bg-card disabled:opacity-40"
+                                  disabled={extras.extraBags === 0}
+                                  onClick={() => setPax({ extraBags: Math.max(0, extras.extraBags - 1) })}
+                                  aria-label={`${t("book.extraBag")} − ${label}`}
+                                >
+                                  −
+                                </button>
+                                <span className="numeral w-6 text-center font-semibold">{extras.extraBags}</span>
+                                <button
+                                  type="button"
+                                  className="size-11 rounded-md border border-input bg-card disabled:opacity-40"
+                                  disabled={extras.extraBags >= 4}
+                                  onClick={() => setPax({ extraBags: Math.min(4, extras.extraBags + 1) })}
+                                  aria-label={`${t("book.extraBag")} + ${label}`}
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+                          </div>
 
-                  <Panel>
-                    <h2 className="flex items-center gap-2 text-base font-bold">
-                      <Baby aria-hidden="true" className="size-4 text-brand-deep" />
-                      {t("book.assistance")}
-                    </h2>
-                    <p className="mt-1 text-sm text-muted-foreground">{t("book.assistanceNote")}</p>
-                    <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                      {assistanceOptions.map((option) => {
-                        const checked = draft.extras.assistance.includes(option.id);
-                        return (
-                          <label
-                            key={option.id}
-                            className={cn(
-                              "flex cursor-pointer items-center gap-3 rounded-lg border px-3.5 py-3 text-sm",
-                              checked ? "border-primary bg-brand-soft/50" : "border-input bg-card",
-                            )}
-                          >
-                            <input
-                              type="checkbox"
-                              className="size-4 accent-[var(--color-primary)]"
-                              checked={checked}
-                              onChange={(e) =>
-                                setDraft((prev) => ({
-                                  ...prev,
-                                  extras: {
-                                    ...prev.extras,
-                                    assistance: e.target.checked
-                                      ? [...prev.extras.assistance, option.id]
-                                      : prev.extras.assistance.filter((id) => id !== option.id),
-                                  },
-                                }))
-                              }
-                            />
-                            {pick(lang, option.label)}
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </Panel>
+                          <div className="max-w-sm">
+                            <Field label={t("book.meal")} htmlFor={`meal-${index}`}>
+                              <Select
+                                id={`meal-${index}`}
+                                value={extras.meal}
+                                onChange={(e) => setPax({ meal: e.target.value })}
+                              >
+                                {mealOptions.map((option) => (
+                                  <option key={option.id} value={option.id}>
+                                    {pick(lang, option.label)}
+                                  </option>
+                                ))}
+                              </Select>
+                            </Field>
+                          </div>
+
+                          <div>
+                            <h3 className="flex items-center gap-2 text-sm font-semibold">
+                              <Baby aria-hidden="true" className="size-4 text-brand-deep" />
+                              {t("book.assistance")}
+                            </h3>
+                            <p className="mt-1 text-sm text-muted-foreground">{t("book.assistanceNote")}</p>
+                            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                              {assistanceOptions.map((option) => {
+                                const checked = extras.assistance.includes(option.id);
+                                return (
+                                  <label
+                                    key={option.id}
+                                    className={cn(
+                                      "flex cursor-pointer items-center gap-3 rounded-lg border px-3.5 py-3 text-sm",
+                                      checked ? "border-primary bg-brand-soft/50" : "border-input bg-card",
+                                    )}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      className="size-4 accent-[var(--color-primary)]"
+                                      checked={checked}
+                                      onChange={(e) =>
+                                        setPax({
+                                          assistance: e.target.checked
+                                            ? [...extras.assistance, option.id]
+                                            : extras.assistance.filter((id) => id !== option.id),
+                                        })
+                                      }
+                                    />
+                                    {pick(lang, option.label)}
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      </Panel>
+                    );
+                  })}
                 </div>
+
 
                 <StepNav onBack={() => go("seats")} onNext={() => go("review")} />
               </section>
