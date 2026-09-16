@@ -34,6 +34,7 @@ import { Route as AirportFutureRouteImport } from './routes/airport.future'
 import { Route as AirportPastRouteImport } from './routes/airport.past'
 import { Route as AirportPresentRouteImport } from './routes/airport.present'
 import { Route as DestinationsCodeRouteImport } from './routes/destinations.$code'
+import { Route as FlightFlightIdRouteImport } from './routes/flight.$flightId'
 import { Route as AccountTripsIndexRouteImport } from './routes/account.trips.index'
 import { Route as AccountTripsRefRouteImport } from './routes/account.trips.$ref'
 
@@ -162,6 +163,11 @@ const DestinationsCodeRoute = DestinationsCodeRouteImport.update({
   path: '/$code',
   getParentRoute: () => DestinationsRoute,
 } as any)
+const FlightFlightIdRoute = FlightFlightIdRouteImport.update({
+  id: '/flight/$flightId',
+  path: '/flight/$flightId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AccountTripsIndexRoute = AccountTripsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -197,6 +203,7 @@ export interface FileRoutesByFullPath {
   '/airport/past': typeof AirportPastRoute
   '/airport/present': typeof AirportPresentRoute
   '/destinations/$code': typeof DestinationsCodeRoute
+  '/flight/$flightId': typeof FlightFlightIdRoute
   '/account/': typeof AccountIndexRoute
   '/airport/': typeof AirportIndexRoute
   '/account/trips/$ref': typeof AccountTripsRefRoute
@@ -223,6 +230,7 @@ export interface FileRoutesByTo {
   '/airport/past': typeof AirportPastRoute
   '/airport/present': typeof AirportPresentRoute
   '/destinations/$code': typeof DestinationsCodeRoute
+  '/flight/$flightId': typeof FlightFlightIdRoute
   '/account': typeof AccountIndexRoute
   '/airport': typeof AirportIndexRoute
   '/account/trips/$ref': typeof AccountTripsRefRoute
@@ -253,6 +261,7 @@ export interface FileRoutesById {
   '/airport/past': typeof AirportPastRoute
   '/airport/present': typeof AirportPresentRoute
   '/destinations/$code': typeof DestinationsCodeRoute
+  '/flight/$flightId': typeof FlightFlightIdRoute
   '/account/': typeof AccountIndexRoute
   '/airport/': typeof AirportIndexRoute
   '/account/trips/$ref': typeof AccountTripsRefRoute
@@ -284,6 +293,7 @@ export interface FileRouteTypes {
     | '/airport/past'
     | '/airport/present'
     | '/destinations/$code'
+    | '/flight/$flightId'
     | '/account/'
     | '/airport/'
     | '/account/trips/$ref'
@@ -310,6 +320,7 @@ export interface FileRouteTypes {
     | '/airport/past'
     | '/airport/present'
     | '/destinations/$code'
+    | '/flight/$flightId'
     | '/account'
     | '/airport'
     | '/account/trips/$ref'
@@ -339,6 +350,7 @@ export interface FileRouteTypes {
     | '/airport/past'
     | '/airport/present'
     | '/destinations/$code'
+    | '/flight/$flightId'
     | '/account/'
     | '/airport/'
     | '/account/trips/$ref'
@@ -359,6 +371,7 @@ export interface RootRouteChildren {
   RegisterRoute: typeof RegisterRoute
   SigninRoute: typeof SigninRoute
   TravelRoute: typeof TravelRoute
+  FlightFlightIdRoute: typeof FlightFlightIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -538,6 +551,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DestinationsCodeRouteImport
       parentRoute: typeof DestinationsRoute
     }
+    '/flight/$flightId': {
+      id: '/flight/$flightId'
+      path: '/flight/$flightId'
+      fullPath: '/flight/$flightId'
+      preLoaderRoute: typeof FlightFlightIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/account/trips/': {
       id: '/account/trips/'
       path: '/'
@@ -635,6 +655,7 @@ const rootRouteChildren: RootRouteChildren = {
   RegisterRoute: RegisterRoute,
   SigninRoute: SigninRoute,
   TravelRoute: TravelRoute,
+  FlightFlightIdRoute: FlightFlightIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
