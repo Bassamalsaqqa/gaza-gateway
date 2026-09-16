@@ -212,6 +212,7 @@ const en: Dict = {
   "book.summary": "Trip summary",
   "book.route": "Route",
   "book.passengersLabel": "Passengers",
+  "book.seatFees": "Seat fees",
   "book.seatsLabel": "Seats",
   "book.none": "None",
   "book.required": "Please complete the highlighted fields.",
@@ -427,7 +428,6 @@ const en: Dict = {
 
   "common.keep": "Keep booking",
   "common.save": "Save changes",
-  "common.back": "Back",
   "common.cancel": "Cancel",
   "common.saved": "Changes saved.",
 
@@ -440,7 +440,6 @@ const en: Dict = {
   "book.useSaved": "Use a saved traveller",
   "book.useProfile": "Use my profile details",
 
-  "manage.changeSeats": "Change seats",
   "manage.editExtras": "Baggage and extras",
   "manage.cancelConfirmTitle": "Cancel this booking?",
   "manage.cancelConfirmBody": "Booking {ref} will be cancelled. Check-in and boarding passes will no longer be available.",
@@ -675,6 +674,7 @@ const ar: Dict = {
   "book.summary": "ملخص الرحلة",
   "book.route": "الخط",
   "book.passengersLabel": "المسافرون",
+  "book.seatFees": "Seat fees",
   "book.seatsLabel": "المقاعد",
   "book.none": "لا شيء",
   "book.required": "يرجى إكمال الحقول المطلوبة.",
@@ -878,7 +878,6 @@ const ar: Dict = {
 
   "common.keep": "الاحتفاظ بالحجز",
   "common.save": "حفظ التغييرات",
-  "common.back": "رجوع",
   "common.cancel": "إلغاء",
   "common.saved": "تم حفظ التغييرات.",
 
@@ -891,7 +890,6 @@ const ar: Dict = {
   "book.useSaved": "استخدام مسافر محفوظ",
   "book.useProfile": "استخدام بيانات حسابي",
 
-  "manage.changeSeats": "تغيير المقاعد",
   "manage.editExtras": "الأمتعة والإضافات",
   "manage.cancelConfirmTitle": "إلغاء هذا الحجز؟",
   "manage.cancelConfirmBody": "سيتم إلغاء الحجز {ref}، ولن يتاح تسجيل الوصول أو بطاقات الصعود.",
