@@ -1,7 +1,7 @@
 import { useAppNavigate } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight, Baby, Check, Luggage, Ticket, Utensils } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FlightSearchForm } from "@/components/flight-search-form";
 import { FlightOption } from "@/components/booking/flight-option";
 import { PriceSummary } from "@/components/booking/price-summary";
@@ -69,6 +69,11 @@ function BookPage() {
   const [errors, setErrors] = useState(false);
   const [activePax, setActivePax] = useState(0);
   const [seatLeg, setSeatLeg] = useState<"out" | "in">("out");
+
+  // Searching from the first step of this page must move the traveller to results.
+  useEffect(() => {
+    if (draft.entry === "results" && step === "search") setStep("results");
+  }, [draft.entry, step]);
 
   const paxList = draft.passengers.length
     ? draft.passengers
