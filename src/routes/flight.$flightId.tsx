@@ -150,9 +150,9 @@ function FlightDetail({
               <Item label={t("flights.terminal")} value={flight.terminal} mono />
               <Item label={t("flights.gate")} value={flight.gate} mono />
               <Item label={t("search.cabin")} value={t("cabin.economy")} />
-              <Item label={t("book.seatsLeft", { n: flight.seatsLeft })} value={`${flight.seatsLeft}`} mono />
             </dl>
-            <p className="mt-5 text-xs text-muted-foreground">{t("fd.localTime")}</p>
+            <p className="numeral mt-5 text-sm font-semibold">{t("book.seatsLeft", { n: flight.seatsLeft })}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{t("fd.localTime")}</p>
           </Panel>
 
           <Panel>
