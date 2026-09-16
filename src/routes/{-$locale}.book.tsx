@@ -448,6 +448,11 @@ function BookPage() {
                   {t("book.seatTitle")}
                 </h1>
                 <p className="mt-1 text-sm text-muted-foreground">{t("book.seatSub")}</p>
+                {account?.seatPreference && account.seatPreference !== "none" ? (
+                  <p className="mt-3 text-sm text-muted-foreground">
+                    {t("ci.seatSuggestion")} <span className="font-semibold">{account.seatPreference}</span>
+                  </p>
+                ) : null}
 
                 {draft.inbound ? (
                   <div className="mt-5 flex gap-1 rounded-lg bg-secondary p-1">
