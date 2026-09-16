@@ -52,7 +52,7 @@ function ManageSeatsPage() {
       <Container className="py-16">
         <EmptyState
           title={t("manage.notFound")}
-          body={t("conf.notFoundSub")}
+          description={t("conf.notFoundSub")}
           action={
             <AppLink to="/manage" className={btnClass("primary", "md")}>
               {t("nav.manage")}
@@ -68,7 +68,7 @@ function ManageSeatsPage() {
       <Container className="py-16">
         <EmptyState
           title={t("manage.notEditable")}
-          body={t("ci.cancelledNote")}
+          description={t("ci.cancelledNote")}
           action={
             <AppLink to="/manage/$ref" params={{ ref: booking.ref }} className={btnClass("primary", "md")}>
               {t("manage.backToBooking")}
@@ -109,7 +109,7 @@ function ManageSeatsPage() {
       <PageHeader
         eyebrow={<Code>{booking.ref}</Code>}
         title={t("manage.seatsTitle")}
-        subtitle={t("manage.seatsSub", { ref: booking.ref })}
+        description={t("manage.seatsSub", { ref: booking.ref })}
       />
 
       {legs.length > 1 ? (

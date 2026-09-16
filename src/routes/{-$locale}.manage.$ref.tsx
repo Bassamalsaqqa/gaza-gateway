@@ -1,4 +1,4 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { BookingDetail } from "@/components/booking/booking-detail";
 import { btnClass, Container, EmptyState, PageHeader } from "@/components/kit";
 import { useI18n } from "@/lib/i18n";
@@ -44,12 +44,12 @@ function ManageDetailPage() {
           description={t("conf.notFoundSub")}
           action={
             <div className="flex flex-wrap justify-center gap-2">
-              <Link to="/manage" className={btnClass("primary", "md")}>
+              <AppLink to="/manage" className={btnClass("primary", "md")}>
                 {t("manage.title")}
-              </Link>
-              <Link to="/book" className={btnClass("outline", "md")}>
+              </AppLink>
+              <AppLink to="/book" className={btnClass("outline", "md")}>
                 {t("nav.book")}
-              </Link>
+              </AppLink>
             </div>
           }
         />
@@ -60,15 +60,14 @@ function ManageDetailPage() {
   return (
     <>
       <PageHeader eyebrow={t("nav.manage")} title={t("manage.title")} description={t("manage.sub")}>
-        <Link to="/manage" className={btnClass("outline", "sm")}>
+        <AppLink to="/manage" className={btnClass("outline", "sm")}>
           {t("manage.find")}
-        </Link>
+        </AppLink>
       </PageHeader>
       <Container className="py-10">
         <div className="mx-auto max-w-3xl">
           <BookingDetail
             booking={booking}
-            onCheckin={() => updateBooking(booking.ref, { checkedIn: true })}
             onCancel={() => updateBooking(booking.ref, { status: "cancelled" })}
           />
         </div>

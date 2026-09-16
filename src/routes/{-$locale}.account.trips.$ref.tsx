@@ -1,4 +1,4 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { BookingDetail } from "@/components/booking/booking-detail";
 import { btnClass, EmptyState } from "@/components/kit";
 import { useI18n } from "@/lib/i18n";
@@ -28,9 +28,9 @@ function TripDetailPage() {
         title={t("manage.notFound")}
         description={t("account.noTripsSub")}
         action={
-          <Link to="/account/trips" className={btnClass("primary", "md")}>
+          <AppLink to="/account/trips" className={btnClass("primary", "md")}>
             {t("account.trips")}
-          </Link>
+          </AppLink>
         }
       />
     );
@@ -38,12 +38,11 @@ function TripDetailPage() {
 
   return (
     <div>
-      <Link to="/account/trips" className={btnClass("ghost", "sm", "mb-4")}>
+      <AppLink to="/account/trips" className={btnClass("ghost", "sm", "mb-4")}>
         {t("common.back")}
-      </Link>
+      </AppLink>
       <BookingDetail
         booking={booking}
-        onCheckin={() => updateBooking(booking.ref, { checkedIn: true })}
         onCancel={() => updateBooking(booking.ref, { status: "cancelled" })}
       />
     </div>

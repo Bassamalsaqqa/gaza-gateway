@@ -64,7 +64,7 @@ function CheckInPage() {
       <Container className="py-16">
         <EmptyState
           title={t("manage.notFound")}
-          body={t("conf.notFoundSub")}
+          description={t("conf.notFoundSub")}
           action={
             <AppLink to="/manage" className={btnClass("primary", "md")}>
               {t("nav.manage")}
@@ -80,7 +80,7 @@ function CheckInPage() {
       <Container className="py-16">
         <EmptyState
           title={t("ci.notAvailable")}
-          body={booking.status === "cancelled" ? t("ci.cancelledNote") : t("ci.allDone")}
+          description={booking.status === "cancelled" ? t("ci.cancelledNote") : t("ci.allDone")}
           action={
             <div className="flex flex-wrap justify-center gap-2">
               <AppLink to="/manage/$ref" params={{ ref: booking.ref }} className={btnClass("primary", "md")}>
@@ -148,7 +148,7 @@ function CheckInPage() {
       <PageHeader
         eyebrow={<Code>{booking.ref}</Code>}
         title={t("ci.title")}
-        subtitle={t("ci.sub", { ref: booking.ref })}
+        description={t("ci.sub", { ref: booking.ref })}
       />
 
       {step === "leg" ? (

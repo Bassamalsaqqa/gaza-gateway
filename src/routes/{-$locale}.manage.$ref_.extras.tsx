@@ -48,7 +48,7 @@ function ManageExtrasPage() {
       <Container className="py-16">
         <EmptyState
           title={t("manage.notFound")}
-          body={t("conf.notFoundSub")}
+          description={t("conf.notFoundSub")}
           action={
             <AppLink to="/manage" className={btnClass("primary", "md")}>
               {t("nav.manage")}
@@ -64,7 +64,7 @@ function ManageExtrasPage() {
       <Container className="py-16">
         <EmptyState
           title={t("manage.notEditable")}
-          body={t("ci.cancelledNote")}
+          description={t("ci.cancelledNote")}
           action={
             <AppLink to="/manage/$ref" params={{ ref: booking.ref }} className={btnClass("primary", "md")}>
               {t("manage.backToBooking")}
@@ -94,7 +94,7 @@ function ManageExtrasPage() {
       <PageHeader
         eyebrow={<Code>{booking.ref}</Code>}
         title={t("manage.extrasTitle")}
-        subtitle={t("manage.extrasSub", { ref: booking.ref })}
+        description={t("manage.extrasSub", { ref: booking.ref })}
       />
 
       <Panel className="mt-6">
