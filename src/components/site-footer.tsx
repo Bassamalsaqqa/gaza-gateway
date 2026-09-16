@@ -30,13 +30,20 @@ const columns = [
       { to: "/signin", key: "nav.signin" },
     ],
   },
+  {
+    key: "footer.legal",
+    links: [
+      { to: "/privacy", key: "legal.privacyTitle" },
+      { to: "/terms", key: "legal.termsTitle" },
+    ],
+  },
 ] as const;
 
 export function SiteFooter() {
   const { t } = useI18n();
   return (
     <footer className="mt-20 border-t border-ink-border bg-ink text-ink-foreground">
-      <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[1.4fr_repeat(3,1fr)]">
+      <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-14 sm:px-6 sm:grid-cols-2 lg:grid-cols-[1.4fr_repeat(4,1fr)]">
         <div>
           <Brand tone="dark" />
           <p className="mt-4 max-w-xs text-sm text-ink-muted">{t("home.storySub")}</p>
