@@ -39,10 +39,14 @@ import { Route as AirportIndexRouteImport } from './routes/airport.index'
 import { Route as AirportFutureRouteImport } from './routes/airport.future'
 import { Route as AirportPastRouteImport } from './routes/airport.past'
 import { Route as AirportPresentRouteImport } from './routes/airport.present'
+import { Route as BookingConfirmationRefRouteImport } from './routes/booking-confirmation.$ref'
 import { Route as DestinationsCodeRouteImport } from './routes/destinations.$code'
 import { Route as FlightFlightIdRouteImport } from './routes/flight.$flightId'
+import { Route as ManageIndexRouteImport } from './routes/manage.index'
+import { Route as ManageRefRouteImport } from './routes/manage.$ref'
 import { Route as AccountTripsIndexRouteImport } from './routes/account.trips.index'
 import { Route as AccountTripsRefRouteImport } from './routes/account.trips.$ref'
+import { Route as BoardingPassRefPaxRouteImport } from './routes/boarding-pass.$ref.$pax'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -194,6 +198,11 @@ const AirportPresentRoute = AirportPresentRouteImport.update({
   path: '/present',
   getParentRoute: () => AirportRoute,
 } as any)
+const BookingConfirmationRefRoute = BookingConfirmationRefRouteImport.update({
+  id: '/booking-confirmation/$ref',
+  path: '/booking-confirmation/$ref',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DestinationsCodeRoute = DestinationsCodeRouteImport.update({
   id: '/$code',
   path: '/$code',
@@ -204,6 +213,16 @@ const FlightFlightIdRoute = FlightFlightIdRouteImport.update({
   path: '/flight/$flightId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ManageIndexRoute = ManageIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ManageRoute,
+} as any)
+const ManageRefRoute = ManageRefRouteImport.update({
+  id: '/$ref',
+  path: '/$ref',
+  getParentRoute: () => ManageRoute,
+} as any)
 const AccountTripsIndexRoute = AccountTripsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -213,6 +232,11 @@ const AccountTripsRefRoute = AccountTripsRefRouteImport.update({
   id: '/$ref',
   path: '/$ref',
   getParentRoute: () => AccountTripsRoute,
+} as any)
+const BoardingPassRefPaxRoute = BoardingPassRefPaxRouteImport.update({
+  id: '/boarding-pass/$ref/$pax',
+  path: '/boarding-pass/$ref/$pax',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -227,7 +251,7 @@ export interface FileRoutesByFullPath {
   '/flights': typeof FlightsRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/gallery': typeof GalleryRoute
-  '/manage': typeof ManageRoute
+  '/manage': typeof ManageRouteWithChildren
   '/privacy': typeof PrivacyRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -244,11 +268,15 @@ export interface FileRoutesByFullPath {
   '/airport/future': typeof AirportFutureRoute
   '/airport/past': typeof AirportPastRoute
   '/airport/present': typeof AirportPresentRoute
+  '/booking-confirmation/$ref': typeof BookingConfirmationRefRoute
   '/destinations/$code': typeof DestinationsCodeRoute
   '/flight/$flightId': typeof FlightFlightIdRoute
+  '/manage/$ref': typeof ManageRefRoute
   '/account/': typeof AccountIndexRoute
   '/airport/': typeof AirportIndexRoute
+  '/manage/': typeof ManageIndexRoute
   '/account/trips/$ref': typeof AccountTripsRefRoute
+  '/boarding-pass/$ref/$pax': typeof BoardingPassRefPaxRoute
   '/account/trips/': typeof AccountTripsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -261,7 +289,6 @@ export interface FileRoutesByTo {
   '/flights': typeof FlightsRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/gallery': typeof GalleryRoute
-  '/manage': typeof ManageRoute
   '/privacy': typeof PrivacyRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -277,11 +304,15 @@ export interface FileRoutesByTo {
   '/airport/future': typeof AirportFutureRoute
   '/airport/past': typeof AirportPastRoute
   '/airport/present': typeof AirportPresentRoute
+  '/booking-confirmation/$ref': typeof BookingConfirmationRefRoute
   '/destinations/$code': typeof DestinationsCodeRoute
   '/flight/$flightId': typeof FlightFlightIdRoute
+  '/manage/$ref': typeof ManageRefRoute
   '/account': typeof AccountIndexRoute
   '/airport': typeof AirportIndexRoute
+  '/manage': typeof ManageIndexRoute
   '/account/trips/$ref': typeof AccountTripsRefRoute
+  '/boarding-pass/$ref/$pax': typeof BoardingPassRefPaxRoute
   '/account/trips': typeof AccountTripsIndexRoute
 }
 export interface FileRoutesById {
@@ -297,7 +328,7 @@ export interface FileRoutesById {
   '/flights': typeof FlightsRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/gallery': typeof GalleryRoute
-  '/manage': typeof ManageRoute
+  '/manage': typeof ManageRouteWithChildren
   '/privacy': typeof PrivacyRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -314,11 +345,15 @@ export interface FileRoutesById {
   '/airport/future': typeof AirportFutureRoute
   '/airport/past': typeof AirportPastRoute
   '/airport/present': typeof AirportPresentRoute
+  '/booking-confirmation/$ref': typeof BookingConfirmationRefRoute
   '/destinations/$code': typeof DestinationsCodeRoute
   '/flight/$flightId': typeof FlightFlightIdRoute
+  '/manage/$ref': typeof ManageRefRoute
   '/account/': typeof AccountIndexRoute
   '/airport/': typeof AirportIndexRoute
+  '/manage/': typeof ManageIndexRoute
   '/account/trips/$ref': typeof AccountTripsRefRoute
+  '/boarding-pass/$ref/$pax': typeof BoardingPassRefPaxRoute
   '/account/trips/': typeof AccountTripsIndexRoute
 }
 export interface FileRouteTypes {
@@ -352,11 +387,15 @@ export interface FileRouteTypes {
     | '/airport/future'
     | '/airport/past'
     | '/airport/present'
+    | '/booking-confirmation/$ref'
     | '/destinations/$code'
     | '/flight/$flightId'
+    | '/manage/$ref'
     | '/account/'
     | '/airport/'
+    | '/manage/'
     | '/account/trips/$ref'
+    | '/boarding-pass/$ref/$pax'
     | '/account/trips/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -369,7 +408,6 @@ export interface FileRouteTypes {
     | '/flights'
     | '/forgot-password'
     | '/gallery'
-    | '/manage'
     | '/privacy'
     | '/register'
     | '/reset-password'
@@ -385,11 +423,15 @@ export interface FileRouteTypes {
     | '/airport/future'
     | '/airport/past'
     | '/airport/present'
+    | '/booking-confirmation/$ref'
     | '/destinations/$code'
     | '/flight/$flightId'
+    | '/manage/$ref'
     | '/account'
     | '/airport'
+    | '/manage'
     | '/account/trips/$ref'
+    | '/boarding-pass/$ref/$pax'
     | '/account/trips'
   id:
     | '__root__'
@@ -421,11 +463,15 @@ export interface FileRouteTypes {
     | '/airport/future'
     | '/airport/past'
     | '/airport/present'
+    | '/booking-confirmation/$ref'
     | '/destinations/$code'
     | '/flight/$flightId'
+    | '/manage/$ref'
     | '/account/'
     | '/airport/'
+    | '/manage/'
     | '/account/trips/$ref'
+    | '/boarding-pass/$ref/$pax'
     | '/account/trips/'
   fileRoutesById: FileRoutesById
 }
@@ -441,7 +487,7 @@ export interface RootRouteChildren {
   FlightsRoute: typeof FlightsRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   GalleryRoute: typeof GalleryRoute
-  ManageRoute: typeof ManageRoute
+  ManageRoute: typeof ManageRouteWithChildren
   PrivacyRoute: typeof PrivacyRoute
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -449,7 +495,9 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   TravelRoute: typeof TravelRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
+  BookingConfirmationRefRoute: typeof BookingConfirmationRefRoute
   FlightFlightIdRoute: typeof FlightFlightIdRoute
+  BoardingPassRefPaxRoute: typeof BoardingPassRefPaxRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -664,6 +712,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AirportPresentRouteImport
       parentRoute: typeof AirportRoute
     }
+    '/booking-confirmation/$ref': {
+      id: '/booking-confirmation/$ref'
+      path: '/booking-confirmation/$ref'
+      fullPath: '/booking-confirmation/$ref'
+      preLoaderRoute: typeof BookingConfirmationRefRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/destinations/$code': {
       id: '/destinations/$code'
       path: '/$code'
@@ -678,6 +733,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FlightFlightIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/manage/': {
+      id: '/manage/'
+      path: '/'
+      fullPath: '/manage/'
+      preLoaderRoute: typeof ManageIndexRouteImport
+      parentRoute: typeof ManageRoute
+    }
+    '/manage/$ref': {
+      id: '/manage/$ref'
+      path: '/$ref'
+      fullPath: '/manage/$ref'
+      preLoaderRoute: typeof ManageRefRouteImport
+      parentRoute: typeof ManageRoute
+    }
     '/account/trips/': {
       id: '/account/trips/'
       path: '/'
@@ -691,6 +760,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/account/trips/$ref'
       preLoaderRoute: typeof AccountTripsRefRouteImport
       parentRoute: typeof AccountTripsRoute
+    }
+    '/boarding-pass/$ref/$pax': {
+      id: '/boarding-pass/$ref/$pax'
+      path: '/boarding-pass/$ref/$pax'
+      fullPath: '/boarding-pass/$ref/$pax'
+      preLoaderRoute: typeof BoardingPassRefPaxRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -761,6 +837,19 @@ const DestinationsRouteWithChildren = DestinationsRoute._addFileChildren(
   DestinationsRouteChildren,
 )
 
+interface ManageRouteChildren {
+  ManageRefRoute: typeof ManageRefRoute
+  ManageIndexRoute: typeof ManageIndexRoute
+}
+
+const ManageRouteChildren: ManageRouteChildren = {
+  ManageRefRoute: ManageRefRoute,
+  ManageIndexRoute: ManageIndexRoute,
+}
+
+const ManageRouteWithChildren =
+  ManageRoute._addFileChildren(ManageRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
@@ -773,7 +862,7 @@ const rootRouteChildren: RootRouteChildren = {
   FlightsRoute: FlightsRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   GalleryRoute: GalleryRoute,
-  ManageRoute: ManageRoute,
+  ManageRoute: ManageRouteWithChildren,
   PrivacyRoute: PrivacyRoute,
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
@@ -781,7 +870,9 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   TravelRoute: TravelRoute,
   VerifyEmailRoute: VerifyEmailRoute,
+  BookingConfirmationRefRoute: BookingConfirmationRefRoute,
   FlightFlightIdRoute: FlightFlightIdRoute,
+  BoardingPassRefPaxRoute: BoardingPassRefPaxRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
