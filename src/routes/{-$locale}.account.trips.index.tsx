@@ -21,7 +21,7 @@ export const Route = createFileRoute("/{-$locale}/account/trips/")({
 
 function TripsPage() {
   const { t, lang } = useI18n();
-  const { bookings } = useStore();
+  const { myBookings: bookings } = useStore();
 
   if (bookings.length === 0) {
     return (

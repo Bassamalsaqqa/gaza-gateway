@@ -4,7 +4,7 @@ import { Ticket } from "lucide-react";
 import { BoardingPassCard, passesForBooking } from "@/components/booking/boarding-pass";
 import { btnClass, EmptyState, Notice, Panel, Pill } from "@/components/kit";
 import { useI18n } from "@/lib/i18n";
-import { useStore } from "@/lib/store";
+import { useStore, anyCheckedIn } from "@/lib/store";
 
 export const Route = createFileRoute("/{-$locale}/account/boarding-passes")({
   head: () => ({
@@ -25,10 +25,10 @@ export const Route = createFileRoute("/{-$locale}/account/boarding-passes")({
 
 function BoardingPassesPage() {
   const { t } = useI18n();
-  const { bookings } = useStore();
+  const { myBookings: bookings } = useStore();
 
   const passes = bookings.flatMap((b) => passesForBooking(b));
-  const pendingCheckin = bookings.filter((b) => b.status === "confirmed" && !b.checkedIn);
+  const pendingCheckin = bookings.filter((b) => b.status === "confirmed" && !anyCheckedIn(b));
 
   if (passes.length === 0) {
     return (
