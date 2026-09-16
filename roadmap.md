@@ -1,39 +1,19 @@
-# Roadmap — passenger experience + bilingual routing
+# Roadmap — public/passenger experience
 
-## Bilingual URLs
-- [x] Move all pages under `{-$locale}` optional segment (`/` English, `/ar` Arabic)
-- [x] URL is always the language source of truth; stored preference never overrides an explicit URL
-- [x] Root shell sets `lang`/`dir` from the URL (server-rendered, no English flash on /ar)
-- [x] Locale-preserving links (`AppLink`) + switcher that rewrites the current path
-- [x] Locale-aware head metadata, self canonical, hreflang alternates
-- [x] No `/en` routes
+## Batch A — complete
+- Per-traveller bags/meal/assistance in booking extras, review, confirmation, Manage Extras.
+- Booking seat step uses the booked cabin zone and suggests a seat from saved preference.
+- Compact collapsible trip summary on narrow screens.
+- Public /check-in entry (PNR + family name/email), partial per-passenger, per-leg check-in.
+- Boarding passes addressed by booking + leg + passenger; no infant pass; safe unavailable states.
+- Manage Booking hub: check-in, seats, extras, contact edit, cancellation confirmation.
+- Guest → account → verify → booking saved to My Trips (reference carried in the URL).
+- Account: no Payments item, nearest upcoming trip, real pass count, Upcoming/Past/Cancelled tabs,
+  saved travellers with date of birth + edit, profile/preference explanations.
+- Copy cleanup: no prototype/demo/developer wording outside the legal pages.
 
-## Passenger workflow
-- [x] A. Network-aware search (one side always GZA, no equal endpoints, date validation)
-- [x] B. Stable resolvable ids for every bookable flight
-- [x] C. Infant model (forms, adult association, no seat, infants <= adults, consistent everywhere)
-- [x] D. Per-leg check-in flow at `/manage/$ref/check-in`
-- [x] E. Boarding passes follow per-leg check-in; cancelled bookings excluded; print isolation
-- [x] F. `/manage/$ref/seats` + `/manage/$ref/extras`; cancel confirmation dialog; no fake flight change
-- [x] G. Lookup requires reference + family name or email; remove PNR shortcut chips
-- [x] H. Saved travellers / profile / preferences feed the booking forms
-- [x] I. Booking ownership + claiming after sign-in; trips list scoped to account
-- [x] J. Copy integrity fixes
-
-## Checks
-- [x] Typecheck + build clean
-- [x] Browser pass EN + AR at 390/768/1024/1280/1440, nested dynamic URLs
-
-## Constraints
-No admin, no backend/database/payment/email, no global redesign.
-
-## Batch A completion (in progress)
-- [ ] Stabilize per-passenger extras / per-leg check-in migration (typecheck clean)
-- [ ] Booking: seat suggestion + cabin in normal seat step; mobile collapsible trip summary
-- [ ] Manage extras: compact per-passenger UX
-- [ ] All boarding-pass links use /boarding-pass/$ref/$leg/$pax
-- [ ] Account: remove Payments, nearest upcoming trip, real pass count, trips tabs, traveler edit, profile/preferences/security copy
-- [ ] Guest -> account -> verify -> saved trip handoff carrying ref
-- [ ] Public /check-in in utility/mobile/footer nav
-- [ ] Copy cleanup ("updated continuously" etc.)
-- [ ] Final checks: tsgo, build, EN/AR desktop + 390px browser smoke
+## Deferred (later batches)
+- Deep-link/content batch (archive, future vision depth, richer destination content).
+- Real archive imagery and visual refinement.
+- Rebooking / date change flow.
+- Admin, payments, email, authentication infrastructure (out of Lovable scope for now).
