@@ -138,7 +138,7 @@ function FlightsPage() {
         </div>
 
         <p className="mt-4 text-xs text-muted-foreground">
-          {t("footer.rights")} · {pick(lang, { en: "Schedules are mock data.", ar: "الجداول بيانات تجريبية." })}
+          {t("fd.note")}
         </p>
       </Container>
     </>
