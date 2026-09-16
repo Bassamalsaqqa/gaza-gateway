@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { AppLink } from "@/components/app-link";
 import { Brand } from "./brand";
 import { useI18n } from "@/lib/i18n";
 
@@ -54,9 +54,9 @@ export function SiteFooter() {
             <ul className="mt-4 space-y-2.5">
               {col.links.map((link) => (
                 <li key={link.to + link.key}>
-                  <Link to={link.to} className="text-sm text-ink-muted transition-colors hover:text-ink-foreground">
+                  <AppLink to={link.to} className="text-sm text-ink-muted transition-colors hover:text-ink-foreground">
                     {t(link.key)}
-                  </Link>
+                  </AppLink>
                 </li>
               ))}
             </ul>

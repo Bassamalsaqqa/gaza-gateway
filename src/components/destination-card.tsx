@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { AppLink } from "@/components/app-link";
 import { ArrowRight, Clock } from "lucide-react";
 import { Code } from "./kit";
 import { img, minutesToLabel, type Destination } from "@/lib/data";
@@ -8,7 +8,7 @@ import { pick, useI18n } from "@/lib/i18n";
 export function DestinationCard({ destination, size = "md" }: { destination: Destination; size?: "md" | "lg" }) {
   const { t, lang } = useI18n();
   return (
-    <Link
+    <AppLink
       to="/destinations/$code"
       params={{ code: destination.code }}
       className="group relative flex flex-col overflow-hidden rounded-xl border border-border bg-card transition-shadow hover:shadow-[var(--shadow-lift)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
@@ -38,6 +38,6 @@ export function DestinationCard({ destination, size = "md" }: { destination: Des
           </span>
         </div>
       </div>
-    </Link>
+    </AppLink>
   );
 }

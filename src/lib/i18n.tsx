@@ -1,14 +1,15 @@
+import { useRouter, useRouterState } from "@tanstack/react-router";
 import {
   createContext,
   useCallback,
   useContext,
   useEffect,
   useMemo,
-  useState,
   type ReactNode,
 } from "react";
+import { dirOf, langFromPath, swapLangPath, type Lang } from "./locale";
 
-export type Lang = "en" | "ar";
+export type { Lang };
 
 type Dict = Record<string, string>;
 
@@ -53,6 +54,13 @@ const en: Dict = {
   "search.passengerCount": "{n} passengers",
   "search.passengerCountOne": "1 passenger",
   "search.done": "Done",
+  "search.infantNote": "One infant per adult, travelling on an adult's lap.",
+  "search.errSame": "Choose two different airports.",
+  "search.errNetwork": "Every route in the opening network starts or ends at Gaza (GZA).",
+  "search.errDepart": "Choose a departure date.",
+  "search.errPast": "The departure date cannot be in the past.",
+  "search.errReturn": "The return date must be on or after the departure date.",
+  "search.errInfants": "There cannot be more infants than adults.",
   "search.swap": "Swap origin and destination",
   "cabin.economy": "Economy",
   "cabin.premium": "Premium economy",
@@ -410,11 +418,69 @@ const en: Dict = {
 
   "conf.notFound": "We couldn't find that booking reference",
   "conf.notFoundSub": "The reference may be from another device or browser. Look it up on Manage booking.",
-  "conf.contactEmail": "Confirmation sent to",
+  "conf.contactEmail": "Contact email",
   "conf.next": "What next",
   "conf.itinerary": "Your itinerary",
   "conf.guestNote": "No account needed — keep your reference to manage this booking later.",
+  "conf.linkAccount": "Save this booking to your account",
+  "conf.linked": "Saved to your account",
+
+  "common.keep": "Keep booking",
+  "common.save": "Save changes",
+  "common.back": "Back",
+  "common.cancel": "Cancel",
+  "common.saved": "Changes saved.",
+
+  "book.child": "Child",
+  "book.infant": "Infant",
+  "book.adult": "Adult",
+  "book.onLapWith": "On the lap of {name}",
+  "book.infantOf": "Travelling with",
+  "book.noSeatInfant": "Infants travel on an adult's lap and are not allocated a seat.",
+  "book.useSaved": "Use a saved traveller",
+  "book.useProfile": "Use my profile details",
+
+  "manage.changeSeats": "Change seats",
+  "manage.editExtras": "Baggage and extras",
+  "manage.cancelConfirmTitle": "Cancel this booking?",
+  "manage.cancelConfirmBody": "Booking {ref} will be cancelled. Check-in and boarding passes will no longer be available.",
+  "manage.cancelConfirmYes": "Cancel booking",
+  "manage.needIdentifier": "Enter the family name or the booking email.",
+  "manage.seatsTitle": "Change seats",
+  "manage.seatsSub": "Choose seats for booking {ref}. Seat fees apply to extra-legroom rows.",
+  "manage.extrasTitle": "Baggage and extras",
+  "manage.extrasSub": "Update extra baggage, meals and special assistance for booking {ref}.",
+  "manage.backToBooking": "Back to booking",
+  "manage.notEditable": "This booking can no longer be changed online.",
+
+  "ci.title": "Check in",
+  "ci.sub": "Check in for booking {ref}, one flight at a time.",
+  "ci.chooseLeg": "Which flight?",
+  "ci.legOut": "Outbound",
+  "ci.legIn": "Return",
+  "ci.checkedOut": "Checked in · outbound",
+  "ci.checkedIn": "Checked in · return",
+  "ci.alreadyDone": "Already checked in",
+  "ci.choosePax": "Who is checking in?",
+  "ci.paxRequired": "Select at least one passenger.",
+  "ci.details": "Travel details",
+  "ci.detailsSub": "Confirm the travel document for each passenger checking in.",
+  "ci.docRequired": "A travel document number is required for each passenger.",
+  "ci.seats": "Seats",
+  "ci.seatsSub": "Confirm or change the seat for this flight.",
+  "ci.review": "Review and confirm",
+  "ci.confirm": "Complete check-in",
+  "ci.done": "Check-in complete",
+  "ci.doneSub": "Boarding passes are ready for the passengers you checked in.",
+  "ci.viewPasses": "View boarding passes",
+  "ci.notAvailable": "Check-in isn't available for this booking",
+  "ci.cancelledNote": "This booking is cancelled, so check-in and boarding passes are not available.",
+  "ci.allDone": "Every flight on this booking is already checked in.",
+  "ci.next": "Continue",
+  "ci.back": "Back",
+  "ci.seatSuggestion": "Suggested from your saved seat preference.",
 };
+
 
 const ar: Dict = {
   "brand.airport": "مطار غزة الدولي",
@@ -455,6 +521,13 @@ const ar: Dict = {
   "search.passengerCount": "{n} مسافرين",
   "search.passengerCountOne": "مسافر واحد",
   "search.done": "تم",
+  "search.infantNote": "رضيع واحد لكل شخص بالغ، يسافر على حجر أحد الوالدين.",
+  "search.errSame": "اختر مطارين مختلفين.",
+  "search.errNetwork": "كل خطوط الشبكة الأولى تبدأ أو تنتهي في غزة (GZA).",
+  "search.errDepart": "اختر تاريخ المغادرة.",
+  "search.errPast": "لا يمكن أن يكون تاريخ المغادرة في الماضي.",
+  "search.errReturn": "يجب أن يكون تاريخ العودة في نفس يوم المغادرة أو بعده.",
+  "search.errInfants": "لا يمكن أن يزيد عدد الرضّع عن عدد البالغين.",
   "search.swap": "تبديل نقطة المغادرة والوصول",
   "cabin.economy": "الاقتصادية",
   "cabin.premium": "الاقتصادية المميزة",
@@ -796,11 +869,69 @@ const ar: Dict = {
 
   "conf.notFound": "لم نتمكن من العثور على رقم الحجز",
   "conf.notFoundSub": "قد يكون الرقم من جهاز أو متصفح آخر. ابحث عنه في صفحة إدارة الحجز.",
-  "conf.contactEmail": "أُرسل التأكيد إلى",
+  "conf.contactEmail": "بريد التواصل",
   "conf.next": "الخطوات التالية",
   "conf.itinerary": "خط سيرك",
   "conf.guestNote": "لا حاجة لحساب — احتفظ برقم الحجز لإدارته لاحقاً.",
+  "conf.linkAccount": "احفظ هذا الحجز في حسابك",
+  "conf.linked": "محفوظ في حسابك",
+
+  "common.keep": "الاحتفاظ بالحجز",
+  "common.save": "حفظ التغييرات",
+  "common.back": "رجوع",
+  "common.cancel": "إلغاء",
+  "common.saved": "تم حفظ التغييرات.",
+
+  "book.child": "طفل",
+  "book.infant": "رضيع",
+  "book.adult": "بالغ",
+  "book.onLapWith": "على حجر {name}",
+  "book.infantOf": "يسافر مع",
+  "book.noSeatInfant": "يسافر الرضّع على حجر أحد البالغين ولا يُخصَّص لهم مقعد.",
+  "book.useSaved": "استخدام مسافر محفوظ",
+  "book.useProfile": "استخدام بيانات حسابي",
+
+  "manage.changeSeats": "تغيير المقاعد",
+  "manage.editExtras": "الأمتعة والإضافات",
+  "manage.cancelConfirmTitle": "إلغاء هذا الحجز؟",
+  "manage.cancelConfirmBody": "سيتم إلغاء الحجز {ref}، ولن يتاح تسجيل الوصول أو بطاقات الصعود.",
+  "manage.cancelConfirmYes": "إلغاء الحجز",
+  "manage.needIdentifier": "أدخل اسم العائلة أو البريد الإلكتروني للحجز.",
+  "manage.seatsTitle": "تغيير المقاعد",
+  "manage.seatsSub": "اختر مقاعد الحجز {ref}. تُطبَّق رسوم على صفوف المساحة الإضافية.",
+  "manage.extrasTitle": "الأمتعة والإضافات",
+  "manage.extrasSub": "حدِّث الأمتعة الإضافية والوجبات والمساعدة الخاصة للحجز {ref}.",
+  "manage.backToBooking": "رجوع إلى الحجز",
+  "manage.notEditable": "لم يعد من الممكن تعديل هذا الحجز عبر الموقع.",
+
+  "ci.title": "تسجيل الوصول",
+  "ci.sub": "سجّل الوصول للحجز {ref}، رحلة واحدة في كل مرة.",
+  "ci.chooseLeg": "أي رحلة؟",
+  "ci.legOut": "الذهاب",
+  "ci.legIn": "العودة",
+  "ci.checkedOut": "تم تسجيل الوصول · الذهاب",
+  "ci.checkedIn": "تم تسجيل الوصول · العودة",
+  "ci.alreadyDone": "تم تسجيل الوصول مسبقاً",
+  "ci.choosePax": "من سيسجّل الوصول؟",
+  "ci.paxRequired": "اختر مسافراً واحداً على الأقل.",
+  "ci.details": "بيانات السفر",
+  "ci.detailsSub": "أكِّد وثيقة السفر لكل مسافر يسجّل الوصول.",
+  "ci.docRequired": "رقم وثيقة السفر مطلوب لكل مسافر.",
+  "ci.seats": "المقاعد",
+  "ci.seatsSub": "أكِّد المقعد أو غيّره لهذه الرحلة.",
+  "ci.review": "المراجعة والتأكيد",
+  "ci.confirm": "إتمام تسجيل الوصول",
+  "ci.done": "تم تسجيل الوصول",
+  "ci.doneSub": "بطاقات الصعود جاهزة للمسافرين الذين سجّلت وصولهم.",
+  "ci.viewPasses": "عرض بطاقات الصعود",
+  "ci.notAvailable": "تسجيل الوصول غير متاح لهذا الحجز",
+  "ci.cancelledNote": "هذا الحجز ملغى، لذا لا يتاح تسجيل الوصول ولا بطاقات الصعود.",
+  "ci.allDone": "تم تسجيل الوصول لجميع رحلات هذا الحجز.",
+  "ci.next": "متابعة",
+  "ci.back": "رجوع",
+  "ci.seatSuggestion": "مقترح من تفضيل المقعد المحفوظ.",
 };
+
 
 const dictionaries: Record<Lang, Dict> = { en, ar };
 
@@ -815,23 +946,28 @@ const I18nContext = createContext<I18nValue | null>(null);
 const STORAGE_KEY = "gza.lang";
 
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const [lang, setLangState] = useState<Lang>("en");
+  const router = useRouter();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const searchStr = useRouterState({ select: (s) => s.location.searchStr });
+  // The URL is the only source of truth for language: `/…` = English, `/ar/…` = Arabic.
+  const lang = langFromPath(pathname);
 
   useEffect(() => {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (stored === "ar" || stored === "en") setLangState(stored);
-  }, []);
-
-  useEffect(() => {
-    const dir = lang === "ar" ? "rtl" : "ltr";
+    const dir = dirOf(lang);
     document.documentElement.setAttribute("lang", lang);
     document.documentElement.setAttribute("dir", dir);
+    // Remembered for convenience only; it never overrides an explicit URL.
+    window.localStorage.setItem(STORAGE_KEY, lang);
   }, [lang]);
 
-  const setLang = useCallback((next: Lang) => {
-    setLangState(next);
-    window.localStorage.setItem(STORAGE_KEY, next);
-  }, []);
+  const setLang = useCallback(
+    (next: Lang) => {
+      if (next === lang) return;
+      const href = `${swapLangPath(pathname, next)}${searchStr ?? ""}`;
+      void router.navigate({ href } as never);
+    },
+    [lang, pathname, searchStr, router],
+  );
 
   const t = useCallback(
     (key: string, vars?: Record<string, string | number>) => {
@@ -848,7 +984,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<I18nValue>(
-    () => ({ lang, dir: lang === "ar" ? "rtl" : "ltr", setLang, t }),
+    () => ({ lang, dir: dirOf(lang), setLang, t }),
     [lang, setLang, t],
   );
 
