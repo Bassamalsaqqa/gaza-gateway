@@ -24,11 +24,30 @@ export type Passenger = {
   document: string;
 };
 
-export type Extras = {
-  extraBags: number;
-  meal: string;
-  assistance: string[];
-};
+/** Extras belong to a single passenger, not the whole booking. */
+export type PaxExtras = { extraBags: number; meal: string; assistance: string[] };
+
+/** Per-passenger extras, aligned by index with the passenger list. */
+export type Extras = { pax: PaxExtras[] };
+
+export function emptyPaxExtras(meal = "standard"): PaxExtras {
+  return { extraBags: 0, meal, assistance: [] };
+}
+
+export function extrasFor(extras: Extras, index: number): PaxExtras {
+  return extras.pax[index] ?? emptyPaxExtras();
+}
+
+export function totalExtraBags(extras: Extras): number {
+  return extras.pax.reduce((sum, p) => sum + (p?.extraBags ?? 0), 0);
+}
+
+/** Grow/shrink the per-passenger extras list so it matches the passenger list. */
+export function extrasForPassengers(extras: Extras, count: number, meal = "standard"): Extras {
+  const pax: PaxExtras[] = [];
+  for (let i = 0; i < count; i += 1) pax.push(extras.pax[i] ?? emptyPaxExtras(meal));
+  return { pax };
+}
 
 export type Contact = { email: string; phone: string };
 
@@ -46,8 +65,8 @@ export type SearchCriteria = {
 
 export type Leg = "out" | "in";
 
-/** Per-leg check-in state: a leg is checked in only when its own list is set. */
-export type CheckedIn = { out: boolean; in: boolean };
+/** Per-leg check-in: the passenger indexes that completed check-in on that leg. */
+export type CheckedIn = { out: number[]; in: number[] };
 
 export type Booking = {
   ref: string;
@@ -67,19 +86,9 @@ export type Booking = {
   ownerEmail: string | null;
 };
 
-/** True when the given leg of this booking has completed check-in. */
-export function isCheckedIn(booking: Booking, leg: Leg): boolean {
-  return booking.status === "confirmed" && Boolean(booking.checkedIn?.[leg]);
-}
-
 /** Legs that actually exist on this booking. */
 export function bookingLegs(booking: Booking): Leg[] {
   return booking.inbound ? ["out", "in"] : ["out"];
-}
-
-/** True when at least one leg is checked in. */
-export function anyCheckedIn(booking: Booking): boolean {
-  return bookingLegs(booking).some((leg) => isCheckedIn(booking, leg));
 }
 
 /** Passengers who occupy a seat (infants travel on an adult's lap). */
@@ -87,10 +96,59 @@ export function seatedPassengers(booking: Pick<Booking, "passengers">): number[]
   return booking.passengers.flatMap((p, i) => (p.type === "infant" ? [] : [i]));
 }
 
+/** Infants travelling on the lap of the given adult. */
+export function infantsWith(booking: Pick<Booking, "passengers">, adultIndex: number): number[] {
+  return booking.passengers.flatMap((p, i) =>
+    p.type === "infant" && (p.withAdult ?? 0) === adultIndex ? [i] : [],
+  );
+}
+
+/** Passenger indexes checked in on this leg. Cancelled bookings have none. */
+export function checkedInPax(booking: Booking, leg: Leg): number[] {
+  if (booking.status !== "confirmed") return [];
+  return booking.checkedIn?.[leg] ?? [];
+}
+
+export function isPaxCheckedIn(booking: Booking, leg: Leg, paxIndex: number): boolean {
+  return checkedInPax(booking, leg).includes(paxIndex);
+}
+
+/** True when at least one passenger is checked in on this leg. */
+export function isCheckedIn(booking: Booking, leg: Leg): boolean {
+  return checkedInPax(booking, leg).length > 0;
+}
+
+/** Eligible passengers on this leg who have not checked in yet. */
+export function openPaxForLeg(booking: Booking, leg: Leg): number[] {
+  if (booking.status !== "confirmed") return [];
+  const done = checkedInPax(booking, leg);
+  return seatedPassengers(booking).filter((i) => !done.includes(i));
+}
+
+export function legFullyCheckedIn(booking: Booking, leg: Leg): boolean {
+  return booking.status === "confirmed" && openPaxForLeg(booking, leg).length === 0;
+}
+
+/** Legs that still have at least one passenger to check in. */
+export function openLegs(booking: Booking): Leg[] {
+  return bookingLegs(booking).filter((leg) => openPaxForLeg(booking, leg).length > 0);
+}
+
+/** True when at least one leg has at least one checked-in passenger. */
+export function anyCheckedIn(booking: Booking): boolean {
+  return bookingLegs(booking).some((leg) => isCheckedIn(booking, leg));
+}
+
+/** How many boarding passes this booking currently has. */
+export function passCount(booking: Booking): number {
+  return bookingLegs(booking).reduce((sum, leg) => sum + checkedInPax(booking, leg).length, 0);
+}
+
 export type Traveler = {
   id: string;
   firstName: string;
   lastName: string;
+  dob: string;
   nationality: string;
   document: string;
 };
@@ -180,7 +238,7 @@ export function bookingTotal(draft: {
     (sum, seat) => sum + seatFee(Number(seat.replace(/\D/g, ""))),
     0,
   );
-  const extras = seatCharges + draft.extras.extraBags * EXTRA_BAG_PRICE;
+  const extras = seatCharges + totalExtraBags(draft.extras) * EXTRA_BAG_PRICE;
   return { fare, taxes, extras, total: fare + taxes + extras };
 }
 
@@ -197,8 +255,8 @@ type StoreValue = {
   myBookings: Booking[];
   /** Link a booking made as a guest to the signed-in account (local only). */
   claimBooking: (ref: string) => void;
-  /** Mark one leg of a booking as checked in. */
-  checkInLeg: (ref: string, leg: Leg) => void;
+  /** Mark the given passengers of one leg as checked in. */
+  checkInLeg: (ref: string, leg: Leg, paxIndexes: number[]) => void;
   updateBooking: (ref: string, patch: Partial<Booking>) => void;
   findBooking: (ref: string) => Booking | undefined;
   account: Account | null;
@@ -207,6 +265,7 @@ type StoreValue = {
   updateAccount: (patch: Partial<Account>) => void;
   travelers: Traveler[];
   addTraveler: (traveler: Omit<Traveler, "id">) => void;
+  updateTraveler: (id: string, patch: Partial<Omit<Traveler, "id">>) => void;
   removeTraveler: (id: string) => void;
 };
 
@@ -232,27 +291,40 @@ function initialDraft(): Draft {
     fareId: "classic",
     passengers: [emptyPassenger()],
     seats: {},
-    extras: { extraBags: 0, meal: "standard", assistance: [] },
+    extras: { pax: [emptyPaxExtras()] },
     contact: { email: "", phone: "" },
   };
 }
 
+type LegacyExtras = { extraBags?: number; meal?: string; assistance?: string[] };
+
 /** Bring older locally stored bookings up to the current shape. */
 function migrateBooking(raw: Booking): Booking {
   const legacy = raw as Booking & { checkedIn: unknown };
-  const checkedIn: CheckedIn =
-    typeof legacy.checkedIn === "boolean"
-      ? { out: legacy.checkedIn, in: legacy.checkedIn }
-      : {
-          out: Boolean((legacy.checkedIn as CheckedIn | undefined)?.out),
-          in: Boolean((legacy.checkedIn as CheckedIn | undefined)?.in),
-        };
-  return {
-    ...raw,
-    checkedIn,
-    ownerEmail: raw.ownerEmail ?? null,
-    passengers: (raw.passengers ?? []).map((p) => ({ ...p, type: p.type ?? "adult" })),
+  const passengers = (raw.passengers ?? []).map((p) => ({ ...p, type: p.type ?? "adult" }));
+  const seated = passengers.flatMap((p, i) => (p.type === "infant" ? [] : [i]));
+  const asList = (value: unknown): number[] => {
+    if (Array.isArray(value)) return value.filter((v): v is number => typeof v === "number");
+    return value === true ? seated : [];
   };
+  const stored = legacy.checkedIn as { out?: unknown; in?: unknown } | boolean | undefined;
+  const checkedIn: CheckedIn =
+    typeof stored === "boolean"
+      ? { out: stored ? seated : [], in: stored ? seated : [] }
+      : { out: asList(stored?.out), in: asList(stored?.in) };
+
+  const rawExtras = raw.extras as unknown as (Extras & LegacyExtras) | undefined;
+  const extras: Extras = Array.isArray(rawExtras?.pax)
+    ? extrasForPassengers({ pax: rawExtras.pax }, passengers.length)
+    : {
+        pax: passengers.map((_, i) => ({
+          extraBags: i === 0 ? (rawExtras?.extraBags ?? 0) : 0,
+          meal: rawExtras?.meal ?? "standard",
+          assistance: i === 0 ? (rawExtras?.assistance ?? []) : [],
+        })),
+      };
+
+  return { ...raw, checkedIn, extras, passengers, ownerEmail: raw.ownerEmail ?? null };
 }
 
 export function StoreProvider({ children }: { children: ReactNode }) {
@@ -269,7 +341,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const parsed = JSON.parse(raw) as Persisted;
         setBookings((parsed.bookings ?? []).map(migrateBooking));
         setAccount(parsed.account ?? null);
-        setTravelers(parsed.travelers ?? []);
+        setTravelers((parsed.travelers ?? []).map((tr) => ({ ...tr, dob: tr.dob ?? "" })));
       }
     } catch {
       /* ignore corrupted state */
@@ -289,16 +361,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const resetDraft = useCallback(
     (criteria: SearchCriteria) => {
+      const passengers = passengersFor(criteria);
+      // A signed-in traveller's saved meal preference becomes the booking default.
+      const meal = account?.mealPreference ?? "standard";
       setDraftState({
         entry: "results",
         criteria,
         outbound: null,
         inbound: null,
         fareId: "classic",
-        passengers: passengersFor(criteria),
+        passengers,
         seats: {},
-        // A signed-in traveller's saved meal preference becomes the booking default.
-        extras: { extraBags: 0, meal: account?.mealPreference ?? "standard", assistance: [] },
+        extras: { pax: passengers.map(() => emptyPaxExtras(meal)) },
         contact: { email: account?.email ?? "", phone: account?.phone ?? "" },
       });
     },
@@ -312,7 +386,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         ref: makePnr(),
         createdAt: new Date().toISOString(),
         status: "confirmed",
-        checkedIn: { out: false, in: false },
+        checkedIn: { out: [], in: [] },
         ownerEmail: account?.email ?? null,
       };
       setBookings((prev) => [created, ...prev]);
@@ -336,13 +410,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const checkInLeg = useCallback((ref: string, leg: Leg) => {
+  const checkInLeg = useCallback((ref: string, leg: Leg, paxIndexes: number[]) => {
     setBookings((prev) =>
-      prev.map((b) =>
-        b.ref.toUpperCase() === ref.trim().toUpperCase() && b.status === "confirmed"
-          ? { ...b, checkedIn: { ...b.checkedIn, [leg]: true } }
-          : b,
-      ),
+      prev.map((b) => {
+        if (b.ref.toUpperCase() !== ref.trim().toUpperCase() || b.status !== "confirmed") return b;
+        const merged = Array.from(new Set([...(b.checkedIn?.[leg] ?? []), ...paxIndexes])).sort(
+          (a, z) => a - z,
+        );
+        return { ...b, checkedIn: { ...b.checkedIn, [leg]: merged } };
+      }),
     );
   }, []);
 
@@ -377,6 +453,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setTravelers((prev) => [...prev, { ...traveler, id: `t-${Date.now()}` }]);
   }, []);
 
+  const updateTraveler = useCallback((id: string, patch: Partial<Omit<Traveler, "id">>) => {
+    setTravelers((prev) => prev.map((tr) => (tr.id === id ? { ...tr, ...patch } : tr)));
+  }, []);
+
   const removeTraveler = useCallback((id: string) => {
     setTravelers((prev) => prev.filter((t) => t.id !== id));
   }, []);
@@ -405,6 +485,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       updateAccount,
       travelers,
       addTraveler,
+      updateTraveler,
       removeTraveler,
     }),
     [
@@ -425,6 +506,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       updateAccount,
       travelers,
       addTraveler,
+      updateTraveler,
       removeTraveler,
     ],
   );

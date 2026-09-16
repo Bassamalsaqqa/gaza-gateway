@@ -4,7 +4,8 @@ import { useI18n } from "@/lib/i18n";
 
 /**
  * Restrained confirmation dialog for destructive actions.
- * Focus moves to the dismiss button, Escape closes, background scroll is kept.
+ * Focus moves to the dismiss button, Tab stays inside, Escape closes and focus
+ * returns to whatever opened the dialog.
  */
 export function ConfirmDialog({
   open,
@@ -22,16 +23,40 @@ export function ConfirmDialog({
   onClose: () => void;
 }) {
   const { t } = useI18n();
+  const panelRef = useRef<HTMLDivElement>(null);
   const dismissRef = useRef<HTMLButtonElement>(null);
+  const triggerRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
+    triggerRef.current = document.activeElement as HTMLElement | null;
     dismissRef.current?.focus();
+
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const focusables = panelRef.current?.querySelectorAll<HTMLElement>("button, [href], input, select, textarea");
+      if (!focusables || focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (!first || !last) return;
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
     };
+
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      triggerRef.current?.focus?.();
+    };
   }, [open, onClose]);
 
   if (!open) return null;
@@ -39,6 +64,7 @@ export function ConfirmDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/60 p-4 sm:items-center">
       <div
+        ref={panelRef}
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="confirm-title"

@@ -5,10 +5,18 @@ import { AppLink } from "@/components/app-link";
 import { SeatMap } from "@/components/booking/seat-map";
 import { StatusBadge } from "@/components/flight-status";
 import { btnClass, Code, Container, EmptyState, Field, Input, Notice, PageHeader, Panel, Pill } from "@/components/kit";
-import { airportByCode } from "@/lib/data";
+import { airportByCode, suggestSeat } from "@/lib/data";
 import { dateLong } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
-import { bookingLegs, isCheckedIn, type Leg, useStore } from "@/lib/store";
+import {
+  bookingLegs,
+  checkedInPax,
+  legFullyCheckedIn,
+  openPaxForLeg,
+  seatedPassengers,
+  type Leg,
+  useStore,
+} from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/{-$locale}/manage/$ref_/check-in")({
@@ -46,8 +54,9 @@ function CheckInPage() {
   const [error, setError] = useState<string | null>(null);
 
   const legs = useMemo(() => (booking ? bookingLegs(booking) : []), [booking]);
+  // A leg stays open while any non-infant passenger on it has not checked in.
   const openLegs = useMemo(
-    () => (booking ? legs.filter((l) => !isCheckedIn(booking, l)) : []),
+    () => (booking ? legs.filter((l) => openPaxForLeg(booking, l).length > 0) : []),
     [booking, legs],
   );
 
@@ -88,8 +97,12 @@ function CheckInPage() {
               </AppLink>
               {booking.status === "confirmed" ? (
                 <AppLink
-                  to="/boarding-pass/$ref/$pax"
-                  params={{ ref: booking.ref, pax: "0" }}
+                  to="/boarding-pass/$ref/$leg/$pax"
+                  params={{
+                    ref: booking.ref,
+                    leg: "out",
+                    pax: String(checkedInPax(booking, "out")[0] ?? 0),
+                  }}
                   className={btnClass("outline", "md")}
                 >
                   {t("book.boardingPass")}
@@ -104,13 +117,16 @@ function CheckInPage() {
 
   const flight = leg === "in" && booking.inbound ? booking.inbound : booking.outbound;
   // Infants share an adult's seat, so only seated passengers appear as choices.
-  const seatable = booking.passengers.flatMap((p, i) => (p.type === "infant" ? [] : [i]));
+  const seatable = seatedPassengers(booking);
+  // Passengers already checked in for the chosen leg are not offered again.
+  const eligible = leg ? openPaxForLeg(booking, leg) : seatable;
   const infantsOf = (adultIndex: number) =>
     booking.passengers.flatMap((p, i) => (p.type === "infant" && (p.withAdult ?? 0) === adultIndex ? [i] : []));
 
   const startLeg = (chosen: Leg) => {
+    const open = openPaxForLeg(booking, chosen);
     setLeg(chosen);
-    setSelected(seatable);
+    setSelected(open);
     setDocs(Object.fromEntries(booking.passengers.map((p, i) => [i, p.document])));
     setSeats(
       Object.fromEntries(
@@ -120,21 +136,23 @@ function CheckInPage() {
         }),
       ),
     );
-    setActivePax(seatable[0] ?? 0);
+    setActivePax(open[0] ?? 0);
     setStep("pax");
   };
 
   const complete = () => {
     if (!leg) return;
     const nextSeats = { ...booking.seats };
-    Object.entries(seats).forEach(([index, seat]) => {
-      nextSeats[`${leg}-${index}`] = seat;
+    // Only the passengers being checked in now have their seat and document saved.
+    selected.forEach((index) => {
+      const seat = seats[index];
+      if (seat) nextSeats[`${leg}-${index}`] = seat;
     });
     const passengers = booking.passengers.map((p, i) =>
-      docs[i] !== undefined ? { ...p, document: docs[i] as string } : p,
+      selected.includes(i) && docs[i] !== undefined ? { ...p, document: docs[i] as string } : p,
     );
     updateBooking(booking.ref, { seats: nextSeats, passengers });
-    checkInLeg(booking.ref, leg);
+    checkInLeg(booking.ref, leg, selected);
     setStep("done");
   };
 
@@ -157,7 +175,9 @@ function CheckInPage() {
           <div className="mt-4 grid gap-3">
             {legs.map((l) => {
               const f = l === "in" && booking.inbound ? booking.inbound : booking.outbound;
-              const done = isCheckedIn(booking, l);
+              const done = legFullyCheckedIn(booking, l);
+              const remaining = openPaxForLeg(booking, l).length;
+              const already = checkedInPax(booking, l).length;
               return (
                 <button
                   key={l}
@@ -180,8 +200,22 @@ function CheckInPage() {
                       <Code>{f.number}</Code>
                     </span>
                   </span>
-                  <span className="flex items-center gap-2">
-                    {done ? <Pill tone="brand">{t("ci.alreadyDone")}</Pill> : <StatusBadge status={f.status} />}
+                  <span className="flex flex-wrap items-center gap-2">
+                    {already > 0 && !done ? (
+                      <Pill tone="brand">
+                        {t("ci.paxDone")} <span className="numeral">{already}</span>
+                      </Pill>
+                    ) : null}
+                    {done ? (
+                      <Pill tone="brand">{t("ci.alreadyDone")}</Pill>
+                    ) : (
+                      <>
+                        <Pill>
+                          {remaining === 1 ? t("ci.paxRemainingOne") : t("ci.paxRemaining", { n: String(remaining) })}
+                        </Pill>
+                        <StatusBadge status={f.status} />
+                      </>
+                    )}
                     {!done ? <ChevronRight aria-hidden="true" className="size-4 rtl:-scale-x-100" /> : null}
                   </span>
                 </button>
@@ -194,8 +228,17 @@ function CheckInPage() {
       {step === "pax" ? (
         <Panel className="mt-6">
           <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">{t("ci.choosePax")}</h2>
+          <p className="mt-2 text-sm text-muted-foreground">{t("ci.partialNote")}</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button type="button" onClick={() => setSelected(eligible)} className={btnClass("outline", "sm")}>
+              {t("ci.selectAll")}
+            </button>
+            <button type="button" onClick={() => setSelected([])} className={btnClass("ghost", "sm")}>
+              {t("ci.selectNone")}
+            </button>
+          </div>
           <ul className="mt-4 divide-y divide-border">
-            {seatable.map((i) => (
+            {eligible.map((i) => (
               <li key={i} className="py-3">
                 <label className="flex items-center gap-3 text-sm font-medium">
                   <input
@@ -291,6 +334,13 @@ function CheckInPage() {
                 setSeats((prev) => ({ ...prev, [target]: seat }));
               }}
               passengerLabels={selected.map((i) => paxLabel(i))}
+              cabin={booking.criteria.cabin}
+              suggestedSeat={suggestSeat(
+                flight.id,
+                booking.criteria.cabin,
+                account?.seatPreference ?? "none",
+                Object.values(seats),
+              )}
             />
 
           </div>
@@ -334,11 +384,16 @@ function CheckInPage() {
       {step === "done" ? (
         <Panel className="mt-6">
           <Pill tone="brand">{t("ci.done")}</Pill>
-          <p className="mt-3 text-sm text-muted-foreground">{t("ci.doneSub")}</p>
+          <p className="mt-3 text-sm text-muted-foreground">
+            {selected.length === 1
+              ? t("ci.doneCountOne")
+              : t("ci.doneCount", { n: String(selected.length) })}
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">{t("ci.doneSub")}</p>
           <div className="mt-5 flex flex-wrap gap-2">
             <AppLink
-              to="/boarding-pass/$ref/$pax"
-              params={{ ref: booking.ref, pax: String(selected[0] ?? 0) }}
+              to="/boarding-pass/$ref/$leg/$pax"
+              params={{ ref: booking.ref, leg: leg ?? "out", pax: String(selected[0] ?? 0) }}
               className={btnClass("primary", "md")}
             >
               {t("ci.viewPasses")}
@@ -347,17 +402,18 @@ function CheckInPage() {
               {t("manage.backToBooking")}
             </AppLink>
           </div>
-          {openLegs.filter((l) => l !== leg).length > 0 ? (
+          {openLegs.length > 0 ? (
             <Notice>
               <button
                 type="button"
                 onClick={() => {
                   setStep("leg");
                   setLeg(null);
+                  setSelected([]);
                 }}
                 className="underline"
               >
-                {t("ci.chooseLeg")}
+                {openLegs.length === 1 && openLegs[0] === leg ? t("ci.remainingCta") : t("ci.chooseLeg")}
               </button>
             </Notice>
           ) : null}
