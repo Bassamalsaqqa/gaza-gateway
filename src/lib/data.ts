@@ -436,7 +436,51 @@ export function farePrice(basePrice: number, fareId: Fare["id"], cabin: string):
 
 export const SEAT_LETTERS = ["A", "B", "C", "D", "E", "F"] as const;
 export const SEAT_ROWS = 28;
-export const EXTRA_LEGROOM_ROWS = [1, 12, 13];
+export const EXTRA_LEGROOM_ROWS = [5, 11, 12];
+
+/**
+ * The single-aisle cabin is laid out in three zones so the seat map matches the
+ * cabin a passenger actually bought instead of showing one undifferentiated map.
+ */
+export const cabinZones = [
+  { id: "business", firstRow: 1, lastRow: 4 },
+  { id: "premium", firstRow: 5, lastRow: 10 },
+  { id: "economy", firstRow: 11, lastRow: SEAT_ROWS },
+] as const;
+
+export function cabinZone(cabin: string): (typeof cabinZones)[number] {
+  return cabinZones.find((z) => z.id === cabin) ?? cabinZones[2];
+}
+
+export function cabinOfRow(row: number): (typeof cabinZones)[number]["id"] {
+  return (cabinZones.find((z) => row >= z.firstRow && row <= z.lastRow) ?? cabinZones[2]).id;
+}
+
+export const WINDOW_LETTERS = ["A", "F"] as const;
+export const AISLE_LETTERS = ["C", "D"] as const;
+
+/**
+ * First free seat in the booked cabin matching a window/aisle preference.
+ * Used only as a visible suggestion — the passenger always chooses.
+ */
+export function suggestSeat(
+  flightId: string,
+  cabin: string,
+  preference: string,
+  taken: string[] = [],
+): string | undefined {
+  const letters =
+    preference === "window" ? WINDOW_LETTERS : preference === "aisle" ? AISLE_LETTERS : [];
+  if (letters.length === 0) return undefined;
+  const zone = cabinZone(cabin);
+  for (let row = zone.firstRow; row <= zone.lastRow; row += 1) {
+    for (const letter of letters) {
+      const seat = `${row}${letter}`;
+      if (isSeatAvailable(flightId, row, letter) && !taken.includes(seat)) return seat;
+    }
+  }
+  return undefined;
+}
 
 export function isSeatAvailable(flightId: string, row: number, letter: string): boolean {
   return hash(`${flightId}:${row}${letter}`) % 100 > 32;

@@ -19,10 +19,32 @@ export function Stepper({ current }: { current: BookingStep }) {
   const { t } = useI18n();
   const visible = bookingSteps.filter((s) => s !== "search");
   const index = visible.indexOf(current as (typeof visible)[number]);
+  const position = Math.max(0, index) + 1;
+  const percent = Math.round((position / visible.length) * 100);
 
   return (
     <nav aria-label={t("book.title")} className="border-b border-border bg-card">
-      <ol className="mx-auto flex w-full max-w-6xl items-center gap-1 overflow-x-auto px-4 py-3 sm:px-6">
+      {/* Compact progress on small screens: where you are and what remains. */}
+      <div className="mx-auto w-full max-w-6xl px-4 py-3 sm:px-6 md:hidden">
+        <div className="flex items-baseline justify-between gap-3">
+          <p className="text-sm font-bold">{t(`step.${visible[index] ?? "results"}`)}</p>
+          <p className="numeral text-xs font-semibold text-muted-foreground">
+            {t("book.stepOf", { n: String(position), total: String(visible.length) })}
+          </p>
+        </div>
+        <div
+          role="progressbar"
+          aria-valuemin={1}
+          aria-valuemax={visible.length}
+          aria-valuenow={position}
+          aria-valuetext={t("book.stepOf", { n: String(position), total: String(visible.length) })}
+          className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-secondary"
+        >
+          <span className="block h-full rounded-full bg-primary" style={{ width: `${percent}%` }} />
+        </div>
+      </div>
+
+      <ol className="mx-auto hidden w-full max-w-6xl items-center gap-1 overflow-x-auto px-4 py-3 sm:px-6 md:flex">
         {visible.map((step, i) => {
           const done = index > i;
           const active = index === i;
