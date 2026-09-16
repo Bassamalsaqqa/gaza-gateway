@@ -224,3 +224,20 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Printing a boarding pass should produce the pass, not the whole website. */
+@media print {
+  header,
+  footer,
+  [data-print-hide] {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  main {
+    padding: 0 !important;
+  }
+}
