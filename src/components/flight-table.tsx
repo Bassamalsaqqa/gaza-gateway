@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { ChevronDown, Plane } from "lucide-react";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { StatusBadge } from "./flight-status";
 import { btnClass, Code } from "./kit";
 import { GZA, airportByCode, minutesToLabel, type Flight } from "@/lib/data";
@@ -58,8 +58,8 @@ export function FlightTable({
           const time = mode === "departures" ? flight.departTime : flight.arriveTime;
           const expanded = open === flight.id;
           return (
-            <>
-              <tr key={flight.id} className="border-b border-border align-middle">
+            <Fragment key={flight.id}>
+              <tr className="border-b border-border align-middle">
                 <td className="py-3.5 pe-4">
                   <span className="code-id text-lg font-semibold sm:text-base">{time}</span>
                 </td>
@@ -93,7 +93,7 @@ export function FlightTable({
                 </td>
               </tr>
               {expanded ? (
-                <tr key={`${flight.id}-detail`} className="border-b border-border bg-sand/60">
+                <tr className="border-b border-border bg-sand/60">
                   <td colSpan={compact ? 5 : 6} className="px-1 py-4">
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                       <Detail label={t("flights.aircraft")} value={flight.aircraft} />
@@ -119,7 +119,7 @@ export function FlightTable({
                   </td>
                 </tr>
               ) : null}
-            </>
+            </Fragment>
           );
         })}
       </tbody>
