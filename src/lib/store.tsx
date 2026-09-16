@@ -74,6 +74,7 @@ export type Account = {
 };
 
 export type Draft = {
+  entry: "search" | "results";
   criteria: SearchCriteria;
   outbound: Flight | null;
   inbound: Flight | null;
@@ -162,6 +163,7 @@ function initialDraft(): Draft {
   const depart = today.toISOString().slice(0, 10);
   const ret = new Date(today.getTime() + 6 * 86400000).toISOString().slice(0, 10);
   return {
+    entry: "search",
     criteria: defaultCriteria(depart, ret),
     outbound: null,
     inbound: null,
@@ -207,6 +209,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const resetDraft = useCallback((criteria: SearchCriteria) => {
     setDraftState({
+      entry: "results",
       criteria,
       outbound: null,
       inbound: null,
