@@ -17,6 +17,7 @@ import { Route as BookRouteImport } from './routes/book'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as DestinationsRouteImport } from './routes/destinations'
 import { Route as FlightsRouteImport } from './routes/flights'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as GalleryRouteImport } from './routes/gallery'
 import { Route as ManageRouteImport } from './routes/manage'
 import { Route as RegisterRouteImport } from './routes/register'
@@ -76,6 +77,11 @@ const DestinationsRoute = DestinationsRouteImport.update({
 const FlightsRoute = FlightsRouteImport.update({
   id: '/flights',
   path: '/flights',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GalleryRoute = GalleryRouteImport.update({
@@ -188,6 +194,7 @@ export interface FileRoutesByFullPath {
   '/contact': typeof ContactRoute
   '/destinations': typeof DestinationsRouteWithChildren
   '/flights': typeof FlightsRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/gallery': typeof GalleryRoute
   '/manage': typeof ManageRoute
   '/register': typeof RegisterRoute
@@ -216,6 +223,7 @@ export interface FileRoutesByTo {
   '/contact': typeof ContactRoute
   '/destinations': typeof DestinationsRouteWithChildren
   '/flights': typeof FlightsRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/gallery': typeof GalleryRoute
   '/manage': typeof ManageRoute
   '/register': typeof RegisterRoute
@@ -246,6 +254,7 @@ export interface FileRoutesById {
   '/contact': typeof ContactRoute
   '/destinations': typeof DestinationsRouteWithChildren
   '/flights': typeof FlightsRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/gallery': typeof GalleryRoute
   '/manage': typeof ManageRoute
   '/register': typeof RegisterRoute
@@ -278,6 +287,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/destinations'
     | '/flights'
+    | '/forgot-password'
     | '/gallery'
     | '/manage'
     | '/register'
@@ -306,6 +316,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/destinations'
     | '/flights'
+    | '/forgot-password'
     | '/gallery'
     | '/manage'
     | '/register'
@@ -335,6 +346,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/destinations'
     | '/flights'
+    | '/forgot-password'
     | '/gallery'
     | '/manage'
     | '/register'
@@ -366,6 +378,7 @@ export interface RootRouteChildren {
   ContactRoute: typeof ContactRoute
   DestinationsRoute: typeof DestinationsRouteWithChildren
   FlightsRoute: typeof FlightsRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
   GalleryRoute: typeof GalleryRoute
   ManageRoute: typeof ManageRoute
   RegisterRoute: typeof RegisterRoute
@@ -430,6 +443,13 @@ declare module '@tanstack/react-router' {
       path: '/flights'
       fullPath: '/flights'
       preLoaderRoute: typeof FlightsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/gallery': {
@@ -650,6 +670,7 @@ const rootRouteChildren: RootRouteChildren = {
   ContactRoute: ContactRoute,
   DestinationsRoute: DestinationsRouteWithChildren,
   FlightsRoute: FlightsRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   GalleryRoute: GalleryRoute,
   ManageRoute: ManageRoute,
   RegisterRoute: RegisterRoute,
