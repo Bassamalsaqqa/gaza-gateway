@@ -111,7 +111,7 @@ function Home() {
       {/* Destinations */}
       <Container className="mt-20">
         <SectionHeader
-          eyebrow={<span className="code-id">PS</span> ? "Network" : "Network"}
+          eyebrow={t("nav.destinations")}
           title={t("home.destTitle")}
           description={t("home.destSub")}
           action={
