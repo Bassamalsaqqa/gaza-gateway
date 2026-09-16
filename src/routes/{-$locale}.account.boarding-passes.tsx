@@ -41,7 +41,7 @@ function BoardingPassesPage() {
             <div className="flex flex-wrap justify-center gap-2">
               {pendingCheckin[0] ? (
                 <AppLink
-                  to="/manage/$ref"
+                  to="/manage/$ref/check-in"
                   params={{ ref: pendingCheckin[0].ref }}
                   className={btnClass("primary", "md")}
                 >
@@ -103,7 +103,7 @@ function BoardingPassesPage() {
             {pendingCheckin.map((b) => (
               <li key={b.ref} className="flex flex-wrap items-center justify-between gap-2 text-sm">
                 <span className="code-id font-semibold">{b.ref}</span>
-                <AppLink to="/manage/$ref" params={{ ref: b.ref }} className={btnClass("outline", "sm")}>
+                <AppLink to="/manage/$ref/check-in" params={{ ref: b.ref }} className={btnClass("outline", "sm")}>
                   {t("bp.checkinCta")}
                 </AppLink>
               </li>
