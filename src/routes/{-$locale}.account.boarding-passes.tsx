@@ -1,9 +1,10 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { AppLink } from "@/components/app-link";
+import { createFileRoute } from "@tanstack/react-router";
 import { Ticket } from "lucide-react";
 import { BoardingPassCard, passesForBooking } from "@/components/booking/boarding-pass";
 import { btnClass, EmptyState, Notice, Panel, Pill } from "@/components/kit";
 import { useI18n } from "@/lib/i18n";
-import { useStore } from "@/lib/store";
+import { useStore, anyCheckedIn } from "@/lib/store";
 
 export const Route = createFileRoute("/{-$locale}/account/boarding-passes")({
   head: () => ({
@@ -24,10 +25,10 @@ export const Route = createFileRoute("/{-$locale}/account/boarding-passes")({
 
 function BoardingPassesPage() {
   const { t } = useI18n();
-  const { bookings } = useStore();
+  const { myBookings: bookings } = useStore();
 
   const passes = bookings.flatMap((b) => passesForBooking(b));
-  const pendingCheckin = bookings.filter((b) => b.status === "confirmed" && !b.checkedIn);
+  const pendingCheckin = bookings.filter((b) => b.status === "confirmed" && !anyCheckedIn(b));
 
   if (passes.length === 0) {
     return (
@@ -39,20 +40,20 @@ function BoardingPassesPage() {
           action={
             <div className="flex flex-wrap justify-center gap-2">
               {pendingCheckin[0] ? (
-                <Link
-                  to="/manage/$ref"
+                <AppLink
+                  to="/manage/$ref/check-in"
                   params={{ ref: pendingCheckin[0].ref }}
                   className={btnClass("primary", "md")}
                 >
                   {t("bp.checkinCta")}
-                </Link>
+                </AppLink>
               ) : null}
-              <Link to="/manage" className={btnClass("outline", "md")}>
+              <AppLink to="/manage" className={btnClass("outline", "md")}>
                 {t("manage.title")}
-              </Link>
-              <Link to="/book" className={btnClass("ghost", "md")}>
+              </AppLink>
+              <AppLink to="/book" className={btnClass("ghost", "md")}>
                 {t("nav.book")}
-              </Link>
+              </AppLink>
             </div>
           }
         />
@@ -64,9 +65,9 @@ function BoardingPassesPage() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Pill tone="brand">{passes.length === 1 ? t("bp.countOne") : t("bp.count", { n: passes.length })}</Pill>
-        <Link to="/manage" className={btnClass("outline", "sm")}>
+        <AppLink to="/manage" className={btnClass("outline", "sm")}>
           {t("manage.title")}
-        </Link>
+        </AppLink>
       </div>
 
       <Notice>{t("bp.notReal")}</Notice>
@@ -76,20 +77,20 @@ function BoardingPassesPage() {
           <li key={`${item.booking.ref}-${item.leg}-${item.paxIndex}`} className="space-y-2">
             <BoardingPassCard item={item} compact />
             <div className="flex flex-wrap gap-2">
-              <Link
+              <AppLink
                 to="/boarding-pass/$ref/$pax"
                 params={{ ref: item.booking.ref, pax: String(item.paxIndex) }}
                 className={btnClass("primary", "sm")}
               >
                 {t("bp.view")}
-              </Link>
-              <Link
+              </AppLink>
+              <AppLink
                 to="/account/trips/$ref"
                 params={{ ref: item.booking.ref }}
                 className={btnClass("outline", "sm")}
               >
                 {t("book.viewBooking")}
-              </Link>
+              </AppLink>
             </div>
           </li>
         ))}
@@ -102,9 +103,9 @@ function BoardingPassesPage() {
             {pendingCheckin.map((b) => (
               <li key={b.ref} className="flex flex-wrap items-center justify-between gap-2 text-sm">
                 <span className="code-id font-semibold">{b.ref}</span>
-                <Link to="/manage/$ref" params={{ ref: b.ref }} className={btnClass("outline", "sm")}>
+                <AppLink to="/manage/$ref/check-in" params={{ ref: b.ref }} className={btnClass("outline", "sm")}>
                   {t("bp.checkinCta")}
-                </Link>
+                </AppLink>
               </li>
             ))}
           </ul>

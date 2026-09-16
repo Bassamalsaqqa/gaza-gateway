@@ -1,4 +1,5 @@
-import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { AppLink, useAppNavigate } from "@/components/app-link";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { btnClass, Container, Field, Input, Notice } from "@/components/kit";
 import { useI18n } from "@/lib/i18n";
@@ -21,7 +22,7 @@ export const Route = createFileRoute("/{-$locale}/signin")({
 
 function SignInPage() {
   const { t } = useI18n();
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
   const { signIn } = useStore();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -61,9 +62,9 @@ function SignInPage() {
             />
           </Field>
           <p className="text-sm">
-            <Link to="/forgot-password" className="font-semibold text-brand-deep underline">
+            <AppLink to="/forgot-password" className="font-semibold text-brand-deep underline">
               {t("auth.forgotLink")}
-            </Link>
+            </AppLink>
           </p>
           <button type="submit" className={btnClass("primary", "md", "w-full")}>
             {t("auth.signin")}
@@ -73,15 +74,15 @@ function SignInPage() {
 
         <p className="mt-5 text-sm text-muted-foreground">
           {t("auth.noAccount")}{" "}
-          <Link to="/register" className="font-semibold text-brand-deep underline">
+          <AppLink to="/register" className="font-semibold text-brand-deep underline">
             {t("auth.register")}
-          </Link>
+          </AppLink>
         </p>
         <p className="mt-2 text-sm text-muted-foreground">
           {t("auth.guest")}{" "}
-          <Link to="/manage" className="font-semibold text-brand-deep underline">
+          <AppLink to="/manage" className="font-semibold text-brand-deep underline">
             {t("manage.title")}
-          </Link>
+          </AppLink>
         </p>
       </div>
     </Container>

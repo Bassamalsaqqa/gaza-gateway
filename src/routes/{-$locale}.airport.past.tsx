@@ -1,4 +1,5 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { AppLink } from "@/components/app-link";
+import { createFileRoute } from "@tanstack/react-router";
 import { AlertCircle, BadgeCheck } from "lucide-react";
 import { Container, Eyebrow, Notice, Pill } from "@/components/kit";
 import { img, timeline } from "@/lib/data";
@@ -88,12 +89,12 @@ function PastPage() {
             })}
           </p>
           <div className="mt-5 flex flex-wrap gap-2">
-            <Link to="/gallery" className={btnClass("primary", "md")}>
+            <AppLink to="/gallery" className={btnClass("primary", "md")}>
               {t("home.openArchive")}
-            </Link>
-            <Link to="/airport/present" className={btnClass("outline", "md")}>
+            </AppLink>
+            <AppLink to="/airport/present" className={btnClass("outline", "md")}>
               {t("airport.present")}
-            </Link>
+            </AppLink>
           </div>
         </div>
       </Container>

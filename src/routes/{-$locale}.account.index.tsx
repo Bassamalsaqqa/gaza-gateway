@@ -1,11 +1,12 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { AppLink } from "@/components/app-link";
+import { createFileRoute } from "@tanstack/react-router";
 import { Luggage, Ticket, Users } from "lucide-react";
 import { StatusBadge } from "@/components/flight-status";
 import { btnClass, Code, EmptyState, Panel } from "@/components/kit";
 import { airportByCode } from "@/lib/data";
 import { dateLong } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
-import { useStore } from "@/lib/store";
+import { useStore, anyCheckedIn } from "@/lib/store";
 
 export const Route = createFileRoute("/{-$locale}/account/")({
   head: () => ({
@@ -21,7 +22,7 @@ export const Route = createFileRoute("/{-$locale}/account/")({
 
 function AccountOverview() {
   const { t, lang } = useI18n();
-  const { bookings, travelers } = useStore();
+  const { myBookings: bookings, travelers } = useStore();
   const next = bookings.find((b) => b.status === "confirmed");
 
   return (
@@ -49,13 +50,13 @@ function AccountOverview() {
               <span className="code-id">{next.ref}</span>
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
-              <Link to="/account/trips/$ref" params={{ ref: next.ref }} className={btnClass("primary", "sm")}>
+              <AppLink to="/account/trips/$ref" params={{ ref: next.ref }} className={btnClass("primary", "sm")}>
                 {t("account.viewTrip")}
-              </Link>
-              <Link to="/account/boarding-passes" className={btnClass("outline", "sm")}>
+              </AppLink>
+              <AppLink to="/account/boarding-passes" className={btnClass("outline", "sm")}>
                 <Ticket aria-hidden="true" className="size-4" />
                 {t("book.boardingPass")}
-              </Link>
+              </AppLink>
             </div>
           </div>
         ) : (
@@ -64,9 +65,9 @@ function AccountOverview() {
               title={t("account.noTrips")}
               description={t("account.noTripsSub")}
               action={
-                <Link to="/book" className={btnClass("primary", "md")}>
+                <AppLink to="/book" className={btnClass("primary", "md")}>
                   {t("account.bookNow")}
-                </Link>
+                </AppLink>
               }
             />
           </div>
@@ -75,7 +76,7 @@ function AccountOverview() {
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Stat icon={Luggage} label={t("account.trips")} value={bookings.length} to="/account/trips" />
-        <Stat icon={Ticket} label={t("account.boardingPasses")} value={bookings.filter((b) => b.checkedIn).length} to="/account/boarding-passes" />
+        <Stat icon={Ticket} label={t("account.boardingPasses")} value={bookings.filter((b) => anyCheckedIn(b)).length} to="/account/boarding-passes" />
         <Stat icon={Users} label={t("account.travelers")} value={travelers.length} to="/account/travelers" />
       </div>
     </div>
@@ -94,10 +95,10 @@ function Stat({
   to: "/account/trips" | "/account/boarding-passes" | "/account/travelers";
 }) {
   return (
-    <Link to={to} className="surface p-5 transition-colors hover:border-primary/40">
+    <AppLink to={to} className="surface p-5 transition-colors hover:border-primary/40">
       <Icon aria-hidden="true" className="size-4 text-clay" />
       <p className="numeral mt-3 text-3xl font-bold">{value}</p>
       <p className="mt-1 text-sm text-muted-foreground">{label}</p>
-    </Link>
+    </AppLink>
   );
 }

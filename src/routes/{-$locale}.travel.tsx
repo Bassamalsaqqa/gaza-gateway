@@ -1,4 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { AppLink } from "@/components/app-link";
+import { createFileRoute } from "@tanstack/react-router";
 import { Check } from "lucide-react";
 import { useState } from "react";
 import { btnClass, Container, PageHeader } from "@/components/kit";
@@ -70,12 +71,12 @@ function TravelPage() {
               ))}
             </ul>
             <div className="mt-8 flex flex-wrap gap-2">
-              <Link to="/flights" className={btnClass("outline", "md")}>
+              <AppLink to="/flights" className={btnClass("outline", "md")}>
                 {t("nav.flights")}
-              </Link>
-              <Link to="/book" className={btnClass("primary", "md")}>
+              </AppLink>
+              <AppLink to="/book" className={btnClass("primary", "md")}>
                 {t("nav.book")}
-              </Link>
+              </AppLink>
             </div>
           </article>
         ) : null}

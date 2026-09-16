@@ -1,4 +1,5 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { AppLink } from "@/components/app-link";
+import { createFileRoute } from "@tanstack/react-router";
 import { Container, Notice, PageHeader, Panel } from "@/components/kit";
 import type { Bilingual } from "@/lib/data";
 import { pick, useI18n } from "@/lib/i18n";
@@ -108,13 +109,13 @@ function PrivacyPage() {
           ))}
           <p className="text-sm text-muted-foreground">
             {t("legal.contactUs")}{" "}
-            <Link to="/contact" className="font-semibold text-brand-deep underline">
+            <AppLink to="/contact" className="font-semibold text-brand-deep underline">
               {t("nav.contact")}
-            </Link>{" "}
+            </AppLink>{" "}
             ·{" "}
-            <Link to="/terms" className="font-semibold text-brand-deep underline">
+            <AppLink to="/terms" className="font-semibold text-brand-deep underline">
               {t("legal.termsTitle")}
-            </Link>
+            </AppLink>
           </p>
         </div>
       </Container>

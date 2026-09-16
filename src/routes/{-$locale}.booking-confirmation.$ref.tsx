@@ -1,10 +1,11 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { AppLink } from "@/components/app-link";
+import { createFileRoute } from "@tanstack/react-router";
 import { Check, Ticket, UserPlus } from "lucide-react";
 import { EXTRA_BAG_PRICE, airportByCode, fares, mealOptions } from "@/lib/data";
 import { btnClass, Code, Container, EmptyState, Notice, Panel } from "@/components/kit";
 import { dateLong, money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
-import { useStore } from "@/lib/store";
+import { anyCheckedIn, useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/{-$locale}/booking-confirmation/$ref")({
   head: ({ params }) => ({
@@ -27,7 +28,7 @@ export const Route = createFileRoute("/{-$locale}/booking-confirmation/$ref")({
 function ConfirmationPage() {
   const { ref } = Route.useParams();
   const { t, lang } = useI18n();
-  const { findBooking, account, ready } = useStore();
+  const { findBooking, account, claimBooking, ready } = useStore();
   const booking = findBooking(ref);
 
   if (!ready) {
@@ -46,12 +47,12 @@ function ConfirmationPage() {
           description={t("conf.notFoundSub")}
           action={
             <div className="flex flex-wrap justify-center gap-2">
-              <Link to="/manage" className={btnClass("primary", "md")}>
+              <AppLink to="/manage" className={btnClass("primary", "md")}>
                 {t("manage.title")}
-              </Link>
-              <Link to="/book" className={btnClass("outline", "md")}>
+              </AppLink>
+              <AppLink to="/book" className={btnClass("outline", "md")}>
                 {t("nav.book")}
-              </Link>
+              </AppLink>
             </div>
           }
         />
@@ -160,32 +161,36 @@ function ConfirmationPage() {
         <Panel>
           <p className="eyebrow text-clay">{t("conf.next")}</p>
           <div className="mt-4 flex flex-wrap gap-2">
-            <Link to="/manage/$ref" params={{ ref: booking.ref }} className={btnClass("primary", "md")}>
+            <AppLink to="/manage/$ref" params={{ ref: booking.ref }} className={btnClass("primary", "md")}>
               {t("book.viewBooking")}
-            </Link>
-            {booking.checkedIn ? (
-              <Link
+            </AppLink>
+            {anyCheckedIn(booking) ? (
+              <AppLink
                 to="/boarding-pass/$ref/$pax"
                 params={{ ref: booking.ref, pax: "0" }}
                 className={btnClass("outline", "md")}
               >
                 {t("book.boardingPass")}
-              </Link>
-            ) : (
-              <Link to="/manage/$ref" params={{ ref: booking.ref }} className={btnClass("outline", "md")}>
+              </AppLink>
+            ) : booking.status === "confirmed" ? (
+              <AppLink to="/manage/$ref/check-in" params={{ ref: booking.ref }} className={btnClass("outline", "md")}>
                 <Ticket aria-hidden="true" className="size-4" />
                 {t("manage.checkin")}
-              </Link>
-            )}
+              </AppLink>
+            ) : null}
             {!account ? (
-              <Link to="/register" className={btnClass("clay", "md")}>
+              <AppLink to="/register" className={btnClass("clay", "md")}>
                 <UserPlus aria-hidden="true" className="size-4" />
                 {t("book.createAccount")}
-              </Link>
-            ) : (
-              <Link to="/account/trips" className={btnClass("outline", "md")}>
+              </AppLink>
+            ) : booking.ownerEmail === account.email ? (
+              <AppLink to="/account/trips" className={btnClass("outline", "md")}>
                 {t("account.trips")}
-              </Link>
+              </AppLink>
+            ) : (
+              <button type="button" onClick={() => claimBooking(booking.ref)} className={btnClass("clay", "md")}>
+                {t("conf.linkAccount")}
+              </button>
             )}
           </div>
           <div className="mt-4">

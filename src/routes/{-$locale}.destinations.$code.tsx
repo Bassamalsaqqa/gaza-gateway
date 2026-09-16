@@ -1,4 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { AppLink } from "@/components/app-link";
+import { createFileRoute } from "@tanstack/react-router";
 import { ArrowRight, Clock, Info, Plane } from "lucide-react";
 import { DestinationCard } from "@/components/destination-card";
 import { FlightSearchForm } from "@/components/flight-search-form";
@@ -48,9 +49,9 @@ function DestinationPage() {
           title={t("dest.notFound")}
           description={t("dest.notFoundSub")}
           action={
-            <Link to="/destinations" className={btnClass("primary", "md")}>
+            <AppLink to="/destinations" className={btnClass("primary", "md")}>
               {t("dest.title")}
-            </Link>
+            </AppLink>
           }
         />
       </Container>
@@ -161,10 +162,10 @@ function DestinationPage() {
                 ar: "خدمة مباشرة تُشغَّل بطائرات من عائلة إيرباص A320.",
               })}
             </p>
-            <Link to="/book" className={btnClass("primary", "md", "mt-4 w-full")}>
+            <AppLink to="/book" className={btnClass("primary", "md", "mt-4 w-full")}>
               {t("dest.bookTo", { city })}
               <ArrowRight aria-hidden="true" className="size-4 rtl:rotate-180" />
-            </Link>
+            </AppLink>
           </div>
         </aside>
       </Container>

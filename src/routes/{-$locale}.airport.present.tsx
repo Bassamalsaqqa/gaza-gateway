@@ -1,4 +1,5 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { AppLink } from "@/components/app-link";
+import { createFileRoute } from "@tanstack/react-router";
 import { btnClass, Container, Eyebrow, Notice, Panel } from "@/components/kit";
 import { img } from "@/lib/data";
 import { pick, useI18n } from "@/lib/i18n";
@@ -100,9 +101,9 @@ function PresentPage() {
                   ar: "رسم مؤقت. ستحل مكانه خريطة موقع مؤرخة.",
                 })}
               </p>
-              <Link to="/airport/future" className={btnClass("primary", "md", "mt-4 w-full")}>
+              <AppLink to="/airport/future" className={btnClass("primary", "md", "mt-4 w-full")}>
                 {t("airport.future")}
-              </Link>
+              </AppLink>
             </div>
           </aside>
         </div>

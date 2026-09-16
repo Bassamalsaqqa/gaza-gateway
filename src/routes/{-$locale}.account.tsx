@@ -1,4 +1,5 @@
-import { Link, Outlet, createFileRoute } from "@tanstack/react-router";
+import { AppLink } from "@/components/app-link";
+import { Outlet, createFileRoute } from "@tanstack/react-router";
 import { btnClass, Container, EmptyState, PageHeader } from "@/components/kit";
 import { useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
@@ -38,12 +39,12 @@ function AccountLayout() {
           description={t("auth.signinSub")}
           action={
             <div className="flex flex-wrap justify-center gap-2">
-              <Link to="/signin" className={btnClass("primary", "md")}>
+              <AppLink to="/signin" className={btnClass("primary", "md")}>
                 {t("auth.signin")}
-              </Link>
-              <Link to="/manage" className={btnClass("outline", "md")}>
+              </AppLink>
+              <AppLink to="/manage" className={btnClass("outline", "md")}>
                 {t("manage.title")}
-              </Link>
+              </AppLink>
             </div>
           }
         />
@@ -68,13 +69,13 @@ function AccountLayout() {
           <ul className="flex gap-2 overflow-x-auto pb-2 lg:sticky lg:top-24 lg:flex-col lg:overflow-visible lg:pb-0">
             {links.map((link) => (
               <li key={link.to} className="shrink-0 lg:shrink">
-                <Link
+                <AppLink
                   to={link.to}
                   activeOptions={{ exact: link.exact }}
                   className="block rounded-lg px-3.5 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground data-[status=active]:bg-primary data-[status=active]:text-primary-foreground"
                 >
                   {t(link.label)}
-                </Link>
+                </AppLink>
               </li>
             ))}
           </ul>

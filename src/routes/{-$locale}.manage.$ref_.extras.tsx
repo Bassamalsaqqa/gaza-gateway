@@ -92,7 +92,7 @@ function ManageExtrasPage() {
   return (
     <Container className="py-8 sm:py-12">
       <PageHeader
-        eyebrow={<Code>{booking.ref}</Code>}
+        eyebrow={t("nav.manage")}
         title={t("manage.extrasTitle")}
         description={t("manage.extrasSub", { ref: booking.ref })}
       />

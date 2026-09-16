@@ -1,4 +1,5 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { AppLink } from "@/components/app-link";
+import { createFileRoute } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import { Container, Eyebrow, PageHeader } from "@/components/kit";
 import { img } from "@/lib/data";
@@ -37,7 +38,7 @@ function AirportPage() {
         <ul className="grid gap-4 lg:grid-cols-3">
           {chapters.map((chapter, index) => (
             <li key={chapter.id}>
-              <Link
+              <AppLink
                 to={chapter.to}
                 className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-ink text-ink-foreground"
               >
@@ -61,7 +62,7 @@ function AirportPage() {
                     <ArrowRight aria-hidden="true" className="size-4 rtl:rotate-180" />
                   </span>
                 </span>
-              </Link>
+              </AppLink>
             </li>
           ))}
         </ul>

@@ -1,7 +1,8 @@
-import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { AppLink, useAppNavigate } from "@/components/app-link";
+import { createFileRoute } from "@tanstack/react-router";
 import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
-import { btnClass, Container, EmptyState, Field, Input, Notice, PageHeader } from "@/components/kit";
+import { btnClass, Container, EmptyState, Field, Input, PageHeader } from "@/components/kit";
 import { useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 
@@ -30,11 +31,12 @@ export const Route = createFileRoute("/{-$locale}/manage/")({
 
 function ManageLookupPage() {
   const { t } = useI18n();
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
   const { ref: refParam } = Route.useSearch();
-  const { findBooking, bookings, ready } = useStore();
+  const { findBooking, ready } = useStore();
   const [ref, setRef] = useState(refParam ?? "");
-  const [lastName, setLastName] = useState("");
+  const [identifier, setIdentifier] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
 
   // Older links used /manage?ref=ABC123 — send them to the deep-linkable detail route.
@@ -46,12 +48,18 @@ function ManageLookupPage() {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
+    const value = identifier.trim().toLowerCase();
+    if (!value) {
+      setError(t("manage.needIdentifier"));
+      setNotFound(false);
+      return;
+    }
+    setError(null);
     const found = findBooking(ref.trim());
-    const nameOk =
-      !lastName.trim() ||
-      found?.passengers.some((p) => p.lastName.trim().toLowerCase() === lastName.trim().toLowerCase()) ||
-      found?.contact.email.toLowerCase() === lastName.trim().toLowerCase();
-    if (found && nameOk) {
+    const matches =
+      found?.passengers.some((p) => p.lastName.trim().toLowerCase() === value) ||
+      found?.contact.email.trim().toLowerCase() === value;
+    if (found && matches) {
       setNotFound(false);
       void navigate({ to: "/manage/$ref", params: { ref: found.ref } });
     } else {
@@ -64,7 +72,7 @@ function ManageLookupPage() {
       <PageHeader eyebrow={t("nav.manage")} title={t("manage.title")} description={t("manage.sub")} />
 
       <Container className="grid gap-8 py-10 lg:grid-cols-[1fr_1.4fr]">
-        <form onSubmit={submit} className="surface h-fit p-5">
+        <form onSubmit={submit} className="surface h-fit p-5" noValidate>
           <div className="space-y-4">
             <Field label={t("manage.reference")} htmlFor="pnr" hint="ABC123">
               <Input
@@ -75,12 +83,21 @@ function ManageLookupPage() {
                 required
               />
             </Field>
-            <Field label={t("manage.lastName")} htmlFor="lastname">
+            <Field
+              label={t("manage.identifier")}
+              htmlFor="identifier"
+              hint={t("manage.identifierHint")}
+              {...(error ? { error } : {})}
+            >
               <Input
-                id="lastname"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                autoComplete="family-name"
+                id="identifier"
+                value={identifier}
+                onChange={(e) => {
+                  setIdentifier(e.target.value);
+                  setError(null);
+                }}
+                aria-invalid={error ? true : undefined}
+                required
               />
             </Field>
             <button type="submit" className={btnClass("primary", "md", "w-full")}>
@@ -88,38 +105,17 @@ function ManageLookupPage() {
               {t("manage.find")}
             </button>
           </div>
-          <div className="mt-5">
-            <Notice>{t("manage.demoHint")}</Notice>
-          </div>
-          {bookings.length > 0 ? (
-            <div className="mt-5 border-t border-border pt-4">
-              <p className="eyebrow text-muted-foreground">{t("account.trips")}</p>
-              <ul className="mt-2 flex flex-wrap gap-2">
-                {bookings.map((b) => (
-                  <li key={b.ref}>
-                    <Link
-                      to="/manage/$ref"
-                      params={{ ref: b.ref }}
-                      className="code-id block rounded-md border border-input bg-card px-2.5 py-1.5 text-xs font-semibold"
-                    >
-                      {b.ref}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
         </form>
 
         <div>
           {notFound ? (
             <EmptyState
               title={t("manage.notFound")}
-              description={t("manage.demoHint")}
+              description={t("manage.notFoundHint")}
               action={
-                <Link to="/book" className={btnClass("outline", "md")}>
+                <AppLink to="/book" className={btnClass("outline", "md")}>
                   {t("nav.book")}
-                </Link>
+                </AppLink>
               }
             />
           ) : (
@@ -127,13 +123,14 @@ function ManageLookupPage() {
               title={t("manage.title")}
               description={t("manage.sub")}
               action={
-                <Link to="/book" className={btnClass("outline", "md")}>
+                <AppLink to="/book" className={btnClass("outline", "md")}>
                   {t("nav.book")}
-                </Link>
+                </AppLink>
               }
             />
           )}
         </div>
+
       </Container>
     </>
   );

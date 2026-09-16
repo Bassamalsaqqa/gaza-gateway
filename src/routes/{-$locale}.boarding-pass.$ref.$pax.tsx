@@ -1,4 +1,5 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { AppLink } from "@/components/app-link";
+import { createFileRoute } from "@tanstack/react-router";
 import { Printer, Ticket } from "lucide-react";
 import { BoardingPassCard, passesForBooking } from "@/components/booking/boarding-pass";
 import { btnClass, Container, EmptyState, Notice, PageHeader } from "@/components/kit";
@@ -45,9 +46,9 @@ function BoardingPassDetailPage() {
           title={t("manage.notFound")}
           description={t("conf.notFoundSub")}
           action={
-            <Link to="/manage" className={btnClass("primary", "md")}>
+            <AppLink to="/manage" className={btnClass("primary", "md")}>
               {t("manage.title")}
-            </Link>
+            </AppLink>
           }
         />
       </Container>
@@ -61,17 +62,27 @@ function BoardingPassDetailPage() {
     return (
       <Container className="py-14">
         <EmptyState
-          title={booking.status === "cancelled" ? t("bp.unavailable") : t("bp.unavailable")}
+          title={t("bp.unavailable")}
           description={booking.status === "cancelled" ? t("bp.cancelled") : t("bp.unavailableSub")}
           action={
             <div className="flex flex-wrap justify-center gap-2">
-              <Link to="/manage/$ref" params={{ ref: booking.ref }} className={btnClass("primary", "md")}>
-                <Ticket aria-hidden="true" className="size-4" />
-                {t("bp.checkinCta")}
-              </Link>
-              <Link to="/account/boarding-passes" className={btnClass("outline", "md")}>
+              {booking.status === "confirmed" ? (
+                <AppLink
+                  to="/manage/$ref/check-in"
+                  params={{ ref: booking.ref }}
+                  className={btnClass("primary", "md")}
+                >
+                  <Ticket aria-hidden="true" className="size-4" />
+                  {t("bp.checkinCta")}
+                </AppLink>
+              ) : (
+                <AppLink to="/manage/$ref" params={{ ref: booking.ref }} className={btnClass("primary", "md")}>
+                  {t("manage.backToBooking")}
+                </AppLink>
+              )}
+              <AppLink to="/account/boarding-passes" className={btnClass("outline", "md")}>
                 {t("bp.backToPasses")}
-              </Link>
+              </AppLink>
             </div>
           }
         />
@@ -92,12 +103,12 @@ function BoardingPassDetailPage() {
               <Printer aria-hidden="true" className="size-4" />
               {t("bp.print")}
             </button>
-            <Link to="/manage/$ref" params={{ ref: booking.ref }} className={btnClass("outline", "sm")}>
+            <AppLink to="/manage/$ref" params={{ ref: booking.ref }} className={btnClass("outline", "sm")}>
               {t("manage.title")}
-            </Link>
-            <Link to="/account/boarding-passes" className={btnClass("ghost", "sm")}>
+            </AppLink>
+            <AppLink to="/account/boarding-passes" className={btnClass("ghost", "sm")}>
               {t("bp.backToPasses")}
-            </Link>
+            </AppLink>
           </div>
         </PageHeader>
       </div>
@@ -110,16 +121,16 @@ function BoardingPassDetailPage() {
 
           {booking.passengers.length > 1 ? (
             <nav aria-label={t("book.passengersLabel")} className="flex flex-wrap gap-2 print:hidden">
-              {booking.passengers.map((p, i) => (
-                <Link
+              {booking.passengers.map((p, i) => (p.type === "infant" ? null : (
+                <AppLink
                   key={`${p.lastName}-${i}`}
                   to="/boarding-pass/$ref/$pax"
                   params={{ ref: booking.ref, pax: String(i) }}
                   className={btnClass(i === paxIndex ? "ink" : "outline", "sm")}
                 >
                   {p.firstName} {p.lastName}
-                </Link>
-              ))}
+                </AppLink>
+              )))}
             </nav>
           ) : null}
 

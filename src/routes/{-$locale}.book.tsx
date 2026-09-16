@@ -1,4 +1,5 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useAppNavigate } from "@/components/app-link";
+import { createFileRoute } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight, Baby, Check, Luggage, Ticket, Utensils } from "lucide-react";
 import { useMemo, useState } from "react";
 import { FlightSearchForm } from "@/components/flight-search-form";
@@ -31,7 +32,7 @@ import {
 } from "@/lib/data";
 import { dateLong, money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
-import { bookingTotal, emptyPassenger, paxCount, useStore } from "@/lib/store";
+import { bookingTotal, emptyPassenger, passengersFor, paxCount, useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/{-$locale}/book")({
@@ -52,14 +53,23 @@ export const Route = createFileRoute("/{-$locale}/book")({
 
 function BookPage() {
   const { t, lang } = useI18n();
-  const navigate = useNavigate();
-  const { draft, setDraft, addBooking } = useStore();
+  const navigate = useAppNavigate();
+  const { draft, setDraft, addBooking, account, travelers } = useStore();
   const [step, setStep] = useState<BookingStep>(draft.entry === "results" ? "results" : "search");
   const [errors, setErrors] = useState(false);
   const [activePax, setActivePax] = useState(0);
   const [seatLeg, setSeatLeg] = useState<"out" | "in">("out");
 
-  const pax = Math.max(1, draft.criteria.adults + draft.criteria.children);
+  const paxList = draft.passengers.length
+    ? draft.passengers
+    : passengersFor(draft.criteria);
+  const pax = paxList.length;
+  // Infants travel on an adult's lap, so they are never allocated a seat.
+  const seatable = paxList.flatMap((p, i) => (p.type === "infant" ? [] : [i]));
+  const paxName = (i: number) => {
+    const p = paxList[i];
+    return p && (p.firstName || p.lastName) ? `${p.firstName} ${p.lastName}`.trim() : t("book.pax", { n: i + 1 });
+  };
   const outboundOptions = useMemo(
     () => searchFlights(draft.criteria.origin, draft.criteria.destination, draft.criteria.departDate),
     [draft.criteria],
@@ -95,7 +105,9 @@ function BookPage() {
     );
   }
 
-  const selectSeat = (paxIndex: number, seat: string) => {
+  const selectSeat = (position: number, seat: string) => {
+    const paxIndex = seatable[position];
+    if (paxIndex === undefined) return;
     const key = `${seatLeg}-${paxIndex}`;
     setDraft((prev) => {
       const seats = { ...prev.seats };
@@ -103,29 +115,23 @@ function BookPage() {
       else seats[key] = seat;
       return { ...prev, seats };
     });
-    if (paxIndex < pax - 1) setActivePax(paxIndex + 1);
+    if (position < seatable.length - 1) setActivePax(position + 1);
   };
 
   const seatAssignments = (leg: "out" | "in"): Record<number, string> => {
     const result: Record<number, string> = {};
-    Object.entries(draft.seats).forEach(([key, seat]) => {
-      const [prefix, index] = key.split("-");
-      if (prefix === leg && index !== undefined) result[Number(index)] = seat;
+    seatable.forEach((paxIndex, position) => {
+      const seat = draft.seats[`${leg}-${paxIndex}`];
+      if (seat) result[position] = seat;
     });
     return result;
   };
 
-  const passengerLabels = Array.from({ length: pax }, (_, i) => {
-    const p = draft.passengers[i];
-    const name = p && (p.firstName || p.lastName) ? `${p.firstName} ${p.lastName}`.trim() : t("book.pax", { n: i + 1 });
-    return name;
-  });
+  const passengerLabels = seatable.map((i) => paxName(i));
 
   const passengersValid = () =>
-    Array.from({ length: pax }).every((_, i) => {
-      const p = draft.passengers[i];
-      return Boolean(p && p.firstName.trim() && p.lastName.trim() && p.dob);
-    }) && /.+@.+\..+/.test(draft.contact.email);
+    paxList.every((p) => Boolean(p.firstName.trim() && p.lastName.trim() && p.dob)) &&
+    /.+@.+\..+/.test(draft.contact.email);
 
   const confirm = () => {
     if (!draft.outbound) return;
@@ -135,7 +141,7 @@ function BookPage() {
       outbound: draft.outbound,
       inbound: draft.inbound,
       fareId: draft.fareId,
-      passengers: draft.passengers.slice(0, pax),
+      passengers: paxList,
       seats: draft.seats,
       extras: draft.extras,
       contact: draft.contact,
@@ -305,20 +311,62 @@ function BookPage() {
                 ) : null}
 
                 <div className="mt-6 space-y-4">
-                  {Array.from({ length: pax }, (_, i) => {
-                    const p = draft.passengers[i] ?? emptyPassenger();
+                  {paxList.map((p, i) => {
                     const update = (patch: Partial<typeof p>) =>
                       setDraft((prev) => {
-                        const passengers = [...prev.passengers];
+                        const passengers = prev.passengers.length ? [...prev.passengers] : passengersFor(prev.criteria);
                         while (passengers.length < pax) passengers.push(emptyPassenger());
                         passengers[i] = { ...(passengers[i] ?? emptyPassenger()), ...patch };
                         return { ...prev, passengers };
                       });
+                    const isInfant = p.type === "infant";
                     return (
                       <Panel key={i}>
-                        <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
-                          {t("book.pax", { n: i + 1 })}
-                        </h2>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                            {t("book.pax", { n: i + 1 })}
+                          </h2>
+                          <Pill>
+                            {t(p.type === "infant" ? "book.infant" : p.type === "child" ? "book.child" : "book.adult")}
+                          </Pill>
+                        </div>
+                        {isInfant ? (
+                          <p className="mt-2 text-xs text-muted-foreground">
+                            {t("book.onLapWith", { name: paxName(p.withAdult ?? 0) })} · {t("book.noSeatInfant")}
+                          </p>
+                        ) : null}
+                        {account && !isInfant ? (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {i === 0 ? (
+                              <button
+                                type="button"
+                                className={btnClass("outline", "sm")}
+                                onClick={() => {
+                                  update({ firstName: account.firstName, lastName: account.lastName });
+                                }}
+                              >
+                                {t("book.useProfile")}
+                              </button>
+                            ) : null}
+                            {travelers.map((traveler) => (
+                              <button
+                                key={traveler.id}
+                                type="button"
+                                className={btnClass("ghost", "sm")}
+                                onClick={() =>
+                                  update({
+                                    firstName: traveler.firstName,
+                                    lastName: traveler.lastName,
+                                    nationality: traveler.nationality,
+                                    document: traveler.document,
+                                  })
+                                }
+                              >
+                                {t("book.useSaved")}: {traveler.firstName} {traveler.lastName}
+                              </button>
+                            ))}
+                          </div>
+                        ) : null}
                         <div className="mt-4 grid gap-3 sm:grid-cols-2">
                           <Field label={t("book.firstName")} htmlFor={`fn-${i}`}>
                             <Input
@@ -400,6 +448,11 @@ function BookPage() {
                   {t("book.seatTitle")}
                 </h1>
                 <p className="mt-1 text-sm text-muted-foreground">{t("book.seatSub")}</p>
+                {account?.seatPreference && account.seatPreference !== "none" ? (
+                  <p className="mt-3 text-sm text-muted-foreground">
+                    {t("ci.seatSuggestion")} <span className="font-semibold">{account.seatPreference}</span>
+                  </p>
+                ) : null}
 
                 {draft.inbound ? (
                   <div className="mt-5 flex gap-1 rounded-lg bg-secondary p-1">
@@ -611,7 +664,7 @@ function BookPage() {
                       {t("book.passengersLabel")}
                     </h2>
                     <ul className="mt-3 divide-y divide-border">
-                      {draft.passengers.slice(0, pax).map((p, i) => (
+                      {paxList.map((p, i) => (
                         <li key={i} className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-sm">
                           <span className="font-medium">
                             {p.firstName} {p.lastName}
