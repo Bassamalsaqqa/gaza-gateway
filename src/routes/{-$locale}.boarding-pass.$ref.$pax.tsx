@@ -62,14 +62,24 @@ function BoardingPassDetailPage() {
     return (
       <Container className="py-14">
         <EmptyState
-          title={booking.status === "cancelled" ? t("bp.unavailable") : t("bp.unavailable")}
+          title={t("bp.unavailable")}
           description={booking.status === "cancelled" ? t("bp.cancelled") : t("bp.unavailableSub")}
           action={
             <div className="flex flex-wrap justify-center gap-2">
-              <AppLink to="/manage/$ref" params={{ ref: booking.ref }} className={btnClass("primary", "md")}>
-                <Ticket aria-hidden="true" className="size-4" />
-                {t("bp.checkinCta")}
-              </AppLink>
+              {booking.status === "confirmed" ? (
+                <AppLink
+                  to="/manage/$ref/check-in"
+                  params={{ ref: booking.ref }}
+                  className={btnClass("primary", "md")}
+                >
+                  <Ticket aria-hidden="true" className="size-4" />
+                  {t("bp.checkinCta")}
+                </AppLink>
+              ) : (
+                <AppLink to="/manage/$ref" params={{ ref: booking.ref }} className={btnClass("primary", "md")}>
+                  {t("manage.backToBooking")}
+                </AppLink>
+              )}
               <AppLink to="/account/boarding-passes" className={btnClass("outline", "md")}>
                 {t("bp.backToPasses")}
               </AppLink>
@@ -111,7 +121,7 @@ function BoardingPassDetailPage() {
 
           {booking.passengers.length > 1 ? (
             <nav aria-label={t("book.passengersLabel")} className="flex flex-wrap gap-2 print:hidden">
-              {booking.passengers.map((p, i) => (
+              {booking.passengers.map((p, i) => (p.type === "infant" ? null : (
                 <AppLink
                   key={`${p.lastName}-${i}`}
                   to="/boarding-pass/$ref/$pax"
@@ -120,7 +130,7 @@ function BoardingPassDetailPage() {
                 >
                   {p.firstName} {p.lastName}
                 </AppLink>
-              ))}
+              )))}
             </nav>
           ) : null}
 
