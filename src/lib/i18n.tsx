@@ -321,8 +321,67 @@ const en: Dict = {
   "footer.plan": "Plan your trip",
   "footer.discover": "Discover",
   "footer.help": "Help",
+  "footer.legal": "Legal",
   "error.title": "Something went wrong",
   "notfound.title": "Page not found",
+
+  // single flight
+  "fd.title": "Flight {number}",
+  "fd.sub": "Scheduled service between {from} and {to}.",
+  "fd.notFound": "Flight not found",
+  "fd.notFoundSub": "This flight is not in the published schedule. Open the board to find another service.",
+  "fd.openBoard": "Departures & arrivals",
+  "fd.depart": "Departure",
+  "fd.arrive": "Arrival",
+  "fd.localTime": "Local time",
+  "fd.operatedBy": "Operated by {airline}",
+  "fd.bookThis": "Book this flight",
+  "fd.fromPrice": "Fares from {price}",
+  "fd.airports": "Airports",
+  "fd.aboutFlight": "Flight details",
+  "fd.note": "Schedules, gates and statuses in this prototype are generated mock data.",
+
+  // auth recovery
+  "auth.forgotLink": "Forgot your password?",
+  "auth.forgotTitle": "Reset your password",
+  "auth.forgotSub": "Enter the email on your account and we'll send a reset link.",
+  "auth.forgotSubmit": "Send reset link",
+  "auth.forgotSent": "If an account exists for {email}, a reset link is on its way.",
+  "auth.openReset": "Open the reset form",
+  "auth.backToSignIn": "Back to sign in",
+  "auth.resetTitle": "Choose a new password",
+  "auth.resetSub": "Set a new password for your account.",
+  "auth.newPassword": "New password",
+  "auth.confirmPassword": "Confirm new password",
+  "auth.resetSubmit": "Save new password",
+  "auth.resetDone": "Your password has been updated in this prototype.",
+  "auth.mismatch": "The two passwords don't match.",
+  "auth.tooShort": "Use at least 8 characters.",
+  "auth.verifyTitle": "Verify your email",
+  "auth.verifySub": "We sent a verification link to {email}. Confirm it to finish setting up your account.",
+  "auth.verifyNow": "I've confirmed the link",
+  "auth.verifyDone": "Email verified. You're all set.",
+  "auth.verifyResend": "Resend the link",
+  "auth.verifyResent": "Verification link sent again.",
+  "auth.goToAccount": "Go to my account",
+  "auth.recoveryNote": "Prototype only: no email is sent and nothing leaves this browser.",
+
+  // legal
+  "legal.privacyTitle": "Privacy notice",
+  "legal.privacySub": "How this prototype website handles the information you enter.",
+  "legal.termsTitle": "Terms of use",
+  "legal.termsSub": "The terms that apply to using this prototype website.",
+  "legal.updated": "Last reviewed",
+  "legal.contactUs": "Questions about this page?",
+
+  // access denied
+  "denied.title": "This area isn't available",
+  "denied.sub": "Your account doesn't have access to this part of Gaza International Airport online.",
+  "denied.body":
+    "Some account areas are still being prepared, and others are limited to airport staff. Everything you need for your trips is on your account overview.",
+  "denied.account": "My account overview",
+  "denied.home": "Back to home",
+  "denied.contact": "Contact us",
 };
 
 const ar: Dict = {
