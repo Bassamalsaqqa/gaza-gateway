@@ -54,7 +54,7 @@ export const Route = createFileRoute("/{-$locale}/book")({
 function BookPage() {
   const { t, lang } = useI18n();
   const navigate = useAppNavigate();
-  const { draft, setDraft, addBooking } = useStore();
+  const { draft, setDraft, addBooking, account, travelers } = useStore();
   const [step, setStep] = useState<BookingStep>(draft.entry === "results" ? "results" : "search");
   const [errors, setErrors] = useState(false);
   const [activePax, setActivePax] = useState(0);
