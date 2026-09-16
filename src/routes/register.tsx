@@ -35,7 +35,7 @@ function RegisterPage() {
           onSubmit={(e) => {
             e.preventDefault();
             signIn(form.email, form.firstName, form.lastName);
-            void navigate({ to: "/account" });
+            void navigate({ to: "/verify-email" });
           }}
           className="surface mt-6 space-y-4 p-5 sm:p-6"
         >

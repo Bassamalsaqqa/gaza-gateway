@@ -56,7 +56,7 @@ function PreferencesPage() {
           >
             {mealOptions.map((meal) => (
               <option key={meal.id} value={meal.id}>
-                {pick(lang, meal.name)}
+                {pick(lang, meal.label)}
               </option>
             ))}
           </Select>

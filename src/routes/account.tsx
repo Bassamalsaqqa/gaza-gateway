@@ -15,6 +15,7 @@ const links = [
   { to: "/account/profile", label: "account.profile", exact: false },
   { to: "/account/preferences", label: "account.preferences", exact: false },
   { to: "/account/security", label: "account.security", exact: false },
+  { to: "/access-denied", label: "account.payments", exact: false },
 ] as const;
 
 function AccountLayout() {

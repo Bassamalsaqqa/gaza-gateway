@@ -108,6 +108,9 @@ export function FlightTable({
                         <span aria-hidden="true">→</span>
                         <Code>{flight.destinationCode}</Code>
                       </span>
+                      <Link to="/flight/$flightId" params={{ flightId: flight.id }} className={btnClass("primary", "sm")}>
+                        {t("flights.details")}
+                      </Link>
                       <Link
                         to="/destinations/$code"
                         params={{ code: other.code === GZA.code ? flight.originCode : other.code }}

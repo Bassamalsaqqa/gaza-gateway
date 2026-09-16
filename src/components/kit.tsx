@@ -55,9 +55,9 @@ export function Field({
   className,
 }: {
   label: string;
-  hint?: string;
-  error?: string;
-  htmlFor?: string;
+  hint?: string | undefined;
+  error?: string | undefined;
+  htmlFor?: string | undefined;
   children: ReactNode;
   className?: string;
 }) {
@@ -127,7 +127,7 @@ export function Pill({
   );
 }
 
-export function Eyebrow({ children, className }: { children: ReactNode; className?: string }) {
+export function Eyebrow({ children, className }: { children: ReactNode; className?: string | undefined }) {
   return <p className={cn("eyebrow text-clay", className)}>{children}</p>;
 }
 

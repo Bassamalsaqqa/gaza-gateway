@@ -8,11 +8,11 @@ import { dateLong, money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
 import { useStore, type Booking } from "@/lib/store";
 
-type ManageSearch = { ref?: string };
+type ManageSearch = { ref?: string | undefined };
 
 export const Route = createFileRoute("/manage")({
   validateSearch: (search: Record<string, unknown>): ManageSearch => ({
-    ref: typeof search.ref === "string" ? search.ref : undefined,
+    ref: typeof search["ref"] === "string" ? (search["ref"] as string) : undefined,
   }),
   head: () => ({
     meta: [

@@ -650,3 +650,18 @@ export const travelSections: InfoSection[] = [
     ],
   },
 ];
+
+/* ------------------------------ flight lookup ----------------------------- */
+
+/**
+ * Resolve a single flight instance from its id (e.g. "PS102-2026-09-16-out").
+ * Returns null when the id does not correspond to a scheduled flight.
+ */
+export function flightById(id: string): Flight | null {
+  const match = /^(PS\d+)-(\d{4}-\d{2}-\d{2})-(out|in)$/.exec(id);
+  if (!match) return null;
+  const date = match[2] as string;
+  const direction = match[3];
+  const pool = direction === "out" ? departuresOn(date) : arrivalsOn(date);
+  return pool.find((f) => f.id === id) ?? null;
+}
