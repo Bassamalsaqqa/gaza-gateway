@@ -22,9 +22,8 @@ function PreferencesPage() {
   const { account, updateAccount } = useStore();
   const [saved, setSaved] = useState(false);
   const [form, setForm] = useState({
-    seat: account?.prefSeat ?? "window",
-    meal: account?.prefMeal ?? "standard",
-    cabin: account?.prefCabin ?? "economy",
+    seat: account?.seatPreference ?? "window",
+    meal: account?.mealPreference ?? "standard",
   });
 
   return (
@@ -33,7 +32,7 @@ function PreferencesPage() {
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          updateAccount({ prefSeat: form.seat, prefMeal: form.meal, prefCabin: form.cabin });
+          updateAccount({ seatPreference: form.seat, mealPreference: form.meal });
           setSaved(true);
         }}
         className="mt-4 grid gap-3 sm:grid-cols-2"
@@ -60,17 +59,6 @@ function PreferencesPage() {
                 {pick(lang, meal.name)}
               </option>
             ))}
-          </Select>
-        </Field>
-        <Field label={t("account.prefCabin")} htmlFor="pref-cabin">
-          <Select
-            id="pref-cabin"
-            value={form.cabin}
-            onChange={(e) => setForm((prev) => ({ ...prev, cabin: e.target.value }))}
-          >
-            <option value="economy">{t("cabin.economy")}</option>
-            <option value="premium">{t("cabin.premium")}</option>
-            <option value="business">{t("cabin.business")}</option>
           </Select>
         </Field>
         <div className="sm:col-span-2">
