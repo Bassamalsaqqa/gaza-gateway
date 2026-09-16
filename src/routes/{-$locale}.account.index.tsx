@@ -6,7 +6,7 @@ import { btnClass, Code, EmptyState, Panel } from "@/components/kit";
 import { airportByCode } from "@/lib/data";
 import { dateLong } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
-import { useStore, anyCheckedIn } from "@/lib/store";
+import { useStore, passCount } from "@/lib/store";
 
 export const Route = createFileRoute("/{-$locale}/account/")({
   head: () => ({
@@ -23,7 +23,12 @@ export const Route = createFileRoute("/{-$locale}/account/")({
 function AccountOverview() {
   const { t, lang } = useI18n();
   const { myBookings: bookings, travelers } = useStore();
-  const next = bookings.find((b) => b.status === "confirmed");
+  const today = new Date().toISOString().slice(0, 10);
+  // Nearest upcoming confirmed departure, not simply the first stored booking.
+  const next = bookings
+    .filter((b) => b.status === "confirmed" && b.outbound.date >= today)
+    .sort((a, b) => a.outbound.date.localeCompare(b.outbound.date))[0];
+  const passes = bookings.reduce((sum, b) => sum + (b.status === "cancelled" ? 0 : passCount(b)), 0);
 
   return (
     <div className="space-y-4">
@@ -76,7 +81,7 @@ function AccountOverview() {
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Stat icon={Luggage} label={t("account.trips")} value={bookings.length} to="/account/trips" />
-        <Stat icon={Ticket} label={t("account.boardingPasses")} value={bookings.filter((b) => anyCheckedIn(b)).length} to="/account/boarding-passes" />
+        <Stat icon={Ticket} label={t("account.boardingPasses")} value={passes} to="/account/boarding-passes" />
         <Stat icon={Users} label={t("account.travelers")} value={travelers.length} to="/account/travelers" />
       </div>
     </div>

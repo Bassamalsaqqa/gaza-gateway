@@ -76,7 +76,7 @@ function ProfilePage() {
         </div>
       </form>
       <div className="mt-5">
-        <Notice>{t("auth.demoNote")}</Notice>
+        <Notice>{t("account.profileNote")}</Notice>
       </div>
     </Panel>
   );

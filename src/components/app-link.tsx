@@ -39,16 +39,19 @@ function localeParam(lang: Lang): RouteParams {
   return lang === "ar" ? { locale: "ar" } : { locale: undefined };
 }
 
-type AppLinkProps = Omit<ComponentProps<typeof Link>, "to" | "params"> & {
+type AppLinkProps = Omit<ComponentProps<typeof Link>, "to" | "params" | "search"> & {
   to: string;
   params?: RouteParams;
+  search?: Record<string, unknown>;
 };
 
 /** Locale-preserving internal link. `to` is always the canonical English path. */
-export function AppLink({ to, params, ...rest }: AppLinkProps) {
+export function AppLink({ to, params, search, ...rest }: AppLinkProps) {
   const lang = useLang();
   const LinkAny = Link as unknown as (props: Record<string, unknown>) => ReactElement;
-  return <LinkAny to={toRouteTarget(to)} params={{ ...params, ...localeParam(lang) }} {...rest} />;
+  return (
+    <LinkAny to={toRouteTarget(to)} params={{ ...params, ...localeParam(lang) }} search={search} {...rest} />
+  );
 }
 
 /** Locale-preserving programmatic navigation. `to` is the canonical English path. */

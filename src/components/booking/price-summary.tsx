@@ -4,14 +4,16 @@ import { money, dateShort } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
 import { bookingTotal, paxCount, type Draft } from "@/lib/store";
 
-export function PriceSummary({ draft }: { draft: Draft }) {
+export function PriceSummary({ draft, compact = false }: { draft: Draft; compact?: boolean }) {
   const { t, lang } = useI18n();
   const totals = bookingTotal(draft);
   const fare = fares.find((f) => f.id === draft.fareId);
 
   return (
-    <aside className="surface sticky top-24 p-5" aria-label={t("book.summary")}>
-      <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">{t("book.summary")}</h2>
+    <aside className={compact ? "p-1" : "surface sticky top-24 p-5"} aria-label={t("book.summary")}>
+      {compact ? null : (
+        <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">{t("book.summary")}</h2>
+      )}
 
       <div className="mt-4 space-y-4">
         {draft.outbound ? <Leg flight={draft.outbound} label={t("book.outbound")} /> : null}

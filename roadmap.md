@@ -26,3 +26,14 @@
 
 ## Constraints
 No admin, no backend/database/payment/email, no global redesign.
+
+## Batch A completion (in progress)
+- [ ] Stabilize per-passenger extras / per-leg check-in migration (typecheck clean)
+- [ ] Booking: seat suggestion + cabin in normal seat step; mobile collapsible trip summary
+- [ ] Manage extras: compact per-passenger UX
+- [ ] All boarding-pass links use /boarding-pass/$ref/$leg/$pax
+- [ ] Account: remove Payments, nearest upcoming trip, real pass count, trips tabs, traveler edit, profile/preferences/security copy
+- [ ] Guest -> account -> verify -> saved trip handoff carrying ref
+- [ ] Public /check-in in utility/mobile/footer nav
+- [ ] Copy cleanup ("updated continuously" etc.)
+- [ ] Final checks: tsgo, build, EN/AR desktop + 390px browser smoke

@@ -17,6 +17,9 @@ export const Route = createFileRoute("/{-$locale}/register")({
       { property: "og:description", content: "Keep your trips, travellers and preferences in one place." },
     ],
   }),
+  validateSearch: (search: Record<string, unknown>) => ({
+    ref: typeof search["ref"] === "string" ? (search["ref"] as string) : undefined,
+  }),
   component: RegisterPage,
 });
 
@@ -24,6 +27,7 @@ function RegisterPage() {
   const { t } = useI18n();
   const navigate = useAppNavigate();
   const { signIn } = useStore();
+  const { ref } = Route.useSearch();
   const [form, setForm] = useState({ firstName: "", lastName: "", email: "", password: "" });
 
   return (
@@ -31,12 +35,15 @@ function RegisterPage() {
       <div className="w-full max-w-md">
         <h1 className="text-3xl font-bold">{t("auth.registerTitle")}</h1>
         <p className="mt-2 text-sm text-muted-foreground">{t("auth.registerSub")}</p>
+        {ref ? (
+          <p className="mt-3 text-sm font-semibold text-brand-deep">{t("auth.saveBookingNote", { ref })}</p>
+        ) : null}
 
         <form
           onSubmit={(e) => {
             e.preventDefault();
             signIn(form.email, form.firstName, form.lastName);
-            void navigate({ to: "/verify-email" });
+            void navigate({ to: "/verify-email", search: ref ? { ref } : {} });
           }}
           className="surface mt-6 space-y-4 p-5 sm:p-6"
         >

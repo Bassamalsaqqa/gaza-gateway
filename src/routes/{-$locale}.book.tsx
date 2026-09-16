@@ -28,11 +28,21 @@ import {
   fares,
   mealOptions,
   searchFlights,
+  suggestSeat,
   type Flight,
 } from "@/lib/data";
 import { dateLong, money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
-import { bookingTotal, emptyPassenger, passengersFor, paxCount, useStore } from "@/lib/store";
+import {
+  bookingTotal,
+  emptyPassenger,
+  extrasFor,
+  passengersFor,
+  paxCount,
+  totalExtraBags,
+  type PaxExtras,
+  useStore,
+} from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/{-$locale}/book")({
@@ -158,6 +168,18 @@ function BookPage() {
       <Container className="py-8">
         <div className="grid gap-8 lg:grid-cols-[1.7fr_1fr]">
           <div>
+            {/* Compact trip summary for narrow screens; desktop keeps the sticky panel. */}
+            {step === "fare" || step === "passengers" || step === "seats" || step === "extras" || step === "review" ? (
+              <details className="surface mb-6 p-4 lg:hidden">
+                <summary className="flex cursor-pointer items-center justify-between gap-3 text-sm font-semibold">
+                  <span>{t("book.summaryToggle")}</span>
+                  <span className="text-base font-bold">{money(bookingTotal(draft).total, lang)}</span>
+                </summary>
+                <div className="mt-3">
+                  <PriceSummary draft={draft} compact />
+                </div>
+              </details>
+            ) : null}
             {/* ------------------------------ results ------------------------------ */}
             {step === "results" ? (
               <section aria-labelledby="results-title">
@@ -481,7 +503,15 @@ function BookPage() {
                     onActivePassengerChange={setActivePax}
                     onSelect={selectSeat}
                     passengerLabels={passengerLabels}
+                    cabin={draft.criteria.cabin}
+                    suggestedSeat={suggestSeat(
+                      (seatLeg === "out" ? draft.outbound?.id : draft.inbound?.id) ?? "unknown",
+                      draft.criteria.cabin,
+                      account?.seatPreference ?? "none",
+                      Object.values(draft.seats),
+                    )}
                   />
+
                 </div>
 
                 <StepNav
@@ -684,30 +714,40 @@ function BookPage() {
                     <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
                       {t("step.extras")}
                     </h2>
-                    <dl className="mt-3 space-y-2 text-sm">
-                      <div className="flex justify-between gap-3">
-                        <dt className="text-muted-foreground">{t("book.extraBag")}</dt>
-                        <dd className="numeral font-medium">{draft.extras.extraBags}</dd>
-                      </div>
-                      <div className="flex justify-between gap-3">
-                        <dt className="text-muted-foreground">{t("book.meal")}</dt>
-                        <dd className="font-medium">
-                          {pick(lang, mealOptions.find((m) => m.id === draft.extras.meal)?.label ?? { en: "—", ar: "—" })}
-                        </dd>
-                      </div>
-                      <div className="flex justify-between gap-3">
-                        <dt className="text-muted-foreground">{t("book.assistance")}</dt>
-                        <dd className="font-medium">
-                          {draft.extras.assistance.length === 0
-                            ? t("book.none")
-                            : draft.extras.assistance
-                                .map((id) =>
-                                  pick(lang, assistanceOptions.find((a) => a.id === id)?.label ?? { en: id, ar: id }),
-                                )
-                                .join(", ")}
-                        </dd>
-                      </div>
-                    </dl>
+                    <ul className="mt-3 divide-y divide-border text-sm">
+                      {paxList.map((p, i) => {
+                        const extras = extrasFor(draft.extras, i);
+                        const label =
+                          `${p.firstName} ${p.lastName}`.trim() || `${t("book.passenger")} ${i + 1}`;
+                        return (
+                          <li key={`rev-extras-${i}`} className="py-2.5">
+                            <p className="font-medium">{label}</p>
+                            <p className="mt-1 text-muted-foreground">
+                              <span className="numeral">
+                                {extras.extraBags} × {t("book.extraBag")}
+                              </span>
+                              {" · "}
+                              {pick(lang, mealOptions.find((m) => m.id === extras.meal)?.label ?? { en: "—", ar: "—" })}
+                              {" · "}
+                              {extras.assistance.length === 0
+                                ? t("book.none")
+                                : extras.assistance
+                                    .map((id) =>
+                                      pick(
+                                        lang,
+                                        assistanceOptions.find((a) => a.id === id)?.label ?? { en: id, ar: id },
+                                      ),
+                                    )
+                                    .join(", ")}
+                            </p>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                    <p className="mt-3 flex justify-between gap-3 border-t border-border pt-3 text-sm">
+                      <span className="text-muted-foreground">{t("book.extraBag")}</span>
+                      <span className="numeral font-semibold">{totalExtraBags(draft.extras)}</span>
+                    </p>
                   </Panel>
                 </div>
 
@@ -727,7 +767,7 @@ function BookPage() {
           </div>
 
           {step !== "confirmation" ? (
-            <div>
+            <div className="hidden lg:block">
               <PriceSummary draft={draft} />
             </div>
           ) : null}
