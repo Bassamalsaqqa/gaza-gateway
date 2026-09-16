@@ -1,5 +1,5 @@
 import { AppLink } from "@/components/app-link";
-import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { btnClass, Container, EmptyState, Field, Input, Notice, PageHeader } from "@/components/kit";
@@ -98,7 +98,7 @@ function ManageLookupPage() {
               <ul className="mt-2 flex flex-wrap gap-2">
                 {bookings.map((b) => (
                   <li key={b.ref}>
-                    <Link
+                    <AppLink
                       to="/manage/$ref"
                       params={{ ref: b.ref }}
                       className="code-id block rounded-md border border-input bg-card px-2.5 py-1.5 text-xs font-semibold"

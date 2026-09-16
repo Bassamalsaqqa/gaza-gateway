@@ -40,7 +40,7 @@ function BoardingPassesPage() {
           action={
             <div className="flex flex-wrap justify-center gap-2">
               {pendingCheckin[0] ? (
-                <Link
+                <AppLink
                   to="/manage/$ref"
                   params={{ ref: pendingCheckin[0].ref }}
                   className={btnClass("primary", "md")}
@@ -77,14 +77,14 @@ function BoardingPassesPage() {
           <li key={`${item.booking.ref}-${item.leg}-${item.paxIndex}`} className="space-y-2">
             <BoardingPassCard item={item} compact />
             <div className="flex flex-wrap gap-2">
-              <Link
+              <AppLink
                 to="/boarding-pass/$ref/$pax"
                 params={{ ref: item.booking.ref, pax: String(item.paxIndex) }}
                 className={btnClass("primary", "sm")}
               >
                 {t("bp.view")}
               </AppLink>
-              <Link
+              <AppLink
                 to="/account/trips/$ref"
                 params={{ ref: item.booking.ref }}
                 className={btnClass("outline", "sm")}

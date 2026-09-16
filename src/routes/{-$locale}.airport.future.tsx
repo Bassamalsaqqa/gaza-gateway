@@ -111,7 +111,7 @@ function FuturePage() {
           <ul className="mt-4 flex flex-wrap gap-2">
             {destinations.map((destination) => (
               <li key={destination.code}>
-                <Link
+                <AppLink
                   to="/destinations/$code"
                   params={{ code: destination.code }}
                   className="inline-flex items-center gap-2 rounded-full border border-input bg-card px-3.5 py-1.5 text-sm font-semibold"

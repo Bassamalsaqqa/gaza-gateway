@@ -58,7 +58,7 @@ function Home() {
               {t("home.exploreAirport")}
               <ArrowRight aria-hidden="true" className="size-4 rtl:rotate-180" />
             </AppLink>
-            <Link
+            <AppLink
               to="/flights"
               className={btnClass("ghost", "md", "border border-ink-border text-ink-foreground hover:bg-ink-border")}
             >
@@ -145,7 +145,7 @@ function Home() {
                 { to: "/airport/future", title: "home.future", sub: "home.futureSub", seed: "terminal-concept-render" },
               ] as const
             ).map((chapter) => (
-              <Link
+              <AppLink
                 key={chapter.to}
                 to={chapter.to}
                 className="group relative overflow-hidden rounded-xl border border-ink-border focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-clay-soft"

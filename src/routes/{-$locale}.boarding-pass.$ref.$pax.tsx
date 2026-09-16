@@ -112,7 +112,7 @@ function BoardingPassDetailPage() {
           {booking.passengers.length > 1 ? (
             <nav aria-label={t("book.passengersLabel")} className="flex flex-wrap gap-2 print:hidden">
               {booking.passengers.map((p, i) => (
-                <Link
+                <AppLink
                   key={`${p.lastName}-${i}`}
                   to="/boarding-pass/$ref/$pax"
                   params={{ ref: booking.ref, pax: String(i) }}

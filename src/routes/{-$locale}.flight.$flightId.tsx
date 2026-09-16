@@ -1,5 +1,5 @@
 import { AppLink } from "@/components/app-link";
-import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Plane } from "lucide-react";
 import { StatusBadge } from "@/components/flight-status";
 import { btnClass, Code, Container, EmptyState, Notice, Panel, Pill } from "@/components/kit";

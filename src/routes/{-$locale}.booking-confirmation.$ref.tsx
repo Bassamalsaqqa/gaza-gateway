@@ -165,7 +165,7 @@ function ConfirmationPage() {
               {t("book.viewBooking")}
             </AppLink>
             {booking.checkedIn ? (
-              <Link
+              <AppLink
                 to="/boarding-pass/$ref/$pax"
                 params={{ ref: booking.ref, pax: "0" }}
                 className={btnClass("outline", "md")}
