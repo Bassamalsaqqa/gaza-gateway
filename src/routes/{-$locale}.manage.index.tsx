@@ -2,7 +2,7 @@ import { AppLink, useAppNavigate } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
 import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
-import { btnClass, Container, EmptyState, Field, Input, Notice, PageHeader } from "@/components/kit";
+import { btnClass, Container, EmptyState, Field, Input, PageHeader } from "@/components/kit";
 import { useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 
