@@ -9,870 +9,1039 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AboutRouteImport } from './routes/about'
-import { Route as AccessDeniedRouteImport } from './routes/access-denied'
-import { Route as AccountRouteImport } from './routes/account'
-import { Route as AirportRouteImport } from './routes/airport'
-import { Route as BookRouteImport } from './routes/book'
-import { Route as ContactRouteImport } from './routes/contact'
-import { Route as DestinationsRouteImport } from './routes/destinations'
-import { Route as FlightsRouteImport } from './routes/flights'
-import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
-import { Route as GalleryRouteImport } from './routes/gallery'
-import { Route as ManageRouteImport } from './routes/manage'
-import { Route as PrivacyRouteImport } from './routes/privacy'
-import { Route as RegisterRouteImport } from './routes/register'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as SigninRouteImport } from './routes/signin'
-import { Route as TermsRouteImport } from './routes/terms'
-import { Route as TravelRouteImport } from './routes/travel'
-import { Route as VerifyEmailRouteImport } from './routes/verify-email'
-import { Route as AccountIndexRouteImport } from './routes/account.index'
-import { Route as AccountBoardingPassesRouteImport } from './routes/account.boarding-passes'
-import { Route as AccountPreferencesRouteImport } from './routes/account.preferences'
-import { Route as AccountProfileRouteImport } from './routes/account.profile'
-import { Route as AccountSecurityRouteImport } from './routes/account.security'
-import { Route as AccountTravelersRouteImport } from './routes/account.travelers'
-import { Route as AccountTripsRouteImport } from './routes/account.trips'
-import { Route as AirportIndexRouteImport } from './routes/airport.index'
-import { Route as AirportFutureRouteImport } from './routes/airport.future'
-import { Route as AirportPastRouteImport } from './routes/airport.past'
-import { Route as AirportPresentRouteImport } from './routes/airport.present'
-import { Route as BookingConfirmationRefRouteImport } from './routes/booking-confirmation.$ref'
-import { Route as DestinationsCodeRouteImport } from './routes/destinations.$code'
-import { Route as FlightFlightIdRouteImport } from './routes/flight.$flightId'
-import { Route as ManageIndexRouteImport } from './routes/manage.index'
-import { Route as ManageRefRouteImport } from './routes/manage.$ref'
-import { Route as AccountTripsIndexRouteImport } from './routes/account.trips.index'
-import { Route as AccountTripsRefRouteImport } from './routes/account.trips.$ref'
-import { Route as BoardingPassRefPaxRouteImport } from './routes/boarding-pass.$ref.$pax'
+import { Route as Char123LocaleChar125RouteImport } from './routes/{-$locale}'
+import { Route as Char123LocaleChar125IndexRouteImport } from './routes/{-$locale}.index'
+import { Route as Char123LocaleChar125AboutRouteImport } from './routes/{-$locale}.about'
+import { Route as Char123LocaleChar125AccessDeniedRouteImport } from './routes/{-$locale}.access-denied'
+import { Route as Char123LocaleChar125AccountRouteImport } from './routes/{-$locale}.account'
+import { Route as Char123LocaleChar125AirportRouteImport } from './routes/{-$locale}.airport'
+import { Route as Char123LocaleChar125BookRouteImport } from './routes/{-$locale}.book'
+import { Route as Char123LocaleChar125ContactRouteImport } from './routes/{-$locale}.contact'
+import { Route as Char123LocaleChar125DestinationsRouteImport } from './routes/{-$locale}.destinations'
+import { Route as Char123LocaleChar125FlightsRouteImport } from './routes/{-$locale}.flights'
+import { Route as Char123LocaleChar125ForgotPasswordRouteImport } from './routes/{-$locale}.forgot-password'
+import { Route as Char123LocaleChar125GalleryRouteImport } from './routes/{-$locale}.gallery'
+import { Route as Char123LocaleChar125ManageRouteImport } from './routes/{-$locale}.manage'
+import { Route as Char123LocaleChar125PrivacyRouteImport } from './routes/{-$locale}.privacy'
+import { Route as Char123LocaleChar125RegisterRouteImport } from './routes/{-$locale}.register'
+import { Route as Char123LocaleChar125ResetPasswordRouteImport } from './routes/{-$locale}.reset-password'
+import { Route as Char123LocaleChar125SigninRouteImport } from './routes/{-$locale}.signin'
+import { Route as Char123LocaleChar125TermsRouteImport } from './routes/{-$locale}.terms'
+import { Route as Char123LocaleChar125TravelRouteImport } from './routes/{-$locale}.travel'
+import { Route as Char123LocaleChar125VerifyEmailRouteImport } from './routes/{-$locale}.verify-email'
+import { Route as Char123LocaleChar125AccountIndexRouteImport } from './routes/{-$locale}.account.index'
+import { Route as Char123LocaleChar125AccountBoardingPassesRouteImport } from './routes/{-$locale}.account.boarding-passes'
+import { Route as Char123LocaleChar125AccountPreferencesRouteImport } from './routes/{-$locale}.account.preferences'
+import { Route as Char123LocaleChar125AccountProfileRouteImport } from './routes/{-$locale}.account.profile'
+import { Route as Char123LocaleChar125AccountSecurityRouteImport } from './routes/{-$locale}.account.security'
+import { Route as Char123LocaleChar125AccountTravelersRouteImport } from './routes/{-$locale}.account.travelers'
+import { Route as Char123LocaleChar125AccountTripsRouteImport } from './routes/{-$locale}.account.trips'
+import { Route as Char123LocaleChar125AirportIndexRouteImport } from './routes/{-$locale}.airport.index'
+import { Route as Char123LocaleChar125AirportFutureRouteImport } from './routes/{-$locale}.airport.future'
+import { Route as Char123LocaleChar125AirportPastRouteImport } from './routes/{-$locale}.airport.past'
+import { Route as Char123LocaleChar125AirportPresentRouteImport } from './routes/{-$locale}.airport.present'
+import { Route as Char123LocaleChar125BookingConfirmationRefRouteImport } from './routes/{-$locale}.booking-confirmation.$ref'
+import { Route as Char123LocaleChar125DestinationsCodeRouteImport } from './routes/{-$locale}.destinations.$code'
+import { Route as Char123LocaleChar125FlightFlightIdRouteImport } from './routes/{-$locale}.flight.$flightId'
+import { Route as Char123LocaleChar125ManageIndexRouteImport } from './routes/{-$locale}.manage.index'
+import { Route as Char123LocaleChar125ManageRefRouteImport } from './routes/{-$locale}.manage.$ref'
+import { Route as Char123LocaleChar125AccountTripsIndexRouteImport } from './routes/{-$locale}.account.trips.index'
+import { Route as Char123LocaleChar125AccountTripsRefRouteImport } from './routes/{-$locale}.account.trips.$ref'
+import { Route as Char123LocaleChar125BoardingPassRefPaxRouteImport } from './routes/{-$locale}.boarding-pass.$ref.$pax'
+import { Route as Char123LocaleChar125ManageRefCheckInRouteImport } from './routes/{-$locale}.manage.$ref_.check-in'
+import { Route as Char123LocaleChar125ManageRefExtrasRouteImport } from './routes/{-$locale}.manage.$ref_.extras'
+import { Route as Char123LocaleChar125ManageRefSeatsRouteImport } from './routes/{-$locale}.manage.$ref_.seats'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const Char123LocaleChar125Route = Char123LocaleChar125RouteImport.update({
+  id: '/{-$locale}',
+  path: '/{-$locale}',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AboutRoute = AboutRouteImport.update({
-  id: '/about',
-  path: '/about',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AccessDeniedRoute = AccessDeniedRouteImport.update({
-  id: '/access-denied',
-  path: '/access-denied',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AccountRoute = AccountRouteImport.update({
-  id: '/account',
-  path: '/account',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AirportRoute = AirportRouteImport.update({
-  id: '/airport',
-  path: '/airport',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BookRoute = BookRouteImport.update({
-  id: '/book',
-  path: '/book',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ContactRoute = ContactRouteImport.update({
-  id: '/contact',
-  path: '/contact',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DestinationsRoute = DestinationsRouteImport.update({
-  id: '/destinations',
-  path: '/destinations',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FlightsRoute = FlightsRouteImport.update({
-  id: '/flights',
-  path: '/flights',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
-  id: '/forgot-password',
-  path: '/forgot-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const GalleryRoute = GalleryRouteImport.update({
-  id: '/gallery',
-  path: '/gallery',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ManageRoute = ManageRouteImport.update({
-  id: '/manage',
-  path: '/manage',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PrivacyRoute = PrivacyRouteImport.update({
-  id: '/privacy',
-  path: '/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RegisterRoute = RegisterRouteImport.update({
-  id: '/register',
-  path: '/register',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SigninRoute = SigninRouteImport.update({
-  id: '/signin',
-  path: '/signin',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TermsRoute = TermsRouteImport.update({
-  id: '/terms',
-  path: '/terms',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TravelRoute = TravelRouteImport.update({
-  id: '/travel',
-  path: '/travel',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const VerifyEmailRoute = VerifyEmailRouteImport.update({
-  id: '/verify-email',
-  path: '/verify-email',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AccountIndexRoute = AccountIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AccountRoute,
-} as any)
-const AccountBoardingPassesRoute = AccountBoardingPassesRouteImport.update({
-  id: '/boarding-passes',
-  path: '/boarding-passes',
-  getParentRoute: () => AccountRoute,
-} as any)
-const AccountPreferencesRoute = AccountPreferencesRouteImport.update({
-  id: '/preferences',
-  path: '/preferences',
-  getParentRoute: () => AccountRoute,
-} as any)
-const AccountProfileRoute = AccountProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => AccountRoute,
-} as any)
-const AccountSecurityRoute = AccountSecurityRouteImport.update({
-  id: '/security',
-  path: '/security',
-  getParentRoute: () => AccountRoute,
-} as any)
-const AccountTravelersRoute = AccountTravelersRouteImport.update({
-  id: '/travelers',
-  path: '/travelers',
-  getParentRoute: () => AccountRoute,
-} as any)
-const AccountTripsRoute = AccountTripsRouteImport.update({
-  id: '/trips',
-  path: '/trips',
-  getParentRoute: () => AccountRoute,
-} as any)
-const AirportIndexRoute = AirportIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AirportRoute,
-} as any)
-const AirportFutureRoute = AirportFutureRouteImport.update({
-  id: '/future',
-  path: '/future',
-  getParentRoute: () => AirportRoute,
-} as any)
-const AirportPastRoute = AirportPastRouteImport.update({
-  id: '/past',
-  path: '/past',
-  getParentRoute: () => AirportRoute,
-} as any)
-const AirportPresentRoute = AirportPresentRouteImport.update({
-  id: '/present',
-  path: '/present',
-  getParentRoute: () => AirportRoute,
-} as any)
-const BookingConfirmationRefRoute = BookingConfirmationRefRouteImport.update({
-  id: '/booking-confirmation/$ref',
-  path: '/booking-confirmation/$ref',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DestinationsCodeRoute = DestinationsCodeRouteImport.update({
-  id: '/$code',
-  path: '/$code',
-  getParentRoute: () => DestinationsRoute,
-} as any)
-const FlightFlightIdRoute = FlightFlightIdRouteImport.update({
-  id: '/flight/$flightId',
-  path: '/flight/$flightId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ManageIndexRoute = ManageIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => ManageRoute,
-} as any)
-const ManageRefRoute = ManageRefRouteImport.update({
-  id: '/$ref',
-  path: '/$ref',
-  getParentRoute: () => ManageRoute,
-} as any)
-const AccountTripsIndexRoute = AccountTripsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AccountTripsRoute,
-} as any)
-const AccountTripsRefRoute = AccountTripsRefRouteImport.update({
-  id: '/$ref',
-  path: '/$ref',
-  getParentRoute: () => AccountTripsRoute,
-} as any)
-const BoardingPassRefPaxRoute = BoardingPassRefPaxRouteImport.update({
-  id: '/boarding-pass/$ref/$pax',
-  path: '/boarding-pass/$ref/$pax',
-  getParentRoute: () => rootRouteImport,
-} as any)
+const Char123LocaleChar125IndexRoute =
+  Char123LocaleChar125IndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => Char123LocaleChar125Route,
+  } as any)
+const Char123LocaleChar125AboutRoute =
+  Char123LocaleChar125AboutRouteImport.update({
+    id: '/about',
+    path: '/about',
+    getParentRoute: () => Char123LocaleChar125Route,
+  } as any)
+const Char123LocaleChar125AccessDeniedRoute =
+  Char123LocaleChar125AccessDeniedRouteImport.update({
+    id: '/access-denied',
+    path: '/access-denied',
+    getParentRoute: () => Char123LocaleChar125Route,
+  } as any)
+const Char123LocaleChar125AccountRoute =
+  Char123LocaleChar125AccountRouteImport.update({
+    id: '/account',
+    path: '/account',
+    getParentRoute: () => Char123LocaleChar125Route,
+  } as any)
+const Char123LocaleChar125AirportRoute =
+  Char123LocaleChar125AirportRouteImport.update({
+    id: '/airport',
+    path: '/airport',
+    getParentRoute: () => Char123LocaleChar125Route,
+  } as any)
+const Char123LocaleChar125BookRoute =
+  Char123LocaleChar125BookRouteImport.update({
+    id: '/book',
+    path: '/book',
+    getParentRoute: () => Char123LocaleChar125Route,
+  } as any)
+const Char123LocaleChar125ContactRoute =
+  Char123LocaleChar125ContactRouteImport.update({
+    id: '/contact',
+    path: '/contact',
+    getParentRoute: () => Char123LocaleChar125Route,
+  } as any)
+const Char123LocaleChar125DestinationsRoute =
+  Char123LocaleChar125DestinationsRouteImport.update({
+    id: '/destinations',
+    path: '/destinations',
+    getParentRoute: () => Char123LocaleChar125Route,
+  } as any)
+const Char123LocaleChar125FlightsRoute =
+  Char123LocaleChar125FlightsRouteImport.update({
+    id: '/flights',
+    path: '/flights',
+    getParentRoute: () => Char123LocaleChar125Route,
+  } as any)
+const Char123LocaleChar125ForgotPasswordRoute =
+  Char123LocaleChar125ForgotPasswordRouteImport.update({
+    id: '/forgot-password',
+    path: '/forgot-password',
+    getParentRoute: () => Char123LocaleChar125Route,
+  } as any)
+const Char123LocaleChar125GalleryRoute =
+  Char123LocaleChar125GalleryRouteImport.update({
+    id: '/gallery',
+    path: '/gallery',
+    getParentRoute: () => Char123LocaleChar125Route,
+  } as any)
+const Char123LocaleChar125ManageRoute =
+  Char123LocaleChar125ManageRouteImport.update({
+    id: '/manage',
+    path: '/manage',
+    getParentRoute: () => Char123LocaleChar125Route,
+  } as any)
+const Char123LocaleChar125PrivacyRoute =
+  Char123LocaleChar125PrivacyRouteImport.update({
+    id: '/privacy',
+    path: '/privacy',
+    getParentRoute: () => Char123LocaleChar125Route,
+  } as any)
+const Char123LocaleChar125RegisterRoute =
+  Char123LocaleChar125RegisterRouteImport.update({
+    id: '/register',
+    path: '/register',
+    getParentRoute: () => Char123LocaleChar125Route,
+  } as any)
+const Char123LocaleChar125ResetPasswordRoute =
+  Char123LocaleChar125ResetPasswordRouteImport.update({
+    id: '/reset-password',
+    path: '/reset-password',
+    getParentRoute: () => Char123LocaleChar125Route,
+  } as any)
+const Char123LocaleChar125SigninRoute =
+  Char123LocaleChar125SigninRouteImport.update({
+    id: '/signin',
+    path: '/signin',
+    getParentRoute: () => Char123LocaleChar125Route,
+  } as any)
+const Char123LocaleChar125TermsRoute =
+  Char123LocaleChar125TermsRouteImport.update({
+    id: '/terms',
+    path: '/terms',
+    getParentRoute: () => Char123LocaleChar125Route,
+  } as any)
+const Char123LocaleChar125TravelRoute =
+  Char123LocaleChar125TravelRouteImport.update({
+    id: '/travel',
+    path: '/travel',
+    getParentRoute: () => Char123LocaleChar125Route,
+  } as any)
+const Char123LocaleChar125VerifyEmailRoute =
+  Char123LocaleChar125VerifyEmailRouteImport.update({
+    id: '/verify-email',
+    path: '/verify-email',
+    getParentRoute: () => Char123LocaleChar125Route,
+  } as any)
+const Char123LocaleChar125AccountIndexRoute =
+  Char123LocaleChar125AccountIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => Char123LocaleChar125AccountRoute,
+  } as any)
+const Char123LocaleChar125AccountBoardingPassesRoute =
+  Char123LocaleChar125AccountBoardingPassesRouteImport.update({
+    id: '/boarding-passes',
+    path: '/boarding-passes',
+    getParentRoute: () => Char123LocaleChar125AccountRoute,
+  } as any)
+const Char123LocaleChar125AccountPreferencesRoute =
+  Char123LocaleChar125AccountPreferencesRouteImport.update({
+    id: '/preferences',
+    path: '/preferences',
+    getParentRoute: () => Char123LocaleChar125AccountRoute,
+  } as any)
+const Char123LocaleChar125AccountProfileRoute =
+  Char123LocaleChar125AccountProfileRouteImport.update({
+    id: '/profile',
+    path: '/profile',
+    getParentRoute: () => Char123LocaleChar125AccountRoute,
+  } as any)
+const Char123LocaleChar125AccountSecurityRoute =
+  Char123LocaleChar125AccountSecurityRouteImport.update({
+    id: '/security',
+    path: '/security',
+    getParentRoute: () => Char123LocaleChar125AccountRoute,
+  } as any)
+const Char123LocaleChar125AccountTravelersRoute =
+  Char123LocaleChar125AccountTravelersRouteImport.update({
+    id: '/travelers',
+    path: '/travelers',
+    getParentRoute: () => Char123LocaleChar125AccountRoute,
+  } as any)
+const Char123LocaleChar125AccountTripsRoute =
+  Char123LocaleChar125AccountTripsRouteImport.update({
+    id: '/trips',
+    path: '/trips',
+    getParentRoute: () => Char123LocaleChar125AccountRoute,
+  } as any)
+const Char123LocaleChar125AirportIndexRoute =
+  Char123LocaleChar125AirportIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => Char123LocaleChar125AirportRoute,
+  } as any)
+const Char123LocaleChar125AirportFutureRoute =
+  Char123LocaleChar125AirportFutureRouteImport.update({
+    id: '/future',
+    path: '/future',
+    getParentRoute: () => Char123LocaleChar125AirportRoute,
+  } as any)
+const Char123LocaleChar125AirportPastRoute =
+  Char123LocaleChar125AirportPastRouteImport.update({
+    id: '/past',
+    path: '/past',
+    getParentRoute: () => Char123LocaleChar125AirportRoute,
+  } as any)
+const Char123LocaleChar125AirportPresentRoute =
+  Char123LocaleChar125AirportPresentRouteImport.update({
+    id: '/present',
+    path: '/present',
+    getParentRoute: () => Char123LocaleChar125AirportRoute,
+  } as any)
+const Char123LocaleChar125BookingConfirmationRefRoute =
+  Char123LocaleChar125BookingConfirmationRefRouteImport.update({
+    id: '/booking-confirmation/$ref',
+    path: '/booking-confirmation/$ref',
+    getParentRoute: () => Char123LocaleChar125Route,
+  } as any)
+const Char123LocaleChar125DestinationsCodeRoute =
+  Char123LocaleChar125DestinationsCodeRouteImport.update({
+    id: '/$code',
+    path: '/$code',
+    getParentRoute: () => Char123LocaleChar125DestinationsRoute,
+  } as any)
+const Char123LocaleChar125FlightFlightIdRoute =
+  Char123LocaleChar125FlightFlightIdRouteImport.update({
+    id: '/flight/$flightId',
+    path: '/flight/$flightId',
+    getParentRoute: () => Char123LocaleChar125Route,
+  } as any)
+const Char123LocaleChar125ManageIndexRoute =
+  Char123LocaleChar125ManageIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => Char123LocaleChar125ManageRoute,
+  } as any)
+const Char123LocaleChar125ManageRefRoute =
+  Char123LocaleChar125ManageRefRouteImport.update({
+    id: '/$ref',
+    path: '/$ref',
+    getParentRoute: () => Char123LocaleChar125ManageRoute,
+  } as any)
+const Char123LocaleChar125AccountTripsIndexRoute =
+  Char123LocaleChar125AccountTripsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => Char123LocaleChar125AccountTripsRoute,
+  } as any)
+const Char123LocaleChar125AccountTripsRefRoute =
+  Char123LocaleChar125AccountTripsRefRouteImport.update({
+    id: '/$ref',
+    path: '/$ref',
+    getParentRoute: () => Char123LocaleChar125AccountTripsRoute,
+  } as any)
+const Char123LocaleChar125BoardingPassRefPaxRoute =
+  Char123LocaleChar125BoardingPassRefPaxRouteImport.update({
+    id: '/boarding-pass/$ref/$pax',
+    path: '/boarding-pass/$ref/$pax',
+    getParentRoute: () => Char123LocaleChar125Route,
+  } as any)
+const Char123LocaleChar125ManageRefCheckInRoute =
+  Char123LocaleChar125ManageRefCheckInRouteImport.update({
+    id: '/$ref_/check-in',
+    path: '/$ref/check-in',
+    getParentRoute: () => Char123LocaleChar125ManageRoute,
+  } as any)
+const Char123LocaleChar125ManageRefExtrasRoute =
+  Char123LocaleChar125ManageRefExtrasRouteImport.update({
+    id: '/$ref_/extras',
+    path: '/$ref/extras',
+    getParentRoute: () => Char123LocaleChar125ManageRoute,
+  } as any)
+const Char123LocaleChar125ManageRefSeatsRoute =
+  Char123LocaleChar125ManageRefSeatsRouteImport.update({
+    id: '/$ref_/seats',
+    path: '/$ref/seats',
+    getParentRoute: () => Char123LocaleChar125ManageRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/about': typeof AboutRoute
-  '/access-denied': typeof AccessDeniedRoute
-  '/account': typeof AccountRouteWithChildren
-  '/airport': typeof AirportRouteWithChildren
-  '/book': typeof BookRoute
-  '/contact': typeof ContactRoute
-  '/destinations': typeof DestinationsRouteWithChildren
-  '/flights': typeof FlightsRoute
-  '/forgot-password': typeof ForgotPasswordRoute
-  '/gallery': typeof GalleryRoute
-  '/manage': typeof ManageRouteWithChildren
-  '/privacy': typeof PrivacyRoute
-  '/register': typeof RegisterRoute
-  '/reset-password': typeof ResetPasswordRoute
-  '/signin': typeof SigninRoute
-  '/terms': typeof TermsRoute
-  '/travel': typeof TravelRoute
-  '/verify-email': typeof VerifyEmailRoute
-  '/account/boarding-passes': typeof AccountBoardingPassesRoute
-  '/account/preferences': typeof AccountPreferencesRoute
-  '/account/profile': typeof AccountProfileRoute
-  '/account/security': typeof AccountSecurityRoute
-  '/account/travelers': typeof AccountTravelersRoute
-  '/account/trips': typeof AccountTripsRouteWithChildren
-  '/airport/future': typeof AirportFutureRoute
-  '/airport/past': typeof AirportPastRoute
-  '/airport/present': typeof AirportPresentRoute
-  '/booking-confirmation/$ref': typeof BookingConfirmationRefRoute
-  '/destinations/$code': typeof DestinationsCodeRoute
-  '/flight/$flightId': typeof FlightFlightIdRoute
-  '/manage/$ref': typeof ManageRefRoute
-  '/account/': typeof AccountIndexRoute
-  '/airport/': typeof AirportIndexRoute
-  '/manage/': typeof ManageIndexRoute
-  '/account/trips/$ref': typeof AccountTripsRefRoute
-  '/boarding-pass/$ref/$pax': typeof BoardingPassRefPaxRoute
-  '/account/trips/': typeof AccountTripsIndexRoute
+  '/{-$locale}': typeof Char123LocaleChar125RouteWithChildren
+  '/{-$locale}/about': typeof Char123LocaleChar125AboutRoute
+  '/{-$locale}/access-denied': typeof Char123LocaleChar125AccessDeniedRoute
+  '/{-$locale}/account': typeof Char123LocaleChar125AccountRouteWithChildren
+  '/{-$locale}/airport': typeof Char123LocaleChar125AirportRouteWithChildren
+  '/{-$locale}/book': typeof Char123LocaleChar125BookRoute
+  '/{-$locale}/contact': typeof Char123LocaleChar125ContactRoute
+  '/{-$locale}/destinations': typeof Char123LocaleChar125DestinationsRouteWithChildren
+  '/{-$locale}/flights': typeof Char123LocaleChar125FlightsRoute
+  '/{-$locale}/forgot-password': typeof Char123LocaleChar125ForgotPasswordRoute
+  '/{-$locale}/gallery': typeof Char123LocaleChar125GalleryRoute
+  '/{-$locale}/manage': typeof Char123LocaleChar125ManageRouteWithChildren
+  '/{-$locale}/privacy': typeof Char123LocaleChar125PrivacyRoute
+  '/{-$locale}/register': typeof Char123LocaleChar125RegisterRoute
+  '/{-$locale}/reset-password': typeof Char123LocaleChar125ResetPasswordRoute
+  '/{-$locale}/signin': typeof Char123LocaleChar125SigninRoute
+  '/{-$locale}/terms': typeof Char123LocaleChar125TermsRoute
+  '/{-$locale}/travel': typeof Char123LocaleChar125TravelRoute
+  '/{-$locale}/verify-email': typeof Char123LocaleChar125VerifyEmailRoute
+  '/{-$locale}/': typeof Char123LocaleChar125IndexRoute
+  '/{-$locale}/account/boarding-passes': typeof Char123LocaleChar125AccountBoardingPassesRoute
+  '/{-$locale}/account/preferences': typeof Char123LocaleChar125AccountPreferencesRoute
+  '/{-$locale}/account/profile': typeof Char123LocaleChar125AccountProfileRoute
+  '/{-$locale}/account/security': typeof Char123LocaleChar125AccountSecurityRoute
+  '/{-$locale}/account/travelers': typeof Char123LocaleChar125AccountTravelersRoute
+  '/{-$locale}/account/trips': typeof Char123LocaleChar125AccountTripsRouteWithChildren
+  '/{-$locale}/airport/future': typeof Char123LocaleChar125AirportFutureRoute
+  '/{-$locale}/airport/past': typeof Char123LocaleChar125AirportPastRoute
+  '/{-$locale}/airport/present': typeof Char123LocaleChar125AirportPresentRoute
+  '/{-$locale}/booking-confirmation/$ref': typeof Char123LocaleChar125BookingConfirmationRefRoute
+  '/{-$locale}/destinations/$code': typeof Char123LocaleChar125DestinationsCodeRoute
+  '/{-$locale}/flight/$flightId': typeof Char123LocaleChar125FlightFlightIdRoute
+  '/{-$locale}/manage/$ref': typeof Char123LocaleChar125ManageRefRoute
+  '/{-$locale}/account/': typeof Char123LocaleChar125AccountIndexRoute
+  '/{-$locale}/airport/': typeof Char123LocaleChar125AirportIndexRoute
+  '/{-$locale}/manage/': typeof Char123LocaleChar125ManageIndexRoute
+  '/{-$locale}/account/trips/$ref': typeof Char123LocaleChar125AccountTripsRefRoute
+  '/{-$locale}/boarding-pass/$ref/$pax': typeof Char123LocaleChar125BoardingPassRefPaxRoute
+  '/{-$locale}/manage/$ref/check-in': typeof Char123LocaleChar125ManageRefCheckInRoute
+  '/{-$locale}/manage/$ref/extras': typeof Char123LocaleChar125ManageRefExtrasRoute
+  '/{-$locale}/manage/$ref/seats': typeof Char123LocaleChar125ManageRefSeatsRoute
+  '/{-$locale}/account/trips/': typeof Char123LocaleChar125AccountTripsIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/about': typeof AboutRoute
-  '/access-denied': typeof AccessDeniedRoute
-  '/book': typeof BookRoute
-  '/contact': typeof ContactRoute
-  '/destinations': typeof DestinationsRouteWithChildren
-  '/flights': typeof FlightsRoute
-  '/forgot-password': typeof ForgotPasswordRoute
-  '/gallery': typeof GalleryRoute
-  '/privacy': typeof PrivacyRoute
-  '/register': typeof RegisterRoute
-  '/reset-password': typeof ResetPasswordRoute
-  '/signin': typeof SigninRoute
-  '/terms': typeof TermsRoute
-  '/travel': typeof TravelRoute
-  '/verify-email': typeof VerifyEmailRoute
-  '/account/boarding-passes': typeof AccountBoardingPassesRoute
-  '/account/preferences': typeof AccountPreferencesRoute
-  '/account/profile': typeof AccountProfileRoute
-  '/account/security': typeof AccountSecurityRoute
-  '/account/travelers': typeof AccountTravelersRoute
-  '/airport/future': typeof AirportFutureRoute
-  '/airport/past': typeof AirportPastRoute
-  '/airport/present': typeof AirportPresentRoute
-  '/booking-confirmation/$ref': typeof BookingConfirmationRefRoute
-  '/destinations/$code': typeof DestinationsCodeRoute
-  '/flight/$flightId': typeof FlightFlightIdRoute
-  '/manage/$ref': typeof ManageRefRoute
-  '/account': typeof AccountIndexRoute
-  '/airport': typeof AirportIndexRoute
-  '/manage': typeof ManageIndexRoute
-  '/account/trips/$ref': typeof AccountTripsRefRoute
-  '/boarding-pass/$ref/$pax': typeof BoardingPassRefPaxRoute
-  '/account/trips': typeof AccountTripsIndexRoute
+  '/{-$locale}/about': typeof Char123LocaleChar125AboutRoute
+  '/{-$locale}/access-denied': typeof Char123LocaleChar125AccessDeniedRoute
+  '/{-$locale}/book': typeof Char123LocaleChar125BookRoute
+  '/{-$locale}/contact': typeof Char123LocaleChar125ContactRoute
+  '/{-$locale}/destinations': typeof Char123LocaleChar125DestinationsRouteWithChildren
+  '/{-$locale}/flights': typeof Char123LocaleChar125FlightsRoute
+  '/{-$locale}/forgot-password': typeof Char123LocaleChar125ForgotPasswordRoute
+  '/{-$locale}/gallery': typeof Char123LocaleChar125GalleryRoute
+  '/{-$locale}/privacy': typeof Char123LocaleChar125PrivacyRoute
+  '/{-$locale}/register': typeof Char123LocaleChar125RegisterRoute
+  '/{-$locale}/reset-password': typeof Char123LocaleChar125ResetPasswordRoute
+  '/{-$locale}/signin': typeof Char123LocaleChar125SigninRoute
+  '/{-$locale}/terms': typeof Char123LocaleChar125TermsRoute
+  '/{-$locale}/travel': typeof Char123LocaleChar125TravelRoute
+  '/{-$locale}/verify-email': typeof Char123LocaleChar125VerifyEmailRoute
+  '/{-$locale}': typeof Char123LocaleChar125IndexRoute
+  '/{-$locale}/account/boarding-passes': typeof Char123LocaleChar125AccountBoardingPassesRoute
+  '/{-$locale}/account/preferences': typeof Char123LocaleChar125AccountPreferencesRoute
+  '/{-$locale}/account/profile': typeof Char123LocaleChar125AccountProfileRoute
+  '/{-$locale}/account/security': typeof Char123LocaleChar125AccountSecurityRoute
+  '/{-$locale}/account/travelers': typeof Char123LocaleChar125AccountTravelersRoute
+  '/{-$locale}/airport/future': typeof Char123LocaleChar125AirportFutureRoute
+  '/{-$locale}/airport/past': typeof Char123LocaleChar125AirportPastRoute
+  '/{-$locale}/airport/present': typeof Char123LocaleChar125AirportPresentRoute
+  '/{-$locale}/booking-confirmation/$ref': typeof Char123LocaleChar125BookingConfirmationRefRoute
+  '/{-$locale}/destinations/$code': typeof Char123LocaleChar125DestinationsCodeRoute
+  '/{-$locale}/flight/$flightId': typeof Char123LocaleChar125FlightFlightIdRoute
+  '/{-$locale}/manage/$ref': typeof Char123LocaleChar125ManageRefRoute
+  '/{-$locale}/account': typeof Char123LocaleChar125AccountIndexRoute
+  '/{-$locale}/airport': typeof Char123LocaleChar125AirportIndexRoute
+  '/{-$locale}/manage': typeof Char123LocaleChar125ManageIndexRoute
+  '/{-$locale}/account/trips/$ref': typeof Char123LocaleChar125AccountTripsRefRoute
+  '/{-$locale}/boarding-pass/$ref/$pax': typeof Char123LocaleChar125BoardingPassRefPaxRoute
+  '/{-$locale}/manage/$ref/check-in': typeof Char123LocaleChar125ManageRefCheckInRoute
+  '/{-$locale}/manage/$ref/extras': typeof Char123LocaleChar125ManageRefExtrasRoute
+  '/{-$locale}/manage/$ref/seats': typeof Char123LocaleChar125ManageRefSeatsRoute
+  '/{-$locale}/account/trips': typeof Char123LocaleChar125AccountTripsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/about': typeof AboutRoute
-  '/access-denied': typeof AccessDeniedRoute
-  '/account': typeof AccountRouteWithChildren
-  '/airport': typeof AirportRouteWithChildren
-  '/book': typeof BookRoute
-  '/contact': typeof ContactRoute
-  '/destinations': typeof DestinationsRouteWithChildren
-  '/flights': typeof FlightsRoute
-  '/forgot-password': typeof ForgotPasswordRoute
-  '/gallery': typeof GalleryRoute
-  '/manage': typeof ManageRouteWithChildren
-  '/privacy': typeof PrivacyRoute
-  '/register': typeof RegisterRoute
-  '/reset-password': typeof ResetPasswordRoute
-  '/signin': typeof SigninRoute
-  '/terms': typeof TermsRoute
-  '/travel': typeof TravelRoute
-  '/verify-email': typeof VerifyEmailRoute
-  '/account/boarding-passes': typeof AccountBoardingPassesRoute
-  '/account/preferences': typeof AccountPreferencesRoute
-  '/account/profile': typeof AccountProfileRoute
-  '/account/security': typeof AccountSecurityRoute
-  '/account/travelers': typeof AccountTravelersRoute
-  '/account/trips': typeof AccountTripsRouteWithChildren
-  '/airport/future': typeof AirportFutureRoute
-  '/airport/past': typeof AirportPastRoute
-  '/airport/present': typeof AirportPresentRoute
-  '/booking-confirmation/$ref': typeof BookingConfirmationRefRoute
-  '/destinations/$code': typeof DestinationsCodeRoute
-  '/flight/$flightId': typeof FlightFlightIdRoute
-  '/manage/$ref': typeof ManageRefRoute
-  '/account/': typeof AccountIndexRoute
-  '/airport/': typeof AirportIndexRoute
-  '/manage/': typeof ManageIndexRoute
-  '/account/trips/$ref': typeof AccountTripsRefRoute
-  '/boarding-pass/$ref/$pax': typeof BoardingPassRefPaxRoute
-  '/account/trips/': typeof AccountTripsIndexRoute
+  '/{-$locale}': typeof Char123LocaleChar125RouteWithChildren
+  '/{-$locale}/about': typeof Char123LocaleChar125AboutRoute
+  '/{-$locale}/access-denied': typeof Char123LocaleChar125AccessDeniedRoute
+  '/{-$locale}/account': typeof Char123LocaleChar125AccountRouteWithChildren
+  '/{-$locale}/airport': typeof Char123LocaleChar125AirportRouteWithChildren
+  '/{-$locale}/book': typeof Char123LocaleChar125BookRoute
+  '/{-$locale}/contact': typeof Char123LocaleChar125ContactRoute
+  '/{-$locale}/destinations': typeof Char123LocaleChar125DestinationsRouteWithChildren
+  '/{-$locale}/flights': typeof Char123LocaleChar125FlightsRoute
+  '/{-$locale}/forgot-password': typeof Char123LocaleChar125ForgotPasswordRoute
+  '/{-$locale}/gallery': typeof Char123LocaleChar125GalleryRoute
+  '/{-$locale}/manage': typeof Char123LocaleChar125ManageRouteWithChildren
+  '/{-$locale}/privacy': typeof Char123LocaleChar125PrivacyRoute
+  '/{-$locale}/register': typeof Char123LocaleChar125RegisterRoute
+  '/{-$locale}/reset-password': typeof Char123LocaleChar125ResetPasswordRoute
+  '/{-$locale}/signin': typeof Char123LocaleChar125SigninRoute
+  '/{-$locale}/terms': typeof Char123LocaleChar125TermsRoute
+  '/{-$locale}/travel': typeof Char123LocaleChar125TravelRoute
+  '/{-$locale}/verify-email': typeof Char123LocaleChar125VerifyEmailRoute
+  '/{-$locale}/': typeof Char123LocaleChar125IndexRoute
+  '/{-$locale}/account/boarding-passes': typeof Char123LocaleChar125AccountBoardingPassesRoute
+  '/{-$locale}/account/preferences': typeof Char123LocaleChar125AccountPreferencesRoute
+  '/{-$locale}/account/profile': typeof Char123LocaleChar125AccountProfileRoute
+  '/{-$locale}/account/security': typeof Char123LocaleChar125AccountSecurityRoute
+  '/{-$locale}/account/travelers': typeof Char123LocaleChar125AccountTravelersRoute
+  '/{-$locale}/account/trips': typeof Char123LocaleChar125AccountTripsRouteWithChildren
+  '/{-$locale}/airport/future': typeof Char123LocaleChar125AirportFutureRoute
+  '/{-$locale}/airport/past': typeof Char123LocaleChar125AirportPastRoute
+  '/{-$locale}/airport/present': typeof Char123LocaleChar125AirportPresentRoute
+  '/{-$locale}/booking-confirmation/$ref': typeof Char123LocaleChar125BookingConfirmationRefRoute
+  '/{-$locale}/destinations/$code': typeof Char123LocaleChar125DestinationsCodeRoute
+  '/{-$locale}/flight/$flightId': typeof Char123LocaleChar125FlightFlightIdRoute
+  '/{-$locale}/manage/$ref': typeof Char123LocaleChar125ManageRefRoute
+  '/{-$locale}/account/': typeof Char123LocaleChar125AccountIndexRoute
+  '/{-$locale}/airport/': typeof Char123LocaleChar125AirportIndexRoute
+  '/{-$locale}/manage/': typeof Char123LocaleChar125ManageIndexRoute
+  '/{-$locale}/account/trips/$ref': typeof Char123LocaleChar125AccountTripsRefRoute
+  '/{-$locale}/boarding-pass/$ref/$pax': typeof Char123LocaleChar125BoardingPassRefPaxRoute
+  '/{-$locale}/manage/$ref_/check-in': typeof Char123LocaleChar125ManageRefCheckInRoute
+  '/{-$locale}/manage/$ref_/extras': typeof Char123LocaleChar125ManageRefExtrasRoute
+  '/{-$locale}/manage/$ref_/seats': typeof Char123LocaleChar125ManageRefSeatsRoute
+  '/{-$locale}/account/trips/': typeof Char123LocaleChar125AccountTripsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
-    | '/about'
-    | '/access-denied'
-    | '/account'
-    | '/airport'
-    | '/book'
-    | '/contact'
-    | '/destinations'
-    | '/flights'
-    | '/forgot-password'
-    | '/gallery'
-    | '/manage'
-    | '/privacy'
-    | '/register'
-    | '/reset-password'
-    | '/signin'
-    | '/terms'
-    | '/travel'
-    | '/verify-email'
-    | '/account/boarding-passes'
-    | '/account/preferences'
-    | '/account/profile'
-    | '/account/security'
-    | '/account/travelers'
-    | '/account/trips'
-    | '/airport/future'
-    | '/airport/past'
-    | '/airport/present'
-    | '/booking-confirmation/$ref'
-    | '/destinations/$code'
-    | '/flight/$flightId'
-    | '/manage/$ref'
-    | '/account/'
-    | '/airport/'
-    | '/manage/'
-    | '/account/trips/$ref'
-    | '/boarding-pass/$ref/$pax'
-    | '/account/trips/'
+    | '/{-$locale}'
+    | '/{-$locale}/about'
+    | '/{-$locale}/access-denied'
+    | '/{-$locale}/account'
+    | '/{-$locale}/airport'
+    | '/{-$locale}/book'
+    | '/{-$locale}/contact'
+    | '/{-$locale}/destinations'
+    | '/{-$locale}/flights'
+    | '/{-$locale}/forgot-password'
+    | '/{-$locale}/gallery'
+    | '/{-$locale}/manage'
+    | '/{-$locale}/privacy'
+    | '/{-$locale}/register'
+    | '/{-$locale}/reset-password'
+    | '/{-$locale}/signin'
+    | '/{-$locale}/terms'
+    | '/{-$locale}/travel'
+    | '/{-$locale}/verify-email'
+    | '/{-$locale}/'
+    | '/{-$locale}/account/boarding-passes'
+    | '/{-$locale}/account/preferences'
+    | '/{-$locale}/account/profile'
+    | '/{-$locale}/account/security'
+    | '/{-$locale}/account/travelers'
+    | '/{-$locale}/account/trips'
+    | '/{-$locale}/airport/future'
+    | '/{-$locale}/airport/past'
+    | '/{-$locale}/airport/present'
+    | '/{-$locale}/booking-confirmation/$ref'
+    | '/{-$locale}/destinations/$code'
+    | '/{-$locale}/flight/$flightId'
+    | '/{-$locale}/manage/$ref'
+    | '/{-$locale}/account/'
+    | '/{-$locale}/airport/'
+    | '/{-$locale}/manage/'
+    | '/{-$locale}/account/trips/$ref'
+    | '/{-$locale}/boarding-pass/$ref/$pax'
+    | '/{-$locale}/manage/$ref/check-in'
+    | '/{-$locale}/manage/$ref/extras'
+    | '/{-$locale}/manage/$ref/seats'
+    | '/{-$locale}/account/trips/'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
-    | '/about'
-    | '/access-denied'
-    | '/book'
-    | '/contact'
-    | '/destinations'
-    | '/flights'
-    | '/forgot-password'
-    | '/gallery'
-    | '/privacy'
-    | '/register'
-    | '/reset-password'
-    | '/signin'
-    | '/terms'
-    | '/travel'
-    | '/verify-email'
-    | '/account/boarding-passes'
-    | '/account/preferences'
-    | '/account/profile'
-    | '/account/security'
-    | '/account/travelers'
-    | '/airport/future'
-    | '/airport/past'
-    | '/airport/present'
-    | '/booking-confirmation/$ref'
-    | '/destinations/$code'
-    | '/flight/$flightId'
-    | '/manage/$ref'
-    | '/account'
-    | '/airport'
-    | '/manage'
-    | '/account/trips/$ref'
-    | '/boarding-pass/$ref/$pax'
-    | '/account/trips'
+    | '/{-$locale}/about'
+    | '/{-$locale}/access-denied'
+    | '/{-$locale}/book'
+    | '/{-$locale}/contact'
+    | '/{-$locale}/destinations'
+    | '/{-$locale}/flights'
+    | '/{-$locale}/forgot-password'
+    | '/{-$locale}/gallery'
+    | '/{-$locale}/privacy'
+    | '/{-$locale}/register'
+    | '/{-$locale}/reset-password'
+    | '/{-$locale}/signin'
+    | '/{-$locale}/terms'
+    | '/{-$locale}/travel'
+    | '/{-$locale}/verify-email'
+    | '/{-$locale}'
+    | '/{-$locale}/account/boarding-passes'
+    | '/{-$locale}/account/preferences'
+    | '/{-$locale}/account/profile'
+    | '/{-$locale}/account/security'
+    | '/{-$locale}/account/travelers'
+    | '/{-$locale}/airport/future'
+    | '/{-$locale}/airport/past'
+    | '/{-$locale}/airport/present'
+    | '/{-$locale}/booking-confirmation/$ref'
+    | '/{-$locale}/destinations/$code'
+    | '/{-$locale}/flight/$flightId'
+    | '/{-$locale}/manage/$ref'
+    | '/{-$locale}/account'
+    | '/{-$locale}/airport'
+    | '/{-$locale}/manage'
+    | '/{-$locale}/account/trips/$ref'
+    | '/{-$locale}/boarding-pass/$ref/$pax'
+    | '/{-$locale}/manage/$ref/check-in'
+    | '/{-$locale}/manage/$ref/extras'
+    | '/{-$locale}/manage/$ref/seats'
+    | '/{-$locale}/account/trips'
   id:
     | '__root__'
-    | '/'
-    | '/about'
-    | '/access-denied'
-    | '/account'
-    | '/airport'
-    | '/book'
-    | '/contact'
-    | '/destinations'
-    | '/flights'
-    | '/forgot-password'
-    | '/gallery'
-    | '/manage'
-    | '/privacy'
-    | '/register'
-    | '/reset-password'
-    | '/signin'
-    | '/terms'
-    | '/travel'
-    | '/verify-email'
-    | '/account/boarding-passes'
-    | '/account/preferences'
-    | '/account/profile'
-    | '/account/security'
-    | '/account/travelers'
-    | '/account/trips'
-    | '/airport/future'
-    | '/airport/past'
-    | '/airport/present'
-    | '/booking-confirmation/$ref'
-    | '/destinations/$code'
-    | '/flight/$flightId'
-    | '/manage/$ref'
-    | '/account/'
-    | '/airport/'
-    | '/manage/'
-    | '/account/trips/$ref'
-    | '/boarding-pass/$ref/$pax'
-    | '/account/trips/'
+    | '/{-$locale}'
+    | '/{-$locale}/about'
+    | '/{-$locale}/access-denied'
+    | '/{-$locale}/account'
+    | '/{-$locale}/airport'
+    | '/{-$locale}/book'
+    | '/{-$locale}/contact'
+    | '/{-$locale}/destinations'
+    | '/{-$locale}/flights'
+    | '/{-$locale}/forgot-password'
+    | '/{-$locale}/gallery'
+    | '/{-$locale}/manage'
+    | '/{-$locale}/privacy'
+    | '/{-$locale}/register'
+    | '/{-$locale}/reset-password'
+    | '/{-$locale}/signin'
+    | '/{-$locale}/terms'
+    | '/{-$locale}/travel'
+    | '/{-$locale}/verify-email'
+    | '/{-$locale}/'
+    | '/{-$locale}/account/boarding-passes'
+    | '/{-$locale}/account/preferences'
+    | '/{-$locale}/account/profile'
+    | '/{-$locale}/account/security'
+    | '/{-$locale}/account/travelers'
+    | '/{-$locale}/account/trips'
+    | '/{-$locale}/airport/future'
+    | '/{-$locale}/airport/past'
+    | '/{-$locale}/airport/present'
+    | '/{-$locale}/booking-confirmation/$ref'
+    | '/{-$locale}/destinations/$code'
+    | '/{-$locale}/flight/$flightId'
+    | '/{-$locale}/manage/$ref'
+    | '/{-$locale}/account/'
+    | '/{-$locale}/airport/'
+    | '/{-$locale}/manage/'
+    | '/{-$locale}/account/trips/$ref'
+    | '/{-$locale}/boarding-pass/$ref/$pax'
+    | '/{-$locale}/manage/$ref_/check-in'
+    | '/{-$locale}/manage/$ref_/extras'
+    | '/{-$locale}/manage/$ref_/seats'
+    | '/{-$locale}/account/trips/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  AboutRoute: typeof AboutRoute
-  AccessDeniedRoute: typeof AccessDeniedRoute
-  AccountRoute: typeof AccountRouteWithChildren
-  AirportRoute: typeof AirportRouteWithChildren
-  BookRoute: typeof BookRoute
-  ContactRoute: typeof ContactRoute
-  DestinationsRoute: typeof DestinationsRouteWithChildren
-  FlightsRoute: typeof FlightsRoute
-  ForgotPasswordRoute: typeof ForgotPasswordRoute
-  GalleryRoute: typeof GalleryRoute
-  ManageRoute: typeof ManageRouteWithChildren
-  PrivacyRoute: typeof PrivacyRoute
-  RegisterRoute: typeof RegisterRoute
-  ResetPasswordRoute: typeof ResetPasswordRoute
-  SigninRoute: typeof SigninRoute
-  TermsRoute: typeof TermsRoute
-  TravelRoute: typeof TravelRoute
-  VerifyEmailRoute: typeof VerifyEmailRoute
-  BookingConfirmationRefRoute: typeof BookingConfirmationRefRoute
-  FlightFlightIdRoute: typeof FlightFlightIdRoute
-  BoardingPassRefPaxRoute: typeof BoardingPassRefPaxRoute
+  Char123LocaleChar125Route: typeof Char123LocaleChar125RouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/{-$locale}': {
+      id: '/{-$locale}'
+      path: '/{-$locale}'
+      fullPath: '/{-$locale}'
+      preLoaderRoute: typeof Char123LocaleChar125RouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/about': {
-      id: '/about'
+    '/{-$locale}/': {
+      id: '/{-$locale}/'
+      path: '/'
+      fullPath: '/{-$locale}/'
+      preLoaderRoute: typeof Char123LocaleChar125IndexRouteImport
+      parentRoute: typeof Char123LocaleChar125Route
+    }
+    '/{-$locale}/about': {
+      id: '/{-$locale}/about'
       path: '/about'
-      fullPath: '/about'
-      preLoaderRoute: typeof AboutRouteImport
-      parentRoute: typeof rootRouteImport
+      fullPath: '/{-$locale}/about'
+      preLoaderRoute: typeof Char123LocaleChar125AboutRouteImport
+      parentRoute: typeof Char123LocaleChar125Route
     }
-    '/access-denied': {
-      id: '/access-denied'
+    '/{-$locale}/access-denied': {
+      id: '/{-$locale}/access-denied'
       path: '/access-denied'
-      fullPath: '/access-denied'
-      preLoaderRoute: typeof AccessDeniedRouteImport
-      parentRoute: typeof rootRouteImport
+      fullPath: '/{-$locale}/access-denied'
+      preLoaderRoute: typeof Char123LocaleChar125AccessDeniedRouteImport
+      parentRoute: typeof Char123LocaleChar125Route
     }
-    '/account': {
-      id: '/account'
+    '/{-$locale}/account': {
+      id: '/{-$locale}/account'
       path: '/account'
-      fullPath: '/account'
-      preLoaderRoute: typeof AccountRouteImport
-      parentRoute: typeof rootRouteImport
+      fullPath: '/{-$locale}/account'
+      preLoaderRoute: typeof Char123LocaleChar125AccountRouteImport
+      parentRoute: typeof Char123LocaleChar125Route
     }
-    '/airport': {
-      id: '/airport'
+    '/{-$locale}/airport': {
+      id: '/{-$locale}/airport'
       path: '/airport'
-      fullPath: '/airport'
-      preLoaderRoute: typeof AirportRouteImport
-      parentRoute: typeof rootRouteImport
+      fullPath: '/{-$locale}/airport'
+      preLoaderRoute: typeof Char123LocaleChar125AirportRouteImport
+      parentRoute: typeof Char123LocaleChar125Route
     }
-    '/book': {
-      id: '/book'
+    '/{-$locale}/book': {
+      id: '/{-$locale}/book'
       path: '/book'
-      fullPath: '/book'
-      preLoaderRoute: typeof BookRouteImport
-      parentRoute: typeof rootRouteImport
+      fullPath: '/{-$locale}/book'
+      preLoaderRoute: typeof Char123LocaleChar125BookRouteImport
+      parentRoute: typeof Char123LocaleChar125Route
     }
-    '/contact': {
-      id: '/contact'
+    '/{-$locale}/contact': {
+      id: '/{-$locale}/contact'
       path: '/contact'
-      fullPath: '/contact'
-      preLoaderRoute: typeof ContactRouteImport
-      parentRoute: typeof rootRouteImport
+      fullPath: '/{-$locale}/contact'
+      preLoaderRoute: typeof Char123LocaleChar125ContactRouteImport
+      parentRoute: typeof Char123LocaleChar125Route
     }
-    '/destinations': {
-      id: '/destinations'
+    '/{-$locale}/destinations': {
+      id: '/{-$locale}/destinations'
       path: '/destinations'
-      fullPath: '/destinations'
-      preLoaderRoute: typeof DestinationsRouteImport
-      parentRoute: typeof rootRouteImport
+      fullPath: '/{-$locale}/destinations'
+      preLoaderRoute: typeof Char123LocaleChar125DestinationsRouteImport
+      parentRoute: typeof Char123LocaleChar125Route
     }
-    '/flights': {
-      id: '/flights'
+    '/{-$locale}/flights': {
+      id: '/{-$locale}/flights'
       path: '/flights'
-      fullPath: '/flights'
-      preLoaderRoute: typeof FlightsRouteImport
-      parentRoute: typeof rootRouteImport
+      fullPath: '/{-$locale}/flights'
+      preLoaderRoute: typeof Char123LocaleChar125FlightsRouteImport
+      parentRoute: typeof Char123LocaleChar125Route
     }
-    '/forgot-password': {
-      id: '/forgot-password'
+    '/{-$locale}/forgot-password': {
+      id: '/{-$locale}/forgot-password'
       path: '/forgot-password'
-      fullPath: '/forgot-password'
-      preLoaderRoute: typeof ForgotPasswordRouteImport
-      parentRoute: typeof rootRouteImport
+      fullPath: '/{-$locale}/forgot-password'
+      preLoaderRoute: typeof Char123LocaleChar125ForgotPasswordRouteImport
+      parentRoute: typeof Char123LocaleChar125Route
     }
-    '/gallery': {
-      id: '/gallery'
+    '/{-$locale}/gallery': {
+      id: '/{-$locale}/gallery'
       path: '/gallery'
-      fullPath: '/gallery'
-      preLoaderRoute: typeof GalleryRouteImport
-      parentRoute: typeof rootRouteImport
+      fullPath: '/{-$locale}/gallery'
+      preLoaderRoute: typeof Char123LocaleChar125GalleryRouteImport
+      parentRoute: typeof Char123LocaleChar125Route
     }
-    '/manage': {
-      id: '/manage'
+    '/{-$locale}/manage': {
+      id: '/{-$locale}/manage'
       path: '/manage'
-      fullPath: '/manage'
-      preLoaderRoute: typeof ManageRouteImport
-      parentRoute: typeof rootRouteImport
+      fullPath: '/{-$locale}/manage'
+      preLoaderRoute: typeof Char123LocaleChar125ManageRouteImport
+      parentRoute: typeof Char123LocaleChar125Route
     }
-    '/privacy': {
-      id: '/privacy'
+    '/{-$locale}/privacy': {
+      id: '/{-$locale}/privacy'
       path: '/privacy'
-      fullPath: '/privacy'
-      preLoaderRoute: typeof PrivacyRouteImport
-      parentRoute: typeof rootRouteImport
+      fullPath: '/{-$locale}/privacy'
+      preLoaderRoute: typeof Char123LocaleChar125PrivacyRouteImport
+      parentRoute: typeof Char123LocaleChar125Route
     }
-    '/register': {
-      id: '/register'
+    '/{-$locale}/register': {
+      id: '/{-$locale}/register'
       path: '/register'
-      fullPath: '/register'
-      preLoaderRoute: typeof RegisterRouteImport
-      parentRoute: typeof rootRouteImport
+      fullPath: '/{-$locale}/register'
+      preLoaderRoute: typeof Char123LocaleChar125RegisterRouteImport
+      parentRoute: typeof Char123LocaleChar125Route
     }
-    '/reset-password': {
-      id: '/reset-password'
+    '/{-$locale}/reset-password': {
+      id: '/{-$locale}/reset-password'
       path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
+      fullPath: '/{-$locale}/reset-password'
+      preLoaderRoute: typeof Char123LocaleChar125ResetPasswordRouteImport
+      parentRoute: typeof Char123LocaleChar125Route
     }
-    '/signin': {
-      id: '/signin'
+    '/{-$locale}/signin': {
+      id: '/{-$locale}/signin'
       path: '/signin'
-      fullPath: '/signin'
-      preLoaderRoute: typeof SigninRouteImport
-      parentRoute: typeof rootRouteImport
+      fullPath: '/{-$locale}/signin'
+      preLoaderRoute: typeof Char123LocaleChar125SigninRouteImport
+      parentRoute: typeof Char123LocaleChar125Route
     }
-    '/terms': {
-      id: '/terms'
+    '/{-$locale}/terms': {
+      id: '/{-$locale}/terms'
       path: '/terms'
-      fullPath: '/terms'
-      preLoaderRoute: typeof TermsRouteImport
-      parentRoute: typeof rootRouteImport
+      fullPath: '/{-$locale}/terms'
+      preLoaderRoute: typeof Char123LocaleChar125TermsRouteImport
+      parentRoute: typeof Char123LocaleChar125Route
     }
-    '/travel': {
-      id: '/travel'
+    '/{-$locale}/travel': {
+      id: '/{-$locale}/travel'
       path: '/travel'
-      fullPath: '/travel'
-      preLoaderRoute: typeof TravelRouteImport
-      parentRoute: typeof rootRouteImport
+      fullPath: '/{-$locale}/travel'
+      preLoaderRoute: typeof Char123LocaleChar125TravelRouteImport
+      parentRoute: typeof Char123LocaleChar125Route
     }
-    '/verify-email': {
-      id: '/verify-email'
+    '/{-$locale}/verify-email': {
+      id: '/{-$locale}/verify-email'
       path: '/verify-email'
-      fullPath: '/verify-email'
-      preLoaderRoute: typeof VerifyEmailRouteImport
-      parentRoute: typeof rootRouteImport
+      fullPath: '/{-$locale}/verify-email'
+      preLoaderRoute: typeof Char123LocaleChar125VerifyEmailRouteImport
+      parentRoute: typeof Char123LocaleChar125Route
     }
-    '/account/': {
-      id: '/account/'
+    '/{-$locale}/account/': {
+      id: '/{-$locale}/account/'
       path: '/'
-      fullPath: '/account/'
-      preLoaderRoute: typeof AccountIndexRouteImport
-      parentRoute: typeof AccountRoute
+      fullPath: '/{-$locale}/account/'
+      preLoaderRoute: typeof Char123LocaleChar125AccountIndexRouteImport
+      parentRoute: typeof Char123LocaleChar125AccountRoute
     }
-    '/account/boarding-passes': {
-      id: '/account/boarding-passes'
+    '/{-$locale}/account/boarding-passes': {
+      id: '/{-$locale}/account/boarding-passes'
       path: '/boarding-passes'
-      fullPath: '/account/boarding-passes'
-      preLoaderRoute: typeof AccountBoardingPassesRouteImport
-      parentRoute: typeof AccountRoute
+      fullPath: '/{-$locale}/account/boarding-passes'
+      preLoaderRoute: typeof Char123LocaleChar125AccountBoardingPassesRouteImport
+      parentRoute: typeof Char123LocaleChar125AccountRoute
     }
-    '/account/preferences': {
-      id: '/account/preferences'
+    '/{-$locale}/account/preferences': {
+      id: '/{-$locale}/account/preferences'
       path: '/preferences'
-      fullPath: '/account/preferences'
-      preLoaderRoute: typeof AccountPreferencesRouteImport
-      parentRoute: typeof AccountRoute
+      fullPath: '/{-$locale}/account/preferences'
+      preLoaderRoute: typeof Char123LocaleChar125AccountPreferencesRouteImport
+      parentRoute: typeof Char123LocaleChar125AccountRoute
     }
-    '/account/profile': {
-      id: '/account/profile'
+    '/{-$locale}/account/profile': {
+      id: '/{-$locale}/account/profile'
       path: '/profile'
-      fullPath: '/account/profile'
-      preLoaderRoute: typeof AccountProfileRouteImport
-      parentRoute: typeof AccountRoute
+      fullPath: '/{-$locale}/account/profile'
+      preLoaderRoute: typeof Char123LocaleChar125AccountProfileRouteImport
+      parentRoute: typeof Char123LocaleChar125AccountRoute
     }
-    '/account/security': {
-      id: '/account/security'
+    '/{-$locale}/account/security': {
+      id: '/{-$locale}/account/security'
       path: '/security'
-      fullPath: '/account/security'
-      preLoaderRoute: typeof AccountSecurityRouteImport
-      parentRoute: typeof AccountRoute
+      fullPath: '/{-$locale}/account/security'
+      preLoaderRoute: typeof Char123LocaleChar125AccountSecurityRouteImport
+      parentRoute: typeof Char123LocaleChar125AccountRoute
     }
-    '/account/travelers': {
-      id: '/account/travelers'
+    '/{-$locale}/account/travelers': {
+      id: '/{-$locale}/account/travelers'
       path: '/travelers'
-      fullPath: '/account/travelers'
-      preLoaderRoute: typeof AccountTravelersRouteImport
-      parentRoute: typeof AccountRoute
+      fullPath: '/{-$locale}/account/travelers'
+      preLoaderRoute: typeof Char123LocaleChar125AccountTravelersRouteImport
+      parentRoute: typeof Char123LocaleChar125AccountRoute
     }
-    '/account/trips': {
-      id: '/account/trips'
+    '/{-$locale}/account/trips': {
+      id: '/{-$locale}/account/trips'
       path: '/trips'
-      fullPath: '/account/trips'
-      preLoaderRoute: typeof AccountTripsRouteImport
-      parentRoute: typeof AccountRoute
+      fullPath: '/{-$locale}/account/trips'
+      preLoaderRoute: typeof Char123LocaleChar125AccountTripsRouteImport
+      parentRoute: typeof Char123LocaleChar125AccountRoute
     }
-    '/airport/': {
-      id: '/airport/'
+    '/{-$locale}/airport/': {
+      id: '/{-$locale}/airport/'
       path: '/'
-      fullPath: '/airport/'
-      preLoaderRoute: typeof AirportIndexRouteImport
-      parentRoute: typeof AirportRoute
+      fullPath: '/{-$locale}/airport/'
+      preLoaderRoute: typeof Char123LocaleChar125AirportIndexRouteImport
+      parentRoute: typeof Char123LocaleChar125AirportRoute
     }
-    '/airport/future': {
-      id: '/airport/future'
+    '/{-$locale}/airport/future': {
+      id: '/{-$locale}/airport/future'
       path: '/future'
-      fullPath: '/airport/future'
-      preLoaderRoute: typeof AirportFutureRouteImport
-      parentRoute: typeof AirportRoute
+      fullPath: '/{-$locale}/airport/future'
+      preLoaderRoute: typeof Char123LocaleChar125AirportFutureRouteImport
+      parentRoute: typeof Char123LocaleChar125AirportRoute
     }
-    '/airport/past': {
-      id: '/airport/past'
+    '/{-$locale}/airport/past': {
+      id: '/{-$locale}/airport/past'
       path: '/past'
-      fullPath: '/airport/past'
-      preLoaderRoute: typeof AirportPastRouteImport
-      parentRoute: typeof AirportRoute
+      fullPath: '/{-$locale}/airport/past'
+      preLoaderRoute: typeof Char123LocaleChar125AirportPastRouteImport
+      parentRoute: typeof Char123LocaleChar125AirportRoute
     }
-    '/airport/present': {
-      id: '/airport/present'
+    '/{-$locale}/airport/present': {
+      id: '/{-$locale}/airport/present'
       path: '/present'
-      fullPath: '/airport/present'
-      preLoaderRoute: typeof AirportPresentRouteImport
-      parentRoute: typeof AirportRoute
+      fullPath: '/{-$locale}/airport/present'
+      preLoaderRoute: typeof Char123LocaleChar125AirportPresentRouteImport
+      parentRoute: typeof Char123LocaleChar125AirportRoute
     }
-    '/booking-confirmation/$ref': {
-      id: '/booking-confirmation/$ref'
+    '/{-$locale}/booking-confirmation/$ref': {
+      id: '/{-$locale}/booking-confirmation/$ref'
       path: '/booking-confirmation/$ref'
-      fullPath: '/booking-confirmation/$ref'
-      preLoaderRoute: typeof BookingConfirmationRefRouteImport
-      parentRoute: typeof rootRouteImport
+      fullPath: '/{-$locale}/booking-confirmation/$ref'
+      preLoaderRoute: typeof Char123LocaleChar125BookingConfirmationRefRouteImport
+      parentRoute: typeof Char123LocaleChar125Route
     }
-    '/destinations/$code': {
-      id: '/destinations/$code'
+    '/{-$locale}/destinations/$code': {
+      id: '/{-$locale}/destinations/$code'
       path: '/$code'
-      fullPath: '/destinations/$code'
-      preLoaderRoute: typeof DestinationsCodeRouteImport
-      parentRoute: typeof DestinationsRoute
+      fullPath: '/{-$locale}/destinations/$code'
+      preLoaderRoute: typeof Char123LocaleChar125DestinationsCodeRouteImport
+      parentRoute: typeof Char123LocaleChar125DestinationsRoute
     }
-    '/flight/$flightId': {
-      id: '/flight/$flightId'
+    '/{-$locale}/flight/$flightId': {
+      id: '/{-$locale}/flight/$flightId'
       path: '/flight/$flightId'
-      fullPath: '/flight/$flightId'
-      preLoaderRoute: typeof FlightFlightIdRouteImport
-      parentRoute: typeof rootRouteImport
+      fullPath: '/{-$locale}/flight/$flightId'
+      preLoaderRoute: typeof Char123LocaleChar125FlightFlightIdRouteImport
+      parentRoute: typeof Char123LocaleChar125Route
     }
-    '/manage/': {
-      id: '/manage/'
+    '/{-$locale}/manage/': {
+      id: '/{-$locale}/manage/'
       path: '/'
-      fullPath: '/manage/'
-      preLoaderRoute: typeof ManageIndexRouteImport
-      parentRoute: typeof ManageRoute
+      fullPath: '/{-$locale}/manage/'
+      preLoaderRoute: typeof Char123LocaleChar125ManageIndexRouteImport
+      parentRoute: typeof Char123LocaleChar125ManageRoute
     }
-    '/manage/$ref': {
-      id: '/manage/$ref'
+    '/{-$locale}/manage/$ref': {
+      id: '/{-$locale}/manage/$ref'
       path: '/$ref'
-      fullPath: '/manage/$ref'
-      preLoaderRoute: typeof ManageRefRouteImport
-      parentRoute: typeof ManageRoute
+      fullPath: '/{-$locale}/manage/$ref'
+      preLoaderRoute: typeof Char123LocaleChar125ManageRefRouteImport
+      parentRoute: typeof Char123LocaleChar125ManageRoute
     }
-    '/account/trips/': {
-      id: '/account/trips/'
+    '/{-$locale}/account/trips/': {
+      id: '/{-$locale}/account/trips/'
       path: '/'
-      fullPath: '/account/trips/'
-      preLoaderRoute: typeof AccountTripsIndexRouteImport
-      parentRoute: typeof AccountTripsRoute
+      fullPath: '/{-$locale}/account/trips/'
+      preLoaderRoute: typeof Char123LocaleChar125AccountTripsIndexRouteImport
+      parentRoute: typeof Char123LocaleChar125AccountTripsRoute
     }
-    '/account/trips/$ref': {
-      id: '/account/trips/$ref'
+    '/{-$locale}/account/trips/$ref': {
+      id: '/{-$locale}/account/trips/$ref'
       path: '/$ref'
-      fullPath: '/account/trips/$ref'
-      preLoaderRoute: typeof AccountTripsRefRouteImport
-      parentRoute: typeof AccountTripsRoute
+      fullPath: '/{-$locale}/account/trips/$ref'
+      preLoaderRoute: typeof Char123LocaleChar125AccountTripsRefRouteImport
+      parentRoute: typeof Char123LocaleChar125AccountTripsRoute
     }
-    '/boarding-pass/$ref/$pax': {
-      id: '/boarding-pass/$ref/$pax'
+    '/{-$locale}/boarding-pass/$ref/$pax': {
+      id: '/{-$locale}/boarding-pass/$ref/$pax'
       path: '/boarding-pass/$ref/$pax'
-      fullPath: '/boarding-pass/$ref/$pax'
-      preLoaderRoute: typeof BoardingPassRefPaxRouteImport
-      parentRoute: typeof rootRouteImport
+      fullPath: '/{-$locale}/boarding-pass/$ref/$pax'
+      preLoaderRoute: typeof Char123LocaleChar125BoardingPassRefPaxRouteImport
+      parentRoute: typeof Char123LocaleChar125Route
+    }
+    '/{-$locale}/manage/$ref_/check-in': {
+      id: '/{-$locale}/manage/$ref_/check-in'
+      path: '/$ref/check-in'
+      fullPath: '/{-$locale}/manage/$ref/check-in'
+      preLoaderRoute: typeof Char123LocaleChar125ManageRefCheckInRouteImport
+      parentRoute: typeof Char123LocaleChar125ManageRoute
+    }
+    '/{-$locale}/manage/$ref_/extras': {
+      id: '/{-$locale}/manage/$ref_/extras'
+      path: '/$ref/extras'
+      fullPath: '/{-$locale}/manage/$ref/extras'
+      preLoaderRoute: typeof Char123LocaleChar125ManageRefExtrasRouteImport
+      parentRoute: typeof Char123LocaleChar125ManageRoute
+    }
+    '/{-$locale}/manage/$ref_/seats': {
+      id: '/{-$locale}/manage/$ref_/seats'
+      path: '/$ref/seats'
+      fullPath: '/{-$locale}/manage/$ref/seats'
+      preLoaderRoute: typeof Char123LocaleChar125ManageRefSeatsRouteImport
+      parentRoute: typeof Char123LocaleChar125ManageRoute
     }
   }
 }
 
-interface AccountTripsRouteChildren {
-  AccountTripsRefRoute: typeof AccountTripsRefRoute
-  AccountTripsIndexRoute: typeof AccountTripsIndexRoute
+interface Char123LocaleChar125AccountTripsRouteChildren {
+  Char123LocaleChar125AccountTripsRefRoute: typeof Char123LocaleChar125AccountTripsRefRoute
+  Char123LocaleChar125AccountTripsIndexRoute: typeof Char123LocaleChar125AccountTripsIndexRoute
 }
 
-const AccountTripsRouteChildren: AccountTripsRouteChildren = {
-  AccountTripsRefRoute: AccountTripsRefRoute,
-  AccountTripsIndexRoute: AccountTripsIndexRoute,
+const Char123LocaleChar125AccountTripsRouteChildren: Char123LocaleChar125AccountTripsRouteChildren =
+  {
+    Char123LocaleChar125AccountTripsRefRoute:
+      Char123LocaleChar125AccountTripsRefRoute,
+    Char123LocaleChar125AccountTripsIndexRoute:
+      Char123LocaleChar125AccountTripsIndexRoute,
+  }
+
+const Char123LocaleChar125AccountTripsRouteWithChildren =
+  Char123LocaleChar125AccountTripsRoute._addFileChildren(
+    Char123LocaleChar125AccountTripsRouteChildren,
+  )
+
+interface Char123LocaleChar125AccountRouteChildren {
+  Char123LocaleChar125AccountBoardingPassesRoute: typeof Char123LocaleChar125AccountBoardingPassesRoute
+  Char123LocaleChar125AccountPreferencesRoute: typeof Char123LocaleChar125AccountPreferencesRoute
+  Char123LocaleChar125AccountProfileRoute: typeof Char123LocaleChar125AccountProfileRoute
+  Char123LocaleChar125AccountSecurityRoute: typeof Char123LocaleChar125AccountSecurityRoute
+  Char123LocaleChar125AccountTravelersRoute: typeof Char123LocaleChar125AccountTravelersRoute
+  Char123LocaleChar125AccountTripsRoute: typeof Char123LocaleChar125AccountTripsRouteWithChildren
+  Char123LocaleChar125AccountIndexRoute: typeof Char123LocaleChar125AccountIndexRoute
 }
 
-const AccountTripsRouteWithChildren = AccountTripsRoute._addFileChildren(
-  AccountTripsRouteChildren,
-)
+const Char123LocaleChar125AccountRouteChildren: Char123LocaleChar125AccountRouteChildren =
+  {
+    Char123LocaleChar125AccountBoardingPassesRoute:
+      Char123LocaleChar125AccountBoardingPassesRoute,
+    Char123LocaleChar125AccountPreferencesRoute:
+      Char123LocaleChar125AccountPreferencesRoute,
+    Char123LocaleChar125AccountProfileRoute:
+      Char123LocaleChar125AccountProfileRoute,
+    Char123LocaleChar125AccountSecurityRoute:
+      Char123LocaleChar125AccountSecurityRoute,
+    Char123LocaleChar125AccountTravelersRoute:
+      Char123LocaleChar125AccountTravelersRoute,
+    Char123LocaleChar125AccountTripsRoute:
+      Char123LocaleChar125AccountTripsRouteWithChildren,
+    Char123LocaleChar125AccountIndexRoute:
+      Char123LocaleChar125AccountIndexRoute,
+  }
 
-interface AccountRouteChildren {
-  AccountBoardingPassesRoute: typeof AccountBoardingPassesRoute
-  AccountPreferencesRoute: typeof AccountPreferencesRoute
-  AccountProfileRoute: typeof AccountProfileRoute
-  AccountSecurityRoute: typeof AccountSecurityRoute
-  AccountTravelersRoute: typeof AccountTravelersRoute
-  AccountTripsRoute: typeof AccountTripsRouteWithChildren
-  AccountIndexRoute: typeof AccountIndexRoute
+const Char123LocaleChar125AccountRouteWithChildren =
+  Char123LocaleChar125AccountRoute._addFileChildren(
+    Char123LocaleChar125AccountRouteChildren,
+  )
+
+interface Char123LocaleChar125AirportRouteChildren {
+  Char123LocaleChar125AirportFutureRoute: typeof Char123LocaleChar125AirportFutureRoute
+  Char123LocaleChar125AirportPastRoute: typeof Char123LocaleChar125AirportPastRoute
+  Char123LocaleChar125AirportPresentRoute: typeof Char123LocaleChar125AirportPresentRoute
+  Char123LocaleChar125AirportIndexRoute: typeof Char123LocaleChar125AirportIndexRoute
 }
 
-const AccountRouteChildren: AccountRouteChildren = {
-  AccountBoardingPassesRoute: AccountBoardingPassesRoute,
-  AccountPreferencesRoute: AccountPreferencesRoute,
-  AccountProfileRoute: AccountProfileRoute,
-  AccountSecurityRoute: AccountSecurityRoute,
-  AccountTravelersRoute: AccountTravelersRoute,
-  AccountTripsRoute: AccountTripsRouteWithChildren,
-  AccountIndexRoute: AccountIndexRoute,
+const Char123LocaleChar125AirportRouteChildren: Char123LocaleChar125AirportRouteChildren =
+  {
+    Char123LocaleChar125AirportFutureRoute:
+      Char123LocaleChar125AirportFutureRoute,
+    Char123LocaleChar125AirportPastRoute: Char123LocaleChar125AirportPastRoute,
+    Char123LocaleChar125AirportPresentRoute:
+      Char123LocaleChar125AirportPresentRoute,
+    Char123LocaleChar125AirportIndexRoute:
+      Char123LocaleChar125AirportIndexRoute,
+  }
+
+const Char123LocaleChar125AirportRouteWithChildren =
+  Char123LocaleChar125AirportRoute._addFileChildren(
+    Char123LocaleChar125AirportRouteChildren,
+  )
+
+interface Char123LocaleChar125DestinationsRouteChildren {
+  Char123LocaleChar125DestinationsCodeRoute: typeof Char123LocaleChar125DestinationsCodeRoute
 }
 
-const AccountRouteWithChildren =
-  AccountRoute._addFileChildren(AccountRouteChildren)
+const Char123LocaleChar125DestinationsRouteChildren: Char123LocaleChar125DestinationsRouteChildren =
+  {
+    Char123LocaleChar125DestinationsCodeRoute:
+      Char123LocaleChar125DestinationsCodeRoute,
+  }
 
-interface AirportRouteChildren {
-  AirportFutureRoute: typeof AirportFutureRoute
-  AirportPastRoute: typeof AirportPastRoute
-  AirportPresentRoute: typeof AirportPresentRoute
-  AirportIndexRoute: typeof AirportIndexRoute
+const Char123LocaleChar125DestinationsRouteWithChildren =
+  Char123LocaleChar125DestinationsRoute._addFileChildren(
+    Char123LocaleChar125DestinationsRouteChildren,
+  )
+
+interface Char123LocaleChar125ManageRouteChildren {
+  Char123LocaleChar125ManageRefRoute: typeof Char123LocaleChar125ManageRefRoute
+  Char123LocaleChar125ManageIndexRoute: typeof Char123LocaleChar125ManageIndexRoute
+  Char123LocaleChar125ManageRefCheckInRoute: typeof Char123LocaleChar125ManageRefCheckInRoute
+  Char123LocaleChar125ManageRefExtrasRoute: typeof Char123LocaleChar125ManageRefExtrasRoute
+  Char123LocaleChar125ManageRefSeatsRoute: typeof Char123LocaleChar125ManageRefSeatsRoute
 }
 
-const AirportRouteChildren: AirportRouteChildren = {
-  AirportFutureRoute: AirportFutureRoute,
-  AirportPastRoute: AirportPastRoute,
-  AirportPresentRoute: AirportPresentRoute,
-  AirportIndexRoute: AirportIndexRoute,
+const Char123LocaleChar125ManageRouteChildren: Char123LocaleChar125ManageRouteChildren =
+  {
+    Char123LocaleChar125ManageRefRoute: Char123LocaleChar125ManageRefRoute,
+    Char123LocaleChar125ManageIndexRoute: Char123LocaleChar125ManageIndexRoute,
+    Char123LocaleChar125ManageRefCheckInRoute:
+      Char123LocaleChar125ManageRefCheckInRoute,
+    Char123LocaleChar125ManageRefExtrasRoute:
+      Char123LocaleChar125ManageRefExtrasRoute,
+    Char123LocaleChar125ManageRefSeatsRoute:
+      Char123LocaleChar125ManageRefSeatsRoute,
+  }
+
+const Char123LocaleChar125ManageRouteWithChildren =
+  Char123LocaleChar125ManageRoute._addFileChildren(
+    Char123LocaleChar125ManageRouteChildren,
+  )
+
+interface Char123LocaleChar125RouteChildren {
+  Char123LocaleChar125AboutRoute: typeof Char123LocaleChar125AboutRoute
+  Char123LocaleChar125AccessDeniedRoute: typeof Char123LocaleChar125AccessDeniedRoute
+  Char123LocaleChar125AccountRoute: typeof Char123LocaleChar125AccountRouteWithChildren
+  Char123LocaleChar125AirportRoute: typeof Char123LocaleChar125AirportRouteWithChildren
+  Char123LocaleChar125BookRoute: typeof Char123LocaleChar125BookRoute
+  Char123LocaleChar125ContactRoute: typeof Char123LocaleChar125ContactRoute
+  Char123LocaleChar125DestinationsRoute: typeof Char123LocaleChar125DestinationsRouteWithChildren
+  Char123LocaleChar125FlightsRoute: typeof Char123LocaleChar125FlightsRoute
+  Char123LocaleChar125ForgotPasswordRoute: typeof Char123LocaleChar125ForgotPasswordRoute
+  Char123LocaleChar125GalleryRoute: typeof Char123LocaleChar125GalleryRoute
+  Char123LocaleChar125ManageRoute: typeof Char123LocaleChar125ManageRouteWithChildren
+  Char123LocaleChar125PrivacyRoute: typeof Char123LocaleChar125PrivacyRoute
+  Char123LocaleChar125RegisterRoute: typeof Char123LocaleChar125RegisterRoute
+  Char123LocaleChar125ResetPasswordRoute: typeof Char123LocaleChar125ResetPasswordRoute
+  Char123LocaleChar125SigninRoute: typeof Char123LocaleChar125SigninRoute
+  Char123LocaleChar125TermsRoute: typeof Char123LocaleChar125TermsRoute
+  Char123LocaleChar125TravelRoute: typeof Char123LocaleChar125TravelRoute
+  Char123LocaleChar125VerifyEmailRoute: typeof Char123LocaleChar125VerifyEmailRoute
+  Char123LocaleChar125IndexRoute: typeof Char123LocaleChar125IndexRoute
+  Char123LocaleChar125BookingConfirmationRefRoute: typeof Char123LocaleChar125BookingConfirmationRefRoute
+  Char123LocaleChar125FlightFlightIdRoute: typeof Char123LocaleChar125FlightFlightIdRoute
+  Char123LocaleChar125BoardingPassRefPaxRoute: typeof Char123LocaleChar125BoardingPassRefPaxRoute
 }
 
-const AirportRouteWithChildren =
-  AirportRoute._addFileChildren(AirportRouteChildren)
-
-interface DestinationsRouteChildren {
-  DestinationsCodeRoute: typeof DestinationsCodeRoute
+const Char123LocaleChar125RouteChildren: Char123LocaleChar125RouteChildren = {
+  Char123LocaleChar125AboutRoute: Char123LocaleChar125AboutRoute,
+  Char123LocaleChar125AccessDeniedRoute: Char123LocaleChar125AccessDeniedRoute,
+  Char123LocaleChar125AccountRoute:
+    Char123LocaleChar125AccountRouteWithChildren,
+  Char123LocaleChar125AirportRoute:
+    Char123LocaleChar125AirportRouteWithChildren,
+  Char123LocaleChar125BookRoute: Char123LocaleChar125BookRoute,
+  Char123LocaleChar125ContactRoute: Char123LocaleChar125ContactRoute,
+  Char123LocaleChar125DestinationsRoute:
+    Char123LocaleChar125DestinationsRouteWithChildren,
+  Char123LocaleChar125FlightsRoute: Char123LocaleChar125FlightsRoute,
+  Char123LocaleChar125ForgotPasswordRoute:
+    Char123LocaleChar125ForgotPasswordRoute,
+  Char123LocaleChar125GalleryRoute: Char123LocaleChar125GalleryRoute,
+  Char123LocaleChar125ManageRoute: Char123LocaleChar125ManageRouteWithChildren,
+  Char123LocaleChar125PrivacyRoute: Char123LocaleChar125PrivacyRoute,
+  Char123LocaleChar125RegisterRoute: Char123LocaleChar125RegisterRoute,
+  Char123LocaleChar125ResetPasswordRoute:
+    Char123LocaleChar125ResetPasswordRoute,
+  Char123LocaleChar125SigninRoute: Char123LocaleChar125SigninRoute,
+  Char123LocaleChar125TermsRoute: Char123LocaleChar125TermsRoute,
+  Char123LocaleChar125TravelRoute: Char123LocaleChar125TravelRoute,
+  Char123LocaleChar125VerifyEmailRoute: Char123LocaleChar125VerifyEmailRoute,
+  Char123LocaleChar125IndexRoute: Char123LocaleChar125IndexRoute,
+  Char123LocaleChar125BookingConfirmationRefRoute:
+    Char123LocaleChar125BookingConfirmationRefRoute,
+  Char123LocaleChar125FlightFlightIdRoute:
+    Char123LocaleChar125FlightFlightIdRoute,
+  Char123LocaleChar125BoardingPassRefPaxRoute:
+    Char123LocaleChar125BoardingPassRefPaxRoute,
 }
 
-const DestinationsRouteChildren: DestinationsRouteChildren = {
-  DestinationsCodeRoute: DestinationsCodeRoute,
-}
-
-const DestinationsRouteWithChildren = DestinationsRoute._addFileChildren(
-  DestinationsRouteChildren,
-)
-
-interface ManageRouteChildren {
-  ManageRefRoute: typeof ManageRefRoute
-  ManageIndexRoute: typeof ManageIndexRoute
-}
-
-const ManageRouteChildren: ManageRouteChildren = {
-  ManageRefRoute: ManageRefRoute,
-  ManageIndexRoute: ManageIndexRoute,
-}
-
-const ManageRouteWithChildren =
-  ManageRoute._addFileChildren(ManageRouteChildren)
+const Char123LocaleChar125RouteWithChildren =
+  Char123LocaleChar125Route._addFileChildren(Char123LocaleChar125RouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  AboutRoute: AboutRoute,
-  AccessDeniedRoute: AccessDeniedRoute,
-  AccountRoute: AccountRouteWithChildren,
-  AirportRoute: AirportRouteWithChildren,
-  BookRoute: BookRoute,
-  ContactRoute: ContactRoute,
-  DestinationsRoute: DestinationsRouteWithChildren,
-  FlightsRoute: FlightsRoute,
-  ForgotPasswordRoute: ForgotPasswordRoute,
-  GalleryRoute: GalleryRoute,
-  ManageRoute: ManageRouteWithChildren,
-  PrivacyRoute: PrivacyRoute,
-  RegisterRoute: RegisterRoute,
-  ResetPasswordRoute: ResetPasswordRoute,
-  SigninRoute: SigninRoute,
-  TermsRoute: TermsRoute,
-  TravelRoute: TravelRoute,
-  VerifyEmailRoute: VerifyEmailRoute,
-  BookingConfirmationRefRoute: BookingConfirmationRefRoute,
-  FlightFlightIdRoute: FlightFlightIdRoute,
-  BoardingPassRefPaxRoute: BoardingPassRefPaxRoute,
+  Char123LocaleChar125Route: Char123LocaleChar125RouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

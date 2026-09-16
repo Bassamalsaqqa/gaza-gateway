@@ -4,7 +4,7 @@ import { Code, Pill } from "@/components/kit";
 import { airportByCode, fares, type Flight } from "@/lib/data";
 import { dateShort } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
-import type { Booking } from "@/lib/store";
+import { isCheckedIn, type Booking } from "@/lib/store";
 
 export type PassLeg = "out" | "in";
 
@@ -16,11 +16,15 @@ export type BoardingPassItem = {
   seat: string | undefined;
 };
 
-/** A pass exists for each passenger on each flown leg of a checked-in, confirmed booking. */
+/**
+ * A pass exists for each passenger on each leg that has actually been
+ * checked in. An outbound check-in never produces a return pass.
+ */
 export function passesForBooking(booking: Booking): BoardingPassItem[] {
-  if (booking.status !== "confirmed" || !booking.checkedIn) return [];
-  const legs: { leg: PassLeg; flight: Flight }[] = [{ leg: "out", flight: booking.outbound }];
-  if (booking.inbound) legs.push({ leg: "in", flight: booking.inbound });
+  if (booking.status !== "confirmed") return [];
+  const legs: { leg: PassLeg; flight: Flight }[] = [];
+  if (isCheckedIn(booking, "out")) legs.push({ leg: "out", flight: booking.outbound });
+  if (booking.inbound && isCheckedIn(booking, "in")) legs.push({ leg: "in", flight: booking.inbound });
   return booking.passengers.flatMap((_, paxIndex) =>
     legs.map(({ leg, flight }) => ({
       booking,
@@ -67,7 +71,7 @@ export function BoardingPassCard({ item, compact = false }: { item: BoardingPass
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge status={flight.status} />
-            {booking.checkedIn ? <Pill tone="brand">{t("manage.checkedIn")}</Pill> : null}
+            {isCheckedIn(booking, leg) ? <Pill tone="brand">{t(leg === "out" ? "ci.checkedOut" : "ci.checkedIn")}</Pill> : null}
             {fare ? <Pill>{pick(lang, fare.name)}</Pill> : null}
           </div>
 

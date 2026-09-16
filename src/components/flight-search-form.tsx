@@ -1,4 +1,4 @@
-import { useNavigate } from "@tanstack/react-router";
+import { useAppNavigate } from "@/components/app-link";
 import { ArrowLeftRight, Search, Users } from "lucide-react";
 import { useState } from "react";
 import { btnClass, Field, Input, Select } from "./kit";
@@ -16,15 +16,49 @@ export function FlightSearchForm({
 }) {
   const { t, lang } = useI18n();
   const { draft, resetDraft } = useStore();
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
   const [criteria, setCriteria] = useState<SearchCriteria>({ ...draft.criteria, ...initial });
   const [paxOpen, setPaxOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const set = <K extends keyof SearchCriteria>(key: K, value: SearchCriteria[K]) =>
     setCriteria((prev) => ({ ...prev, [key]: value }));
 
+  /**
+   * The opening network is GZA <-> destination, so one endpoint is always GZA.
+   * Changing one endpoint constrains the other instead of allowing an
+   * impossible destination-to-destination pair.
+   */
+  const setEndpoint = (side: "origin" | "destination", code: string) =>
+    setCriteria((prev) => {
+      const other = side === "origin" ? prev.destination : prev.origin;
+      const next = { ...prev, [side]: code } as SearchCriteria;
+      if (code === GZA.code) {
+        if (other === GZA.code) {
+          if (side === "origin") next.destination = destinations[0]?.code ?? "AMM";
+          else next.origin = destinations[0]?.code ?? "AMM";
+        }
+        return next;
+      }
+      // A non-GZA endpoint forces the other side to Gaza.
+      if (side === "origin") next.destination = GZA.code;
+      else next.origin = GZA.code;
+      return next;
+    });
+
   const swap = () =>
     setCriteria((prev) => ({ ...prev, origin: prev.destination, destination: prev.origin }));
+
+  /** Infants travel on an adult's lap, so there can never be more infants than adults. */
+  const setPax = (key: "adults" | "children" | "infants", value: number) =>
+    setCriteria((prev) => {
+      const next = { ...prev, [key]: value } as SearchCriteria;
+      if (next.infants > next.adults) next.infants = next.adults;
+      return next;
+    });
+
+  const paxMax = (key: "adults" | "children" | "infants", max: number) =>
+    key === "infants" ? Math.min(max, criteria.adults) : max;
 
   const options = [
     { code: GZA.code, label: `${pick(lang, GZA.city)} · GZA` },
@@ -33,8 +67,22 @@ export function FlightSearchForm({
 
   const total = paxCount(criteria);
 
+  const validate = (c: SearchCriteria): string | null => {
+    if (c.origin === c.destination) return t("search.errSame");
+    if (c.origin !== GZA.code && c.destination !== GZA.code) return t("search.errNetwork");
+    if (!c.departDate) return t("search.errDepart");
+    if (c.departDate < todayISO()) return t("search.errPast");
+    if (c.tripType === "round" && (!c.returnDate || c.returnDate < c.departDate))
+      return t("search.errReturn");
+    if (c.infants > c.adults) return t("search.errInfants");
+    return null;
+  };
+
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
+    const problem = validate(criteria);
+    setError(problem);
+    if (problem) return;
     resetDraft(criteria);
     void navigate({ to: "/book" });
   };
@@ -71,7 +119,7 @@ export function FlightSearchForm({
       <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
         <div className="relative grid gap-3 sm:grid-cols-2 lg:col-span-2">
           <Field label={t("search.from")} htmlFor="search-from">
-            <Select id="search-from" value={criteria.origin} onChange={(e) => set("origin", e.target.value)}>
+            <Select id="search-from" value={criteria.origin} onChange={(e) => setEndpoint("origin", e.target.value)}>
               {options.map((o) => (
                 <option key={o.code} value={o.code}>
                   {o.label}
@@ -88,7 +136,7 @@ export function FlightSearchForm({
             <ArrowLeftRight aria-hidden="true" className="size-4" />
           </button>
           <Field label={t("search.to")} htmlFor="search-to">
-            <Select id="search-to" value={criteria.destination} onChange={(e) => set("destination", e.target.value)}>
+            <Select id="search-to" value={criteria.destination} onChange={(e) => setEndpoint("destination", e.target.value)}>
               {options.map((o) => (
                 <option key={o.code} value={o.code}>
                   {o.label}
@@ -155,7 +203,7 @@ export function FlightSearchForm({
                     <button
                       type="button"
                       className="size-8 rounded-md border border-input text-lg leading-none disabled:opacity-40"
-                      onClick={() => set(key, Math.max(min, criteria[key] - 1))}
+                      onClick={() => setPax(key, Math.max(min, criteria[key] - 1))}
                       disabled={criteria[key] <= min}
                       aria-label={`${t(label)} −`}
                     >
@@ -165,8 +213,8 @@ export function FlightSearchForm({
                     <button
                       type="button"
                       className="size-8 rounded-md border border-input text-lg leading-none disabled:opacity-40"
-                      onClick={() => set(key, Math.min(max, criteria[key] + 1))}
-                      disabled={criteria[key] >= max}
+                      onClick={() => setPax(key, Math.min(paxMax(key, max), criteria[key] + 1))}
+                      disabled={criteria[key] >= paxMax(key, max)}
                       aria-label={`${t(label)} +`}
                     >
                       +
@@ -174,6 +222,7 @@ export function FlightSearchForm({
                   </div>
                 </div>
               ))}
+              <p className="mt-1 text-xs text-muted-foreground">{t("search.infantNote")}</p>
               <button type="button" onClick={() => setPaxOpen(false)} className={btnClass("secondary", "sm", "mt-3 w-full")}>
                 {t("search.done")}
               </button>
@@ -198,6 +247,15 @@ export function FlightSearchForm({
           </button>
         </div>
       </div>
+
+      {error ? (
+        <p
+          role="alert"
+          className="mt-3 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive"
+        >
+          {error}
+        </p>
+      ) : null}
     </form>
   );
 }

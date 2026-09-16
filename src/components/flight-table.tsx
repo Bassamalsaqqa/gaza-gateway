@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { AppLink } from "@/components/app-link";
 import { ChevronDown, Plane } from "lucide-react";
 import { Fragment, useState } from "react";
 import { StatusBadge } from "./flight-status";
@@ -108,16 +108,16 @@ export function FlightTable({
                         <span aria-hidden="true">→</span>
                         <Code>{flight.destinationCode}</Code>
                       </span>
-                      <Link to="/flight/$flightId" params={{ flightId: flight.id }} className={btnClass("primary", "sm")}>
+                      <AppLink to="/flight/$flightId" params={{ flightId: flight.id }} className={btnClass("primary", "sm")}>
                         {t("flights.details")}
-                      </Link>
-                      <Link
+                      </AppLink>
+                      <AppLink
                         to="/destinations/$code"
                         params={{ code: other.code === GZA.code ? flight.originCode : other.code }}
                         className={btnClass("outline", "sm")}
                       >
                         {t("flights.book")}
-                      </Link>
+                      </AppLink>
                     </div>
                   </td>
                 </tr>

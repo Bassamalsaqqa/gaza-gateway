@@ -1,7 +1,8 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { AppLink, useLang } from "@/components/app-link";
+import { dirOf } from "@/lib/locale";
 import {
   Outlet,
-  Link,
   createRootRouteWithContext,
   useRouter,
   HeadContent,
@@ -37,9 +38,9 @@ function NotFoundComponent() {
         <ul className="mt-3 flex flex-wrap gap-2">
           {links.map((link) => (
             <li key={link.to}>
-              <Link to={link.to} className={btnClass(link.to === "/" ? "primary" : "outline", "md")}>
+              <AppLink to={link.to} className={btnClass(link.to === "/" ? "primary" : "outline", "md")}>
                 {link.label}
-              </Link>
+              </AppLink>
             </li>
           ))}
         </ul>
@@ -118,8 +119,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: ReactNode }) {
+  // Rendered on the server from the URL, so /ar/... never flashes English or LTR.
+  const lang = useLang();
   return (
-    <html lang="en">
+    <html lang={lang} dir={dirOf(lang)}>
       <head>
         <HeadContent />
       </head>

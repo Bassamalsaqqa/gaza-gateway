@@ -1,24 +1,27 @@
-import { Link } from "@tanstack/react-router";
-import { Luggage, Ticket, XCircle } from "lucide-react";
+import { useState } from "react";
+import { AppLink } from "@/components/app-link";
+import { Armchair, Luggage, Ticket, XCircle } from "lucide-react";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { StatusBadge } from "@/components/flight-status";
 import { btnClass, Code, Panel, Pill } from "@/components/kit";
 import { EXTRA_BAG_PRICE, airportByCode, assistanceOptions, fares, mealOptions } from "@/lib/data";
 import { dateLong, money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
-import type { Booking } from "@/lib/store";
+import { anyCheckedIn, bookingLegs, isCheckedIn, type Booking } from "@/lib/store";
 
 export function BookingDetail({
   booking,
-  onCheckin,
   onCancel,
 }: {
   booking: Booking;
-  onCheckin?: () => void;
   onCancel?: () => void;
 }) {
   const { t, lang } = useI18n();
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const fare = fares.find((f) => f.id === booking.fareId);
   const meal = mealOptions.find((m) => m.id === booking.extras.meal);
+  const legs = bookingLegs(booking);
+  const openLegs = legs.filter((leg) => !isCheckedIn(booking, leg));
 
   return (
     <div className="space-y-4">
@@ -34,11 +37,18 @@ export function BookingDetail({
             ) : (
               <StatusBadge status={booking.outbound.status} />
             )}
-            {booking.checkedIn ? <Pill tone="brand">{t("manage.checkedIn")}</Pill> : null}
+            {legs
+              .filter((leg) => isCheckedIn(booking, leg))
+              .map((leg) => (
+                <Pill key={leg} tone="brand">
+                  {t(leg === "out" ? "ci.checkedOut" : "ci.checkedIn")}
+                </Pill>
+              ))}
             {fare ? <Pill>{pick(lang, fare.name)}</Pill> : null}
           </div>
         </div>
       </Panel>
+
 
       {[booking.outbound, booking.inbound].map((flight, index) =>
         flight ? (
@@ -52,9 +62,9 @@ export function BookingDetail({
                   airportByCode(flight.destinationCode)?.city ?? { en: flight.destinationCode, ar: flight.destinationCode },
                 )}
               </p>
-              <Link to="/flight/$flightId" params={{ flightId: flight.id }} className="text-sm underline">
+              <AppLink to="/flight/$flightId" params={{ flightId: flight.id }} className="text-sm underline">
                 <Code className="text-sm text-muted-foreground">{flight.number}</Code>
-              </Link>
+              </AppLink>
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
               {dateLong(flight.date, lang)} · <span className="code-id">{flight.departTime}</span>–
@@ -69,19 +79,33 @@ export function BookingDetail({
       <Panel>
         <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">{t("book.passengersLabel")}</h2>
         <ul className="mt-3 divide-y divide-border">
-          {booking.passengers.map((p, i) => (
-            <li key={`${p.firstName}-${p.lastName}-${i}`} className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-sm">
-              <span className="font-medium">
-                {p.firstName} {p.lastName}
-              </span>
-              <span className="text-muted-foreground">
-                {t("book.seatsLabel")}:{" "}
-                <span className="code-id">
-                  {[booking.seats[`out-${i}`], booking.seats[`in-${i}`]].filter(Boolean).join(" / ") || "—"}
+          {booking.passengers.map((p, i) => {
+            const adult = p.type === "infant" ? booking.passengers[p.withAdult ?? 0] : undefined;
+            return (
+              <li key={`${p.firstName}-${p.lastName}-${i}`} className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-sm">
+                <span className="font-medium">
+                  {p.firstName} {p.lastName}
+                  {p.type !== "adult" ? (
+                    <span className="ms-2 align-middle">
+                      <Pill>{t(p.type === "child" ? "book.child" : "book.infant")}</Pill>
+                    </span>
+                  ) : null}
                 </span>
-              </span>
-            </li>
-          ))}
+                <span className="text-muted-foreground">
+                  {p.type === "infant" ? (
+                    t("book.onLapWith", { name: `${adult?.firstName ?? ""} ${adult?.lastName ?? ""}`.trim() })
+                  ) : (
+                    <>
+                      {t("book.seatsLabel")}:{" "}
+                      <span className="code-id">
+                        {[booking.seats[`out-${i}`], booking.seats[`in-${i}`]].filter(Boolean).join(" / ") || "—"}
+                      </span>
+                    </>
+                  )}
+                </span>
+              </li>
+            );
+          })}
         </ul>
       </Panel>
 
@@ -123,27 +147,31 @@ export function BookingDetail({
         <Panel>
           <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">{t("manage.actions")}</h2>
           <div className="mt-4 flex flex-wrap gap-2">
-            {onCheckin && !booking.checkedIn ? (
-              <button type="button" onClick={onCheckin} className={btnClass("primary", "sm")}>
+            {openLegs.length > 0 ? (
+              <AppLink to="/manage/$ref/check-in" params={{ ref: booking.ref }} className={btnClass("primary", "sm")}>
                 <Ticket aria-hidden="true" className="size-4" />
                 {t("manage.checkin")}
-              </button>
+              </AppLink>
             ) : null}
-            {booking.checkedIn ? (
-              <Link
+            {anyCheckedIn(booking) ? (
+              <AppLink
                 to="/boarding-pass/$ref/$pax"
                 params={{ ref: booking.ref, pax: "0" }}
                 className={btnClass("outline", "sm")}
               >
                 {t("book.boardingPass")}
-              </Link>
+              </AppLink>
             ) : null}
-            <Link to="/book" className={btnClass("outline", "sm")}>
+            <AppLink to="/manage/$ref/seats" params={{ ref: booking.ref }} className={btnClass("outline", "sm")}>
+              <Armchair aria-hidden="true" className="size-4" />
+              {t("manage.changeSeats")}
+            </AppLink>
+            <AppLink to="/manage/$ref/extras" params={{ ref: booking.ref }} className={btnClass("outline", "sm")}>
               <Luggage aria-hidden="true" className="size-4" />
-              {t("manage.addBags")}
-            </Link>
+              {t("manage.editExtras")}
+            </AppLink>
             {onCancel ? (
-              <button type="button" onClick={onCancel} className={btnClass("ghost", "sm")}>
+              <button type="button" onClick={() => setConfirmOpen(true)} className={btnClass("ghost", "sm")}>
                 <XCircle aria-hidden="true" className="size-4" />
                 {t("manage.cancel")}
               </button>
@@ -151,6 +179,18 @@ export function BookingDetail({
           </div>
         </Panel>
       ) : null}
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title={t("manage.cancelConfirmTitle")}
+        body={t("manage.cancelConfirmBody", { ref: booking.ref })}
+        confirmLabel={t("manage.cancelConfirmYes")}
+        onConfirm={() => {
+          setConfirmOpen(false);
+          onCancel?.();
+        }}
+        onClose={() => setConfirmOpen(false)}
+      />
     </div>
   );
 }

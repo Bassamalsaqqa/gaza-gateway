@@ -11,7 +11,12 @@ import type { Flight } from "./data";
 import { EXTRA_BAG_PRICE, farePrice, seatFee } from "./data";
 import { makePnr } from "./format";
 
+export type PassengerType = "adult" | "child" | "infant";
+
 export type Passenger = {
+  type: PassengerType;
+  /** For infants: index of the accompanying adult in the passenger list. */
+  withAdult?: number;
   firstName: string;
   lastName: string;
   dob: string;
@@ -39,6 +44,11 @@ export type SearchCriteria = {
   cabin: string;
 };
 
+export type Leg = "out" | "in";
+
+/** Per-leg check-in state: a leg is checked in only when its own list is set. */
+export type CheckedIn = { out: boolean; in: boolean };
+
 export type Booking = {
   ref: string;
   createdAt: string;
@@ -52,8 +62,30 @@ export type Booking = {
   contact: Contact;
   total: number;
   status: "confirmed" | "cancelled";
-  checkedIn: boolean;
+  checkedIn: CheckedIn;
+  /** Local-only ownership: the account email this booking is linked to. */
+  ownerEmail: string | null;
 };
+
+/** True when the given leg of this booking has completed check-in. */
+export function isCheckedIn(booking: Booking, leg: Leg): boolean {
+  return booking.status === "confirmed" && Boolean(booking.checkedIn?.[leg]);
+}
+
+/** Legs that actually exist on this booking. */
+export function bookingLegs(booking: Booking): Leg[] {
+  return booking.inbound ? ["out", "in"] : ["out"];
+}
+
+/** True when at least one leg is checked in. */
+export function anyCheckedIn(booking: Booking): boolean {
+  return bookingLegs(booking).some((leg) => isCheckedIn(booking, leg));
+}
+
+/** Passengers who occupy a seat (infants travel on an adult's lap). */
+export function seatedPassengers(booking: Pick<Booking, "passengers">): number[] {
+  return booking.passengers.flatMap((p, i) => (p.type === "infant" ? [] : [i]));
+}
 
 export type Traveler = {
   id: string;
@@ -85,8 +117,30 @@ export type Draft = {
   contact: Contact;
 };
 
-export function emptyPassenger(): Passenger {
-  return { firstName: "", lastName: "", dob: "", nationality: "", document: "" };
+export function emptyPassenger(type: PassengerType = "adult", withAdult?: number): Passenger {
+  return {
+    type,
+    ...(type === "infant" ? { withAdult: withAdult ?? 0 } : {}),
+    firstName: "",
+    lastName: "",
+    dob: "",
+    nationality: "",
+    document: "",
+  };
+}
+
+/**
+ * Passenger forms for a search: adults, then children, then infants.
+ * Each infant is associated with an adult (index in the same list).
+ */
+export function passengersFor(criteria: SearchCriteria): Passenger[] {
+  const adults = Math.max(1, criteria.adults);
+  const list: Passenger[] = [];
+  for (let i = 0; i < adults; i += 1) list.push(emptyPassenger("adult"));
+  for (let i = 0; i < criteria.children; i += 1) list.push(emptyPassenger("child"));
+  for (let i = 0; i < Math.min(criteria.infants, adults); i += 1)
+    list.push(emptyPassenger("infant", i));
+  return list;
 }
 
 export function defaultCriteria(departDate: string, returnDate: string): SearchCriteria {
@@ -136,7 +190,15 @@ type StoreValue = {
   setDraft: (updater: (prev: Draft) => Draft) => void;
   resetDraft: (criteria: SearchCriteria) => void;
   bookings: Booking[];
-  addBooking: (booking: Omit<Booking, "ref" | "createdAt" | "status" | "checkedIn">) => Booking;
+  addBooking: (
+    booking: Omit<Booking, "ref" | "createdAt" | "status" | "checkedIn" | "ownerEmail">,
+  ) => Booking;
+  /** Bookings linked to the signed-in account only. */
+  myBookings: Booking[];
+  /** Link a booking made as a guest to the signed-in account (local only). */
+  claimBooking: (ref: string) => void;
+  /** Mark one leg of a booking as checked in. */
+  checkInLeg: (ref: string, leg: Leg) => void;
   updateBooking: (ref: string, patch: Partial<Booking>) => void;
   findBooking: (ref: string) => Booking | undefined;
   account: Account | null;
@@ -175,6 +237,24 @@ function initialDraft(): Draft {
   };
 }
 
+/** Bring older locally stored bookings up to the current shape. */
+function migrateBooking(raw: Booking): Booking {
+  const legacy = raw as Booking & { checkedIn: unknown };
+  const checkedIn: CheckedIn =
+    typeof legacy.checkedIn === "boolean"
+      ? { out: legacy.checkedIn, in: legacy.checkedIn }
+      : {
+          out: Boolean((legacy.checkedIn as CheckedIn | undefined)?.out),
+          in: Boolean((legacy.checkedIn as CheckedIn | undefined)?.in),
+        };
+  return {
+    ...raw,
+    checkedIn,
+    ownerEmail: raw.ownerEmail ?? null,
+    passengers: (raw.passengers ?? []).map((p) => ({ ...p, type: p.type ?? "adult" })),
+  };
+}
+
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [draft, setDraftState] = useState<Draft>(initialDraft);
@@ -187,7 +267,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const raw = window.localStorage.getItem(KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as Persisted;
-        setBookings(parsed.bookings ?? []);
+        setBookings((parsed.bookings ?? []).map(migrateBooking));
         setAccount(parsed.account ?? null);
         setTravelers(parsed.travelers ?? []);
       }
@@ -207,36 +287,64 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setDraftState((prev) => updater(prev));
   }, []);
 
-  const resetDraft = useCallback((criteria: SearchCriteria) => {
-    setDraftState({
-      entry: "results",
-      criteria,
-      outbound: null,
-      inbound: null,
-      fareId: "classic",
-      passengers: Array.from({ length: Math.max(1, criteria.adults + criteria.children) }, () =>
-        emptyPassenger(),
-      ),
-      seats: {},
-      extras: { extraBags: 0, meal: "standard", assistance: [] },
-      contact: { email: "", phone: "" },
-    });
-  }, []);
+  const resetDraft = useCallback(
+    (criteria: SearchCriteria) => {
+      setDraftState({
+        entry: "results",
+        criteria,
+        outbound: null,
+        inbound: null,
+        fareId: "classic",
+        passengers: passengersFor(criteria),
+        seats: {},
+        // A signed-in traveller's saved meal preference becomes the booking default.
+        extras: { extraBags: 0, meal: account?.mealPreference ?? "standard", assistance: [] },
+        contact: { email: account?.email ?? "", phone: account?.phone ?? "" },
+      });
+    },
+    [account],
+  );
 
   const addBooking = useCallback(
-    (booking: Omit<Booking, "ref" | "createdAt" | "status" | "checkedIn">) => {
+    (booking: Omit<Booking, "ref" | "createdAt" | "status" | "checkedIn" | "ownerEmail">) => {
       const created: Booking = {
         ...booking,
         ref: makePnr(),
         createdAt: new Date().toISOString(),
         status: "confirmed",
-        checkedIn: false,
+        checkedIn: { out: false, in: false },
+        ownerEmail: account?.email ?? null,
       };
       setBookings((prev) => [created, ...prev]);
       return created;
     },
-    [],
+    [account],
   );
+
+  const claimBooking = useCallback((ref: string) => {
+    setAccount((acc) => {
+      if (acc) {
+        setBookings((prev) =>
+          prev.map((b) =>
+            b.ref.toUpperCase() === ref.trim().toUpperCase() && !b.ownerEmail
+              ? { ...b, ownerEmail: acc.email }
+              : b,
+          ),
+        );
+      }
+      return acc;
+    });
+  }, []);
+
+  const checkInLeg = useCallback((ref: string, leg: Leg) => {
+    setBookings((prev) =>
+      prev.map((b) =>
+        b.ref.toUpperCase() === ref.trim().toUpperCase() && b.status === "confirmed"
+          ? { ...b, checkedIn: { ...b.checkedIn, [leg]: true } }
+          : b,
+      ),
+    );
+  }, []);
 
   const updateBooking = useCallback((ref: string, patch: Partial<Booking>) => {
     setBookings((prev) => prev.map((b) => (b.ref === ref ? { ...b, ...patch } : b)));
@@ -273,6 +381,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setTravelers((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
+  const myBookings = useMemo(
+    () => (account ? bookings.filter((b) => b.ownerEmail === account.email) : []),
+    [account, bookings],
+  );
+
   const value = useMemo<StoreValue>(
     () => ({
       ready,
@@ -280,8 +393,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setDraft,
       resetDraft,
       bookings,
+      myBookings,
       addBooking,
       updateBooking,
+      claimBooking,
+      checkInLeg,
       findBooking,
       account,
       signIn,
@@ -297,8 +413,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setDraft,
       resetDraft,
       bookings,
+      myBookings,
       addBooking,
       updateBooking,
+      claimBooking,
+      checkInLeg,
       findBooking,
       account,
       signIn,

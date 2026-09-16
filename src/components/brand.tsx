@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { AppLink } from "@/components/app-link";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 export function Brand({ tone = "light", compact = false }: { tone?: "light" | "dark"; compact?: boolean }) {
   const { t } = useI18n();
   return (
-    <Link to="/" className="group inline-flex items-center gap-2.5" aria-label={t("brand.airport")}>
+    <AppLink to="/" className="group inline-flex items-center gap-2.5" aria-label={t("brand.airport")}>
       <span
         aria-hidden="true"
         className={cn(
@@ -32,6 +32,6 @@ export function Brand({ tone = "light", compact = false }: { tone?: "light" | "d
           {t("brand.airline")}
         </span>
       </span>
-    </Link>
+    </AppLink>
   );
 }

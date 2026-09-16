@@ -336,90 +336,96 @@ function statusFor(flightId: string, date: string): FlightStatus {
   return pool[h % pool.length] ?? "Scheduled";
 }
 
-/** Departures from GZA on a date. */
+/** Departures from GZA on a date (two rotations per served destination). */
 export function departuresOn(date: string): Flight[] {
   const weekday = new Date(`${date}T12:00:00`).getDay();
   const list: Flight[] = [];
   destinations.forEach((dest, index) => {
     if (!dest.days.includes(weekday)) return;
-    const seed = hash(`${dest.code}${date}`);
-    const slot = departureSlots[(index + weekday) % departureSlots.length] ?? "09:00";
-    const number = `PS${100 + index * 2 + (weekday % 2)}`;
-    const id = `${number}-${date}-out`;
-    list.push({
-      id,
-      number,
-      originCode: GZA.code,
-      destinationCode: dest.code,
-      date,
-      departTime: slot,
-      arriveTime: addMinutesToTime(slot, dest.flightMinutes),
-      durationMinutes: dest.flightMinutes,
-      aircraft: aircraftTypes[seed % aircraftTypes.length] ?? "Airbus A320neo",
-      status: statusFor(id, date),
-      gate: `A${(seed % 8) + 1}`,
-      terminal: "1",
-      basePrice: dest.priceFrom + (seed % 6) * 12,
-      seatsLeft: 3 + (seed % 24),
+    [0, 1].forEach((rotation) => {
+      const seed = hash(`${dest.code}${date}${rotation}`);
+      const baseSlot = departureSlots[(index + weekday) % departureSlots.length] ?? "09:00";
+      const slot = rotation === 0 ? baseSlot : addMinutesToTime(baseSlot, 320);
+      const number = `PS${100 + index * 2 + (weekday % 2) + rotation * 40}`;
+      const id = `${number}-${date}-out`;
+      list.push({
+        id,
+        number,
+        originCode: GZA.code,
+        destinationCode: dest.code,
+        date,
+        departTime: slot,
+        arriveTime: addMinutesToTime(slot, dest.flightMinutes),
+        durationMinutes: dest.flightMinutes,
+        aircraft: aircraftTypes[seed % aircraftTypes.length] ?? "Airbus A320neo",
+        status: statusFor(id, date),
+        gate: `A${(seed % 8) + 1}`,
+        terminal: "1",
+        basePrice: Math.round(
+          (dest.priceFrom + (seed % 6) * 12) * (rotation === 0 ? 1 : 0.88),
+        ),
+        seatsLeft: 3 + (seed % 24),
+      });
     });
   });
   return list.sort((a, b) => a.departTime.localeCompare(b.departTime));
 }
 
-/** Arrivals into GZA on a date. */
+/** Arrivals into GZA on a date (two rotations per served destination). */
 export function arrivalsOn(date: string): Flight[] {
   const weekday = new Date(`${date}T12:00:00`).getDay();
   const list: Flight[] = [];
   destinations.forEach((dest, index) => {
     if (!dest.days.includes(weekday)) return;
-    const seed = hash(`${dest.code}${date}in`);
-    const slot = departureSlots[(index + weekday + 3) % departureSlots.length] ?? "12:00";
-    const number = `PS${101 + index * 2 + (weekday % 2)}`;
-    const id = `${number}-${date}-in`;
-    list.push({
-      id,
-      number,
-      originCode: dest.code,
-      destinationCode: GZA.code,
-      date,
-      departTime: slot,
-      arriveTime: addMinutesToTime(slot, dest.flightMinutes),
-      durationMinutes: dest.flightMinutes,
-      aircraft: aircraftTypes[seed % aircraftTypes.length] ?? "Airbus A321neo",
-      status: statusFor(id, date),
-      gate: `A${(seed % 8) + 1}`,
-      terminal: "1",
-      basePrice: dest.priceFrom + (seed % 5) * 14,
-      seatsLeft: 4 + (seed % 20),
+    [0, 1].forEach((rotation) => {
+      const seed = hash(`${dest.code}${date}in${rotation}`);
+      const baseSlot = departureSlots[(index + weekday + 3) % departureSlots.length] ?? "12:00";
+      const slot = rotation === 0 ? baseSlot : addMinutesToTime(baseSlot, 320);
+      const number = `PS${101 + index * 2 + (weekday % 2) + rotation * 40}`;
+      const id = `${number}-${date}-in`;
+      list.push({
+        id,
+        number,
+        originCode: dest.code,
+        destinationCode: GZA.code,
+        date,
+        departTime: slot,
+        arriveTime: addMinutesToTime(slot, dest.flightMinutes),
+        durationMinutes: dest.flightMinutes,
+        aircraft: aircraftTypes[seed % aircraftTypes.length] ?? "Airbus A321neo",
+        status: statusFor(id, date),
+        gate: `A${(seed % 8) + 1}`,
+        terminal: "1",
+        basePrice: Math.round(
+          (dest.priceFrom + (seed % 5) * 14) * (rotation === 0 ? 1 : 0.88),
+        ),
+        seatsLeft: 4 + (seed % 20),
+      });
     });
   });
   return list.sort((a, b) => a.arriveTime.localeCompare(b.arriveTime));
 }
 
-/** Bookable options for a route on a date (2 options per available route). */
+/**
+ * Bookable options for a route on a date.
+ * The opening network is GZA <-> destination only: one endpoint must be GZA,
+ * and the endpoints must differ. Anything else has no service.
+ */
 export function searchFlights(origin: string, destination: string, date: string): Flight[] {
-  const outbound = origin.toUpperCase() === GZA.code;
+  const from = origin.toUpperCase();
+  const to = destination.toUpperCase();
+  if (from === to) return [];
+  const outbound = from === GZA.code;
+  const inbound = to === GZA.code;
+  if (!outbound && !inbound) return [];
+  if (outbound && !destinationByCode(to)) return [];
+  if (inbound && !destinationByCode(from)) return [];
   const pool = outbound ? departuresOn(date) : arrivalsOn(date);
-  const matches = pool.filter((f) =>
-    outbound
-      ? f.destinationCode.toUpperCase() === destination.toUpperCase()
-      : f.originCode.toUpperCase() === origin.toUpperCase(),
+  return pool.filter((f) =>
+    outbound ? f.destinationCode.toUpperCase() === to : f.originCode.toUpperCase() === from,
   );
-  if (matches.length === 0) return [];
-  const base = matches[0];
-  if (!base) return [];
-  const second: Flight = {
-    ...base,
-    id: `${base.id}-b`,
-    number: `PS${Number(base.number.slice(2)) + 40}`,
-    departTime: addMinutesToTime(base.departTime, 320),
-    arriveTime: addMinutesToTime(base.arriveTime, 320),
-    basePrice: Math.round(base.basePrice * 0.88),
-    gate: `A${((hash(base.id) % 8) + 2) % 9 || 3}`,
-    seatsLeft: 2 + (hash(base.id) % 9),
-  };
-  return [base, second];
 }
+
 
 export function farePrice(basePrice: number, fareId: Fare["id"], cabin: string): number {
   const fare = fares.find((f) => f.id === fareId) ?? fares[0];

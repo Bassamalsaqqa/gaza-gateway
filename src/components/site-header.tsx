@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { AppLink } from "@/components/app-link";
 import { Menu, X, Globe, User, Ticket, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Brand } from "./brand";
@@ -85,20 +85,20 @@ export function SiteHeader() {
           </p>
           <div className="flex items-center gap-2">
             <LanguageToggle />
-            <Link
+            <AppLink
               to="/manage"
               className="hidden items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-ink-muted transition-colors hover:text-ink-foreground sm:inline-flex"
             >
               <Ticket aria-hidden="true" className="size-3.5" />
               {t("nav.manage")}
-            </Link>
-            <Link
+            </AppLink>
+            <AppLink
               to={account ? "/account" : "/signin"}
               className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-ink-muted transition-colors hover:text-ink-foreground"
             >
               <User aria-hidden="true" className="size-3.5" />
               {account ? t("nav.account") : t("nav.signin")}
-            </Link>
+            </AppLink>
           </div>
         </div>
       </div>
@@ -109,21 +109,21 @@ export function SiteHeader() {
 
           <nav aria-label={t("nav.primary")} className="hidden items-center gap-1 lg:flex">
             {primaryNav.map((item) => (
-              <Link
+              <AppLink
                 key={item.to}
                 to={item.to}
                 activeProps={{ className: "bg-secondary text-foreground" }}
                 className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
               >
                 {t(item.key)}
-              </Link>
+              </AppLink>
             ))}
           </nav>
 
           <div className="flex items-center gap-2">
-            <Link to="/book" className={btnClass("primary", "sm", "hidden sm:inline-flex")}>
+            <AppLink to="/book" className={btnClass("primary", "sm", "hidden sm:inline-flex")}>
               {t("nav.book")}
-            </Link>
+            </AppLink>
             <button
               type="button"
               onClick={() => setOpen(true)}
@@ -151,12 +151,12 @@ export function SiteHeader() {
             </button>
           </div>
           <div className="flex-1 overflow-y-auto px-4 py-6">
-            <Link to="/book" onClick={() => setOpen(false)} className={btnClass("primary", "lg", "w-full")}>
+            <AppLink to="/book" onClick={() => setOpen(false)} className={btnClass("primary", "lg", "w-full")}>
               {t("nav.book")}
-            </Link>
+            </AppLink>
             <nav aria-label={t("nav.primary")} className="mt-6 flex flex-col">
               {[...primaryNav, ...secondaryNav].map((item) => (
-                <Link
+                <AppLink
                   key={item.to}
                   to={item.to}
                   onClick={() => setOpen(false)}
@@ -164,18 +164,18 @@ export function SiteHeader() {
                 >
                   {t(item.key)}
                   <ChevronRight aria-hidden="true" className="size-4 text-muted-foreground rtl:rotate-180" />
-                </Link>
+                </AppLink>
               ))}
             </nav>
             <div className="mt-6 flex items-center justify-between">
               <LanguageToggle tone="light" />
-              <Link
+              <AppLink
                 to={account ? "/account" : "/signin"}
                 onClick={() => setOpen(false)}
                 className={btnClass("outline", "sm")}
               >
                 {account ? t("nav.account") : t("nav.signin")}
-              </Link>
+              </AppLink>
             </div>
           </div>
         </div>
