@@ -60,7 +60,16 @@ function BookPage() {
   const [activePax, setActivePax] = useState(0);
   const [seatLeg, setSeatLeg] = useState<"out" | "in">("out");
 
-  const pax = Math.max(1, draft.criteria.adults + draft.criteria.children);
+  const paxList = draft.passengers.length
+    ? draft.passengers
+    : passengersFor(draft.criteria);
+  const pax = paxList.length;
+  // Infants travel on an adult's lap, so they are never allocated a seat.
+  const seatable = paxList.flatMap((p, i) => (p.type === "infant" ? [] : [i]));
+  const paxName = (i: number) => {
+    const p = paxList[i];
+    return p && (p.firstName || p.lastName) ? `${p.firstName} ${p.lastName}`.trim() : t("book.pax", { n: i + 1 });
+  };
   const outboundOptions = useMemo(
     () => searchFlights(draft.criteria.origin, draft.criteria.destination, draft.criteria.departDate),
     [draft.criteria],
@@ -96,7 +105,9 @@ function BookPage() {
     );
   }
 
-  const selectSeat = (paxIndex: number, seat: string) => {
+  const selectSeat = (position: number, seat: string) => {
+    const paxIndex = seatable[position];
+    if (paxIndex === undefined) return;
     const key = `${seatLeg}-${paxIndex}`;
     setDraft((prev) => {
       const seats = { ...prev.seats };
@@ -104,29 +115,23 @@ function BookPage() {
       else seats[key] = seat;
       return { ...prev, seats };
     });
-    if (paxIndex < pax - 1) setActivePax(paxIndex + 1);
+    if (position < seatable.length - 1) setActivePax(position + 1);
   };
 
   const seatAssignments = (leg: "out" | "in"): Record<number, string> => {
     const result: Record<number, string> = {};
-    Object.entries(draft.seats).forEach(([key, seat]) => {
-      const [prefix, index] = key.split("-");
-      if (prefix === leg && index !== undefined) result[Number(index)] = seat;
+    seatable.forEach((paxIndex, position) => {
+      const seat = draft.seats[`${leg}-${paxIndex}`];
+      if (seat) result[position] = seat;
     });
     return result;
   };
 
-  const passengerLabels = Array.from({ length: pax }, (_, i) => {
-    const p = draft.passengers[i];
-    const name = p && (p.firstName || p.lastName) ? `${p.firstName} ${p.lastName}`.trim() : t("book.pax", { n: i + 1 });
-    return name;
-  });
+  const passengerLabels = seatable.map((i) => paxName(i));
 
   const passengersValid = () =>
-    Array.from({ length: pax }).every((_, i) => {
-      const p = draft.passengers[i];
-      return Boolean(p && p.firstName.trim() && p.lastName.trim() && p.dob);
-    }) && /.+@.+\..+/.test(draft.contact.email);
+    paxList.every((p) => Boolean(p.firstName.trim() && p.lastName.trim() && p.dob)) &&
+    /.+@.+\..+/.test(draft.contact.email);
 
   const confirm = () => {
     if (!draft.outbound) return;
@@ -136,7 +141,7 @@ function BookPage() {
       outbound: draft.outbound,
       inbound: draft.inbound,
       fareId: draft.fareId,
-      passengers: draft.passengers.slice(0, pax),
+      passengers: paxList,
       seats: draft.seats,
       extras: draft.extras,
       contact: draft.contact,
@@ -612,7 +617,7 @@ function BookPage() {
                       {t("book.passengersLabel")}
                     </h2>
                     <ul className="mt-3 divide-y divide-border">
-                      {draft.passengers.slice(0, pax).map((p, i) => (
+                      {paxList.map((p, i) => (
                         <li key={i} className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-sm">
                           <span className="font-medium">
                             {p.firstName} {p.lastName}
