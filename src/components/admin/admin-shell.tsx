@@ -288,7 +288,7 @@ function AttentionBell() {
         <div
           role="dialog"
           aria-label={t("adm.notif.title")}
-          className="absolute end-0 top-11 z-60 w-[min(20rem,calc(100vw-1.5rem))] overflow-hidden rounded-lg border border-border bg-card shadow-[var(--shadow-lift)]"
+          className="fixed end-3 top-14 z-60 w-[calc(100vw-1.5rem)] overflow-hidden rounded-lg border border-border bg-card shadow-[var(--shadow-lift)] sm:absolute sm:end-0 sm:top-11 sm:w-80"
         >
           <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2">
             <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("adm.notif.title")}</p>
