@@ -135,17 +135,16 @@ export const adminNav: AdminNavGroup[] = [
     id: "operations",
     labelKey: "adm.group.operations",
     items: [
-      { id: "flights", labelKey: "adm.nav.flights", icon: PlaneTakeoff, to: null, permission: "ops.view" },
-      { id: "schedules", labelKey: "adm.nav.schedules", icon: CalendarClock, to: null, permission: "ops.view" },
-      { id: "destinations", labelKey: "adm.nav.destinations", icon: MapPin, to: null, permission: "ops.view" },
-      { id: "aircraft", labelKey: "adm.nav.aircraft", icon: ArmchairIcon, to: null, permission: "ops.view" },
+      { id: "flights", labelKey: "adm.nav.flights", icon: PlaneTakeoff, to: "/admin/flights", permission: "ops.view" },
+      { id: "schedules", labelKey: "adm.nav.schedules", icon: CalendarClock, to: "/admin/schedules", permission: "ops.view" },
+      { id: "destinations", labelKey: "adm.nav.destinations", icon: MapPin, to: "/admin/destinations", permission: "ops.view" },
     ],
   },
   {
     id: "commercial",
     labelKey: "adm.group.commercial",
     items: [
-      { id: "products", labelKey: "adm.nav.products", icon: Tag, to: null, permission: "commercial.view" },
+      { id: "products", labelKey: "adm.nav.products", icon: ArmchairIcon, to: "/admin/products", permission: "commercial.view" },
       { id: "bookings", labelKey: "adm.nav.bookings", icon: Ticket, to: null, permission: "commercial.view" },
       { id: "checkin", labelKey: "adm.nav.checkin", icon: ScanLine, to: null, permission: "commercial.view" },
       { id: "customers", labelKey: "adm.nav.customers", icon: UsersRound, to: null, permission: "commercial.view" },
