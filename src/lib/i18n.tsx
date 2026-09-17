@@ -9,6 +9,7 @@ import {
 } from "react";
 import { dirOf, langFromPath, swapLangPath, type Lang } from "./locale";
 import { adminEn, adminAr } from "./i18n-admin";
+import { admin2En, admin2Ar } from "./i18n-admin2";
 
 export type { Lang };
 
@@ -1106,8 +1107,8 @@ const ar: Dict = {
 };
 
 
-const enAll: Dict = { ...en, ...adminEn };
-const arAll: Dict = { ...ar, ...adminAr };
+const enAll: Dict = { ...en, ...adminEn, ...admin2En };
+const arAll: Dict = { ...ar, ...adminAr, ...admin2Ar };
 
 const dictionaries: Record<Lang, Dict> = { en: enAll, ar: arAll };
 

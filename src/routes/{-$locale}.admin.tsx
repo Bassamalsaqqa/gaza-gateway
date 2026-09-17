@@ -50,6 +50,16 @@ function AdminLayout() {
     if (path.startsWith("/admin/schedules")) return t("adm.nav.schedules");
     if (path.startsWith("/admin/destinations")) return t("adm.nav.destinations");
     if (path.startsWith("/admin/products")) return t("adm.nav.products");
+    if (path.startsWith("/admin/bookings")) return t("adm.nav.bookings");
+    if (path.startsWith("/admin/check-in")) return t("adm.nav.checkin");
+    if (path.startsWith("/admin/customers")) return t("adm.nav.customers");
+    if (path.startsWith("/admin/website")) return t("a2.nav.website");
+    if (path.startsWith("/admin/airport")) return t("a2.nav.airport");
+    if (path.startsWith("/admin/inbox")) return t("adm.nav.inbox");
+    if (path.startsWith("/admin/analytics")) return t("adm.nav.analytics");
+    if (path.startsWith("/admin/staff")) return t("adm.nav.staff");
+    if (path.startsWith("/admin/settings")) return t("adm.nav.settings");
+    if (path.startsWith("/admin/activity")) return t("adm.nav.activity");
     return t("adm.nav.dashboard");
   })();
 

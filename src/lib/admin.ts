@@ -3,17 +3,13 @@
  * derived operational figures the dashboard shows. Frontend-only mock data.
  */
 import {
-  Archive,
   ArmchairIcon,
   BarChart3,
   CalendarClock,
-  FileText,
   Home,
-  Image,
   Inbox,
   Landmark,
   LayoutDashboard,
-  ListTree,
   type LucideIcon,
   MapPin,
   PlaneTakeoff,
@@ -24,7 +20,6 @@ import {
 
   Ticket,
   UsersRound,
-  BookOpen,
 } from "lucide-react";
 
 export type AdminRole = "admin" | "editor" | "viewer";
@@ -145,46 +140,40 @@ export const adminNav: AdminNavGroup[] = [
     labelKey: "adm.group.commercial",
     items: [
       { id: "products", labelKey: "adm.nav.products", icon: ArmchairIcon, to: "/admin/products", permission: "commercial.view" },
-      { id: "bookings", labelKey: "adm.nav.bookings", icon: Ticket, to: null, permission: "commercial.view" },
-      { id: "checkin", labelKey: "adm.nav.checkin", icon: ScanLine, to: null, permission: "commercial.view" },
-      { id: "customers", labelKey: "adm.nav.customers", icon: UsersRound, to: null, permission: "commercial.view" },
+      { id: "bookings", labelKey: "adm.nav.bookings", icon: Ticket, to: "/admin/bookings", permission: "commercial.view" },
+      { id: "checkin", labelKey: "adm.nav.checkin", icon: ScanLine, to: "/admin/check-in", permission: "commercial.view" },
+      { id: "customers", labelKey: "adm.nav.customers", icon: UsersRound, to: "/admin/customers", permission: "commercial.view" },
     ],
   },
   {
     id: "website",
     labelKey: "adm.group.website",
     items: [
-      { id: "homepage", labelKey: "adm.nav.homepage", icon: Home, to: null, permission: "content.view" },
-      { id: "travel", labelKey: "adm.nav.travel", icon: FileText, to: null, permission: "content.view" },
-      { id: "pages", labelKey: "adm.nav.pages", icon: BookOpen, to: null, permission: "content.view" },
-      { id: "navigation", labelKey: "adm.nav.navigation", icon: ListTree, to: null, permission: "content.view" },
+      { id: "website", labelKey: "a2.nav.website", icon: Home, to: "/admin/website", permission: "content.view" },
     ],
   },
   {
     id: "airport",
     labelKey: "adm.group.airport",
     items: [
-      { id: "story", labelKey: "adm.nav.story", icon: Landmark, to: null, permission: "content.view" },
-      { id: "sources", labelKey: "adm.nav.sources", icon: ScrollText, to: null, permission: "content.view" },
-      { id: "media", labelKey: "adm.nav.media", icon: Image, to: null, permission: "content.view" },
-      { id: "archive", labelKey: "adm.nav.archive", icon: Archive, to: null, permission: "content.view" },
+      { id: "airport", labelKey: "a2.nav.airport", icon: Landmark, to: "/admin/airport", permission: "content.view" },
     ],
   },
   {
     id: "engagement",
     labelKey: "adm.group.engagement",
     items: [
-      { id: "inbox", labelKey: "adm.nav.inbox", icon: Inbox, to: null, permission: "engagement.view" },
-      { id: "analytics", labelKey: "adm.nav.analytics", icon: BarChart3, to: null, permission: "engagement.view" },
+      { id: "inbox", labelKey: "adm.nav.inbox", icon: Inbox, to: "/admin/inbox", permission: "engagement.view" },
+      { id: "analytics", labelKey: "adm.nav.analytics", icon: BarChart3, to: "/admin/analytics", permission: "engagement.view" },
     ],
   },
   {
     id: "administration",
     labelKey: "adm.group.administration",
     items: [
-      { id: "staff", labelKey: "adm.nav.staff", icon: ShieldCheck, to: null, permission: "admin.manage" },
-      { id: "settings", labelKey: "adm.nav.settings", icon: Settings, to: null, permission: "admin.manage" },
-      { id: "activity", labelKey: "adm.nav.activity", icon: ScrollText, to: null, permission: "admin.manage" },
+      { id: "staff", labelKey: "adm.nav.staff", icon: ShieldCheck, to: "/admin/staff", permission: "admin.manage" },
+      { id: "settings", labelKey: "adm.nav.settings", icon: Settings, to: "/admin/settings", permission: "admin.manage" },
+      { id: "activity", labelKey: "adm.nav.activity", icon: ScrollText, to: "/admin/activity", permission: "admin.manage" },
     ],
   },
 ];
