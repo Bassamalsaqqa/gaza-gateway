@@ -172,6 +172,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         status: o.status && VALID_FLIGHT_STATUSES.has(o.status) ? o.status : flight.status,
         gate: typeof o.gate === "string" ? o.gate : flight.gate,
         terminal: typeof o.terminal === "string" ? o.terminal : flight.terminal,
+        aircraft: typeof o.aircraft === "string" && o.aircraft ? o.aircraft : flight.aircraft,
         ...(typeof o.revisedDepart === "string" ? { revisedDepart: o.revisedDepart } : {}),
         ...(typeof o.note === "string" ? { note: o.note } : {}),
       };
