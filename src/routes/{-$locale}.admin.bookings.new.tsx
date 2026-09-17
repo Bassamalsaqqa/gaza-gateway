@@ -144,7 +144,7 @@ function AdminNewBookingPage() {
                 >
                   <input type="radio" name="nb-fare" checked={fare === f.id} onChange={() => setFare(f.id)} className="me-2 size-4 accent-[var(--brand)]" />
                   <span className="font-semibold">{pick(lang, f.name)}</span>
-                  <p className="mt-1 text-xs text-muted-foreground">{pick(lang, f.tagline)}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{pick(lang, f.flexibility)}</p>
                 </label>
               ))}
             </fieldset>
