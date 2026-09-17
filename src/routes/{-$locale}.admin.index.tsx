@@ -234,7 +234,7 @@ function AdminDashboardPage() {
                           reason={t("adm.flight.openLater")}
                           variant="ghost"
                         >
-                          {t("adm.flight.open")}
+                          <span className="sr-only">{t("adm.flight.open")}</span>
                         </PermissionButton>
                       </span>
                     </td>
