@@ -52,6 +52,7 @@ import { Route as Char123LocaleChar125ManageIndexRouteImport } from './routes/{-
 import { Route as Char123LocaleChar125ManageRefRouteImport } from './routes/{-$locale}.manage.$ref'
 import { Route as Char123LocaleChar125AccountTripsIndexRouteImport } from './routes/{-$locale}.account.trips.index'
 import { Route as Char123LocaleChar125AccountTripsRefRouteImport } from './routes/{-$locale}.account.trips.$ref'
+import { Route as Char123LocaleChar125AdminFlightsIndexRouteImport } from './routes/{-$locale}.admin.flights.index'
 import { Route as Char123LocaleChar125ManageRefCheckInRouteImport } from './routes/{-$locale}.manage.$ref_.check-in'
 import { Route as Char123LocaleChar125ManageRefContactRouteImport } from './routes/{-$locale}.manage.$ref_.contact'
 import { Route as Char123LocaleChar125ManageRefExtrasRouteImport } from './routes/{-$locale}.manage.$ref_.extras'
@@ -315,6 +316,12 @@ const Char123LocaleChar125AccountTripsRefRoute =
     path: '/$ref',
     getParentRoute: () => Char123LocaleChar125AccountTripsRoute,
   } as any)
+const Char123LocaleChar125AdminFlightsIndexRoute =
+  Char123LocaleChar125AdminFlightsIndexRouteImport.update({
+    id: '/flights/',
+    path: '/flights/',
+    getParentRoute: () => Char123LocaleChar125AdminRoute,
+  } as any)
 const Char123LocaleChar125ManageRefCheckInRoute =
   Char123LocaleChar125ManageRefCheckInRouteImport.update({
     id: '/$ref_/check-in',
@@ -394,6 +401,7 @@ export interface FileRoutesByFullPath {
   '/{-$locale}/manage/$ref/extras': typeof Char123LocaleChar125ManageRefExtrasRoute
   '/{-$locale}/manage/$ref/seats': typeof Char123LocaleChar125ManageRefSeatsRoute
   '/{-$locale}/account/trips/': typeof Char123LocaleChar125AccountTripsIndexRoute
+  '/{-$locale}/admin/flights/': typeof Char123LocaleChar125AdminFlightsIndexRoute
   '/{-$locale}/boarding-pass/$ref/$leg/$pax': typeof Char123LocaleChar125BoardingPassRefLegPaxRoute
 }
 export interface FileRoutesByTo {
@@ -438,6 +446,7 @@ export interface FileRoutesByTo {
   '/{-$locale}/manage/$ref/extras': typeof Char123LocaleChar125ManageRefExtrasRoute
   '/{-$locale}/manage/$ref/seats': typeof Char123LocaleChar125ManageRefSeatsRoute
   '/{-$locale}/account/trips': typeof Char123LocaleChar125AccountTripsIndexRoute
+  '/{-$locale}/admin/flights': typeof Char123LocaleChar125AdminFlightsIndexRoute
   '/{-$locale}/boarding-pass/$ref/$leg/$pax': typeof Char123LocaleChar125BoardingPassRefLegPaxRoute
 }
 export interface FileRoutesById {
@@ -489,6 +498,7 @@ export interface FileRoutesById {
   '/{-$locale}/manage/$ref_/extras': typeof Char123LocaleChar125ManageRefExtrasRoute
   '/{-$locale}/manage/$ref_/seats': typeof Char123LocaleChar125ManageRefSeatsRoute
   '/{-$locale}/account/trips/': typeof Char123LocaleChar125AccountTripsIndexRoute
+  '/{-$locale}/admin/flights/': typeof Char123LocaleChar125AdminFlightsIndexRoute
   '/{-$locale}/boarding-pass/$ref/$leg/$pax': typeof Char123LocaleChar125BoardingPassRefLegPaxRoute
 }
 export interface FileRouteTypes {
@@ -541,6 +551,7 @@ export interface FileRouteTypes {
     | '/{-$locale}/manage/$ref/extras'
     | '/{-$locale}/manage/$ref/seats'
     | '/{-$locale}/account/trips/'
+    | '/{-$locale}/admin/flights/'
     | '/{-$locale}/boarding-pass/$ref/$leg/$pax'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -585,6 +596,7 @@ export interface FileRouteTypes {
     | '/{-$locale}/manage/$ref/extras'
     | '/{-$locale}/manage/$ref/seats'
     | '/{-$locale}/account/trips'
+    | '/{-$locale}/admin/flights'
     | '/{-$locale}/boarding-pass/$ref/$leg/$pax'
   id:
     | '__root__'
@@ -635,6 +647,7 @@ export interface FileRouteTypes {
     | '/{-$locale}/manage/$ref_/extras'
     | '/{-$locale}/manage/$ref_/seats'
     | '/{-$locale}/account/trips/'
+    | '/{-$locale}/admin/flights/'
     | '/{-$locale}/boarding-pass/$ref/$leg/$pax'
   fileRoutesById: FileRoutesById
 }
@@ -945,6 +958,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char123LocaleChar125AccountTripsRefRouteImport
       parentRoute: typeof Char123LocaleChar125AccountTripsRoute
     }
+    '/{-$locale}/admin/flights/': {
+      id: '/{-$locale}/admin/flights/'
+      path: '/flights'
+      fullPath: '/{-$locale}/admin/flights/'
+      preLoaderRoute: typeof Char123LocaleChar125AdminFlightsIndexRouteImport
+      parentRoute: typeof Char123LocaleChar125AdminRoute
+    }
     '/{-$locale}/manage/$ref_/check-in': {
       id: '/{-$locale}/manage/$ref_/check-in'
       path: '/$ref/check-in'
@@ -1037,6 +1057,7 @@ const Char123LocaleChar125AccountRouteWithChildren =
 interface Char123LocaleChar125AdminRouteChildren {
   Char123LocaleChar125AdminAccessDeniedRoute: typeof Char123LocaleChar125AdminAccessDeniedRoute
   Char123LocaleChar125AdminIndexRoute: typeof Char123LocaleChar125AdminIndexRoute
+  Char123LocaleChar125AdminFlightsIndexRoute: typeof Char123LocaleChar125AdminFlightsIndexRoute
 }
 
 const Char123LocaleChar125AdminRouteChildren: Char123LocaleChar125AdminRouteChildren =
@@ -1044,6 +1065,8 @@ const Char123LocaleChar125AdminRouteChildren: Char123LocaleChar125AdminRouteChil
     Char123LocaleChar125AdminAccessDeniedRoute:
       Char123LocaleChar125AdminAccessDeniedRoute,
     Char123LocaleChar125AdminIndexRoute: Char123LocaleChar125AdminIndexRoute,
+    Char123LocaleChar125AdminFlightsIndexRoute:
+      Char123LocaleChar125AdminFlightsIndexRoute,
   }
 
 const Char123LocaleChar125AdminRouteWithChildren =
