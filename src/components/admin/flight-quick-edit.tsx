@@ -120,7 +120,7 @@ export function FlightQuickEdit({ flight, onClose }: { flight: QuickEditFlight |
               ))}
             </Select>
           </Field>
-          <Field label={t("adm.edit.revised")} htmlFor="fq-revised" hint={t("adm.edit.revisedHint")}>
+          <Field label={t("adm.edit.revised")} htmlFor="fq-revised">
             <Input
               id="fq-revised"
               dir="ltr"
