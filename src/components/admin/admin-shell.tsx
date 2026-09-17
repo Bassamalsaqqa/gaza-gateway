@@ -21,6 +21,7 @@ import { useAdmin } from "@/lib/admin-store";
 import { cn } from "@/lib/utils";
 import { AdminChip, AdminToasts } from "./admin-kit";
 import { AdminSearch } from "./admin-search";
+import { useDashboardData } from "./dashboard-data";
 
 const ROLES: AdminRole[] = ["admin", "editor", "viewer"];
 
@@ -233,6 +234,111 @@ function LanguageSwitch() {
   );
 }
 
+/** Compact top-bar attention popover built from today's operational signals. */
+function AttentionBell() {
+  const { t } = useI18n();
+  const { toast } = useAdmin();
+  const { attention } = useDashboardData();
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const count = attention.length;
+
+  useEffect(() => {
+    if (!open) return;
+    const trigger = document.activeElement as HTMLElement | null;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    const onClick = (e: MouseEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("mousedown", onClick);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("mousedown", onClick);
+      trigger?.focus?.();
+    };
+  }, [open]);
+
+  const tone = (severity: "high" | "medium" | "low") =>
+    severity === "high" ? "danger" : severity === "medium" ? "warn" : "muted";
+
+  return (
+    <div ref={wrapRef} className="relative">
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        onClick={() => setOpen((v) => !v)}
+        className="relative rounded-md border border-border p-1.5 text-muted-foreground hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      >
+        <Bell aria-hidden="true" className="size-4" />
+        {count > 0 ? (
+          <span className="code-id absolute -top-1.5 -end-1.5 min-w-4 rounded-full bg-status-cancelled px-1 text-[0.6rem] font-bold leading-4 text-primary-foreground">
+            {count}
+          </span>
+        ) : null}
+        <span className="sr-only">
+          {count > 0 ? t("adm.shell.attentionCount", { n: count }) : t("adm.shell.attention")}
+        </span>
+      </button>
+
+      {open ? (
+        <div
+          role="dialog"
+          aria-label={t("adm.notif.title")}
+          className="absolute end-0 top-11 z-60 w-[min(20rem,calc(100vw-1.5rem))] overflow-hidden rounded-lg border border-border bg-card shadow-[var(--shadow-lift)]"
+        >
+          <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2">
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("adm.notif.title")}</p>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="rounded-md p-1 text-muted-foreground hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            >
+              <X aria-hidden="true" className="size-4" />
+              <span className="sr-only">{t("adm.notif.close")}</span>
+            </button>
+          </div>
+
+          {count === 0 ? (
+            <p className="px-3 py-6 text-center text-xs text-muted-foreground">{t("adm.notif.empty")}</p>
+          ) : (
+            <ul className="max-h-80 overflow-y-auto">
+              {attention.slice(0, 6).map((item) => (
+                <li key={item.id} className="border-b border-border px-3 py-2.5 last:border-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <AdminChip tone={tone(item.severity)}>{t(`adm.attn.${item.severity}`)}</AdminChip>
+                    <span className="text-[0.7rem] text-muted-foreground">{item.module}</span>
+                  </div>
+                  <p className="mt-1 text-sm font-semibold">{item.title}</p>
+                  <p className="text-xs text-muted-foreground">{item.next}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <div className="border-t border-border px-3 py-2">
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                const target = document.getElementById("attention");
+                if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+                else toast(t("adm.notif.viewAll"));
+              }}
+              className="w-full rounded-md border border-border px-2 py-1.5 text-xs font-semibold hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            >
+              {t("adm.notif.viewAll")}
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 /** Admin chrome: sidebar, compact top bar, mobile drawer, search and toasts. */
 export function AdminShell({
   children,
@@ -391,20 +497,7 @@ export function AdminShell({
               </kbd>
             </button>
 
-            <a
-              href="#attention"
-              className="relative rounded-md border border-border p-1.5 text-muted-foreground hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-            >
-              <Bell aria-hidden="true" className="size-4" />
-              {attentionCount > 0 ? (
-                <span className="code-id absolute -top-1.5 -end-1.5 min-w-4 rounded-full bg-status-cancelled px-1 text-[0.6rem] font-bold leading-4 text-primary-foreground">
-                  {attentionCount}
-                </span>
-              ) : null}
-              <span className="sr-only">
-                {attentionCount > 0 ? t("adm.shell.attentionCount", { n: attentionCount }) : t("adm.shell.attention")}
-              </span>
-            </a>
+            <AttentionBell />
 
             <LanguageSwitch />
 

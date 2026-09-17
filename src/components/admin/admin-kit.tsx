@@ -205,6 +205,63 @@ export function AttentionRow({
   );
 }
 
+/* ------------------------------ error state ------------------------------- */
+
+export function AdminError({ onRetry }: { onRetry?: (() => void) | undefined }) {
+  const { t } = useI18n();
+  return (
+    <div role="alert" className="rounded-lg border border-status-cancelled/30 bg-status-cancelled/5 px-4 py-6 text-center">
+      <p className="text-sm font-semibold">{t("adm.err.title")}</p>
+      <p className="mx-auto mt-1 max-w-sm text-xs text-muted-foreground">{t("adm.err.body")}</p>
+      {onRetry ? (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="mt-3 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-semibold hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        >
+          {t("adm.err.retry")}
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+/* ------------------------ compact form field + actions -------------------- */
+
+/** Dense two-line admin field: label above control, optional hint below. */
+export function AdminField({
+  label,
+  htmlFor,
+  hint,
+  children,
+  className,
+}: {
+  label: string;
+  htmlFor?: string | undefined;
+  hint?: string | undefined;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn("flex flex-col gap-1", className)}>
+      <label htmlFor={htmlFor} className="text-[0.7rem] font-bold uppercase tracking-wider text-muted-foreground">
+        {label}
+      </label>
+      {children}
+      {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
+    </div>
+  );
+}
+
+/** Sticky bottom action bar for future full-page admin editors. */
+export function AdminStickyActions({ children }: { children: ReactNode }) {
+  return (
+    <div className="sticky bottom-0 z-20 -mx-3 mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-border bg-card/95 px-3 py-3 backdrop-blur sm:-mx-4 sm:px-4">
+      {children}
+    </div>
+  );
+}
+
 /* --------------------------- empty / loading state ------------------------ */
 
 export function AdminEmpty({ title, body, action }: { title: string; body?: string; action?: ReactNode }) {
