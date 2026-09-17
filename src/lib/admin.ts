@@ -21,7 +21,7 @@ import {
   ScrollText,
   Settings,
   ShieldCheck,
-  Tag,
+
   Ticket,
   UsersRound,
   BookOpen,
