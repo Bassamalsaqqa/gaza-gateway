@@ -18,6 +18,7 @@ type Result = {
   meta: string;
   /** Canonical English path, or null when the target module is not built yet. */
   to: string | null;
+  params?: Record<string, string>;
 };
 
 const groupIcons: Record<GroupId, typeof Search> = {
@@ -85,7 +86,8 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
             group: "flights",
             title: f.number,
             meta: `${f.originCode} → ${f.destinationCode} · ${f.departTime}`,
-            to: null,
+            to: "/admin/flights/$flightId",
+            params: { flightId: f.id },
           });
         }
         if (out.length >= 8) break;
@@ -138,7 +140,14 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
         const hay = normalizeSearch(`${d.code} ${labelEn} ${labelAr} ${countryEn} ${countryAr}`);
         if (hay.includes(q)) {
           const displayCity = pick(lang, d.city);
-          out.push({ id: `d-${d.code}`, group: "destinations", title: displayCity, meta: d.code, to: null });
+          out.push({
+            id: `d-${d.code}`,
+            group: "destinations",
+            title: displayCity,
+            meta: d.code,
+            to: "/admin/destinations/$code",
+            params: { code: d.code },
+          });
         }
       }
     }
@@ -203,7 +212,7 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
     if (!result) return;
     onClose();
     if (result.to) {
-      void navigate({ to: result.to });
+      void navigate(result.params ? { to: result.to, params: result.params } : { to: result.to });
       return;
     }
     toast(t("adm.quick.later", { action: result.title }));
