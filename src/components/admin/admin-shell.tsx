@@ -125,6 +125,7 @@ function AccountMenu() {
   const { staff, setRole, signOut } = useAdmin();
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -139,6 +140,7 @@ function AccountMenu() {
     return () => {
       document.removeEventListener("mousedown", onDown);
       window.removeEventListener("keydown", onKey);
+      triggerRef.current?.focus?.();
     };
   }, [open]);
 
@@ -147,10 +149,12 @@ function AccountMenu() {
   return (
     <div ref={wrapRef} className="relative">
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        aria-haspopup="menu"
+        aria-haspopup="dialog"
+        aria-label={t("adm.shell.account")}
         className="flex items-center gap-2 rounded-md border border-border px-2 py-1.5 text-sm font-semibold hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         <UserRound aria-hidden="true" className="size-4 text-muted-foreground" />
@@ -159,7 +163,8 @@ function AccountMenu() {
       </button>
       {open ? (
         <div
-          role="menu"
+          role="dialog"
+          aria-modal="false"
           aria-label={t("adm.shell.account")}
           className="absolute end-0 z-50 mt-1 w-72 rounded-lg border border-border bg-card p-3 shadow-[var(--shadow-lift)]"
         >
@@ -182,8 +187,7 @@ function AccountMenu() {
                 <button
                   key={role}
                   type="button"
-                  role="menuitemradio"
-                  aria-checked={staff.role === role}
+                  aria-pressed={staff.role === role}
                   onClick={() => setRole(role)}
                   className={cn(
                     "rounded-md border px-2 py-1 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
@@ -199,7 +203,6 @@ function AccountMenu() {
 
           <button
             type="button"
-            role="menuitem"
             onClick={signOut}
             className="mt-3 w-full rounded-md border border-border px-2 py-1.5 text-sm font-semibold hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
@@ -241,11 +244,11 @@ function AttentionBell() {
   const { attention } = useDashboardData();
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const count = attention.length;
 
   useEffect(() => {
     if (!open) return;
-    const trigger = document.activeElement as HTMLElement | null;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);
     };
@@ -257,7 +260,7 @@ function AttentionBell() {
     return () => {
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("mousedown", onClick);
-      trigger?.focus?.();
+      triggerRef.current?.focus?.();
     };
   }, [open]);
 
@@ -267,6 +270,7 @@ function AttentionBell() {
   return (
     <div ref={wrapRef} className="relative">
       <button
+        ref={triggerRef}
         type="button"
         aria-expanded={open}
         aria-haspopup="dialog"
@@ -287,6 +291,7 @@ function AttentionBell() {
       {open ? (
         <div
           role="dialog"
+          aria-modal="false"
           aria-label={t("adm.notif.title")}
           className="fixed end-3 top-14 z-60 w-[calc(100vw-1.5rem)] overflow-hidden rounded-lg border border-border bg-card shadow-[var(--shadow-lift)] sm:absolute sm:end-0 sm:top-11 sm:w-80"
         >
@@ -343,11 +348,9 @@ function AttentionBell() {
 export function AdminShell({
   children,
   breadcrumb,
-  attentionCount = 0,
 }: {
   children: ReactNode;
   breadcrumb?: string;
-  attentionCount?: number;
 }) {
   const { t } = useI18n();
   const { toasts, dismissToast } = useAdmin();

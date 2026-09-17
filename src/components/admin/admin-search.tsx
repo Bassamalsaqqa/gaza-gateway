@@ -48,8 +48,16 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
     if (!q) return [];
     const out: Result[] = [];
 
-    const flights = [...departuresOn(today), ...arrivalsOn(today)];
-    for (const f of flights) {
+    const flightMap = new Map<string, typeof departuresOn extends (d: string) => (infer F)[] ? F : never>();
+    for (const f of [...departuresOn(today), ...arrivalsOn(today)]) {
+      flightMap.set(f.id, f);
+    }
+    for (const b of bookings) {
+      if (b.outbound && !flightMap.has(b.outbound.id)) flightMap.set(b.outbound.id, b.outbound);
+      if (b.inbound && !flightMap.has(b.inbound.id)) flightMap.set(b.inbound.id, b.inbound);
+    }
+
+    for (const f of flightMap.values()) {
       const hay = `${f.number} ${f.originCode} ${f.destinationCode} ${f.aircraft}`.toLowerCase();
       if (hay.includes(q)) {
         out.push({
@@ -72,7 +80,7 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
           group: "bookings",
           title: b.ref,
           meta: `${lead?.firstName ?? ""} ${lead?.lastName ?? ""} · ${b.outbound.originCode} → ${b.outbound.destinationCode}`.trim(),
-          to: `/manage/${b.ref}`,
+          to: null,
         });
       }
       if (lead) {
@@ -93,7 +101,7 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
     for (const d of destinations) {
       const label = pick(lang, d.city);
       if (`${d.code} ${label} ${pick(lang, d.country)}`.toLowerCase().includes(q)) {
-        out.push({ id: `d-${d.code}`, group: "destinations", title: label, meta: d.code, to: `/destinations/${d.code}` });
+        out.push({ id: `d-${d.code}`, group: "destinations", title: label, meta: d.code, to: null });
       }
     }
 
@@ -150,8 +158,8 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
 
   const activate = (result: Result | undefined) => {
     if (!result) return;
+    onClose();
     if (result.to) {
-      onClose();
       void navigate({ to: result.to });
       return;
     }
@@ -159,6 +167,7 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
   };
 
   const onInputKey = (e: React.KeyboardEvent) => {
+    if (flat.length === 0) return;
     if (e.key === "ArrowDown") {
       e.preventDefault();
       setActive((i) => Math.min(flat.length - 1, i + 1));
@@ -191,11 +200,28 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
             onKeyDown={onInputKey}
             role="combobox"
             aria-expanded={flat.length > 0}
-            aria-controls="admin-search-results"
+            aria-autocomplete="list"
+            aria-controls={flat.length > 0 ? "admin-search-listbox" : undefined}
+            aria-activedescendant={
+              flat.length > 0 && flat[active] ? `admin-search-opt-${flat[active].id}` : undefined
+            }
             aria-label={t("adm.search.title")}
             placeholder={t("adm.search.placeholder")}
             className="h-9 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           />
+          {query ? (
+            <button
+              type="button"
+              onClick={() => {
+                setQuery("");
+                inputRef.current?.focus();
+              }}
+              aria-label={t("adm.search.clear")}
+              className="rounded-md p-1 text-muted-foreground hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            >
+              <X aria-hidden="true" className="size-4" />
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={onClose}
@@ -232,22 +258,28 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
               <p className="mt-1 text-xs text-muted-foreground">{t("adm.search.emptyBody")}</p>
             </div>
           ) : (
-            <ul role="listbox" aria-label={t("adm.search.results")} className="py-1">
+            <ul id="admin-search-listbox" role="listbox" aria-label={t("adm.search.results")} className="py-1">
               {grouped.map((g) => {
                 const Icon = groupIcons[g.group];
                 return (
-                  <li key={g.group}>
+                  <li key={g.group} role="presentation">
                     <p className="px-4 pb-1 pt-3 text-[0.7rem] font-semibold uppercase tracking-wider text-muted-foreground">
                       {t(`adm.search.group.${g.group}`)}
                     </p>
-                    <ul>
+                    <ul role="presentation">
                       {g.items.map((r) => {
                         cursor += 1;
                         const index = cursor;
                         return (
-                          <li key={r.id} role="option" aria-selected={index === active}>
+                          <li
+                            key={r.id}
+                            id={`admin-search-opt-${r.id}`}
+                            role="option"
+                            aria-selected={index === active}
+                          >
                             <button
                               type="button"
+                              tabIndex={-1}
                               onMouseEnter={() => setActive(index)}
                               onClick={() => activate(r)}
                               className={cn(

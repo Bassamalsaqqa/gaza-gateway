@@ -210,6 +210,12 @@ export const adminEn: Record<string, string> = {
   "adm.denied.back": "Back to dashboard",
   "adm.denied.request": "Ask an administrator",
 
+  "adm.booking.confirmed": "Confirmed",
+  "adm.booking.cancelled": "Cancelled",
+  "adm.booking.openLater": "Booking detail arrives in the commercial stage.",
+  "adm.search.clear": "Clear search",
+  "adm.denied.contactAdmin": "Contact your airport administrator or IT desk internally to request additional permissions.",
+
   "adm.common.readOnly": "Read-only for your role",
   "adm.common.save": "Save",
   "adm.common.cancel": "Cancel",
@@ -430,6 +436,12 @@ export const adminAr: Record<string, string> = {
   "adm.denied.permission": "الصلاحية المطلوبة",
   "adm.denied.back": "العودة إلى لوحة المتابعة",
   "adm.denied.request": "اطلب من مسؤول",
+
+  "adm.booking.confirmed": "مؤكّد",
+  "adm.booking.cancelled": "ملغى",
+  "adm.booking.openLater": "صفحة تفاصيل الحجز تصل في مرحلة الخدمات والتجاري.",
+  "adm.search.clear": "مسح البحث",
+  "adm.denied.contactAdmin": "تواصل مع مسؤول المطار أو الدعم الفني داخلياً لطلب صلاحيات إضافية.",
 
   "adm.common.readOnly": "للعرض فقط حسب دورك",
   "adm.common.save": "حفظ",

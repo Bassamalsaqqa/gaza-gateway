@@ -71,12 +71,11 @@ function AdminAccessDeniedPage() {
           ) : null}
         </dl>
 
+        <p className="mt-4 text-xs text-muted-foreground">{t("adm.denied.contactAdmin")}</p>
+
         <div className="mt-5 flex flex-wrap gap-2">
           <AppLink to="/admin" className={btnClass("primary", "sm")}>
             {t("adm.denied.back")}
-          </AppLink>
-          <AppLink to="/contact" className={btnClass("outline", "sm")}>
-            {t("adm.denied.request")}
           </AppLink>
         </div>
       </AdminPanel>

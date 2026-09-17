@@ -3,7 +3,6 @@ import { AppLink, usePathname } from "@/components/app-link";
 import { btnClass } from "@/components/kit";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { AdminSkeleton } from "@/components/admin/admin-kit";
-import { useDashboardData } from "@/components/admin/dashboard-data";
 import { useAdmin } from "@/lib/admin-store";
 import { useI18n } from "@/lib/i18n";
 import { stripLocale } from "@/lib/locale";
@@ -16,7 +15,6 @@ function AdminLayout() {
   const { t } = useI18n();
   const { ready, staff } = useAdmin();
   const path = stripLocale(usePathname());
-  const { attention } = useDashboardData();
 
   if (!ready) {
     return (
@@ -49,7 +47,7 @@ function AdminLayout() {
   const breadcrumb = path === "/admin/access-denied" ? t("adm.denied.title") : t("adm.nav.dashboard");
 
   return (
-    <AdminShell breadcrumb={breadcrumb} attentionCount={attention.length}>
+    <AdminShell breadcrumb={breadcrumb}>
       <Outlet />
     </AdminShell>
   );

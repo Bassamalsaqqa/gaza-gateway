@@ -91,7 +91,14 @@ const permissions: Record<AdminRole, Permission[]> = {
     "engagement.edit",
     "admin.manage",
   ],
-  editor: ["ops.view", "content.view", "content.edit", "engagement.view", "engagement.edit"],
+  editor: [
+    "ops.view",
+    "content.view",
+    "content.edit",
+    "commercial.view",
+    "engagement.view",
+    "engagement.edit",
+  ],
   viewer: ["ops.view", "content.view", "commercial.view", "engagement.view"],
 };
 
@@ -123,10 +130,10 @@ export const adminNav: AdminNavGroup[] = [
     id: "operations",
     labelKey: "adm.group.operations",
     items: [
-      { id: "flights", labelKey: "adm.nav.flights", icon: PlaneTakeoff, to: null, permission: "ops.edit" },
-      { id: "schedules", labelKey: "adm.nav.schedules", icon: CalendarClock, to: null, permission: "ops.edit" },
-      { id: "destinations", labelKey: "adm.nav.destinations", icon: MapPin, to: null, permission: "ops.edit" },
-      { id: "aircraft", labelKey: "adm.nav.aircraft", icon: ArmchairIcon, to: null, permission: "ops.edit" },
+      { id: "flights", labelKey: "adm.nav.flights", icon: PlaneTakeoff, to: null, permission: "ops.view" },
+      { id: "schedules", labelKey: "adm.nav.schedules", icon: CalendarClock, to: null, permission: "ops.view" },
+      { id: "destinations", labelKey: "adm.nav.destinations", icon: MapPin, to: null, permission: "ops.view" },
+      { id: "aircraft", labelKey: "adm.nav.aircraft", icon: ArmchairIcon, to: null, permission: "ops.view" },
     ],
   },
   {
@@ -135,7 +142,7 @@ export const adminNav: AdminNavGroup[] = [
     items: [
       { id: "products", labelKey: "adm.nav.products", icon: Tag, to: null, permission: "commercial.view" },
       { id: "bookings", labelKey: "adm.nav.bookings", icon: Ticket, to: null, permission: "commercial.view" },
-      { id: "checkin", labelKey: "adm.nav.checkin", icon: ScanLine, to: null, permission: "commercial.edit" },
+      { id: "checkin", labelKey: "adm.nav.checkin", icon: ScanLine, to: null, permission: "commercial.view" },
       { id: "customers", labelKey: "adm.nav.customers", icon: UsersRound, to: null, permission: "commercial.view" },
     ],
   },
@@ -143,20 +150,20 @@ export const adminNav: AdminNavGroup[] = [
     id: "website",
     labelKey: "adm.group.website",
     items: [
-      { id: "homepage", labelKey: "adm.nav.homepage", icon: Home, to: null, permission: "content.edit" },
-      { id: "travel", labelKey: "adm.nav.travel", icon: FileText, to: null, permission: "content.edit" },
-      { id: "pages", labelKey: "adm.nav.pages", icon: BookOpen, to: null, permission: "content.edit" },
-      { id: "navigation", labelKey: "adm.nav.navigation", icon: ListTree, to: null, permission: "content.edit" },
+      { id: "homepage", labelKey: "adm.nav.homepage", icon: Home, to: null, permission: "content.view" },
+      { id: "travel", labelKey: "adm.nav.travel", icon: FileText, to: null, permission: "content.view" },
+      { id: "pages", labelKey: "adm.nav.pages", icon: BookOpen, to: null, permission: "content.view" },
+      { id: "navigation", labelKey: "adm.nav.navigation", icon: ListTree, to: null, permission: "content.view" },
     ],
   },
   {
     id: "airport",
     labelKey: "adm.group.airport",
     items: [
-      { id: "story", labelKey: "adm.nav.story", icon: Landmark, to: null, permission: "content.edit" },
-      { id: "sources", labelKey: "adm.nav.sources", icon: ScrollText, to: null, permission: "content.edit" },
-      { id: "media", labelKey: "adm.nav.media", icon: Image, to: null, permission: "content.edit" },
-      { id: "archive", labelKey: "adm.nav.archive", icon: Archive, to: null, permission: "content.edit" },
+      { id: "story", labelKey: "adm.nav.story", icon: Landmark, to: null, permission: "content.view" },
+      { id: "sources", labelKey: "adm.nav.sources", icon: ScrollText, to: null, permission: "content.view" },
+      { id: "media", labelKey: "adm.nav.media", icon: Image, to: null, permission: "content.view" },
+      { id: "archive", labelKey: "adm.nav.archive", icon: Archive, to: null, permission: "content.view" },
     ],
   },
   {
