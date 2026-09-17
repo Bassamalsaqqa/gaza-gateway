@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { AppLink, useLang } from "@/components/app-link";
+import { AppLink, useLang, usePathname } from "@/components/app-link";
 import { dirOf } from "@/lib/locale";
 import {
   Outlet,
@@ -14,6 +14,8 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { I18nProvider, useI18n } from "@/lib/i18n";
 import { StoreProvider } from "@/lib/store";
+import { AdminProvider } from "@/lib/admin-store";
+import { stripLocale } from "@/lib/locale";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { btnClass } from "@/components/kit";
@@ -141,16 +143,32 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <I18nProvider>
         <StoreProvider>
-          <div className="flex min-h-screen flex-col">
-            <SiteHeader />
-            <main id="main" className="flex-1">
-              {/* Required: nested routes render here. */}
-              <Outlet />
-            </main>
-            <SiteFooter />
-          </div>
+          <AdminProvider>
+            <SiteFrame />
+          </AdminProvider>
         </StoreProvider>
       </I18nProvider>
     </QueryClientProvider>
+  );
+}
+
+/** The staff workspace has its own chrome, so it opts out of the public shell. */
+function SiteFrame() {
+  const path = stripLocale(usePathname());
+  const isAdmin = path === "/admin" || path.startsWith("/admin/");
+
+  if (isAdmin) {
+    return <Outlet />;
+  }
+
+  return (
+    <div className="flex min-h-screen flex-col">
+      <SiteHeader />
+      <main id="main" className="flex-1">
+        {/* Required: nested routes render here. */}
+        <Outlet />
+      </main>
+      <SiteFooter />
+    </div>
   );
 }
