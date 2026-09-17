@@ -1105,7 +1105,10 @@ const ar: Dict = {
 };
 
 
-const dictionaries: Record<Lang, Dict> = { en, ar };
+const enAll: Dict = { ...en, ...adminEn };
+const arAll: Dict = { ...ar, ...adminAr };
+
+const dictionaries: Record<Lang, Dict> = { en: enAll, ar: arAll };
 
 type I18nValue = {
   lang: Lang;
