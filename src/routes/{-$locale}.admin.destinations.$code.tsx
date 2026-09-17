@@ -127,17 +127,22 @@ function AdminDestinationEditorPage() {
         }
         action={
           <>
-            <AppLink to="/destinations/$code" params={{ code: draft.code }} className={btnClass("outline", "sm")}>
+            <a
+              href={`/destinations/${draft.code}`}
+              target="_blank"
+              rel="noreferrer"
+              className={btnClass("outline", "sm")}
+            >
               {t("adm.common.previewEn")}
-            </AppLink>
-            <AppLink
-              to="/destinations/$code"
-              params={{ code: draft.code }}
-              locale="ar"
+            </a>
+            <a
+              href={`/ar/destinations/${draft.code}`}
+              target="_blank"
+              rel="noreferrer"
               className={btnClass("outline", "sm")}
             >
               {t("adm.common.previewAr")}
-            </AppLink>
+            </a>
           </>
         }
       />
