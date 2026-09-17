@@ -2,7 +2,7 @@
 
 > **Product**: Gaza International Airport (`GZA`) & Palestinian Airlines (`PS`)
 > **Production Domain**: [https://www.gazaairport.com](https://www.gazaairport.com)
-> **Engineering Status**: **Phase 0 Active (Measured Baseline Audit — Gates Open)** (Commit `c263a78` merged all admin workspace modules; 68 `.tsx` route files total in `src/routes/`: 23 admin, 44 public feature/layout routes, 1 root shell).
+> **Engineering Status**: **Phase 0.1 Active (Baseline Accuracy & Semantic Lint Gate)** (Commit `fe294f4` published Phase 0 baseline; 68 `.tsx` route files total in `src/routes/`: 23 admin, 44 public feature/layout routes, 1 root shell).
 > **Documentation Index**:
 > - [Master Engineering Roadmap (Phases 0–12)](roadmap.md)
 > - [System Architecture Specification](docs/ARCHITECTURE.md)

@@ -2,8 +2,8 @@
 
 > **Repository**: `Bassamalsaqqa/gaza-gateway`
 > **Production Domain**: `https://www.gazaairport.com`
-> **Baseline Commit**: `c263a78cc2ff82a1a7fe92a679c692038ce15daa` (Admin Foundation Pass 2 landed)
-> **Engineering Status**: **Phase 0 Active (Measured Baseline Audit — Gates Open)**
+> **Baseline Commit**: `fe294f4dc4049018d250843315b2b936c8417600` (Phase 0 baseline published)
+> **Engineering Status**: **Phase 0.1 Active (Baseline Accuracy & Semantic Lint Gate)**
 
 ---
 
@@ -16,10 +16,10 @@
 | **Routing & SSR Engine** | TanStack Start / Router | Router 1.170.18 / Start 1.168.32 | File-based flat routing, route loaders, SSR hydration, head management. |
 | **Bundler & Build Tool** | Vite / Nitro | Vite 8.1.5 / Nitro 3.0.260603-beta | Client/server bundling (`@lovable.dev/vite-tanstack-config`). Emits Cloudflare Pages/Nitro SSR worker bundle. |
 | **Styling & Design Tokens** | Tailwind CSS | 4.2.1 | CSS variables (`@theme inline`), oklch design tokens in `src/styles.css`. |
-| **Component Primitives** | Radix UI / Bespoke | Various (^1.1 - ^2.2) | Radix primitives wrapped in `src/components/ui/`; Admin workspace shell uses custom React implementations. |
+| **Component Primitives** | Bespoke UI / Unmounted Radix | Various (^1.1 - ^2.2) | Product screens and shells use bespoke React components and `src/components/kit.tsx`. Radix/shadcn wrappers exist in `src/components/ui/` as unmounted templates. |
 | **Icons & Visuals** | Lucide React | 0.575.0 | Aviation, navigation, and UI control icons. |
-| **Charts** | Recharts | 2.15.4 | Operational analytics charts (route loads, traffic). |
-| **Forms & Validation** | React Hook Form + Zod | RHF 7.71.2 / Zod 3.25.76 | Form handling and validation schemas. |
+| **Charts** | Custom CSS / Unmounted Recharts | Recharts 2.15.4 | Operational analytics (`{-$locale}.admin.analytics.tsx`) renders bespoke HTML/CSS bar charts (`<Bar />` with percentage widths). `recharts` is imported strictly in `src/components/ui/chart.tsx`, which is an unmounted template not imported by any product screen. |
+| **Forms & Validation** | Native HTML5 & React / Unmounted Hook Form | RHF 7.71.2 / Zod 3.25.76 / Resolvers 5.2.2 | Product screens across public and admin use native React `useState`, controlled inputs/selects/textareas, and standard HTML5 validation attributes (`required`, `type="date"`, `min`, `autoComplete`). `react-hook-form` is imported strictly in `src/components/ui/form.tsx` (unmounted template); `zod` and `@hookform/resolvers` are installed in `package.json` but never imported anywhere in `src/`. |
 
 ---
 
@@ -61,7 +61,7 @@ Public and admin pages use the optional prefix segment `{-$locale}`:
   - `{-$locale}.admin.check-in.tsx` (Station Check-in Desk)
   - `{-$locale}.admin.customers.index.tsx` & `{-$locale}.admin.customers.$id.tsx` (Customer Directory & Detail)
   - `{-$locale}.admin.website.tsx` (Website CMS)
-  - `{-$locale}.admin.airport.index.tsx` (Airport Facilities & Runway Status)
+  - `{-$locale}.admin.airport.index.tsx` (Airport History & Archive CMS)
   - `{-$locale}.admin.staff.tsx` (Staff Accounts & Permissions)
   - `{-$locale}.admin.activity.tsx` (System Audit Log)
   - `{-$locale}.admin.analytics.tsx` (Operational Analytics)
@@ -72,15 +72,22 @@ Public and admin pages use the optional prefix segment `{-$locale}`:
 
 ## 3. UI Component Hierarchy & Interaction Primitives
 
-### 3.1 Radix Primitives vs. Bespoke Admin Implementations
+### 3.1 Radix Primitives vs. Bespoke Implementations
 
-- **Installed Radix Primitives (`src/components/ui/`)**: Accordion, alert-dialog, aspect-ratio, avatar, checkbox, collapsible, context-menu, dialog, dropdown-menu, hover-card, label, menubar, navigation-menu, popover, progress, radio-group, scroll-area, select, separator, slider, switch, tabs, toggle, tooltip. Used primarily in public passenger flows.
+- **Installed Radix & shadcn Wrappers (`src/components/ui/`)**: Accordion, alert-dialog, aspect-ratio, avatar, badge, breadcrumb, button, calendar, card, carousel, chart, checkbox, collapsible, command, context-menu, dialog, drawer, dropdown-menu, form, hover-card, input-otp, input, label, menubar, navigation-menu, pagination, popover, progress, radio-group, resizable, scroll-area, select, separator, sheet, sidebar, skeleton, slider, sonner, switch, table, tabs, textarea, toggle-group, toggle, tooltip. All 46 template files in `src/components/ui/` exist as unmounted templates; static audit confirms that **none of these wrappers are imported or mounted** in product screens.
+- **Bespoke Public Components**:
+  - Native HTML5 inputs: `FlightSearchForm` uses native `<input type="date">` with `min` validation limits, not `react-day-picker` or `src/components/ui/calendar.tsx`.
+  - Forms & Validation: Controlled native inputs, selects, and textareas using React `useState` and native HTML5 validation constraints (`required`, `type`, `min`, `autoComplete`). Neither `src/components/ui/form.tsx` nor `zod` is used in any screen.
+  - `ConfirmDialog` (`src/components/confirm-dialog.tsx`): 100% bespoke confirmation dialog with `role="alertdialog"`, initial focus on dismiss, focus restoration on close, manual `Tab`/`Shift+Tab` focus trap, and Escape listener. Does not use Radix alert-dialog.
+  - UI Kit: `src/components/kit.tsx` provides styled native HTML elements (`Button`, `Field`, `Input`, `Select`, `Textarea`, `Panel`, `Notice`).
 - **Admin Workspace Bespoke Components (`src/components/admin/`)**:
-  - `AdminSearch` (`admin-search.tsx`): Custom React input and listbox with custom keyboard navigation (ArrowDown, ArrowUp, Enter, Escape). It does **not** import `cmdk`.
+  - `AdminSearch` (`admin-search.tsx`): Custom React input and listbox with manual keyboard navigation (ArrowDown, ArrowUp, Enter, Escape) and click-outside handler. Does **not** import `cmdk` or `src/components/ui/command.tsx`.
   - `AccountMenu` (`admin-shell.tsx`): Custom React dropdown with `useRef`, click-outside handler, and Escape listener. Does not use Radix dropdown.
   - `AttentionBell` (`admin-shell.tsx`): Custom React popover with `useRef`, click-outside handler, and Escape listener. Does not use Radix popover.
   - `MobileDrawer` (`admin-shell.tsx`): Custom off-canvas drawer with `document.body.style.overflow` scroll lock, manual Tab key focus loop (`e.shiftKey`), and Escape close. Does not use `vaul` or Radix dialog.
   - `AdminSheet` (`admin-kit.tsx`, used by `flight-quick-edit.tsx`): Custom slide-over panel with `aria-modal="true"`, body scroll lock, manual focus trap, and Escape listener. Does not use `vaul` or Radix dialog.
+  - `AdminToasts` (`admin-kit.tsx`): Admin-only stacked toast notification manager mounted in `AdminShell`, driven by `useAdmin().toast()`. Does not use `sonner` or `src/components/ui/sonner.tsx`.
+  - Operational Analytics: Bespoke HTML/CSS bar visualization (`<Bar />` in `src/routes/{-$locale}.admin.analytics.tsx`) with styled percentage `<span>` elements; does not import `recharts` or `src/components/ui/chart.tsx`.
 
 ---
 
@@ -157,11 +164,8 @@ Codex ran Playwright against the local Vite dev server across mobile (**390x844*
      - **Unconfirmed Complete Cause**: A later repeat visit to `/ar` did **not** reproduce the warning. The warning's complete cause remains unconfirmed, and asserting that `caret-color: transparent` was injected by browser user-agent date-picker styling is unsupported.
    - **Action**: No booking code is altered in Phase 0 without reproduction and a proven fix. The date conflict is mapped to Phase 5 (public booking workflow) and SSR behavior to Phase 1 investigation.
 
-### 7.3 Local Lint Gate Trial & Results
+### 7.3 Semantic Lint Gate Separation & Formatting Debt
 
-- **Configuration Trial**: Added `"endOfLine": "auto"` to `.prettierrc` to allow cross-platform Git checkouts on Windows without forcing LF line breaks.
-- **Empirical Impact**:
-  - Before: **27,241 errors** across 159 files (100% `prettier/prettier` CRLF line-ending mismatches).
-  - With `endOfLine: auto`: **1,170 errors** across 54 files (100% `prettier/prettier` line-wrapping and JSX formatting deviations), **43 warnings** (`react-refresh/only-export-components`), and **0 TypeScript-ESLint or React Hooks errors**.
-  - 26,071 pure CRLF line-ending errors were eliminated.
-- **Status**: Retained `"endOfLine": "auto"` in `.prettierrc`. The lint gate remains **OPEN / RED** (exit code 1) pending code-formatting alignment in later phases.
+- **ESLint Configuration Update**: Updated `eslint.config.js` to use `eslint-config-prettier` instead of `eslint-plugin-prettier/recommended`. This preserves all substantive TypeScript, JavaScript, and React hooks rules while suppressing formatting rule conflicts without turning Prettier code-wrap deviations into ESLint errors.
+- **Semantic Lint Gate**: `bun.cmd run lint` (`eslint .`) passes cleanly with exit code 0 (**0 errors**, 43 `react-refresh/only-export-components` warnings).
+- **Formatting Debt Check**: Added `"format:check": "prettier --check ."` to `package.json`. It runs Prettier independently and documents remaining code-wrap formatting debt across repository files without blocking the semantic lint gate.
