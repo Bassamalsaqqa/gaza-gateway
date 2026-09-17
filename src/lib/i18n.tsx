@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { dirOf, langFromPath, swapLangPath, type Lang } from "./locale";
+import { adminEn, adminAr } from "./i18n-admin";
 
 export type { Lang };
 
@@ -1105,7 +1106,10 @@ const ar: Dict = {
 };
 
 
-const dictionaries: Record<Lang, Dict> = { en, ar };
+const enAll: Dict = { ...en, ...adminEn };
+const arAll: Dict = { ...ar, ...adminAr };
+
+const dictionaries: Record<Lang, Dict> = { en: enAll, ar: arAll };
 
 type I18nValue = {
   lang: Lang;
@@ -1144,7 +1148,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   const t = useCallback(
     (key: string, vars?: Record<string, string | number>) => {
       const table = dictionaries[lang];
-      let value = table[key] ?? en[key] ?? key;
+      let value = table[key] ?? enAll[key] ?? key;
       if (vars) {
         for (const [k, v] of Object.entries(vars)) {
           value = value.replace(new RegExp(`\\{${k}\\}`, "g"), String(v));
@@ -1170,7 +1174,7 @@ export function useI18n(): I18nValue {
       lang: "en",
       dir: "ltr",
       setLang: () => {},
-      t: (key: string) => en[key] ?? key,
+      t: (key: string) => enAll[key] ?? key,
     };
   }
   return ctx;
