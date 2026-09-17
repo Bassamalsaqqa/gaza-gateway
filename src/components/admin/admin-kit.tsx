@@ -154,7 +154,7 @@ export function Ltr({ children, className }: { children: ReactNode; className?: 
   );
 }
 
-export function BilingualStatus({ missingAr, missingEn }: { missingAr?: boolean; missingEn?: boolean }) {
+export function BilingualStatus({ missingAr, missingEn }: { missingAr?: boolean | undefined; missingEn?: boolean | undefined }) {
   const { t } = useI18n();
   if (missingAr) return <AdminChip tone="warn" icon={<AlertTriangle aria-hidden="true" className="size-3" />}>{t("adm.bilingual.missingAr")}</AdminChip>;
   if (missingEn) return <AdminChip tone="warn" icon={<AlertTriangle aria-hidden="true" className="size-3" />}>{t("adm.bilingual.missingEn")}</AdminChip>;

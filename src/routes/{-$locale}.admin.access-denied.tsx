@@ -7,12 +7,12 @@ import { useAdmin } from "@/lib/admin-store";
 import { useI18n } from "@/lib/i18n";
 import { pageHead } from "@/lib/head";
 
-type DeniedSearch = { area?: string; permission?: string };
+type DeniedSearch = { area?: string | undefined; permission?: string | undefined };
 
 export const Route = createFileRoute("/{-$locale}/admin/access-denied")({
   validateSearch: (search: Record<string, unknown>): DeniedSearch => ({
-    area: typeof search.area === "string" ? search.area : undefined,
-    permission: typeof search.permission === "string" ? search.permission : undefined,
+    area: typeof search["area"] === "string" ? (search["area"] as string) : undefined,
+    permission: typeof search["permission"] === "string" ? (search["permission"] as string) : undefined,
   }),
   head: ({ params }) =>
     pageHead({

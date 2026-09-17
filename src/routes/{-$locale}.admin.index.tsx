@@ -285,7 +285,7 @@ function AdminDashboardPage() {
                 <li key={c.id} className="flex flex-wrap items-center gap-2 border-b border-border px-3 py-2 last:border-0">
                   <span className="min-w-0 flex-1 truncate text-sm font-semibold">{t(c.titleKey)}</span>
                   <ContentStateChip state={c.state} />
-                  <BilingualStatus missingAr={c.missingAr} />
+                  <BilingualStatus missingAr={c.missingAr ?? false} />
                 </li>
               ))}
             </ul>

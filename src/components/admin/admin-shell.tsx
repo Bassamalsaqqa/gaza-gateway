@@ -24,7 +24,7 @@ import { AdminSearch } from "./admin-search";
 
 const ROLES: AdminRole[] = ["admin", "editor", "viewer"];
 
-function NavLink({ item, collapsed, onNavigate }: { item: AdminNavItem; collapsed: boolean; onNavigate?: () => void }) {
+function NavLink({ item, collapsed, onNavigate }: { item: AdminNavItem; collapsed: boolean; onNavigate?: (() => void) | undefined }) {
   const { t } = useI18n();
   const { can } = useAdmin();
   const pathname = stripLocale(usePathname());
@@ -76,7 +76,7 @@ function NavLink({ item, collapsed, onNavigate }: { item: AdminNavItem; collapse
   );
 }
 
-function SidebarBody({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: () => void }) {
+function SidebarBody({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: (() => void) | undefined }) {
   const { t } = useI18n();
   return (
     <nav aria-label={t("adm.shell.nav")} className="flex-1 overflow-y-auto px-2 py-3">
