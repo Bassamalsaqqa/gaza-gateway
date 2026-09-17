@@ -9,7 +9,7 @@ import { useAdmin } from "@/lib/admin-store";
 import { pick, useI18n } from "@/lib/i18n";
 import { pageHead } from "@/lib/head";
 
-export const Route = createFileRoute("/{-$locale}/admin/signin")({
+export const Route = createFileRoute("/{-$locale}/admin_/signin")({
   head: ({ params }) =>
     pageHead({
       locale: params.locale,
