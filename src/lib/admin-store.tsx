@@ -43,6 +43,59 @@ type AdminValue = {
 
 const AdminContext = createContext<AdminValue | null>(null);
 
+const VALID_FLIGHT_STATUSES = new Set<FlightStatus>([
+  "Scheduled",
+  "OnTime",
+  "Boarding",
+  "Delayed",
+  "Departed",
+  "Landed",
+  "Cancelled",
+]);
+
+type RawOverrideShape = {
+  status?: unknown;
+  gate?: unknown;
+  terminal?: unknown;
+  revisedDepart?: unknown;
+  note?: unknown;
+};
+
+function sanitizeOverride(raw: unknown): FlightOverride | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const entry = raw as RawOverrideShape;
+  const clean: FlightOverride = {};
+
+  if (typeof entry.status === "string" && VALID_FLIGHT_STATUSES.has(entry.status as FlightStatus)) {
+    clean.status = entry.status as FlightStatus;
+  }
+  if (typeof entry.gate === "string") {
+    clean.gate = entry.gate.trim();
+  }
+  if (typeof entry.terminal === "string") {
+    clean.terminal = entry.terminal.trim();
+  }
+  if (typeof entry.revisedDepart === "string") {
+    clean.revisedDepart = entry.revisedDepart.trim();
+  }
+  if (typeof entry.note === "string") {
+    clean.note = entry.note.trim();
+  }
+
+  return Object.keys(clean).length > 0 ? clean : null;
+}
+
+function sanitizeOverrides(raw: unknown): Record<string, FlightOverride> {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  const clean: Record<string, FlightOverride> = {};
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof key !== "string" || !key) continue;
+    const sanitized = sanitizeOverride(value);
+    if (sanitized) clean[key] = sanitized;
+  }
+  return clean;
+}
+
 export function AdminProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [staff, setStaff] = useState<Staff | null>(null);
@@ -53,10 +106,13 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     try {
       const raw = window.localStorage.getItem(KEY);
       if (raw) {
-        const parsed = JSON.parse(raw) as Persisted;
-        const found = staffAccounts.find((s) => s.id === parsed.staffId) ?? null;
-        setStaff(found);
-        setOverrides(parsed.overrides ?? {});
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          const staffId = typeof parsed.staffId === "string" ? parsed.staffId : null;
+          const found = staffId ? staffAccounts.find((s) => s.id === staffId) ?? null : null;
+          setStaff(found);
+          setOverrides(sanitizeOverrides(parsed.overrides));
+        }
       }
     } catch {
       /* ignore corrupted local state */
@@ -83,20 +139,27 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const setRole = useCallback((role: AdminRole) => setStaff(staffByRole(role)), []);
 
   const applyOverride = useCallback((flightId: string, patch: FlightOverride) => {
-    setOverrides((prev) => ({ ...prev, [flightId]: { ...prev[flightId], ...patch } }));
+    if (!flightId || typeof flightId !== "string") return;
+    const cleanPatch = sanitizeOverride(patch);
+    if (!cleanPatch) return;
+    setOverrides((prev) => ({
+      ...prev,
+      [flightId]: { ...(prev[flightId] ?? {}), ...cleanPatch },
+    }));
   }, []);
 
   const withOverride = useCallback(
     (flight: Flight) => {
-      const o = overrides[flight.id];
-      if (!o) return flight;
+      if (!flight || typeof flight !== "object") return flight;
+      const o = overrides?.[flight.id];
+      if (!o || typeof o !== "object") return flight;
       return {
         ...flight,
-        status: o.status ?? flight.status,
-        gate: o.gate ?? flight.gate,
-        terminal: o.terminal ?? flight.terminal,
-        ...(o.revisedDepart ? { revisedDepart: o.revisedDepart } : {}),
-        ...(o.note ? { note: o.note } : {}),
+        status: o.status && VALID_FLIGHT_STATUSES.has(o.status) ? o.status : flight.status,
+        gate: typeof o.gate === "string" ? o.gate : flight.gate,
+        terminal: typeof o.terminal === "string" ? o.terminal : flight.terminal,
+        ...(typeof o.revisedDepart === "string" ? { revisedDepart: o.revisedDepart } : {}),
+        ...(typeof o.note === "string" ? { note: o.note } : {}),
       };
     },
     [overrides],

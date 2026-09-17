@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { PlaneLanding, PlaneTakeoff } from "lucide-react";
-import { AppLink } from "@/components/app-link";
 import { Field, Input, Select, Textarea, btnClass } from "@/components/kit";
 import { StatusBadge } from "@/components/flight-status";
 import {
@@ -24,6 +23,7 @@ import { dateLong, dateShort } from "@/lib/format";
 import { SEAT_ROWS, SEAT_LETTERS, type FlightStatus } from "@/lib/data";
 import { checkedInPax, seatedPassengers, useStore } from "@/lib/store";
 import { pageHead } from "@/lib/head";
+import { cn } from "@/lib/utils";
 
 const STATUSES: FlightStatus[] = ["Scheduled", "OnTime", "Boarding", "Delayed", "Departed", "Landed", "Cancelled"];
 const CAPACITY = SEAT_ROWS * SEAT_LETTERS.length;
@@ -57,8 +57,13 @@ function AdminDashboardPage() {
   const { can, applyOverride, toast } = useAdmin();
   const data = useDashboardData();
   const [edit, setEdit] = useState<EditState | null>(null);
-  const mayEditOps = can("ops.edit");
   const { bookings } = useStore();
+
+  const mayOps = can("ops.view");
+  const mayCommercial = can("commercial.view");
+  const mayContent = can("content.view");
+  const mayEngagement = can("engagement.view");
+  const mayEditOps = can("ops.edit");
 
   /** Check-in progress for a flight, from bookings held locally. */
   const checkinFor = (flight: OpsFlight) => {
@@ -99,13 +104,336 @@ function AdminDashboardPage() {
     setEdit(null);
   };
 
-  const quickActions = [
-    { key: "adm.quick.schedule", permission: "ops.edit" as const },
-    { key: "adm.quick.booking", permission: "commercial.edit" as const },
-    { key: "adm.quick.media", permission: "content.edit" as const },
-    { key: "adm.quick.archive", permission: "content.edit" as const },
-    { key: "adm.quick.homepage", permission: "content.edit" as const },
-  ];
+  const summaryMetrics = useMemo(
+    () =>
+      [
+        { key: "dep", show: mayOps, label: t("adm.dash.departures"), value: data.metrics.departures, emphasis: true },
+        { key: "arr", show: mayOps, label: t("adm.dash.arrivals"), value: data.metrics.arrivals, emphasis: true },
+        { key: "bks", show: mayCommercial, label: t("adm.dash.bookings"), value: data.metrics.bookingsToday },
+        { key: "pax", show: mayCommercial, label: t("adm.dash.passengers"), value: data.metrics.passengersTravelling },
+        { key: "chk", show: mayCommercial, label: t("adm.dash.checkedIn"), value: data.metrics.passengersCheckedIn, tone: "brand" as const },
+        { key: "del", show: mayOps, label: t("adm.dash.delayed"), value: data.metrics.delayed, tone: data.metrics.delayed ? ("warn" as const) : ("neutral" as const) },
+        { key: "cxl", show: mayOps, label: t("adm.dash.cancelled"), value: data.metrics.cancelled, tone: data.metrics.cancelled ? ("danger" as const) : ("neutral" as const) },
+        { key: "enq", show: mayEngagement, label: t("adm.dash.enquiries"), value: data.metrics.enquiries },
+        { key: "cnt", show: mayContent, label: t("adm.dash.contentAttention"), value: data.metrics.contentAttention },
+      ].filter((m) => m.show),
+    [mayOps, mayCommercial, mayContent, mayEngagement, data.metrics, t],
+  );
+
+  const quickActions = useMemo(
+    () =>
+      [
+        { key: "adm.quick.schedule", permission: "ops.edit" as const, show: mayOps },
+        { key: "adm.quick.booking", permission: "commercial.edit" as const, show: mayCommercial },
+        { key: "adm.quick.media", permission: "content.edit" as const, show: mayContent },
+        { key: "adm.quick.archive", permission: "content.edit" as const, show: mayContent },
+        { key: "adm.quick.homepage", permission: "content.edit" as const, show: mayContent },
+      ].filter((a) => a.show),
+    [mayOps, mayCommercial, mayContent],
+  );
+
+  const operationPanel = (
+    <AdminPanel title={t("adm.dash.operation")} description={t("adm.dash.operationSub")} bodyClassName="p-0">
+      {/* Desktop table */}
+      <div className="hidden overflow-x-auto xl:block">
+        <table className="w-full min-w-[58rem] text-sm">
+          <thead>
+            <tr className="border-b border-border text-start text-[0.7rem] uppercase tracking-wider text-muted-foreground">
+              <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.time")}</th>
+              <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.flight")}</th>
+              <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.route")}</th>
+              <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.aircraft")}</th>
+              <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.gate")}</th>
+              <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.load")}</th>
+              <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.checkin")}</th>
+              <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.status")}</th>
+              <th scope="col" className="px-3 py-2 text-end font-bold">{t("adm.col.actions")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.operation.map((f) => (
+              <tr key={`${f.id}-${f.direction}`} className="border-b border-border last:border-0">
+                <td className="px-3 py-2">
+                  <Ltr className="font-semibold">{f.direction === "dep" ? f.departTime : f.arriveTime}</Ltr>
+                  <span className="ms-1.5 inline-flex align-middle text-muted-foreground">
+                    {f.direction === "dep" ? (
+                      <PlaneTakeoff aria-label={t("adm.flight.departure")} className="size-3.5" />
+                    ) : (
+                      <PlaneLanding aria-label={t("adm.flight.arrival")} className="size-3.5" />
+                    )}
+                  </span>
+                  {f.revisedDepart ? (
+                    <span className="block">
+                      <AdminChip tone="warn">
+                        <Ltr>{f.revisedDepart}</Ltr>
+                      </AdminChip>
+                    </span>
+                  ) : null}
+                </td>
+                <td className="px-3 py-2">
+                  <Ltr className="font-bold">{f.number}</Ltr>
+                </td>
+                <td className="px-3 py-2">
+                  <Ltr>{`${f.originCode} → ${f.destinationCode}`}</Ltr>
+                </td>
+                <td className="px-3 py-2 text-muted-foreground">
+                  <Ltr>{f.aircraft}</Ltr>
+                </td>
+                <td className="px-3 py-2">
+                  {f.gate ? (
+                    <Ltr>{`${f.terminal} · ${f.gate}`}</Ltr>
+                  ) : (
+                    <AdminChip tone="warn">{t("adm.flight.noGate")}</AdminChip>
+                  )}
+                </td>
+                <td className="px-3 py-2">
+                  <span className="flex items-center gap-2">
+                    <span aria-hidden="true" className="h-1.5 w-16 overflow-hidden rounded-full bg-secondary">
+                      <span
+                        className="block h-full rounded-full bg-brand"
+                        style={{ width: `${Math.round((loadOf(f) / CAPACITY) * 100)}%` }}
+                      />
+                    </span>
+                    <Ltr className="text-xs text-muted-foreground">{`${loadOf(f)}/${CAPACITY}`}</Ltr>
+                  </span>
+                  <span className="sr-only">{t("adm.flight.loadOf", { n: loadOf(f), total: CAPACITY })}</span>
+                </td>
+                <td className="px-3 py-2">
+                  {checkinFor(f).total === 0 ? (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  ) : (
+                    <AdminChip tone={checkinFor(f).checked === checkinFor(f).total ? "brand" : "neutral"}>
+                      {t("adm.flight.checkedOf", { n: checkinFor(f).checked, total: checkinFor(f).total })}
+                    </AdminChip>
+                  )}
+                </td>
+                <td className="px-3 py-2">
+                  <StatusBadge status={f.status} />
+                </td>
+                <td className="whitespace-nowrap px-3 py-2 text-end">
+                  <PermissionButton
+                    allowed={mayEditOps}
+                    reason={t("adm.edit.readOnly")}
+                    onClick={() => openEdit(f)}
+                  >
+                    {t("adm.flight.quickEdit")}
+                  </PermissionButton>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Mobile / tablet stacked list */}
+      <ul className="xl:hidden">
+        {data.operation.map((f) => {
+          const ci = checkinFor(f);
+          return (
+            <li key={`${f.id}-${f.direction}-m`} className="border-b border-border px-3 py-3 last:border-0">
+              <div className="flex items-center justify-between gap-2">
+                <span className="flex items-center gap-2">
+                  <Ltr className="font-bold">{f.number}</Ltr>
+                  <Ltr className="text-sm text-muted-foreground">{`${f.originCode} → ${f.destinationCode}`}</Ltr>
+                </span>
+                <StatusBadge status={f.status} />
+              </div>
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  {f.direction === "dep" ? (
+                    <PlaneTakeoff aria-label={t("adm.flight.departure")} className="size-3.5" />
+                  ) : (
+                    <PlaneLanding aria-label={t("adm.flight.arrival")} className="size-3.5" />
+                  )}
+                  <Ltr>{f.direction === "dep" ? f.departTime : f.arriveTime}</Ltr>
+                </span>
+                <Ltr>{f.aircraft}</Ltr>
+                {f.gate ? <Ltr>{`${f.terminal} · ${f.gate}`}</Ltr> : <AdminChip tone="warn">{t("adm.flight.noGate")}</AdminChip>}
+                <Ltr>{`${loadOf(f)}/${CAPACITY}`}</Ltr>
+                {ci.total > 0 ? (
+                  <AdminChip tone={ci.checked === ci.total ? "brand" : "neutral"}>
+                    {t("adm.flight.checkedOf", { n: ci.checked, total: ci.total })}
+                  </AdminChip>
+                ) : null}
+              </div>
+              {f.note ? <p className="mt-1 text-xs text-accent-foreground">{f.note}</p> : null}
+              <div className="mt-2">
+                <PermissionButton allowed={mayEditOps} reason={t("adm.edit.readOnly")} onClick={() => openEdit(f)}>
+                  {t("adm.flight.quickEdit")}
+                </PermissionButton>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </AdminPanel>
+  );
+
+  const attentionPanel = (
+    <AdminPanel title={t("adm.dash.attention")} bodyClassName="p-0">
+      {data.attention.length === 0 ? (
+        <AdminEmpty title={t("adm.attn.none")} />
+      ) : (
+        <ul className="max-h-[26rem] overflow-y-auto">
+          {data.attention.slice(0, 12).map((item) => (
+            <AttentionRow
+              key={item.id}
+              severity={item.severity}
+              title={item.title}
+              module={item.module}
+              next={item.next}
+            />
+          ))}
+        </ul>
+      )}
+    </AdminPanel>
+  );
+
+  const contentPanel = (
+    <AdminPanel title={t("adm.dash.content")} bodyClassName="p-0">
+      <div className="grid grid-cols-2 gap-2 p-3">
+        <Metric label={t("adm.content.drafts")} value={data.content.drafts} />
+        <Metric label={t("adm.content.missingAr")} value={data.content.missingAr} tone="warn" />
+        <Metric label={t("adm.content.awaitingSource")} value={data.content.awaitingSource} tone="warn" />
+        <Metric label={t("adm.content.published")} value={data.content.published} tone="brand" />
+      </div>
+      <ul className="border-t border-border">
+        {data.content.items.slice(0, 4).map((c) => (
+          <li key={c.id} className="flex flex-wrap items-center gap-2 border-b border-border px-3 py-2 last:border-0">
+            <span className="min-w-0 flex-1 truncate text-sm font-semibold">{t(c.titleKey)}</span>
+            <ContentStateChip state={c.state} />
+            <BilingualStatus missingAr={c.missingAr ?? false} />
+          </li>
+        ))}
+      </ul>
+    </AdminPanel>
+  );
+
+  const recentBookingsPanel = (
+    <AdminPanel title={t("adm.dash.recent")} bodyClassName="p-0">
+      {data.recent.length === 0 ? (
+        <AdminEmpty title={t("adm.recent.empty")} body={t("adm.recent.emptyBody")} />
+      ) : (
+        <>
+          {/* Mobile compact card list */}
+          <ul className="divide-y divide-border sm:hidden">
+            {data.recent.map((b) => {
+              const lead = b.passengers[0];
+              const checked = checkedInPax(b, "out").length;
+              const total = seatedPassengers(b).length;
+              return (
+                <li key={`${b.ref}-m`} className="space-y-1.5 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <Ltr className="text-sm font-bold">{b.ref}</Ltr>
+                    <AdminChip tone={b.status === "cancelled" ? "danger" : "brand"}>
+                      {t(`adm.booking.${b.status}`)}
+                    </AdminChip>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 text-xs">
+                    <span className="truncate font-medium text-foreground">
+                      {`${lead?.firstName ?? ""} ${lead?.lastName ?? ""}`.trim() || "—"}
+                    </span>
+                    <Ltr className="shrink-0 text-muted-foreground">
+                      {`${b.outbound.originCode} → ${b.outbound.destinationCode}`}
+                    </Ltr>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 pt-0.5 text-xs text-muted-foreground">
+                    <span>{dateShort(b.outbound.date, lang)}</span>
+                    {b.status === "cancelled" ? (
+                      <span>—</span>
+                    ) : (
+                      <AdminChip tone={checked === total && total > 0 ? "brand" : "neutral"}>
+                        {t("adm.flight.checkedOf", { n: checked, total })}
+                      </AdminChip>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+
+          {/* Desktop / tablet table */}
+          <div className="hidden overflow-x-auto sm:block">
+            <table className="w-full min-w-[34rem] text-sm">
+              <thead>
+                <tr className="border-b border-border text-[0.7rem] uppercase tracking-wider text-muted-foreground">
+                  <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.pnr")}</th>
+                  <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.passenger")}</th>
+                  <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.route")}</th>
+                  <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.date")}</th>
+                  <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.checkin")}</th>
+                  <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.status")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.recent.map((b) => {
+                  const lead = b.passengers[0];
+                  const checked = checkedInPax(b, "out").length;
+                  const total = seatedPassengers(b).length;
+                  return (
+                    <tr key={b.ref} className="border-b border-border last:border-0">
+                      <td className="px-3 py-2">
+                        <Ltr className="font-bold">{b.ref}</Ltr>
+                      </td>
+                      <td className="px-3 py-2">{`${lead?.firstName ?? ""} ${lead?.lastName ?? ""}`.trim() || "—"}</td>
+                      <td className="px-3 py-2">
+                        <Ltr>{`${b.outbound.originCode} → ${b.outbound.destinationCode}`}</Ltr>
+                      </td>
+                      <td className="px-3 py-2 text-muted-foreground">{dateShort(b.outbound.date, lang)}</td>
+                      <td className="px-3 py-2">
+                        {b.status === "cancelled" ? (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        ) : (
+                          <AdminChip tone={checked === total && total > 0 ? "brand" : "neutral"}>
+                            {t("adm.flight.checkedOf", { n: checked, total })}
+                          </AdminChip>
+                        )}
+                      </td>
+                      <td className="px-3 py-2">
+                        <AdminChip tone={b.status === "cancelled" ? "danger" : "brand"}>
+                          {t(`adm.booking.${b.status}`)}
+                        </AdminChip>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+    </AdminPanel>
+  );
+
+  const quickActionsPanel = (
+    <AdminPanel title={t("adm.dash.quick")}>
+      <div className="flex flex-wrap gap-2">
+        {quickActions.map((action) => {
+          const label = t(action.key);
+          const allowed = can(action.permission);
+          return (
+            <PermissionButton
+              key={action.key}
+              allowed={allowed}
+              reason={t("adm.quick.noPermission")}
+              onClick={() => toast(t("adm.quick.later", { action: label }))}
+            >
+              {label}
+            </PermissionButton>
+          );
+        })}
+        {mayCommercial ? (
+          <button
+            type="button"
+            onClick={() => toast(t("adm.quick.later", { action: t("adm.quick.findBooking") }))}
+            className={btnClass("primary", "sm")}
+          >
+            {t("adm.quick.findBooking")}
+          </button>
+        ) : null}
+      </div>
+    </AdminPanel>
+  );
 
   return (
     <div className="space-y-4">
@@ -113,339 +441,93 @@ function AdminDashboardPage() {
         title={t("adm.dash.title")}
         description={t("adm.dash.sub", { date: dateLong(data.today, lang) })}
         action={
-          <button
-            type="button"
-            onClick={() => toast(t("adm.quick.later", { action: t("adm.dash.allFlights") }))}
-            className={btnClass("outline", "sm")}
-          >
-            {t("adm.dash.allFlights")}
-          </button>
+          mayOps ? (
+            <button
+              type="button"
+              onClick={() => toast(t("adm.quick.later", { action: t("adm.dash.allFlights") }))}
+              className={btnClass("outline", "sm")}
+            >
+              {t("adm.dash.allFlights")}
+            </button>
+          ) : null
         }
       />
 
       {/* A. Today summary */}
-      <section aria-label={t("adm.dash.today")}>
-        <h2 className="mb-2 text-[0.7rem] font-bold uppercase tracking-[0.12em] text-muted-foreground">
-          {t("adm.dash.today")}
-        </h2>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-9">
-          <Metric label={t("adm.dash.departures")} value={data.metrics.departures} emphasis />
-          <Metric label={t("adm.dash.arrivals")} value={data.metrics.arrivals} emphasis />
-          <Metric label={t("adm.dash.bookings")} value={data.metrics.bookingsToday} />
-          <Metric label={t("adm.dash.passengers")} value={data.metrics.passengersTravelling} />
-          <Metric label={t("adm.dash.checkedIn")} value={data.metrics.passengersCheckedIn} tone="brand" />
-          <Metric label={t("adm.dash.delayed")} value={data.metrics.delayed} tone={data.metrics.delayed ? "warn" : "neutral"} />
-          <Metric
-            label={t("adm.dash.cancelled")}
-            value={data.metrics.cancelled}
-            tone={data.metrics.cancelled ? "danger" : "neutral"}
-          />
-          <Metric label={t("adm.dash.enquiries")} value={data.metrics.enquiries} />
-          <Metric label={t("adm.dash.contentAttention")} value={data.metrics.contentAttention} />
-        </div>
-      </section>
-
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
-        {/* B. Today's operation */}
-        <AdminPanel title={t("adm.dash.operation")} description={t("adm.dash.operationSub")} bodyClassName="p-0">
-          {/* Desktop table */}
-          <div className="hidden overflow-x-auto xl:block">
-            <table className="w-full min-w-[58rem] text-sm">
-              <thead>
-                <tr className="border-b border-border text-start text-[0.7rem] uppercase tracking-wider text-muted-foreground">
-                  <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.time")}</th>
-                  <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.flight")}</th>
-                  <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.route")}</th>
-                  <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.aircraft")}</th>
-                  <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.gate")}</th>
-                  <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.load")}</th>
-                  <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.checkin")}</th>
-                  <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.status")}</th>
-                  <th scope="col" className="px-3 py-2 text-end font-bold">{t("adm.col.actions")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.operation.map((f) => (
-                  <tr key={`${f.id}-${f.direction}`} className="border-b border-border last:border-0">
-                    <td className="px-3 py-2">
-                      <Ltr className="font-semibold">{f.direction === "dep" ? f.departTime : f.arriveTime}</Ltr>
-                      <span className="ms-1.5 inline-flex align-middle text-muted-foreground">
-                        {f.direction === "dep" ? (
-                          <PlaneTakeoff aria-label={t("adm.flight.departure")} className="size-3.5" />
-                        ) : (
-                          <PlaneLanding aria-label={t("adm.flight.arrival")} className="size-3.5" />
-                        )}
-                      </span>
-                      {f.revisedDepart ? (
-                        <span className="block">
-                          <AdminChip tone="warn">
-                            <Ltr>{f.revisedDepart}</Ltr>
-                          </AdminChip>
-                        </span>
-                      ) : null}
-                    </td>
-                    <td className="px-3 py-2">
-                      <Ltr className="font-bold">{f.number}</Ltr>
-                    </td>
-                    <td className="px-3 py-2">
-                      <Ltr>{`${f.originCode} → ${f.destinationCode}`}</Ltr>
-                    </td>
-                    <td className="px-3 py-2 text-muted-foreground">
-                      <Ltr>{f.aircraft}</Ltr>
-                    </td>
-                    <td className="px-3 py-2">
-                      {f.gate ? (
-                        <Ltr>{`${f.terminal} · ${f.gate}`}</Ltr>
-                      ) : (
-                        <AdminChip tone="warn">{t("adm.flight.noGate")}</AdminChip>
-                      )}
-                    </td>
-                    <td className="px-3 py-2">
-                      <span className="flex items-center gap-2">
-                        <span aria-hidden="true" className="h-1.5 w-16 overflow-hidden rounded-full bg-secondary">
-                          <span
-                            className="block h-full rounded-full bg-brand"
-                            style={{ width: `${Math.round((loadOf(f) / CAPACITY) * 100)}%` }}
-                          />
-                        </span>
-                        <Ltr className="text-xs text-muted-foreground">{`${loadOf(f)}/${CAPACITY}`}</Ltr>
-                      </span>
-                      <span className="sr-only">{t("adm.flight.loadOf", { n: loadOf(f), total: CAPACITY })}</span>
-                    </td>
-                    <td className="px-3 py-2">
-                      {checkinFor(f).total === 0 ? (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      ) : (
-                        <AdminChip tone={checkinFor(f).checked === checkinFor(f).total ? "brand" : "neutral"}>
-                          {t("adm.flight.checkedOf", { n: checkinFor(f).checked, total: checkinFor(f).total })}
-                        </AdminChip>
-                      )}
-                    </td>
-                    <td className="px-3 py-2">
-                      <StatusBadge status={f.status} />
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-2 text-end">
-                      <PermissionButton
-                        allowed={mayEditOps}
-                        reason={t("adm.edit.readOnly")}
-                        onClick={() => openEdit(f)}
-                      >
-                        {t("adm.flight.quickEdit")}
-                      </PermissionButton>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Mobile / tablet stacked list */}
-          <ul className="xl:hidden">
-            {data.operation.map((f) => {
-              const ci = checkinFor(f);
-              return (
-                <li key={`${f.id}-${f.direction}-m`} className="border-b border-border px-3 py-3 last:border-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="flex items-center gap-2">
-                      <Ltr className="font-bold">{f.number}</Ltr>
-                      <Ltr className="text-sm text-muted-foreground">{`${f.originCode} → ${f.destinationCode}`}</Ltr>
-                    </span>
-                    <StatusBadge status={f.status} />
-                  </div>
-                  <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      {f.direction === "dep" ? (
-                        <PlaneTakeoff aria-label={t("adm.flight.departure")} className="size-3.5" />
-                      ) : (
-                        <PlaneLanding aria-label={t("adm.flight.arrival")} className="size-3.5" />
-                      )}
-                      <Ltr>{f.direction === "dep" ? f.departTime : f.arriveTime}</Ltr>
-                    </span>
-                    <Ltr>{f.aircraft}</Ltr>
-                    {f.gate ? <Ltr>{`${f.terminal} · ${f.gate}`}</Ltr> : <AdminChip tone="warn">{t("adm.flight.noGate")}</AdminChip>}
-                    <Ltr>{`${loadOf(f)}/${CAPACITY}`}</Ltr>
-                    {ci.total > 0 ? (
-                      <AdminChip tone={ci.checked === ci.total ? "brand" : "neutral"}>
-                        {t("adm.flight.checkedOf", { n: ci.checked, total: ci.total })}
-                      </AdminChip>
-                    ) : null}
-                  </div>
-                  {f.note ? <p className="mt-1 text-xs text-accent-foreground">{f.note}</p> : null}
-                  <div className="mt-2">
-                    <PermissionButton allowed={mayEditOps} reason={t("adm.edit.readOnly")} onClick={() => openEdit(f)}>
-                      {t("adm.flight.quickEdit")}
-                    </PermissionButton>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </AdminPanel>
-
-        {/* C. Needs attention */}
-        <div id="attention" className="space-y-4">
-          <AdminPanel title={t("adm.dash.attention")} bodyClassName="p-0">
-            {data.attention.length === 0 ? (
-              <AdminEmpty title={t("adm.attn.none")} />
-            ) : (
-              <ul className="max-h-[26rem] overflow-y-auto">
-                {data.attention.slice(0, 12).map((item) => (
-                  <AttentionRow
-                    key={item.id}
-                    severity={item.severity}
-                    title={item.title}
-                    module={item.module}
-                    next={item.next}
-                  />
-                ))}
-              </ul>
+      {summaryMetrics.length > 0 ? (
+        <section aria-label={t("adm.dash.today")}>
+          <h2 className="mb-2 text-[0.7rem] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+            {t("adm.dash.today")}
+          </h2>
+          <div
+            className={cn(
+              "grid gap-2",
+              summaryMetrics.length <= 2
+                ? "grid-cols-2"
+                : summaryMetrics.length <= 4
+                  ? "grid-cols-2 sm:grid-cols-4"
+                  : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-9",
             )}
-          </AdminPanel>
-
-          {/* E. Content status */}
-          <AdminPanel title={t("adm.dash.content")} bodyClassName="p-0">
-            <div className="grid grid-cols-2 gap-2 p-3">
-              <Metric label={t("adm.content.drafts")} value={data.content.drafts} />
-              <Metric label={t("adm.content.missingAr")} value={data.content.missingAr} tone="warn" />
-              <Metric label={t("adm.content.awaitingSource")} value={data.content.awaitingSource} tone="warn" />
-              <Metric label={t("adm.content.published")} value={data.content.published} tone="brand" />
-            </div>
-            <ul className="border-t border-border">
-              {data.content.items.slice(0, 4).map((c) => (
-                <li key={c.id} className="flex flex-wrap items-center gap-2 border-b border-border px-3 py-2 last:border-0">
-                  <span className="min-w-0 flex-1 truncate text-sm font-semibold">{t(c.titleKey)}</span>
-                  <ContentStateChip state={c.state} />
-                  <BilingualStatus missingAr={c.missingAr ?? false} />
-                </li>
-              ))}
-            </ul>
-          </AdminPanel>
-        </div>
-      </div>
-
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
-        {/* D. Recent bookings */}
-        <AdminPanel title={t("adm.dash.recent")} bodyClassName="p-0">
-          {data.recent.length === 0 ? (
-            <AdminEmpty title={t("adm.recent.empty")} body={t("adm.recent.emptyBody")} />
-          ) : (
-            <>
-              {/* Mobile compact card list */}
-              <ul className="divide-y divide-border sm:hidden">
-                {data.recent.map((b) => {
-                  const lead = b.passengers[0];
-                  const checked = checkedInPax(b, "out").length;
-                  const total = seatedPassengers(b).length;
-                  return (
-                    <li key={`${b.ref}-m`} className="space-y-1.5 p-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <Ltr className="text-sm font-bold">{b.ref}</Ltr>
-                        <AdminChip tone={b.status === "cancelled" ? "danger" : "brand"}>
-                          {t(`adm.booking.${b.status}`)}
-                        </AdminChip>
-                      </div>
-                      <div className="flex items-center justify-between gap-2 text-xs">
-                        <span className="truncate font-medium text-foreground">
-                          {`${lead?.firstName ?? ""} ${lead?.lastName ?? ""}`.trim() || "—"}
-                        </span>
-                        <Ltr className="shrink-0 text-muted-foreground">
-                          {`${b.outbound.originCode} → ${b.outbound.destinationCode}`}
-                        </Ltr>
-                      </div>
-                      <div className="flex items-center justify-between gap-2 pt-0.5 text-xs text-muted-foreground">
-                        <span>{dateShort(b.outbound.date, lang)}</span>
-                        {b.status === "cancelled" ? (
-                          <span>—</span>
-                        ) : (
-                          <AdminChip tone={checked === total && total > 0 ? "brand" : "neutral"}>
-                            {t("adm.flight.checkedOf", { n: checked, total })}
-                          </AdminChip>
-                        )}
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-
-              {/* Desktop / tablet table */}
-              <div className="hidden overflow-x-auto sm:block">
-                <table className="w-full min-w-[34rem] text-sm">
-                  <thead>
-                    <tr className="border-b border-border text-[0.7rem] uppercase tracking-wider text-muted-foreground">
-                      <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.pnr")}</th>
-                      <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.passenger")}</th>
-                      <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.route")}</th>
-                      <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.date")}</th>
-                      <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.checkin")}</th>
-                      <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.status")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.recent.map((b) => {
-                      const lead = b.passengers[0];
-                      const checked = checkedInPax(b, "out").length;
-                      const total = seatedPassengers(b).length;
-                      return (
-                        <tr key={b.ref} className="border-b border-border last:border-0">
-                          <td className="px-3 py-2">
-                            <Ltr className="font-bold">{b.ref}</Ltr>
-                          </td>
-                          <td className="px-3 py-2">{`${lead?.firstName ?? ""} ${lead?.lastName ?? ""}`.trim() || "—"}</td>
-                          <td className="px-3 py-2">
-                            <Ltr>{`${b.outbound.originCode} → ${b.outbound.destinationCode}`}</Ltr>
-                          </td>
-                          <td className="px-3 py-2 text-muted-foreground">{dateShort(b.outbound.date, lang)}</td>
-                          <td className="px-3 py-2">
-                            {b.status === "cancelled" ? (
-                              <span className="text-xs text-muted-foreground">—</span>
-                            ) : (
-                              <AdminChip tone={checked === total && total > 0 ? "brand" : "neutral"}>
-                                {t("adm.flight.checkedOf", { n: checked, total })}
-                              </AdminChip>
-                            )}
-                          </td>
-                          <td className="px-3 py-2">
-                            <AdminChip tone={b.status === "cancelled" ? "danger" : "brand"}>
-                              {t(`adm.booking.${b.status}`)}
-                            </AdminChip>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          )}
-        </AdminPanel>
-
-        {/* F. Quick actions */}
-        <AdminPanel title={t("adm.dash.quick")}>
-          <div className="flex flex-wrap gap-2">
-            {quickActions.map((action) => {
-              const label = t(action.key);
-              const allowed = can(action.permission);
-              return (
-                <PermissionButton
-                  key={action.key}
-                  allowed={allowed}
-                  reason={t("adm.quick.noPermission")}
-                  onClick={() => toast(t("adm.quick.later", { action: label }))}
-                >
-                  {label}
-                </PermissionButton>
-              );
-            })}
-            <button
-              type="button"
-              onClick={() => toast(t("adm.quick.later", { action: t("adm.quick.findBooking") }))}
-              className={btnClass("primary", "sm")}
-            >
-              {t("adm.quick.findBooking")}
-            </button>
+          >
+            {summaryMetrics.map((m) => (
+              <Metric key={m.key} label={m.label} value={m.value} emphasis={m.emphasis} tone={m.tone} />
+            ))}
           </div>
-        </AdminPanel>
-      </div>
+        </section>
+      ) : null}
+
+      {/* Dynamic layout based on available domains */}
+      {mayOps && mayCommercial ? (
+        <>
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
+            {operationPanel}
+            <div id="attention" className="space-y-4">
+              {attentionPanel}
+              {mayContent ? contentPanel : null}
+            </div>
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
+            {recentBookingsPanel}
+            {quickActionsPanel}
+          </div>
+        </>
+      ) : mayOps && !mayCommercial ? (
+        <>
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
+            {operationPanel}
+            <div id="attention" className="space-y-4">
+              {attentionPanel}
+              {mayContent ? contentPanel : null}
+            </div>
+          </div>
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)]">
+            {quickActionsPanel}
+          </div>
+        </>
+      ) : !mayOps && mayCommercial ? (
+        <>
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
+            {recentBookingsPanel}
+            <div id="attention" className="space-y-4">
+              {attentionPanel}
+              {mayContent ? contentPanel : null}
+            </div>
+          </div>
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)]">
+            {quickActionsPanel}
+          </div>
+        </>
+      ) : (
+        /* Content Editor / content-only layout */
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+          {mayContent ? contentPanel : null}
+          <div id="attention" className="space-y-4">
+            {attentionPanel}
+            {quickActionsPanel}
+          </div>
+        </div>
+      )}
 
       {/* Quick-edit drawer */}
       <AdminSheet

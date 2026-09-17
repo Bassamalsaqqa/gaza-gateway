@@ -69,6 +69,7 @@ export const staffByRole = (role: AdminRole): Staff =>
 export const MOCK_PASSPHRASE = "gza-admin";
 
 export type Permission =
+  | "dashboard.view"
   | "ops.view"
   | "ops.edit"
   | "content.view"
@@ -81,6 +82,7 @@ export type Permission =
 
 const permissions: Record<AdminRole, Permission[]> = {
   admin: [
+    "dashboard.view",
     "ops.view",
     "ops.edit",
     "content.view",
@@ -92,14 +94,17 @@ const permissions: Record<AdminRole, Permission[]> = {
     "admin.manage",
   ],
   editor: [
-    "ops.view",
+    "dashboard.view",
     "content.view",
     "content.edit",
-    "commercial.view",
-    "engagement.view",
-    "engagement.edit",
   ],
-  viewer: ["ops.view", "content.view", "commercial.view", "engagement.view"],
+  viewer: [
+    "dashboard.view",
+    "ops.view",
+    "commercial.view",
+    "content.view",
+    "engagement.view",
+  ],
 };
 
 export function can(role: AdminRole | undefined, permission: Permission): boolean {
@@ -123,7 +128,7 @@ export const adminNav: AdminNavGroup[] = [
     id: "overview",
     labelKey: "adm.group.overview",
     items: [
-      { id: "dashboard", labelKey: "adm.nav.dashboard", icon: LayoutDashboard, to: "/admin", permission: "ops.view" },
+      { id: "dashboard", labelKey: "adm.nav.dashboard", icon: LayoutDashboard, to: "/admin", permission: "dashboard.view" },
     ],
   },
   {

@@ -79,9 +79,21 @@ function NavLink({ item, collapsed, onNavigate }: { item: AdminNavItem; collapse
 
 function SidebarBody({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: (() => void) | undefined }) {
   const { t } = useI18n();
+  const { can } = useAdmin();
+  const visibleGroups = useMemo(
+    () =>
+      adminNav
+        .map((group) => ({
+          ...group,
+          items: group.items.filter((item) => can(item.permission)),
+        }))
+        .filter((group) => group.items.length > 0),
+    [can],
+  );
+
   return (
     <nav aria-label={t("adm.shell.nav")} className="flex-1 overflow-y-auto px-2 py-3">
-      {adminNav.map((group) => (
+      {visibleGroups.map((group) => (
         <div key={group.id} className="mb-3">
           {!collapsed ? (
             <p className="px-2.5 pb-1 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-ink-muted/70">
@@ -137,10 +149,11 @@ function AccountMenu() {
     };
     document.addEventListener("mousedown", onDown);
     window.addEventListener("keydown", onKey);
+    const triggerEl = triggerRef.current;
     return () => {
       document.removeEventListener("mousedown", onDown);
       window.removeEventListener("keydown", onKey);
-      triggerRef.current?.focus?.();
+      triggerEl?.focus?.();
     };
   }, [open]);
 
@@ -257,10 +270,11 @@ function AttentionBell() {
     };
     window.addEventListener("keydown", onKey);
     window.addEventListener("mousedown", onClick);
+    const triggerEl = triggerRef.current;
     return () => {
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("mousedown", onClick);
-      triggerRef.current?.focus?.();
+      triggerEl?.focus?.();
     };
   }, [open]);
 
@@ -375,6 +389,8 @@ export function AdminShell({
 
   useEffect(() => {
     if (!drawer) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     const trigger = document.activeElement as HTMLElement | null;
     drawerRef.current?.querySelector<HTMLElement>("button, a")?.focus();
     const onKey = (e: KeyboardEvent) => {
@@ -394,6 +410,7 @@ export function AdminShell({
     };
     window.addEventListener("keydown", onKey);
     return () => {
+      document.body.style.overflow = originalOverflow;
       window.removeEventListener("keydown", onKey);
       trigger?.focus?.();
     };

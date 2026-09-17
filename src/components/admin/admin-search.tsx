@@ -28,12 +28,20 @@ const groupIcons: Record<GroupId, typeof Search> = {
   content: Archive,
 };
 
-const suggestions = ["PS", "GZA", "AMM", "IST"];
+function normalizeSearch(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u064B-\u065F\u0670]/g, "")
+    .replace(/[أإآٱ]/g, "ا")
+    .replace(/[ى]/g, "ي")
+    .replace(/[ة]/g, "ه");
+}
 
 export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t, lang } = useI18n();
   const { bookings, travelers } = useStore();
-  const { toast } = useAdmin();
+  const { toast, can } = useAdmin();
   const navigate = useAppNavigate();
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
@@ -41,79 +49,114 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
   const panelRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
 
+  const canOps = can("ops.view");
+  const canCommercial = can("commercial.view");
+  const canContent = can("content.view");
+
   const today = todayISO();
 
+  const suggestions = useMemo(() => {
+    if (canCommercial || canOps) return ["PS", "GZA", "AMM", "IST"];
+    return ["GZA", "AMM", "IST", "Archive"];
+  }, [canCommercial, canOps]);
+
   const results = useMemo<Result[]>(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return [];
+    const raw = query.trim();
+    if (!raw) return [];
+    const q = normalizeSearch(raw);
     const out: Result[] = [];
 
-    const flightMap = new Map<string, typeof departuresOn extends (d: string) => (infer F)[] ? F : never>();
-    for (const f of [...departuresOn(today), ...arrivalsOn(today)]) {
-      flightMap.set(f.id, f);
-    }
-    for (const b of bookings) {
-      if (b.outbound && !flightMap.has(b.outbound.id)) flightMap.set(b.outbound.id, b.outbound);
-      if (b.inbound && !flightMap.has(b.inbound.id)) flightMap.set(b.inbound.id, b.inbound);
+    // 1. Flights (requires ops.view)
+    if (canOps) {
+      const flightMap = new Map<string, typeof departuresOn extends (d: string) => (infer F)[] ? F : never>();
+      for (const f of [...departuresOn(today), ...arrivalsOn(today)]) {
+        flightMap.set(f.id, f);
+      }
+      for (const b of bookings) {
+        if (b.outbound && !flightMap.has(b.outbound.id)) flightMap.set(b.outbound.id, b.outbound);
+        if (b.inbound && !flightMap.has(b.inbound.id)) flightMap.set(b.inbound.id, b.inbound);
+      }
+
+      for (const f of flightMap.values()) {
+        const hay = normalizeSearch(`${f.number} ${f.originCode} ${f.destinationCode} ${f.aircraft}`);
+        if (hay.includes(q)) {
+          out.push({
+            id: `f-${f.id}`,
+            group: "flights",
+            title: f.number,
+            meta: `${f.originCode} → ${f.destinationCode} · ${f.departTime}`,
+            to: null,
+          });
+        }
+        if (out.length >= 8) break;
+      }
     }
 
-    for (const f of flightMap.values()) {
-      const hay = `${f.number} ${f.originCode} ${f.destinationCode} ${f.aircraft}`.toLowerCase();
-      if (hay.includes(q)) {
-        out.push({
-          id: `f-${f.id}`,
-          group: "flights",
-          title: f.number,
-          meta: `${f.originCode} → ${f.destinationCode} · ${f.departTime}`,
-          to: null,
-        });
+    // 2. Bookings and customers (requires commercial.view)
+    if (canCommercial) {
+      const seenEmails = new Set<string>();
+      for (const b of bookings) {
+        const lead = b.passengers[0];
+        const leadName = lead ? `${lead.firstName} ${lead.lastName}`.trim() : "";
+        const hay = normalizeSearch(`${b.ref} ${leadName} ${b.contact.email}`);
+        if (hay.includes(q)) {
+          out.push({
+            id: `b-${b.ref}`,
+            group: "bookings",
+            title: b.ref,
+            meta: `${leadName} · ${b.outbound.originCode} → ${b.outbound.destinationCode}`.trim(),
+            to: null,
+          });
+        }
+        if (lead && leadName) {
+          const nameHay = normalizeSearch(leadName);
+          const emailHay = normalizeSearch(b.contact.email || "");
+          if ((nameHay.includes(q) || emailHay.includes(q)) && !seenEmails.has(b.contact.email || leadName)) {
+            seenEmails.add(b.contact.email || leadName);
+            out.push({ id: `c-${b.ref}`, group: "customers", title: leadName, meta: b.contact.email || b.ref, to: null });
+          }
+        }
       }
-      if (out.length > 24) break;
-    }
 
-    for (const b of bookings) {
-      const lead = b.passengers[0];
-      const hay = `${b.ref} ${lead?.firstName ?? ""} ${lead?.lastName ?? ""} ${b.contact.email}`.toLowerCase();
-      if (hay.includes(q)) {
-        out.push({
-          id: `b-${b.ref}`,
-          group: "bookings",
-          title: b.ref,
-          meta: `${lead?.firstName ?? ""} ${lead?.lastName ?? ""} · ${b.outbound.originCode} → ${b.outbound.destinationCode}`.trim(),
-          to: null,
-        });
-      }
-      if (lead) {
-        const name = `${lead.firstName} ${lead.lastName}`.trim();
-        if (name && name.toLowerCase().includes(q)) {
-          out.push({ id: `c-${b.ref}`, group: "customers", title: name, meta: b.contact.email || b.ref, to: null });
+      for (const tr of travelers) {
+        const name = `${tr.firstName} ${tr.lastName}`.trim();
+        const trHay = normalizeSearch(`${name} ${tr.nationality || ""} ${tr.document || ""}`);
+        if (trHay.includes(q) && !seenEmails.has(name)) {
+          seenEmails.add(name);
+          out.push({ id: `tr-${tr.id}`, group: "customers", title: name, meta: tr.nationality || tr.document || "", to: null });
         }
       }
     }
 
-    for (const tr of travelers) {
-      const name = `${tr.firstName} ${tr.lastName}`.trim();
-      if (name.toLowerCase().includes(q)) {
-        out.push({ id: `tr-${tr.id}`, group: "customers", title: name, meta: tr.nationality || tr.document || "", to: null });
+    // 3. Destinations (requires ops.view or content.view)
+    if (canOps || canContent) {
+      for (const d of destinations) {
+        const labelEn = d.city.en;
+        const labelAr = d.city.ar;
+        const countryEn = d.country.en;
+        const countryAr = d.country.ar;
+        const hay = normalizeSearch(`${d.code} ${labelEn} ${labelAr} ${countryEn} ${countryAr}`);
+        if (hay.includes(q)) {
+          const displayCity = pick(lang, d.city);
+          out.push({ id: `d-${d.code}`, group: "destinations", title: displayCity, meta: d.code, to: null });
+        }
       }
     }
 
-    for (const d of destinations) {
-      const label = pick(lang, d.city);
-      if (`${d.code} ${label} ${pick(lang, d.country)}`.toLowerCase().includes(q)) {
-        out.push({ id: `d-${d.code}`, group: "destinations", title: label, meta: d.code, to: null });
-      }
-    }
-
-    for (const c of contentItems) {
-      const label = t(c.titleKey);
-      if (label.toLowerCase().includes(q)) {
-        out.push({ id: `k-${c.id}`, group: "content", title: label, meta: t(c.module), to: null });
+    // 4. Content (requires content.view)
+    if (canContent) {
+      for (const c of contentItems) {
+        const label = t(c.titleKey);
+        const moduleLabel = t(c.module);
+        const hay = normalizeSearch(`${label} ${moduleLabel}`);
+        if (hay.includes(q)) {
+          out.push({ id: `k-${c.id}`, group: "content", title: label, meta: moduleLabel, to: null });
+        }
       }
     }
 
     return out.slice(0, 30);
-  }, [query, bookings, travelers, lang, t, today]);
+  }, [query, bookings, travelers, lang, t, today, canOps, canCommercial, canContent]);
 
   useEffect(() => setActive(0), [query]);
 
@@ -276,27 +319,21 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
                             id={`admin-search-opt-${r.id}`}
                             role="option"
                             aria-selected={index === active}
+                            onMouseEnter={() => setActive(index)}
+                            onClick={() => activate(r)}
+                            className={cn(
+                              "flex w-full cursor-pointer items-center gap-3 px-4 py-2 text-start text-sm select-none",
+                              index === active ? "bg-secondary" : "hover:bg-secondary/60",
+                            )}
                           >
-                            <button
-                              type="button"
-                              tabIndex={-1}
-                              onMouseEnter={() => setActive(index)}
-                              onClick={() => activate(r)}
-                              className={cn(
-                                "flex w-full items-center gap-3 px-4 py-2 text-start text-sm",
-                                "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-                                index === active ? "bg-secondary" : "hover:bg-secondary/60",
-                              )}
-                            >
-                              <Icon aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
-                              <span className="min-w-0 flex-1 truncate font-semibold">
-                                {r.group === "flights" || r.group === "bookings" ? <Ltr>{r.title}</Ltr> : r.title}
-                              </span>
-                              <span dir="ltr" className="hidden truncate text-xs text-muted-foreground sm:block">
-                                {r.meta}
-                              </span>
-                              {!r.to ? <AdminChip tone="muted">{t("adm.search.later")}</AdminChip> : null}
-                            </button>
+                            <Icon aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+                            <span className="min-w-0 flex-1 truncate font-semibold">
+                              {r.group === "flights" || r.group === "bookings" ? <Ltr>{r.title}</Ltr> : r.title}
+                            </span>
+                            <span dir="ltr" className="hidden truncate text-xs text-muted-foreground sm:block">
+                              {r.meta}
+                            </span>
+                            {!r.to ? <AdminChip tone="muted">{t("adm.search.later")}</AdminChip> : null}
                           </li>
                         );
                       })}

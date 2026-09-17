@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { arrivalsOn, departuresOn, todayISO, type Flight } from "@/lib/data";
-import { contentItems, unreadEnquiries } from "@/lib/admin";
+import { contentItems, unreadEnquiries, type Permission } from "@/lib/admin";
 import { useAdmin, type FlightOverride } from "@/lib/admin-store";
 import { useI18n } from "@/lib/i18n";
 import { checkedInPax, seatedPassengers, useStore, type Booking } from "@/lib/store";
@@ -14,13 +14,14 @@ export type AttentionItem = {
   module: string;
   next: string;
   flightId?: string;
+  permission: Permission;
 };
 
 /** Everything the dashboard and the top-bar indicator derive from mock data. */
 export function useDashboardData() {
   const { t } = useI18n();
   const { bookings } = useStore();
-  const { withOverride, overrides } = useAdmin();
+  const { withOverride, can } = useAdmin();
   const today = todayISO();
 
   return useMemo(() => {
@@ -43,86 +44,96 @@ export function useDashboardData() {
 
     const contentAttention = contentItems.filter((c) => c.state === "draft" || c.missingAr || c.missingSource).length;
 
-    const attention: AttentionItem[] = [];
+    const allAttention: AttentionItem[] = [];
     for (const f of cancelled) {
-      attention.push({
+      allAttention.push({
         id: `att-c-${f.id}`,
         severity: "high",
         title: t("adm.attn.cancelled", { flight: f.number }),
         module: t("adm.nav.flights"),
         next: t("adm.attn.cancelledNext"),
         flightId: f.id,
+        permission: "ops.view",
       });
     }
     for (const f of delayed) {
-      attention.push({
+      allAttention.push({
         id: `att-d-${f.id}`,
         severity: "high",
         title: t("adm.attn.delayed", { flight: f.number }),
         module: t("adm.nav.flights"),
         next: t("adm.attn.delayedNext"),
         flightId: f.id,
+        permission: "ops.view",
       });
     }
     for (const f of missingGate) {
-      attention.push({
+      allAttention.push({
         id: `att-g-${f.id}`,
         severity: "medium",
         title: t("adm.attn.gate", { flight: f.number }),
         module: t("adm.nav.flights"),
         next: t("adm.attn.gateNext"),
         flightId: f.id,
+        permission: "ops.view",
       });
     }
     for (const b of travellingToday) {
       if (checkedInPax(b, "out").length < seatedPassengers(b).length) {
-        attention.push({
+        allAttention.push({
           id: `att-ci-${b.ref}`,
           severity: "medium",
           title: t("adm.attn.checkin", { flight: b.outbound.number }),
           module: t("adm.nav.checkin"),
           next: t("adm.attn.checkinNext"),
+          permission: "commercial.view",
         });
       }
     }
     if (unreadEnquiries > 0) {
-      attention.push({
+      allAttention.push({
         id: "att-inbox",
         severity: "medium",
         title: t("adm.attn.enquiry", { n: unreadEnquiries }),
         module: t("adm.nav.inbox"),
         next: t("adm.attn.enquiryNext"),
+        permission: "engagement.view",
       });
     }
     for (const c of contentItems) {
       if (c.missingAr) {
-        attention.push({
+        allAttention.push({
           id: `att-ar-${c.id}`,
           severity: "medium",
           title: `${t("adm.attn.arabic")} — ${t(c.titleKey)}`,
           module: t(c.module),
           next: t("adm.attn.arabicNext"),
+          permission: "content.view",
         });
       }
       if (c.missingSource) {
-        attention.push({
+        allAttention.push({
           id: `att-src-${c.id}`,
           severity: "low",
           title: `${t("adm.attn.source")} — ${t(c.titleKey)}`,
           module: t(c.module),
           next: t("adm.attn.sourceNext"),
+          permission: "content.view",
         });
       }
       if (c.state === "draft") {
-        attention.push({
+        allAttention.push({
           id: `att-dr-${c.id}`,
           severity: "low",
           title: `${t("adm.attn.draft")} — ${t(c.titleKey)}`,
           module: t(c.module),
           next: t("adm.attn.draftNext"),
+          permission: "content.view",
         });
       }
     }
+
+    const attention = allAttention.filter((item) => can(item.permission));
 
     const recent: Booking[] = [...bookings].slice(0, 6);
 
@@ -154,7 +165,7 @@ export function useDashboardData() {
         items: contentItems,
       },
     };
-  }, [today, bookings, withOverride, overrides, t]) satisfies { attention: AttentionItem[] } & Record<string, unknown>;
+  }, [today, bookings, withOverride, t, can]) satisfies { attention: AttentionItem[] } & Record<string, unknown>;
 }
 
 export type { FlightOverride };

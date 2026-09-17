@@ -40,9 +40,9 @@ export function Metric({
 }: {
   label: string;
   value: string | number;
-  tone?: "neutral" | "brand" | "warn" | "danger";
-  hint?: string;
-  emphasis?: boolean;
+  tone?: "neutral" | "brand" | "warn" | "danger" | undefined;
+  hint?: string | undefined;
+  emphasis?: boolean | undefined;
 }) {
   const tones = {
     neutral: "text-foreground",
@@ -388,6 +388,8 @@ export function AdminSheet({
 
   useEffect(() => {
     if (!open) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     triggerRef.current = document.activeElement as HTMLElement | null;
     const focusables = () =>
       Array.from(
@@ -417,6 +419,7 @@ export function AdminSheet({
     };
     window.addEventListener("keydown", onKey);
     return () => {
+      document.body.style.overflow = originalOverflow;
       window.removeEventListener("keydown", onKey);
       triggerRef.current?.focus?.();
     };
@@ -425,18 +428,24 @@ export function AdminSheet({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-ink/50">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-50 flex justify-end bg-ink/50"
+    >
       <div
         ref={panelRef}
         role="dialog"
         aria-modal="true"
-        aria-label={title}
+        aria-labelledby="admin-sheet-title"
+        aria-describedby={description ? "admin-sheet-desc" : undefined}
         className="flex h-full w-full max-w-md flex-col border-s border-border bg-card shadow-[var(--shadow-lift)]"
       >
         <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-3">
           <div className="min-w-0">
-            <h2 className="text-sm font-bold">{title}</h2>
-            {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
+            <h2 id="admin-sheet-title" className="text-sm font-bold">{title}</h2>
+            {description ? <p id="admin-sheet-desc" className="text-xs text-muted-foreground">{description}</p> : null}
           </div>
           <button
             type="button"
