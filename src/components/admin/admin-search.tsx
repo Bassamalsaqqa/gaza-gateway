@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Archive, MapPin, PlaneTakeoff, Search, Ticket, UsersRound, X } from "lucide-react";
-import { useI18n } from "@/lib/i18n";
+import { pick, useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 import { useAdmin } from "@/lib/admin-store";
 import { contentItems } from "@/lib/admin";
-import { arrivalsOn, departuresOn, destinations, pickLabel, todayISO } from "@/lib/data";
+import { arrivalsOn, departuresOn, destinations, todayISO } from "@/lib/data";
 import { useAppNavigate } from "@/components/app-link";
 import { cn } from "@/lib/utils";
 import { AdminChip, Ltr } from "./admin-kit";
@@ -91,8 +91,8 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
     }
 
     for (const d of destinations) {
-      const label = pickLabel(d.city, lang);
-      if (`${d.code} ${label} ${pickLabel(d.country, lang)}`.toLowerCase().includes(q)) {
+      const label = pick(lang, d.city);
+      if (`${d.code} ${label} ${pick(lang, d.country)}`.toLowerCase().includes(q)) {
         out.push({ id: `d-${d.code}`, group: "destinations", title: label, meta: d.code, to: `/destinations/${d.code}` });
       }
     }
