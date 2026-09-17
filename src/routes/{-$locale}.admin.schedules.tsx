@@ -175,7 +175,7 @@ function AdminSchedulesPage() {
           <AdminEmpty title={t("adm.sch.empty")} body={t("adm.sch.emptyBody")} />
         ) : (
           <>
-            <div className="hidden overflow-x-auto lg:block">
+            <div className="hidden overflow-x-auto xl:block">
               <table className="w-full min-w-[58rem] text-sm">
                 <caption className="sr-only">{t("adm.sch.title")}</caption>
                 <thead>
@@ -251,7 +251,7 @@ function AdminSchedulesPage() {
               </table>
             </div>
 
-            <ul className="divide-y divide-border lg:hidden">
+            <ul className="divide-y divide-border xl:hidden">
               {rows.map((s) => (
                 <li key={`${s.id}-card`} className="px-4 py-3">
                   <div className="flex items-start justify-between gap-2">
