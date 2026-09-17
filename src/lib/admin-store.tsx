@@ -110,6 +110,11 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const [staff, setStaff] = useState<Staff | null>(null);
   const [overrides, setOverrides] = useState<Record<string, FlightOverride>>({});
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [ops, setOps] = useState<OpsState>(() => seedOpsState());
+
+  const patchOps = useCallback(<K extends keyof OpsState>(key: K, value: OpsState[K]) => {
+    setOps((prev) => ({ ...prev, [key]: value }));
+  }, []);
 
   useEffect(() => {
     try {
