@@ -22,7 +22,7 @@ import { useAdmin } from "@/lib/admin-store";
 import { useI18n } from "@/lib/i18n";
 import { dateLong, dateShort } from "@/lib/format";
 import { SEAT_ROWS, SEAT_LETTERS, type FlightStatus } from "@/lib/data";
-import { checkedInPax, seatedPassengers } from "@/lib/store";
+import { checkedInPax, seatedPassengers, useStore } from "@/lib/store";
 import { pageHead } from "@/lib/head";
 
 const STATUSES: FlightStatus[] = ["Scheduled", "OnTime", "Boarding", "Delayed", "Departed", "Landed", "Cancelled"];
@@ -58,6 +58,23 @@ function AdminDashboardPage() {
   const data = useDashboardData();
   const [edit, setEdit] = useState<EditState | null>(null);
   const mayEditOps = can("ops.edit");
+  const { bookings } = useStore();
+
+  /** Check-in progress for a flight, from bookings held locally. */
+  const checkinFor = (flight: OpsFlight) => {
+    let checked = 0;
+    let total = 0;
+    for (const b of bookings) {
+      if (b.status === "cancelled") continue;
+      for (const leg of ["out", "in"] as const) {
+        const legFlight = leg === "out" ? b.outbound : b.inbound;
+        if (legFlight?.id !== flight.id) continue;
+        total += seatedPassengers(b).length;
+        checked += checkedInPax(b, leg).length;
+      }
+    }
+    return { checked, total };
+  };
 
   const openEdit = (flight: OpsFlight) =>
     setEdit({
@@ -129,7 +146,7 @@ function AdminDashboardPage() {
         <AdminPanel title={t("adm.dash.operation")} description={t("adm.dash.operationSub")} bodyClassName="p-0">
           {/* Desktop table */}
           <div className="hidden overflow-x-auto xl:block">
-            <table className="w-full min-w-[48rem] text-sm">
+            <table className="w-full min-w-[58rem] text-sm">
               <thead>
                 <tr className="border-b border-border text-start text-[0.7rem] uppercase tracking-wider text-muted-foreground">
                   <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.time")}</th>
@@ -138,6 +155,7 @@ function AdminDashboardPage() {
                   <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.aircraft")}</th>
                   <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.gate")}</th>
                   <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.load")}</th>
+                  <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.checkin")}</th>
                   <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.status")}</th>
                   <th scope="col" className="px-3 py-2 text-end font-bold">{t("adm.col.actions")}</th>
                 </tr>
@@ -191,9 +209,18 @@ function AdminDashboardPage() {
                       <span className="sr-only">{t("adm.flight.loadOf", { n: loadOf(f), total: CAPACITY })}</span>
                     </td>
                     <td className="px-3 py-2">
+                      {checkinFor(f).total === 0 ? (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      ) : (
+                        <AdminChip tone={checkinFor(f).checked === checkinFor(f).total ? "brand" : "neutral"}>
+                          {t("adm.flight.checkedOf", { n: checkinFor(f).checked, total: checkinFor(f).total })}
+                        </AdminChip>
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
                       <StatusBadge status={f.status} />
                     </td>
-                    <td className="px-3 py-2 text-end">
+                    <td className="whitespace-nowrap px-3 py-2 text-end">
                       <span className="inline-flex gap-1.5">
                         <PermissionButton
                           allowed={mayEditOps}
@@ -307,7 +334,8 @@ function AdminDashboardPage() {
                     <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.passenger")}</th>
                     <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.route")}</th>
                     <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.date")}</th>
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.status")}</th>
+                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.checkin")}</th>
+                  <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.status")}</th>
                   </tr>
                 </thead>
                 <tbody>
