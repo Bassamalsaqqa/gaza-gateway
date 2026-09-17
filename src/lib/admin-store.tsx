@@ -9,6 +9,7 @@ import {
 } from "react";
 import type { Flight, FlightStatus } from "./data";
 import { MOCK_PASSPHRASE, staffAccounts, staffByRole, type AdminRole, type Permission, type Staff, can } from "./admin";
+import { seedOpsState, type OpsState } from "./admin-ops";
 
 const KEY = "gza.admin.v1";
 
@@ -18,6 +19,7 @@ export type FlightOverride = {
   gate?: string;
   terminal?: string;
   revisedDepart?: string;
+  aircraft?: string;
   note?: string;
 };
 
@@ -36,6 +38,9 @@ type AdminValue = {
   overrides: Record<string, FlightOverride>;
   applyOverride: (flightId: string, patch: FlightOverride) => void;
   withOverride: (flight: Flight) => Flight & { note?: string; revisedDepart?: string };
+  /** Operations & commercial configuration held in local state for this session. */
+  ops: OpsState;
+  patchOps: <K extends keyof OpsState>(key: K, value: OpsState[K]) => void;
   toasts: Toast[];
   toast: (message: string) => void;
   dismissToast: (id: number) => void;
@@ -58,6 +63,7 @@ type RawOverrideShape = {
   gate?: unknown;
   terminal?: unknown;
   revisedDepart?: unknown;
+  aircraft?: unknown;
   note?: unknown;
 };
 
@@ -77,6 +83,9 @@ function sanitizeOverride(raw: unknown): FlightOverride | null {
   }
   if (typeof entry.revisedDepart === "string") {
     clean.revisedDepart = entry.revisedDepart.trim();
+  }
+  if (typeof entry.aircraft === "string" && entry.aircraft.trim() !== "") {
+    clean.aircraft = entry.aircraft.trim();
   }
   if (typeof entry.note === "string") {
     clean.note = entry.note.trim();
@@ -101,6 +110,11 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const [staff, setStaff] = useState<Staff | null>(null);
   const [overrides, setOverrides] = useState<Record<string, FlightOverride>>({});
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [ops, setOps] = useState<OpsState>(() => seedOpsState());
+
+  const patchOps = useCallback(<K extends keyof OpsState>(key: K, value: OpsState[K]) => {
+    setOps((prev) => ({ ...prev, [key]: value }));
+  }, []);
 
   useEffect(() => {
     try {
@@ -158,6 +172,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         status: o.status && VALID_FLIGHT_STATUSES.has(o.status) ? o.status : flight.status,
         gate: typeof o.gate === "string" ? o.gate : flight.gate,
         terminal: typeof o.terminal === "string" ? o.terminal : flight.terminal,
+        aircraft: typeof o.aircraft === "string" && o.aircraft ? o.aircraft : flight.aircraft,
         ...(typeof o.revisedDepart === "string" ? { revisedDepart: o.revisedDepart } : {}),
         ...(typeof o.note === "string" ? { note: o.note } : {}),
       };
@@ -185,11 +200,27 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       overrides,
       applyOverride,
       withOverride,
+      ops,
+      patchOps,
       toasts,
       toast,
       dismissToast,
     }),
-    [ready, staff, signIn, signOut, setRole, overrides, applyOverride, withOverride, toasts, toast, dismissToast],
+    [
+      ready,
+      staff,
+      signIn,
+      signOut,
+      setRole,
+      overrides,
+      applyOverride,
+      withOverride,
+      ops,
+      patchOps,
+      toasts,
+      toast,
+      dismissToast,
+    ],
   );
 
   return <AdminContext.Provider value={value}>{children}</AdminContext.Provider>;
