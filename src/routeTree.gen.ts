@@ -40,6 +40,7 @@ import { Route as Char123LocaleChar125AccountTravelersRouteImport } from './rout
 import { Route as Char123LocaleChar125AccountTripsRouteImport } from './routes/{-$locale}.account.trips'
 import { Route as Char123LocaleChar125AdminIndexRouteImport } from './routes/{-$locale}.admin.index'
 import { Route as Char123LocaleChar125AdminAccessDeniedRouteImport } from './routes/{-$locale}.admin.access-denied'
+import { Route as Char123LocaleChar125AdminProductsRouteImport } from './routes/{-$locale}.admin.products'
 import { Route as Char123LocaleChar125AdminSchedulesRouteImport } from './routes/{-$locale}.admin.schedules'
 import { Route as Char123LocaleChar125AdminSigninRouteImport } from './routes/{-$locale}.admin_.signin'
 import { Route as Char123LocaleChar125AirportIndexRouteImport } from './routes/{-$locale}.airport.index'
@@ -248,6 +249,12 @@ const Char123LocaleChar125AdminAccessDeniedRoute =
     path: '/access-denied',
     getParentRoute: () => Char123LocaleChar125AdminRoute,
   } as any)
+const Char123LocaleChar125AdminProductsRoute =
+  Char123LocaleChar125AdminProductsRouteImport.update({
+    id: '/products',
+    path: '/products',
+    getParentRoute: () => Char123LocaleChar125AdminRoute,
+  } as any)
 const Char123LocaleChar125AdminSchedulesRoute =
   Char123LocaleChar125AdminSchedulesRouteImport.update({
     id: '/schedules',
@@ -411,6 +418,7 @@ export interface FileRoutesByFullPath {
   '/{-$locale}/account/travelers': typeof Char123LocaleChar125AccountTravelersRoute
   '/{-$locale}/account/trips': typeof Char123LocaleChar125AccountTripsRouteWithChildren
   '/{-$locale}/admin/access-denied': typeof Char123LocaleChar125AdminAccessDeniedRoute
+  '/{-$locale}/admin/products': typeof Char123LocaleChar125AdminProductsRoute
   '/{-$locale}/admin/schedules': typeof Char123LocaleChar125AdminSchedulesRoute
   '/{-$locale}/admin/signin': typeof Char123LocaleChar125AdminSigninRoute
   '/{-$locale}/airport/future': typeof Char123LocaleChar125AirportFutureRoute
@@ -460,6 +468,7 @@ export interface FileRoutesByTo {
   '/{-$locale}/account/security': typeof Char123LocaleChar125AccountSecurityRoute
   '/{-$locale}/account/travelers': typeof Char123LocaleChar125AccountTravelersRoute
   '/{-$locale}/admin/access-denied': typeof Char123LocaleChar125AdminAccessDeniedRoute
+  '/{-$locale}/admin/products': typeof Char123LocaleChar125AdminProductsRoute
   '/{-$locale}/admin/schedules': typeof Char123LocaleChar125AdminSchedulesRoute
   '/{-$locale}/admin/signin': typeof Char123LocaleChar125AdminSigninRoute
   '/{-$locale}/airport/future': typeof Char123LocaleChar125AirportFutureRoute
@@ -516,6 +525,7 @@ export interface FileRoutesById {
   '/{-$locale}/account/travelers': typeof Char123LocaleChar125AccountTravelersRoute
   '/{-$locale}/account/trips': typeof Char123LocaleChar125AccountTripsRouteWithChildren
   '/{-$locale}/admin/access-denied': typeof Char123LocaleChar125AdminAccessDeniedRoute
+  '/{-$locale}/admin/products': typeof Char123LocaleChar125AdminProductsRoute
   '/{-$locale}/admin/schedules': typeof Char123LocaleChar125AdminSchedulesRoute
   '/{-$locale}/admin_/signin': typeof Char123LocaleChar125AdminSigninRoute
   '/{-$locale}/airport/future': typeof Char123LocaleChar125AirportFutureRoute
@@ -573,6 +583,7 @@ export interface FileRouteTypes {
     | '/{-$locale}/account/travelers'
     | '/{-$locale}/account/trips'
     | '/{-$locale}/admin/access-denied'
+    | '/{-$locale}/admin/products'
     | '/{-$locale}/admin/schedules'
     | '/{-$locale}/admin/signin'
     | '/{-$locale}/airport/future'
@@ -622,6 +633,7 @@ export interface FileRouteTypes {
     | '/{-$locale}/account/security'
     | '/{-$locale}/account/travelers'
     | '/{-$locale}/admin/access-denied'
+    | '/{-$locale}/admin/products'
     | '/{-$locale}/admin/schedules'
     | '/{-$locale}/admin/signin'
     | '/{-$locale}/airport/future'
@@ -677,6 +689,7 @@ export interface FileRouteTypes {
     | '/{-$locale}/account/travelers'
     | '/{-$locale}/account/trips'
     | '/{-$locale}/admin/access-denied'
+    | '/{-$locale}/admin/products'
     | '/{-$locale}/admin/schedules'
     | '/{-$locale}/admin_/signin'
     | '/{-$locale}/airport/future'
@@ -926,6 +939,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char123LocaleChar125AdminAccessDeniedRouteImport
       parentRoute: typeof Char123LocaleChar125AdminRoute
     }
+    '/{-$locale}/admin/products': {
+      id: '/{-$locale}/admin/products'
+      path: '/products'
+      fullPath: '/{-$locale}/admin/products'
+      preLoaderRoute: typeof Char123LocaleChar125AdminProductsRouteImport
+      parentRoute: typeof Char123LocaleChar125AdminRoute
+    }
     '/{-$locale}/admin/schedules': {
       id: '/{-$locale}/admin/schedules'
       path: '/schedules'
@@ -1136,6 +1156,7 @@ const Char123LocaleChar125AccountRouteWithChildren =
 
 interface Char123LocaleChar125AdminRouteChildren {
   Char123LocaleChar125AdminAccessDeniedRoute: typeof Char123LocaleChar125AdminAccessDeniedRoute
+  Char123LocaleChar125AdminProductsRoute: typeof Char123LocaleChar125AdminProductsRoute
   Char123LocaleChar125AdminSchedulesRoute: typeof Char123LocaleChar125AdminSchedulesRoute
   Char123LocaleChar125AdminIndexRoute: typeof Char123LocaleChar125AdminIndexRoute
   Char123LocaleChar125AdminDestinationsCodeRoute: typeof Char123LocaleChar125AdminDestinationsCodeRoute
@@ -1148,6 +1169,8 @@ const Char123LocaleChar125AdminRouteChildren: Char123LocaleChar125AdminRouteChil
   {
     Char123LocaleChar125AdminAccessDeniedRoute:
       Char123LocaleChar125AdminAccessDeniedRoute,
+    Char123LocaleChar125AdminProductsRoute:
+      Char123LocaleChar125AdminProductsRoute,
     Char123LocaleChar125AdminSchedulesRoute:
       Char123LocaleChar125AdminSchedulesRoute,
     Char123LocaleChar125AdminIndexRoute: Char123LocaleChar125AdminIndexRoute,
