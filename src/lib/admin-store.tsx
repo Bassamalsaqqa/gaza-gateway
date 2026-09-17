@@ -63,6 +63,7 @@ type RawOverrideShape = {
   gate?: unknown;
   terminal?: unknown;
   revisedDepart?: unknown;
+  aircraft?: unknown;
   note?: unknown;
 };
 
@@ -82,6 +83,9 @@ function sanitizeOverride(raw: unknown): FlightOverride | null {
   }
   if (typeof entry.revisedDepart === "string") {
     clean.revisedDepart = entry.revisedDepart.trim();
+  }
+  if (typeof entry.aircraft === "string" && entry.aircraft.trim() !== "") {
+    clean.aircraft = entry.aircraft.trim();
   }
   if (typeof entry.note === "string") {
     clean.note = entry.note.trim();
