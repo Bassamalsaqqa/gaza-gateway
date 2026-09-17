@@ -22,7 +22,7 @@ export const Route = createFileRoute("/{-$locale}/admin/customers/")({
 });
 
 function AdminCustomersPage() {
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
   const { can } = useAdmin();
   const [query, setQuery] = useState("");
 
@@ -113,7 +113,6 @@ function AdminCustomersPage() {
           </>
         )}
       </AdminPanel>
-      <p className="sr-only">{lang}</p>
     </div>
   );
 }

@@ -170,7 +170,7 @@ function AdminCheckInPage() {
       <AdminSheet
         open={selected !== null}
         title={t("a2.ci.sheet")}
-        description={selected?.name}
+        description={selected?.name ?? ""}
         onClose={() => setSelected(null)}
         footer={
           <>

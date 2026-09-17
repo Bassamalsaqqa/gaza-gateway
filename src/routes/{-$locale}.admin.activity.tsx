@@ -121,7 +121,7 @@ function AdminActivityPage() {
         )}
       </AdminPanel>
 
-      <AdminSheet open={open !== null} title={t("a2.ac.detail")} description={open ? pick(lang, open.actor) : undefined} onClose={() => setOpen(null)}>
+      <AdminSheet open={open !== null} title={t("a2.ac.detail")} description={open ? pick(lang, open.actor) : ""} onClose={() => setOpen(null)}>
         {open ? (
           <dl className="space-y-3 text-sm">
             {[

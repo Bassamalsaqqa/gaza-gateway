@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { AppLink } from "@/components/app-link";
-import { Input, Select, Textarea, btnClass } from "@/components/kit";
+import { Input, Select, Textarea } from "@/components/kit";
 import { AdminChip, AdminEmpty, AdminPageHeader, AdminPanel, Ltr, PermissionButton, Toolbar } from "@/components/admin/admin-kit";
 import { AdminDenied } from "@/components/admin/admin-denied";
 import { useAdmin } from "@/lib/admin-store";
@@ -156,7 +156,6 @@ function AdminInboxPage() {
           </div>
         )}
       </AdminPanel>
-      <p className="sr-only">{btnClass("ghost", "sm")}</p>
     </div>
   );
 }
