@@ -19,6 +19,7 @@ export type FlightOverride = {
   gate?: string;
   terminal?: string;
   revisedDepart?: string;
+  aircraft?: string;
   note?: string;
 };
 
@@ -37,6 +38,9 @@ type AdminValue = {
   overrides: Record<string, FlightOverride>;
   applyOverride: (flightId: string, patch: FlightOverride) => void;
   withOverride: (flight: Flight) => Flight & { note?: string; revisedDepart?: string };
+  /** Operations & commercial configuration held in local state for this session. */
+  ops: OpsState;
+  patchOps: <K extends keyof OpsState>(key: K, value: OpsState[K]) => void;
   toasts: Toast[];
   toast: (message: string) => void;
   dismissToast: (id: number) => void;
