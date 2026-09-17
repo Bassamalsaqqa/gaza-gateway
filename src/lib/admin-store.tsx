@@ -199,11 +199,27 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       overrides,
       applyOverride,
       withOverride,
+      ops,
+      patchOps,
       toasts,
       toast,
       dismissToast,
     }),
-    [ready, staff, signIn, signOut, setRole, overrides, applyOverride, withOverride, toasts, toast, dismissToast],
+    [
+      ready,
+      staff,
+      signIn,
+      signOut,
+      setRole,
+      overrides,
+      applyOverride,
+      withOverride,
+      ops,
+      patchOps,
+      toasts,
+      toast,
+      dismissToast,
+    ],
   );
 
   return <AdminContext.Provider value={value}>{children}</AdminContext.Provider>;
