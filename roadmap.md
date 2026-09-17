@@ -17,3 +17,17 @@
 - Real archive imagery and visual refinement.
 - Rebooking / date change flow.
 - Admin, payments, email, authentication infrastructure (out of Lovable scope for now).
+
+## Admin Batch 1 — complete (foundation)
+- Staff sign-in (/admin/signin, /ar/admin/signin) with three mock identities.
+- Admin shell: sidebar (collapsible, RTL-mirrored), top bar, breadcrumb, global search, attention bell,
+  language switch, View website, account menu with role switching, mobile navigation drawer.
+- Dashboard: today summary, today's operation (table + stacked list, check-in progress, quick-edit sheet),
+  needs attention, recent bookings, content status, quick actions.
+- Global search (Ctrl/Cmd+K) across flights, bookings, customers, destinations, content.
+- Admin access denied view; role visibility/permission-disabled states.
+
+## Admin — next batches
+2. Flights, flight detail, schedules, destinations, aircraft/seat maps, products & fares.
+3. Bookings, booking detail, new booking, check-in desk, customers.
+4. Website CMS. 5. Airport & archive. 6. Management + certification audit.
