@@ -528,9 +528,8 @@ function AdminSchedulesPage() {
         title={t("adm.sch.deleteTitle")}
         body={confirmDelete ? t("adm.sch.deleteBody", { number: confirmDelete.number }) : ""}
         confirmLabel={t("adm.common.delete")}
-        cancelLabel={t("adm.edit.cancel")}
         onConfirm={() => confirmDelete && remove(confirmDelete)}
-        onCancel={() => setConfirmDelete(null)}
+        onClose={() => setConfirmDelete(null)}
       />
     </div>
   );
