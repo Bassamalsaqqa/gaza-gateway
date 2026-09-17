@@ -3,17 +3,13 @@
  * derived operational figures the dashboard shows. Frontend-only mock data.
  */
 import {
-  Archive,
   ArmchairIcon,
   BarChart3,
   CalendarClock,
-  FileText,
   Home,
-  Image,
   Inbox,
   Landmark,
   LayoutDashboard,
-  ListTree,
   type LucideIcon,
   MapPin,
   PlaneTakeoff,
@@ -24,7 +20,6 @@ import {
 
   Ticket,
   UsersRound,
-  BookOpen,
 } from "lucide-react";
 
 export type AdminRole = "admin" | "editor" | "viewer";
