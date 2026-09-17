@@ -55,6 +55,7 @@ import { Route as Char123LocaleChar125ManageRefRouteImport } from './routes/{-$l
 import { Route as Char123LocaleChar125AccountTripsIndexRouteImport } from './routes/{-$locale}.account.trips.index'
 import { Route as Char123LocaleChar125AccountTripsRefRouteImport } from './routes/{-$locale}.account.trips.$ref'
 import { Route as Char123LocaleChar125AdminBookingsIndexRouteImport } from './routes/{-$locale}.admin.bookings.index'
+import { Route as Char123LocaleChar125AdminBookingsRefRouteImport } from './routes/{-$locale}.admin.bookings.$ref'
 import { Route as Char123LocaleChar125AdminDestinationsIndexRouteImport } from './routes/{-$locale}.admin.destinations.index'
 import { Route as Char123LocaleChar125AdminDestinationsCodeRouteImport } from './routes/{-$locale}.admin.destinations.$code'
 import { Route as Char123LocaleChar125AdminFlightsIndexRouteImport } from './routes/{-$locale}.admin.flights.index'
@@ -340,6 +341,12 @@ const Char123LocaleChar125AdminBookingsIndexRoute =
     path: '/bookings/',
     getParentRoute: () => Char123LocaleChar125AdminRoute,
   } as any)
+const Char123LocaleChar125AdminBookingsRefRoute =
+  Char123LocaleChar125AdminBookingsRefRouteImport.update({
+    id: '/bookings/$ref',
+    path: '/bookings/$ref',
+    getParentRoute: () => Char123LocaleChar125AdminRoute,
+  } as any)
 const Char123LocaleChar125AdminDestinationsIndexRoute =
   Char123LocaleChar125AdminDestinationsIndexRouteImport.update({
     id: '/destinations/',
@@ -440,6 +447,7 @@ export interface FileRoutesByFullPath {
   '/{-$locale}/airport/': typeof Char123LocaleChar125AirportIndexRoute
   '/{-$locale}/manage/': typeof Char123LocaleChar125ManageIndexRoute
   '/{-$locale}/account/trips/$ref': typeof Char123LocaleChar125AccountTripsRefRoute
+  '/{-$locale}/admin/bookings/$ref': typeof Char123LocaleChar125AdminBookingsRefRoute
   '/{-$locale}/admin/destinations/$code': typeof Char123LocaleChar125AdminDestinationsCodeRoute
   '/{-$locale}/admin/flights/$flightId': typeof Char123LocaleChar125AdminFlightsFlightIdRoute
   '/{-$locale}/manage/$ref/check-in': typeof Char123LocaleChar125ManageRefCheckInRoute
@@ -491,6 +499,7 @@ export interface FileRoutesByTo {
   '/{-$locale}/airport': typeof Char123LocaleChar125AirportIndexRoute
   '/{-$locale}/manage': typeof Char123LocaleChar125ManageIndexRoute
   '/{-$locale}/account/trips/$ref': typeof Char123LocaleChar125AccountTripsRefRoute
+  '/{-$locale}/admin/bookings/$ref': typeof Char123LocaleChar125AdminBookingsRefRoute
   '/{-$locale}/admin/destinations/$code': typeof Char123LocaleChar125AdminDestinationsCodeRoute
   '/{-$locale}/admin/flights/$flightId': typeof Char123LocaleChar125AdminFlightsFlightIdRoute
   '/{-$locale}/manage/$ref/check-in': typeof Char123LocaleChar125ManageRefCheckInRoute
@@ -549,6 +558,7 @@ export interface FileRoutesById {
   '/{-$locale}/airport/': typeof Char123LocaleChar125AirportIndexRoute
   '/{-$locale}/manage/': typeof Char123LocaleChar125ManageIndexRoute
   '/{-$locale}/account/trips/$ref': typeof Char123LocaleChar125AccountTripsRefRoute
+  '/{-$locale}/admin/bookings/$ref': typeof Char123LocaleChar125AdminBookingsRefRoute
   '/{-$locale}/admin/destinations/$code': typeof Char123LocaleChar125AdminDestinationsCodeRoute
   '/{-$locale}/admin/flights/$flightId': typeof Char123LocaleChar125AdminFlightsFlightIdRoute
   '/{-$locale}/manage/$ref_/check-in': typeof Char123LocaleChar125ManageRefCheckInRoute
@@ -608,6 +618,7 @@ export interface FileRouteTypes {
     | '/{-$locale}/airport/'
     | '/{-$locale}/manage/'
     | '/{-$locale}/account/trips/$ref'
+    | '/{-$locale}/admin/bookings/$ref'
     | '/{-$locale}/admin/destinations/$code'
     | '/{-$locale}/admin/flights/$flightId'
     | '/{-$locale}/manage/$ref/check-in'
@@ -659,6 +670,7 @@ export interface FileRouteTypes {
     | '/{-$locale}/airport'
     | '/{-$locale}/manage'
     | '/{-$locale}/account/trips/$ref'
+    | '/{-$locale}/admin/bookings/$ref'
     | '/{-$locale}/admin/destinations/$code'
     | '/{-$locale}/admin/flights/$flightId'
     | '/{-$locale}/manage/$ref/check-in'
@@ -716,6 +728,7 @@ export interface FileRouteTypes {
     | '/{-$locale}/airport/'
     | '/{-$locale}/manage/'
     | '/{-$locale}/account/trips/$ref'
+    | '/{-$locale}/admin/bookings/$ref'
     | '/{-$locale}/admin/destinations/$code'
     | '/{-$locale}/admin/flights/$flightId'
     | '/{-$locale}/manage/$ref_/check-in'
@@ -1057,6 +1070,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char123LocaleChar125AdminBookingsIndexRouteImport
       parentRoute: typeof Char123LocaleChar125AdminRoute
     }
+    '/{-$locale}/admin/bookings/$ref': {
+      id: '/{-$locale}/admin/bookings/$ref'
+      path: '/bookings/$ref'
+      fullPath: '/{-$locale}/admin/bookings/$ref'
+      preLoaderRoute: typeof Char123LocaleChar125AdminBookingsRefRouteImport
+      parentRoute: typeof Char123LocaleChar125AdminRoute
+    }
     '/{-$locale}/admin/destinations/': {
       id: '/{-$locale}/admin/destinations/'
       path: '/destinations'
@@ -1179,6 +1199,7 @@ interface Char123LocaleChar125AdminRouteChildren {
   Char123LocaleChar125AdminProductsRoute: typeof Char123LocaleChar125AdminProductsRoute
   Char123LocaleChar125AdminSchedulesRoute: typeof Char123LocaleChar125AdminSchedulesRoute
   Char123LocaleChar125AdminIndexRoute: typeof Char123LocaleChar125AdminIndexRoute
+  Char123LocaleChar125AdminBookingsRefRoute: typeof Char123LocaleChar125AdminBookingsRefRoute
   Char123LocaleChar125AdminDestinationsCodeRoute: typeof Char123LocaleChar125AdminDestinationsCodeRoute
   Char123LocaleChar125AdminFlightsFlightIdRoute: typeof Char123LocaleChar125AdminFlightsFlightIdRoute
   Char123LocaleChar125AdminBookingsIndexRoute: typeof Char123LocaleChar125AdminBookingsIndexRoute
@@ -1195,6 +1216,8 @@ const Char123LocaleChar125AdminRouteChildren: Char123LocaleChar125AdminRouteChil
     Char123LocaleChar125AdminSchedulesRoute:
       Char123LocaleChar125AdminSchedulesRoute,
     Char123LocaleChar125AdminIndexRoute: Char123LocaleChar125AdminIndexRoute,
+    Char123LocaleChar125AdminBookingsRefRoute:
+      Char123LocaleChar125AdminBookingsRefRoute,
     Char123LocaleChar125AdminDestinationsCodeRoute:
       Char123LocaleChar125AdminDestinationsCodeRoute,
     Char123LocaleChar125AdminFlightsFlightIdRoute:
