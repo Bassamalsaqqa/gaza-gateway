@@ -16,7 +16,7 @@ export const Route = createFileRoute("/{-$locale}/admin/settings")({
       ar: { title: "الإعدادات — إدارة مطار غزة الدولي", description: "إعدادات المطار وخدمة المسافرين والتواصل واللغة." },
       noindex: true,
     }),
-  component: AdminSettingsPage;
+  component: AdminSettingsPage,
 });
 
 type Tab = "airport" | "service" | "contact" | "localization";
@@ -29,7 +29,7 @@ function AdminSettingsPage() {
 
   if (!can("admin.manage")) return <AdminDenied area={t("a2.se.title")} permission="admin.manage" />;
 
-  const text = (id: string, label: string, value: string, dir?: "ltr") => (
+  const text = (id: string, label: string, value: string, dir: "ltr" | "auto" = "auto") => (
     <AdminField key={id} label={label} htmlFor={id}>
       <Input id={id} defaultValue={value} dir={dir} />
     </AdminField>
