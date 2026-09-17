@@ -1,5 +1,10 @@
 # Passenger experience completion + bilingual URLs
 
+> [!NOTE]
+> **Historical Artifact Notice**: This document records the completed Batch A passenger experience and bilingual URL initiative.
+> The statement "no admin" at the end of this plan was superseded by Admin Foundation Passes 1 & 2 (Commit `c263a78`), which implemented the complete administration workspace.
+> See [roadmap.md](../roadmap.md) and [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md) for the active 13-phase master roadmap.
+
 Large turn, split into two parts: (1) the Arabic URL namespace, (2) the passenger workflow fixes. No admin, no backend, no global redesign.
 
 ## Part 1 — Bilingual URL architecture

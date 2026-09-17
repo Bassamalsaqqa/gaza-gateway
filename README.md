@@ -1,5 +1,20 @@
 # Gaza Gateway
 
+> **Product**: Gaza International Airport (`GZA`) & Palestinian Airlines (`PS`)
+> **Production Domain**: [https://www.gazaairport.com](https://www.gazaairport.com)
+> **Engineering Status**: **Phase 0 Active (Measured Baseline Audit — Gates Open)** (Commit `c263a78` merged all admin workspace modules; 68 `.tsx` route files total in `src/routes/`: 23 admin, 44 public feature/layout routes, 1 root shell).
+> **Documentation Index**:
+> - [Master Engineering Roadmap (Phases 0–12)](roadmap.md)
+> - [System Architecture Specification](docs/ARCHITECTURE.md)
+> - [Data Flow, State Stores & Pretend-Action Inventory](docs/DATA_FLOW.md)
+> - [HostPapa Deployment Architecture Guide](docs/HOSTPAPA_DEPLOYMENT.md)
+> - [Engineering Invariants & Agent Guidelines](AGENTS.md)
+> - [Routes Architecture & Conventions](src/routes/README.md)
+
+---
+
+## Original Product Design Brief
+
 Design and build a complete modern public-facing website for:
 
 
