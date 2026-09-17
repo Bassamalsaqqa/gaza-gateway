@@ -44,7 +44,14 @@ function AdminLayout() {
     );
   }
 
-  const breadcrumb = path === "/admin/access-denied" ? t("adm.denied.title") : t("adm.nav.dashboard");
+  const breadcrumb = (() => {
+    if (path === "/admin/access-denied") return t("adm.denied.title");
+    if (path.startsWith("/admin/flights")) return t("adm.nav.flights");
+    if (path.startsWith("/admin/schedules")) return t("adm.nav.schedules");
+    if (path.startsWith("/admin/destinations")) return t("adm.nav.destinations");
+    if (path.startsWith("/admin/products")) return t("adm.nav.products");
+    return t("adm.nav.dashboard");
+  })();
 
   return (
     <AdminShell breadcrumb={breadcrumb}>
