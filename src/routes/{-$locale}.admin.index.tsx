@@ -128,8 +128,8 @@ function AdminDashboardPage() {
         {/* B. Today's operation */}
         <AdminPanel title={t("adm.dash.operation")} description={t("adm.dash.operationSub")} bodyClassName="p-0">
           {/* Desktop table */}
-          <div className="hidden overflow-x-auto lg:block">
-            <table className="w-full min-w-[52rem] text-sm">
+          <div className="hidden overflow-x-auto xl:block">
+            <table className="w-full min-w-[48rem] text-sm">
               <thead>
                 <tr className="border-b border-border text-start text-[0.7rem] uppercase tracking-wider text-muted-foreground">
                   <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.time")}</th>
@@ -218,7 +218,7 @@ function AdminDashboardPage() {
           </div>
 
           {/* Mobile / tablet stacked list */}
-          <ul className="lg:hidden">
+          <ul className="xl:hidden">
             {data.operation.map((f) => (
               <li key={`${f.id}-${f.direction}-m`} className="border-b border-border px-3 py-3 last:border-0">
                 <div className="flex items-center justify-between gap-2">
