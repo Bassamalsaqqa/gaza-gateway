@@ -41,10 +41,13 @@ import { Route as Char123LocaleChar125AccountTripsRouteImport } from './routes/{
 import { Route as Char123LocaleChar125AdminIndexRouteImport } from './routes/{-$locale}.admin.index'
 import { Route as Char123LocaleChar125AdminAccessDeniedRouteImport } from './routes/{-$locale}.admin.access-denied'
 import { Route as Char123LocaleChar125AdminActivityRouteImport } from './routes/{-$locale}.admin.activity'
+import { Route as Char123LocaleChar125AdminAnalyticsRouteImport } from './routes/{-$locale}.admin.analytics'
 import { Route as Char123LocaleChar125AdminCheckInRouteImport } from './routes/{-$locale}.admin.check-in'
 import { Route as Char123LocaleChar125AdminInboxRouteImport } from './routes/{-$locale}.admin.inbox'
 import { Route as Char123LocaleChar125AdminProductsRouteImport } from './routes/{-$locale}.admin.products'
 import { Route as Char123LocaleChar125AdminSchedulesRouteImport } from './routes/{-$locale}.admin.schedules'
+import { Route as Char123LocaleChar125AdminSettingsRouteImport } from './routes/{-$locale}.admin.settings'
+import { Route as Char123LocaleChar125AdminStaffRouteImport } from './routes/{-$locale}.admin.staff'
 import { Route as Char123LocaleChar125AdminSigninRouteImport } from './routes/{-$locale}.admin_.signin'
 import { Route as Char123LocaleChar125AirportIndexRouteImport } from './routes/{-$locale}.airport.index'
 import { Route as Char123LocaleChar125AirportFutureRouteImport } from './routes/{-$locale}.airport.future'
@@ -263,6 +266,12 @@ const Char123LocaleChar125AdminActivityRoute =
     path: '/activity',
     getParentRoute: () => Char123LocaleChar125AdminRoute,
   } as any)
+const Char123LocaleChar125AdminAnalyticsRoute =
+  Char123LocaleChar125AdminAnalyticsRouteImport.update({
+    id: '/analytics',
+    path: '/analytics',
+    getParentRoute: () => Char123LocaleChar125AdminRoute,
+  } as any)
 const Char123LocaleChar125AdminCheckInRoute =
   Char123LocaleChar125AdminCheckInRouteImport.update({
     id: '/check-in',
@@ -285,6 +294,18 @@ const Char123LocaleChar125AdminSchedulesRoute =
   Char123LocaleChar125AdminSchedulesRouteImport.update({
     id: '/schedules',
     path: '/schedules',
+    getParentRoute: () => Char123LocaleChar125AdminRoute,
+  } as any)
+const Char123LocaleChar125AdminSettingsRoute =
+  Char123LocaleChar125AdminSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => Char123LocaleChar125AdminRoute,
+  } as any)
+const Char123LocaleChar125AdminStaffRoute =
+  Char123LocaleChar125AdminStaffRouteImport.update({
+    id: '/staff',
+    path: '/staff',
     getParentRoute: () => Char123LocaleChar125AdminRoute,
   } as any)
 const Char123LocaleChar125AdminSigninRoute =
@@ -475,10 +496,13 @@ export interface FileRoutesByFullPath {
   '/{-$locale}/account/trips': typeof Char123LocaleChar125AccountTripsRouteWithChildren
   '/{-$locale}/admin/access-denied': typeof Char123LocaleChar125AdminAccessDeniedRoute
   '/{-$locale}/admin/activity': typeof Char123LocaleChar125AdminActivityRoute
+  '/{-$locale}/admin/analytics': typeof Char123LocaleChar125AdminAnalyticsRoute
   '/{-$locale}/admin/check-in': typeof Char123LocaleChar125AdminCheckInRoute
   '/{-$locale}/admin/inbox': typeof Char123LocaleChar125AdminInboxRoute
   '/{-$locale}/admin/products': typeof Char123LocaleChar125AdminProductsRoute
   '/{-$locale}/admin/schedules': typeof Char123LocaleChar125AdminSchedulesRoute
+  '/{-$locale}/admin/settings': typeof Char123LocaleChar125AdminSettingsRoute
+  '/{-$locale}/admin/staff': typeof Char123LocaleChar125AdminStaffRoute
   '/{-$locale}/admin/signin': typeof Char123LocaleChar125AdminSigninRoute
   '/{-$locale}/airport/future': typeof Char123LocaleChar125AirportFutureRoute
   '/{-$locale}/airport/past': typeof Char123LocaleChar125AirportPastRoute
@@ -533,10 +557,13 @@ export interface FileRoutesByTo {
   '/{-$locale}/account/travelers': typeof Char123LocaleChar125AccountTravelersRoute
   '/{-$locale}/admin/access-denied': typeof Char123LocaleChar125AdminAccessDeniedRoute
   '/{-$locale}/admin/activity': typeof Char123LocaleChar125AdminActivityRoute
+  '/{-$locale}/admin/analytics': typeof Char123LocaleChar125AdminAnalyticsRoute
   '/{-$locale}/admin/check-in': typeof Char123LocaleChar125AdminCheckInRoute
   '/{-$locale}/admin/inbox': typeof Char123LocaleChar125AdminInboxRoute
   '/{-$locale}/admin/products': typeof Char123LocaleChar125AdminProductsRoute
   '/{-$locale}/admin/schedules': typeof Char123LocaleChar125AdminSchedulesRoute
+  '/{-$locale}/admin/settings': typeof Char123LocaleChar125AdminSettingsRoute
+  '/{-$locale}/admin/staff': typeof Char123LocaleChar125AdminStaffRoute
   '/{-$locale}/admin/signin': typeof Char123LocaleChar125AdminSigninRoute
   '/{-$locale}/airport/future': typeof Char123LocaleChar125AirportFutureRoute
   '/{-$locale}/airport/past': typeof Char123LocaleChar125AirportPastRoute
@@ -598,10 +625,13 @@ export interface FileRoutesById {
   '/{-$locale}/account/trips': typeof Char123LocaleChar125AccountTripsRouteWithChildren
   '/{-$locale}/admin/access-denied': typeof Char123LocaleChar125AdminAccessDeniedRoute
   '/{-$locale}/admin/activity': typeof Char123LocaleChar125AdminActivityRoute
+  '/{-$locale}/admin/analytics': typeof Char123LocaleChar125AdminAnalyticsRoute
   '/{-$locale}/admin/check-in': typeof Char123LocaleChar125AdminCheckInRoute
   '/{-$locale}/admin/inbox': typeof Char123LocaleChar125AdminInboxRoute
   '/{-$locale}/admin/products': typeof Char123LocaleChar125AdminProductsRoute
   '/{-$locale}/admin/schedules': typeof Char123LocaleChar125AdminSchedulesRoute
+  '/{-$locale}/admin/settings': typeof Char123LocaleChar125AdminSettingsRoute
+  '/{-$locale}/admin/staff': typeof Char123LocaleChar125AdminStaffRoute
   '/{-$locale}/admin_/signin': typeof Char123LocaleChar125AdminSigninRoute
   '/{-$locale}/airport/future': typeof Char123LocaleChar125AirportFutureRoute
   '/{-$locale}/airport/past': typeof Char123LocaleChar125AirportPastRoute
@@ -664,10 +694,13 @@ export interface FileRouteTypes {
     | '/{-$locale}/account/trips'
     | '/{-$locale}/admin/access-denied'
     | '/{-$locale}/admin/activity'
+    | '/{-$locale}/admin/analytics'
     | '/{-$locale}/admin/check-in'
     | '/{-$locale}/admin/inbox'
     | '/{-$locale}/admin/products'
     | '/{-$locale}/admin/schedules'
+    | '/{-$locale}/admin/settings'
+    | '/{-$locale}/admin/staff'
     | '/{-$locale}/admin/signin'
     | '/{-$locale}/airport/future'
     | '/{-$locale}/airport/past'
@@ -722,10 +755,13 @@ export interface FileRouteTypes {
     | '/{-$locale}/account/travelers'
     | '/{-$locale}/admin/access-denied'
     | '/{-$locale}/admin/activity'
+    | '/{-$locale}/admin/analytics'
     | '/{-$locale}/admin/check-in'
     | '/{-$locale}/admin/inbox'
     | '/{-$locale}/admin/products'
     | '/{-$locale}/admin/schedules'
+    | '/{-$locale}/admin/settings'
+    | '/{-$locale}/admin/staff'
     | '/{-$locale}/admin/signin'
     | '/{-$locale}/airport/future'
     | '/{-$locale}/airport/past'
@@ -786,10 +822,13 @@ export interface FileRouteTypes {
     | '/{-$locale}/account/trips'
     | '/{-$locale}/admin/access-denied'
     | '/{-$locale}/admin/activity'
+    | '/{-$locale}/admin/analytics'
     | '/{-$locale}/admin/check-in'
     | '/{-$locale}/admin/inbox'
     | '/{-$locale}/admin/products'
     | '/{-$locale}/admin/schedules'
+    | '/{-$locale}/admin/settings'
+    | '/{-$locale}/admin/staff'
     | '/{-$locale}/admin_/signin'
     | '/{-$locale}/airport/future'
     | '/{-$locale}/airport/past'
@@ -1050,6 +1089,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char123LocaleChar125AdminActivityRouteImport
       parentRoute: typeof Char123LocaleChar125AdminRoute
     }
+    '/{-$locale}/admin/analytics': {
+      id: '/{-$locale}/admin/analytics'
+      path: '/analytics'
+      fullPath: '/{-$locale}/admin/analytics'
+      preLoaderRoute: typeof Char123LocaleChar125AdminAnalyticsRouteImport
+      parentRoute: typeof Char123LocaleChar125AdminRoute
+    }
     '/{-$locale}/admin/check-in': {
       id: '/{-$locale}/admin/check-in'
       path: '/check-in'
@@ -1076,6 +1122,20 @@ declare module '@tanstack/react-router' {
       path: '/schedules'
       fullPath: '/{-$locale}/admin/schedules'
       preLoaderRoute: typeof Char123LocaleChar125AdminSchedulesRouteImport
+      parentRoute: typeof Char123LocaleChar125AdminRoute
+    }
+    '/{-$locale}/admin/settings': {
+      id: '/{-$locale}/admin/settings'
+      path: '/settings'
+      fullPath: '/{-$locale}/admin/settings'
+      preLoaderRoute: typeof Char123LocaleChar125AdminSettingsRouteImport
+      parentRoute: typeof Char123LocaleChar125AdminRoute
+    }
+    '/{-$locale}/admin/staff': {
+      id: '/{-$locale}/admin/staff'
+      path: '/staff'
+      fullPath: '/{-$locale}/admin/staff'
+      preLoaderRoute: typeof Char123LocaleChar125AdminStaffRouteImport
       parentRoute: typeof Char123LocaleChar125AdminRoute
     }
     '/{-$locale}/admin_/signin': {
@@ -1317,10 +1377,13 @@ const Char123LocaleChar125AccountRouteWithChildren =
 interface Char123LocaleChar125AdminRouteChildren {
   Char123LocaleChar125AdminAccessDeniedRoute: typeof Char123LocaleChar125AdminAccessDeniedRoute
   Char123LocaleChar125AdminActivityRoute: typeof Char123LocaleChar125AdminActivityRoute
+  Char123LocaleChar125AdminAnalyticsRoute: typeof Char123LocaleChar125AdminAnalyticsRoute
   Char123LocaleChar125AdminCheckInRoute: typeof Char123LocaleChar125AdminCheckInRoute
   Char123LocaleChar125AdminInboxRoute: typeof Char123LocaleChar125AdminInboxRoute
   Char123LocaleChar125AdminProductsRoute: typeof Char123LocaleChar125AdminProductsRoute
   Char123LocaleChar125AdminSchedulesRoute: typeof Char123LocaleChar125AdminSchedulesRoute
+  Char123LocaleChar125AdminSettingsRoute: typeof Char123LocaleChar125AdminSettingsRoute
+  Char123LocaleChar125AdminStaffRoute: typeof Char123LocaleChar125AdminStaffRoute
   Char123LocaleChar125AdminIndexRoute: typeof Char123LocaleChar125AdminIndexRoute
   Char123LocaleChar125AdminBookingsRefRoute: typeof Char123LocaleChar125AdminBookingsRefRoute
   Char123LocaleChar125AdminBookingsNewRoute: typeof Char123LocaleChar125AdminBookingsNewRoute
@@ -1339,6 +1402,8 @@ const Char123LocaleChar125AdminRouteChildren: Char123LocaleChar125AdminRouteChil
       Char123LocaleChar125AdminAccessDeniedRoute,
     Char123LocaleChar125AdminActivityRoute:
       Char123LocaleChar125AdminActivityRoute,
+    Char123LocaleChar125AdminAnalyticsRoute:
+      Char123LocaleChar125AdminAnalyticsRoute,
     Char123LocaleChar125AdminCheckInRoute:
       Char123LocaleChar125AdminCheckInRoute,
     Char123LocaleChar125AdminInboxRoute: Char123LocaleChar125AdminInboxRoute,
@@ -1346,6 +1411,9 @@ const Char123LocaleChar125AdminRouteChildren: Char123LocaleChar125AdminRouteChil
       Char123LocaleChar125AdminProductsRoute,
     Char123LocaleChar125AdminSchedulesRoute:
       Char123LocaleChar125AdminSchedulesRoute,
+    Char123LocaleChar125AdminSettingsRoute:
+      Char123LocaleChar125AdminSettingsRoute,
+    Char123LocaleChar125AdminStaffRoute: Char123LocaleChar125AdminStaffRoute,
     Char123LocaleChar125AdminIndexRoute: Char123LocaleChar125AdminIndexRoute,
     Char123LocaleChar125AdminBookingsRefRoute:
       Char123LocaleChar125AdminBookingsRefRoute,
