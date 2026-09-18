@@ -7,7 +7,7 @@
 **Governing Authorities**: [`PRODUCT.md`](../PRODUCT.md), [`AGENTS.md`](../AGENTS.md), and Phase 3A Interaction System Handoffs (Run `20260918-phase-3a-interaction-system`, Corrections 1 & 2)  
 **Input Audits**: [`PHASE_3A_PUBLIC_AUDIT.md`](PHASE_3A_PUBLIC_AUDIT.md) (Accepted), [`PHASE_3A_HERITAGE_AUDIT.md`](PHASE_3A_HERITAGE_AUDIT.md) (Accepted), [`PHASE_3A_ADMIN_AUDIT.md`](PHASE_3A_ADMIN_AUDIT.md) (Accepted)  
 **Deliverable Scope**: Whole-product component inventory, empirical browser behavior matrix, architectural diagnosis, prioritized confirmed defects, and candidate interaction decisions for Phase 3A synthesis.  
-**Execution Boundary**: Audit-only. Zero application code changes under `src/`, zero dependency installations, zero backend creation, zero git commits/pushes. Working tree remains uncommitted and unpushed.
+**Execution Boundary**: Audit-only. Zero application code changes under `src/`, zero dependency installations, zero backend creation. Accepted & committed Phase 3A deliverable (committed in `cc57cfe2450effd78547b591fd66b156ef5e699a`, cleaned/normalized in `2a9a6b2ab15ba50aec98366f47aee9287797018f`; historical execution state at run completion: working tree remained uncommitted and unpushed).
 
 ---
 
@@ -63,7 +63,7 @@ The following inventory maps every interactive primitive in the codebase to its 
 | **`AdminSearch` (⌘K)**<br>`src/components/admin/admin-search.tsx` | 1 caller (`AdminShell`) | `<div role="dialog">` with `input[role="combobox"]` and `ul[role="listbox"]` | Custom combobox: live query filters results (8 options for "PS"), arrow keys, Enter activation, Escape dismissal | **RETAIN UX, REBUILD INFRASTRUCTURE** with `cmdk` |
 | **`SeatMap`**<br>`src/components/booking/seat-map.tsx` | 2 callers (`/book` step 4, `/manage/$ref/seats`) | Horizontal scrolling `<div overflow-x-auto>` with row `<div>`s and seat `<button>`s | **LINEAR TAB BURDEN**: 108 rendered buttons in economy cabin (inferred 73 sequential tab stops across enabled buttons in fixture; targeted 2-step Tab sequence verified). 32px mobile button passes SC 2.5.8 (24px) but falls short of 44px recommendation | **RECONSIDER UX PATTERN / REBUILD** with Roving TabIndex |
 | **`Stepper`**<br>`src/components/booking/stepper.tsx` | 1 caller (`/book`) | `<nav aria-label="...">` with `<ol><li><span>` | Presentation-only step indicators. Not clickable links. Step state ephemeral (`useState`), no URL sync | **IMPROVE UX** with URL search params and history push |
-| **Unreachable UI Primitives (46 files)**<br>`src/components/ui/*.tsx` | 0 callers from application entry points | Starter shadcn/Radix templates | Zero runtime reachability; dead maintenance overhead | **PURGE OR MIGRATE** |
+| **Unreachable UI Primitives (46 files)**<br>`src/components/ui/*.tsx` | 0 callers from application entry points | Starter shadcn/Radix templates | Zero runtime reachability; dead maintenance overhead | **DEFERRED (Audit-stage candidate: purge or migrate; superseded by accepted synthesis direction to leave `src/components/ui/` untouched until Phase 3B primitive strategy is chosen post-design shaping)** |
 
 ---
 
@@ -184,13 +184,13 @@ All tokens in `src/styles.css` are specified using modern CSS `oklch()`. Using c
 ## 6. Prioritized Confirmed Defects
 
 ### Defect 1: Public Mobile Navigation Drawer Focus Containment Failure & Missing Escape Dismissal
-- **Severity**: **High** | **Applicable Standards**: WCAG 2.2 SC 2.4.3 (Focus Order), WAI-ARIA Modal Dialog Pattern (Focus Containment)
+- **Severity**: **High** | **Applicable Standards**: Focus management conflicts with expected modal-dialog/WAI-ARIA Authoring Practices behavior and raises WCAG focus-order concerns (formal mapping in Phase 8)
 - **Source**: `src/components/site-header.tsx` lines 147–189
 - **Evidence**: On 390px viewport, opening the mobile drawer sets `document.body.style.overflow = "hidden"`, but `document.activeElement` remains on the header menu button. When pressing `Tab`, focus **escapes** the modal drawer, leaking to the off-screen skip link and top language switch behind the drawer. Pressing `Escape` does nothing (`isOpen` remains true). Clicking the close button (`X`) drops focus to `document.body` instead of returning to the menu trigger.
 - **Root Cause**: The drawer was written as a raw conditional `div` with custom CSS rather than leveraging a standard dialog/sheet primitive with focus trapping and focus restoration.
 
 ### Defect 2: Gallery Lightbox Focus Leak, Unlocked Body Scroll & Focus Drop
-- **Severity**: **High** | **WCAG Criteria**: SC 2.4.3 (Focus Order)
+- **Severity**: **High** | **A11y Criteria / Concerns**: Focus management conflicts with expected modal-dialog/WAI-ARIA Authoring Practices behavior and raises WCAG focus-order concerns (formal mapping in Phase 8)
 - **Source**: `src/routes/{-$locale}.gallery.tsx` lines 145–212
 - **Evidence**: Clicking an image card opens the lightbox modal. `document.body.style.overflow` is never set to `"hidden"`, allowing background page scrolling while the viewer is open. Focus is not moved into the dialog on open. Tabbing past the "Next" button leaks focus directly into the background gallery thumbnail buttons. When closed via Escape without inner focus, focus remains on the active thumbnail (`activeElementIsBody: false`); when closed after focusing inside the dialog, focus unconditionally drops to `document.body` as the focused DOM element is destroyed (established in the accepted heritage audit).
 - **Root Cause**: Custom lightbox overlay lacks focus trap and body scroll lock hooks.
@@ -202,7 +202,7 @@ All tokens in `src/styles.css` are specified using modern CSS `oklch()`. Using c
 - **Root Cause**: Popover is rendered as an unmanaged `absolute` div toggled by boolean state without event listeners for `keydown` (Escape) or `mousedown` (outside click).
 
 ### Defect 4: Seat Map Linear Tab Burden & Mobile Touch Target Ergonomics
-- **Severity**: **High** | **WCAG Criteria**: SC 2.4.3 (Focus Order)
+- **Severity**: **High** | **Ergonomic & A11y Concerns**: Linear traversal burden across sequential DOM order; raises focus-order and navigation efficiency concerns (formal WCAG mapping in Phase 8)
 - **Source**: `src/components/booking/seat-map.tsx` lines 112–169
 - **Evidence**: In Boeing 737-800 economy cabin (rows 11–28), 108 seat buttons are rendered in normal DOM flow. In the tested fixture, 73 seats are enabled/available and 35 are occupied/disabled. Because these are native enabled buttons in flat document order without `tabIndex="-1"`, keyboard navigation incurs an inferred 73 sequential tab stops across available seats to reach subsequent form actions (empirically confirmed via targeted 2-step Tab advancement; a full 73-key traversal was not run). Arrow keys do not navigate the 2D grid. Mobile seat buttons measure 32px × 32px: this satisfies the WCAG 2.2 AA SC 2.5.8 minimum (24px) but falls short of the recommended 44px mobile touch target standard (platform recommendation, not a WCAG AA failure).
 - **Root Cause**: Absence of a 2D roving tabindex `role="grid"` pattern.
@@ -225,29 +225,30 @@ All tokens in `src/styles.css` are specified using modern CSS `oklch()`. Using c
 - **Evidence**: Native `<input type="date">` elements in public Arabic routes lack explicit `dir="ltr"` or `.code-id` wrappers, causing browser native date placeholders to format unpredictably in RTL layouts.
 - **Root Cause**: Inconsistent application of `dir="ltr"` across date inputs (present in admin schedules, omitted in public booking).
 
-### Defect 8: Unreachable Dead Code in `src/components/ui/`
+### Defect 8: Unreachable Dead Code in `src/components/ui/` (Audit-Stage Candidate Finding)
 - **Severity**: **Medium** | **Architecture & Maintenance**
 - **Source**: `src/components/ui/` (46 files)
 - **Evidence**: Static reachability analysis from application entry points confirms that 0 out of 46 files in `src/components/ui/` are reachable or imported by the application. Primitives like `accordion`, `carousel`, `chart`, `drawer`, `menubar`, `navigation-menu`, `popover`, `select`, `slider`, `switch`, `tabs` add cognitive overhead and dead weight to the repository without providing value.
 - **Root Cause**: Scaffolding templates that were never adopted by application routes.
+- **Status / Policy Note**: Audit-stage candidate finding. As established in the accepted Phase 3A synthesis and checkpoint, `src/components/ui/` is left untouched in the tree until the Phase 3B primitive strategy is decided following Whole-Product Design-Direction Shaping (where headless infrastructure may be reused, wrapped, or discarded according to shaped UX and engineering needs).
 
 ---
 
 ## 7. Material Architectural Decision Cards
 
-The following decision cards are prepared for the later Phase 3A Synthesis and Owner Review:
+The following decision cards were prepared during the audit stage for the later Phase 3A Synthesis and Owner Review:
 
-### Decision Card 1: UI Primitives Foundation Consolidation
+### Decision Card 1: UI Primitives Foundation Consolidation (Audit-Stage Candidate Recommendation)
 - **Current State**: 46 files in `src/components/ui/` (0 reachable from application entry points); active application runs on `src/components/kit.tsx` and `src/components/admin/admin-kit.tsx`.
 - **Direct Evidence**: `inventory-analysis.json` confirmed 0 of 46 files in `ui/` are reachable from routes, while `kit.tsx` and `admin-kit.tsx` account for over 300 component callers.
 - **Genuine Strengths of Current State**: `kit.tsx` is ultra-compact, has zero external Radix dependencies for simple buttons/panels, and strictly enforces the warm limestone/olive tokens.
-- **Trade-offs / Alternatives**:
+- **Trade-offs / Alternatives (Historical Audit Formulation)**:
   - *Option A (Prune Dead Code)*: Delete the unreachable `ui/*.tsx` files. Keep `kit.tsx` and `admin-kit.tsx` as the authoritative design system.
   - *Option B (Harmonize onto Radix)*: Adopt Radix headless primitives only where accessibility requires it (dialog, sheet, popover, dropdown), while keeping `kit.tsx` for visual tokens.
-- **Recommendation**: **Option B**. Prune unused UI files, but retain and standardize Radix headless primitives for complex accessible overlays (Dialog, Sheet, Popover).
-- **Impact**: Zero runtime regression; removes ~3,500 lines of dead code; improves maintenance clarity.
-- **Owner Decision Required?**: **NO** (Standard engineering cleanup).
-- **Classification**: `CONSOLIDATE`.
+- **Audit Recommendation & Synthesis Status**: The audit-stage candidate recommendation to prune dead code or unused UI files is **superseded by the accepted synthesis and checkpoint direction**: leave `src/components/ui/` untouched until the Phase 3B primitive strategy is chosen after Whole-Product Design-Direction Shaping; installed Radix/headless infrastructure may be reused, wrapped, or discarded according to shaped UX and engineering needs. Neither implementation is chosen now.
+- **Impact**: Codebase stability during design shaping; defers primitive architecture decisions until whole-product UX and engineering requirements are finalized.
+- **Owner Decision Required?**: **NO** (Deferred to post-shaping Phase 3B strategy).
+- **Classification**: `DEFERRED TO POST-SHAPING`.
 
 ---
 
@@ -363,7 +364,7 @@ Targeted interactive test cases executed during this audit run are preserved in 
 - **HostPapa Static Build**: `bun run build:hostpapa` → **Exit code 0** (46 pages prerendered)
 - **Git Diff Whitespace Check**: `git diff --check` → **Exit code 0**
 - **Route Tree Parity**: `git diff --quiet -- src/routeTree.gen.ts` → **Exit code 0** (zero content diffs)
-- **Application Tree Integrity**: Zero application code files under `src/` were modified. Working tree remains uncommitted and unpushed.
+- **Application Tree Integrity**: Zero application code files under `src/` were modified (historical audit boundary: working tree uncommitted and unpushed; subsequently accepted and committed in `cc57cfe2450effd78547b591fd66b156ef5e699a` and normalized in `2a9a6b2ab15ba50aec98366f47aee9287797018f`).
 
 ---
-*Ready for Codex independent review and Phase 3A Synthesis preparation.*
+*Accepted Phase 3A interaction audit, committed in `cc57cfe2450effd78547b591fd66b156ef5e699a` and normalized through `2a9a6b2ab15ba50aec98366f47aee9287797018f`; the later synthesis/checkpoint governs future primitive choices.*

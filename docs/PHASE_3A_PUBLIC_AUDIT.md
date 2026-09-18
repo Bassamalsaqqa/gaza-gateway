@@ -4,7 +4,7 @@
 **Date**: September 18, 2026  
 **Product**: Gaza International Airport (`GZA`) / Palestinian Airlines (`PS`)  
 **Scope**: Public passenger journeys (Discovery, Booking Wizard, Manage Booking & Check-In, Passenger Account & Auth)  
-**Deliverable Status**: Working Audit & Whole-Product Direction Recommendations (Untracked Working Deliverable)  
+**Deliverable Status**: Accepted & Committed Phase 3A Audit (committed in `cc57cfe2450effd78547b591fd66b156ef5e699a`, cleaned/normalized in `2a9a6b2ab15ba50aec98366f47aee9287797018f`; historical run deliverable: Working Audit & Whole-Product Direction Recommendations)
 
 ---
 
@@ -18,7 +18,7 @@ An empirical, browser-driven Chrome DevTools Protocol (CDP) audit was conducted 
 
 1. **Overlay Dismissal Deficits (Passenger Popover & Mobile Drawer)**:
    - In [`src/components/flight-search-form.tsx`](../src/components/flight-search-form.tsx#L216), the passenger selector button correctly toggles `aria-expanded` (`false` $\rightarrow$ `true`) and opens the `.min-w-64` counter card. However, empirical testing proved it lacks both an `Escape` key listener (`closesOnEscape: false`) and an outside-click listener (`closesOnBodyClick: false`). It dismisses solely when the trigger is toggled again or when the explicit "Done" button is clicked (`closesOnDoneButton: true`). For keyboard users, this creates an unexpectedly persistent overlay that cannot be dismissed via standard keyboard conventions.
-   - In [`src/components/site-header.tsx`](../src/components/site-header.tsx#L125), the mobile navigation drawer renders `role="dialog"` but does not contain Tab focus within the drawer (focus escapes behind the overlay to background page links), does not dismiss upon pressing `Escape` (`closesOnEscape: false`), and does not restore focus to the hamburger trigger button upon closure. This represents a defect under **WCAG 2.2 SC 2.4.3 (Focus Order)** and deviates from the **WAI-ARIA Modal Dialog Pattern**. It is not a violation of SC 2.1.2 (No Keyboard Trap), as focus is able to escape the overlay rather than locking the user inside.
+   - In [`src/components/site-header.tsx`](../src/components/site-header.tsx#L125), the mobile navigation drawer renders `role="dialog"` but does not contain Tab focus within the drawer (focus escapes behind the overlay to background page links), does not dismiss upon pressing `Escape` (`closesOnEscape: false`), and does not restore focus to the hamburger trigger button upon closure. This confirmed focus-management behavior conflicts with expected modal-dialog/WAI-ARIA Authoring Practices behavior and raises WCAG focus-order/conformance concerns (with final formal WCAG mapping reserved for Phase 8 certification). It is not a violation of SC 2.1.2 (No Keyboard Trap), as focus is able to escape the overlay rather than locking the user inside.
 2. **State Isolation & Navigation Fragility**: The multi-step booking wizard (`/book`) operates purely on local React state (`useState<Step>`) over a single URL. Activating the browser Back button exits the entire booking flow to `/`, discarding selected flights and passenger details. Wizard stepper items are inert `<span>` elements, preventing passengers from clicking earlier steps to adjust previous selections.
 3. **Seat Map Traversal Ergonomics & Directionality**: The Airbus A320 cabin seat map ([`src/components/booking/seat-map.tsx`](../src/components/booking/seat-map.tsx#L120)) renders 108 native seat buttons in the economy zone (75 focusable, 33 occupied/disabled). While operable via Enter and Space, traversing 75 consecutive Tab stops without roving tabindex or 2D arrow keys represents burdensome linear keyboard navigation. In Arabic RTL, flex container mirroring flips port (left) and starboard (right) seating columns relative to standard aircraft forward cabin orientation.
 4. **Manage Booking Check-In Cues & Full Journey Verified**: Inspection of [`src/components/booking/booking-detail.tsx`](../src/components/booking/booking-detail.tsx#L70-L95) confirms that per-leg check-in status is explicitly displayed in a dedicated `Trip status` panel without status masking. Furthermore, a complete public check-in workflow was walked end-to-end for booking `GZA-7K8P`—advancing through leg selection, passenger selection, travel document confirmation, seat choice, review, and confirmation—persisting `checkedIn.out: [0, 1, 2]` to `localStorage` and navigating to the issued boarding pass (`/boarding-pass/GZA-7K8P/out/2`). Source inspection and live testing confirmed that NO hazardous goods declaration exists in the application.
@@ -40,7 +40,7 @@ An empirical, browser-driven Chrome DevTools Protocol (CDP) audit was conducted 
 2. **Mobile Navigation Drawer Missing Focus Containment, Escape Handler & Focus Restoration**
    - **Location**: [`src/components/site-header.tsx#L125-L185`](../src/components/site-header.tsx#L125-L185)
    - **Defect**: When opened on viewports `< 768px`, the mobile navigation overlay covers the viewport (`fixed inset-0 z-50`). While it renders `role="dialog"`, it does not trap Tab focus within its links (focus leaks to background page elements), does not listen for the `Escape` key (`closesOnEscape: false`), and does not return focus to the hamburger trigger button upon closure.
-   - **Impact**: Direct failure of **WCAG 2.2 Success Criterion 2.4.3 (Focus Order)** and deviation from the **WAI-ARIA Modal Dialog Pattern**. Note that because Tab focus leaks out of the drawer to background links rather than trapping the user inside, this is a failure of focus containment and logical focus order, not a keyboard trap under SC 2.1.2.
+   - **Impact**: The confirmed focus-management behavior conflicts with expected modal-dialog/WAI-ARIA Authoring Practices behavior and raises WCAG focus-order/conformance concerns (final formal WCAG mapping reserved for Phase 8 certification). Note that because Tab focus leaks out of the drawer to background links rather than trapping the user inside, this is a failure of focus containment, not a keyboard trap under SC 2.1.2.
 
 3. **Passenger Selector Popover Missing Escape & Outside-Click Handlers**
    - **Location**: [`src/components/flight-search-form.tsx#L216-L277`](../src/components/flight-search-form.tsx#L216-L277)
@@ -276,10 +276,10 @@ The booking wizard is encapsulated within [`src/routes/{-$locale}.book.tsx`](../
 - **Empirical Behavior Evidence**: `keyboardA11y.mobileDrawer` in `browser-test-records.json`. Chrome CDP testing verified: `drawerVisible: true`, `hasDialogRole: true`, `closesOnEscape: false`. Opening the drawer fails to trap focus; tabbing cycles through background links beneath the overlay; pressing `Escape` does not close the drawer.
 - **Genuine Strengths**: Clean visual design, authentic brand typography, well-organized navigation grouping, and natural RTL alignment flip in Arabic.
 - **Defects vs Opportunities**:
-  - *Defect*: Violates WCAG 2.2 AA SC 2.4.3 (Focus Order) and deviates from the WAI-ARIA Modal Dialog Pattern by failing to contain Tab focus within the drawer (allowing focus to leak to background elements), ignoring Escape, and failing to restore focus to the trigger button upon close. Note: Because Tab can leave the drawer, this is a failure of focus containment, not a keyboard trap under SC 2.1.2.
+  - *Defect*: Confirmed focus-management behavior conflicts with expected modal-dialog/WAI-ARIA Authoring Practices behavior and raises WCAG focus-order/conformance concerns (final formal WCAG mapping reserved for Phase 8 certification) by failing to contain Tab focus within the drawer (allowing focus to leak to background elements), ignoring Escape, and failing to restore focus to the trigger button upon close. Note: Because Tab can leave the drawer, this is a failure of focus containment, not a keyboard trap under SC 2.1.2.
   - *Opportunity*: Establish a standard accessible modal drawer pattern for mobile navigation.
 - **Option A (Recommended)**: Wrap the mobile drawer in an accessible dialog container with active focus trapping, body scroll lock (`overflow: hidden`), `Escape` key dismiss listener, and focus restoration to the hamburger trigger button upon close.
-  - *Pros*: Full compliance with WCAG 2.2 AA SC 2.4.3 and WAI-ARIA Modal Dialog standards.
+  - *Pros*: Aligns with expected modal-dialog/WAI-ARIA Authoring Practices behavior and addresses WCAG focus-order concerns.
   - *Cons*: Minor refactoring of header state and focus management.
 - **Option B**: Maintain current inline DOM structure and attach manual `keydown` listeners for Escape and a custom Tab focus loop.
   - *Pros*: Minimal DOM restructuring.
@@ -289,7 +289,7 @@ The booking wizard is encapsulated within [`src/routes/{-$locale}.book.tsx`](../
   - *Desktop*: No impact (desktop navigation remains in header bar).
   - *Mobile*: Significant accessibility improvement; keyboard and touch users can exit reliably.
   - *EN / AR*: Preserves natural slide direction (left in EN, right in AR).
-  - *Accessibility*: Resolves WCAG 2.2 SC 2.4.3 failure and satisfies WAI-ARIA modal dialog requirements.
+  - *Accessibility*: Resolves focus-management conflict with expected modal-dialog/WAI-ARIA Authoring Practices behavior and addresses WCAG focus-order concerns.
   - *Complexity*: Low ($\approx 30$ lines of code).
 
 ---
@@ -518,7 +518,7 @@ The table below indexes the exact structured evidence records and verified postc
 The following verified findings are handed off to the upcoming **Interaction System Audit** and **Phase 3A Synthesis** workstreams:
 
 1. **Passenger Selector Overlay Dismissal Deficit**: In `flight-search-form.tsx`, while the button sets `aria-expanded`, the popover card lacks `Escape` key and outside-click listeners, dismissing only when clicking the trigger again or clicking the explicit "Done" button.
-2. **Mobile Drawer Accessibility Gap**: The mobile navigation drawer on `<768px` lacks focus containment (Tab focus leaks to background page elements), does not dismiss on `Escape`, and does not return focus to trigger, presenting an accessibility defect under WCAG 2.2 SC 2.4.3 (Focus Order) and WAI-ARIA Modal Dialog Pattern. (Not a SC 2.1.2 keyboard trap).
+2. **Mobile Drawer Accessibility Gap**: The mobile navigation drawer on `<768px` lacks focus containment (Tab focus leaks to background page elements), does not dismiss on `Escape`, and does not return focus to trigger; this confirmed focus-management behavior conflicts with expected modal-dialog/WAI-ARIA Authoring Practices behavior and raises WCAG focus-order/conformance concerns (final formal WCAG mapping reserved for Phase 8 certification). (Not a SC 2.1.2 keyboard trap).
 3. **Broken Confirmation Route Link**: On bookings with checked-in legs, the "Boarding pass" button on the confirmation page targets `/boarding-pass/$ref/$pax` instead of `/boarding-pass/$ref/$leg/$pax`, hitting TanStack 404.
 4. **Manage Booking Status Cues**: `booking-detail.tsx` explicitly renders a `Trip status` panel breaking down checked-in and remaining passenger counts per leg, correctly preventing leg status confusion.
 5. **Seat Map Linear Keyboard Traversal & RTL Mirroring**: The economy cabin map presents 75 focusable seat buttons in linear Tab order. While keyboard reachable, it creates traversal friction without roving tabindex. In Arabic RTL, flex mirroring inverts port and starboard seating columns relative to aircraft forward orientation.
