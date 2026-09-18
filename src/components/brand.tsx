@@ -28,7 +28,7 @@ export function Brand({ tone = "light", compact = false }: { tone?: "light" | "d
         >
           {t("brand.airport")}
         </span>
-        <span className={cn("text-[0.7rem]", tone === "dark" ? "text-ink-muted" : "text-muted-foreground")}>
+        <span className={cn("text-xs", tone === "dark" ? "text-ink-muted" : "text-muted-foreground")}>
           {t("brand.airline")}
         </span>
       </span>

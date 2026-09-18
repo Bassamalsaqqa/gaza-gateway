@@ -20,7 +20,7 @@ export function AdminPageHeader({
   return (
     <header className="flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-start sm:justify-between">
       <div className="min-w-0">
-        <h1 className="text-xl font-bold tracking-tight sm:text-2xl">{title}</h1>
+        <h1 className="type-title-md">{title}</h1>
         {description ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}
         {meta ? <div className="mt-2">{meta}</div> : null}
       </div>
@@ -57,7 +57,7 @@ export function Metric({
         emphasis && "bg-sand",
       )}
     >
-      <p className="text-[0.7rem] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className="type-label text-muted-foreground">{label}</p>
       <p className={cn("code-id mt-1 font-bold", emphasis ? "text-2xl" : "text-xl", tones[tone])}>{value}</p>
       {hint ? <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p> : null}
     </div>
@@ -244,7 +244,7 @@ export function AdminField({
 }) {
   return (
     <div className={cn("flex flex-col gap-1", className)}>
-      <label htmlFor={htmlFor} className="text-[0.7rem] font-bold uppercase tracking-wider text-muted-foreground">
+      <label htmlFor={htmlFor} className="type-label text-muted-foreground">
         {label}
       </label>
       {children}

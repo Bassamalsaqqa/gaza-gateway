@@ -138,7 +138,7 @@ function AdminDashboardPage() {
       <div className="hidden overflow-x-auto xl:block">
         <table className="w-full min-w-[58rem] text-sm">
           <thead>
-            <tr className="border-b border-border text-start text-[0.7rem] uppercase tracking-wider text-muted-foreground">
+            <tr className="border-b border-border type-th">
               <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.time")}</th>
               <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.flight")}</th>
               <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.route")}</th>
@@ -356,7 +356,7 @@ function AdminDashboardPage() {
           <div className="hidden overflow-x-auto sm:block">
             <table className="w-full min-w-[34rem] text-sm">
               <thead>
-                <tr className="border-b border-border text-[0.7rem] uppercase tracking-wider text-muted-foreground">
+                <tr className="border-b border-border type-th">
                   <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.pnr")}</th>
                   <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.passenger")}</th>
                   <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.route")}</th>
@@ -456,7 +456,7 @@ function AdminDashboardPage() {
       {/* A. Today summary */}
       {summaryMetrics.length > 0 ? (
         <section aria-label={t("adm.dash.today")}>
-          <h2 className="mb-2 text-[0.7rem] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             {t("adm.dash.today")}
           </h2>
           <div

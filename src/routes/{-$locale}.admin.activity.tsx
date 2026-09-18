@@ -81,7 +81,7 @@ function AdminActivityPage() {
               <table className="w-full text-sm">
                 <caption className="sr-only">{t("a2.ac.title")}</caption>
                 <thead>
-                  <tr className="border-b border-border text-[0.7rem] uppercase tracking-wider text-muted-foreground">
+                  <tr className="border-b border-border type-th">
                     {[t("a2.ac.actor"), t("a2.ac.action"), t("a2.ac.module"), t("a2.ac.object"), t("a2.ac.when")].map((h) => (
                       <th key={h} scope="col" className="px-3 py-2 text-start font-bold">{h}</th>
                     ))}

@@ -108,7 +108,7 @@ function AdminSignInPage() {
           <p className="mt-4 text-xs text-muted-foreground">{t("adm.signin.support")}</p>
 
           <div className="mt-6 rounded-lg border border-dashed border-border bg-sand p-3">
-            <p className="text-[0.7rem] font-bold uppercase tracking-wider text-muted-foreground">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               {t("adm.signin.helper")}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">{t("adm.signin.helperNote")}</p>
@@ -117,7 +117,7 @@ function AdminSignInPage() {
                 <li key={s.id} className="flex items-center justify-between gap-2">
                   <span className="min-w-0">
                     <span className="block truncate text-xs font-semibold">{pick(lang, s.name)}</span>
-                    <span dir="ltr" className="block truncate text-[0.7rem] text-muted-foreground">
+                    <span dir="ltr" className="block truncate text-xs text-muted-foreground">
                       {s.email}
                     </span>
                   </span>

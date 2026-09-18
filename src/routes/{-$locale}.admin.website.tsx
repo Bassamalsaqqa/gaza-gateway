@@ -195,7 +195,7 @@ function AdminWebsitePage() {
                     </AdminField>
                   </div>
                   <div className="space-y-2">
-                    <p className="text-[0.7rem] font-bold uppercase tracking-wider text-muted-foreground">{t("a2.web.tr.items")}</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("a2.web.tr.items")}</p>
                     {activeTravel.items.map((item, i) => (
                       <div key={item.id} className="flex flex-wrap items-end gap-2">
                         <AdminField label={`${t("a2.body")} ${i + 1}`} htmlFor={`tr-i-${item.id}`} className="min-w-0 flex-1">
@@ -287,7 +287,7 @@ function AdminWebsitePage() {
                   </ul>
                 </div>
                 <div className="rounded-md border border-border p-3">
-                  <p className="text-[0.7rem] font-bold uppercase tracking-wider text-muted-foreground">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     {`${t("a2.web.nav.previewDesktop")} / ${t("a2.web.nav.previewMobile")}`}
                   </p>
                   <div className="mt-2 flex gap-3">

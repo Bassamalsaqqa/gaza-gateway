@@ -112,7 +112,7 @@ function AdminCheckInPage() {
               <table className="w-full text-sm">
                 <caption className="sr-only">{t("a2.ci.title")}</caption>
                 <thead>
-                  <tr className="border-b border-border text-[0.7rem] uppercase tracking-wider text-muted-foreground">
+                  <tr className="border-b border-border type-th">
                     {[t("a2.ci.passenger"), "PNR", t("a2.ci.docs"), t("a2.bd.seat"), t("a2.bd.bags"), t("a2.bd.assistance"), t("a2.status"), t("a2.actions")].map((h) => (
                       <th key={h} scope="col" className="px-3 py-2 text-start font-bold">
                         {h}

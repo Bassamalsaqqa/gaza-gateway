@@ -155,7 +155,7 @@ function AdminBookingsPage() {
               <table className="w-full min-w-[62rem] text-sm">
                 <caption className="sr-only">{t("a2.bk.title")}</caption>
                 <thead>
-                  <tr className="border-b border-border text-[0.7rem] uppercase tracking-wider text-muted-foreground">
+                  <tr className="border-b border-border type-th">
                     <th scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bk.pnr")}</th>
                     <th scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bk.lead")}</th>
                     <th scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bk.route")}</th>

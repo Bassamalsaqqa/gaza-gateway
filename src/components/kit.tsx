@@ -44,7 +44,7 @@ export function Button({
 /* ---------------------------------- inputs -------------------------------- */
 
 const fieldBase =
-  "w-full rounded-lg border border-input bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/70 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring";
+  "w-full rounded-lg border border-input bg-card px-3.5 py-2 text-sm text-foreground placeholder:text-muted-foreground/70 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring";
 
 export function Field({
   label,
@@ -63,7 +63,7 @@ export function Field({
 }) {
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
-      <label htmlFor={htmlFor} className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+      <label htmlFor={htmlFor} className="type-label text-muted-foreground">
         {label}
       </label>
       {children}
@@ -182,7 +182,7 @@ export function PageHeader({
     <header className="border-b border-border bg-sand">
       <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
         {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
-        <h1 className="mt-3 text-3xl font-bold sm:text-5xl">{title}</h1>
+        <h1 className="type-title-lg mt-3">{title}</h1>
         {description ? <p className="mt-3 max-w-2xl text-sm text-muted-foreground sm:text-base">{description}</p> : null}
         {children ? <div className="mt-6">{children}</div> : null}
       </div>
@@ -204,7 +204,7 @@ export function EmptyState({
   return (
     <div className="surface flex flex-col items-center gap-3 px-6 py-14 text-center">
       {icon ? <div className="text-muted-foreground">{icon}</div> : null}
-      <h3 className="text-lg font-semibold">{title}</h3>
+      <h3 className="type-title-sm">{title}</h3>
       {description ? <p className="max-w-sm text-sm text-muted-foreground">{description}</p> : null}
       {action}
     </div>

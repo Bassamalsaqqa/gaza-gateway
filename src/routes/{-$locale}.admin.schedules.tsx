@@ -179,7 +179,7 @@ function AdminSchedulesPage() {
               <table className="w-full min-w-[58rem] text-sm">
                 <caption className="sr-only">{t("adm.sch.title")}</caption>
                 <thead>
-                  <tr className="border-b border-border text-start text-[0.7rem] uppercase tracking-wider text-muted-foreground">
+                  <tr className="border-b border-border type-th">
                     <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.sch.number")}</th>
                     <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.sch.route")}</th>
                     <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.sch.days")}</th>
@@ -365,7 +365,7 @@ function AdminSchedulesPage() {
             </Field>
 
             <fieldset>
-              <legend className="text-[0.7rem] font-bold uppercase tracking-wider text-muted-foreground">
+              <legend className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 {t("adm.sch.days")}
               </legend>
               <div className="mt-1.5 flex flex-wrap gap-1.5">

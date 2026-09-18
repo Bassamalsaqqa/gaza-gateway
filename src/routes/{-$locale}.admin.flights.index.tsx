@@ -218,7 +218,7 @@ function AdminFlightsPage() {
               <table className="w-full min-w-[62rem] text-sm">
                 <caption className="sr-only">{t("adm.fl.title")}</caption>
                 <thead>
-                  <tr className="border-b border-border text-start text-[0.7rem] uppercase tracking-wider text-muted-foreground">
+                  <tr className="border-b border-border type-th">
                     <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.time")}</th>
                     <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.flight")}</th>
                     <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.route")}</th>

@@ -36,13 +36,13 @@ export function FlightOption({
             <Code className="text-xs text-muted-foreground">{flight.originCode}</Code>
           </div>
           <div className="flex flex-col items-center gap-1 text-muted-foreground">
-            <span className="numeral text-[0.7rem]">{minutesToLabel(flight.durationMinutes, lang)}</span>
+            <span className="numeral text-xs">{minutesToLabel(flight.durationMinutes, lang)}</span>
             <span aria-hidden="true" className="flex w-16 items-center gap-1 sm:w-24">
               <span className="h-px flex-1 bg-border" />
               <Plane className="size-3.5 rtl:-scale-x-100" />
               <span className="h-px flex-1 bg-border" />
             </span>
-            <span className="text-[0.7rem]">{t("book.nonstop")}</span>
+            <span className="text-xs">{t("book.nonstop")}</span>
           </div>
           <div>
             <p className="code-id text-2xl font-bold">{flight.arriveTime}</p>

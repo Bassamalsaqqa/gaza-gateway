@@ -96,7 +96,7 @@ function SidebarBody({ collapsed, onNavigate }: { collapsed: boolean; onNavigate
       {visibleGroups.map((group) => (
         <div key={group.id} className="mb-3">
           {!collapsed ? (
-            <p className="px-2.5 pb-1 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-ink-muted/70">
+            <p className="px-2.5 pb-1 text-xs font-bold uppercase tracking-wider text-ink-muted/80">
               {t(group.labelKey)}
             </p>
           ) : (
@@ -125,7 +125,7 @@ function WorkspaceMark({ collapsed = false }: { collapsed?: boolean }) {
       {!collapsed ? (
         <span className="min-w-0">
           <span className="block truncate text-sm font-bold text-ink-foreground">{t("adm.workspace")}</span>
-          <span className="block truncate text-[0.7rem] text-ink-muted">{t("adm.brandLine")}</span>
+          <span className="block truncate text-xs text-ink-muted">{t("adm.brandLine")}</span>
         </span>
       ) : null}
     </div>
@@ -191,7 +191,7 @@ function AccountMenu() {
           </div>
 
           <div className="mt-3 border-t border-border pt-3">
-            <p className="flex items-center gap-1.5 text-[0.7rem] font-bold uppercase tracking-wider text-muted-foreground">
+            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               <Sparkles aria-hidden="true" className="size-3" />
               {t("adm.shell.switchRole")}
             </p>
@@ -211,7 +211,7 @@ function AccountMenu() {
                 </button>
               ))}
             </div>
-            <p className="mt-1.5 text-[0.7rem] text-muted-foreground">{t("adm.shell.switchRoleNote")}</p>
+            <p className="mt-1.5 text-xs text-muted-foreground">{t("adm.shell.switchRoleNote")}</p>
           </div>
 
           <button
@@ -329,7 +329,7 @@ function AttentionBell() {
                 <li key={item.id} className="border-b border-border px-3 py-2.5 last:border-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <AdminChip tone={tone(item.severity)}>{t(`adm.attn.${item.severity}`)}</AdminChip>
-                    <span className="text-[0.7rem] text-muted-foreground">{item.module}</span>
+                    <span className="text-xs text-muted-foreground">{item.module}</span>
                   </div>
                   <p className="mt-1 text-sm font-semibold">{item.title}</p>
                   <p className="text-xs text-muted-foreground">{item.next}</p>

@@ -202,7 +202,7 @@ function AircraftTab() {
               </Field>
             </div>
             <fieldset>
-              <legend className="text-[0.7rem] font-bold uppercase tracking-wider text-muted-foreground">
+              <legend className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 {t("adm.prod.ac.cabins")}
               </legend>
               <div className="mt-1.5 flex flex-wrap gap-3">
@@ -371,7 +371,7 @@ function SeatMapTab() {
             </div>
 
             <fieldset className="rounded-md border border-border p-3">
-              <legend className="px-1 text-[0.7rem] font-bold uppercase tracking-wider text-muted-foreground">
+              <legend className="px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 {t("adm.prod.sm.zones")}
               </legend>
               <div className="space-y-2">
@@ -543,7 +543,7 @@ function FaresTab() {
               <Input id="fa-ar" dir="rtl" value={draft.nameAr} onChange={(e) => setDraft({ ...draft, nameAr: e.target.value })} />
             </Field>
             <fieldset>
-              <legend className="text-[0.7rem] font-bold uppercase tracking-wider text-muted-foreground">
+              <legend className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 {t("adm.prod.fare.cabins")}
               </legend>
               <div className="mt-1.5 flex flex-wrap gap-3">

@@ -62,7 +62,7 @@ function AdminCustomersPage() {
               <table className="w-full text-sm">
                 <caption className="sr-only">{t("a2.cu.title")}</caption>
                 <thead>
-                  <tr className="border-b border-border text-[0.7rem] uppercase tracking-wider text-muted-foreground">
+                  <tr className="border-b border-border type-th">
                     {[t("a2.cu.customer"), t("a2.cu.email"), t("a2.cu.bookings"), t("a2.cu.upcoming"), t("a2.cu.travelers"), t("a2.cu.language"), t("a2.status")].map((h) => (
                       <th key={h} scope="col" className="px-3 py-2 text-start font-bold">
                         {h}

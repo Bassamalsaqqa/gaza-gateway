@@ -244,7 +244,7 @@ function AdminFlightDetailPage() {
                 <table className="w-full min-w-[38rem] text-sm">
                   <caption className="sr-only">{t("adm.fd.tab.passengers")}</caption>
                   <thead>
-                    <tr className="border-b border-border text-start text-[0.7rem] uppercase tracking-wider text-muted-foreground">
+                    <tr className="border-b border-border type-th">
                       <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.fd.pax.name")}</th>
                       <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.pnr")}</th>
                       <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.fd.pax.seat")}</th>

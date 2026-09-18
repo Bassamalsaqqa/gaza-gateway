@@ -74,7 +74,7 @@ function AdminDestinationsPage() {
               <table className="w-full min-w-[54rem] text-sm">
                 <caption className="sr-only">{t("adm.dest.title")}</caption>
                 <thead>
-                  <tr className="border-b border-border text-start text-[0.7rem] uppercase tracking-wider text-muted-foreground">
+                  <tr className="border-b border-border type-th">
                     <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.dest.code")}</th>
                     <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.dest.city")}</th>
                     <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.dest.country")}</th>

@@ -287,7 +287,7 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
         <div id="admin-search-results" className="flex-1 overflow-y-auto">
           {query.trim() === "" ? (
             <div className="px-4 py-4">
-              <p className="text-[0.7rem] font-semibold uppercase tracking-wider text-muted-foreground">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 {t("adm.search.suggested")}
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
@@ -315,7 +315,7 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
                 const Icon = groupIcons[g.group];
                 return (
                   <li key={g.group} role="presentation">
-                    <p className="px-4 pb-1 pt-3 text-[0.7rem] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <p className="px-4 pb-1 pt-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                       {t(`adm.search.group.${g.group}`)}
                     </p>
                     <ul role="presentation">

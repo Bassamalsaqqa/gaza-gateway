@@ -239,7 +239,7 @@ function AdminBookingDetailPage() {
               <table className="w-full min-w-[40rem] text-sm">
                 <caption className="sr-only">{t("a2.bd.tab.seats")}</caption>
                 <thead>
-                  <tr className="border-b border-border text-[0.7rem] uppercase tracking-wider text-muted-foreground">
+                  <tr className="border-b border-border type-th">
                     <th scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bd.passenger")}</th>
                     <th scope="col" className="px-3 py-2 text-start font-bold">{`${t("a2.bd.out")} · ${t("a2.bd.seat")}`}</th>
                     <th scope="col" className="px-3 py-2 text-start font-bold">{`${t("a2.bd.in")} · ${t("a2.bd.seat")}`}</th>
@@ -277,7 +277,7 @@ function AdminBookingDetailPage() {
                 <table className="w-full min-w-[40rem] text-sm">
                   <caption className="sr-only">{t("a2.bd.tab.checkin")}</caption>
                   <thead>
-                    <tr className="border-b border-border text-[0.7rem] uppercase tracking-wider text-muted-foreground">
+                    <tr className="border-b border-border type-th">
                       <th scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bd.passenger")}</th>
                       <th scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bd.out")}</th>
                       <th scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bd.in")}</th>

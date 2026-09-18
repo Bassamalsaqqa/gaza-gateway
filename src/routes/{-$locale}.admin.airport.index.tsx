@@ -316,7 +316,7 @@ function AdminAirportPage() {
                   <table className="w-full text-sm">
                     <caption className="sr-only">{t("a2.ap.tab.archive")}</caption>
                     <thead>
-                      <tr className="border-b border-border text-[0.7rem] uppercase tracking-wider text-muted-foreground">
+                      <tr className="border-b border-border type-th">
                         {[t("a2.title"), t("a2.ap.ar.era"), t("a2.ap.ar.category"), t("a2.date"), t("a2.ap.ar.source"), t("a2.status")].map((h) => (
                           <th key={h} scope="col" className="px-3 py-2 text-start font-bold">{h}</th>
                         ))}
@@ -354,7 +354,7 @@ function AdminAirportPage() {
                 <table className="w-full text-sm">
                   <caption className="sr-only">{t("a2.ap.tab.sources")}</caption>
                   <thead>
-                    <tr className="border-b border-border text-[0.7rem] uppercase tracking-wider text-muted-foreground">
+                    <tr className="border-b border-border type-th">
                       {[t("a2.title"), t("a2.ap.src.type"), t("a2.ap.src.org"), t("a2.ap.src.date"), t("a2.status"), t("a2.ap.src.usedBy")].map((h) => (
                         <th key={h} scope="col" className="px-3 py-2 text-start font-bold">{h}</th>
                       ))}
@@ -601,7 +601,7 @@ function AdminAirportPage() {
               </Select>
             </AdminField>
             <div>
-              <p className="text-[0.7rem] font-bold uppercase tracking-wider text-muted-foreground">{t("a2.ap.md.usedIn")}</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("a2.ap.md.usedIn")}</p>
               {media.usedIn.length === 0 ? (
                 <p className="text-xs text-muted-foreground">{t("a2.ap.md.unused")}</p>
               ) : (

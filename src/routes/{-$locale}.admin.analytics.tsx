@@ -115,7 +115,7 @@ function AdminAnalyticsPage() {
               <table className="w-full text-sm">
                 <caption className="sr-only">{t("a2.an.tab.content")}</caption>
                 <thead>
-                  <tr className="border-b border-border text-[0.7rem] uppercase tracking-wider text-muted-foreground">
+                  <tr className="border-b border-border type-th">
                     <th scope="col" className="px-3 py-2 text-start font-bold">{t("a2.title")}</th>
                     <th scope="col" className="px-3 py-2 text-start font-bold">{t("a2.an.views")}</th>
                     <th scope="col" className="px-3 py-2 text-start font-bold">{t("a2.an.avgTime")}</th>

@@ -223,7 +223,7 @@ function AdminDestinationEditorPage() {
 
               <div className="grid gap-3 sm:grid-cols-[14rem_minmax(0,1fr)]">
                 <div>
-                  <p className="text-[0.7rem] font-bold uppercase tracking-wider text-muted-foreground">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     {t("adm.dest.hero")}
                   </p>
                   <img
@@ -337,7 +337,7 @@ function AdminDestinationEditorPage() {
               </label>
 
               <fieldset>
-                <legend className="text-[0.7rem] font-bold uppercase tracking-wider text-muted-foreground">
+                <legend className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   {t("adm.dest.days")}
                 </legend>
                 <div className="mt-1.5 flex flex-wrap gap-1.5">
