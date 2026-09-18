@@ -1,0 +1,264 @@
+{
+  "journey1_airport": {
+    "index_en": {
+      "cardCount": 3,
+      "cards": [
+        {
+          "chapter": "Past",
+          "eyebrow": "01",
+          "href": "/airport/past"
+        },
+        {
+          "chapter": "Present",
+          "eyebrow": "02",
+          "href": "/airport/present"
+        },
+        {
+          "chapter": "Future",
+          "eyebrow": "03",
+          "href": "/airport/future"
+        }
+      ]
+    },
+    "timeline_analysis": [
+      {
+        "year": "1994–1997",
+        "title": "Planning and construction",
+        "pillText": "Placeholder",
+        "hasPill": true,
+        "caption": "Text and imagery in this section are placeholders. Verified archive material will replace them."
+      },
+      {
+        "year": "1998",
+        "title": "The airport opens",
+        "pillText": "Verified",
+        "hasPill": true,
+        "caption": "Text and imagery in this section are placeholders. Verified archive material will replace them."
+      },
+      {
+        "year": "1998–2001",
+        "title": "Years of operation",
+        "pillText": "Placeholder",
+        "hasPill": true,
+        "caption": "Text and imagery in this section are placeholders. Verified archive material will replace them."
+      },
+      {
+        "year": "2001–2002",
+        "title": "Closure and damage",
+        "pillText": "Placeholder",
+        "hasPill": true,
+        "caption": "Text and imagery in this section are placeholders. Verified archive material will replace them."
+      },
+      {
+        "year": "2002–today",
+        "title": "Memory and record",
+        "pillText": "Placeholder",
+        "hasPill": true,
+        "caption": "Text and imagery in this section are placeholders. Verified archive material will replace them."
+      }
+    ],
+    "present_facts": [
+      {
+        "dt": "Site",
+        "dd": "Southern Gaza Strip, near Rafah"
+      },
+      {
+        "dt": "IATA code",
+        "dd": "GZA"
+      },
+      {
+        "dt": "Opened",
+        "dd": "1998"
+      },
+      {
+        "dt": "Current status",
+        "dd": "Not operating — pending documentation"
+      }
+    ]
+  },
+  "journey2_gallery": {
+    "architectureFilterCount": 6,
+    "comboFilterCount": 2,
+    "keyboardNextTitle": "Archive placeholder 2",
+    "emptyStateStructure": {
+      "allCombinationsHaveItems": true,
+      "resetButtonLabelInCode": "gallery.reset",
+      "emptyMessageLabelInCode": "gallery.empty"
+    }
+  },
+  "journey3_destinations": {
+    "amm_detail": {
+      "route": "/destinations/AMM",
+      "url": "http://localhost:8080/destinations/AMM",
+      "title": "Amman (AMM) from Gaza — Palestinian Airlines",
+      "renderedH1": "Destinations",
+      "hasSearchForm": false,
+      "hasDestSearchInput": true,
+      "destSearchPlaceholder": "Amman, Cairo, DXB…",
+      "containsWeeklySchedule": false,
+      "containsGoodToKnow": false,
+      "architecturalDefect": {
+        "status": "CONFIRMED_DEFECT",
+        "parentFile": "src/routes/{-$locale}.destinations.tsx",
+        "childFile": "src/routes/{-$locale}.destinations.$code.tsx",
+        "rootCause": "src/routes/{-$locale}.destinations.tsx is recognized by TanStack Router as a parent route for {-$locale}.destinations.$code.tsx, but exports DestinationsPage directly with no <Outlet />. Consequently, whenever any /destinations/$code route is visited, the router executes the child route head() function (setting document title), but mounts DestinationsPage in the DOM. The entire DestinationPage component (with hero, route eyebrow, flight time, fare, frequency, embedded FlightSearchForm, weekly schedule chips, Good to know aside, Book CTA, and other destinations) is completely occluded and unreachable in the browser."
+      }
+    }
+  },
+  "journey4_visitor": {
+    "contactSentVerification": {
+      "heading": "Thank you — your message has been recorded.",
+      "disclaimerText": "Your message has not been sent anywhere yet — messaging is not connected.",
+      "hasResetButton": true
+    }
+  },
+  "keyboardA11y": {
+    "galleryLightboxEscapeCloses": true
+  },
+  "modalBehavior": {
+    "galleryLightbox": {
+      "hasRoleDialog": true,
+      "ariaModal": "true",
+      "ariaLabel": "Item viewer",
+      "hasCloseButton": true,
+      "hasPrevButton": true,
+      "hasNextButton": true
+    }
+  },
+  "responsiveAudits": {
+    "gallery320": {
+      "bodyScrollWidth": 320,
+      "windowInnerWidth": 320,
+      "hasHorizontalOverflow": false
+    }
+  },
+  "deepA11yInspections": {
+    "galleryLightbox": {
+      "initialFocusTrap": {
+        "activeElementTag": "BUTTON",
+        "activeElementAriaLabel": null,
+        "activeElementText": "PhotographsPastArchive placeho",
+        "focusableCount": 3,
+        "focusableElements": [
+          "Close",
+          "Previous item",
+          "Next item"
+        ]
+      },
+      "tabCycle": [
+        "DocumentsPastArchive placeholder 2",
+        "ArchitecturePastArchive placeholder 3",
+        "ConceptsPastArchive placeholder 4",
+        "PhotographsPastArchive placeholder 5"
+      ],
+      "closesOnBackdropClick": true,
+      "defectNotes": "Modal fails WCAG 2.2 SC 2.4.3 (Focus Order): does not move initial focus inside dialog; tabbing leaks to background page elements; when closed after interacting inside the dialog, focus drops to document.body rather than returning to the opening trigger card.",
+      "focusBehavior": {
+        "initialFocusUponOpen": {
+          "activeElementTag": "BUTTON",
+          "text": "PhotographsPastArchive placeholder 1",
+          "isTrigger": true,
+          "isInsideDialog": false,
+          "finding": "Initial focus is NOT moved to dialog or close button upon open; it remains on the clicked card trigger button."
+        },
+        "focusLeakDuringOpen": {
+          "tabProgression": [
+            "DocumentsPastArchive placeholder 2",
+            "ArchitecturePastArchive placeholder 3",
+            "ConceptsPastArchive placeholder 4",
+            "PhotographsPastArchive placeholder 5"
+          ],
+          "finding": "Tabbing cycles through card buttons on the underlying page behind the modal overlay (no focus trap)."
+        },
+        "focusReturnUponClose": {
+          "closeFromTriggerViaEscape": {
+            "activeElementAfterClose": "BUTTON (PhotographsPastArchive placeholder 1)",
+            "isTrigger": true,
+            "finding": "If user never moved focus inside modal, activeElement remains on trigger by default."
+          },
+          "closeFromInsideViaEscape": {
+            "activeElementAfterClose": "BODY",
+            "isTrigger": false,
+            "isBody": true,
+            "finding": "If focus was moved inside modal (e.g. to Close button), pressing Escape unmounts modal and drops focus to document.body because src/routes/{-$locale}.gallery.tsx lacks focus restoration logic (no trigger ref or programmatic focus return)."
+          },
+          "closeFromInsideViaBackdropClick": {
+            "activeElementAfterClose": "BODY",
+            "isTrigger": false,
+            "isBody": true,
+            "finding": "If focus was moved inside modal, clicking backdrop unmounts modal and drops focus to document.body."
+          }
+        },
+        "closesOnEscape": true,
+        "closesOnBackdropClick": true
+      }
+    },
+    "travelNavigation": {
+      "testedElement": "main nav[aria-label=\"Travel information\"]",
+      "navAriaLabel": "Travel information",
+      "buttonCount": 5,
+      "buttons": [
+        {
+          "text": "Preparing to travel",
+          "role": null,
+          "ariaCurrent": "true",
+          "ariaSelected": null
+        },
+        {
+          "text": "Travel documents",
+          "role": null,
+          "ariaCurrent": null,
+          "ariaSelected": null
+        },
+        {
+          "text": "Baggage",
+          "role": null,
+          "ariaCurrent": null,
+          "ariaSelected": null
+        },
+        {
+          "text": "At the airport",
+          "role": null,
+          "ariaCurrent": null,
+          "ariaSelected": null
+        },
+        {
+          "text": "Accessibility",
+          "role": null,
+          "ariaCurrent": null,
+          "ariaSelected": null
+        }
+      ],
+      "hasRoleTablist": false,
+      "hasRoleTab": false,
+      "keyboardBehavior": {
+        "arrowDownMovesFocus": false,
+        "arrowRightMovesFocus": false,
+        "tabMovesFocus": true,
+        "tabOrder": [
+          "Preparing to travel",
+          "Travel documents",
+          "Baggage",
+          "At the airport",
+          "Accessibility"
+        ]
+      },
+      "defectNotes": "Travel sections use an ad-hoc <nav aria-label=\"Travel information\"> containing five <button> elements with aria-current=\"true\" on the active item, rather than the WAI-ARIA Tabs pattern (role=\"tablist\", role=\"tab\", role=\"tabpanel\", aria-selected, aria-controls). Arrow keys (Left/Right/Up/Down) do not cycle tabs; navigation relies on standard Tab order."
+    },
+    "timelineSemantics": {
+      "structure": {
+        "hasOrderedList": true,
+        "h1": "Past",
+        "h2Count": 10,
+        "h2s": [
+          "Planning and construction",
+          "The airport opens",
+          "Years of operation",
+          "Closure and damage",
+          "Memory and record"
+        ]
+      },
+      "strengths": "Semantically clean: Uses ordered list <ol> with <li> for milestone sequence, H1 followed by H2 milestone headings, <figure> and <figcaption> for archive image credits/notes."
+    }
+  }
+}

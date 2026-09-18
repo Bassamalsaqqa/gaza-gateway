@@ -1,0 +1,128 @@
+[
+  {
+    "filename": "s1_01_public_mobile_drawer_open_390.png",
+    "route": "/",
+    "locale": "en",
+    "viewport": "390x844",
+    "feature": "Public Mobile Navigation Drawer",
+    "state": "Open drawer displaying navigation links",
+    "notes": "Demonstrates full-screen mobile navigation overlay in public site"
+  },
+  {
+    "filename": "s1_02_admin_mobile_drawer_open_390.png",
+    "route": "/admin",
+    "locale": "en",
+    "viewport": "390x844",
+    "feature": "Admin Mobile Navigation Drawer",
+    "state": "Open slide-over navigation with ink theme",
+    "notes": "Demonstrates slide-over navigation drawer in admin station operations"
+  },
+  {
+    "filename": "s2_01_pax_popover_open_1280.png",
+    "route": "/",
+    "locale": "en",
+    "viewport": "1280x900",
+    "feature": "Passenger Selector Popover",
+    "state": "Open passenger selector popover displaying counter steppers (Adults, Children, Infants) with page scrolled into viewport",
+    "notes": "Demonstrates active popover overlay scrolled into view showing counter steppers; lacks outside click and Escape dismissal listeners"
+  },
+  {
+    "filename": "s2_02_pax_popover_open_ar_390.png",
+    "route": "/ar",
+    "locale": "ar",
+    "viewport": "390x844",
+    "feature": "Passenger Selector Popover (Arabic RTL Mobile)",
+    "state": "Open passenger selector popover in Arabic mobile view displaying counter steppers with page scrolled into viewport",
+    "notes": "Demonstrates active popover overlay in Arabic RTL scrolled into view showing counter steppers; numbers preserve LTR formatting"
+  },
+  {
+    "filename": "s3_01_gallery_lightbox_open_1280.png",
+    "route": "/gallery",
+    "locale": "en",
+    "viewport": "1280x900",
+    "feature": "Archive Gallery Lightbox",
+    "state": "Modal image viewer open with metadata and pagination",
+    "notes": "Inspects lightbox overlay, metadata presentation, and focus behavior"
+  },
+  {
+    "filename": "s3_02_gallery_lightbox_ar_1280.png",
+    "route": "/ar/gallery",
+    "locale": "ar",
+    "viewport": "1280x900",
+    "feature": "Archive Gallery Lightbox (Arabic RTL)",
+    "state": "Modal image viewer open in Arabic with RTL chevron rotation",
+    "notes": "Checks RTL arrow navigation and chevron orientation"
+  },
+  {
+    "filename": "s4_01_confirm_dialog_open_1280.png",
+    "route": "/manage/GZA-7K8P",
+    "locale": "en",
+    "viewport": "1280x900",
+    "feature": "Cancellation Confirmation Alertdialog",
+    "state": "Open alertdialog modal with keep and confirm actions",
+    "notes": "Verifies focus containment, dismiss button focus, and background scroll"
+  },
+  {
+    "filename": "s5_01_admin_search_palette_open_1280.png",
+    "route": "/admin",
+    "locale": "en",
+    "viewport": "1280x900",
+    "feature": "Admin Search Palette (⌘K)",
+    "state": "Command palette combobox modal displaying filtered search results for query 'PS'",
+    "notes": "Demonstrates active combobox results listbox with flight destinations and scheduled departures"
+  },
+  {
+    "filename": "s6_01_admin_sheet_quick_edit_1280.png",
+    "route": "/admin/flights",
+    "locale": "en",
+    "viewport": "1280x900",
+    "feature": "Admin Quick-Edit Side Sheet",
+    "state": "Sliding side sheet open over flight operations table",
+    "notes": "Demonstrates custom AdminSheet overlay with form controls and actions"
+  },
+  {
+    "filename": "s7_01_seat_map_tab_sequence_1280.png",
+    "route": "/book",
+    "locale": "en",
+    "viewport": "1280x900",
+    "feature": "Interactive Seat Map",
+    "state": "Active aircraft cabin seat map at Step 4 of booking flow (rows 11-28, 108 total rendered seat buttons: 73 enabled, 35 occupied in fixture)",
+    "notes": "Demonstrates economy zone cabin layout with 73 enabled and 35 occupied/disabled seat buttons in test fixture; targeted 2-step Tab focus verified"
+  },
+  {
+    "filename": "s7_02_seat_map_mobile_390.png",
+    "route": "/book",
+    "locale": "en",
+    "viewport": "390x844",
+    "feature": "Seat Map Touch Target (Mobile 390px)",
+    "state": "Mobile viewport (390px) rendering of aircraft cabin seat grid at Step 4",
+    "notes": "Measures 32px x 32px button size (satisfies WCAG 2.2 SC 2.5.8 24px minimum, falls short of 44px mobile recommendation, which is not a WCAG AA failure)"
+  },
+  {
+    "filename": "s8_01_booking_stepper_step3_1280.png",
+    "route": "/book",
+    "locale": "en",
+    "viewport": "1280x900",
+    "feature": "Booking Progression Stepper",
+    "state": "Booking progression stepper at Step 4 (Seats) with non-interactive indicator steps",
+    "notes": "Demonstrates local React state wizard where URL remains static /book, causing browser Back to abandon active booking"
+  },
+  {
+    "filename": "s9_01_admin_tabs_flights_1280.png",
+    "route": "/admin/flights",
+    "locale": "en",
+    "viewport": "1280x900",
+    "feature": "Admin Tablist & Operational Toolbar",
+    "state": "Admin flight operations toolbar with segmented direction toggle group (All / Departures / Arrivals)",
+    "notes": "Documents segmented button group using role='group' and aria-pressed rather than ARIA tablist pattern"
+  },
+  {
+    "filename": "s10_01_ltr_isolation_arabic_flights_1280.png",
+    "route": "/ar/flights",
+    "locale": "ar",
+    "viewport": "1280x900",
+    "feature": "Aviation Identifier Isolation (Arabic RTL)",
+    "state": "Public flight board rendering technical identifiers in Arabic",
+    "notes": "Asserts direction=ltr and unicode-bidi=isolate on flight numbers, IATA codes, and dates"
+  }
+]

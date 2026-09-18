@@ -1,0 +1,491 @@
+{
+  "public_mobile_drawer": {
+    "pre": {
+      "hasMenuBtn": true,
+      "btnAriaLabel": "Menu",
+      "btnAriaExpanded": "false",
+      "initialOverflow": ""
+    },
+    "openState": {
+      "isOpen": true,
+      "role": "dialog",
+      "ariaModal": "true",
+      "hasAriaLabelledBy": false,
+      "bodyOverflow": "hidden",
+      "activeElementTagName": "BUTTON",
+      "activeElementAriaLabel": "Menu",
+      "activeElementText": ""
+    },
+    "tabProgress": [
+      "GZAGaza International AirportP",
+      ""
+    ],
+    "afterEscape": {
+      "isOpen": true,
+      "bodyOverflow": "hidden"
+    },
+    "focusReturn": {
+      "isOpen": false,
+      "activeElementTag": "BODY",
+      "activeElementAriaLabel": null,
+      "activeElementIsBody": true
+    },
+    "confirmedDefects": {
+      "escapeDismissalMissing": true,
+      "focusTrappingMissing": true,
+      "focusReturnDropsToBody": true,
+      "accessibleNameMissing": true
+    }
+  },
+  "admin_mobile_drawer": {
+    "pre": {
+      "hasBtn": true,
+      "btnAriaLabel": "Open navigation",
+      "currentPath": "/admin"
+    },
+    "openState": {
+      "isOpen": true,
+      "role": "dialog",
+      "ariaModal": "true",
+      "ariaLabel": "Administration navigation",
+      "bodyOverflow": "hidden",
+      "activeElementTagName": "BUTTON",
+      "activeElementAriaLabel": "Close navigation",
+      "activeElementText": ""
+    },
+    "afterEscape": {
+      "isOpen": false,
+      "bodyOverflow": "",
+      "activeElementTag": "BUTTON",
+      "activeElementAriaLabel": "Open navigation",
+      "focusReturnedToTrigger": true
+    },
+    "comparison": {
+      "publicEscapeWorks": false,
+      "adminEscapeWorks": true,
+      "publicFocusReturns": false,
+      "adminFocusReturns": true
+    }
+  },
+  "passenger_picker_overlay": {
+    "desktop": {
+      "pre": {
+        "hasForm": true,
+        "hasBtn": true,
+        "expandedBefore": "false",
+        "btnText": "1 passenger"
+      },
+      "openState": {
+        "expanded": "true",
+        "hasPopover": true,
+        "popoverVisible": true,
+        "activeElementTagName": "BODY",
+        "activeElementAriaExpanded": null,
+        "counterButtonsCount": 7,
+        "stepperValues": [
+          "1",
+          "0",
+          "0"
+        ],
+        "scrolledIntoViewport": true,
+        "controlsVisiblyRenderedInScreenshot": true
+      },
+      "afterEscape": {
+        "expanded": "true",
+        "isOpen": true,
+        "dismissedOnEscape": false
+      },
+      "afterOutsideClick": {
+        "expanded": "true",
+        "isOpen": true,
+        "dismissedOnOutsideClick": false
+      }
+    },
+    "mobileArabic": {
+      "expanded": "true",
+      "hasPopover": true,
+      "btnText": "مسافر واحد",
+      "scrolledIntoViewport": true,
+      "controlsVisiblyRenderedInScreenshot": true
+    },
+    "confirmedDefects": {
+      "lacksDialogOrPopoverRole": true,
+      "escapeDismissalMissing": true,
+      "outsideClickDismissalMissing": true,
+      "focusTrappingMissing": true,
+      "accessibleNameMissing": false
+    }
+  },
+  "gallery_lightbox": {
+    "pre": {
+      "itemCount": 24,
+      "initialOverflow": ""
+    },
+    "openState": {
+      "isOpen": true,
+      "role": "dialog",
+      "ariaModal": "true",
+      "ariaLabel": "Item viewer",
+      "bodyOverflow": "",
+      "activeElementTagName": "BUTTON",
+      "activeElementAriaLabel": null,
+      "focusMovedIntoDialog": false
+    },
+    "tabCycle": [
+      "DocumentsPastArchive placeholder 2",
+      "ArchitecturePastArchive placeholder 3",
+      "ConceptsPastArchive placeholder 4",
+      {
+        "activeElementTag": "BUTTON",
+        "activeElementText": "PhotographsPastArchive placeho",
+        "isInsideDialog": false,
+        "leakedToBackground": true
+      }
+    ],
+    "afterEscape": {
+      "isOpen": false,
+      "activeElementTag": "BUTTON",
+      "activeElementIsBody": false
+    },
+    "confirmedDefects": {
+      "bodyScrollUnlocked": true,
+      "initialFocusNotSet": true,
+      "focusTrappingMissing": true,
+      "focusReturnDropsToBody": false
+    }
+  },
+  "cancellation_alertdialog": {
+    "pre": {
+      "hasCancelBtn": true,
+      "cancelBtnText": "Cancel booking",
+      "initialOverflow": ""
+    },
+    "openState": {
+      "isOpen": true,
+      "role": "alertdialog",
+      "ariaModal": "true",
+      "ariaLabelledby": "confirm-title",
+      "ariaDescribedby": "confirm-body",
+      "bodyOverflow": "",
+      "activeElementTagName": "BUTTON",
+      "activeElementText": "Keep booking",
+      "focusOnDismissButton": true
+    },
+    "tabCycle": [
+      "Cancel booking",
+      "Keep booking"
+    ],
+    "afterEscape": {
+      "isOpen": false,
+      "activeElementTag": "BUTTON",
+      "activeElementText": "Cancel booking",
+      "focusReturnedToTrigger": true
+    },
+    "evaluation": {
+      "focusTrappingWorking": true,
+      "initialFocusSafeOnDismiss": true,
+      "focusReturnWorking": true,
+      "bodyScrollUnlockedDefect": true
+    }
+  },
+  "admin_search_palette": {
+    "openState": {
+      "isOpen": true,
+      "bodyOverflow": "",
+      "inputValue": "PS",
+      "comboboxExpanded": "true",
+      "hasListbox": true,
+      "optionsCount": 8,
+      "firstOptionTitle": "PS151GZA → JED · 01:05"
+    },
+    "afterEscape": {
+      "isOpen": false,
+      "tested": true
+    }
+  },
+  "admin_side_sheet": {
+    "openState": {
+      "isOpen": true,
+      "bodyOverflow": "hidden",
+      "activeElementTagName": "BUTTON",
+      "ariaLabelledby": "admin-sheet-title",
+      "ariaDescribedby": "admin-sheet-desc"
+    },
+    "afterEscape": {
+      "isOpen": false,
+      "bodyOverflow": "",
+      "focusReturnedToTrigger": true
+    }
+  },
+  "seat_map_interaction": {
+    "desktop": {
+      "totalSeatButtons": 108,
+      "enabledSeatButtons": 73,
+      "disabledSeatButtons": 35,
+      "firstRow": 11,
+      "lastRow": 28,
+      "totalRows": 18,
+      "seatsPerRow": 6,
+      "computedTotal": 108,
+      "hasRoleGrid": false,
+      "hasRovingTabIndex": false,
+      "desktopButtonWidth": 36,
+      "desktopButtonHeight": 36
+    },
+    "mobile": {
+      "totalSeatButtonsMobile": 108,
+      "mobileButtonWidth": 32,
+      "mobileButtonHeight": 32,
+      "belowRecommended44pxTarget": true,
+      "meetsWcag22Minimum24px": true
+    },
+    "actualRenderedButtons": 108,
+    "enabledButtonsInFixture": 73,
+    "disabledOccupiedButtons": 35,
+    "targetedTabSequence": {
+      "initialFocused": {
+        "label": "Seating 11A · Extra legroom",
+        "tag": "BUTTON"
+      },
+      "afterTab1": {
+        "label": "Seating 11B · Extra legroom",
+        "tag": "BUTTON"
+      },
+      "afterTab2": {
+        "label": "Seating 11E · Extra legroom",
+        "tag": "BUTTON"
+      },
+      "advancementInDOMOrder": true,
+      "fullTraversalRun": false,
+      "keyboardBurdenNature": "Inferred from sequential DOM order of 73 enabled native <button> elements in flat flow; verified by targeted 2-step Tab traversal showing focus advances sequentially from seat to seat rather than using a roving grid. Full 73-stop traversal was not executed key-by-key."
+    },
+    "wcagAssessment": {
+      "ariaGridPatternImplemented": false,
+      "rovingTabIndexImplemented": false,
+      "linearTabBurden": "Inferred 73 sequential tab stops across enabled buttons in flat DOM flow (targeted 2-step sequence verified)",
+      "touchTargetEvaluation": {
+        "dimensions": "32px × 32px",
+        "meetsWcag22SC258TargetSizeMinimum24px": true,
+        "meetsRecommendedMobile44pxGuideline": false,
+        "isWcagFailure": false,
+        "notes": "Meets WCAG 2.2 AA SC 2.5.8 (≥24px); falls short of 44px platform recommendation (Apple HIG / WCAG AAA SC 2.5.5), which is not a WCAG AA failure."
+      }
+    }
+  },
+  "booking_stepper": {
+    "analysis": {
+      "totalSteps": 7,
+      "clickableLinksInStepper": 0,
+      "currentUrl": "http://localhost:8080/book",
+      "urlSearchParamPresent": false,
+      "urlTracksStep": false
+    },
+    "confirmedDefects": {
+      "stepperStepsNotInteractiveLinks": true,
+      "urlLacksStepParam": true,
+      "browserBackExitsWizard": true
+    }
+  },
+  "admin_tabs": {
+    "analysis": {
+      "hasRoleTablist": false,
+      "hasRoleGroup": true,
+      "groupAriaLabel": "Direction",
+      "segmentedButtonsCount": 3,
+      "activeButtonText": "All",
+      "allButtons": [
+        {
+          "text": "All",
+          "pressed": "true"
+        },
+        {
+          "text": "Departures",
+          "pressed": "false"
+        },
+        {
+          "text": "Arrivals",
+          "pressed": "false"
+        }
+      ]
+    },
+    "architectureNote": "The flights board uses a segmented button group with role='group' and aria-pressed attributes rather than ARIA role='tablist' / role='tab' semantics."
+  },
+  "ltr_isolation_arabic": {
+    "totalIsolatedTokens": 37,
+    "samples": [
+      {
+        "text": "GZA",
+        "direction": "ltr",
+        "unicodeBidi": "isolate",
+        "fontFamily": "\"IBM Plex Mono\", ui-"
+      },
+      {
+        "text": "PS",
+        "direction": "ltr",
+        "unicodeBidi": "isolate",
+        "fontFamily": "\"IBM Plex Mono\", ui-"
+      },
+      {
+        "text": "GZA",
+        "direction": "ltr",
+        "unicodeBidi": "isolate",
+        "fontFamily": "\"IBM Plex Mono\", ui-"
+      },
+      {
+        "text": "01:05",
+        "direction": "ltr",
+        "unicodeBidi": "isolate",
+        "fontFamily": "\"IBM Plex Mono\", ui-"
+      },
+      {
+        "text": "PS151",
+        "direction": "ltr",
+        "unicodeBidi": "isolate",
+        "fontFamily": "\"IBM Plex Mono\", ui-"
+      },
+      {
+        "text": "JED",
+        "direction": "ltr",
+        "unicodeBidi": "isolate",
+        "fontFamily": "\"IBM Plex Mono\", ui-"
+      },
+      {
+        "text": "A4",
+        "direction": "ltr",
+        "unicodeBidi": "isolate",
+        "fontFamily": "\"IBM Plex Mono\", ui-"
+      },
+      {
+        "text": "03:30",
+        "direction": "ltr",
+        "unicodeBidi": "isolate",
+        "fontFamily": "\"IBM Plex Mono\", ui-"
+      },
+      {
+        "text": "PS141",
+        "direction": "ltr",
+        "unicodeBidi": "isolate",
+        "fontFamily": "\"IBM Plex Mono\", ui-"
+      },
+      {
+        "text": "AMM",
+        "direction": "ltr",
+        "unicodeBidi": "isolate",
+        "fontFamily": "\"IBM Plex Mono\", ui-"
+      },
+      {
+        "text": "A8",
+        "direction": "ltr",
+        "unicodeBidi": "isolate",
+        "fontFamily": "\"IBM Plex Mono\", ui-"
+      },
+      {
+        "text": "10:40",
+        "direction": "ltr",
+        "unicodeBidi": "isolate",
+        "fontFamily": "\"IBM Plex Mono\", ui-"
+      },
+      {
+        "text": "PS105",
+        "direction": "ltr",
+        "unicodeBidi": "isolate",
+        "fontFamily": "\"IBM Plex Mono\", ui-"
+      },
+      {
+        "text": "IST",
+        "direction": "ltr",
+        "unicodeBidi": "isolate",
+        "fontFamily": "\"IBM Plex Mono\", ui-"
+      },
+      {
+        "text": "A2",
+        "direction": "ltr",
+        "unicodeBidi": "isolate",
+        "fontFamily": "\"IBM Plex Mono\", ui-"
+      }
+    ],
+    "flightNumbersFound": [
+      "PS151",
+      "PS141",
+      "PS105",
+      "PS145",
+      "PS109"
+    ]
+  },
+  "color_contrast": {
+    "bodyTextOnBackground": {
+      "bg": "oklch(98.5% .006 95)",
+      "fg": "oklch(22% .02 160)",
+      "rgbBg": [
+        251,
+        250,
+        246
+      ],
+      "rgbFg": [
+        18,
+        30,
+        23
+      ],
+      "contrastRatio": 16.43,
+      "passesAA_NormalText": true
+    },
+    "primaryButton": {
+      "bg": "oklch(42% .085 158)",
+      "fg": "oklch(98% .008 95)",
+      "rgbBg": [
+        25,
+        91,
+        59
+      ],
+      "rgbFg": [
+        250,
+        248,
+        243
+      ],
+      "contrastRatio": 7.61,
+      "passesAA_NormalText": true
+    },
+    "mutedTextOnBackground": {
+      "bg": "oklch(98.5% .006 95)",
+      "fg": "oklch(44% .017 150)",
+      "rgbBg": [
+        251,
+        250,
+        246
+      ],
+      "rgbFg": [
+        76,
+        85,
+        78
+      ],
+      "contrastRatio": 7.4,
+      "passesAA_NormalText": true,
+      "passesAA_LargeText": true
+    },
+    "inkHeaderForeground": {
+      "bg": "oklch(21% .024 165)",
+      "fg": "oklch(96% .01 95)",
+      "contrastRatio": 15.68,
+      "passesAA_NormalText": true
+    },
+    "inkHeaderMutedText": {
+      "bg": "oklch(21% .024 165)",
+      "fg": "oklch(74% .015 120)",
+      "contrastRatio": 7.62,
+      "passesAA_NormalText": true,
+      "passesAA_LargeText": true
+    },
+    "focusRingContrast": {
+      "ringColor": "oklch(42% .085 158)",
+      "onBackgroundRatio": 7.73,
+      "onSandRatio": 7.2,
+      "passesUIComponents3to1": true
+    },
+    "clayAccentContrast": {
+      "clayColor": "oklch(54% .13 42)",
+      "onBackgroundRatio": 5.14,
+      "passesAA_NormalText": true,
+      "passesAA_LargeText": true
+    }
+  }
+}

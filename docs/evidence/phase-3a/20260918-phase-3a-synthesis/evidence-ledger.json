@@ -1,0 +1,179 @@
+{
+  "schema": "google-worker.evidence-ledger.v1",
+  "runId": "20260918-phase-3a-synthesis",
+  "baselineCommit": "4a7b9dea6b2502b748d00c011c0067f8c35be33c",
+  "date": "2026-09-18",
+  "records": [
+    {
+      "id": "PUB-01",
+      "summary": "Leaf route at destinations.tsx lacks <Outlet />, occluding /destinations/$code child routes",
+      "nature": "browser-confirmed + source-explained",
+      "audit": "PHASE_3A_PUBLIC_AUDIT.md",
+      "rawRecord": null,
+      "screenshot": "j1_08_destination_detail_en_1280.png",
+      "source": "src/routes/{-$locale}.destinations.tsx"
+    },
+    {
+      "id": "PUB-02",
+      "summary": "Booking confirmation screen links to 2-segment boarding pass URL, triggering TanStack 404",
+      "nature": "browser-confirmed",
+      "audit": "PHASE_3A_PUBLIC_AUDIT.md",
+      "rawRecord": "docs/evidence/phase-3a/20260918-phase-3a-public/browser-test-records.json:mutations.boardingPassLink.clickResult",
+      "screenshot": null,
+      "source": "src/routes/{-$locale}.booking-confirmation.$ref.tsx"
+    },
+    {
+      "id": "PUB-03",
+      "summary": "Public site footer omits /airport/present link from chapter navigation",
+      "nature": "source-explained",
+      "audit": "PHASE_3A_HERITAGE_AUDIT.md",
+      "rawRecord": null,
+      "screenshot": null,
+      "source": "src/components/site-footer.tsx"
+    },
+    {
+      "id": "PUB-04",
+      "summary": "Passenger count selector popover ignores outside clicks and Escape dismissal",
+      "nature": "browser-confirmed",
+      "audit": "INTERACTION_SYSTEM_AUDIT.md",
+      "rawRecord": "docs/evidence/phase-3a/20260918-phase-3a-interaction-system/browser-test-records.json:passenger_picker_overlay.desktop.afterEscape",
+      "screenshot": "s2_01_pax_popover_open_1280.png",
+      "source": "src/components/flight-search-form.tsx"
+    },
+    {
+      "id": "PUB-05",
+      "summary": "Public mobile navigation drawer locks body scroll but lacks Escape dismissal, focus trap, and focus return",
+      "nature": "browser-confirmed",
+      "audit": "INTERACTION_SYSTEM_AUDIT.md",
+      "rawRecord": "docs/evidence/phase-3a/20260918-phase-3a-interaction-system/browser-test-records.json:public_mobile_drawer",
+      "screenshot": "s1_01_public_mobile_drawer_open_390.png",
+      "source": "src/components/site-header.tsx"
+    },
+    {
+      "id": "HER-01",
+      "summary": "Gallery lightbox handles Escape and arrow navigation, but fails focus containment upon open and leaves body scroll unlocked; drops focus to body when closed after focus moved inside",
+      "nature": "browser-confirmed",
+      "audit": "PHASE_3A_HERITAGE_AUDIT.md",
+      "rawRecord": "docs/evidence/phase-3a/20260918-phase-3a-heritage/browser-test-records.json:deepA11yInspections.galleryLightbox",
+      "screenshot": "j2_18_gallery_lightbox_open_en_1280.png",
+      "source": "src/routes/{-$locale}.gallery.tsx"
+    },
+    {
+      "id": "HER-02",
+      "summary": "Gallery filter buttons do not sync with URL search params (?category=, ?era=)",
+      "nature": "source-explained",
+      "audit": "PHASE_3A_HERITAGE_AUDIT.md",
+      "rawRecord": null,
+      "screenshot": "j2_15_gallery_filtered_architecture_en_1280.png",
+      "source": "src/routes/{-$locale}.gallery.tsx"
+    },
+    {
+      "id": "HER-03",
+      "summary": "Historical media and Verified badges are provisional mock placeholders awaiting owner archival verification",
+      "nature": "source-explained + browser-confirmed",
+      "audit": "PHASE_3A_HERITAGE_AUDIT.md",
+      "rawRecord": "docs/evidence/phase-3a/20260918-phase-3a-heritage/browser-test-records.json:journey1_airport.timeline_analysis",
+      "screenshot": "j1_04_airport_past_timeline_en_1280.png",
+      "source": "src/routes/{-$locale}.gallery.tsx"
+    },
+    {
+      "id": "ADM-01",
+      "summary": "Admin flight quick-edit overrides (localStorage['gza.admin.v1']) do not propagate to public flight schedule (localStorage['gza.store.v1'])",
+      "nature": "browser-confirmed",
+      "audit": "PHASE_3A_ADMIN_AUDIT.md",
+      "rawRecord": "docs/evidence/phase-3a/20260918-phase-3a-admin/browser-test-records.json:store_boundaries.public_vs_admin_flight_overrides",
+      "screenshot": "w2_06_flight_board_after_mutation_1280.png",
+      "source": "src/routes/{-$locale}.admin.flights.index.tsx"
+    },
+    {
+      "id": "ADM-02",
+      "summary": "Public bookings written to localStorage['gza.store.v1'] do not appear in admin bookings table (architectural inference: reads mockBookings in admin-mock.ts; empiricalTestRun=false)",
+      "nature": "source-explained",
+      "audit": "PHASE_3A_ADMIN_AUDIT.md",
+      "rawRecord": "docs/evidence/phase-3a/20260918-phase-3a-admin/browser-test-records.json:store_boundaries.public_vs_admin_bookings",
+      "screenshot": null,
+      "source": "src/routes/{-$locale}.admin.bookings.index.tsx"
+    },
+    {
+      "id": "ADM-03",
+      "summary": "Admin search palette (Cmd+K) is fully functional combobox with 8+ results for query 'PS', focus trap, Escape, and arrow traversal",
+      "nature": "browser-confirmed",
+      "audit": "PHASE_3A_ADMIN_AUDIT.md",
+      "rawRecord": "docs/evidence/phase-3a/20260918-phase-3a-interaction-system/browser-test-records.json:admin_search_palette",
+      "screenshot": "s5_01_admin_search_palette_open_1280.png",
+      "source": "src/components/admin/admin-search.tsx"
+    },
+    {
+      "id": "ADM-04",
+      "summary": "Admin account menu and attention popover handle Escape, outside click, and focus return; derive signals from mock staff and dashboard data",
+      "nature": "browser-confirmed + source-explained",
+      "audit": "PHASE_3A_ADMIN_AUDIT.md",
+      "rawRecord": "docs/evidence/phase-3a/20260918-phase-3a-admin/browser-test-records.json:interactive_a11y_directionality.account_menu_keyboard",
+      "screenshot": null,
+      "source": "src/components/admin/admin-shell.tsx"
+    },
+    {
+      "id": "ADM-05",
+      "summary": "Admin feedback uses AdminToasts with aria-live='polite', 4500ms auto-dismiss, and explicit close button; public site uses inline notices",
+      "nature": "source-explained",
+      "audit": "PHASE_3A_ADMIN_AUDIT.md",
+      "rawRecord": null,
+      "screenshot": null,
+      "source": "src/components/admin/admin-kit.tsx"
+    },
+    {
+      "id": "ADM-06",
+      "summary": "Admin tables lack pinned header rows and sticky action columns on mobile viewports (390px)",
+      "nature": "browser-confirmed",
+      "audit": "PHASE_3A_ADMIN_AUDIT.md",
+      "rawRecord": null,
+      "screenshot": "s9_01_admin_tabs_flights_1280.png",
+      "source": "src/routes/{-$locale}.admin.flights.index.tsx"
+    },
+    {
+      "id": "INT-01",
+      "summary": "46 unused shadcn/Radix component starter files reside under src/components/ui/ unimported by application",
+      "nature": "source-explained",
+      "audit": "INTERACTION_SYSTEM_AUDIT.md",
+      "rawRecord": "docs/evidence/phase-3a/20260918-phase-3a-interaction-system/inventory-analysis.json:uiDirectoryStats",
+      "screenshot": null,
+      "source": "src/components/ui"
+    },
+    {
+      "id": "INT-02",
+      "summary": "Aircraft seat map renders 108 buttons (73 enabled, 35 occupied in fixture); first two sequential focus steps (11A -> 11B -> 11E) verified in browser via targeted Tab traversal; full 73-stop keyboard burden inferred from 73 enabled native buttons in flat DOM order",
+      "nature": "browser-confirmed + inferred-burden",
+      "audit": "INTERACTION_SYSTEM_AUDIT.md",
+      "rawRecord": "docs/evidence/phase-3a/20260918-phase-3a-interaction-system/browser-test-records.json:seat_map_interaction.targetedTabSequence",
+      "screenshot": "s7_01_seat_map_tab_sequence_1280.png",
+      "source": "src/components/booking/seat-map.tsx"
+    },
+    {
+      "id": "INT-03",
+      "summary": "Seat map mobile button size is 32px x 32px, meeting WCAG 2.2 SC 2.5.8 minimum (24px) but below platform recommendation (44px)",
+      "nature": "browser-confirmed",
+      "audit": "INTERACTION_SYSTEM_AUDIT.md",
+      "rawRecord": "docs/evidence/phase-3a/20260918-phase-3a-interaction-system/browser-test-records.json:seat_map_interaction.mobile",
+      "screenshot": "s7_02_seat_map_mobile_390.png",
+      "source": "src/components/booking/seat-map.tsx"
+    },
+    {
+      "id": "INT-04",
+      "summary": "Seat map columns mirror in Arabic RTL, flipping Port/Starboard cabin orientation relative to physical aircraft geometry",
+      "nature": "source-explained",
+      "audit": "INTERACTION_SYSTEM_AUDIT.md",
+      "rawRecord": null,
+      "screenshot": null,
+      "source": "src/components/booking/seat-map.tsx"
+    },
+    {
+      "id": "INT-05",
+      "summary": "Cancellation ConfirmDialog traps focus and handles Escape, but leaves background body scroll unlocked",
+      "nature": "browser-confirmed",
+      "audit": "INTERACTION_SYSTEM_AUDIT.md",
+      "rawRecord": "docs/evidence/phase-3a/20260918-phase-3a-interaction-system/browser-test-records.json:cancellation_alertdialog",
+      "screenshot": "s4_01_confirm_dialog_open_1280.png",
+      "source": "src/components/confirm-dialog.tsx"
+    }
+  ]
+}

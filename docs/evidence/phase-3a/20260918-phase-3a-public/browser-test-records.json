@@ -1,0 +1,116 @@
+{
+  "keyboardA11y": {
+    "passengerPopover": {
+      "ariaExpandedToggles": true,
+      "popoverElementVerified": ".min-w-64",
+      "closesOnEscape": false,
+      "closesOnBodyClick": false,
+      "closesOnDoneButton": true,
+      "defectNotes": "Popover has no keydown Escape listener and no mousedown/click-outside listener. Closes only when clicking trigger again or explicit Done button."
+    },
+    "seatMap": {
+      "totalSeatingButtons": 108,
+      "disabledCount": 33,
+      "focusableCount": 75,
+      "firstFewLabels": [
+        "Seating 11A · Extra legroom",
+        "Seating 11B · Extra legroom",
+        "Seating 11C · Extra legroom",
+        "Seating 11D · Extra legroom"
+      ],
+      "hasExplicitTabIndex": false
+    },
+    "mobileDrawer": {
+      "drawerVisible": true,
+      "hasDialogRole": true,
+      "closesOnEscape": false
+    }
+  },
+  "flowTransitions": {},
+  "modalBehavior": {
+    "confirmDialog": {
+      "hasAlertDialogRole": true,
+      "ariaModal": "true",
+      "initialActiveElement": "Keep booking",
+      "tabCycle": {
+        "initial": "Keep booking",
+        "tab1": "Cancel booking",
+        "tab2": "Keep booking",
+        "shiftTab": "Cancel booking",
+        "contained": true
+      },
+      "persistsOnBackdropClick": true,
+      "bodyOverflow": "",
+      "scrollLocked": false,
+      "scrollYDiff": 100,
+      "closesOnEscape": true,
+      "focusRestoredToTrigger": true
+    }
+  },
+  "browserHistory": {
+    "stepBackBehavior": {
+      "destinationAfterBack": "/",
+      "exitsWizard": true
+    }
+  },
+  "mutations": {
+    "boardingPassLink": {
+      "hasBoardingPassLink": true,
+      "href": "/boarding-pass/GZA-7K8P/0",
+      "clickResult": {
+        "path": "/boarding-pass/GZA-7K8P/0",
+        "is404": true
+      }
+    },
+    "manageExtras": {
+      "previous": "0",
+      "updatedBags": 1,
+      "persisted": true
+    },
+    "addTraveler": {
+      "initialStoreCount": 3,
+      "postStoreCount": 4,
+      "domCardAdded": true,
+      "addedTravelerName": "Mariam Mansour",
+      "screenshotCapturedPostMutation": true,
+      "cardInInitialViewport": false,
+      "notes": "Screenshot j4_36 was captured post-mutation showing the 1280x900 viewport with the Add form and top of the companion list; the 4th companion card (Mariam Mansour) sits below the fold. Both DOM card presence and localStorage update (3 -> 4) are verified by browser assertions.",
+      "verified": true
+    },
+    "manageSeats": {
+      "previousSeat": "12A",
+      "updatedSeat": "11B",
+      "persisted": true,
+      "saveButtonText": "Save changes",
+      "isLiteralTranslationKey": false,
+      "notes": "Verified seat reassignment persists to localStorage. Checked Save button text in DOM: correctly resolves to 'Save changes' (EN) from src/lib/i18n.tsx; raw literal 'common.save' is NOT rendered."
+    },
+    "checkIn": {
+      "leg": "out",
+      "passengerIndex": 2,
+      "passengerName": "Yousef Mansour",
+      "preCheckedIn": [
+        0,
+        1
+      ],
+      "postCheckedIn": [
+        0,
+        1,
+        2
+      ],
+      "hazardousGoodsDeclarationPresent": false,
+      "stepsWalked": [
+        "leg",
+        "pax",
+        "details",
+        "seats",
+        "review",
+        "done"
+      ],
+      "issuedBoardingPassUrl": "/boarding-pass/GZA-7K8P/out/2",
+      "boardingPassVerified": true,
+      "persisted": true,
+      "notes": "Successfully walked complete check-in workflow for outbound leg. Note: Source inspection and live evaluation confirm NO hazardous goods declaration exists in the application; check-in transitions directly from passengers to travel documents to seat selection."
+    }
+  }
+}

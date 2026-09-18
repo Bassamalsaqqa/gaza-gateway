@@ -1,0 +1,1126 @@
+{
+  "methodology": {
+    "description": "Static AST/regex import analysis of all TypeScript/TSX files across src/ with full reachability graph from application entry points (routes and application shell components).",
+    "limitations": "Identifies compile-time import statements. Does not account for dynamic imports (none present in src/components/ui/)."
+  },
+  "uiDirectoryStats": {
+    "totalFiles": 46,
+    "filesWithZeroDirectCallersAnywhere": 37,
+    "filesWithCallersExclusivelyInsideUiDir": 9,
+    "filesWithCallersOutsideUiDir": 0,
+    "appEntryReachableFilesCount": 0,
+    "appEntryUnreachableFilesCount": 46,
+    "reachableFromApp": [],
+    "unreachableFromApp": [
+      "accordion",
+      "alert-dialog",
+      "alert",
+      "aspect-ratio",
+      "avatar",
+      "badge",
+      "breadcrumb",
+      "button",
+      "calendar",
+      "card",
+      "carousel",
+      "chart",
+      "checkbox",
+      "collapsible",
+      "command",
+      "context-menu",
+      "dialog",
+      "drawer",
+      "dropdown-menu",
+      "form",
+      "hover-card",
+      "input-otp",
+      "input",
+      "label",
+      "menubar",
+      "navigation-menu",
+      "pagination",
+      "popover",
+      "progress",
+      "radio-group",
+      "resizable",
+      "scroll-area",
+      "select",
+      "separator",
+      "sheet",
+      "sidebar",
+      "skeleton",
+      "slider",
+      "sonner",
+      "switch",
+      "table",
+      "tabs",
+      "textarea",
+      "toggle-group",
+      "toggle",
+      "tooltip"
+    ]
+  },
+  "directImports": {
+    "accordion": {
+      "file": "src/components/ui/accordion.tsx",
+      "totalCallers": 0,
+      "callersInsideUi": [],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "alert-dialog": {
+      "file": "src/components/ui/alert-dialog.tsx",
+      "totalCallers": 0,
+      "callersInsideUi": [],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "alert": {
+      "file": "src/components/ui/alert.tsx",
+      "totalCallers": 0,
+      "callersInsideUi": [],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "aspect-ratio": {
+      "file": "src/components/ui/aspect-ratio.tsx",
+      "totalCallers": 0,
+      "callersInsideUi": [],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "avatar": {
+      "file": "src/components/ui/avatar.tsx",
+      "totalCallers": 0,
+      "callersInsideUi": [],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "badge": {
+      "file": "src/components/ui/badge.tsx",
+      "totalCallers": 0,
+      "callersInsideUi": [],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "breadcrumb": {
+      "file": "src/components/ui/breadcrumb.tsx",
+      "totalCallers": 0,
+      "callersInsideUi": [],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "button": {
+      "file": "src/components/ui/button.tsx",
+      "totalCallers": 5,
+      "callersInsideUi": [
+        "components/ui/alert-dialog.tsx",
+        "components/ui/calendar.tsx",
+        "components/ui/carousel.tsx",
+        "components/ui/pagination.tsx",
+        "components/ui/sidebar.tsx"
+      ],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "calendar": {
+      "file": "src/components/ui/calendar.tsx",
+      "totalCallers": 0,
+      "callersInsideUi": [],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "card": {
+      "file": "src/components/ui/card.tsx",
+      "totalCallers": 0,
+      "callersInsideUi": [],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "carousel": {
+      "file": "src/components/ui/carousel.tsx",
+      "totalCallers": 0,
+      "callersInsideUi": [],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "chart": {
+      "file": "src/components/ui/chart.tsx",
+      "totalCallers": 0,
+      "callersInsideUi": [],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "checkbox": {
+      "file": "src/components/ui/checkbox.tsx",
+      "totalCallers": 0,
+      "callersInsideUi": [],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "collapsible": {
+      "file": "src/components/ui/collapsible.tsx",
+      "totalCallers": 0,
+      "callersInsideUi": [],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "command": {
+      "file": "src/components/ui/command.tsx",
+      "totalCallers": 0,
+      "callersInsideUi": [],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "context-menu": {
+      "file": "src/components/ui/context-menu.tsx",
+      "totalCallers": 0,
+      "callersInsideUi": [],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "dialog": {
+      "file": "src/components/ui/dialog.tsx",
+      "totalCallers": 1,
+      "callersInsideUi": [
+        "components/ui/command.tsx"
+      ],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "drawer": {
+      "file": "src/components/ui/drawer.tsx",
+      "totalCallers": 0,
+      "callersInsideUi": [],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "dropdown-menu": {
+      "file": "src/components/ui/dropdown-menu.tsx",
+      "totalCallers": 0,
+      "callersInsideUi": [],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "form": {
+      "file": "src/components/ui/form.tsx",
+      "totalCallers": 0,
+      "callersInsideUi": [],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "hover-card": {
+      "file": "src/components/ui/hover-card.tsx",
+      "totalCallers": 0,
+      "callersInsideUi": [],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "input-otp": {
+      "file": "src/components/ui/input-otp.tsx",
+      "totalCallers": 0,
+      "callersInsideUi": [],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "input": {
+      "file": "src/components/ui/input.tsx",
+      "totalCallers": 1,
+      "callersInsideUi": [
+        "components/ui/sidebar.tsx"
+      ],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "label": {
+      "file": "src/components/ui/label.tsx",
+      "totalCallers": 1,
+      "callersInsideUi": [
+        "components/ui/form.tsx"
+      ],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "menubar": {
+      "file": "src/components/ui/menubar.tsx",
+      "totalCallers": 0,
+      "callersInsideUi": [],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "navigation-menu": {
+      "file": "src/components/ui/navigation-menu.tsx",
+      "totalCallers": 0,
+      "callersInsideUi": [],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "pagination": {
+      "file": "src/components/ui/pagination.tsx",
+      "totalCallers": 0,
+      "callersInsideUi": [],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "popover": {
+      "file": "src/components/ui/popover.tsx",
+      "totalCallers": 0,
+      "callersInsideUi": [],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "progress": {
+      "file": "src/components/ui/progress.tsx",
+      "totalCallers": 0,
+      "callersInsideUi": [],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "radio-group": {
+      "file": "src/components/ui/radio-group.tsx",
+      "totalCallers": 0,
+      "callersInsideUi": [],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "resizable": {
+      "file": "src/components/ui/resizable.tsx",
+      "totalCallers": 0,
+      "callersInsideUi": [],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "scroll-area": {
+      "file": "src/components/ui/scroll-area.tsx",
+      "totalCallers": 0,
+      "callersInsideUi": [],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "select": {
+      "file": "src/components/ui/select.tsx",
+      "totalCallers": 0,
+      "callersInsideUi": [],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "separator": {
+      "file": "src/components/ui/separator.tsx",
+      "totalCallers": 1,
+      "callersInsideUi": [
+        "components/ui/sidebar.tsx"
+      ],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "sheet": {
+      "file": "src/components/ui/sheet.tsx",
+      "totalCallers": 1,
+      "callersInsideUi": [
+        "components/ui/sidebar.tsx"
+      ],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "sidebar": {
+      "file": "src/components/ui/sidebar.tsx",
+      "totalCallers": 0,
+      "callersInsideUi": [],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "skeleton": {
+      "file": "src/components/ui/skeleton.tsx",
+      "totalCallers": 1,
+      "callersInsideUi": [
+        "components/ui/sidebar.tsx"
+      ],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "slider": {
+      "file": "src/components/ui/slider.tsx",
+      "totalCallers": 0,
+      "callersInsideUi": [],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "sonner": {
+      "file": "src/components/ui/sonner.tsx",
+      "totalCallers": 0,
+      "callersInsideUi": [],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "switch": {
+      "file": "src/components/ui/switch.tsx",
+      "totalCallers": 0,
+      "callersInsideUi": [],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "table": {
+      "file": "src/components/ui/table.tsx",
+      "totalCallers": 0,
+      "callersInsideUi": [],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "tabs": {
+      "file": "src/components/ui/tabs.tsx",
+      "totalCallers": 0,
+      "callersInsideUi": [],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "textarea": {
+      "file": "src/components/ui/textarea.tsx",
+      "totalCallers": 0,
+      "callersInsideUi": [],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "toggle-group": {
+      "file": "src/components/ui/toggle-group.tsx",
+      "totalCallers": 0,
+      "callersInsideUi": [],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "toggle": {
+      "file": "src/components/ui/toggle.tsx",
+      "totalCallers": 1,
+      "callersInsideUi": [
+        "components/ui/toggle-group.tsx"
+      ],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    },
+    "tooltip": {
+      "file": "src/components/ui/tooltip.tsx",
+      "totalCallers": 1,
+      "callersInsideUi": [
+        "components/ui/sidebar.tsx"
+      ],
+      "callersOutsideUi": [],
+      "hasOutsideCallers": false
+    }
+  },
+  "kitUsage": {
+    "btnClass": {
+      "count": 63,
+      "callers": [
+        "components/admin/admin-denied.tsx",
+        "components/admin/admin-kit.tsx",
+        "components/admin/flight-quick-edit.tsx",
+        "components/booking/booking-detail.tsx",
+        "components/booking/flight-option.tsx",
+        "components/confirm-dialog.tsx",
+        "components/flight-search-form.tsx",
+        "components/flight-table.tsx",
+        "components/site-header.tsx",
+        "routes/__root.tsx",
+        "routes/{-$locale}.about.tsx",
+        "routes/{-$locale}.access-denied.tsx",
+        "routes/{-$locale}.account.boarding-passes.tsx",
+        "routes/{-$locale}.account.index.tsx",
+        "routes/{-$locale}.account.preferences.tsx",
+        "routes/{-$locale}.account.profile.tsx",
+        "routes/{-$locale}.account.security.tsx",
+        "routes/{-$locale}.account.travelers.tsx",
+        "routes/{-$locale}.account.trips.$ref.tsx",
+        "routes/{-$locale}.account.trips.index.tsx",
+        "routes/{-$locale}.account.tsx",
+        "routes/{-$locale}.admin.access-denied.tsx",
+        "routes/{-$locale}.admin.airport.index.tsx",
+        "routes/{-$locale}.admin.bookings.$ref.tsx",
+        "routes/{-$locale}.admin.bookings.index.tsx",
+        "routes/{-$locale}.admin.bookings.new.tsx",
+        "routes/{-$locale}.admin.check-in.tsx",
+        "routes/{-$locale}.admin.customers.$id.tsx",
+        "routes/{-$locale}.admin.destinations.$code.tsx",
+        "routes/{-$locale}.admin.destinations.index.tsx",
+        "routes/{-$locale}.admin.flights.$flightId.tsx",
+        "routes/{-$locale}.admin.flights.index.tsx",
+        "routes/{-$locale}.admin.index.tsx",
+        "routes/{-$locale}.admin.products.tsx",
+        "routes/{-$locale}.admin.schedules.tsx",
+        "routes/{-$locale}.admin.staff.tsx",
+        "routes/{-$locale}.admin.tsx",
+        "routes/{-$locale}.admin.website.tsx",
+        "routes/{-$locale}.admin_.signin.tsx",
+        "routes/{-$locale}.airport.future.tsx",
+        "routes/{-$locale}.airport.past.tsx",
+        "routes/{-$locale}.airport.present.tsx",
+        "routes/{-$locale}.boarding-pass.$ref.$leg.$pax.tsx",
+        "routes/{-$locale}.book.tsx",
+        "routes/{-$locale}.booking-confirmation.$ref.tsx",
+        "routes/{-$locale}.check-in.tsx",
+        "routes/{-$locale}.contact.tsx",
+        "routes/{-$locale}.destinations.$code.tsx",
+        "routes/{-$locale}.flight.$flightId.tsx",
+        "routes/{-$locale}.forgot-password.tsx",
+        "routes/{-$locale}.gallery.tsx",
+        "routes/{-$locale}.index.tsx",
+        "routes/{-$locale}.manage.$ref.tsx",
+        "routes/{-$locale}.manage.$ref_.check-in.tsx",
+        "routes/{-$locale}.manage.$ref_.contact.tsx",
+        "routes/{-$locale}.manage.$ref_.extras.tsx",
+        "routes/{-$locale}.manage.$ref_.seats.tsx",
+        "routes/{-$locale}.manage.index.tsx",
+        "routes/{-$locale}.register.tsx",
+        "routes/{-$locale}.reset-password.tsx",
+        "routes/{-$locale}.signin.tsx",
+        "routes/{-$locale}.travel.tsx",
+        "routes/{-$locale}.verify-email.tsx"
+      ]
+    },
+    "Button": {
+      "count": 18,
+      "callers": [
+        "components/admin/admin-kit.tsx",
+        "components/admin/flight-quick-edit.tsx",
+        "components/confirm-dialog.tsx",
+        "routes/{-$locale}.admin.airport.index.tsx",
+        "routes/{-$locale}.admin.bookings.$ref.tsx",
+        "routes/{-$locale}.admin.bookings.new.tsx",
+        "routes/{-$locale}.admin.check-in.tsx",
+        "routes/{-$locale}.admin.customers.$id.tsx",
+        "routes/{-$locale}.admin.destinations.$code.tsx",
+        "routes/{-$locale}.admin.flights.$flightId.tsx",
+        "routes/{-$locale}.admin.flights.index.tsx",
+        "routes/{-$locale}.admin.inbox.tsx",
+        "routes/{-$locale}.admin.index.tsx",
+        "routes/{-$locale}.admin.products.tsx",
+        "routes/{-$locale}.admin.schedules.tsx",
+        "routes/{-$locale}.admin.settings.tsx",
+        "routes/{-$locale}.admin.staff.tsx",
+        "routes/{-$locale}.admin.website.tsx"
+      ]
+    },
+    "Field": {
+      "count": 32,
+      "callers": [
+        "components/admin/admin-kit.tsx",
+        "components/admin/flight-quick-edit.tsx",
+        "components/flight-search-form.tsx",
+        "routes/{-$locale}.account.preferences.tsx",
+        "routes/{-$locale}.account.profile.tsx",
+        "routes/{-$locale}.account.security.tsx",
+        "routes/{-$locale}.account.travelers.tsx",
+        "routes/{-$locale}.admin.airport.index.tsx",
+        "routes/{-$locale}.admin.bookings.$ref.tsx",
+        "routes/{-$locale}.admin.bookings.new.tsx",
+        "routes/{-$locale}.admin.customers.$id.tsx",
+        "routes/{-$locale}.admin.destinations.$code.tsx",
+        "routes/{-$locale}.admin.index.tsx",
+        "routes/{-$locale}.admin.products.tsx",
+        "routes/{-$locale}.admin.schedules.tsx",
+        "routes/{-$locale}.admin.settings.tsx",
+        "routes/{-$locale}.admin.staff.tsx",
+        "routes/{-$locale}.admin.website.tsx",
+        "routes/{-$locale}.admin_.signin.tsx",
+        "routes/{-$locale}.book.tsx",
+        "routes/{-$locale}.check-in.tsx",
+        "routes/{-$locale}.contact.tsx",
+        "routes/{-$locale}.destinations.tsx",
+        "routes/{-$locale}.flights.tsx",
+        "routes/{-$locale}.forgot-password.tsx",
+        "routes/{-$locale}.manage.$ref_.check-in.tsx",
+        "routes/{-$locale}.manage.$ref_.contact.tsx",
+        "routes/{-$locale}.manage.$ref_.extras.tsx",
+        "routes/{-$locale}.manage.index.tsx",
+        "routes/{-$locale}.register.tsx",
+        "routes/{-$locale}.reset-password.tsx",
+        "routes/{-$locale}.signin.tsx"
+      ]
+    },
+    "Input": {
+      "count": 36,
+      "callers": [
+        "components/admin/flight-quick-edit.tsx",
+        "components/flight-search-form.tsx",
+        "routes/{-$locale}.account.profile.tsx",
+        "routes/{-$locale}.account.security.tsx",
+        "routes/{-$locale}.account.travelers.tsx",
+        "routes/{-$locale}.admin.activity.tsx",
+        "routes/{-$locale}.admin.airport.index.tsx",
+        "routes/{-$locale}.admin.bookings.$ref.tsx",
+        "routes/{-$locale}.admin.bookings.index.tsx",
+        "routes/{-$locale}.admin.bookings.new.tsx",
+        "routes/{-$locale}.admin.check-in.tsx",
+        "routes/{-$locale}.admin.customers.$id.tsx",
+        "routes/{-$locale}.admin.customers.index.tsx",
+        "routes/{-$locale}.admin.destinations.$code.tsx",
+        "routes/{-$locale}.admin.destinations.index.tsx",
+        "routes/{-$locale}.admin.flights.index.tsx",
+        "routes/{-$locale}.admin.inbox.tsx",
+        "routes/{-$locale}.admin.index.tsx",
+        "routes/{-$locale}.admin.products.tsx",
+        "routes/{-$locale}.admin.schedules.tsx",
+        "routes/{-$locale}.admin.settings.tsx",
+        "routes/{-$locale}.admin.staff.tsx",
+        "routes/{-$locale}.admin.website.tsx",
+        "routes/{-$locale}.admin_.signin.tsx",
+        "routes/{-$locale}.book.tsx",
+        "routes/{-$locale}.check-in.tsx",
+        "routes/{-$locale}.contact.tsx",
+        "routes/{-$locale}.destinations.tsx",
+        "routes/{-$locale}.flights.tsx",
+        "routes/{-$locale}.forgot-password.tsx",
+        "routes/{-$locale}.manage.$ref_.check-in.tsx",
+        "routes/{-$locale}.manage.$ref_.contact.tsx",
+        "routes/{-$locale}.manage.index.tsx",
+        "routes/{-$locale}.register.tsx",
+        "routes/{-$locale}.reset-password.tsx",
+        "routes/{-$locale}.signin.tsx"
+      ]
+    },
+    "Select": {
+      "count": 27,
+      "callers": [
+        "components/admin/admin-kit.tsx",
+        "components/admin/flight-quick-edit.tsx",
+        "components/booking/flight-option.tsx",
+        "components/confirm-dialog.tsx",
+        "components/flight-search-form.tsx",
+        "routes/{-$locale}.account.preferences.tsx",
+        "routes/{-$locale}.admin.activity.tsx",
+        "routes/{-$locale}.admin.airport.index.tsx",
+        "routes/{-$locale}.admin.bookings.$ref.tsx",
+        "routes/{-$locale}.admin.bookings.index.tsx",
+        "routes/{-$locale}.admin.bookings.new.tsx",
+        "routes/{-$locale}.admin.check-in.tsx",
+        "routes/{-$locale}.admin.destinations.$code.tsx",
+        "routes/{-$locale}.admin.flights.index.tsx",
+        "routes/{-$locale}.admin.inbox.tsx",
+        "routes/{-$locale}.admin.index.tsx",
+        "routes/{-$locale}.admin.products.tsx",
+        "routes/{-$locale}.admin.schedules.tsx",
+        "routes/{-$locale}.admin.settings.tsx",
+        "routes/{-$locale}.admin.staff.tsx",
+        "routes/{-$locale}.admin.website.tsx",
+        "routes/{-$locale}.book.tsx",
+        "routes/{-$locale}.contact.tsx",
+        "routes/{-$locale}.flights.tsx",
+        "routes/{-$locale}.manage.$ref_.check-in.tsx",
+        "routes/{-$locale}.manage.$ref_.extras.tsx",
+        "routes/{-$locale}.manage.$ref_.seats.tsx"
+      ]
+    },
+    "Textarea": {
+      "count": 8,
+      "callers": [
+        "components/admin/flight-quick-edit.tsx",
+        "routes/{-$locale}.admin.airport.index.tsx",
+        "routes/{-$locale}.admin.destinations.$code.tsx",
+        "routes/{-$locale}.admin.inbox.tsx",
+        "routes/{-$locale}.admin.index.tsx",
+        "routes/{-$locale}.admin.products.tsx",
+        "routes/{-$locale}.admin.website.tsx",
+        "routes/{-$locale}.contact.tsx"
+      ]
+    },
+    "Panel": {
+      "count": 48,
+      "callers": [
+        "components/admin/admin-denied.tsx",
+        "components/admin/admin-kit.tsx",
+        "components/booking/booking-detail.tsx",
+        "routes/{-$locale}.about.tsx",
+        "routes/{-$locale}.access-denied.tsx",
+        "routes/{-$locale}.account.boarding-passes.tsx",
+        "routes/{-$locale}.account.index.tsx",
+        "routes/{-$locale}.account.preferences.tsx",
+        "routes/{-$locale}.account.profile.tsx",
+        "routes/{-$locale}.account.security.tsx",
+        "routes/{-$locale}.account.travelers.tsx",
+        "routes/{-$locale}.account.trips.index.tsx",
+        "routes/{-$locale}.admin.access-denied.tsx",
+        "routes/{-$locale}.admin.activity.tsx",
+        "routes/{-$locale}.admin.airport.index.tsx",
+        "routes/{-$locale}.admin.bookings.$ref.tsx",
+        "routes/{-$locale}.admin.bookings.index.tsx",
+        "routes/{-$locale}.admin.bookings.new.tsx",
+        "routes/{-$locale}.admin.check-in.tsx",
+        "routes/{-$locale}.admin.customers.$id.tsx",
+        "routes/{-$locale}.admin.customers.index.tsx",
+        "routes/{-$locale}.admin.destinations.$code.tsx",
+        "routes/{-$locale}.admin.destinations.index.tsx",
+        "routes/{-$locale}.admin.flights.$flightId.tsx",
+        "routes/{-$locale}.admin.flights.index.tsx",
+        "routes/{-$locale}.admin.inbox.tsx",
+        "routes/{-$locale}.admin.index.tsx",
+        "routes/{-$locale}.admin.products.tsx",
+        "routes/{-$locale}.admin.schedules.tsx",
+        "routes/{-$locale}.admin.settings.tsx",
+        "routes/{-$locale}.admin.staff.tsx",
+        "routes/{-$locale}.admin.website.tsx",
+        "routes/{-$locale}.airport.future.tsx",
+        "routes/{-$locale}.airport.present.tsx",
+        "routes/{-$locale}.book.tsx",
+        "routes/{-$locale}.booking-confirmation.$ref.tsx",
+        "routes/{-$locale}.check-in.tsx",
+        "routes/{-$locale}.contact.tsx",
+        "routes/{-$locale}.flight.$flightId.tsx",
+        "routes/{-$locale}.forgot-password.tsx",
+        "routes/{-$locale}.manage.$ref_.check-in.tsx",
+        "routes/{-$locale}.manage.$ref_.contact.tsx",
+        "routes/{-$locale}.manage.$ref_.extras.tsx",
+        "routes/{-$locale}.manage.$ref_.seats.tsx",
+        "routes/{-$locale}.privacy.tsx",
+        "routes/{-$locale}.reset-password.tsx",
+        "routes/{-$locale}.terms.tsx",
+        "routes/{-$locale}.verify-email.tsx"
+      ]
+    },
+    "Pill": {
+      "count": 9,
+      "callers": [
+        "components/booking/boarding-pass.tsx",
+        "components/booking/booking-detail.tsx",
+        "routes/{-$locale}.account.boarding-passes.tsx",
+        "routes/{-$locale}.account.trips.index.tsx",
+        "routes/{-$locale}.airport.past.tsx",
+        "routes/{-$locale}.book.tsx",
+        "routes/{-$locale}.flight.$flightId.tsx",
+        "routes/{-$locale}.gallery.tsx",
+        "routes/{-$locale}.manage.$ref_.check-in.tsx"
+      ]
+    },
+    "Eyebrow": {
+      "count": 7,
+      "callers": [
+        "routes/{-$locale}.airport.future.tsx",
+        "routes/{-$locale}.airport.index.tsx",
+        "routes/{-$locale}.airport.past.tsx",
+        "routes/{-$locale}.airport.present.tsx",
+        "routes/{-$locale}.book.tsx",
+        "routes/{-$locale}.destinations.$code.tsx",
+        "routes/{-$locale}.index.tsx"
+      ]
+    },
+    "SectionHeader": {
+      "count": 1,
+      "callers": [
+        "routes/{-$locale}.index.tsx"
+      ]
+    },
+    "PageHeader": {
+      "count": 38,
+      "callers": [
+        "components/admin/admin-kit.tsx",
+        "routes/{-$locale}.about.tsx",
+        "routes/{-$locale}.account.tsx",
+        "routes/{-$locale}.admin.activity.tsx",
+        "routes/{-$locale}.admin.airport.index.tsx",
+        "routes/{-$locale}.admin.bookings.$ref.tsx",
+        "routes/{-$locale}.admin.bookings.index.tsx",
+        "routes/{-$locale}.admin.bookings.new.tsx",
+        "routes/{-$locale}.admin.check-in.tsx",
+        "routes/{-$locale}.admin.customers.$id.tsx",
+        "routes/{-$locale}.admin.customers.index.tsx",
+        "routes/{-$locale}.admin.destinations.$code.tsx",
+        "routes/{-$locale}.admin.destinations.index.tsx",
+        "routes/{-$locale}.admin.flights.$flightId.tsx",
+        "routes/{-$locale}.admin.flights.index.tsx",
+        "routes/{-$locale}.admin.inbox.tsx",
+        "routes/{-$locale}.admin.index.tsx",
+        "routes/{-$locale}.admin.products.tsx",
+        "routes/{-$locale}.admin.schedules.tsx",
+        "routes/{-$locale}.admin.settings.tsx",
+        "routes/{-$locale}.admin.staff.tsx",
+        "routes/{-$locale}.admin.website.tsx",
+        "routes/{-$locale}.airport.index.tsx",
+        "routes/{-$locale}.boarding-pass.$ref.$leg.$pax.tsx",
+        "routes/{-$locale}.check-in.tsx",
+        "routes/{-$locale}.contact.tsx",
+        "routes/{-$locale}.destinations.tsx",
+        "routes/{-$locale}.flights.tsx",
+        "routes/{-$locale}.gallery.tsx",
+        "routes/{-$locale}.manage.$ref.tsx",
+        "routes/{-$locale}.manage.$ref_.check-in.tsx",
+        "routes/{-$locale}.manage.$ref_.contact.tsx",
+        "routes/{-$locale}.manage.$ref_.extras.tsx",
+        "routes/{-$locale}.manage.$ref_.seats.tsx",
+        "routes/{-$locale}.manage.index.tsx",
+        "routes/{-$locale}.privacy.tsx",
+        "routes/{-$locale}.terms.tsx",
+        "routes/{-$locale}.travel.tsx"
+      ]
+    },
+    "EmptyState": {
+      "count": 18,
+      "callers": [
+        "routes/{-$locale}.account.boarding-passes.tsx",
+        "routes/{-$locale}.account.index.tsx",
+        "routes/{-$locale}.account.travelers.tsx",
+        "routes/{-$locale}.account.trips.$ref.tsx",
+        "routes/{-$locale}.account.trips.index.tsx",
+        "routes/{-$locale}.account.tsx",
+        "routes/{-$locale}.boarding-pass.$ref.$leg.$pax.tsx",
+        "routes/{-$locale}.book.tsx",
+        "routes/{-$locale}.booking-confirmation.$ref.tsx",
+        "routes/{-$locale}.check-in.tsx",
+        "routes/{-$locale}.destinations.$code.tsx",
+        "routes/{-$locale}.flight.$flightId.tsx",
+        "routes/{-$locale}.manage.$ref.tsx",
+        "routes/{-$locale}.manage.$ref_.check-in.tsx",
+        "routes/{-$locale}.manage.$ref_.contact.tsx",
+        "routes/{-$locale}.manage.$ref_.extras.tsx",
+        "routes/{-$locale}.manage.$ref_.seats.tsx",
+        "routes/{-$locale}.manage.index.tsx"
+      ]
+    },
+    "Notice": {
+      "count": 22,
+      "callers": [
+        "routes/{-$locale}.account.boarding-passes.tsx",
+        "routes/{-$locale}.account.preferences.tsx",
+        "routes/{-$locale}.account.profile.tsx",
+        "routes/{-$locale}.account.security.tsx",
+        "routes/{-$locale}.airport.future.tsx",
+        "routes/{-$locale}.airport.past.tsx",
+        "routes/{-$locale}.airport.present.tsx",
+        "routes/{-$locale}.boarding-pass.$ref.$leg.$pax.tsx",
+        "routes/{-$locale}.book.tsx",
+        "routes/{-$locale}.booking-confirmation.$ref.tsx",
+        "routes/{-$locale}.contact.tsx",
+        "routes/{-$locale}.destinations.$code.tsx",
+        "routes/{-$locale}.flight.$flightId.tsx",
+        "routes/{-$locale}.forgot-password.tsx",
+        "routes/{-$locale}.gallery.tsx",
+        "routes/{-$locale}.manage.$ref_.check-in.tsx",
+        "routes/{-$locale}.privacy.tsx",
+        "routes/{-$locale}.register.tsx",
+        "routes/{-$locale}.reset-password.tsx",
+        "routes/{-$locale}.signin.tsx",
+        "routes/{-$locale}.terms.tsx",
+        "routes/{-$locale}.verify-email.tsx"
+      ]
+    },
+    "Container": {
+      "count": 32,
+      "callers": [
+        "routes/{-$locale}.about.tsx",
+        "routes/{-$locale}.access-denied.tsx",
+        "routes/{-$locale}.account.tsx",
+        "routes/{-$locale}.airport.future.tsx",
+        "routes/{-$locale}.airport.index.tsx",
+        "routes/{-$locale}.airport.past.tsx",
+        "routes/{-$locale}.airport.present.tsx",
+        "routes/{-$locale}.boarding-pass.$ref.$leg.$pax.tsx",
+        "routes/{-$locale}.book.tsx",
+        "routes/{-$locale}.booking-confirmation.$ref.tsx",
+        "routes/{-$locale}.check-in.tsx",
+        "routes/{-$locale}.contact.tsx",
+        "routes/{-$locale}.destinations.$code.tsx",
+        "routes/{-$locale}.destinations.tsx",
+        "routes/{-$locale}.flight.$flightId.tsx",
+        "routes/{-$locale}.flights.tsx",
+        "routes/{-$locale}.forgot-password.tsx",
+        "routes/{-$locale}.gallery.tsx",
+        "routes/{-$locale}.index.tsx",
+        "routes/{-$locale}.manage.$ref.tsx",
+        "routes/{-$locale}.manage.$ref_.check-in.tsx",
+        "routes/{-$locale}.manage.$ref_.contact.tsx",
+        "routes/{-$locale}.manage.$ref_.extras.tsx",
+        "routes/{-$locale}.manage.$ref_.seats.tsx",
+        "routes/{-$locale}.manage.index.tsx",
+        "routes/{-$locale}.privacy.tsx",
+        "routes/{-$locale}.register.tsx",
+        "routes/{-$locale}.reset-password.tsx",
+        "routes/{-$locale}.signin.tsx",
+        "routes/{-$locale}.terms.tsx",
+        "routes/{-$locale}.travel.tsx",
+        "routes/{-$locale}.verify-email.tsx"
+      ]
+    },
+    "Code": {
+      "count": 23,
+      "callers": [
+        "components/admin/flight-quick-edit.tsx",
+        "components/booking/boarding-pass.tsx",
+        "components/booking/booking-detail.tsx",
+        "components/booking/flight-option.tsx",
+        "components/booking/price-summary.tsx",
+        "components/destination-card.tsx",
+        "components/flight-table.tsx",
+        "routes/{-$locale}.about.tsx",
+        "routes/{-$locale}.account.index.tsx",
+        "routes/{-$locale}.account.trips.index.tsx",
+        "routes/{-$locale}.admin.flights.$flightId.tsx",
+        "routes/{-$locale}.admin.flights.index.tsx",
+        "routes/{-$locale}.admin.index.tsx",
+        "routes/{-$locale}.admin.schedules.tsx",
+        "routes/{-$locale}.admin.settings.tsx",
+        "routes/{-$locale}.book.tsx",
+        "routes/{-$locale}.booking-confirmation.$ref.tsx",
+        "routes/{-$locale}.destinations.$code.tsx",
+        "routes/{-$locale}.flight.$flightId.tsx",
+        "routes/{-$locale}.flights.tsx",
+        "routes/{-$locale}.index.tsx",
+        "routes/{-$locale}.manage.$ref_.check-in.tsx",
+        "routes/{-$locale}.manage.$ref_.seats.tsx"
+      ]
+    }
+  },
+  "adminKitUsage": {
+    "AdminPageHeader": {
+      "count": 20,
+      "callers": [
+        "routes/{-$locale}.admin.activity.tsx",
+        "routes/{-$locale}.admin.airport.index.tsx",
+        "routes/{-$locale}.admin.analytics.tsx",
+        "routes/{-$locale}.admin.bookings.$ref.tsx",
+        "routes/{-$locale}.admin.bookings.index.tsx",
+        "routes/{-$locale}.admin.bookings.new.tsx",
+        "routes/{-$locale}.admin.check-in.tsx",
+        "routes/{-$locale}.admin.customers.$id.tsx",
+        "routes/{-$locale}.admin.customers.index.tsx",
+        "routes/{-$locale}.admin.destinations.$code.tsx",
+        "routes/{-$locale}.admin.destinations.index.tsx",
+        "routes/{-$locale}.admin.flights.$flightId.tsx",
+        "routes/{-$locale}.admin.flights.index.tsx",
+        "routes/{-$locale}.admin.inbox.tsx",
+        "routes/{-$locale}.admin.index.tsx",
+        "routes/{-$locale}.admin.products.tsx",
+        "routes/{-$locale}.admin.schedules.tsx",
+        "routes/{-$locale}.admin.settings.tsx",
+        "routes/{-$locale}.admin.staff.tsx",
+        "routes/{-$locale}.admin.website.tsx"
+      ]
+    },
+    "Metric": {
+      "count": 3,
+      "callers": [
+        "routes/{-$locale}.admin.analytics.tsx",
+        "routes/{-$locale}.admin.flights.$flightId.tsx",
+        "routes/{-$locale}.admin.index.tsx"
+      ]
+    },
+    "AdminPanel": {
+      "count": 22,
+      "callers": [
+        "components/admin/admin-denied.tsx",
+        "routes/{-$locale}.admin.access-denied.tsx",
+        "routes/{-$locale}.admin.activity.tsx",
+        "routes/{-$locale}.admin.airport.index.tsx",
+        "routes/{-$locale}.admin.analytics.tsx",
+        "routes/{-$locale}.admin.bookings.$ref.tsx",
+        "routes/{-$locale}.admin.bookings.index.tsx",
+        "routes/{-$locale}.admin.bookings.new.tsx",
+        "routes/{-$locale}.admin.check-in.tsx",
+        "routes/{-$locale}.admin.customers.$id.tsx",
+        "routes/{-$locale}.admin.customers.index.tsx",
+        "routes/{-$locale}.admin.destinations.$code.tsx",
+        "routes/{-$locale}.admin.destinations.index.tsx",
+        "routes/{-$locale}.admin.flights.$flightId.tsx",
+        "routes/{-$locale}.admin.flights.index.tsx",
+        "routes/{-$locale}.admin.inbox.tsx",
+        "routes/{-$locale}.admin.index.tsx",
+        "routes/{-$locale}.admin.products.tsx",
+        "routes/{-$locale}.admin.schedules.tsx",
+        "routes/{-$locale}.admin.settings.tsx",
+        "routes/{-$locale}.admin.staff.tsx",
+        "routes/{-$locale}.admin.website.tsx"
+      ]
+    },
+    "Toolbar": {
+      "count": 9,
+      "callers": [
+        "routes/{-$locale}.admin.activity.tsx",
+        "routes/{-$locale}.admin.airport.index.tsx",
+        "routes/{-$locale}.admin.bookings.index.tsx",
+        "routes/{-$locale}.admin.check-in.tsx",
+        "routes/{-$locale}.admin.customers.index.tsx",
+        "routes/{-$locale}.admin.destinations.index.tsx",
+        "routes/{-$locale}.admin.flights.index.tsx",
+        "routes/{-$locale}.admin.inbox.tsx",
+        "routes/{-$locale}.admin.schedules.tsx"
+      ]
+    },
+    "AdminChip": {
+      "count": 23,
+      "callers": [
+        "components/admin/admin-denied.tsx",
+        "components/admin/admin-search.tsx",
+        "components/admin/admin-shell.tsx",
+        "routes/{-$locale}.admin.access-denied.tsx",
+        "routes/{-$locale}.admin.activity.tsx",
+        "routes/{-$locale}.admin.airport.index.tsx",
+        "routes/{-$locale}.admin.bookings.$ref.tsx",
+        "routes/{-$locale}.admin.bookings.index.tsx",
+        "routes/{-$locale}.admin.bookings.new.tsx",
+        "routes/{-$locale}.admin.check-in.tsx",
+        "routes/{-$locale}.admin.customers.$id.tsx",
+        "routes/{-$locale}.admin.customers.index.tsx",
+        "routes/{-$locale}.admin.destinations.$code.tsx",
+        "routes/{-$locale}.admin.destinations.index.tsx",
+        "routes/{-$locale}.admin.flights.$flightId.tsx",
+        "routes/{-$locale}.admin.flights.index.tsx",
+        "routes/{-$locale}.admin.inbox.tsx",
+        "routes/{-$locale}.admin.index.tsx",
+        "routes/{-$locale}.admin.products.tsx",
+        "routes/{-$locale}.admin.schedules.tsx",
+        "routes/{-$locale}.admin.staff.tsx",
+        "routes/{-$locale}.admin.website.tsx",
+        "routes/{-$locale}.admin_.signin.tsx"
+      ]
+    },
+    "Ltr": {
+      "count": 23,
+      "callers": [
+        "components/admin/admin-denied.tsx",
+        "components/admin/admin-search.tsx",
+        "components/admin/flight-quick-edit.tsx",
+        "routes/{-$locale}.admin.access-denied.tsx",
+        "routes/{-$locale}.admin.activity.tsx",
+        "routes/{-$locale}.admin.airport.index.tsx",
+        "routes/{-$locale}.admin.analytics.tsx",
+        "routes/{-$locale}.admin.bookings.$ref.tsx",
+        "routes/{-$locale}.admin.bookings.index.tsx",
+        "routes/{-$locale}.admin.bookings.new.tsx",
+        "routes/{-$locale}.admin.check-in.tsx",
+        "routes/{-$locale}.admin.customers.$id.tsx",
+        "routes/{-$locale}.admin.customers.index.tsx",
+        "routes/{-$locale}.admin.destinations.$code.tsx",
+        "routes/{-$locale}.admin.destinations.index.tsx",
+        "routes/{-$locale}.admin.flights.$flightId.tsx",
+        "routes/{-$locale}.admin.flights.index.tsx",
+        "routes/{-$locale}.admin.inbox.tsx",
+        "routes/{-$locale}.admin.index.tsx",
+        "routes/{-$locale}.admin.products.tsx",
+        "routes/{-$locale}.admin.schedules.tsx",
+        "routes/{-$locale}.admin.staff.tsx",
+        "routes/{-$locale}.admin.website.tsx"
+      ]
+    },
+    "BilingualStatus": {
+      "count": 6,
+      "callers": [
+        "routes/{-$locale}.admin.airport.index.tsx",
+        "routes/{-$locale}.admin.destinations.$code.tsx",
+        "routes/{-$locale}.admin.destinations.index.tsx",
+        "routes/{-$locale}.admin.index.tsx",
+        "routes/{-$locale}.admin.products.tsx",
+        "routes/{-$locale}.admin.website.tsx"
+      ]
+    },
+    "ContentStateChip": {
+      "count": 3,
+      "callers": [
+        "routes/{-$locale}.admin.airport.index.tsx",
+        "routes/{-$locale}.admin.index.tsx",
+        "routes/{-$locale}.admin.website.tsx"
+      ]
+    },
+    "AttentionRow": {
+      "count": 1,
+      "callers": [
+        "routes/{-$locale}.admin.index.tsx"
+      ]
+    },
+    "AdminError": {
+      "count": 0,
+      "callers": []
+    },
+    "AdminField": {
+      "count": 3,
+      "callers": [
+        "routes/{-$locale}.admin.airport.index.tsx",
+        "routes/{-$locale}.admin.settings.tsx",
+        "routes/{-$locale}.admin.website.tsx"
+      ]
+    },
+    "AdminStickyActions": {
+      "count": 3,
+      "callers": [
+        "routes/{-$locale}.admin.destinations.$code.tsx",
+        "routes/{-$locale}.admin.products.tsx",
+        "routes/{-$locale}.admin.settings.tsx"
+      ]
+    },
+    "AdminEmpty": {
+      "count": 13,
+      "callers": [
+        "routes/{-$locale}.admin.activity.tsx",
+        "routes/{-$locale}.admin.airport.index.tsx",
+        "routes/{-$locale}.admin.bookings.$ref.tsx",
+        "routes/{-$locale}.admin.bookings.index.tsx",
+        "routes/{-$locale}.admin.check-in.tsx",
+        "routes/{-$locale}.admin.customers.$id.tsx",
+        "routes/{-$locale}.admin.customers.index.tsx",
+        "routes/{-$locale}.admin.destinations.index.tsx",
+        "routes/{-$locale}.admin.flights.$flightId.tsx",
+        "routes/{-$locale}.admin.flights.index.tsx",
+        "routes/{-$locale}.admin.inbox.tsx",
+        "routes/{-$locale}.admin.index.tsx",
+        "routes/{-$locale}.admin.schedules.tsx"
+      ]
+    },
+    "AdminSkeleton": {
+      "count": 1,
+      "callers": [
+        "routes/{-$locale}.admin.tsx"
+      ]
+    },
+    "PermissionButton": {
+      "count": 16,
+      "callers": [
+        "components/admin/flight-quick-edit.tsx",
+        "routes/{-$locale}.admin.airport.index.tsx",
+        "routes/{-$locale}.admin.bookings.$ref.tsx",
+        "routes/{-$locale}.admin.bookings.new.tsx",
+        "routes/{-$locale}.admin.check-in.tsx",
+        "routes/{-$locale}.admin.customers.$id.tsx",
+        "routes/{-$locale}.admin.destinations.$code.tsx",
+        "routes/{-$locale}.admin.flights.$flightId.tsx",
+        "routes/{-$locale}.admin.flights.index.tsx",
+        "routes/{-$locale}.admin.inbox.tsx",
+        "routes/{-$locale}.admin.index.tsx",
+        "routes/{-$locale}.admin.products.tsx",
+        "routes/{-$locale}.admin.schedules.tsx",
+        "routes/{-$locale}.admin.settings.tsx",
+        "routes/{-$locale}.admin.staff.tsx",
+        "routes/{-$locale}.admin.website.tsx"
+      ]
+    },
+    "AdminTabs": {
+      "count": 9,
+      "callers": [
+        "routes/{-$locale}.admin.airport.index.tsx",
+        "routes/{-$locale}.admin.analytics.tsx",
+        "routes/{-$locale}.admin.bookings.$ref.tsx",
+        "routes/{-$locale}.admin.customers.$id.tsx",
+        "routes/{-$locale}.admin.destinations.$code.tsx",
+        "routes/{-$locale}.admin.flights.$flightId.tsx",
+        "routes/{-$locale}.admin.products.tsx",
+        "routes/{-$locale}.admin.settings.tsx",
+        "routes/{-$locale}.admin.website.tsx"
+      ]
+    },
+    "AdminSheet": {
+      "count": 11,
+      "callers": [
+        "components/admin/flight-quick-edit.tsx",
+        "routes/{-$locale}.admin.activity.tsx",
+        "routes/{-$locale}.admin.airport.index.tsx",
+        "routes/{-$locale}.admin.bookings.$ref.tsx",
+        "routes/{-$locale}.admin.check-in.tsx",
+        "routes/{-$locale}.admin.customers.$id.tsx",
+        "routes/{-$locale}.admin.index.tsx",
+        "routes/{-$locale}.admin.products.tsx",
+        "routes/{-$locale}.admin.schedules.tsx",
+        "routes/{-$locale}.admin.staff.tsx",
+        "routes/{-$locale}.admin.website.tsx"
+      ]
+    },
+    "AdminToasts": {
+      "count": 1,
+      "callers": [
+        "components/admin/admin-shell.tsx"
+      ]
+    }
+  }
+}

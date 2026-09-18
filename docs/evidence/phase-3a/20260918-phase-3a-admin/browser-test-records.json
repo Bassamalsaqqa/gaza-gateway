@@ -1,0 +1,161 @@
+{
+  "workflow1_access_orientation": {
+    "unauth_guard": {
+      "actualHeading": "Sign in to continue",
+      "expectedTextLookedUp": "Sign in required",
+      "showsRequiredTitle": false,
+      "selectorMismatchExplanation": "The automated locator searched for 'Sign in required', but the actual rendered H1 is 'Sign in to continue' (t('adm.signin.required') in src/routes/{-$locale}.admin.tsx). The guard is visually and functionally working as proven by w1_05_admin_unauth_guard_1280.png.",
+      "hasSignInButton": true,
+      "hasPublicSiteButton": true,
+      "guardWorking": true
+    }
+  },
+  "workflow2_daily_operations": {
+    "quick_edit_mutation": {
+      "flight": "PS151",
+      "before": {
+        "rowText": "01:05 PS151 GZA → JED Boeing 737-800 1 · A4 154/168 154 of 168 seats sold 0 of 0 checked in Scheduled Quick edit Open flight",
+        "storageOverrides": {}
+      },
+      "action": {
+        "status": "Boarding",
+        "gate": "A3",
+        "revisedDepart": "08:25",
+        "note": "Gate change announced for departure"
+      },
+      "after": {
+        "rowText": "01:05 08:25 PS151 GZA → JED Boeing 737-800 1 · A3 154/168 154 of 168 seats sold 0 of 0 checked in Boarding Quick edit Open flight",
+        "storageOverrides": {
+          "PS151-2026-09-18-out": {
+            "status": "Boarding",
+            "gate": "A3",
+            "terminal": "1",
+            "revisedDepart": "08:25",
+            "aircraft": "Boeing 737-800",
+            "note": "Gate change announced for departure"
+          }
+        }
+      },
+      "toastObserved": true,
+      "persistedInLocalStorage": true
+    }
+  },
+  "workflow3_booking_station_desk": {
+    "booking_cancellation": {
+      "ref": "GZA4TQ",
+      "detailStatusAfterCancel": "Cancelled",
+      "tableStatusAfterNavigatingBack": "Confirmed (reverted)",
+      "persistedToStore": false,
+      "analysis": "Cancellation modifies local component state in admin.bookings.$ref.tsx but does not mutate the static mockBookings array; navigating back displays original Confirmed status."
+    },
+    "counter_booking_creation": {
+      "generatedRef": "GZA-NEW1",
+      "appendedToBookingsList": false,
+      "nature": "Display-only simulation: the wizard renders success card but does not append to mockBookings array or store."
+    },
+    "desk_checkin_action": {
+      "passenger": "Nadia Sabbagh",
+      "flight": "PS100",
+      "beforeStatusText": "Nadia Sabbagh GZA4TQ Verified 12A 2 None Ready Check in Issue boarding pass View extras",
+      "afterStatusText": "Nadia Sabbagh GZA4TQ Verified 12A 2 None Ready Check in Issue boarding pass View extras",
+      "mutated": false,
+      "nature": "Toast-only action: button executes onClick={() => toast(t(\"a2.ci.checkedInToast\"))} without updating deskPassengers array."
+    }
+  },
+  "workflow4_content_organization": {
+    "destination_mutation": {
+      "route": "/admin/destinations/AMM",
+      "savesToOpsState": true,
+      "persistedInLocalStorage": false,
+      "analysis": "Destination changes update in-memory ops state via patchOps(\"destinations\", ...), but ops is not persisted to localStorage; reloading resets to default seed."
+    }
+  },
+  "interactive_a11y_directionality": {
+    "skip_link": {
+      "tag": "A",
+      "href": "#admin-main",
+      "text": "Skip to admin content",
+      "works": true
+    },
+    "account_menu_keyboard": {
+      "opened": true,
+      "dismissedOnEscape": true,
+      "focusReturned": true
+    },
+    "ltr_isolation_arabic": {
+      "sampleCount": 180,
+      "sampleItems": [
+        {
+          "tag": "SPAN",
+          "text": "GZA",
+          "dir": "ltr"
+        },
+        {
+          "tag": "KBD",
+          "text": "⌘K",
+          "dir": "ltr"
+        },
+        {
+          "tag": "SPAN",
+          "text": "10",
+          "dir": "ltr"
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "dir": "ltr"
+        },
+        {
+          "tag": "SPAN",
+          "text": "01:05",
+          "dir": "ltr"
+        },
+        {
+          "tag": "SPAN",
+          "text": "PS151",
+          "dir": "ltr"
+        },
+        {
+          "tag": "SPAN",
+          "text": "GZA → JED",
+          "dir": "ltr"
+        },
+        {
+          "tag": "SPAN",
+          "text": "Boeing 737-800",
+          "dir": "ltr"
+        },
+        {
+          "tag": "SPAN",
+          "text": "1 · A4",
+          "dir": "ltr"
+        },
+        {
+          "tag": "SPAN",
+          "text": "154/168",
+          "dir": "ltr"
+        }
+      ]
+    }
+  },
+  "store_boundaries": {
+    "public_vs_admin_flight_overrides": {
+      "description": "Admin flight override persists to localStorage['gza.admin.v1'] and updates /admin/flights via withOverride(), but public /flights route does not call withOverride()",
+      "testedFlight": "PS151",
+      "flightRoute": "GZA → JED (Friday 18 Sept, 01:05)",
+      "adminStatus": "Boarding (Gate A3, revised departure 08:25, note 'Gate change announced for departure')",
+      "publicStatus": "Scheduled (Gate A4, scheduled departure 01:05)",
+      "empiricalObservation": "w2_07_public_flights_board_boundary_1280.png visibly shows flight PS151 on Friday 18 Sept with status Scheduled and Gate A4, while /admin/flights in w2_06 shows PS151 with status Boarding and Gate A3. Admin quick-edit overrides did not propagate to the public flight board.",
+      "sourceExplanation": "Source inspection confirms src/routes/{-$locale}.admin.flights.index.tsx invokes withOverride() from useAdmin() (reading localStorage['gza.admin.v1']), whereas src/routes/{-$locale}.flights.tsx reads raw static flight entries from src/lib/data.ts without calling withOverride().",
+      "propagated": false
+    },
+    "public_vs_admin_bookings": {
+      "description": "Public bookings from /book write to localStorage['gza.store.v1'] via useStore(). Admin bookings at /admin/bookings read hardcoded mockBookings in src/lib/admin-mock.ts.",
+      "empiricalTestRun": false,
+      "publicBookingsInStorage": 0,
+      "adminBookingsRendered": 6,
+      "nature": "Architectural inference based on source inspection: no public booking was created in this run, but source inspection confirms public store (src/lib/store.tsx) and admin mockBookings (src/lib/admin-mock.ts) operate in completely decoupled storage layers with no cross-store synchronization.",
+      "sharesDataStore": false
+    }
+  }
+}

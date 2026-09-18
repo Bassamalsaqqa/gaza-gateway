@@ -1,0 +1,592 @@
+[
+  {
+    "filename": "w1_01_signin_en_1280.png",
+    "journey": "Workflow 1: Access & Orientation",
+    "route": "/admin/signin",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Unauthenticated",
+    "state": "Admin sign-in page with dark brand side banner and quick-use staff helper accounts",
+    "proves": "Proves dual-column sign-in presentation, clear mock helper accounts, and public return link."
+  },
+  {
+    "filename": "w1_02_signin_ar_1280.png",
+    "journey": "Workflow 1: Access & Orientation",
+    "route": "/ar/admin/signin",
+    "locale": "ar",
+    "viewport": "1280x900",
+    "role": "Unauthenticated",
+    "state": "Arabic admin sign-in layout with RTL alignment and LTR email inputs",
+    "proves": "Proves bilingual parity, RTL layout flow, and LTR preservation on email fields."
+  },
+  {
+    "filename": "w1_03_signin_en_390.png",
+    "journey": "Workflow 1: Access & Orientation",
+    "route": "/admin/signin",
+    "locale": "en",
+    "viewport": "390x844",
+    "role": "Unauthenticated",
+    "state": "Mobile 390px sign-in screen hiding desktop side-hero and showing single-column card",
+    "proves": "Proves clean responsive collapse without horizontal overflow on mobile viewports."
+  },
+  {
+    "filename": "w1_04_signin_en_320.png",
+    "journey": "Workflow 1: Access & Orientation",
+    "route": "/admin/signin",
+    "locale": "en",
+    "viewport": "320x568",
+    "role": "Unauthenticated",
+    "state": "Small mobile 320px sign-in screen showing compact inputs and helper cards",
+    "proves": "Proves layout resilience and readable touch targets on narrow 320px screens."
+  },
+  {
+    "filename": "w1_05_admin_unauth_guard_1280.png",
+    "journey": "Workflow 1: Access & Orientation",
+    "route": "/admin",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Unauthenticated",
+    "state": "Inline \"Sign in required\" gate rendered when opening /admin without active staff session",
+    "proves": "Proves graceful client-side auth barrier redirecting unauthenticated visitors to sign in."
+  },
+  {
+    "filename": "w1_06_signin_filled_1280.png",
+    "journey": "Workflow 1: Access & Orientation",
+    "route": "/admin/signin",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Sign-in form auto-filled via Rana Habib admin helper button",
+    "proves": "Proves mock authentication shortcut populating staff email and passphrase."
+  },
+  {
+    "filename": "w1_07_dashboard_admin_en_1280.png",
+    "journey": "Workflow 1: Access & Orientation",
+    "route": "/admin",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Full Admin Dashboard showing 9 summary metrics, flight ops table, attention list, and quick actions",
+    "proves": "Proves comprehensive overview of daily station simulation for staff administrator."
+  },
+  {
+    "filename": "w1_08_dashboard_admin_ar_1280.png",
+    "journey": "Workflow 1: Access & Orientation",
+    "route": "/ar/admin",
+    "locale": "ar",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Arabic Admin Dashboard with mirrored RTL sidebar and localized metric headers",
+    "proves": "Proves complete bilingual dashboard parity, RTL typography, and Arabic operational status labels."
+  },
+  {
+    "filename": "w1_09_attention_popover_open_1280.png",
+    "journey": "Workflow 1: Access & Orientation",
+    "route": "/admin",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Attention popover open from top bar showing active operational signals and alerts",
+    "proves": "Proves compact attention popover listing delayed flights, check-in gaps, and unread inquiries."
+  },
+  {
+    "filename": "w1_10_search_modal_open_1280.png",
+    "journey": "Workflow 1: Access & Orientation",
+    "route": "/admin",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Search command palette opened via Ctrl+K keyboard shortcut",
+    "proves": "Proves global keyboard-accessible search command palette across admin modules."
+  },
+  {
+    "filename": "w1_11_account_menu_open_1280.png",
+    "journey": "Workflow 1: Access & Orientation",
+    "route": "/admin",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Account menu popover open showing active profile and role switcher buttons (admin, editor, viewer)",
+    "proves": "Proves quick role-switching mechanism to test permission states without re-entering credentials."
+  },
+  {
+    "filename": "w1_12_dashboard_editor_role_1280.png",
+    "journey": "Workflow 1: Access & Orientation",
+    "route": "/admin",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Yousef Nasser (Editor)",
+    "state": "Dashboard view for Content Editor: operations, commercial, and administration modules filtered out",
+    "proves": "Proves dynamic permission gating on dashboard cards and sidebar navigation for editor role."
+  },
+  {
+    "filename": "w1_13_dashboard_viewer_role_1280.png",
+    "journey": "Workflow 1: Access & Orientation",
+    "route": "/admin",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Layla Odeh (Viewer)",
+    "state": "Dashboard view for Operations Viewer: view-only access to operations and commercial, no edit actions",
+    "proves": "Proves permission distinction between editor and viewer roles."
+  },
+  {
+    "filename": "w1_14_denied_staff_viewer_1280.png",
+    "journey": "Workflow 1: Access & Orientation",
+    "route": "/admin/staff",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Layla Odeh (Viewer)",
+    "state": "Calm in-place <AdminDenied> page when Viewer attempts to access Staff administration",
+    "proves": "Proves permission enforcement with informative role badge, missing permission tag, and return link."
+  },
+  {
+    "filename": "w1_15_sidebar_collapsed_1280.png",
+    "journey": "Workflow 1: Access & Orientation",
+    "route": "/admin",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Collapsed desktop sidebar showing compact icon rail (w-16)",
+    "proves": "Proves sidebar collapse functionality expanding available main content canvas."
+  },
+  {
+    "filename": "w1_16_mobile_drawer_open_390.png",
+    "journey": "Workflow 1: Access & Orientation",
+    "route": "/admin",
+    "locale": "en",
+    "viewport": "390x844",
+    "role": "Rana Habib (Admin)",
+    "state": "Mobile navigation drawer open with full grouped admin menu, touch targets, and backdrop",
+    "proves": "Proves mobile navigation drawer structure and responsive accessibility."
+  },
+  {
+    "filename": "w2_01_flights_board_en_1280.png",
+    "journey": "Workflow 2: Daily Operations",
+    "route": "/admin/flights",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Daily flight operations board with date picker, direction filters, status chips, and quick edits",
+    "proves": "Proves comprehensive flight operations table with status semantics, gates, aircraft, and check-in indicators."
+  },
+  {
+    "filename": "w2_02_flights_board_ar_1280.png",
+    "journey": "Workflow 2: Daily Operations",
+    "route": "/ar/admin/flights",
+    "locale": "ar",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Arabic flight operations board maintaining LTR isolation for flight numbers and times",
+    "proves": "Proves bilingual typography and correct LTR isolation for flight numbers (PS100) and times in RTL."
+  },
+  {
+    "filename": "w2_03_flights_board_mobile_390.png",
+    "journey": "Workflow 2: Daily Operations",
+    "route": "/admin/flights",
+    "locale": "en",
+    "viewport": "390x844",
+    "role": "Rana Habib (Admin)",
+    "state": "Mobile card view of flight board on 390px viewport replacing table layout",
+    "proves": "Proves responsive adaptation switching from dense table to stacked operational cards on mobile."
+  },
+  {
+    "filename": "w2_04_quick_edit_sheet_open_1280.png",
+    "journey": "Workflow 2: Daily Operations",
+    "route": "/admin/flights",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Flight Quick Edit sheet open for flight PS151 allowing status, gate, terminal, and note overrides",
+    "proves": "Proves slide-over quick edit sheet for flight dispatchers."
+  },
+  {
+    "filename": "w2_05_quick_edit_sheet_filled_1280.png",
+    "journey": "Workflow 2: Daily Operations",
+    "route": "/admin/flights",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Flight Quick Edit form modified for PS151: status Boarding, gate A3, revised time 08:25, note",
+    "proves": "Proves parameter editing inside sheet before applying mutation."
+  },
+  {
+    "filename": "w2_06_flight_board_after_mutation_1280.png",
+    "journey": "Workflow 2: Daily Operations",
+    "route": "/admin/flights",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Flight board immediately reflecting Boarding status, Gate A3, revised time (08:25), and note for PS151",
+    "proves": "Proves working local override mutation updating table in real-time with toast confirmation."
+  },
+  {
+    "filename": "w2_07_public_flights_board_boundary_1280.png",
+    "journey": "Workflow 2: Daily Operations",
+    "route": "/flights",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Public visitor",
+    "state": "Public flight departures board visibly showing flight PS151 on Friday 18 Sept with status Scheduled and Gate A4 — admin override to Boarding/A3 did not propagate",
+    "proves": "Proves public/admin data boundary: public flight board displays unoverridden Scheduled/A4 while admin board displays Boarding/A3."
+  },
+  {
+    "filename": "w2_08_flight_detail_overview_1280.png",
+    "journey": "Workflow 2: Daily Operations",
+    "route": "/admin/flights/PS151-2026-09-18-out",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Flight detail overview for PS151 showing route, aircraft, revised departure, and capacity load",
+    "proves": "Proves detailed single-flight operational inspection screen."
+  },
+  {
+    "filename": "w2_09_flight_detail_history_1280.png",
+    "journey": "Workflow 2: Daily Operations",
+    "route": "/admin/flights/PS151-2026-09-18-out",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Flight detail history tab for PS151 displaying event timeline with gate and revised departure overrides",
+    "proves": "Proves operational timeline reflecting applied quick-edit overrides."
+  },
+  {
+    "filename": "w2_10_schedules_index_1280.png",
+    "journey": "Workflow 2: Daily Operations",
+    "route": "/admin/schedules",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Flight schedules list showing operating days, departure/arrival slots, aircraft type, and active status",
+    "proves": "Proves timetable management UI for scheduled routes from Gaza."
+  },
+  {
+    "filename": "w2_11_schedule_edit_sheet_1280.png",
+    "journey": "Workflow 2: Daily Operations",
+    "route": "/admin/schedules",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Schedule editor sheet with days-of-week checkboxes, flight number, time slots, and validity dates",
+    "proves": "Proves comprehensive timetable slot editing interface."
+  },
+  {
+    "filename": "w2_12_products_fleet_fares_1280.png",
+    "journey": "Workflow 2: Daily Operations",
+    "route": "/admin/products",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Commercial configuration screen: fleet registrations (PS-GZA, PS-GZB, PS-GZC), fares, seat maps, baggage",
+    "proves": "Proves airline product catalog and fleet equipment management."
+  },
+  {
+    "filename": "w3_01_bookings_list_en_1280.png",
+    "journey": "Workflow 3: Booking & Station Desk",
+    "route": "/admin/bookings",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Station bookings list with filters for search, date, destination, status, fare, and check-in state",
+    "proves": "Proves back-office passenger bookings table displaying PNRs, lead names, status, and fares."
+  },
+  {
+    "filename": "w3_02_bookings_list_ar_1280.png",
+    "journey": "Workflow 3: Booking & Station Desk",
+    "route": "/ar/admin/bookings",
+    "locale": "ar",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Arabic bookings table with RTL layout and isolated LTR booking references (GZA4TQ)",
+    "proves": "Proves bilingual parity and LTR reference integrity in Arabic bookings view."
+  },
+  {
+    "filename": "w3_03_booking_detail_overview_1280.png",
+    "journey": "Workflow 3: Booking & Station Desk",
+    "route": "/admin/bookings/GZA4TQ",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Booking detail for GZA4TQ (Nadia Sabbagh) showing itinerary, fare, passengers, and action buttons",
+    "proves": "Proves comprehensive PNR overview with action buttons: Edit Contact, Change Seat, Edit Extras, Cancel."
+  },
+  {
+    "filename": "w3_04_booking_cancel_dialog_1280.png",
+    "journey": "Workflow 3: Booking & Station Desk",
+    "route": "/admin/bookings/GZA4TQ",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Confirmation modal for cancelling passenger booking GZA4TQ",
+    "proves": "Proves explicit confirmation guard preventing accidental cancellation."
+  },
+  {
+    "filename": "w3_05_booking_detail_after_cancel_1280.png",
+    "journey": "Workflow 3: Booking & Station Desk",
+    "route": "/admin/bookings/GZA4TQ",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Booking detail showing Cancelled badge after confirmation in local component state",
+    "proves": "Proves component-level state mutation and toast notification on cancellation."
+  },
+  {
+    "filename": "w3_06_new_booking_step1_1280.png",
+    "journey": "Workflow 3: Booking & Station Desk",
+    "route": "/admin/bookings/new",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Counter booking creation wizard Step 1: flight selection radio cards (PS100, PS106, PS108)",
+    "proves": "Proves staff counter booking workflow step 1 flight selection."
+  },
+  {
+    "filename": "w3_07_new_booking_step2_1280.png",
+    "journey": "Workflow 3: Booking & Station Desk",
+    "route": "/admin/bookings/new",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Counter booking creation wizard Step 2: fare tier selection (Essential, Classic, Flex)",
+    "proves": "Proves fare selection with flexibility and baggage rules."
+  },
+  {
+    "filename": "w3_08_new_booking_step3_1280.png",
+    "journey": "Workflow 3: Booking & Station Desk",
+    "route": "/admin/bookings/new",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Counter booking wizard Step 3: passenger identity, passport document, and contact details",
+    "proves": "Proves traveler data input at desk."
+  },
+  {
+    "filename": "w3_09_new_booking_step4_1280.png",
+    "journey": "Workflow 3: Booking & Station Desk",
+    "route": "/admin/bookings/new",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Counter booking wizard Step 4: seat assignment (14C), baggage count, meal, assistance",
+    "proves": "Proves ancillary and seat selection form for counter booking."
+  },
+  {
+    "filename": "w3_10_new_booking_step5_1280.png",
+    "journey": "Workflow 3: Booking & Station Desk",
+    "route": "/admin/bookings/new",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Counter booking wizard Step 5: summary review showing total price and mock disclaimer",
+    "proves": "Proves final booking review summary before confirmation."
+  },
+  {
+    "filename": "w3_11_new_booking_success_1280.png",
+    "journey": "Workflow 3: Booking & Station Desk",
+    "route": "/admin/bookings/new",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Success screen showing synthetic booking reference GZA-NEW1 with options to book another or view bookings",
+    "proves": "Proves completed counter booking flow and reference generation."
+  },
+  {
+    "filename": "w3_12_checkin_desk_en_1280.png",
+    "journey": "Workflow 3: Booking & Station Desk",
+    "route": "/admin/check-in",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Station check-in desk showing flight selector pills and passenger manifest table for PS100",
+    "proves": "Proves gate and counter check-in desk interface with documentation validation and bag counts."
+  },
+  {
+    "filename": "w3_13_checkin_desk_mobile_390.png",
+    "journey": "Workflow 3: Booking & Station Desk",
+    "route": "/admin/check-in",
+    "locale": "en",
+    "viewport": "390x844",
+    "role": "Rana Habib (Admin)",
+    "state": "Mobile check-in desk card layout on 390px viewport",
+    "proves": "Proves responsive adaptation of passenger check-in cards on mobile screens."
+  },
+  {
+    "filename": "w3_14_checkin_desk_after_action_1280.png",
+    "journey": "Workflow 3: Booking & Station Desk",
+    "route": "/admin/check-in",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Check-in desk after clicking \"Check in\": toast appears, but passenger status remains Ready",
+    "proves": "Proves toast-only action behavior: desk actions show toasts without mutating in-memory passenger status."
+  },
+  {
+    "filename": "w3_15_checkin_extras_sheet_1280.png",
+    "journey": "Workflow 3: Booking & Station Desk",
+    "route": "/admin/check-in",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Passenger extras inspection sheet displaying baggage allowance, seat, and documentation status",
+    "proves": "Proves slide-over drawer for gate agent verification of travel documents."
+  },
+  {
+    "filename": "w3_16_customers_list_1280.png",
+    "journey": "Workflow 3: Booking & Station Desk",
+    "route": "/admin/customers",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Customer accounts directory showing member names, contact details, booking counts, and status",
+    "proves": "Proves traveler profile directory supporting customer lookup and history."
+  },
+  {
+    "filename": "w3_17_customer_detail_1280.png",
+    "journey": "Workflow 3: Booking & Station Desk",
+    "route": "/admin/customers/c-1001",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Customer profile detail for Nadia Sabbagh: trips list, saved travelers (Karim, Huda), and preferences",
+    "proves": "Proves passenger CRM screen linking past bookings, saved family travelers, and meal/seat preferences."
+  },
+  {
+    "filename": "w4_01_destinations_index_1280.png",
+    "journey": "Workflow 4: Content & Organization",
+    "route": "/admin/destinations",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Destinations content management table with editorial readiness pills, weekly frequencies, and prices",
+    "proves": "Proves route network editorial overview with bilingual completion badges."
+  },
+  {
+    "filename": "w4_02_destination_editor_amm_1280.png",
+    "journey": "Workflow 4: Content & Organization",
+    "route": "/admin/destinations/AMM",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Destination content editor for Amman (AMM) showing Basics tab, bilingual switcher, and price settings",
+    "proves": "Proves working multi-tab destination content editor."
+  },
+  {
+    "filename": "w4_03_destination_editor_public_tab_1280.png",
+    "journey": "Workflow 4: Content & Organization",
+    "route": "/admin/destinations/AMM",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Destination Public Page tab with description textarea and good-to-know bullet editor",
+    "proves": "Proves editorial copy and highlight editing for destination visitor pages."
+  },
+  {
+    "filename": "w4_04_airport_editor_past_1280.png",
+    "journey": "Workflow 4: Content & Organization",
+    "route": "/admin/airport",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Airport archive editor Past tab showing timeline milestones and verification badges (Verified, Pending)",
+    "proves": "Proves historical milestone curation with editorial provenance labels."
+  },
+  {
+    "filename": "w4_05_airport_editor_present_1280.png",
+    "journey": "Workflow 4: Content & Organization",
+    "route": "/admin/airport",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Airport Present tab facts table with verification status badges for location, IATA, runway, status",
+    "proves": "Proves structured fact curation distinguishing verified metadata from pending research."
+  },
+  {
+    "filename": "w4_06_airport_editor_archive_items_1280.png",
+    "journey": "Workflow 4: Content & Organization",
+    "route": "/admin/airport",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Archive items grid showing cards with category pills, era tags, source links, and draft/published status",
+    "proves": "Proves digital archive item management with source provenance links."
+  },
+  {
+    "filename": "w4_07_airport_archive_item_sheet_1280.png",
+    "journey": "Workflow 4: Content & Organization",
+    "route": "/admin/airport",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Archive item editor sheet with title, category, era, date, rights, caption, and credit fields",
+    "proves": "Proves metadata editor for historical documents and photographs."
+  },
+  {
+    "filename": "w4_08_website_editor_homepage_1280.png",
+    "journey": "Workflow 4: Content & Organization",
+    "route": "/admin/website",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Website content management screen showing homepage section visibility toggles and reordering arrows",
+    "proves": "Proves CMS layout controls for public site sections with EN/AR preview links."
+  },
+  {
+    "filename": "w4_09_inbox_master_detail_1280.png",
+    "journey": "Workflow 4: Content & Organization",
+    "route": "/admin/inbox",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Staff inbox master-detail view showing enquiries, topics, related PNR link, and reply composer",
+    "proves": "Proves passenger enquiry inbox connecting messages to booking records."
+  },
+  {
+    "filename": "w4_10_staff_administration_1280.png",
+    "journey": "Workflow 4: Content & Organization",
+    "route": "/admin/staff",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Staff administration table with members, role badges, active/disabled status, and action buttons",
+    "proves": "Proves user management table with Invite Staff and Change Role modal actions."
+  },
+  {
+    "filename": "w4_11_staff_invite_modal_1280.png",
+    "journey": "Workflow 4: Content & Organization",
+    "route": "/admin/staff",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Invite member sheet with name, email, and role selector radio buttons",
+    "proves": "Proves staff invitation onboarding form."
+  },
+  {
+    "filename": "w4_12_settings_airport_tab_1280.png",
+    "journey": "Workflow 4: Content & Organization",
+    "route": "/admin/settings",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Settings screen Airport tab showing airport name, IATA code (GZA), airline (PS), timezone, and gates",
+    "proves": "Proves station configuration parameters and terminal/gate definitions."
+  },
+  {
+    "filename": "w4_13_analytics_dashboard_1280.png",
+    "journey": "Workflow 4: Content & Organization",
+    "route": "/admin/analytics",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Analytics dashboard showing traffic metrics, 9-stage booking conversion funnel, and route popularity",
+    "proves": "Proves commercial and conversion funnel monitoring for station services."
+  },
+  {
+    "filename": "w4_14_activity_log_1280.png",
+    "journey": "Workflow 4: Content & Organization",
+    "route": "/admin/activity",
+    "locale": "en",
+    "viewport": "1280x900",
+    "role": "Rana Habib (Admin)",
+    "state": "Operational activity audit trail showing chronological actions, actors, before/after values, and module tags",
+    "proves": "Proves tamper-evident operational log for staff accountability."
+  }
+]
