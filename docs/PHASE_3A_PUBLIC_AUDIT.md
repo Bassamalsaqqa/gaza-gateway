@@ -152,19 +152,19 @@ journey
 #### Information Architecture & Entry Points
 - **Homepage Search Form**: Embedded beneath the hero section ([`src/routes/{-$locale}.index.tsx#L72`](../src/routes/{-$locale}.index.tsx#L72)). Supports Round Trip and One Way tabs, Origin/Destination selects with Gaza airport network enforcement, departure/return native date inputs, passenger count popover, and cabin class selection.
 - **Flight Information Board (`/flights`)**: Dedicated terminal flight schedule with Departures and Arrivals tabs, 7-day date scrubber buttons, status filter dropdown (`All`, `Scheduled`, `Boarding`, `Departed`, `Delayed`, `Arrived`), and text query filter.
-- **Destination Guide (`/destinations/$code`)**: Deep-links from the home destination grid to individual city profiles (e.g. Amman `AMM`, Cairo `CAI`, Istanbul `IST`, Dubai `DXB`). Embeds pre-filtered route details, duration, base price, and weekly frequencies.
+- **Destination Route Architecture (`/destinations/$code`)**: Intended deep-links from the home destination grid to individual city profiles (e.g. Amman `AMM`, Cairo `CAI`, Istanbul `IST`, Dubai `DXB`). Note: Empirical browser verification confirmed that visiting `/destinations/$code` mounts the parent `DestinationsPage` without an `<Outlet />`, occluding the child detail view while updating document title (verified under `journey3_destinations.amm_detail` in the heritage audit records).
 
 #### Empirical Browser Findings
 - **Passenger Popover A11y & Dismissal**: Tested specifically targeting the passenger button within `FlightSearchForm` (`button:has(svg.lucide-users)`):
   - Precondition asserted: `aria-expanded === "false"`, `.min-w-64` absent.
   - Action: Clicked button.
-  - Postcondition asserted: `aria-expanded === "true"`, `.min-w-64` present and visible in DOM (`j1_03_search_pax_popover_en_1280.png`).
+  - Postcondition asserted: `aria-expanded === "true"`, `.min-w-64` present and visible in DOM (verified in `browser-test-records.json` under `keyboardA11y.passengerPopover`).
   - Escape key test: Pressed `Escape`. Popover remained in DOM (`closesOnEscape: false`).
   - Outside click test: Clicked `document.body` outside popover. Popover remained in DOM (`closesOnBodyClick: false`).
   - Done button test: Clicked "Done" button. Popover was removed from DOM (`closesOnDoneButton: true`).
-  - Arabic RTL mobile test: Navigated to `/ar` at 390x844. Scrolled into view and opened popover (`j1_04_search_pax_popover_ar_390.png`), confirming Arabic RTL counter labels ("بالغون", "أطفال", "رضع") and touch targets.
+  - Arabic RTL mobile test: Navigated to `/ar` at 390×844. Scrolled into view and opened popover, confirming Arabic RTL counter labels ("بالغون", "أطفال", "رضع") and touch targets.
 - **Route Validation**: Selecting identical origin and destination (`GZA` $\rightarrow$ `GZA`) displays an inline banner alert: `"Choose two different airports."` Selecting return date prior to departure date displays `"Return date must be on or after departure date."`
-- **Mobile Responsive Observation**: On viewports `<640px` (`j1_02_search_homepage_ar_390.png`, `x_40_responsive_home_en_360.png`), the airport swap button is hidden by `hidden sm:flex`, requiring users to manually change both dropdowns.
+- **Mobile Responsive Observation**: On viewports `<640px` (e.g. 390px and 360px mobile), the airport swap button is hidden by `hidden sm:flex`, requiring users to manually change both dropdowns.
 
 ---
 
@@ -182,18 +182,18 @@ The booking wizard is encapsulated within [`src/routes/{-$locale}.book.tsx`](../
 
 #### Empirical Verification of Continuous Flow
 - A complete continuous booking journey was driven directly via Chrome CDP automation without skipping steps or relabeling manage subviews:
-  - Step 1 Results: Outbound flight `PS 101` and inbound flight `PS 102` selected (`j2_10_book_step1_flights_en_1280.png`).
-  - Step 2 Fares: Selected Classic fare tier (`j2_11_book_step2_fares_en_1280.png`).
-  - Step 3 Passengers: Submitted passenger details (`j2_13_book_step3_pax_form_en_1280.png`), with prior validation check asserting error banner on incomplete input (`j2_14_book_step3_pax_validation_en_1280.png`).
-  - Step 4 Seats: Assigned seat `11A` on Airbus A320 seat map (`j2_15_book_step4_seat_map_en_1280.png`).
-  - Step 5 Extras: Selected meal and extra bag (`j2_18_book_step5_extras_en_1280.png`).
-  - Step 6 Review: Verified complete price summary and clicked confirm (`j2_19_book_step6_review_en_1280.png`).
-  - Step 7 Confirmation: Confirmed booking created with genuine PNR `ZYP519` at `/booking-confirmation/ZYP519` (`j2_20_book_step7_confirmed_en_1280.png`).
+  - Step 1 Results: Outbound flight `PS 101` and inbound flight `PS 102` selected.
+  - Step 2 Fares: Selected Classic fare tier.
+  - Step 3 Passengers: Submitted passenger details, with prior validation check asserting error banner on incomplete input.
+  - Step 4 Seats: Assigned seat `11A` on Airbus A320 seat map.
+  - Step 5 Extras: Selected meal and extra bag.
+  - Step 6 Review: Verified complete price summary and clicked confirm.
+  - Step 7 Confirmation: Confirmed booking created with genuine PNR `ZYP519` at `/booking-confirmation/ZYP519`.
 - Genuine Arabic RTL flow was walked on `/ar/book`:
-  - Step 2 Fares on mobile (`j2_12_book_step2_fares_ar_390.png`).
-  - Step 4 Seats on desktop (`j2_16_book_step4_seat_map_ar_1280.png`).
-  - Step 4 Seats on mobile (`j2_17_book_step4_seat_map_ar_390.png`).
-  - Step 7 Confirmation on mobile (`j2_21_book_step7_confirmed_ar_390.png`).
+  - Step 2 Fares on mobile (390px).
+  - Step 4 Seats on desktop (1280px).
+  - Step 4 Seats on mobile (390px).
+  - Step 7 Confirmation on mobile (390px).
 
 #### Verified Findings
 - **Browser Back Navigation**: Activating `history.back()` exits `/book` to `/`. Stepper items are non-clickable `<span>` elements, preventing direct jump-back to earlier steps.
@@ -204,22 +204,22 @@ The booking wizard is encapsulated within [`src/routes/{-$locale}.book.tsx`](../
 ### Journey 3: Manage Booking & Check-In
 
 #### Overview & Verification
-- **PNR Lookup (`/manage`)**: Passenger retrieves reservation via PNR and Last Name (`j3_22_manage_lookup_en_1280.png`, `j3_23_manage_lookup_ar_390.png`). Quick-fill demo links are provided for testing.
-- **Booking Detail (`/manage/GZA-7K8P`)**: Confirmed reservation view with flight details, passenger list, seat numbers, fare tier, contact information, and management action buttons (`j3_24_manage_detail_en_1280.png`).
+- **PNR Lookup (`/manage`)**: Passenger retrieves reservation via PNR and Last Name. Quick-fill demo links are provided for testing.
+- **Booking Detail (`/manage/GZA-7K8P`)**: Confirmed reservation view with flight details, passenger list, seat numbers, fare tier, contact information, and management action buttons.
   - **Per-Leg Check-In Status Cues Verified**: Inspection of `booking-detail.tsx` lines 70-95 confirms that the view does **not** mask return leg check-in. The `Trip status` card clearly displays separate line items for each leg:
     - Outbound: `Checked in 2` and `1 still to check in`.
     - Inbound: `3 still to check in`.
     - CTA button: Dynamically displays `Check in for return flight` when outbound is completed.
-- **Seat Modification Subview (`/manage/GZA-7K8P/seats`)**: Verified real store mutation in CDP (`j3_25_manage_seats_subview_en_1280.png`). Passenger Tariq Mansour's outbound seat was changed from `12A` to `11B`; store updated and persisted to `localStorage`. In addition, live DOM evaluation confirmed that the primary button correctly resolves `t("common.save")` to `"Save changes"` in English and `"حفظ التغييرات"` in Arabic; no raw literal key is rendered.
-- **Extras Modification Subview (`/manage/GZA-7K8P/extras`)**: Verified real store mutation in CDP. Baggage count for Tariq Mansour was incremented from 0 to 1; store updated and persisted to `localStorage` (`j3_26_manage_extras_subview_en_1280.png`).
-- **Cancellation Alertdialog**: Invoked "Cancel booking" on `GZA-7K8P` (`j3_27_manage_cancel_dialog_en_1280.png`). CDP analysis confirmed:
+- **Seat Modification Subview (`/manage/GZA-7K8P/seats`)**: Verified real store mutation in CDP (asserted in `browser-test-records.json` under `mutations.manageSeats`). Passenger Tariq Mansour's outbound seat was changed from `12A` to `11B`; store updated and persisted to `localStorage`. In addition, live DOM evaluation confirmed that the primary button correctly resolves `t("common.save")` to `"Save changes"` in English and `"حفظ التغييرات"` in Arabic; no raw literal key is rendered.
+- **Extras Modification Subview (`/manage/GZA-7K8P/extras`)**: Verified real store mutation in CDP (asserted in `browser-test-records.json` under `mutations.manageExtras`). Baggage count for Tariq Mansour was incremented from 0 to 1; store updated and persisted to `localStorage`.
+- **Cancellation Alertdialog**: Invoked "Cancel booking" on `GZA-7K8P` (verified in `browser-test-records.json` under `modalBehavior.confirmDialog`). CDP analysis confirmed:
   - `role="alertdialog"`, `aria-modal="true"` present.
   - Focus initially placed on "Keep booking" (Dismiss).
   - Tab containment verified: Initial focus on "Keep booking" $\rightarrow$ Tab moves to "Cancel booking" $\rightarrow$ Tab wraps back to "Keep booking" $\rightarrow$ Shift+Tab moves to "Cancel booking".
   - Closes on Escape (`closesOnEscape: true`) and restores focus to trigger button (`focusRestoredToTrigger: true`).
   - Persists on backdrop click (`persistsOnBackdropClick: true`), preventing accidental dismissal.
   - Body scroll unconstrained (`scrollYDiff: 100`, `bodyOverflow: ""`).
-- **Online Check-In Complete Workflow Walked (`/manage/GZA-7K8P/check-in`)**: Full end-to-end check-in workflow walked and verified in CDP (`j3_28_checkin_flow_en_1280.png`, `j3_29_checkin_flow_ar_390.png`):
+- **Online Check-In Complete Workflow Walked (`/manage/GZA-7K8P/check-in`)**: Full end-to-end check-in workflow walked and verified in CDP (asserted in `browser-test-records.json` under `mutations.checkIn`):
   - *Precondition*: Outbound leg had `checkedIn.out: [0, 1]`, with Yousef Mansour (Child, index 2) remaining open.
   - *Walked Transitions*:
     1. Leg Selection: Selected Outbound flight (`PS101`).
@@ -232,21 +232,21 @@ The booking wizard is encapsulated within [`src/routes/{-$locale}.book.tsx`](../
   - *Issued Boarding Pass Verification*: Navigated to `/boarding-pass/GZA-7K8P/out/2`; verified page rendered passenger Yousef Mansour, flight PS 101, gate, barcode, and print action.
   - *Arabic Mobile Check-In*: Navigated to `/ar/manage/GZA-7K8P/check-in` on 390x844 mobile viewport. Confirmed outbound leg was disabled with "تم تسجيل الوصول مسبقاً", and return leg opened with 3 companion checkboxes ("من سيسجّل الوصول؟").
   - *Regulatory / Declaration Note*: Source code inspection and live DOM evaluation confirm that NO hazardous goods or dangerous materials declaration exists in the application; the check-in journey transitions directly from passenger selection to travel documents to seat selection.
-- **Digital Boarding Pass (`/boarding-pass/GZA-7K8P/out/0`)**: Renders high-fidelity boarding pass card with barcode, gate, departure time, seat 12A, passenger name, and print stylesheet CTA (`j3_30_boarding_pass_view_en_1280.png`, `j3_31_boarding_pass_view_ar_390.png`).
+- **Digital Boarding Pass (`/boarding-pass/GZA-7K8P/out/0`)**: Renders high-fidelity boarding pass card with barcode, gate, departure time, seat 12A, passenger name, and print stylesheet CTA.
 
 ---
 
 ### Journey 4: Passenger Account & Authentication
 
 #### Overview & Verification
-- **Sign-In (`/signin`) & Register (`/register`)**: Clean authentication forms with validation (`j4_32_signin_en_1280.png`, `j4_33_signin_ar_390.png`). Signing in as `tariq.mansour@example.ps` associates active session with user bookings.
-- **Account Overview (`/account`)**: Summary cards displaying total trips, active boarding passes, and saved travellers, alongside an upcoming flight card (`j4_34_account_overview_en_1280.png`).
-- **Trips Management (`/account/trips`)**: Filterable tab list (`Upcoming`, `Past`, `Cancelled`) with direct links to manage each reservation (`j4_35_account_trips_en_1280.png`).
+- **Sign-In (`/signin`) & Register (`/register`)**: Clean authentication forms with validation. Signing in as `tariq.mansour@example.ps` associates active session with user bookings.
+- **Account Overview (`/account`)**: Summary cards displaying total trips, active boarding passes, and saved travellers, alongside an upcoming flight card.
+- **Trips Management (`/account/trips`)**: Filterable tab list (`Upcoming`, `Past`, `Cancelled`) with direct links to manage each reservation.
 - **Saved Travellers CRUD (`/account/travelers`)**: Tested real store mutation via CDP:
   - Precondition: 3 travelers in store and DOM.
   - Action: Form filled with "Mariam Mansour" (DOB: 2015-05-10, Palestinian, P0987654) and submitted.
-  - Postcondition: 4 travelers in store (+1), new card verified in DOM and store (asserted in `browser-test-records.json`). Note: Screenshot `j4_36_account_travelers_en_1280.png` captures the top-of-page 1280×900 viewport showing the "Add traveler" form and top of the companion list; the 4th added companion card sits below the fold. Mutation verified.
-- **Boarding Passes Collection (`/account/boarding-passes`)**: Aggregates all issued boarding passes for active itineraries (`j4_37_account_boarding_passes_en_1280.png`).
+  - Postcondition: 4 travelers in store (+1), new card verified in DOM and store (asserted in `browser-test-records.json` under `mutations.addTraveler`). Note: In the 1280×900 desktop viewport observation for `/account/travelers`, the "Add traveler" form and top of the companion list are shown; the 4th added companion card sits below the fold. Mutation verified.
+- **Boarding Passes Collection (`/account/boarding-passes`)**: Aggregates all issued boarding passes for active itineraries.
 - **Mobile Responsive Observation**: Account navigation tab links wrap onto 3 vertical lines on 390px mobile screens, occupying significant top-of-page space.
 
 ---
@@ -273,7 +273,7 @@ The booking wizard is encapsulated within [`src/routes/{-$locale}.book.tsx`](../
 - **Classification**: `FIX REGARDLESS`
 - **Owner decision required?**: **NO** (Accessibility defect remediation)
 - **Current State**: [`src/components/site-header.tsx#L125-L185`](../src/components/site-header.tsx#L125-L185) renders an inline `<div className="fixed inset-0 z-50 ...">` when the mobile hamburger button is clicked.
-- **Screenshot & Behavior Evidence**: `x_38_nav_drawer_open_en_390.png` and `x_39_nav_drawer_open_ar_390.png`. Chrome CDP testing verified: `drawerVisible: true`, `hasDialogRole: true`, `closesOnEscape: false`. Opening the drawer fails to trap focus; tabbing cycles through background links beneath the overlay; pressing `Escape` does not close the drawer.
+- **Empirical Behavior Evidence**: `keyboardA11y.mobileDrawer` in `browser-test-records.json`. Chrome CDP testing verified: `drawerVisible: true`, `hasDialogRole: true`, `closesOnEscape: false`. Opening the drawer fails to trap focus; tabbing cycles through background links beneath the overlay; pressing `Escape` does not close the drawer.
 - **Genuine Strengths**: Clean visual design, authentic brand typography, well-organized navigation grouping, and natural RTL alignment flip in Arabic.
 - **Defects vs Opportunities**:
   - *Defect*: Violates WCAG 2.2 AA SC 2.4.3 (Focus Order) and deviates from the WAI-ARIA Modal Dialog Pattern by failing to contain Tab focus within the drawer (allowing focus to leak to background elements), ignoring Escape, and failing to restore focus to the trigger button upon close. Note: Because Tab can leave the drawer, this is a failure of focus containment, not a keyboard trap under SC 2.1.2.
@@ -298,7 +298,7 @@ The booking wizard is encapsulated within [`src/routes/{-$locale}.book.tsx`](../
 - **Classification**: `KEEP UX, REBUILD INFRASTRUCTURE`
 - **Owner decision required?**: **NO** (Ergonomic defect fix)
 - **Current State**: [`src/components/flight-search-form.tsx#L187`](../src/components/flight-search-form.tsx#L187) applies `hidden sm:flex` to the origin/destination swap button.
-- **Screenshot & Behavior Evidence**: `j1_01_search_homepage_en_1280.png` (desktop: swap button visible between selects) vs `j1_02_search_homepage_ar_390.png` and `x_40_responsive_home_en_360.png` (mobile: swap button absent, inputs stacked without swap affordance).
+- **Empirical Behavior Evidence**: Source inspection of `src/components/flight-search-form.tsx#L187` (`hidden sm:flex`) and browser inspection at desktop 1280px (swap button visible between selects) vs mobile 390px/360px (swap button absent, inputs stacked without swap affordance).
 - **Genuine Strengths**: Network validation strictly enforces that every flight route connects to Gaza (`GZA`), preventing unsupported direct city-pair selections (e.g. Amman to Cairo direct).
 - **Defects vs Opportunities**:
   - *Defect*: On mobile screens, users cannot swap origin and destination with one tap. They must open the "From" select, choose the new airport, then open the "To" select and select `GZA`.
@@ -323,7 +323,7 @@ The booking wizard is encapsulated within [`src/routes/{-$locale}.book.tsx`](../
 - **Classification**: `FIX REGARDLESS` (Dismissal handlers) / `UX PATTERN SHOULD BE RECONSIDERED` (Mobile sheet presentation)
 - **Owner decision required?**: **YES** (Choice on mobile bottom sheet vs keeping dropdown on mobile)
 - **Current State**: [`src/components/flight-search-form.tsx#L225`](../src/components/flight-search-form.tsx#L225) renders an absolute-positioned dropdown card (`min-w-64`).
-- **Screenshot & Behavior Evidence**: `j1_03_search_pax_popover_en_1280.png` (desktop) and `j1_04_search_pax_popover_ar_390.png` (mobile). Targeted CDP testing confirmed: `ariaExpandedToggles: true`, `closesOnEscape: false`, `closesOnBodyClick: false`, `closesOnDoneButton: true`. The popover lacks standard `Escape` and outside-click dismissal. On mobile 390px, the 256px card approaches screen margins and overlaps departure date inputs.
+- **Empirical Behavior Evidence**: Retained browser test record `keyboardA11y.passengerPopover`. Targeted CDP testing confirmed: `ariaExpandedToggles: true`, `closesOnEscape: false`, `closesOnBodyClick: false`, `closesOnDoneButton: true`. The popover lacks standard `Escape` and outside-click dismissal. On mobile 390px, the 256px card approaches screen margins and overlaps departure date inputs.
 - **Genuine Strengths**: Clean counter controls with decrement/increment buttons and infant-per-adult constraint enforcement.
 - **Defects vs Opportunities**:
   - *Defect*: Lacks standard overlay dismissal (`Escape` key, click outside); on mobile, absolute positioning can clip or feel cramped.
@@ -348,7 +348,7 @@ The booking wizard is encapsulated within [`src/routes/{-$locale}.book.tsx`](../
 - **Classification**: `UX PATTERN SHOULD BE RECONSIDERED`
 - **Owner decision required?**: **YES** (Architectural decision for booking flow navigation)
 - **Current State**: [`src/routes/{-$locale}.book.tsx#L63`](../src/routes/{-$locale}.book.tsx#L63) maintains `const [step, setStep] = useState<Step>("results")` on a single URL (`/book`). Stepper in [`src/components/booking/stepper.tsx`](../src/components/booking/stepper.tsx) renders inert `<span>` elements.
-- **Screenshot & Behavior Evidence**: `j2_10_book_step1_flights_en_1280.png` through `j2_20_book_step7_confirmed_en_1280.png`. CDP testing proved that activating the browser Back button exits `/book` to `/`, discarding entered passenger names and seat selections. Refreshing `/book` resets step state.
+- **Empirical Behavior Evidence**: Retained browser test record `browserHistory.stepBackBehavior`. CDP testing proved that activating the browser Back button exits `/book` to `/` (`destinationAfterBack: "/"`, `exitsWizard: true`), discarding entered passenger names and seat selections. Refreshing `/book` resets step state.
 - **Genuine Strengths**: Fast client-side transitions without network roundtrips; tight data coupling between draft state and price summary sidebar.
 - **Defects vs Opportunities**:
   - *Defect*: Accidental back navigation discards user progress; stepper does not allow passengers to jump back to re-select flights or fares.
@@ -372,7 +372,7 @@ The booking wizard is encapsulated within [`src/routes/{-$locale}.book.tsx`](../
 - **Classification**: `CONSOLIDATE`
 - **Owner decision required?**: **YES** (Platform consistency vs native lightweight simplicity)
 - **Current State**: [`src/components/flight-search-form.tsx#L196-L215`](../src/components/flight-search-form.tsx#L196-L215) and [`src/routes/{-$locale}.account.travelers.tsx#L60`](../src/routes/{-$locale}.account.travelers.tsx#L60) use native `<Input type="date">`.
-- **Screenshot & Behavior Evidence**: `j1_01_search_homepage_en_1280.png` and `j1_02_search_homepage_ar_390.png`. Inspection shows that native date inputs render OS-dependent picker dialogs. On an English OS viewing Arabic `/ar`, dates and controls appear in Western Latin format, ignoring application language.
+- **Empirical Behavior Evidence**: Source inspection of `src/components/flight-search-form.tsx` and browser inspection of native `<input type="date">` elements. Native date inputs render OS-dependent picker dialogs. On an English OS viewing Arabic `/ar`, dates and controls appear in Western Latin format, ignoring application language.
 - **Genuine Strengths**: Zero JavaScript bundle weight; utilizes native iOS/Android date scroll wheels.
 - **Defects vs Opportunities**:
   - *Defect*: Breaks bilingual visual immersion in Arabic; inconsistent picker behavior across Chrome, Safari, and Firefox; cannot display flight prices or departure indicators directly on calendar dates.
@@ -397,7 +397,7 @@ The booking wizard is encapsulated within [`src/routes/{-$locale}.book.tsx`](../
 - **Classification**: `KEEP UX, REBUILD INFRASTRUCTURE`
 - **Owner decision required?**: **NO** (Navigation ergonomics)
 - **Current State**: [`src/components/booking/booking-detail.tsx#L70-L95`](../src/components/booking/booking-detail.tsx#L70-L95) explicitly displays per-leg check-in counts in the `Trip status` panel, and renders individual boarding pass links per checked-in passenger and leg below in passenger cards. Verification confirmed that the save button in [`src/routes/{-$locale}.manage.$ref_.seats.tsx#L177`](../src/routes/{-$locale}.manage.$ref_.seats.tsx#L177) correctly renders `"Save changes"` via `t("common.save")` (with `"حفظ التغييرات"` in Arabic).
-- **Screenshot & Behavior Evidence**: `j3_24_manage_detail_en_1280.png` visibly confirms that outbound and return leg statuses are clearly distinguished.
+- **Empirical Behavior Evidence**: Source inspection of `src/components/booking/booking-detail.tsx` and browser inspection on `/manage/GZA-7K8P` confirm that outbound and return leg statuses are clearly distinguished by the Trip status panel.
 - **Genuine Strengths**: Complete per-leg check-in tracking; dynamic CTA selecting remaining legs; direct boarding pass links per passenger.
 - **Defects vs Opportunities**:
   - *Defect*: Boarding pass buttons are located exclusively inside individual passenger cards lower down the page. On multi-passenger bookings, retrieving passes requires scrolling past itinerary details.
@@ -421,7 +421,7 @@ The booking wizard is encapsulated within [`src/routes/{-$locale}.book.tsx`](../
 - **Classification**: `FIX REGARDLESS`
 - **Owner decision required?**: **NO** (Accessibility defect & accidental data loss fix)
 - **Current State**: [`src/components/confirm-dialog.tsx#L38`](../src/components/confirm-dialog.tsx#L38) renders a destructive confirmation alertdialog. Clicking confirm instantly switches status to `cancelled` and removes all management buttons.
-- **Screenshot & Behavior Evidence**: `j3_27_manage_cancel_dialog_en_1280.png`. CDP testing confirmed: `hasAlertDialogRole: true`, `ariaModal: "true"`, `initialActiveElement: "Keep booking"`, two-way Tab/Shift+Tab focus containment verified, `persistsOnBackdropClick: true`, `closesOnEscape: true`, `focusRestoredToTrigger: true`. However, `bodyOverflow: ""` and `scrollYDiff: 100`, confirming that the page content behind the dark overlay scrolls freely.
+- **Empirical Behavior Evidence**: Retained browser test record `modalBehavior.confirmDialog`. CDP testing confirmed: `hasAlertDialogRole: true`, `ariaModal: "true"`, `initialActiveElement: "Keep booking"`, two-way Tab/Shift+Tab focus containment verified, `persistsOnBackdropClick: true`, `closesOnEscape: true`, `focusRestoredToTrigger: true`. However, `bodyOverflow: ""` and `scrollYDiff: 100`, confirming that the page content behind the dark overlay scrolls freely.
 - **Genuine Strengths**: Traps Tab focus, restores focus to trigger, listens for Escape, and appropriately ignores backdrop clicks to prevent accidental cancellation.
 - **Defects vs Opportunities**:
   - *Defect*: Lacks body scroll lock (`overflow: hidden`); cancellation is immediate and irreversible in mock storage.
@@ -445,7 +445,7 @@ The booking wizard is encapsulated within [`src/routes/{-$locale}.book.tsx`](../
 - **Classification**: `KEEP AS-IS` (Refine responsive tab strip)
 - **Owner decision required?**: **NO** (Responsive polish)
 - **Current State**: [`src/routes/{-$locale}.account.tsx#L11-L20`](../src/routes/{-$locale}.account.tsx#L11-L20) provides navigation across 6 sub-routes (Overview, Trips, Saved Travellers, Boarding Passes, Profile, Security).
-- **Screenshot & Behavior Evidence**: `j4_34_account_overview_en_1280.png` through `j4_37_account_boarding_passes_en_1280.png`. On 390px mobile screens, the tab links wrap onto 3 vertical lines, consuming vertical screen height above the primary account content.
+- **Empirical Behavior Evidence**: Source inspection of `src/routes/{-$locale}.account.tsx` and browser inspection on mobile 390px viewports confirm that the tab links wrap onto 3 vertical lines, consuming vertical screen height above the primary account content.
 - **Genuine Strengths**: Clean sub-route architecture, persistent URLs for each account section, and complete CRUD capability for saved companions.
 - **Defects vs Opportunities**:
   - *Defect*: Multi-line tab wrapping on mobile viewports cluttering top-level screen area.
@@ -470,7 +470,7 @@ The booking wizard is encapsulated within [`src/routes/{-$locale}.book.tsx`](../
 - **Classification**: `CONSOLIDATE`
 - **Owner decision required?**: **YES** (Introduces unified feedback layer across public app)
 - **Current State**: Forms in `/account/profile` and `/account/preferences` display an inline `<p className="text-brand-deep">Saved</p>` text block below the submit button. Manage booking seat/extra changes update silently in `localStorage` without visual confirmation. Search errors display static banner notices.
-- **Screenshot & Behavior Evidence**: Inspected in `src/routes/{-$locale}.account.profile.tsx#L75` and `src/routes/{-$locale}.manage.$ref_.extras.tsx`.
+- **Empirical Behavior Evidence**: Inspected in `src/routes/{-$locale}.account.profile.tsx#L75` and `src/routes/{-$locale}.manage.$ref_.extras.tsx`.
 - **Genuine Strengths**: Non-blocking; does not introduce heavyweight external third-party toast libraries.
 - **Defects vs Opportunities**:
   - *Defect*: Inconsistent user feedback across workflows; silent updates leave users uncertain if their seat or extras change was saved.
@@ -490,54 +490,26 @@ The booking wizard is encapsulated within [`src/routes/{-$locale}.book.tsx`](../
 
 ---
 
-## 6. Screenshot Index
+## 6. Empirical Verification Index & Test Records
 
-All 42 audit screenshots were captured at real browser viewports using automated Chrome CDP execution against the production prerender build server (`PORT 4182`). They are stored in `evidence/phase-3a/20260918-phase-3a-public/screenshots/` and cataloged in `screenshot-manifest.json`.
+Public application behavior, accessibility, and state persistence were evaluated using automated Chrome CDP execution against the production prerender build server (`PORT 4182`). All permanent empirical test records are preserved in structured machine-readable format in [`docs/evidence/phase-3a/20260918-phase-3a-public/browser-test-records.json`](evidence/phase-3a/20260918-phase-3a-public/browser-test-records.json).
 
-| Filename | Journey | Route | Locale | Viewport | Verified State & Inspection Findings |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `j1_01_search_homepage_en_1280.png` | Journey 1 | `/` | `en` | 1280×900 | Default homepage hero with embedded search form; authentic limestone palette. |
-| `j1_02_search_homepage_ar_390.png` | Journey 1 | `/ar` | `ar` | 390×844 | Arabic RTL mobile layout; single-column stacked form; swap button hidden. |
-| `j1_03_search_pax_popover_en_1280.png` | Journey 1 | `/` | `en` | 1280×900 | Passenger popover open on desktop showing Adult/Child/Infant counters; `aria-expanded=true`. Popover scrolled into view. Closes only via Done button or trigger. |
-| `j1_04_search_pax_popover_ar_390.png` | Journey 1 | `/ar` | `ar` | 390×844 | Arabic passenger popover open on mobile at 390px showing RTL counter labels ("بالغون", "أطفال", "رضع"), touch targets, and Done button ("تم"). Scrolled into view. |
-| `j1_05_search_validation_error_en_1280.png` | Journey 1 | `/` | `en` | 1280×900 | Search validation error banner displayed when return date precedes departure date. |
-| `j1_06_flights_board_en_1280.png` | Journey 1 | `/flights` | `en` | 1280×900 | Standalone departures/arrivals flight board with 7-day date scrubber and query filter. |
-| `j1_07_flights_board_ar_390.png` | Journey 1 | `/ar/flights` | `ar` | 390×844 | Arabic mobile flight board with horizontally scrollable tabular layout. |
-| `j1_08_destination_detail_en_1280.png` | Journey 1 | `/destinations/AMM` | `en` | 1280×900 | Amman destination guide with flight metrics, embedded search, and schedule badges. |
-| `j1_09_destination_detail_ar_390.png` | Journey 1 | `/ar/destinations/AMM` | `ar` | 390×844 | Arabic mobile destination guide with stacked stats and booking CTA. |
-| `j2_10_book_step1_flights_en_1280.png` | Journey 2 | `/book` (step 1) | `en` | 1280×900 | Step 1 Results: Outbound and inbound flight selection cards with price summary sidebar. |
-| `j2_11_book_step2_fares_en_1280.png` | Journey 2 | `/book` (step 2) | `en` | 1280×900 | Step 2 Fares: Three-tier fare cards (Essential, Classic, Flex) comparing baggage and change policies. |
-| `j2_12_book_step2_fares_ar_390.png` | Journey 2 | `/ar/book` (step 2) | `ar` | 390×844 | Step 2 Fares in genuine Arabic RTL on mobile with stacked fare tier cards. |
-| `j2_13_book_step3_pax_form_en_1280.png` | Journey 2 | `/book` (step 3) | `en` | 1280×900 | Step 3 Passengers: Passenger details form with name, date of birth, nationality, and documents. |
-| `j2_14_book_step3_pax_validation_en_1280.png` | Journey 2 | `/book` (step 3) | `en` | 1280×900 | Step 3 Validation: Required fields alert displayed when submitting incomplete passenger info. |
-| `j2_15_book_step4_seat_map_en_1280.png` | Journey 2 | `/book` (step 4) | `en` | 1280×900 | Step 4 Seats: Airbus A320 cabin seat map with leg tabs, seat fee calculations, and legend. |
-| `j2_16_book_step4_seat_map_ar_1280.png` | Journey 2 | `/ar/book` (step 4) | `ar` | 1280×900 | Step 4 Seats in genuine Arabic RTL on `/ar/book` showing cabin map, RTL legend, and leg tabs. |
-| `j2_17_book_step4_seat_map_ar_390.png` | Journey 2 | `/ar/book` (step 4) | `ar` | 390×844 | Step 4 Seats in genuine Arabic RTL on `/ar/book` at 390px mobile testing tap targets and scrolling. |
-| `j2_18_book_step5_extras_en_1280.png` | Journey 2 | `/book` (step 5) | `en` | 1280×900 | Step 5 Extras: Ancillary baggage counter, meal selection dropdown, and assistance checkboxes. |
-| `j2_19_book_step6_review_en_1280.png` | Journey 2 | `/book` (step 6) | `en` | 1280×900 | Step 6 Review: Full itinerary breakdown, passenger list, seat summary, extras, taxes, and total. |
-| `j2_20_book_step7_confirmed_en_1280.png` | Journey 2 | `/booking-confirmation/ZYP519` | `en` | 1280×900 | Step 7 Confirmation: Live confirmed booking screen with organic PNR `ZYP519` and itinerary summary. |
-| `j2_21_book_step7_confirmed_ar_390.png` | Journey 2 | `/ar/booking-confirmation/ZYP519` | `ar` | 390×844 | Step 7 Confirmation in Arabic RTL on mobile with confirmed PNR `ZYP519`. |
-| `j3_22_manage_lookup_en_1280.png` | Journey 3 | `/manage` | `en` | 1280×900 | Manage booking PNR + last name lookup form with quick demo links. |
-| `j3_23_manage_lookup_ar_390.png` | Journey 3 | `/ar/manage` | `ar` | 390×844 | Arabic manage booking lookup form on 390px mobile. |
-| `j3_24_manage_detail_en_1280.png` | Journey 3 | `/manage/GZA-7K8P` | `en` | 1280×900 | Confirmed booking detail showing Trip status per-leg cues (Outbound checked in 2 / 1 to check in, Return 3 to check in). |
-| `j3_25_manage_seats_subview_en_1280.png` | Journey 3 | `/manage/GZA-7K8P/seats` | `en` | 1280×900 | Manage seats subview with leg switcher pills and live passenger assignment indicator. (Verified seat mutation 12A → 11B; Save button renders "Save changes"). |
-| `j3_26_manage_extras_subview_en_1280.png` | Journey 3 | `/manage/GZA-7K8P/extras` | `en` | 1280×900 | Manage bags & extras subview showing updated baggage count (persisted via store mutation). |
-| `j3_27_manage_cancel_dialog_en_1280.png` | Journey 3 | `/manage/GZA-7K8P` | `en` | 1280×900 | Cancellation alertdialog open showing `role="alertdialog"`, focus on Dismiss ("Keep booking"), and Tab trap. |
-| `j3_28_checkin_flow_en_1280.png` | Journey 3 | `/manage/GZA-7K8P/check-in` | `en` | 1280×900 | Check-in completion state on `/manage/GZA-7K8P/check-in` showing "Check-in complete", 1 boarding pass ready, and direct link to issued pass. (Complete workflow verified). |
-| `j3_29_checkin_flow_ar_390.png` | Journey 3 | `/ar/manage/GZA-7K8P/check-in` | `ar` | 390×844 | Arabic check-in on mobile showing return-leg passenger selection step with 3 companion checkboxes. (Route and live DOM confirm no hazard declarations in UI). |
-| `j3_30_boarding_pass_view_en_1280.png` | Journey 3 | `/boarding-pass/GZA-7K8P/out/0` | `en` | 1280×900 | Issued boarding pass card with barcode, gate, seat 12A, passenger Tariq Mansour, and print CTA. |
-| `j3_31_boarding_pass_view_ar_390.png` | Journey 3 | `/ar/boarding-pass/GZA-7K8P/out/0` | `ar` | 390×844 | Arabic digital boarding pass formatted for mobile wallet / screen presentation. |
-| `j4_32_signin_en_1280.png` | Journey 4 | `/signin` | `en` | 1280×900 | Clean sign-in card with email, password, and link to register. |
-| `j4_33_signin_ar_390.png` | Journey 4 | `/ar/signin` | `ar` | 390×844 | Arabic sign-in page on 390px mobile. |
-| `j4_34_account_overview_en_1280.png` | Journey 4 | `/account` | `en` | 1280×900 | Account overview dashboard with trip counters, next flight card, and quick links. |
-| `j4_35_account_trips_en_1280.png` | Journey 4 | `/account/trips` | `en` | 1280×900 | My trips list with filter tabs (Upcoming, Past, Cancelled) and trip view CTA. (Route inspection). |
-| `j4_36_account_travelers_en_1280.png` | Journey 4 | `/account/travelers` | `en` | 1280×900 | Saved travellers manager captured after addTraveler mutation; shows add form and top of companion list (newly added "Mariam Mansour" card sits below the fold; mutation asserted in browser-test-records.json). |
-| `j4_37_account_boarding_passes_en_1280.png` | Journey 4 | `/account/boarding-passes` | `en` | 1280×900 | Boarding passes collection showing ready passes and pending check-in prompts. |
-| `x_38_nav_drawer_open_en_390.png` | Cross-Journey | `/` | `en` | 390×844 | Fullscreen mobile navigation drawer open with passenger links, staff portal, and language switch. |
-| `x_39_nav_drawer_open_ar_390.png` | Cross-Journey | `/ar` | `ar` | 390×844 | Arabic mobile navigation drawer open with RTL typography and alignment. |
-| `x_40_responsive_home_en_360.png` | Cross-Journey | `/` | `en` | 360×640 | Small mobile homepage layout (360px) checking button wraps, paddings, and font scaling. |
-| `x_41_responsive_home_en_768.png` | Cross-Journey | `/` | `en` | 768×1024 | Tablet portrait homepage layout (768px) checking two-column cards and board grid. |
-| `x_42_responsive_home_en_1440.png` | Cross-Journey | `/` | `en` | 1440×900 | Wide desktop homepage layout (1440px) checking max-width containers and margins. |
+The table below indexes the exact structured evidence records and verified postconditions:
+
+| Record Key (JSON Object Path) | Route & Viewport | Focus / Target Area | Verified Postconditions & Behavioral Assertions |
+| :--- | :--- | :--- | :--- |
+| `keyboardA11y.passengerPopover` | `/` (1280×900, 390×844) | Passenger Selector Overlay | `ariaExpandedToggles: true`, `popoverElementVerified: ".min-w-64"`. Confirmed overlay lacks `Escape` and outside-click listeners (`closesOnEscape: false`, `closesOnBodyClick: false`); dismisses only via trigger or explicit Done button (`closesOnDoneButton: true`). |
+| `keyboardA11y.seatMap` | `/book` (step 4, 1280×900) | A320 Cabin Seat Map | Evaluated 108 rendered seating buttons (75 focusable, 33 disabled in fixture). Confirmed linear Tab order without roving tabindex (`hasExplicitTabIndex: false`). |
+| `keyboardA11y.mobileDrawer` | `/` (390×844) | Public Mobile Navigation | Drawer opens with dialog role (`hasDialogRole: true`, `drawerVisible: true`), but fails to dismiss on `Escape` (`closesOnEscape: false`) and lacks focus containment. |
+| `modalBehavior.confirmDialog` | `/manage/GZA-7K8P` (1280×900) | Cancellation Confirmation Dialog | Confirmed `role="alertdialog"` and `aria-modal="true"`. Two-way focus trap verified between "Keep booking" and "Cancel booking" (`tabCycle.contained: true`). Closes on `Escape` (`closesOnEscape: true`), restores focus to trigger (`focusRestoredToTrigger: true`), and resists backdrop click (`persistsOnBackdropClick: true`). Body scroll unlocked (`scrollYDiff: 100`). |
+| `browserHistory.stepBackBehavior` | `/book` (step 2, 1280×900) | Continuous Booking Wizard | Confirmed `window.history.back()` from Step 2 exits wizard to `/` (`destinationAfterBack: "/"`, `exitsWizard: true`), discarding entered state. |
+| `mutations.boardingPassLink` | `/booking-confirmation/GZA-7K8P` (1280×900) | Confirmation Pass Route Link | Confirmed presence of boarding pass link (`hasBoardingPassLink: true`), but button targets 2-segment path `/boarding-pass/GZA-7K8P/0` instead of 3-segment `/boarding-pass/GZA-7K8P/out/0`, producing TanStack 404 (`clickResult.is404: true`). |
+| `mutations.manageSeats` | `/manage/GZA-7K8P/seats` (1280×900) | Seat Reassignment Mutation | Confirmed outbound seat mutation from `12A` to `11B` persisted to `localStorage` (`persisted: true`). Verified save button resolves localized string `"Save changes"` (`isLiteralTranslationKey: false`). |
+| `mutations.manageExtras` | `/manage/GZA-7K8P/extras` (1280×900) | Baggage Counter Mutation | Confirmed baggage update from `0` to `1` persisted to `localStorage` (`persisted: true`). |
+| `mutations.checkIn` | `/manage/GZA-7K8P/check-in` (1280×900) | Complete Check-In Workflow | Walked all 6 steps (`leg`, `pax`, `details`, `seats`, `review`, `done`) for passenger Yousef Mansour. Outbound leg checked-in list updated from `[0, 1]` to `[0, 1, 2]` (`persisted: true`). Issued boarding pass `/boarding-pass/GZA-7K8P/out/2` verified. Confirmed absence of dangerous goods declaration. |
+| `mutations.addTraveler` | `/account/travelers` (1280×900) | Saved Traveler Addition | Confirmed companion addition ("Mariam Mansour"): companion count incremented from 3 to 4, card present in DOM and persisted to `localStorage` (`verified: true`). |
+
+> **Destination Route Architecture Note**: The public destination detail route `/destinations/$code` (e.g. `/destinations/AMM`) is occluded in the browser by parent route `src/routes/{-$locale}.destinations.tsx` which renders `DestinationsPage` without an `<Outlet />`. While TanStack Router executes `head()` from `$code.tsx` (updating document title to `"Amman (AMM) from Gaza — Palestinian Airlines"`), the child component `DestinationPage` is unreachable in the browser. This architectural defect is empirically documented in [`docs/evidence/phase-3a/20260918-phase-3a-heritage/browser-test-records.json`](evidence/phase-3a/20260918-phase-3a-heritage/browser-test-records.json) under `journey3_destinations.amm_detail.architecturalDefect`.
 
 ---
 

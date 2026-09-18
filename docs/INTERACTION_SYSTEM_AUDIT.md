@@ -196,9 +196,9 @@ All tokens in `src/styles.css` are specified using modern CSS `oklch()`. Using c
 - **Root Cause**: Custom lightbox overlay lacks focus trap and body scroll lock hooks.
 
 ### Defect 3: Passenger Selector Popover Missing Escape & Outside-Click Dismissal
-- **Severity**: **Medium** | **WCAG Criteria**: SC 1.4.13 (Content on Hover or Focus), SC 2.1.1 (Keyboard)
+- **Severity**: **Medium** | **Criteria / Standard**: Expected WAI-ARIA Popover Dismissal, SC 2.1.1 (Keyboard)
 - **Source**: `src/components/flight-search-form.tsx` lines 216–278
-- **Evidence**: Empirically confirmed in CDP browser tests: clicking the passenger button opens the popover (`expanded: "true"`, `hasPopover: true`). Pressing `Escape` does not dismiss it (`dismissedOnEscape: false`, `isOpen: true`). Clicking outside the popover onto the canvas does not dismiss it (`dismissedOnOutsideClick: false`, `isOpen: true`). It lacks `role="dialog"` or disclosure popover attributes.
+- **Evidence**: Empirically confirmed in browser test records (`passenger_picker_overlay`): clicking the passenger button opens the popover (`expanded: "true"`, `hasPopover: true`). Pressing `Escape` does not dismiss it (`dismissedOnEscape: false`, `isOpen: true`). Clicking outside the popover onto the canvas does not dismiss it (`dismissedOnOutsideClick: false`, `isOpen: true`). It lacks `role="dialog"` or disclosure popover attributes.
 - **Root Cause**: Popover is rendered as an unmanaged `absolute` div toggled by boolean state without event listeners for `keydown` (Escape) or `mousedown` (outside click).
 
 ### Defect 4: Seat Map Linear Tab Burden & Mobile Touch Target Ergonomics
@@ -331,26 +331,26 @@ The following decision cards are prepared for the later Phase 3A Synthesis and O
 
 ---
 
-## 8. Screenshot Index & Verification Manifest
+## 8. Empirical Verification Index & Test Records
 
-Targeted screenshots captured during this audit run under `evidence/phase-3a/20260918-phase-3a-interaction-system/screenshots/`:
+Targeted interactive test cases executed during this audit run are preserved in structured machine-readable format under [`docs/evidence/phase-3a/20260918-phase-3a-interaction-system/browser-test-records.json`](evidence/phase-3a/20260918-phase-3a-interaction-system/browser-test-records.json). Raw PNG captures remain historical worker/Git evidence preserved in baseline commit `cc57cfe2450effd78547b591fd66b156ef5e699a`.
 
-| Filename | Route | Locale | Viewport | Focus / Interactive State |
+| Observation ID / Target | Route | Locale | Viewport | Focus / Interactive State Verified |
 | :--- | :--- | :--- | :--- | :--- |
-| `s1_01_public_mobile_drawer_open_390.png` | `/` | EN | 390×844 | Public mobile drawer open (demonstrates full-screen overlay) |
-| `s1_02_admin_mobile_drawer_open_390.png` | `/admin` | EN | 390×844 | Admin mobile drawer open (demonstrates slide-over navigation with ink theme) |
-| `s2_01_pax_popover_open_1280.png` | `/` | EN | 1280×900 | Page scrolled to center popover; open passenger selector popover and counter controls visibly rendered inside viewport (confirmed by DOM assertion) |
-| `s2_02_pax_popover_open_ar_390.png` | `/ar` | AR | 390×844 | Mobile page scrolled to center popover; open passenger selector popover in Arabic view with counter controls visibly rendered inside viewport (confirmed by DOM assertion) |
-| `s3_01_gallery_lightbox_open_1280.png` | `/gallery` | EN | 1280×900 | Gallery archive lightbox modal open with pagination & metadata |
-| `s3_02_gallery_lightbox_ar_1280.png` | `/ar/gallery` | AR | 1280×900 | Gallery lightbox open in Arabic with RTL chevron mirroring |
-| `s4_01_confirm_dialog_open_1280.png` | `/manage/GZA-7K8P` | EN | 1280×900 | Cancellation confirmation alertdialog open with dismiss button focus |
-| `s5_01_admin_search_palette_open_1280.png` | `/admin` | EN | 1280×900 | Command palette combobox modal displaying filtered search results for query 'PS' |
-| `s6_01_admin_sheet_quick_edit_1280.png` | `/admin/flights` | EN | 1280×900 | Admin quick-edit side sheet open over flight operations table |
-| `s7_01_seat_map_tab_sequence_1280.png` | `/book` | EN | 1280×900 | Active aircraft cabin seat map at Step 4 of booking flow (rows 11-28, 108 total rendered seat buttons: 73 enabled, 35 occupied in fixture); targeted 2-step Tab focus verified |
-| `s7_02_seat_map_mobile_390.png` | `/book` | EN | 390×844 | Mobile viewport (390px) rendering of aircraft cabin seat grid at Step 4 (32px × 32px touch target) |
-| `s8_01_booking_stepper_step3_1280.png` | `/book` | EN | 1280×900 | Booking progression stepper at Step 4 (Seats) with non-interactive indicator steps |
-| `s9_01_admin_tabs_flights_1280.png` | `/admin/flights` | EN | 1280×900 | Admin flight operations toolbar with segmented direction toggle group (All / Departures / Arrivals) |
-| `s10_01_ltr_isolation_arabic_flights_1280.png` | `/ar/flights` | AR | 1280×900 | Flight board in Arabic verifying `.code-id` LTR isolation |
+| `public_mobile_drawer` | `/` | EN | 390×844 | Public mobile drawer open (demonstrates full-screen overlay) |
+| `admin_mobile_drawer` | `/admin` | EN | 390×844 | Admin mobile drawer open (demonstrates slide-over navigation with ink theme) |
+| `passenger_picker_overlay.desktop` | `/` | EN | 1280×900 | Page scrolled to center popover; open passenger selector popover and counter controls visibly rendered inside viewport (confirmed by DOM assertion) |
+| `passenger_picker_overlay.mobile_ar` | `/ar` | AR | 390×844 | Mobile page scrolled to center popover; open passenger selector popover in Arabic view with counter controls visibly rendered inside viewport (confirmed by DOM assertion) |
+| `gallery_lightbox.desktop` | `/gallery` | EN | 1280×900 | Gallery archive lightbox modal open with pagination & metadata |
+| `gallery_lightbox.desktop_ar` | `/ar/gallery` | AR | 1280×900 | Gallery lightbox open in Arabic with RTL chevron mirroring |
+| `cancellation_alertdialog` | `/manage/GZA-7K8P` | EN | 1280×900 | Cancellation confirmation alertdialog open with dismiss button focus |
+| `admin_search_palette` | `/admin` | EN | 1280×900 | Command palette combobox modal displaying filtered search results for query 'PS' |
+| `admin_side_sheet` | `/admin/flights` | EN | 1280×900 | Admin quick-edit side sheet open over flight operations table |
+| `seat_map_tab_sequence` | `/book` | EN | 1280×900 | Active aircraft cabin seat map at Step 4 of booking flow (rows 11-28, 108 total rendered seat buttons: 73 enabled, 35 occupied in fixture); targeted 2-step Tab focus verified |
+| `seat_map_mobile` | `/book` | EN | 390×844 | Mobile viewport (390px) rendering of aircraft cabin seat grid at Step 4 (32px × 32px touch target) |
+| `booking_stepper` | `/book` | EN | 1280×900 | Booking progression stepper at Step 4 (Seats) with non-interactive indicator steps |
+| `admin_tabs_flights` | `/admin/flights` | EN | 1280×900 | Admin flight operations toolbar with segmented direction toggle group (All / Departures / Arrivals) |
+| `ltr_isolation_arabic` | `/ar/flights` | AR | 1280×900 | Flight board in Arabic verifying `.code-id` LTR isolation |
 
 ---
 

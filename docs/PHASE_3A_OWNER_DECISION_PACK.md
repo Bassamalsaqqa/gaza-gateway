@@ -64,7 +64,7 @@ Across all four domains, the prototype demonstrates an impressive foundational v
 
 ### 1.1 Public Domain & Passenger Journey
 - **Genuine Strengths**:
-  - The public passenger flow possesses a cohesive aesthetic identity. Typography choices (Cinzel, Amiri, Plus Jakarta Sans, IBM Plex Sans Arabic) give Palestinian Airlines a sovereign editorial feel.
+  - The public passenger flow possesses a cohesive aesthetic identity. The incumbent implementation pairs `Bricolage Grotesque` (display) and `Manrope` (body) with `IBM Plex Sans Arabic` for Arabic support and `IBM Plex Mono` for technical identifiers, establishing a dignified, calm, and culturally grounded civil aviation identity.
   - The booking flow (`/book` in `src/routes/{-$locale}.book.tsx`) is genuinely functional in client-side state: multi-step progression across 7 in-page steps (`search`, `results`, `fare`, `passengers`, `seats`, `extras`, `review`), dynamic passenger count updates, seat selection, add-on calculations, booking reference generation (`GZA-XXXX`), and confirmation summaries operate smoothly without runtime crashes.
   - Fluid responsive grid structures and Tailwind CSS logical property utilization ensure good layout resilience across English (LTR) and Arabic (RTL).
 - **Core Workflow & Information Architecture Bottlenecks**:
@@ -107,7 +107,7 @@ Across all four domains, the prototype demonstrates an impressive foundational v
 
 ## Section 2: Traceable Findings Register
 
-This register compiles all material findings across all four accepted Phase 3A audits. Every entry is categorized, assigned an explicit evidence nature, prioritized with rationale, and linked to its exact accepted audit section, raw test record, screenshot, and source file.
+This register compiles all material findings across all four accepted Phase 3A audits. Every entry is categorized, assigned an explicit evidence nature, prioritized with rationale, and linked to its exact accepted audit section, raw test record, and source file.
 
 ```
 Evidence Nature Taxonomy:
@@ -120,25 +120,25 @@ Evidence Nature Taxonomy:
 
 | ID | Finding Summary | Journey / Area | Category | Evidence Nature | Severity / Priority | Audit, Evidence & Source Citations |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **PUB-01** | Leaf route at `destinations.tsx` lacks `<Outlet />`, occluding `/destinations/$code` child routes. | Public: Destinations | `CONFIRMED DEFECT` | `browser-confirmed` + `source-explained` | **P0 (Blocker)**: Child destination detail pages completely unreachable in DOM. | [PHASE_3A_PUBLIC_AUDIT.md](PHASE_3A_PUBLIC_AUDIT.md); screenshot `j1_08_destination_detail_en_1280.png`; [`src/routes/{-$locale}.destinations.tsx`](../src/routes/{-$locale}.destinations.tsx) |
+| **PUB-01** | Leaf route at `destinations.tsx` lacks `<Outlet />`, occluding `/destinations/$code` child routes. | Public: Destinations | `CONFIRMED DEFECT` | `browser-confirmed` + `source-explained` | **P0 (Blocker)**: Child destination detail pages completely unreachable in DOM. | [PHASE_3A_PUBLIC_AUDIT.md](PHASE_3A_PUBLIC_AUDIT.md); [`src/routes/{-$locale}.destinations.tsx`](../src/routes/{-$locale}.destinations.tsx) |
 | **PUB-02** | Booking confirmation screen links to 2-segment boarding pass URL, triggering TanStack 404. | Public: Confirmation | `CONFIRMED DEFECT` | `browser-confirmed` | **P0 (Blocker)**: Passengers cannot access generated boarding pass. | [PHASE_3A_PUBLIC_AUDIT.md](PHASE_3A_PUBLIC_AUDIT.md); [browser-test-records.json](evidence/phase-3a/20260918-phase-3a-public/browser-test-records.json) `:mutations.boardingPassLink.clickResult`; [`src/routes/{-$locale}.booking-confirmation.$ref.tsx`](../src/routes/{-$locale}.booking-confirmation.$ref.tsx) |
 | **PUB-03** | Public site footer omits `/airport/present` link from chapter navigation. | Public: Global Footer | `CONSISTENCY ISSUE` | `source-explained` | **P1 (High)**: Core historical narrative chapter missing from global site discovery. | [PHASE_3A_HERITAGE_AUDIT.md](PHASE_3A_HERITAGE_AUDIT.md); [`src/components/site-footer.tsx`](../src/components/site-footer.tsx) |
-| **PUB-04** | Passenger count selector popover ignores outside clicks and `Escape` dismissal. | Public: Homepage Search | `ACCESSIBILITY DEFECT` | `browser-confirmed` | **P1 (High)**: Violates WCAG 2.2 SC 1.4.13; overlay remains stuck open until Done is clicked. | [INTERACTION_SYSTEM_AUDIT.md](INTERACTION_SYSTEM_AUDIT.md); [browser-test-records.json](evidence/phase-3a/20260918-phase-3a-interaction-system/browser-test-records.json) `:passenger_picker_overlay.desktop.afterEscape`; screenshot `s2_01_pax_popover_open_1280.png`; [`src/components/flight-search-form.tsx`](../src/components/flight-search-form.tsx) |
-| **PUB-05** | Public mobile drawer locks body scroll but lacks `Escape` dismissal, focus trap, and focus return. | Public: Mobile Navigation | `ACCESSIBILITY DEFECT` | `browser-confirmed` | **P1 (High)**: Violates WCAG 2.2 SC 2.4.3; keyboard focus leaks behind open mobile menu. | [INTERACTION_SYSTEM_AUDIT.md](INTERACTION_SYSTEM_AUDIT.md); [browser-test-records.json](evidence/phase-3a/20260918-phase-3a-interaction-system/browser-test-records.json) `:public_mobile_drawer`; screenshot `s1_01_public_mobile_drawer_open_390.png`; [`src/components/site-header.tsx`](../src/components/site-header.tsx) |
-| **HER-01** | Gallery lightbox handles `Escape` and arrow navigation, but fails focus containment upon open and leaves body scroll unlocked; drops focus to body when closed after focus moved inside (immediate Escape without moving focus retains trigger focus). | Heritage: Lightbox | `ACCESSIBILITY DEFECT` | `browser-confirmed` | **P1 (High)**: Tabbing cycles background cards; closing after interaction drops focus to body. | [PHASE_3A_HERITAGE_AUDIT.md](PHASE_3A_HERITAGE_AUDIT.md); [browser-test-records.json](evidence/phase-3a/20260918-phase-3a-heritage/browser-test-records.json) `:deepA11yInspections.galleryLightbox`; screenshot `j2_18_gallery_lightbox_open_en_1280.png`; [`src/routes/{-$locale}.gallery.tsx`](../src/routes/{-$locale}.gallery.tsx) |
-| **HER-02** | Gallery filter buttons do not synchronize with URL search parameters (`?category=`, `?era=`). | Heritage: Gallery | `DESIGN OPPORTUNITY` | `source-explained` | **P3 (Low)**: Historical categories cannot be deep-linked or shared externally. | [PHASE_3A_HERITAGE_AUDIT.md](PHASE_3A_HERITAGE_AUDIT.md); screenshot `j2_15_gallery_filtered_architecture_en_1280.png`; [`src/routes/{-$locale}.gallery.tsx`](../src/routes/{-$locale}.gallery.tsx) |
-| **HER-03** | Historical media and `Verified` badges are provisional mock placeholders awaiting owner archival assets. | Heritage: Overall | `OWNER PREFERENCE` | `source-explained` + `browser-confirmed` | **P2 (Medium)**: Must avoid treating provisional timeline badges as historical provenance. | [PHASE_3A_HERITAGE_AUDIT.md](PHASE_3A_HERITAGE_AUDIT.md); [browser-test-records.json](evidence/phase-3a/20260918-phase-3a-heritage/browser-test-records.json) `:journey1_airport.timeline_analysis`; screenshot `j1_04_airport_past_timeline_en_1280.png`; [`src/routes/{-$locale}.gallery.tsx`](../src/routes/{-$locale}.gallery.tsx) |
-| **ADM-01** | Admin flight overrides (`localStorage["gza.admin.v1"]`) do not sync with public flight schedule (`localStorage["gza.store.v1"]`). | Cross-Domain: Store Layer | `CONSISTENCY ISSUE` | `browser-confirmed` | **P1 (High)**: Decoupled stores mean admin operational changes are invisible to public passengers. | [PHASE_3A_ADMIN_AUDIT.md](PHASE_3A_ADMIN_AUDIT.md); [browser-test-records.json](evidence/phase-3a/20260918-phase-3a-admin/browser-test-records.json) `:store_boundaries.public_vs_admin_flight_overrides`; screenshots `w2_06_flight_board_after_mutation_1280.png` and `w2_07_public_flights_board_boundary_1280.png`; [`src/routes/{-$locale}.admin.flights.index.tsx`](../src/routes/{-$locale}.admin.flights.index.tsx) |
+| **PUB-04** | Passenger count selector popover ignores outside clicks and `Escape` dismissal. | Public: Homepage Search | `ACCESSIBILITY DEFECT` | `browser-confirmed` | **P1 (High)**: Missing expected WAI-ARIA popover dismissal; overlay remains stuck open until Done is clicked. | [INTERACTION_SYSTEM_AUDIT.md](INTERACTION_SYSTEM_AUDIT.md); [browser-test-records.json](evidence/phase-3a/20260918-phase-3a-interaction-system/browser-test-records.json) `:passenger_picker_overlay.desktop.afterEscape`; [`src/components/flight-search-form.tsx`](../src/components/flight-search-form.tsx) |
+| **PUB-05** | Public mobile drawer locks body scroll but lacks `Escape` dismissal, focus trap, and focus return. | Public: Mobile Navigation | `ACCESSIBILITY DEFECT` | `browser-confirmed` | **P1 (High)**: Violates WCAG 2.2 SC 2.4.3; keyboard focus leaks behind open mobile menu. | [INTERACTION_SYSTEM_AUDIT.md](INTERACTION_SYSTEM_AUDIT.md); [browser-test-records.json](evidence/phase-3a/20260918-phase-3a-interaction-system/browser-test-records.json) `:public_mobile_drawer`; [`src/components/site-header.tsx`](../src/components/site-header.tsx) |
+| **HER-01** | Gallery lightbox handles `Escape` and arrow navigation, but fails focus containment upon open and leaves body scroll unlocked; drops focus to body when closed after focus moved inside (immediate Escape without moving focus retains trigger focus). | Heritage: Lightbox | `ACCESSIBILITY DEFECT` | `browser-confirmed` | **P1 (High)**: Tabbing cycles background cards; closing after interaction drops focus to body. | [PHASE_3A_HERITAGE_AUDIT.md](PHASE_3A_HERITAGE_AUDIT.md); [browser-test-records.json](evidence/phase-3a/20260918-phase-3a-heritage/browser-test-records.json) `:deepA11yInspections.galleryLightbox`; [`src/routes/{-$locale}.gallery.tsx`](../src/routes/{-$locale}.gallery.tsx) |
+| **HER-02** | Gallery filter buttons do not synchronize with URL search parameters (`?category=`, `?era=`). | Heritage: Gallery | `DESIGN OPPORTUNITY` | `source-explained` | **P3 (Low)**: Historical categories cannot be deep-linked or shared externally. | [PHASE_3A_HERITAGE_AUDIT.md](PHASE_3A_HERITAGE_AUDIT.md); [`src/routes/{-$locale}.gallery.tsx`](../src/routes/{-$locale}.gallery.tsx) |
+| **HER-03** | Historical media and `Verified` badges are provisional mock placeholders awaiting owner archival assets. | Heritage: Overall | `OWNER PREFERENCE` | `source-explained` + `browser-confirmed` | **P2 (Medium)**: Must avoid treating provisional timeline badges as historical provenance. | [PHASE_3A_HERITAGE_AUDIT.md](PHASE_3A_HERITAGE_AUDIT.md); [browser-test-records.json](evidence/phase-3a/20260918-phase-3a-heritage/browser-test-records.json) `:journey1_airport.timeline_analysis`; [`src/routes/{-$locale}.gallery.tsx`](../src/routes/{-$locale}.gallery.tsx) |
+| **ADM-01** | Admin flight overrides (`localStorage["gza.admin.v1"]`) do not sync with public flight schedule (`localStorage["gza.store.v1"]`). | Cross-Domain: Store Layer | `CONSISTENCY ISSUE` | `browser-confirmed` | **P1 (High)**: Decoupled stores mean admin operational changes are invisible to public passengers. | [PHASE_3A_ADMIN_AUDIT.md](PHASE_3A_ADMIN_AUDIT.md); [browser-test-records.json](evidence/phase-3a/20260918-phase-3a-admin/browser-test-records.json) `:store_boundaries.public_vs_admin_flight_overrides`; [`src/routes/{-$locale}.admin.flights.index.tsx`](../src/routes/{-$locale}.admin.flights.index.tsx) |
 | **ADM-02** | Public bookings created at `/book` are not reflected in admin bookings table (architectural inference: reads static `mockBookings` in `admin-mock.ts`; `empiricalTestRun: false`). | Cross-Domain: Store Layer | `CONSISTENCY ISSUE` | `source-explained` | **P1 (High)**: Decoupled client store layers break cross-surface simulation. | [PHASE_3A_ADMIN_AUDIT.md](PHASE_3A_ADMIN_AUDIT.md); [browser-test-records.json](evidence/phase-3a/20260918-phase-3a-admin/browser-test-records.json) `:store_boundaries.public_vs_admin_bookings`; [`src/routes/{-$locale}.admin.bookings.index.tsx`](../src/routes/{-$locale}.admin.bookings.index.tsx) |
-| **ADM-03** | Admin search palette (`Cmd+K`) is a working combobox (8+ results for "PS"), but unbuilt targets show toasts. | Admin: Search Shell | `USABILITY FRICTION` | `browser-confirmed` | **P2 (Medium)**: Search works well for flights/destinations; unbuilt booking targets show "arrives later" toasts. | [PHASE_3A_ADMIN_AUDIT.md](PHASE_3A_ADMIN_AUDIT.md); [browser-test-records.json](evidence/phase-3a/20260918-phase-3a-interaction-system/browser-test-records.json) `:admin_search_palette`; screenshot `s5_01_admin_search_palette_open_1280.png`; [`src/components/admin/admin-search.tsx`](../src/components/admin/admin-search.tsx) |
+| **ADM-03** | Admin search palette (`Cmd+K`) is a working combobox (8+ results for "PS"), but unbuilt targets show toasts. | Admin: Search Shell | `USABILITY FRICTION` | `browser-confirmed` | **P2 (Medium)**: Search works well for flights/destinations; unbuilt booking targets show "arrives later" toasts. | [PHASE_3A_ADMIN_AUDIT.md](PHASE_3A_ADMIN_AUDIT.md); [browser-test-records.json](evidence/phase-3a/20260918-phase-3a-interaction-system/browser-test-records.json) `:admin_search_palette`; [`src/components/admin/admin-search.tsx`](../src/components/admin/admin-search.tsx) |
 | **ADM-04** | Admin account menu and attention popover handle `Escape` and outside clicks, but trigger elements lack aria-expanded sync. | Admin: Top Bar | `ACCESSIBILITY DEFECT` | `browser-confirmed` + `source-explained` | **P2 (Medium)**: Screen readers are not informed when dropdown dialog opens or closes. | [PHASE_3A_ADMIN_AUDIT.md](PHASE_3A_ADMIN_AUDIT.md); [browser-test-records.json](evidence/phase-3a/20260918-phase-3a-admin/browser-test-records.json) `:interactive_a11y_directionality.account_menu_keyboard`; [`src/components/admin/admin-shell.tsx`](../src/components/admin/admin-shell.tsx) |
 | **ADM-05** | Admin feedback uses `AdminToasts` with `aria-live="polite"`, 4500ms auto-dismiss, and explicit close button; public site uses inline notices. | Admin: Feedback | `CONSISTENCY ISSUE` | `source-explained` | **P2 (Medium)**: Separate feedback patterns across public and admin surfaces. | [PHASE_3A_ADMIN_AUDIT.md](PHASE_3A_ADMIN_AUDIT.md); [`src/components/admin/admin-kit.tsx`](../src/components/admin/admin-kit.tsx) |
-| **ADM-06** | Admin tables lack pinned header rows and sticky action columns on mobile viewports (390px). | Admin: Mobile Tables | `USABILITY FRICTION` | `browser-confirmed` | **P2 (Medium)**: Operational tables require intense horizontal panning to reach "Quick edit". | [PHASE_3A_ADMIN_AUDIT.md](PHASE_3A_ADMIN_AUDIT.md); screenshot `s9_01_admin_tabs_flights_1280.png`; [`src/routes/{-$locale}.admin.flights.index.tsx`](../src/routes/{-$locale}.admin.flights.index.tsx) |
+| **ADM-06** | Admin tables lack pinned header rows and sticky action columns on mobile viewports (390px). | Admin: Mobile Tables | `USABILITY FRICTION` | `browser-confirmed` | **P2 (Medium)**: Operational tables require intense horizontal panning to reach "Quick edit". | [PHASE_3A_ADMIN_AUDIT.md](PHASE_3A_ADMIN_AUDIT.md); [`src/routes/{-$locale}.admin.flights.index.tsx`](../src/routes/{-$locale}.admin.flights.index.tsx) |
 | **INT-01** | 46 unused shadcn/Radix component starter files reside under `src/components/ui/`. | Interaction: Codebase | `CONSISTENCY ISSUE` | `source-explained` | **P2 (Medium)**: Dead starter templates cause architectural ambiguity and maintenance waste. | [INTERACTION_SYSTEM_AUDIT.md](INTERACTION_SYSTEM_AUDIT.md); [inventory-analysis.json](evidence/phase-3a/20260918-phase-3a-interaction-system/inventory-analysis.json) `:uiDirectoryStats`; directory `src/components/ui/` |
-| **INT-02** | Aircraft seat map renders 108 buttons (73 enabled, 35 occupied in fixture); first two sequential steps (11A → 11B → 11E) verified in browser; full 73-stop keyboard burden inferred from 73 enabled native buttons in flat DOM order. | Interaction: Seat Map | `ACCESSIBILITY DEFECT` | `browser-confirmed` + `inferred-burden` | **P1 (High)**: Sequential Tab navigation across cabin verified by targeted 2-step traversal; lacks 2D grid navigation. | [INTERACTION_SYSTEM_AUDIT.md](INTERACTION_SYSTEM_AUDIT.md); [browser-test-records.json](evidence/phase-3a/20260918-phase-3a-interaction-system/browser-test-records.json) `:seat_map_interaction.targetedTabSequence`; screenshot `s7_01_seat_map_tab_sequence_1280.png`; [`src/components/booking/seat-map.tsx`](../src/components/booking/seat-map.tsx) |
-| **INT-03** | Seat map mobile button size is 32px × 32px, meeting WCAG 2.2 SC 2.5.8 (24px) but below 44px platform recommendation. | Interaction: Seat Map | `USABILITY FRICTION` | `browser-confirmed` | **P2 (Medium)**: Compact button size increases tap errors on mobile devices (320px–390px). Not a WCAG AA failure. | [INTERACTION_SYSTEM_AUDIT.md](INTERACTION_SYSTEM_AUDIT.md); [browser-test-records.json](evidence/phase-3a/20260918-phase-3a-interaction-system/browser-test-records.json) `:seat_map_interaction.mobile`; screenshot `s7_02_seat_map_mobile_390.png`; [`src/components/booking/seat-map.tsx`](../src/components/booking/seat-map.tsx) |
+| **INT-02** | Aircraft seat map renders 108 buttons (73 enabled, 35 occupied in fixture); first two sequential steps (11A → 11B → 11E) verified in browser; full 73-stop keyboard burden inferred from 73 enabled native buttons in flat DOM order. | Interaction: Seat Map | `ACCESSIBILITY DEFECT` | `browser-confirmed` + `inferred-burden` | **P1 (High)**: Sequential Tab navigation across cabin verified by targeted 2-step traversal; lacks 2D grid navigation. | [INTERACTION_SYSTEM_AUDIT.md](INTERACTION_SYSTEM_AUDIT.md); [browser-test-records.json](evidence/phase-3a/20260918-phase-3a-interaction-system/browser-test-records.json) `:seat_map_interaction.targetedTabSequence`; [`src/components/booking/seat-map.tsx`](../src/components/booking/seat-map.tsx) |
+| **INT-03** | Seat map mobile button size is 32px × 32px, meeting WCAG 2.2 SC 2.5.8 (24px) but below 44px platform recommendation. | Interaction: Seat Map | `USABILITY FRICTION` | `browser-confirmed` | **P2 (Medium)**: Compact button size increases tap errors on mobile devices (320px–390px). Not a WCAG AA failure. | [INTERACTION_SYSTEM_AUDIT.md](INTERACTION_SYSTEM_AUDIT.md); [browser-test-records.json](evidence/phase-3a/20260918-phase-3a-interaction-system/browser-test-records.json) `:seat_map_interaction.mobile`; [`src/components/booking/seat-map.tsx`](../src/components/booking/seat-map.tsx) |
 | **INT-04** | Aircraft seat map layout mirrors columns in Arabic RTL, flipping Port/Starboard orientation relative to aircraft. | Interaction: Seat Map | `USABILITY FRICTION` | `source-explained` | **P2 (Medium)**: Seat A should remain Port (Window) and Seat F Starboard (Window) regardless of UI language. | [INTERACTION_SYSTEM_AUDIT.md](INTERACTION_SYSTEM_AUDIT.md); [`src/components/booking/seat-map.tsx`](../src/components/booking/seat-map.tsx) |
-| **INT-05** | Cancellation `ConfirmDialog` traps focus and handles `Escape`, but leaves background document body scroll unlocked. | Interaction: Dialogs | `USABILITY FRICTION` | `browser-confirmed` | **P2 (Medium)**: Users can scroll the underlying page while a blocking confirmation alertdialog is open. | [INTERACTION_SYSTEM_AUDIT.md](INTERACTION_SYSTEM_AUDIT.md); [browser-test-records.json](evidence/phase-3a/20260918-phase-3a-interaction-system/browser-test-records.json) `:cancellation_alertdialog`; screenshot `s4_01_confirm_dialog_open_1280.png`; [`src/components/confirm-dialog.tsx`](../src/components/confirm-dialog.tsx) |
+| **INT-05** | Cancellation `ConfirmDialog` traps focus and handles `Escape`, but leaves background document body scroll unlocked. | Interaction: Dialogs | `USABILITY FRICTION` | `browser-confirmed` | **P2 (Medium)**: Users can scroll the underlying page while a blocking confirmation alertdialog is open. | [INTERACTION_SYSTEM_AUDIT.md](INTERACTION_SYSTEM_AUDIT.md); [browser-test-records.json](evidence/phase-3a/20260918-phase-3a-interaction-system/browser-test-records.json) `:cancellation_alertdialog`; [`src/components/confirm-dialog.tsx`](../src/components/confirm-dialog.tsx) |
 
 ---
 
@@ -198,7 +198,7 @@ This section presents the **14 canonical decision cards**. Every card is grounde
 ### Decision Card 01: Global Public Navigation & Mobile Drawer
 
 - **Current State & Evidence**:
-  The public header (`src/components/site-header.tsx`) features a sticky limestone navbar with 5 primary links (Flights, Destinations, Airport, Gallery, Travel), 4 secondary links (About, Contact, Manage, Check-in), a locale switcher (`EN`/`AR`), and a mobile hamburger button. On mobile (390px), the hamburger opens a full-screen menu overlay (`role="dialog"`, `aria-modal="true"`). The drawer successfully locks body scroll (`document.body.style.overflow = "hidden"`), but lacks an `Escape` key listener, lacks a keyboard focus trap, and drops focus to `document.body` when closed. Verified in `INTERACTION_SYSTEM_AUDIT.md` and test record `public_mobile_drawer`; screenshot `s1_01_public_mobile_drawer_open_390.png`.
+  The public header (`src/components/site-header.tsx`) features a sticky limestone navbar with 5 primary links (Flights, Destinations, Airport, Gallery, Travel), 4 secondary links (About, Contact, Manage, Check-in), a locale switcher (`EN`/`AR`), and a mobile hamburger button. On mobile (390px), the hamburger opens a full-screen menu overlay (`role="dialog"`, `aria-modal="true"`). The drawer successfully locks body scroll (`document.body.style.overflow = "hidden"`), but lacks an `Escape` key listener, lacks a keyboard focus trap, and drops focus to `document.body` when closed. Verified in `INTERACTION_SYSTEM_AUDIT.md` and test record `public_mobile_drawer`.
 - **Strengths**:
   Clean brand aesthetic; proper LTR/RTL layout mirroring; body scroll locking already implemented.
 - **Defects vs Opportunities**:
@@ -209,7 +209,7 @@ This section presents the **14 canonical decision cards**. Every card is grounde
 - **Option B (Structured Task/Story Split with Dedicated Action Bar)**:
   Restructure the navigation into two distinct zones: a primary passenger utility bar (Book, Flights, Check-in) and a narrative menu (Airport Story, Gallery, Fleet). On mobile, introduce a persistent bottom utility bar for flight lookup alongside a rich full-screen storytelling drawer.
 - **Antigravity Recommendation**:
-  **Option B**. Palestinian Airlines is both an operational travel concept and a sovereign memorial institution. Separating active travel utilities from historical storytelling honors both missions without clashing.
+  **Option B**. Palestinian Airlines is both an operational civil aviation concept and a dignified memorial and heritage institution. Separating active travel utilities from historical storytelling honors both missions without clashing.
   - *Trade-off*: Option B slightly increases mobile header implementation complexity.
 - **Multi-Dimensional Impact**:
   - *Desktop*: Clearer visual grouping with primary CTA ("Book Flight") distinguished from narrative links.
@@ -227,7 +227,7 @@ This section presents the **14 canonical decision cards**. Every card is grounde
 ### Decision Card 02: Booking-Search Composition & Homepage Presence
 
 - **Current State & Evidence**:
-  The homepage (`src/routes/{-$locale}.index.tsx`) embeds a large flight search widget (`src/components/flight-search-form.tsx`) directly below the hero banner. It includes trip type (Round Trip / One Way), origin/destination dropdowns, departure/return date inputs, and passenger count controls. Verified in `PHASE_3A_PUBLIC_AUDIT.md` and test record `j1_01_search_homepage_en_1280.png`.
+  The homepage (`src/routes/{-$locale}.index.tsx`) embeds a large flight search widget (`src/components/flight-search-form.tsx`) directly below the hero banner. It includes trip type (Round Trip / One Way), origin/destination dropdowns, departure/return date inputs, and passenger count controls. Verified in `PHASE_3A_PUBLIC_AUDIT.md` and test record `search_homepage`.
 - **Strengths**:
   Prominently signals passenger airline functionality; inputs are immediately visible above the fold on desktop viewports (1280px–1440px).
 - **Defects vs Opportunities**:
@@ -256,7 +256,7 @@ This section presents the **14 canonical decision cards**. Every card is grounde
 ### Decision Card 03: Passenger Selector Desktop & Mobile Interaction
 
 - **Current State & Evidence**:
-  The passenger count selector in `src/components/flight-search-form.tsx` uses a custom button that toggles an unanchored dropdown card containing 7 counter buttons for Adults, Children, and Infants. Verified in `INTERACTION_SYSTEM_AUDIT.md` and test record `passenger_picker_overlay.desktop`; screenshot `s2_01_pax_popover_open_1280.png`.
+  The passenger count selector in `src/components/flight-search-form.tsx` uses a custom button that toggles an unanchored dropdown card containing 7 counter buttons for Adults, Children, and Infants. Verified in `INTERACTION_SYSTEM_AUDIT.md` and test record `passenger_picker_overlay.desktop`.
 - **Strengths**:
   Correctly computes total passenger counts, enforces infant-to-adult ratio limits, and updates the search query string.
 - **Defects vs Opportunities**:
@@ -282,7 +282,7 @@ This section presents the **14 canonical decision cards**. Every card is grounde
 ### Decision Card 04: Booking Wizard Progression, Navigation & State Recovery
 
 - **Current State & Evidence**:
-  The booking journey (`src/routes/{-$locale}.book.tsx`) implements a 7-step in-page progression (`search`, `results`, `fare`, `passengers`, `seats`, `extras`, `review`) moving to `/booking-confirmation/$ref`. Step state is tracked in React `useState`. Verified in `INTERACTION_SYSTEM_AUDIT.md` and test record `s8_01_booking_stepper_step3_1280.png`.
+  The booking journey (`src/routes/{-$locale}.book.tsx`) implements a 7-step in-page progression (`search`, `results`, `fare`, `passengers`, `seats`, `extras`, `review`) moving to `/booking-confirmation/$ref`. Step state is tracked in React `useState`. Verified in `INTERACTION_SYSTEM_AUDIT.md` and booking journey test records.
 - **Strengths**:
   Complete end-to-end client-side booking simulation; clear step headers; accurate price recalculation upon selecting extra baggage or premium seats.
 - **Defects vs Opportunities**:
@@ -311,7 +311,7 @@ This section presents the **14 canonical decision cards**. Every card is grounde
 ### Decision Card 05: Confirm Dialog & Destructive Action Pattern
 
 - **Current State & Evidence**:
-  Critical actions (e.g. canceling a booking) trigger `src/components/confirm-dialog.tsx`. It displays a centered modal card with `role="alertdialog"`, `aria-modal="true"`, and initial focus placed on the safe "Keep booking" dismiss action. It traps keyboard focus and handles `Escape`. However, `document.body.style.overflow` remains unlocked, permitting underlying page scrolling. Verified in `INTERACTION_SYSTEM_AUDIT.md` and test record `cancellation_alertdialog`; screenshot `s4_01_confirm_dialog_open_1280.png`.
+  Critical actions (e.g. canceling a booking) trigger `src/components/confirm-dialog.tsx`. It displays a centered modal card with `role="alertdialog"`, `aria-modal="true"`, and initial focus placed on the safe "Keep booking" dismiss action. It traps keyboard focus and handles `Escape`. However, `document.body.style.overflow` remains unlocked, permitting underlying page scrolling. Verified in `INTERACTION_SYSTEM_AUDIT.md` and test record `cancellation_alertdialog`.
 - **Strengths**:
   Strict keyboard focus trapping inside the modal; returns focus to triggering element upon cancel; safe initial button focus.
 - **Defects vs Opportunities**:
@@ -337,7 +337,7 @@ This section presents the **14 canonical decision cards**. Every card is grounde
 ### Decision Card 06: Gallery / Archive Browsing, Categorization & Lightbox
 
 - **Current State & Evidence**:
-  The historical archive gallery (`src/routes/{-$locale}.gallery.tsx`) renders a bento grid of 24 archival items with category and era filter pills. The lightbox modal implements functional keyboard navigation: `Escape` closes the viewer, and `ArrowLeft` / `ArrowRight` navigate across items (`j2_19_gallery_lightbox_next_en_1280.png`). However, initial focus does not move inside the lightbox upon opening; pressing `Tab` leaks to the underlying page elements; closing the viewer after moving focus inside drops focus to `document.body` (immediate `Escape` from trigger retains trigger focus); and background page scrolling remains unlocked. Verified in `PHASE_3A_HERITAGE_AUDIT.md` and test record `deepA11yInspections.galleryLightbox`; screenshot `j2_18_gallery_lightbox_open_en_1280.png`.
+  The historical archive gallery (`src/routes/{-$locale}.gallery.tsx`) renders a bento grid of 24 archival items with category and era filter pills. The lightbox modal implements functional keyboard navigation: `Escape` closes the viewer, and `ArrowLeft` / `ArrowRight` navigate across items. However, initial focus does not move inside the lightbox upon opening; pressing `Tab` leaks to the underlying page elements; closing the viewer after moving focus inside drops focus to `document.body` (immediate `Escape` from trigger retains trigger focus); and background page scrolling remains unlocked. Verified in `PHASE_3A_HERITAGE_AUDIT.md` and test record `deepA11yInspections.galleryLightbox`.
 - **Strengths**:
   Evocative imagery; respectful captions; explicit provisional notices; working keyboard arrow navigation and `Escape` handling.
 - **Defects vs Opportunities**:
@@ -366,7 +366,7 @@ This section presents the **14 canonical decision cards**. Every card is grounde
 ### Decision Card 07: Admin Edit-Sheet Model vs Modal / Inline Editing
 
 - **Current State & Evidence**:
-  In admin flight operations (`/admin/flights`), selecting "Quick edit" on a flight opens `AdminSheet` (`src/components/admin/admin-kit.tsx`), a slide-out panel that slides from the right (or left in RTL) over the table. It implements keyboard focus trapping, `Escape` dismissal, body scroll lock (`bodyOverflow: "hidden"`), and focus restoration. Verified in `INTERACTION_SYSTEM_AUDIT.md` and test record `admin_side_sheet`; screenshot `s6_01_admin_sheet_quick_edit_1280.png`.
+  In admin flight operations (`/admin/flights`), selecting "Quick edit" on a flight opens `AdminSheet` (`src/components/admin/admin-kit.tsx`), a slide-out panel that slides from the right (or left in RTL) over the table. It implements keyboard focus trapping, `Escape` dismissal, body scroll lock (`bodyOverflow: "hidden"`), and focus restoration. Verified in `INTERACTION_SYSTEM_AUDIT.md` and test record `admin_side_sheet`.
 - **Strengths**:
   Preserves context by keeping the underlying table partially visible; slides smoothly; handles form inputs cleanly on desktop monitors (1280px–1440px).
 - **Defects vs Opportunities**:
@@ -395,7 +395,7 @@ This section presents the **14 canonical decision cards**. Every card is grounde
 ### Decision Card 08: Admin Mobile Navigation & Responsive Drawer
 
 - **Current State & Evidence**:
-  The admin shell (`src/components/admin/admin-shell.tsx`) features a collapsible desktop sidebar and a mobile slide-over drawer triggered by a top hamburger icon (`s1_02_admin_mobile_drawer_open_390.png`). It contains links to the 11 registered admin routes grouped under 7 categories (Overview, Operations, Commercial, Website, Airport, Engagement, Administration). The drawer correctly implements `role="dialog"`, `aria-modal="true"`, body scroll locking (`overflow: hidden`), keyboard `Escape` dismissal, and focus restoration to the trigger button. Verified in `INTERACTION_SYSTEM_AUDIT.md` and test record `admin_mobile_drawer`.
+  The admin shell (`src/components/admin/admin-shell.tsx`) features a collapsible desktop sidebar and a mobile slide-over drawer triggered by a top hamburger icon. It contains links to the 11 registered admin routes grouped under 7 categories (Overview, Operations, Commercial, Website, Airport, Engagement, Administration). The drawer correctly implements `role="dialog"`, `aria-modal="true"`, body scroll locking (`overflow: hidden`), keyboard `Escape` dismissal, and focus restoration to the trigger button. Verified in `INTERACTION_SYSTEM_AUDIT.md` and test record `admin_mobile_drawer`.
 - **Strengths**:
   Sidebar groups operational domains cleanly; collapses to icon rail on intermediate screens (1024px); mobile drawer already implements excellent accessibility mechanics (`Escape`, focus trap, scroll lock).
 - **Defects vs Opportunities**:
@@ -421,26 +421,26 @@ This section presents the **14 canonical decision cards**. Every card is grounde
 ### Decision Card 09: Account Menu & Admin User Status
 
 - **Current State & Evidence**:
-  The admin top bar displays an operator account button (`src/components/admin/admin-shell.tsx`). Clicking it toggles a dialog card displaying the active mock staff identity: Rana Habib (`rana.habib@gza.ps`, "Airport administrator") / Yousef Nasser / Layla Odeh. The menu displays the staff title, role chip, role-switching buttons (`admin`, `editor`, `viewer`), and a `signOut` button. Outside click dismisses the menu, `Escape` closes it, and focus returns to the trigger button (`interactive_a11y_directionality.account_menu_keyboard`). Verified in `PHASE_3A_ADMIN_AUDIT.md`.
+  The admin top bar displays an operator account button (`src/components/admin/admin-shell.tsx`). Clicking it toggles an overlay card displaying the active mock staff identity: Rana Habib (`rana.habib@gza.ps`, "Airport administrator") / Yousef Nasser / Layla Odeh. The panel displays the staff title, role chip, role-switching buttons (`admin`, `editor`, `viewer`), and a `signOut` button. Outside click dismisses the panel, `Escape` closes it, and focus returns to the trigger button (`interactive_a11y_directionality.account_menu_keyboard`). Verified in `PHASE_3A_ADMIN_AUDIT.md`.
 - **Strengths**:
   Fully accessible keyboard mechanics (`Escape`, outside click, focus return); real role switching triggers permission updates across the admin UI; clean layout.
 - **Defects vs Opportunities**:
-  - *Defect*: The trigger button lacks `aria-expanded` synchronization when open/closed, and clicking "Sign out" clears state in memory but does not provide visual confirmation before navigating to `/admin/signin`.
+  - *Defect*: The trigger button lacks `aria-expanded` synchronization when open/closed, and clicking "Sign out" clears state in memory but does not provide visual confirmation before navigating to `/admin/signin`. Additionally, the component currently mixes popover/dialog and menu semantics rather than adopting a single coherent WAI-ARIA pattern.
   - *Opportunity*: Add a subtle station duty indicator (e.g. "Active Shift · Terminal 1 Dispatch") to emphasize authentic operational context.
-- **Option A (Refined Standard Dropdown with Session Clear Confirmation)**:
-  Retain the clean dropdown menu. Add `aria-expanded` synchronization to the trigger button, ensure clean session clearance upon sign out, and preserve rapid mock role switching.
-- **Option B (Expanded Station Shift Console)**:
-  Expand the account menu into a full station duty card displaying active airfield status, local Rafah station time, operator role switching, and shift handover notes.
+- **Option A (Refined Action Menu Pattern)**:
+  Structure the surface as a true WAI-ARIA menu button (`role="menu"`, `role="menuitem"`, arrow-key navigation) focused on quick profile actions, role selection, and sign-out confirmation.
+- **Option B (Expanded Station Shift Popover / Dialog Card)**:
+  Structure the surface as an interactive popover card or dialog (`role="dialog"` or Popover primitive) housing richer operational controls, station time, operator role switching, and shift handover notes.
 - **Antigravity Recommendation**:
-  **Option A**. A refined, fully accessible account dropdown keeps the top bar lightweight and focused while properly securing the sign-out transition.
+  **Pattern Deferred to Design-Direction Shaping**. First determine during Whole-Product Design-Direction Shaping whether this account surface is a true lightweight action menu or a richer interactive duty console card, then apply the exact matching semantics. Do not prematurely lock in `role="dialog"` while claiming Menu Button pattern adherence.
   - *Trade-off*: Shift handover notes (Option B) are better addressed in Phase 4 once mock roles are formalized.
 - **Multi-Dimensional Impact**:
-  - *Desktop*: Anchored floating card with smooth elevation and keyboard focus management.
-  - *Mobile*: Anchored menu repositioned to prevent off-screen clipping.
+  - *Desktop*: Anchored floating surface with smooth elevation and matching focus management.
+  - *Mobile*: Anchored overlay repositioned to prevent off-screen clipping.
   - *EN / AR*: Menu aligns to trailing edge in both LTR and RTL.
-  - *Accessibility*: Full adherence to WAI-ARIA Menu button pattern (`aria-expanded`, `role="dialog"`).
+  - *Accessibility*: Coherent WAI-ARIA semantics matching the chosen pattern (`role="menu"` for pure action lists vs `role="dialog"` / Popover for interactive controls) with synchronized `aria-expanded` on the trigger button.
   - *Complexity*: Low.
-- **Owner Decision Required?**: **NO** (Technical & Ergonomic Polish; Option A recommended).
+- **Owner Decision Required?**: **NO** (Technical & Ergonomic Polish; pattern resolved during Design Shaping).
 
 ---
 
@@ -473,7 +473,7 @@ This section presents the **14 canonical decision cards**. Every card is grounde
 ### Decision Card 11: Admin Global Search (`Cmd+K` / `Ctrl+K`)
 
 - **Current State & Evidence**:
-  `AdminSearch` (`src/components/admin/admin-search.tsx`) is a fully functional combobox command palette triggered by `Cmd+K` / `Ctrl+K` or clicking the top bar search input (`s5_01_admin_search_palette_open_1280.png`). It normalizes Arabic diacritics and letters, traps focus, handles `Escape`, supports `ArrowDown` / `ArrowUp` traversal, and searches across flights (`PS 151`), bookings, customers, destinations, and content items. Selecting a destination or flight navigates to the page; selecting an unbuilt target shows an informative toast (`t("adm.quick.later")`). Verified in `PHASE_3A_ADMIN_AUDIT.md` and test record `admin_search_palette`.
+  `AdminSearch` (`src/components/admin/admin-search.tsx`) is a fully functional combobox command palette triggered by `Cmd+K` / `Ctrl+K` or clicking the top bar search input. It normalizes Arabic diacritics and letters, traps focus, handles `Escape`, supports `ArrowDown` / `ArrowUp` traversal, and searches across flights (`PS 151`), bookings, customers, destinations, and content items. Selecting a destination or flight navigates to the page; selecting an unbuilt target shows an informative toast (`t("adm.quick.later")`). Verified in `PHASE_3A_ADMIN_AUDIT.md` and test record `admin_search_palette`.
 - **Strengths**:
   Keyboard-first interaction; excellent fuzzy search normalization; fast response; clean modal presentation.
 - **Defects vs Opportunities**:
@@ -557,7 +557,7 @@ This section presents the **14 canonical decision cards**. Every card is grounde
 ### Decision Card 14: Admin Page Density, Table Ergonomics & Batch Editing
 
 - **Current State & Evidence**:
-  Admin tables (`/admin/flights`, `/admin/bookings`, `/admin/customers`) display dense rows with 8–10 columns (`s9_01_admin_tabs_flights_1280.png`). Action buttons ("Quick edit", "Open flight") are placed in the far-right column. Verified in `PHASE_3A_ADMIN_AUDIT.md` and test record `workflow2_daily_operations`.
+  Admin tables (`/admin/flights`, `/admin/bookings`, `/admin/customers`) display dense rows with 8–10 columns. Action buttons ("Quick edit", "Open flight") are placed in the far-right column. Verified in `PHASE_3A_ADMIN_AUDIT.md` and test record `workflow2_daily_operations`.
 - **Strengths**:
   High information density appropriate for airport dispatch; clear tabular layout on desktop displays (1280px–1920px).
 - **Defects vs Opportunities**:
@@ -645,36 +645,44 @@ flowchart TD
 
 ## Section 6: Candidate Phase 3B Interaction Architecture
 
-*(Proposal Only — Avoids third-party framework migrations or new dependencies by default)*
+*(Provisional Exploration Only — Subject to Whole-Product Design-Direction Shaping)*
 
 ### 6.1 Architectural Principle
-The application does not require a massive third-party UI framework migration. It currently possesses a highly effective, tailored foundation in `src/components/kit.tsx` and `src/components/admin/admin-kit.tsx`. The primary deficit is not styling or rendering capability, but **inconsistent overlay mechanics and accessibility hooks**.
+The application does not require a massive UI framework replacement. It currently possesses an effective, tailored styling foundation in `src/components/kit.tsx` and `src/components/admin/admin-kit.tsx`. The primary interaction deficit is not visual capability, but **inconsistent overlay mechanics and accessibility hooks**.
 
-Phase 3B should establish a unified set of **accessible interaction primitives** authored directly within the project using lightweight native React patterns, strictly avoiding new heavy runtime dependencies.
+After **Whole-Product Design-Direction Shaping**, the team will choose the smallest robust infrastructure that satisfies the shaped UX, accessibility, mobile, and RTL requirements. We prefer proven installed headless primitives where they fit, while retaining or custom-building behavior where genuinely needed.
 
-### 6.2 Proposed Shared Primitive Architecture
+Specifically, the project already includes battle-tested headless primitives in `package.json`:
+- **Radix UI primitives**: `@radix-ui/react-dialog`, `@radix-ui/react-alert-dialog`, `@radix-ui/react-popover`, `@radix-ui/react-dropdown-menu`, `@radix-ui/react-select`, `@radix-ui/react-tabs`, and `@radix-ui/react-tooltip`.
+- **Specialized interaction utilities**: `cmdk` (command palette), `sonner` (toast notifications), `vaul` (mobile drawers), and `react-day-picker` (accessible calendar/date ranges).
+
+Phase 3B should evaluate and leverage these proven packages where they fit, rather than mandating hand-authored React primitives from scratch or imposing stock unbranded shadcn styling. All interactive components will continue to be styled with our authentic CSS OKLCH design tokens (`--sand`, `--clay`, `--brand`, `--ink`).
+
+### 6.2 Provisional Shared Primitive Architecture
 
 ```
-src/components/primitives/
+src/components/primitives/ (provisional candidates)
 ├── dialog/
-│   ├── dialog.tsx             # Accessible modal backdrop, focus trap, escape listener, scroll lock
+│   ├── dialog.tsx             # Accessible modal backdrop, focus trap, escape listener, scroll lock (Radix Dialog/AlertDialog or bespoke)
 │   └── confirm-dialog.tsx     # Replaces existing confirm-dialog with standardized primitive
 ├── sheet/
-│   ├── sheet.tsx              # Responsive slide-over drawer (desktop side-sheet / mobile bottom-sheet)
+│   ├── sheet.tsx              # Responsive slide-over drawer (desktop side-sheet / mobile drawer via Vaul or Radix)
 │   └── admin-sheet.tsx        # Standardized operational editing drawer
 ├── popover/
-│   ├── popover.tsx            # Anchored popover with outside-click and escape handling
-│   └── tooltip.tsx            # Accessible keyboard-focusable tooltip
+│   ├── popover.tsx            # Anchored popover with outside-click and escape handling (Radix Popover)
+│   └── tooltip.tsx            # Accessible keyboard-focusable tooltip (Radix Tooltip)
+├── date/
+│   └── date-range-picker.tsx  # Dual-month desktop booking range picker evaluated via react-day-picker
 ├── grid/
 │   └── roving-grid.tsx        # 2D arrow-key roving tabindex controller (used by SeatMap)
 └── feedback/
-    ├── toast-provider.tsx     # Accessible live-region toast stack with pause-on-hover
+    ├── toast-provider.tsx     # Accessible live-region toast stack (Sonner or bespoke live-region)
     └── inline-banner.tsx      # Persistent form & table operational notification banners
 ```
 
-### 6.3 Resolution of the 46 Unused Starter Files
+### 6.3 Status of the 46 Component Starter Files
 - **Finding**: 46 unreferenced component templates reside under `src/components/ui/` (e.g. `accordion.tsx`, `dialog.tsx`, `dropdown-menu.tsx`). They were generated during initial repository setup and are not imported by any active route.
-- **Architectural Decision**: Delete the unused `src/components/ui/` starter files. Rather than importing arbitrary shadcn/Radix components with conflicting Tailwind utility dependencies, implement only the explicit, lightweight primitives specified above, directly styled with our CSS OKLCH tokens (`--sand`, `--clay`, `--brand`, `--ink`).
+- **Architectural Policy**: The 46 `src/components/ui/` starter files remain untouched in the current repository tree. Rather than hastily deleting or arbitrarily adopting them, pruning is deferred until the Phase 3B implementation strategy is finalized following Whole-Product Design-Direction Shaping.
 
 ### 6.4 Aircraft Seat Map Ergonomic Architecture
 - **Finding**: 108 seat buttons currently form a flat, sequential keyboard sequence and invert physical cabin geometry in Arabic RTL.
@@ -688,38 +696,40 @@ src/components/primitives/
 
 ## Section 7: Next Boundary & Design-Direction Shaping Phase Prerequisites
 
-### 7.1 Strict Process Gate
-This document marks the conclusion of **Phase 3A**. The authorized process boundary is strictly defined:
+### 7.1 Strict Process Gate & Governing Hierarchy
+This document marks the conclusion of **Phase 3A**. The accepted pushed baseline commit is `cc57cfe2450effd78547b591fd66b156ef5e699a`. The authorized process boundary and governing hierarchy are strictly defined:
 
 ```
-[Phase 3A: Audits & Decision Pack]  <-- COMPLETE (5 audits + decisions accepted)
+[Phase 3A: Audits & Decision Pack]  <-- COMPLETE (5 audits + 8 owner decisions accepted at cc57cfe...)
                │
                ▼
-[Codex Acceptance & Sign-off]       <-- COMPLETE
+[Whole-Product Design Shaping]      <-- MANDATORY NEXT STEP (Before any Phase 3B coding)
                │
                ▼
-[Owner Review & Decisions]          <-- COMPLETE (8 decisions recorded 2026-09-18)
-               │
-               ▼
-[Whole-Product Design Shaping]      <-- NEXT — REQUIRED before any Phase 3B coding
-               │
-               ▼
-[Phase 3B: Implementation]          <-- Component & Interaction execution
+[Phase 3B: Implementation]          <-- Component & Interaction consolidation
 ```
+
+**Governing Hierarchy**:
+- **Durable Product Truth**: `PRODUCT.md` holds primary authority for product vision, tone, hospitality, and civil aviation realism.
+- **Incumbent Implementation**: Application source code under `src/` and `docs/DESIGN_SYSTEM.md` represent the current baseline (display: `Bricolage Grotesque`, body: `Manrope`, Arabic: `IBM Plex Sans Arabic`, technical IDs: `IBM Plex Mono`), serving as the incumbent reference rather than permanent future constraint.
+- **Empirical Observations**: Phase 3A audits, structured assertion records, and the synthesis ledger (`docs/evidence/phase-3a/`).
+- **Strategic Product Direction**: The eight owner direction choices recorded in this pack and the checkpoint.
+- **Future Design Freedom**: Whole-Product Design-Direction Shaping holds full authority to refine information architecture, typography, screen composition, navigation, booking/admin/mobile/RTL UX, density, feedback, and motion.
 
 ### 7.2 Why a Dedicated Design-Direction Shaping Phase is Mandatory
 The audits identified that the current UI is an assembled collection of prototype screens. Jumping directly from this decision pack into coding Phase 3B would freeze accidental prototype layouts into permanent code.
 
 The upcoming **Whole-Product Design-Direction Shaping Phase** must precede implementation to establish:
-1. **Canonical Experience Templates**: Shape 3 canonical screens with extraordinary craft:
-   - The Public Sovereign Homepage (Hero, search console, memorial bridge, fleet showcase).
+1. **Canonical Experience Templates**: Shape canonical screens with extraordinary craft and product fidelity:
+   - The Public Gateway & Homepage (Hero, search console, memorial bridge, fleet showcase).
    - The Guided Passenger Booking Experience (Search, seat selection, confirmation).
+   - The Heritage & Archive Experience (Historical narrative chapters, archive gallery, lightbox viewer).
    - The High-Density Admin Operations Dashboard (Flight board, gate dispatch, emergency alerts).
 2. **Harmonized Visual Identity**:
-   - Refine the application of OKLCH limestone, terracotta clay, and deep olive tokens.
+   - Refine the application of OKLCH limestone, terracotta clay, and deep olive tokens without introducing unbranded generic colors.
    - Establish consistent elevation, borders, shadows, and subtle micro-interactions.
 3. **Arabic (RTL) & Mobile Typography Standards**:
-   - Standardize line heights, font scales, and baseline alignment between Latin (Plus Jakarta Sans / Cinzel) and Arabic (IBM Plex Sans Arabic / Amiri) typography.
+   - Standardize line heights, font scales, and baseline alignment between incumbent Latin (`Manrope` / `Bricolage Grotesque`) and Arabic (`IBM Plex Sans Arabic`) typography, with `IBM Plex Mono` for technical identifiers.
    - Perfect mobile density across target viewports (320px, 375px, 390px, 414px).
 4. **Preservation of Document Integrity**:
    - The project's master design document (`docs/DESIGN.md`) must **not** be finalized from today's prototype UI. It will be authored at the conclusion of the Design-Direction Shaping Phase, capturing the approved, polished visual system.

@@ -10,7 +10,6 @@
       "nature": "browser-confirmed + source-explained",
       "audit": "PHASE_3A_PUBLIC_AUDIT.md",
       "rawRecord": null,
-      "screenshot": "j1_08_destination_detail_en_1280.png",
       "source": "src/routes/{-$locale}.destinations.tsx"
     },
     {
@@ -19,7 +18,6 @@
       "nature": "browser-confirmed",
       "audit": "PHASE_3A_PUBLIC_AUDIT.md",
       "rawRecord": "docs/evidence/phase-3a/20260918-phase-3a-public/browser-test-records.json:mutations.boardingPassLink.clickResult",
-      "screenshot": null,
       "source": "src/routes/{-$locale}.booking-confirmation.$ref.tsx"
     },
     {
@@ -28,7 +26,6 @@
       "nature": "source-explained",
       "audit": "PHASE_3A_HERITAGE_AUDIT.md",
       "rawRecord": null,
-      "screenshot": null,
       "source": "src/components/site-footer.tsx"
     },
     {
@@ -37,7 +34,6 @@
       "nature": "browser-confirmed",
       "audit": "INTERACTION_SYSTEM_AUDIT.md",
       "rawRecord": "docs/evidence/phase-3a/20260918-phase-3a-interaction-system/browser-test-records.json:passenger_picker_overlay.desktop.afterEscape",
-      "screenshot": "s2_01_pax_popover_open_1280.png",
       "source": "src/components/flight-search-form.tsx"
     },
     {
@@ -46,7 +42,6 @@
       "nature": "browser-confirmed",
       "audit": "INTERACTION_SYSTEM_AUDIT.md",
       "rawRecord": "docs/evidence/phase-3a/20260918-phase-3a-interaction-system/browser-test-records.json:public_mobile_drawer",
-      "screenshot": "s1_01_public_mobile_drawer_open_390.png",
       "source": "src/components/site-header.tsx"
     },
     {
@@ -55,7 +50,6 @@
       "nature": "browser-confirmed",
       "audit": "PHASE_3A_HERITAGE_AUDIT.md",
       "rawRecord": "docs/evidence/phase-3a/20260918-phase-3a-heritage/browser-test-records.json:deepA11yInspections.galleryLightbox",
-      "screenshot": "j2_18_gallery_lightbox_open_en_1280.png",
       "source": "src/routes/{-$locale}.gallery.tsx"
     },
     {
@@ -64,7 +58,6 @@
       "nature": "source-explained",
       "audit": "PHASE_3A_HERITAGE_AUDIT.md",
       "rawRecord": null,
-      "screenshot": "j2_15_gallery_filtered_architecture_en_1280.png",
       "source": "src/routes/{-$locale}.gallery.tsx"
     },
     {
@@ -73,7 +66,6 @@
       "nature": "source-explained + browser-confirmed",
       "audit": "PHASE_3A_HERITAGE_AUDIT.md",
       "rawRecord": "docs/evidence/phase-3a/20260918-phase-3a-heritage/browser-test-records.json:journey1_airport.timeline_analysis",
-      "screenshot": "j1_04_airport_past_timeline_en_1280.png",
       "source": "src/routes/{-$locale}.gallery.tsx"
     },
     {
@@ -82,7 +74,6 @@
       "nature": "browser-confirmed",
       "audit": "PHASE_3A_ADMIN_AUDIT.md",
       "rawRecord": "docs/evidence/phase-3a/20260918-phase-3a-admin/browser-test-records.json:store_boundaries.public_vs_admin_flight_overrides",
-      "screenshot": "w2_06_flight_board_after_mutation_1280.png",
       "source": "src/routes/{-$locale}.admin.flights.index.tsx"
     },
     {
@@ -91,7 +82,6 @@
       "nature": "source-explained",
       "audit": "PHASE_3A_ADMIN_AUDIT.md",
       "rawRecord": "docs/evidence/phase-3a/20260918-phase-3a-admin/browser-test-records.json:store_boundaries.public_vs_admin_bookings",
-      "screenshot": null,
       "source": "src/routes/{-$locale}.admin.bookings.index.tsx"
     },
     {
@@ -100,7 +90,6 @@
       "nature": "browser-confirmed",
       "audit": "PHASE_3A_ADMIN_AUDIT.md",
       "rawRecord": "docs/evidence/phase-3a/20260918-phase-3a-interaction-system/browser-test-records.json:admin_search_palette",
-      "screenshot": "s5_01_admin_search_palette_open_1280.png",
       "source": "src/components/admin/admin-search.tsx"
     },
     {
@@ -109,7 +98,6 @@
       "nature": "browser-confirmed + source-explained",
       "audit": "PHASE_3A_ADMIN_AUDIT.md",
       "rawRecord": "docs/evidence/phase-3a/20260918-phase-3a-admin/browser-test-records.json:interactive_a11y_directionality.account_menu_keyboard",
-      "screenshot": null,
       "source": "src/components/admin/admin-shell.tsx"
     },
     {
@@ -118,7 +106,6 @@
       "nature": "source-explained",
       "audit": "PHASE_3A_ADMIN_AUDIT.md",
       "rawRecord": null,
-      "screenshot": null,
       "source": "src/components/admin/admin-kit.tsx"
     },
     {
@@ -127,7 +114,6 @@
       "nature": "browser-confirmed",
       "audit": "PHASE_3A_ADMIN_AUDIT.md",
       "rawRecord": null,
-      "screenshot": "s9_01_admin_tabs_flights_1280.png",
       "source": "src/routes/{-$locale}.admin.flights.index.tsx"
     },
     {
@@ -136,7 +122,6 @@
       "nature": "source-explained",
       "audit": "INTERACTION_SYSTEM_AUDIT.md",
       "rawRecord": "docs/evidence/phase-3a/20260918-phase-3a-interaction-system/inventory-analysis.json:uiDirectoryStats",
-      "screenshot": null,
       "source": "src/components/ui"
     },
     {
@@ -145,7 +130,6 @@
       "nature": "browser-confirmed + inferred-burden",
       "audit": "INTERACTION_SYSTEM_AUDIT.md",
       "rawRecord": "docs/evidence/phase-3a/20260918-phase-3a-interaction-system/browser-test-records.json:seat_map_interaction.targetedTabSequence",
-      "screenshot": "s7_01_seat_map_tab_sequence_1280.png",
       "source": "src/components/booking/seat-map.tsx"
     },
     {
@@ -154,7 +138,6 @@
       "nature": "browser-confirmed",
       "audit": "INTERACTION_SYSTEM_AUDIT.md",
       "rawRecord": "docs/evidence/phase-3a/20260918-phase-3a-interaction-system/browser-test-records.json:seat_map_interaction.mobile",
-      "screenshot": "s7_02_seat_map_mobile_390.png",
       "source": "src/components/booking/seat-map.tsx"
     },
     {
@@ -163,7 +146,6 @@
       "nature": "source-explained",
       "audit": "INTERACTION_SYSTEM_AUDIT.md",
       "rawRecord": null,
-      "screenshot": null,
       "source": "src/components/booking/seat-map.tsx"
     },
     {
@@ -172,7 +154,6 @@
       "nature": "browser-confirmed",
       "audit": "INTERACTION_SYSTEM_AUDIT.md",
       "rawRecord": "docs/evidence/phase-3a/20260918-phase-3a-interaction-system/browser-test-records.json:cancellation_alertdialog",
-      "screenshot": "s4_01_confirm_dialog_open_1280.png",
       "source": "src/components/confirm-dialog.tsx"
     }
   ]
