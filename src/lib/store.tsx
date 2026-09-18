@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import type { Flight } from "./data";
-import { EXTRA_BAG_PRICE, farePrice, seatFee } from "./data";
+import { EXTRA_BAG_PRICE, addDaysISO, farePrice, seatFee, todayISO } from "./data";
 import { makePnr } from "./format";
 
 export type PassengerType = "adult" | "child" | "infant";
@@ -280,12 +280,9 @@ type Persisted = {
 };
 
 function initialDraft(): Draft {
-  const today = new Date();
-  const depart = today.toISOString().slice(0, 10);
-  const ret = new Date(today.getTime() + 6 * 86400000).toISOString().slice(0, 10);
   return {
     entry: "search",
-    criteria: defaultCriteria(depart, ret),
+    criteria: defaultCriteria("", ""),
     outbound: null,
     inbound: null,
     fareId: "classic",
@@ -335,6 +332,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [travelers, setTravelers] = useState<Traveler[]>([]);
 
   useEffect(() => {
+    // Initialize volatile dates on client mount after hydration
+    const today = todayISO();
+    const ret = addDaysISO(today, 6);
+    setDraftState((prev) => {
+      const needsDate = !prev.criteria.departDate;
+      const isPast = prev.criteria.departDate && prev.criteria.departDate < today;
+      if (needsDate || isPast) {
+        return {
+          ...prev,
+          criteria: {
+            ...prev.criteria,
+            departDate: today,
+            returnDate: prev.criteria.tripType === "round" ? ret : prev.criteria.returnDate,
+          },
+        };
+      }
+      return prev;
+    });
+
     try {
       const raw = window.localStorage.getItem(KEY);
       if (raw) {

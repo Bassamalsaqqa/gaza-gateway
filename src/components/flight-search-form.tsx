@@ -1,8 +1,8 @@
 import { useAppNavigate } from "@/components/app-link";
 import { ArrowLeftRight, Search, Users } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { btnClass, Field, Input, Select } from "./kit";
-import { GZA, cabins, destinations, todayISO } from "@/lib/data";
+import { GZA, addDaysISO, cabins, destinations, todayISO } from "@/lib/data";
 import { pick, useI18n } from "@/lib/i18n";
 import { paxCount, useStore, type SearchCriteria } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -17,9 +17,37 @@ export function FlightSearchForm({
   const { t, lang } = useI18n();
   const { draft, resetDraft } = useStore();
   const navigate = useAppNavigate();
-  const [criteria, setCriteria] = useState<SearchCriteria>({ ...draft.criteria, ...initial });
+  const [criteria, setCriteria] = useState<SearchCriteria>(() => ({
+    ...draft.criteria,
+    ...initial,
+  }));
+  const [minDate, setMinDate] = useState<string>(() => criteria.departDate || "");
   const [paxOpen, setPaxOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Initialize volatile dates on client mount after hydration
+  useEffect(() => {
+    const today = todayISO();
+    const ret = addDaysISO(today, 6);
+    setMinDate(today);
+    setCriteria((prev) => {
+      const needsDate = !prev.departDate;
+      const isPast = prev.departDate && prev.departDate < today;
+      if (needsDate || isPast) {
+        return {
+          ...prev,
+          departDate: today,
+          returnDate:
+            prev.tripType === "round"
+              ? prev.returnDate && prev.returnDate >= today
+                ? prev.returnDate
+                : ret
+              : prev.returnDate,
+        };
+      }
+      return prev;
+    });
+  }, []);
 
   const set = <K extends keyof SearchCriteria>(key: K, value: SearchCriteria[K]) =>
     setCriteria((prev) => ({ ...prev, [key]: value }));
@@ -119,7 +147,11 @@ export function FlightSearchForm({
       <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
         <div className="relative grid gap-3 sm:grid-cols-2 lg:col-span-2">
           <Field label={t("search.from")} htmlFor="search-from">
-            <Select id="search-from" value={criteria.origin} onChange={(e) => setEndpoint("origin", e.target.value)}>
+            <Select
+              id="search-from"
+              value={criteria.origin}
+              onChange={(e) => setEndpoint("origin", e.target.value)}
+            >
               {options.map((o) => (
                 <option key={o.code} value={o.code}>
                   {o.label}
@@ -136,7 +168,11 @@ export function FlightSearchForm({
             <ArrowLeftRight aria-hidden="true" className="size-4" />
           </button>
           <Field label={t("search.to")} htmlFor="search-to">
-            <Select id="search-to" value={criteria.destination} onChange={(e) => setEndpoint("destination", e.target.value)}>
+            <Select
+              id="search-to"
+              value={criteria.destination}
+              onChange={(e) => setEndpoint("destination", e.target.value)}
+            >
               {options.map((o) => (
                 <option key={o.code} value={o.code}>
                   {o.label}
@@ -150,9 +186,12 @@ export function FlightSearchForm({
           <Input
             id="search-depart"
             type="date"
-            min={todayISO()}
+            min={minDate || undefined}
             value={criteria.departDate}
-            onChange={(e) => set("departDate", e.target.value)}
+            onChange={(e) => {
+              set("departDate", e.target.value);
+              if (!minDate) setMinDate(todayISO());
+            }}
             required
           />
         </Field>
@@ -165,7 +204,7 @@ export function FlightSearchForm({
           <Input
             id="search-return"
             type="date"
-            min={criteria.departDate}
+            min={criteria.departDate || minDate || undefined}
             value={criteria.tripType === "oneway" ? "" : criteria.returnDate}
             onChange={(e) => set("returnDate", e.target.value)}
             disabled={criteria.tripType === "oneway"}
@@ -184,7 +223,9 @@ export function FlightSearchForm({
             >
               <span className="flex items-center gap-2">
                 <Users aria-hidden="true" className="size-4 text-muted-foreground" />
-                {total === 1 ? t("search.passengerCountOne") : t("search.passengerCount", { n: total })}
+                {total === 1
+                  ? t("search.passengerCountOne")
+                  : t("search.passengerCount", { n: total })}
               </span>
             </button>
           </Field>
@@ -209,7 +250,9 @@ export function FlightSearchForm({
                     >
                       −
                     </button>
-                    <span className="numeral w-6 text-center text-sm font-semibold">{criteria[key]}</span>
+                    <span className="numeral w-6 text-center text-sm font-semibold">
+                      {criteria[key]}
+                    </span>
                     <button
                       type="button"
                       className="size-8 rounded-md border border-input text-lg leading-none disabled:opacity-40"
@@ -223,7 +266,11 @@ export function FlightSearchForm({
                 </div>
               ))}
               <p className="mt-1 text-xs text-muted-foreground">{t("search.infantNote")}</p>
-              <button type="button" onClick={() => setPaxOpen(false)} className={btnClass("secondary", "sm", "mt-3 w-full")}>
+              <button
+                type="button"
+                onClick={() => setPaxOpen(false)}
+                className={btnClass("secondary", "sm", "mt-3 w-full")}
+              >
                 {t("search.done")}
               </button>
             </div>
@@ -231,7 +278,11 @@ export function FlightSearchForm({
         </div>
 
         <Field label={t("search.cabin")} htmlFor="search-cabin">
-          <Select id="search-cabin" value={criteria.cabin} onChange={(e) => set("cabin", e.target.value)}>
+          <Select
+            id="search-cabin"
+            value={criteria.cabin}
+            onChange={(e) => set("cabin", e.target.value)}
+          >
             {cabins.map((c) => (
               <option key={c.id} value={c.id}>
                 {t(c.label)}

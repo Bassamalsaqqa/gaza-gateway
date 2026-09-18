@@ -2,7 +2,7 @@
 
 > **Product**: Gaza International Airport (`GZA`) & Palestinian Airlines (`PS`)
 > **Production Domain**: [https://www.gazaairport.com](https://www.gazaairport.com)
-> **Engineering Status**: **Phase 0.1 Active (Baseline Accuracy & Semantic Lint Gate)** (Commit `fe294f4` published Phase 0 baseline; 68 `.tsx` route files total in `src/routes/`: 23 admin, 44 public feature/layout routes, 1 root shell).
+> **Engineering Status**: **Phase 1 Active (HostPapa Static/Prerender Implementation Complete, Ready for Codex Review)** (Commit `fe294f4` published Phase 0 baseline; commit `9d1edc5` published Phase 0.1; 68 `.tsx` route files total in `src/routes/`: 23 admin, 44 public feature/layout routes, 1 root shell).
 > **Documentation Index**:
 > - [Master Engineering Roadmap (Phases 0–12)](roadmap.md)
 > - [System Architecture Specification](docs/ARCHITECTURE.md)
@@ -1565,13 +1565,24 @@ Continue developing this project in the [Lovable editor](https://lovable.dev/pro
 - **Stay in sync**: every change made in Lovable is committed straight to this repository.
 - **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
 
-## Development
+## Development & Build
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+Prefer working locally? You need Bun (or Node.js 20+):
 
 ```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
+# Install dependencies
+bun install
+
+# Local development server
+bun run dev
+
+# Normal build (Nitro SSR / Cloudflare Pages)
+bun run build
+
+# Static HostPapa build (Static prerender + shells in dist/client/ for Apache cPanel)
+bun run build:hostpapa
+
+# Quality gates
+bun run typecheck
+bun run lint
 ```
