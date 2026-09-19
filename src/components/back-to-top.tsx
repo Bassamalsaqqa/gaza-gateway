@@ -15,6 +15,7 @@ const HIDE_THRESHOLD_PX = 200;
 export function BackToTop() {
   const { t } = useI18n();
   const [visible, setVisible] = useState(false);
+  const [progress, setProgress] = useState(0);
   const rafId = useRef<number | null>(null);
   const locationHref = useRouterState({ select: (s) => s.location.href });
 
@@ -23,6 +24,8 @@ export function BackToTop() {
 
     const checkScroll = () => {
       const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
+      const scrollable = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+      setProgress(Math.min(1, Math.max(0, scrollY / scrollable)));
       setVisible((prev) => {
         if (!prev && scrollY > SHOW_THRESHOLD_PX) return true;
         if (prev && scrollY < HIDE_THRESHOLD_PX) return false;
@@ -56,6 +59,8 @@ export function BackToTop() {
     if (typeof window === "undefined") return;
     const raf = requestAnimationFrame(() => {
       const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
+      const scrollable = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+      setProgress(Math.min(1, Math.max(0, scrollY / scrollable)));
       setVisible(scrollY > SHOW_THRESHOLD_PX);
     });
     return () => cancelAnimationFrame(raf);
@@ -85,9 +90,36 @@ export function BackToTop() {
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         visible
           ? "opacity-100 translate-y-0 pointer-events-auto"
-          : "opacity-0 translate-y-2 pointer-events-none"
+          : "opacity-0 translate-y-2 pointer-events-none",
       )}
     >
+      <svg
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 size-full -rotate-90"
+        viewBox="0 0 44 44"
+      >
+        <circle
+          cx="22"
+          cy="22"
+          r="20.5"
+          fill="none"
+          stroke="currentColor"
+          strokeOpacity="0.12"
+          strokeWidth="1"
+        />
+        <circle
+          cx="22"
+          cy="22"
+          r="20.5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          pathLength="1"
+          strokeDasharray="1"
+          strokeDashoffset={1 - progress}
+        />
+      </svg>
       <ArrowUp aria-hidden="true" className="size-4 shrink-0" />
       <span className="sr-only">{t("common.backToTop")}</span>
     </button>

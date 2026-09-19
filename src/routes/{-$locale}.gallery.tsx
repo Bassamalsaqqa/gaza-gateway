@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { ChevronLeft, ChevronRight, Filter, Info, X } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { btnClass, Container, EmptyState, Notice, PageHeader, Pill } from "@/components/kit";
 import {
@@ -23,7 +24,10 @@ export const Route = createFileRoute("/{-$locale}/gallery")({
           "Browse the Gaza International Airport gallery and archive: photographs, documents, architecture and future concepts, filterable by era.",
       },
       { property: "og:title", content: "Gallery and archive — Gaza International Airport" },
-      { property: "og:description", content: "Photographs, documents, architecture and future concepts." },
+      {
+        property: "og:description",
+        content: "Photographs, documents, architecture and future concepts.",
+      },
     ],
   }),
   component: GalleryPage,
@@ -38,13 +42,15 @@ function GalleryPage() {
   const [era, setEra] = useState<EraFilter>("all");
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [openingItemId, setOpeningItemId] = useState<string | null>(null);
+  const reduceMotion = useReducedMotion();
 
   const triggerRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
   const items = useMemo(
     () =>
       galleryItems.filter(
-        (item) => (category === "all" || item.category === category) && (era === "all" || item.era === era),
+        (item) =>
+          (category === "all" || item.category === category) && (era === "all" || item.era === era),
       ),
     [category, era],
   );
@@ -100,7 +106,7 @@ function GalleryPage() {
     };
   }, [openIndex]);
 
-  const current = openIndex !== null ? items[openIndex] ?? null : null;
+  const current = openIndex !== null ? (items[openIndex] ?? null) : null;
 
   const handleOpen = (index: number, id: string) => {
     setOpeningItemId(id);
@@ -133,9 +139,7 @@ function GalleryPage() {
         {/* Curatorial Provenance Standard Notice */}
         <Notice title={t("gallery.catalogSchema")}>
           <div className="space-y-1.5 text-sm leading-relaxed">
-            <p>
-              {t("gallery.noticeBody")}
-            </p>
+            <p>{t("gallery.noticeBody")}</p>
             <div className="flex flex-wrap items-center gap-2 pt-1 font-mono text-xs">
               <span className="code-id rounded bg-secondary px-2 py-0.5 text-muted-foreground">
                 [CATALOG-ID-FIELD]
@@ -190,9 +194,7 @@ function GalleryPage() {
 
         {/* Result Counter in Strict Latin Numerals */}
         <div className="mt-6 flex items-center justify-between text-sm text-muted-foreground">
-          <p className="numeral font-mono">
-            {t("gallery.items", { n: items.length })}
-          </p>
+          <p className="numeral font-mono">{t("gallery.items", { n: items.length })}</p>
           {(category !== "all" || era !== "all") && (
             <button
               type="button"
@@ -263,9 +265,7 @@ function GalleryPage() {
                     <span className="mt-2.5 block text-sm font-bold text-foreground transition-colors group-hover:text-primary">
                       {pick(lang, item.title)}
                     </span>
-                    <span className="code-id mt-2 block text-xs text-clay">
-                      [CATALOG-ID-FIELD]
-                    </span>
+                    <span className="code-id mt-2 block text-xs text-clay">[CATALOG-ID-FIELD]</span>
                   </span>
                 </button>
               </li>
@@ -293,20 +293,24 @@ function GalleryPage() {
                 }
               }
             }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto"
+            className="fixed start-1/2 top-1/2 z-50 flex max-h-[calc(100dvh-1.5rem)] w-[calc(100%-1.5rem)] max-w-4xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-lift)] focus:outline-none sm:max-h-[calc(100dvh-3rem)] sm:w-[calc(100%-3rem)] rtl:translate-x-1/2"
           >
             {current && (
-              <div
-                className="relative my-auto flex w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-lift)] focus:outline-none"
-                tabIndex={-1}
-              >
+              <>
                 {/* Visual Image Stage */}
-                <div className="relative aspect-16/10 max-h-[50vh] w-full overflow-hidden bg-ink sm:max-h-[55vh]">
-                  <img
-                    src={img(current.imageSeed, 1600, 1000)}
-                    alt=""
-                    className="size-full object-cover sm:object-contain"
-                  />
+                <div className="relative aspect-16/10 max-h-[50vh] w-full shrink-0 overflow-hidden bg-ink sm:max-h-[55vh]">
+                  <AnimatePresence mode="wait" initial={false}>
+                    <motion.img
+                      key={current.id}
+                      src={img(current.imageSeed, 1600, 1000)}
+                      alt=""
+                      initial={reduceMotion ? false : { opacity: 0, scale: 0.985 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={reduceMotion ? { opacity: 1 } : { opacity: 0, scale: 1.01 }}
+                      transition={{ duration: reduceMotion ? 0 : 0.2, ease: [0.22, 1, 0.36, 1] }}
+                      className="size-full object-cover sm:object-contain"
+                    />
+                  </AnimatePresence>
                   {/* Close Control (44×44px minimum touch target) */}
                   <DialogPrimitive.Close
                     className="absolute end-3 top-3 inline-flex size-11 items-center justify-center rounded-full bg-ink/80 text-ink-foreground backdrop-blur-xs transition-colors hover:bg-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
@@ -320,10 +324,12 @@ function GalleryPage() {
                 </div>
 
                 {/* Metadata & Archival Dossier */}
-                <div className="flex flex-col p-5 sm:p-7">
+                <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-5 sm:p-7">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <Pill tone="brand">{pick(lang, galleryCategoryLabels[current.category])}</Pill>
+                      <Pill tone="brand">
+                        {pick(lang, galleryCategoryLabels[current.category])}
+                      </Pill>
                       <Pill tone="neutral">{pick(lang, galleryEraLabels[current.era])}</Pill>
                     </div>
                     <span className="numeral font-mono text-xs text-muted-foreground">
@@ -346,7 +352,9 @@ function GalleryPage() {
                   {/* Curatorial Neutral Metadata Schema */}
                   <dl className="mt-5 grid gap-3 rounded-xl border border-border bg-secondary/50 p-4 text-xs sm:grid-cols-2 lg:grid-cols-4">
                     <div>
-                      <dt className="eyebrow text-muted-foreground">{t("gallery.catalogIdField")}</dt>
+                      <dt className="eyebrow text-muted-foreground">
+                        {t("gallery.catalogIdField")}
+                      </dt>
                       <dd className="code-id mt-1 font-semibold text-clay">[CATALOG-ID-FIELD]</dd>
                     </div>
                     <div>
@@ -355,10 +363,14 @@ function GalleryPage() {
                     </div>
                     <div>
                       <dt className="eyebrow text-muted-foreground">{t("gallery.credit")}</dt>
-                      <dd className="code-id mt-1 font-medium text-foreground">{t("gallery.provenancePending")}</dd>
+                      <dd className="code-id mt-1 font-medium text-foreground">
+                        {t("gallery.provenancePending")}
+                      </dd>
                     </div>
                     <div>
-                      <dt className="eyebrow text-muted-foreground">{t("gallery.curatorialStatus")}</dt>
+                      <dt className="eyebrow text-muted-foreground">
+                        {t("gallery.curatorialStatus")}
+                      </dt>
                       <dd className="code-id mt-1 font-medium text-foreground">[PROVENANCE]</dd>
                     </div>
                   </dl>
@@ -374,10 +386,7 @@ function GalleryPage() {
                     <button
                       type="button"
                       onClick={handlePrev}
-                      className={cn(
-                        btnClass("outline", "md"),
-                        "min-h-11 min-w-11 px-4 gap-2",
-                      )}
+                      className={cn(btnClass("outline", "md"), "min-h-11 min-w-11 px-4 gap-2")}
                     >
                       <ChevronLeft aria-hidden="true" className="size-4 rtl:rotate-180" />
                       <span>{t("gallery.prev")}</span>
@@ -386,17 +395,14 @@ function GalleryPage() {
                     <button
                       type="button"
                       onClick={handleNext}
-                      className={cn(
-                        btnClass("outline", "md"),
-                        "min-h-11 min-w-11 px-4 gap-2",
-                      )}
+                      className={cn(btnClass("outline", "md"), "min-h-11 min-w-11 px-4 gap-2")}
                     >
                       <span>{t("gallery.next")}</span>
                       <ChevronRight aria-hidden="true" className="size-4 rtl:rotate-180" />
                     </button>
                   </div>
                 </div>
-              </div>
+              </>
             )}
           </DialogPrimitive.Content>
         </DialogPrimitive.Portal>

@@ -1,4 +1,6 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { AlertTriangle, Info, Lock, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
@@ -58,7 +60,9 @@ export function Metric({
       )}
     >
       <p className="type-label text-muted-foreground">{label}</p>
-      <p className={cn("code-id mt-1 font-bold", emphasis ? "text-2xl" : "text-xl", tones[tone])}>{value}</p>
+      <p className={cn("code-id mt-1 font-bold", emphasis ? "text-2xl" : "text-xl", tones[tone])}>
+        {value}
+      </p>
       {hint ? <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p> : null}
     </div>
   );
@@ -154,10 +158,26 @@ export function Ltr({ children, className }: { children: ReactNode; className?: 
   );
 }
 
-export function BilingualStatus({ missingAr, missingEn }: { missingAr?: boolean | undefined; missingEn?: boolean | undefined }) {
+export function BilingualStatus({
+  missingAr,
+  missingEn,
+}: {
+  missingAr?: boolean | undefined;
+  missingEn?: boolean | undefined;
+}) {
   const { t } = useI18n();
-  if (missingAr) return <AdminChip tone="warn" icon={<AlertTriangle aria-hidden="true" className="size-3" />}>{t("adm.bilingual.missingAr")}</AdminChip>;
-  if (missingEn) return <AdminChip tone="warn" icon={<AlertTriangle aria-hidden="true" className="size-3" />}>{t("adm.bilingual.missingEn")}</AdminChip>;
+  if (missingAr)
+    return (
+      <AdminChip tone="warn" icon={<AlertTriangle aria-hidden="true" className="size-3" />}>
+        {t("adm.bilingual.missingAr")}
+      </AdminChip>
+    );
+  if (missingEn)
+    return (
+      <AdminChip tone="warn" icon={<AlertTriangle aria-hidden="true" className="size-3" />}>
+        {t("adm.bilingual.missingEn")}
+      </AdminChip>
+    );
   return <AdminChip tone="brand">{t("adm.bilingual.complete")}</AdminChip>;
 }
 
@@ -210,7 +230,10 @@ export function AttentionRow({
 export function AdminError({ onRetry }: { onRetry?: (() => void) | undefined }) {
   const { t } = useI18n();
   return (
-    <div role="alert" className="rounded-lg border border-status-cancelled/30 bg-status-cancelled/5 px-4 py-6 text-center">
+    <div
+      role="alert"
+      className="rounded-lg border border-status-cancelled/30 bg-status-cancelled/5 px-4 py-6 text-center"
+    >
       <p className="text-sm font-semibold">{t("adm.err.title")}</p>
       <p className="mx-auto mt-1 max-w-sm text-xs text-muted-foreground">{t("adm.err.body")}</p>
       {onRetry ? (
@@ -264,7 +287,15 @@ export function AdminStickyActions({ children }: { children: ReactNode }) {
 
 /* --------------------------- empty / loading state ------------------------ */
 
-export function AdminEmpty({ title, body, action }: { title: string; body?: string; action?: ReactNode }) {
+export function AdminEmpty({
+  title,
+  body,
+  action,
+}: {
+  title: string;
+  body?: string;
+  action?: ReactNode;
+}) {
   return (
     <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">
       <Info aria-hidden="true" className="size-5 text-muted-foreground" />
@@ -280,7 +311,10 @@ export function AdminSkeleton({ rows = 4 }: { rows?: number }) {
   return (
     <div role="status" aria-label={t("adm.common.loading")} className="space-y-2 p-4">
       {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className="h-8 animate-pulse rounded-md bg-secondary motion-reduce:animate-none" />
+        <div
+          key={i}
+          className="h-8 animate-pulse rounded-md bg-secondary motion-reduce:animate-none"
+        />
       ))}
     </div>
   );
@@ -335,7 +369,11 @@ export function AdminTabs<T extends string>({
   label: string;
 }) {
   return (
-    <div role="tablist" aria-label={label} className="flex flex-wrap gap-1 border-b border-border px-2">
+    <div
+      role="tablist"
+      aria-label={label}
+      className="flex flex-wrap gap-1 border-b border-border px-2"
+    >
       {tabs.map((tab) => (
         <button
           key={tab.id}
@@ -366,6 +404,107 @@ export function AdminTabs<T extends string>({
 /**
  * Quick-edit sheet. Slides in from the inline end, traps focus while open and
  * returns focus to the trigger on close.
+ */
+export function GazaSheet({
+  open,
+  title,
+  description,
+  onClose,
+  children,
+  footer,
+}: {
+  open: boolean;
+  title: string;
+  description?: string;
+  onClose: () => void;
+  children: ReactNode;
+  footer?: ReactNode;
+}) {
+  const { t, lang } = useI18n();
+  const titleId = useId();
+  const descriptionId = useId();
+  const returnFocusRef = useRef<HTMLElement | null>(null);
+  const reduceMotion = useReducedMotion();
+
+  return (
+    <DialogPrimitive.Root
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) onClose();
+      }}
+    >
+      <AnimatePresence>
+        {open ? (
+          <DialogPrimitive.Portal forceMount>
+            <DialogPrimitive.Overlay forceMount asChild>
+              <motion.div
+                initial={reduceMotion ? false : { opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: reduceMotion ? 0 : 0.16 }}
+                className="fixed inset-0 z-50 bg-ink/55"
+              />
+            </DialogPrimitive.Overlay>
+            <DialogPrimitive.Content
+              forceMount
+              asChild
+              aria-labelledby={titleId}
+              aria-describedby={description ? descriptionId : undefined}
+              onOpenAutoFocus={() => {
+                returnFocusRef.current = document.activeElement as HTMLElement | null;
+              }}
+              onCloseAutoFocus={(event) => {
+                if (!returnFocusRef.current) return;
+                event.preventDefault();
+                returnFocusRef.current.focus();
+              }}
+            >
+              <motion.aside
+                initial={reduceMotion ? false : { x: lang === "ar" ? "-100%" : "100%" }}
+                animate={{ x: 0 }}
+                exit={reduceMotion ? { opacity: 0 } : { x: lang === "ar" ? "-100%" : "100%" }}
+                transition={{ duration: reduceMotion ? 0 : 0.22, ease: [0.22, 1, 0.36, 1] }}
+                className="fixed inset-y-0 end-0 z-50 flex h-dvh w-full max-w-md flex-col border-s border-border bg-card shadow-[var(--shadow-lift)] focus:outline-none"
+              >
+                <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-3">
+                  <div className="min-w-0">
+                    <DialogPrimitive.Title id={titleId} className="text-sm font-bold">
+                      {title}
+                    </DialogPrimitive.Title>
+                    {description ? (
+                      <DialogPrimitive.Description
+                        id={descriptionId}
+                        className="text-xs text-muted-foreground"
+                      >
+                        {description}
+                      </DialogPrimitive.Description>
+                    ) : null}
+                  </div>
+                  <DialogPrimitive.Close
+                    aria-label={t("adm.common.close")}
+                    className="flex size-11 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                  >
+                    <X aria-hidden="true" className="size-4" />
+                  </DialogPrimitive.Close>
+                </div>
+                <div className="flex-1 overflow-y-auto px-4 py-4">{children}</div>
+                {footer ? (
+                  <div className="flex flex-wrap justify-end gap-2 border-t border-border px-4 py-3">
+                    {footer}
+                  </div>
+                ) : null}
+              </motion.aside>
+            </DialogPrimitive.Content>
+          </DialogPrimitive.Portal>
+        ) : null}
+      </AnimatePresence>
+    </DialogPrimitive.Root>
+  );
+}
+
+/**
+ * Existing admin sheet retained for the remaining migration backlog. New
+ * representative work should use GazaSheet while each workflow is verified.
  */
 export function AdminSheet({
   open,
@@ -444,8 +583,14 @@ export function AdminSheet({
       >
         <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-3">
           <div className="min-w-0">
-            <h2 id="admin-sheet-title" className="text-sm font-bold">{title}</h2>
-            {description ? <p id="admin-sheet-desc" className="text-xs text-muted-foreground">{description}</p> : null}
+            <h2 id="admin-sheet-title" className="text-sm font-bold">
+              {title}
+            </h2>
+            {description ? (
+              <p id="admin-sheet-desc" className="text-xs text-muted-foreground">
+                {description}
+              </p>
+            ) : null}
           </div>
           <button
             type="button"
@@ -457,7 +602,11 @@ export function AdminSheet({
           </button>
         </div>
         <div className="flex-1 overflow-y-auto px-4 py-4">{children}</div>
-        {footer ? <div className="flex flex-wrap justify-end gap-2 border-t border-border px-4 py-3">{footer}</div> : null}
+        {footer ? (
+          <div className="flex flex-wrap justify-end gap-2 border-t border-border px-4 py-3">
+            {footer}
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -465,11 +614,20 @@ export function AdminSheet({
 
 /* ---------------------------------- toasts -------------------------------- */
 
-export function AdminToasts({ toasts, onDismiss }: { toasts: { id: number; message: string }[]; onDismiss: (id: number) => void }) {
+export function AdminToasts({
+  toasts,
+  onDismiss,
+}: {
+  toasts: { id: number; message: string }[];
+  onDismiss: (id: number) => void;
+}) {
   const { t } = useI18n();
   if (toasts.length === 0) return null;
   return (
-    <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-4 z-60 flex flex-col items-center gap-2 px-4">
+    <div
+      aria-live="polite"
+      className="pointer-events-none fixed inset-x-0 bottom-4 z-60 flex flex-col items-center gap-2 px-4"
+    >
       {toasts.map((tst) => (
         <div
           key={tst.id}

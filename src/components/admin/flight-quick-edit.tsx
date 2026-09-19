@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Field, Input, Select, Textarea, btnClass } from "@/components/kit";
-import { AdminSheet, Ltr, PermissionButton } from "@/components/admin/admin-kit";
+import { GazaSheet, Ltr, PermissionButton } from "@/components/admin/admin-kit";
 import { useAdmin } from "@/lib/admin-store";
 import { useI18n } from "@/lib/i18n";
 import type { Flight, FlightStatus } from "@/lib/data";
@@ -23,7 +23,13 @@ export type QuickEditFlight = Flight & { note?: string; revisedDepart?: string }
  * Shared operational quick edit for a dated flight: status, terminal, gate,
  * aircraft, revised departure and a short note. Local admin state only.
  */
-export function FlightQuickEdit({ flight, onClose }: { flight: QuickEditFlight | null; onClose: () => void }) {
+export function FlightQuickEdit({
+  flight,
+  onClose,
+}: {
+  flight: QuickEditFlight | null;
+  onClose: () => void;
+}) {
   const { t } = useI18n();
   const { can, applyOverride, toast, ops } = useAdmin();
   const mayEdit = can("ops.edit");
@@ -73,7 +79,7 @@ export function FlightQuickEdit({ flight, onClose }: { flight: QuickEditFlight |
   if (flight && !aircraftNames.includes(flight.aircraft)) aircraftNames.unshift(flight.aircraft);
 
   return (
-    <AdminSheet
+    <GazaSheet
       open={flight !== null}
       title={flight ? t("adm.edit.title", { flight: flight.number }) : ""}
       description={t("adm.edit.sub")}
@@ -83,7 +89,12 @@ export function FlightQuickEdit({ flight, onClose }: { flight: QuickEditFlight |
           <button type="button" onClick={onClose} className={btnClass("outline", "sm")}>
             {t("adm.edit.cancel")}
           </button>
-          <PermissionButton allowed={mayEdit} reason={t("adm.edit.readOnly")} variant="primary" onClick={save}>
+          <PermissionButton
+            allowed={mayEdit}
+            reason={t("adm.edit.readOnly")}
+            variant="primary"
+            onClick={save}
+          >
             {t("adm.edit.save")}
           </PermissionButton>
         </>
@@ -165,10 +176,12 @@ export function FlightQuickEdit({ flight, onClose }: { flight: QuickEditFlight |
               onChange={(e) => setForm({ ...form, note: e.target.value })}
             />
           </Field>
-          {!mayEdit ? <p className="text-xs text-muted-foreground">{t("adm.edit.readOnly")}</p> : null}
+          {!mayEdit ? (
+            <p className="text-xs text-muted-foreground">{t("adm.edit.readOnly")}</p>
+          ) : null}
         </div>
       ) : null}
-    </AdminSheet>
+    </GazaSheet>
   );
 }
 

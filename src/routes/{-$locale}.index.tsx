@@ -1,14 +1,6 @@
 import { AppLink } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
-import {
-  ArrowRight,
-  Building2,
-  Calendar,
-  Clock,
-  Luggage,
-  Plane,
-  Ticket,
-} from "lucide-react";
+import { ArrowRight, Building2, Calendar, Clock, Luggage, Plane, Ticket } from "lucide-react";
 import { useMemo, useState } from "react";
 import { FlightSearchForm } from "@/components/flight-search-form";
 import { DestinationCard } from "@/components/destination-card";
@@ -40,7 +32,8 @@ export const Route = createFileRoute("/{-$locale}/")({
       { property: "og:title", content: "Gaza International Airport (GZA)" },
       {
         property: "og:description",
-        content: "Flights from Gaza with Palestinian Airlines, and the story of the airport they leave from.",
+        content:
+          "Flights from Gaza with Palestinian Airlines, and the story of the airport they leave from.",
       },
     ],
   }),
@@ -72,15 +65,22 @@ function Home() {
           <div className="flex flex-col items-start">
             {/* Ambient Station Protocol Badge */}
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-ink-border bg-ink/60 px-3 py-1 text-xs text-ink-muted backdrop-blur-xs">
-              <span className="size-2 rounded-full bg-status-ontime animate-pulse" aria-hidden="true" />
+              <span
+                className="size-2 rounded-full bg-status-ontime animate-pulse"
+                aria-hidden="true"
+              />
               <span className="code-id font-bold text-ink-foreground">GZA</span>
-              <span className="opacity-40" aria-hidden="true">·</span>
+              <span className="opacity-40" aria-hidden="true">
+                ·
+              </span>
               <span>{t("home.statusNotice")}</span>
             </div>
 
             <Eyebrow className="text-clay-soft">
               <span className="code-id font-mono font-bold">GZA · PS</span>
-              <span className="mx-1.5 opacity-60" aria-hidden="true">·</span>
+              <span className="mx-1.5 opacity-60" aria-hidden="true">
+                ·
+              </span>
               <span>{t("brand.airline")}</span>
             </Eyebrow>
 
@@ -95,7 +95,11 @@ function Home() {
             <div className="mt-8 flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
               <AppLink
                 to="/airport"
-                className={btnClass("clay", "md", "w-full justify-center sm:w-auto shadow-[var(--shadow-soft)] hover:shadow-md")}
+                className={btnClass(
+                  "clay",
+                  "md",
+                  "w-full justify-center sm:w-auto shadow-[var(--shadow-soft)] hover:shadow-md",
+                )}
               >
                 <span>{t("home.exploreAirport")}</span>
                 <ArrowRight aria-hidden="true" className="size-4 rtl:rotate-180" />
@@ -121,74 +125,61 @@ function Home() {
         <FlightSearchForm variant="panel" />
       </Container>
 
-      {/* 3. Passenger Quick Services Bar (4 High-Frequency Actions) */}
+      {/* 3. Integrated passenger utility rail */}
       <Container className="mt-6 sm:mt-8">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-soft)] sm:grid sm:grid-cols-2 lg:grid-cols-[1.15fr_1.15fr_0.85fr_0.85fr]">
           <AppLink
             to="/flights"
-            className="group flex items-center gap-3.5 rounded-xl border border-border bg-card p-4 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-[var(--shadow-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            className="group relative flex min-h-20 items-center gap-4 border-b border-border bg-brand px-4 py-4 text-primary-foreground transition-colors hover:bg-brand-deep focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-ring sm:min-h-24 sm:border-e lg:border-b-0"
           >
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand-deep transition-colors group-hover:bg-brand group-hover:text-primary-foreground">
-              <Plane aria-hidden="true" className="size-5 rtl:-scale-x-100" />
-            </div>
+            <Plane aria-hidden="true" className="size-6 shrink-0 opacity-85 rtl:-scale-x-100" />
             <div className="flex flex-col min-w-0">
-              <span className="text-sm font-bold text-foreground group-hover:text-brand-deep">
-                {t("home.quickStatusTitle")}
-              </span>
-              <span className="truncate text-xs text-muted-foreground">
-                {t("home.quickStatusSub")}
-              </span>
+              <span className="text-base font-bold">{t("home.quickStatusTitle")}</span>
+              <span className="text-xs text-primary-foreground/75">{t("home.quickStatusSub")}</span>
             </div>
+            <ArrowRight aria-hidden="true" className="ms-auto size-4 opacity-60 rtl:rotate-180" />
           </AppLink>
 
           <AppLink
             to="/check-in"
-            className="group flex items-center gap-3.5 rounded-xl border border-border bg-card p-4 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-[var(--shadow-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            className="group relative flex min-h-20 items-center gap-4 border-b border-border bg-sand-deep/55 px-4 py-4 transition-colors hover:bg-sand-deep focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-ring sm:min-h-24 lg:border-b-0 lg:border-e"
           >
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand-deep transition-colors group-hover:bg-brand group-hover:text-primary-foreground">
-              <Ticket aria-hidden="true" className="size-5" />
-            </div>
+            <Ticket aria-hidden="true" className="size-6 shrink-0 text-brand-deep" />
             <div className="flex flex-col min-w-0">
-              <span className="text-sm font-bold text-foreground group-hover:text-brand-deep">
+              <span className="text-base font-bold text-foreground group-hover:text-brand-deep">
                 {t("home.quickCheckinTitle")}
               </span>
-              <span className="truncate text-xs text-muted-foreground">
-                {t("home.quickCheckinSub")}
-              </span>
+              <span className="text-xs text-muted-foreground">{t("home.quickCheckinSub")}</span>
             </div>
+            <ArrowRight
+              aria-hidden="true"
+              className="ms-auto size-4 text-brand-deep/60 rtl:rotate-180"
+            />
           </AppLink>
 
           <AppLink
             to="/travel"
-            className="group flex items-center gap-3.5 rounded-xl border border-border bg-card p-4 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-[var(--shadow-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            className="group relative flex min-h-16 items-center gap-3 border-b border-border px-4 py-3 transition-colors hover:bg-secondary focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-ring sm:min-h-20 sm:border-b-0 sm:border-e"
           >
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-clay-soft text-clay transition-colors group-hover:bg-clay group-hover:text-primary-foreground">
-              <Luggage aria-hidden="true" className="size-5" />
-            </div>
+            <Luggage aria-hidden="true" className="size-5 shrink-0 text-clay" />
             <div className="flex flex-col min-w-0">
               <span className="text-sm font-bold text-foreground group-hover:text-clay">
                 {t("home.quickBaggageTitle")}
               </span>
-              <span className="truncate text-xs text-muted-foreground">
-                {t("home.quickBaggageSub")}
-              </span>
+              <span className="text-xs text-muted-foreground">{t("home.quickBaggageSub")}</span>
             </div>
           </AppLink>
 
           <AppLink
             to="/airport"
-            className="group flex items-center gap-3.5 rounded-xl border border-border bg-card p-4 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-[var(--shadow-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            className="group relative flex min-h-16 items-center gap-3 px-4 py-3 transition-colors hover:bg-secondary focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-ring sm:min-h-20"
           >
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-sand-deep text-foreground transition-colors group-hover:bg-foreground group-hover:text-background">
-              <Building2 aria-hidden="true" className="size-5" />
-            </div>
+            <Building2 aria-hidden="true" className="size-5 shrink-0 text-foreground/75" />
             <div className="flex flex-col min-w-0">
               <span className="text-sm font-bold text-foreground">
                 {t("home.quickHeritageTitle")}
               </span>
-              <span className="truncate text-xs text-muted-foreground">
-                {t("home.quickHeritageSub")}
-              </span>
+              <span className="text-xs text-muted-foreground">{t("home.quickHeritageSub")}</span>
             </div>
           </AppLink>
         </div>
@@ -242,7 +233,9 @@ function Home() {
           <div className="mt-4 space-y-3 sm:hidden">
             {flights.map((flight) => {
               const other =
-                airportByCode(board === "departures" ? flight.destinationCode : flight.originCode) ?? GZA;
+                airportByCode(
+                  board === "departures" ? flight.destinationCode : flight.originCode,
+                ) ?? GZA;
               const time = board === "departures" ? flight.departTime : flight.arriveTime;
               return (
                 <div
@@ -285,9 +278,7 @@ function Home() {
               <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-bold text-brand-deep">
                 {t("home.heritageBadge")}
               </span>
-              <span className="text-xs font-medium text-clay">
-                {t("home.heritageTag")}
-              </span>
+              <span className="text-xs font-medium text-clay">{t("home.heritageTag")}</span>
             </div>
 
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -440,14 +431,20 @@ function Home() {
                     className="flex items-center justify-between gap-2 text-foreground font-medium hover:text-primary transition-colors"
                   >
                     <span>{item.label}</span>
-                    <ArrowRight aria-hidden="true" className="size-4 text-muted-foreground rtl:rotate-180" />
+                    <ArrowRight
+                      aria-hidden="true"
+                      className="size-4 text-muted-foreground rtl:rotate-180"
+                    />
                   </AppLink>
                 </li>
               ))}
             </ul>
           </div>
 
-          <AppLink to="/travel" className={btnClass("ghost", "sm", "mt-6 self-start text-xs font-semibold")}>
+          <AppLink
+            to="/travel"
+            className={btnClass("ghost", "sm", "mt-6 self-start text-xs font-semibold")}
+          >
             {t("common.learnMore")} →
           </AppLink>
         </div>
