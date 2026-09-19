@@ -787,7 +787,7 @@ export const admin2Ar: Record<string, string> = {
   "a2.an.searches": "عمليات البحث",
   "a2.an.bookings": "حجوزات مؤكدة",
   "a2.an.checkins": "تسجيلات الوصول",
-  "a2.an.last30": "آخر ٣٠ يومًا",
+  "a2.an.last30": "آخر 30 يومًا",
   "a2.an.fn.search": "البحث",
   "a2.an.fn.results": "النتائج",
   "a2.an.fn.flight": "اختيار الرحلة",

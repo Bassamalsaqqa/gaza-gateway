@@ -83,6 +83,19 @@ export function SiteHeader() {
     };
   }, []);
 
+  // Dual scroll lock for document body and html element
+  useEffect(() => {
+    if (!open) return;
+    const origBody = document.body.style.overflow;
+    const origHtml = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = origBody;
+      document.documentElement.style.overflow = origHtml;
+    };
+  }, [open]);
+
   return (
     <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
       <a
@@ -183,7 +196,7 @@ export function SiteHeader() {
       <DialogPrimitive.Portal>
         <DialogPrimitive.Content
           className={cn(
-            "fixed inset-0 z-50 flex flex-col bg-background lg:hidden",
+            "fixed inset-0 z-60 flex flex-col bg-background lg:hidden",
             "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-top-2",
             "data-[state=closed]:animate-out data-[state=closed]:fade-out-0",
           )}

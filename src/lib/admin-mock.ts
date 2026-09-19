@@ -555,7 +555,7 @@ export const travelSections: TravelSection[] = [
     labelKey: "a2.web.tr.baggage",
     title: { en: "Baggage", ar: "الحقائب" },
     intro: { en: "Cabin and checked baggage allowances.", ar: "أوزان حقائب المقصورة والحقائب المسجّلة." },
-    items: [{ id: "i1", text: { en: "One cabin bag up to 7 kg.", ar: "حقيبة مقصورة واحدة حتى ٧ كغ." } }],
+    items: [{ id: "i1", text: { en: "One cabin bag up to 7 kg.", ar: "حقيبة مقصورة واحدة حتى 7 كغ." } }],
     visible: true,
   },
   {
@@ -563,7 +563,7 @@ export const travelSections: TravelSection[] = [
     labelKey: "a2.web.tr.airport",
     title: { en: "At the airport", ar: "في المطار" },
     intro: { en: "Check-in, security and boarding.", ar: "التسجيل والتفتيش والصعود." },
-    items: [{ id: "i1", text: { en: "Check-in closes 60 minutes before departure.", ar: "يُغلق التسجيل ٦٠ دقيقة قبل المغادرة." } }],
+    items: [{ id: "i1", text: { en: "Check-in closes 60 minutes before departure.", ar: "يُغلق التسجيل 60 دقيقة قبل المغادرة." } }],
     visible: true,
   },
   {
@@ -571,7 +571,7 @@ export const travelSections: TravelSection[] = [
     labelKey: "a2.web.tr.accessibility",
     title: { en: "Accessibility", ar: "إمكانية الوصول" },
     intro: { en: "Assistance available at the airport and on board.", ar: "المساعدة المتاحة في المطار وعلى الطائرة." },
-    items: [{ id: "i1", text: { en: "Request assistance at least 48 hours ahead.", ar: "اطلب المساعدة قبل ٤٨ ساعة على الأقل." } }],
+    items: [{ id: "i1", text: { en: "Request assistance at least 48 hours ahead.", ar: "اطلب المساعدة قبل 48 ساعة على الأقل." } }],
     visible: true,
   },
 ];
