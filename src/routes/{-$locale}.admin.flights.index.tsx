@@ -1,3 +1,4 @@
+import { GazaTable, GazaTableBody, GazaTableCaption, GazaTableCell, GazaTableHead, GazaTableHeader, GazaTableRow } from "@/components/gaza-table";
 import { createFileRoute, useRouterState } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { PlaneLanding, PlaneTakeoff } from "lucide-react";
@@ -251,30 +252,30 @@ function AdminFlightsPage() {
           <>
             {/* Wide screens: operational table */}
             <div className="hidden overflow-x-auto xl:block">
-              <table className="w-full min-w-[62rem] text-sm">
-                <caption className="sr-only">{t("adm.fl.title")}</caption>
-                <thead className="sticky top-0 z-10 border-b border-border bg-card/95 backdrop-blur shadow-sm">
-                  <tr className="type-th">
-                    <th scope="col" className="px-3 py-2.5 text-start font-bold">{t("adm.col.time")}</th>
-                    <th scope="col" className="px-3 py-2.5 text-start font-bold">{t("adm.col.flight")}</th>
-                    <th scope="col" className="px-3 py-2.5 text-start font-bold">{t("adm.col.route")}</th>
-                    <th scope="col" className="px-3 py-2.5 text-start font-bold">{t("adm.col.aircraft")}</th>
-                    <th scope="col" className="px-3 py-2.5 text-start font-bold">{t("adm.col.gate")}</th>
-                    <th scope="col" className="px-3 py-2.5 text-start font-bold">{t("adm.col.load")}</th>
-                    <th scope="col" className="px-3 py-2.5 text-start font-bold">{t("adm.col.checkin")}</th>
-                    <th scope="col" className="px-3 py-2.5 text-start font-bold">{t("adm.col.status")}</th>
-                    <th scope="col" className="px-3 py-2.5 text-end font-bold">{t("adm.col.actions")}</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <GazaTable className="w-full min-w-[62rem] text-sm">
+                <GazaTableCaption className="sr-only">{t("adm.fl.title")}</GazaTableCaption>
+                <GazaTableHeader className="sticky top-0 z-10 border-b border-border bg-card/95 backdrop-blur shadow-sm">
+                  <GazaTableRow className="type-th">
+                    <GazaTableHead scope="col" className="px-3 py-2.5 text-start font-bold">{t("adm.col.time")}</GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2.5 text-start font-bold">{t("adm.col.flight")}</GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2.5 text-start font-bold">{t("adm.col.route")}</GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2.5 text-start font-bold">{t("adm.col.aircraft")}</GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2.5 text-start font-bold">{t("adm.col.gate")}</GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2.5 text-start font-bold">{t("adm.col.load")}</GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2.5 text-start font-bold">{t("adm.col.checkin")}</GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2.5 text-start font-bold">{t("adm.col.status")}</GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2.5 text-end font-bold">{t("adm.col.actions")}</GazaTableHead>
+                  </GazaTableRow>
+                </GazaTableHeader>
+                <GazaTableBody>
                   {rows.map((f) => {
                     const sold = Math.max(0, CAPACITY - f.seatsLeft);
                     const p = progress(f.id);
                     const isEditingThisGate = editingGate?.flightId === f.id;
 
                     return (
-                      <tr key={`${f.id}-${f.direction}`} className="border-b border-border last:border-0 hover:bg-secondary/30 transition-colors">
-                        <td className="px-3 py-2">
+                      <GazaTableRow key={`${f.id}-${f.direction}`} className="border-b border-border last:border-0 hover:bg-secondary/30 transition-colors">
+                        <GazaTableCell className="px-3 py-2">
                           <Ltr className="font-semibold">{f.direction === "dep" ? f.departTime : f.arriveTime}</Ltr>
                           <span className="ms-1.5 inline-flex align-middle text-muted-foreground">
                             {f.direction === "dep" ? (
@@ -290,17 +291,17 @@ function AdminFlightsPage() {
                               </AdminChip>
                             </span>
                           ) : null}
-                        </td>
-                        <td className="px-3 py-2">
+                        </GazaTableCell>
+                        <GazaTableCell className="px-3 py-2">
                           <Ltr className="font-bold">{f.number}</Ltr>
-                        </td>
-                        <td className="px-3 py-2">
+                        </GazaTableCell>
+                        <GazaTableCell className="px-3 py-2">
                           <Ltr>{`${f.originCode} → ${f.destinationCode}`}</Ltr>
-                        </td>
-                        <td className="px-3 py-2 text-muted-foreground">
+                        </GazaTableCell>
+                        <GazaTableCell className="px-3 py-2 text-muted-foreground">
                           <Ltr>{f.aircraft}</Ltr>
-                        </td>
-                        <td className="px-3 py-2">
+                        </GazaTableCell>
+                        <GazaTableCell className="px-3 py-2">
                           {isEditingThisGate ? (
                             <div className="flex flex-col gap-1">
                               <div className="flex items-center gap-1">
@@ -357,17 +358,17 @@ function AdminFlightsPage() {
                           ) : (
                             <AdminChip tone="warn">{t("adm.flight.noGate")}</AdminChip>
                           )}
-                        </td>
-                        <td className="px-3 py-2">
+                        </GazaTableCell>
+                        <GazaTableCell className="px-3 py-2">
                           <Ltr className="text-xs text-muted-foreground">{`${sold}/${CAPACITY}`}</Ltr>
                           <span className="sr-only">{t("adm.flight.loadOf", { n: sold, total: CAPACITY })}</span>
-                        </td>
-                        <td className="px-3 py-2">
+                        </GazaTableCell>
+                        <GazaTableCell className="px-3 py-2">
                           <AdminChip tone={p.total > 0 && p.checked === p.total ? "brand" : "neutral"}>
                             {t("adm.flight.checkedOf", { n: p.checked, total: p.total })}
                           </AdminChip>
-                        </td>
-                        <td className="px-3 py-2">
+                        </GazaTableCell>
+                        <GazaTableCell className="px-3 py-2">
                           {mayEdit ? (
                             <select
                               aria-label={t("adm.flight.inlineStatus", { flight: f.number })}
@@ -388,8 +389,8 @@ function AdminFlightsPage() {
                           ) : (
                             <StatusBadge status={f.status} />
                           )}
-                        </td>
-                        <td className="px-3 py-2">
+                        </GazaTableCell>
+                        <GazaTableCell className="px-3 py-2">
                           <span className="flex flex-wrap justify-end gap-1.5">
                             <PermissionButton
                               allowed={mayEdit}
@@ -406,12 +407,12 @@ function AdminFlightsPage() {
                               {t("adm.fl.open")}
                             </AppLink>
                           </span>
-                        </td>
-                      </tr>
+                        </GazaTableCell>
+                      </GazaTableRow>
                     );
                   })}
-                </tbody>
-              </table>
+                </GazaTableBody>
+              </GazaTable>
             </div>
 
             {/* Narrow screens: stacked operational records */}

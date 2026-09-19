@@ -1,3 +1,4 @@
+import { GazaTable, GazaTableBody, GazaTableCaption, GazaTableCell, GazaTableHead, GazaTableHeader, GazaTableRow } from "@/components/gaza-table";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Input, Select, Textarea, btnClass } from "@/components/kit";
@@ -313,32 +314,32 @@ function AdminAirportPage() {
                 </ul>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <caption className="sr-only">{t("a2.ap.tab.archive")}</caption>
-                    <thead>
-                      <tr className="border-b border-border type-th">
+                  <GazaTable className="w-full text-sm">
+                    <GazaTableCaption className="sr-only">{t("a2.ap.tab.archive")}</GazaTableCaption>
+                    <GazaTableHeader>
+                      <GazaTableRow className="border-b border-border type-th">
                         {[t("a2.title"), t("a2.ap.ar.era"), t("a2.ap.ar.category"), t("a2.date"), t("a2.ap.ar.source"), t("a2.status")].map((h) => (
-                          <th key={h} scope="col" className="px-3 py-2 text-start font-bold">{h}</th>
+                          <GazaTableHead key={h} scope="col" className="px-3 py-2 text-start font-bold">{h}</GazaTableHead>
                         ))}
-                      </tr>
-                    </thead>
-                    <tbody>
+                      </GazaTableRow>
+                    </GazaTableHeader>
+                    <GazaTableBody>
                       {archiveRows.map((a) => (
-                        <tr key={a.id} className="border-b border-border last:border-0">
-                          <td className="px-3 py-2">
+                        <GazaTableRow key={a.id} className="border-b border-border last:border-0">
+                          <GazaTableCell className="px-3 py-2">
                             <button type="button" className="font-semibold underline decoration-dotted" onClick={() => setItem(a)}>
                               {pick(lang, a.title)}
                             </button>
-                          </td>
-                          <td className="px-3 py-2">{t(`a2.ap.era.${a.era}`)}</td>
-                          <td className="px-3 py-2">{t(`a2.ap.cat.${a.category}`)}</td>
-                          <td className="px-3 py-2"><Ltr>{a.date}</Ltr></td>
-                          <td className="px-3 py-2">{a.source ? <Ltr>{a.source}</Ltr> : <AdminChip tone="danger">{t("a2.ap.ar.missingSource")}</AdminChip>}</td>
-                          <td className="px-3 py-2"><ContentStateChip state={a.state} /></td>
-                        </tr>
+                          </GazaTableCell>
+                          <GazaTableCell className="px-3 py-2">{t(`a2.ap.era.${a.era}`)}</GazaTableCell>
+                          <GazaTableCell className="px-3 py-2">{t(`a2.ap.cat.${a.category}`)}</GazaTableCell>
+                          <GazaTableCell className="px-3 py-2"><Ltr>{a.date}</Ltr></GazaTableCell>
+                          <GazaTableCell className="px-3 py-2">{a.source ? <Ltr>{a.source}</Ltr> : <AdminChip tone="danger">{t("a2.ap.ar.missingSource")}</AdminChip>}</GazaTableCell>
+                          <GazaTableCell className="px-3 py-2"><ContentStateChip state={a.state} /></GazaTableCell>
+                        </GazaTableRow>
                       ))}
-                    </tbody>
-                  </table>
+                    </GazaTableBody>
+                  </GazaTable>
                 </div>
               )}
             </div>
@@ -351,32 +352,32 @@ function AdminAirportPage() {
                 {t("a2.ap.src.add")}
               </PermissionButton>
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <caption className="sr-only">{t("a2.ap.tab.sources")}</caption>
-                  <thead>
-                    <tr className="border-b border-border type-th">
+                <GazaTable className="w-full text-sm">
+                  <GazaTableCaption className="sr-only">{t("a2.ap.tab.sources")}</GazaTableCaption>
+                  <GazaTableHeader>
+                    <GazaTableRow className="border-b border-border type-th">
                       {[t("a2.title"), t("a2.ap.src.type"), t("a2.ap.src.org"), t("a2.ap.src.date"), t("a2.status"), t("a2.ap.src.usedBy")].map((h) => (
-                        <th key={h} scope="col" className="px-3 py-2 text-start font-bold">{h}</th>
+                        <GazaTableHead key={h} scope="col" className="px-3 py-2 text-start font-bold">{h}</GazaTableHead>
                       ))}
-                    </tr>
-                  </thead>
-                  <tbody>
+                    </GazaTableRow>
+                  </GazaTableHeader>
+                  <GazaTableBody>
                     {sourceRecords.map((s) => (
-                      <tr key={s.id} className="border-b border-border last:border-0">
-                        <td className="px-3 py-2">
+                      <GazaTableRow key={s.id} className="border-b border-border last:border-0">
+                        <GazaTableCell className="px-3 py-2">
                           <button type="button" className="font-semibold underline decoration-dotted" onClick={() => setSource(s)}>
                             {pick(lang, s.title)}
                           </button>
-                        </td>
-                        <td className="px-3 py-2">{t(`a2.ap.src.t.${s.type}`)}</td>
-                        <td className="px-3 py-2">{s.org}</td>
-                        <td className="px-3 py-2"><Ltr>{s.date}</Ltr></td>
-                        <td className="px-3 py-2"><AdminChip tone={verifTone(s.verification)}>{t(`a2.ap.ver.${s.verification}`)}</AdminChip></td>
-                        <td className="px-3 py-2"><Ltr>{s.usedBy}</Ltr></td>
-                      </tr>
+                        </GazaTableCell>
+                        <GazaTableCell className="px-3 py-2">{t(`a2.ap.src.t.${s.type}`)}</GazaTableCell>
+                        <GazaTableCell className="px-3 py-2">{s.org}</GazaTableCell>
+                        <GazaTableCell className="px-3 py-2"><Ltr>{s.date}</Ltr></GazaTableCell>
+                        <GazaTableCell className="px-3 py-2"><AdminChip tone={verifTone(s.verification)}>{t(`a2.ap.ver.${s.verification}`)}</AdminChip></GazaTableCell>
+                        <GazaTableCell className="px-3 py-2"><Ltr>{s.usedBy}</Ltr></GazaTableCell>
+                      </GazaTableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </GazaTableBody>
+                </GazaTable>
               </div>
             </div>
           ) : null}

@@ -1,3 +1,4 @@
+import { GazaTable, GazaTableBody, GazaTableCaption, GazaTableCell, GazaTableHead, GazaTableHeader, GazaTableRow } from "@/components/gaza-table";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { AppLink } from "@/components/app-link";
@@ -236,33 +237,33 @@ function AdminBookingDetailPage() {
 
           {tab === "seats" ? (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[40rem] text-sm">
-                <caption className="sr-only">{t("a2.bd.tab.seats")}</caption>
-                <thead>
-                  <tr className="border-b border-border type-th">
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bd.passenger")}</th>
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{`${t("a2.bd.out")} · ${t("a2.bd.seat")}`}</th>
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{`${t("a2.bd.in")} · ${t("a2.bd.seat")}`}</th>
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bd.bags")}</th>
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bd.meal")}</th>
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bd.assistance")}</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <GazaTable className="w-full min-w-[40rem] text-sm">
+                <GazaTableCaption className="sr-only">{t("a2.bd.tab.seats")}</GazaTableCaption>
+                <GazaTableHeader>
+                  <GazaTableRow className="border-b border-border type-th">
+                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bd.passenger")}</GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{`${t("a2.bd.out")} · ${t("a2.bd.seat")}`}</GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{`${t("a2.bd.in")} · ${t("a2.bd.seat")}`}</GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bd.bags")}</GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bd.meal")}</GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bd.assistance")}</GazaTableHead>
+                  </GazaTableRow>
+                </GazaTableHeader>
+                <GazaTableBody>
                   {booking.passengers.map((p) => (
-                    <tr key={p.id} className="border-b border-border last:border-0">
-                      <td className="px-3 py-2">{p.name}</td>
-                      <td className="px-3 py-2">{p.seatOut ? <Ltr>{p.seatOut}</Ltr> : <span className="text-muted-foreground">—</span>}</td>
-                      <td className="px-3 py-2">{p.seatIn ? <Ltr>{p.seatIn}</Ltr> : <span className="text-muted-foreground">—</span>}</td>
-                      <td className="px-3 py-2">
+                    <GazaTableRow key={p.id} className="border-b border-border last:border-0">
+                      <GazaTableCell className="px-3 py-2">{p.name}</GazaTableCell>
+                      <GazaTableCell className="px-3 py-2">{p.seatOut ? <Ltr>{p.seatOut}</Ltr> : <span className="text-muted-foreground">—</span>}</GazaTableCell>
+                      <GazaTableCell className="px-3 py-2">{p.seatIn ? <Ltr>{p.seatIn}</Ltr> : <span className="text-muted-foreground">—</span>}</GazaTableCell>
+                      <GazaTableCell className="px-3 py-2">
                         <Ltr>{p.bags}</Ltr>
-                      </td>
-                      <td className="px-3 py-2">{p.meal}</td>
-                      <td className="px-3 py-2 text-muted-foreground">{p.assistance ?? t("a2.none")}</td>
-                    </tr>
+                      </GazaTableCell>
+                      <GazaTableCell className="px-3 py-2">{p.meal}</GazaTableCell>
+                      <GazaTableCell className="px-3 py-2 text-muted-foreground">{p.assistance ?? t("a2.none")}</GazaTableCell>
+                    </GazaTableRow>
                   ))}
-                </tbody>
-              </table>
+                </GazaTableBody>
+              </GazaTable>
             </div>
           ) : null}
 
@@ -274,40 +275,40 @@ function AdminBookingDetailPage() {
                 <AdminChip tone="warn">{`${t("a2.ci.st.not")}: `}<Ltr>{eligible.filter((p) => !p.checkedOut).length}</Ltr></AdminChip>
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[40rem] text-sm">
-                  <caption className="sr-only">{t("a2.bd.tab.checkin")}</caption>
-                  <thead>
-                    <tr className="border-b border-border type-th">
-                      <th scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bd.passenger")}</th>
-                      <th scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bd.out")}</th>
-                      <th scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bd.in")}</th>
-                      <th scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bd.seat")}</th>
-                      <th scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bd.boardingPass")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                <GazaTable className="w-full min-w-[40rem] text-sm">
+                  <GazaTableCaption className="sr-only">{t("a2.bd.tab.checkin")}</GazaTableCaption>
+                  <GazaTableHeader>
+                    <GazaTableRow className="border-b border-border type-th">
+                      <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bd.passenger")}</GazaTableHead>
+                      <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bd.out")}</GazaTableHead>
+                      <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bd.in")}</GazaTableHead>
+                      <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bd.seat")}</GazaTableHead>
+                      <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bd.boardingPass")}</GazaTableHead>
+                    </GazaTableRow>
+                  </GazaTableHeader>
+                  <GazaTableBody>
                     {booking.passengers.map((p) => (
-                      <tr key={p.id} className="border-b border-border last:border-0">
-                        <td className="px-3 py-2">
+                      <GazaTableRow key={p.id} className="border-b border-border last:border-0">
+                        <GazaTableCell className="px-3 py-2">
                           {p.name}
                           {p.type === "infant" ? <AdminChip tone="info" className="ms-2">{t("a2.ci.infant")}</AdminChip> : null}
-                        </td>
-                        <td className="px-3 py-2">
+                        </GazaTableCell>
+                        <GazaTableCell className="px-3 py-2">
                           {p.type === "infant" ? (
                             <span className="text-muted-foreground">—</span>
                           ) : (
                             <AdminChip tone={p.checkedOut ? "brand" : "muted"}>{t(p.checkedOut ? "a2.ci.st.done" : "a2.ci.st.not")}</AdminChip>
                           )}
-                        </td>
-                        <td className="px-3 py-2">
+                        </GazaTableCell>
+                        <GazaTableCell className="px-3 py-2">
                           {p.type === "infant" || !booking.flightIn ? (
                             <span className="text-muted-foreground">—</span>
                           ) : (
                             <AdminChip tone={p.checkedIn ? "brand" : "muted"}>{t(p.checkedIn ? "a2.ci.st.done" : "a2.ci.st.not")}</AdminChip>
                           )}
-                        </td>
-                        <td className="px-3 py-2">{p.seatOut ? <Ltr>{p.seatOut}</Ltr> : <span className="text-muted-foreground">—</span>}</td>
-                        <td className="px-3 py-2">
+                        </GazaTableCell>
+                        <GazaTableCell className="px-3 py-2">{p.seatOut ? <Ltr>{p.seatOut}</Ltr> : <span className="text-muted-foreground">—</span>}</GazaTableCell>
+                        <GazaTableCell className="px-3 py-2">
                           {p.type === "infant" ? (
                             <span className="text-muted-foreground">—</span>
                           ) : p.checkedOut ? (
@@ -317,11 +318,11 @@ function AdminBookingDetailPage() {
                           ) : (
                             <span className="text-xs text-muted-foreground">{t("a2.bd.bp.notIssued")}</span>
                           )}
-                        </td>
-                      </tr>
+                        </GazaTableCell>
+                      </GazaTableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </GazaTableBody>
+                </GazaTable>
               </div>
             </div>
           ) : null}

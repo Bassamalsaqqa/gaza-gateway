@@ -1,3 +1,4 @@
+import { GazaTable, GazaTableBody, GazaTableCaption, GazaTableCell, GazaTableHead, GazaTableHeader, GazaTableRow } from "@/components/gaza-table";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { AppLink } from "@/components/app-link";
@@ -71,49 +72,49 @@ function AdminDestinationsPage() {
         ) : (
           <>
             <div className="hidden overflow-x-auto lg:block">
-              <table className="w-full min-w-[54rem] text-sm">
-                <caption className="sr-only">{t("adm.dest.title")}</caption>
-                <thead>
-                  <tr className="border-b border-border type-th">
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.dest.code")}</th>
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.dest.city")}</th>
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.dest.country")}</th>
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.dest.service")}</th>
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.dest.frequency")}</th>
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.dest.priceFrom")}</th>
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.dest.published")}</th>
-                    <th scope="col" className="px-3 py-2 text-end font-bold">{t("adm.col.actions")}</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <GazaTable className="w-full min-w-[54rem] text-sm">
+                <GazaTableCaption className="sr-only">{t("adm.dest.title")}</GazaTableCaption>
+                <GazaTableHeader>
+                  <GazaTableRow className="border-b border-border type-th">
+                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("adm.dest.code")}</GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("adm.dest.city")}</GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("adm.dest.country")}</GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("adm.dest.service")}</GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("adm.dest.frequency")}</GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("adm.dest.priceFrom")}</GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("adm.dest.published")}</GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2 text-end font-bold">{t("adm.col.actions")}</GazaTableHead>
+                  </GazaTableRow>
+                </GazaTableHeader>
+                <GazaTableBody>
                   {rows.map((d) => (
-                    <tr key={d.code} className="border-b border-border last:border-0">
-                      <td className="px-3 py-2">
+                    <GazaTableRow key={d.code} className="border-b border-border last:border-0">
+                      <GazaTableCell className="px-3 py-2">
                         <Ltr className="font-bold">{d.code}</Ltr>
-                      </td>
-                      <td className="px-3 py-2 font-semibold">
+                      </GazaTableCell>
+                      <GazaTableCell className="px-3 py-2 font-semibold">
                         {lang === "ar" ? d.cityAr : d.cityEn}
                         <BilingualStatus missingAr={!d.descAr} />
-                      </td>
-                      <td className="px-3 py-2 text-muted-foreground">{lang === "ar" ? d.countryAr : d.countryEn}</td>
-                      <td className="px-3 py-2">
+                      </GazaTableCell>
+                      <GazaTableCell className="px-3 py-2 text-muted-foreground">{lang === "ar" ? d.countryAr : d.countryEn}</GazaTableCell>
+                      <GazaTableCell className="px-3 py-2">
                         <AdminChip tone={d.serviceActive ? "brand" : "muted"}>
                           {t(d.serviceActive ? "adm.common.active" : "adm.common.inactive")}
                         </AdminChip>
-                      </td>
-                      <td className="px-3 py-2">
+                      </GazaTableCell>
+                      <GazaTableCell className="px-3 py-2">
                         <Ltr>{d.weeklyFlights}</Ltr>
-                      </td>
-                      <td className="px-3 py-2">{money(d.priceFrom, lang)}</td>
-                      <td className="px-3 py-2">
+                      </GazaTableCell>
+                      <GazaTableCell className="px-3 py-2">{money(d.priceFrom, lang)}</GazaTableCell>
+                      <GazaTableCell className="px-3 py-2">
                         <span className="flex flex-wrap gap-1.5">
                           <AdminChip tone={d.published ? "brand" : "warn"}>
                             {t(d.published ? "adm.dest.published" : "adm.content.draft")}
                           </AdminChip>
                           {d.featured ? <AdminChip tone="info">{t("adm.dest.featured")}</AdminChip> : null}
                         </span>
-                      </td>
-                      <td className="px-3 py-2 text-end">
+                      </GazaTableCell>
+                      <GazaTableCell className="px-3 py-2 text-end">
                         <AppLink
                           to="/admin/destinations/$code"
                           params={{ code: d.code }}
@@ -121,11 +122,11 @@ function AdminDestinationsPage() {
                         >
                           {t("adm.common.edit")}
                         </AppLink>
-                      </td>
-                    </tr>
+                      </GazaTableCell>
+                    </GazaTableRow>
                   ))}
-                </tbody>
-              </table>
+                </GazaTableBody>
+              </GazaTable>
             </div>
 
             <ul className="divide-y divide-border lg:hidden">

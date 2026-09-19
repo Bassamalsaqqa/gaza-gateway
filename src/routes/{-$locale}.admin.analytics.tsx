@@ -1,3 +1,4 @@
+import { GazaTable, GazaTableBody, GazaTableCaption, GazaTableCell, GazaTableHead, GazaTableHeader, GazaTableRow } from "@/components/gaza-table";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { AdminPageHeader, AdminPanel, AdminTabs, Ltr, Metric } from "@/components/admin/admin-kit";
@@ -112,25 +113,25 @@ function AdminAnalyticsPage() {
 
           {tab === "content" ? (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <caption className="sr-only">{t("a2.an.tab.content")}</caption>
-                <thead>
-                  <tr className="border-b border-border type-th">
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("a2.title")}</th>
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("a2.an.views")}</th>
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("a2.an.avgTime")}</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <GazaTable className="w-full text-sm">
+                <GazaTableCaption className="sr-only">{t("a2.an.tab.content")}</GazaTableCaption>
+                <GazaTableHeader>
+                  <GazaTableRow className="border-b border-border type-th">
+                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("a2.title")}</GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("a2.an.views")}</GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("a2.an.avgTime")}</GazaTableHead>
+                  </GazaTableRow>
+                </GazaTableHeader>
+                <GazaTableBody>
                   {contentStats.map((c) => (
-                    <tr key={c.id} className="border-b border-border last:border-0">
-                      <td className="px-3 py-2">{t(c.labelKey)}</td>
-                      <td className="px-3 py-2"><Ltr>{c.views}</Ltr></td>
-                      <td className="px-3 py-2"><Ltr>{c.time}</Ltr></td>
-                    </tr>
+                    <GazaTableRow key={c.id} className="border-b border-border last:border-0">
+                      <GazaTableCell className="px-3 py-2">{t(c.labelKey)}</GazaTableCell>
+                      <GazaTableCell className="px-3 py-2"><Ltr>{c.views}</Ltr></GazaTableCell>
+                      <GazaTableCell className="px-3 py-2"><Ltr>{c.time}</Ltr></GazaTableCell>
+                    </GazaTableRow>
                   ))}
-                </tbody>
-              </table>
+                </GazaTableBody>
+              </GazaTable>
             </div>
           ) : null}
         </div>

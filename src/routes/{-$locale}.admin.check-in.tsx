@@ -1,3 +1,4 @@
+import { GazaTable, GazaTableBody, GazaTableCaption, GazaTableCell, GazaTableHead, GazaTableHeader, GazaTableRow } from "@/components/gaza-table";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Input, btnClass } from "@/components/kit";
@@ -109,39 +110,39 @@ function AdminCheckInPage() {
         ) : (
           <>
             <div className="hidden overflow-x-auto xl:block">
-              <table className="w-full text-sm">
-                <caption className="sr-only">{t("a2.ci.title")}</caption>
-                <thead>
-                  <tr className="border-b border-border type-th">
+              <GazaTable className="w-full text-sm">
+                <GazaTableCaption className="sr-only">{t("a2.ci.title")}</GazaTableCaption>
+                <GazaTableHeader>
+                  <GazaTableRow className="border-b border-border type-th">
                     {[t("a2.ci.passenger"), "PNR", t("a2.ci.docs"), t("a2.bd.seat"), t("a2.bd.bags"), t("a2.bd.assistance"), t("a2.status"), t("a2.actions")].map((h) => (
-                      <th key={h} scope="col" className="px-3 py-2 text-start font-bold">
+                      <GazaTableHead key={h} scope="col" className="px-3 py-2 text-start font-bold">
                         {h}
-                      </th>
+                      </GazaTableHead>
                     ))}
-                  </tr>
-                </thead>
-                <tbody>
+                  </GazaTableRow>
+                </GazaTableHeader>
+                <GazaTableBody>
                   {rows.map((p) => (
-                    <tr key={p.id} className="border-b border-border last:border-0 align-top">
-                      <td className="px-3 py-2">
+                    <GazaTableRow key={p.id} className="border-b border-border last:border-0 align-top">
+                      <GazaTableCell className="px-3 py-2">
                         <button type="button" className="font-semibold underline decoration-dotted" onClick={() => setSelected(p)}>
                           {p.name}
                         </button>
                         {p.infant ? <AdminChip tone="info" className="ms-2">{t("a2.ci.infant")}</AdminChip> : null}
-                      </td>
-                      <td className="px-3 py-2"><Ltr>{p.ref}</Ltr></td>
-                      <td className="px-3 py-2">
+                      </GazaTableCell>
+                      <GazaTableCell className="px-3 py-2"><Ltr>{p.ref}</Ltr></GazaTableCell>
+                      <GazaTableCell className="px-3 py-2">
                         <AdminChip tone={p.docsOk ? "brand" : "danger"}>{t(p.docsOk ? "a2.ci.docsOk" : "a2.ci.docsMissing")}</AdminChip>
-                      </td>
-                      <td className="px-3 py-2">{p.seat ? <Ltr>{p.seat}</Ltr> : <span className="text-muted-foreground">—</span>}</td>
-                      <td className="px-3 py-2"><Ltr>{p.bags}</Ltr></td>
-                      <td className="px-3 py-2 text-muted-foreground">{p.assistance ?? t("a2.none")}</td>
-                      <td className="px-3 py-2"><AdminChip tone={statusTone(p.status)}>{t(`a2.ci.st.${p.status}`)}</AdminChip></td>
-                      <td className="px-3 py-2">{actionsFor(p)}</td>
-                    </tr>
+                      </GazaTableCell>
+                      <GazaTableCell className="px-3 py-2">{p.seat ? <Ltr>{p.seat}</Ltr> : <span className="text-muted-foreground">—</span>}</GazaTableCell>
+                      <GazaTableCell className="px-3 py-2"><Ltr>{p.bags}</Ltr></GazaTableCell>
+                      <GazaTableCell className="px-3 py-2 text-muted-foreground">{p.assistance ?? t("a2.none")}</GazaTableCell>
+                      <GazaTableCell className="px-3 py-2"><AdminChip tone={statusTone(p.status)}>{t(`a2.ci.st.${p.status}`)}</AdminChip></GazaTableCell>
+                      <GazaTableCell className="px-3 py-2">{actionsFor(p)}</GazaTableCell>
+                    </GazaTableRow>
                   ))}
-                </tbody>
-              </table>
+                </GazaTableBody>
+              </GazaTable>
             </div>
 
             <ul className="divide-y divide-border xl:hidden">

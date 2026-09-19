@@ -1,3 +1,4 @@
+import { GazaTable, GazaTableBody, GazaTableCaption, GazaTableCell, GazaTableHead, GazaTableHeader, GazaTableRow } from "@/components/gaza-table";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
@@ -176,54 +177,54 @@ function AdminSchedulesPage() {
         ) : (
           <>
             <div className="hidden overflow-x-auto xl:block">
-              <table className="w-full min-w-[58rem] text-sm">
-                <caption className="sr-only">{t("adm.sch.title")}</caption>
-                <thead>
-                  <tr className="border-b border-border type-th">
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.sch.number")}</th>
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.sch.route")}</th>
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.sch.days")}</th>
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.sch.depart")}</th>
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.sch.arrive")}</th>
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.aircraft")}</th>
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.sch.effective")}</th>
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.sch.state")}</th>
-                    <th scope="col" className="px-3 py-2 text-end font-bold">{t("adm.col.actions")}</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <GazaTable className="w-full min-w-[58rem] text-sm">
+                <GazaTableCaption className="sr-only">{t("adm.sch.title")}</GazaTableCaption>
+                <GazaTableHeader>
+                  <GazaTableRow className="border-b border-border type-th">
+                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("adm.sch.number")}</GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("adm.sch.route")}</GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("adm.sch.days")}</GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("adm.sch.depart")}</GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("adm.sch.arrive")}</GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.aircraft")}</GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("adm.sch.effective")}</GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("adm.sch.state")}</GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2 text-end font-bold">{t("adm.col.actions")}</GazaTableHead>
+                  </GazaTableRow>
+                </GazaTableHeader>
+                <GazaTableBody>
                   {rows.map((s) => (
-                    <tr key={s.id} className="border-b border-border last:border-0">
-                      <td className="px-3 py-2">
+                    <GazaTableRow key={s.id} className="border-b border-border last:border-0">
+                      <GazaTableCell className="px-3 py-2">
                         <Ltr className="font-bold">{s.number}</Ltr>
-                      </td>
-                      <td className="px-3 py-2">
+                      </GazaTableCell>
+                      <GazaTableCell className="px-3 py-2">
                         <Ltr>{routeLabel(s)}</Ltr>
-                      </td>
-                      <td className="px-3 py-2 text-xs text-muted-foreground">{daysLabel(s.days)}</td>
-                      <td className="px-3 py-2">
+                      </GazaTableCell>
+                      <GazaTableCell className="px-3 py-2 text-xs text-muted-foreground">{daysLabel(s.days)}</GazaTableCell>
+                      <GazaTableCell className="px-3 py-2">
                         <Ltr>{s.departTime}</Ltr>
-                      </td>
-                      <td className="px-3 py-2">
+                      </GazaTableCell>
+                      <GazaTableCell className="px-3 py-2">
                         <Ltr>{s.arriveTime}</Ltr>
-                      </td>
-                      <td className="px-3 py-2 text-muted-foreground">
+                      </GazaTableCell>
+                      <GazaTableCell className="px-3 py-2 text-muted-foreground">
                         <Ltr>{s.aircraft}</Ltr>
-                      </td>
-                      <td className="px-3 py-2 text-xs">
+                      </GazaTableCell>
+                      <GazaTableCell className="px-3 py-2 text-xs">
                         <Ltr>{`${s.from} → ${s.until}`}</Ltr>
                         {s.exceptions.length > 0 ? (
                           <AdminChip tone="warn" className="ms-1.5">
                             {t("adm.sch.exceptionsCount", { n: s.exceptions.length })}
                           </AdminChip>
                         ) : null}
-                      </td>
-                      <td className="px-3 py-2">
+                      </GazaTableCell>
+                      <GazaTableCell className="px-3 py-2">
                         <AdminChip tone={s.active ? "brand" : "muted"}>
                           {t(s.active ? "adm.common.active" : "adm.common.inactive")}
                         </AdminChip>
-                      </td>
-                      <td className="px-3 py-2">
+                      </GazaTableCell>
+                      <GazaTableCell className="px-3 py-2">
                         <span className="flex flex-wrap justify-end gap-1.5">
                           <PermissionButton
                             allowed={mayEdit}
@@ -244,11 +245,11 @@ function AdminSchedulesPage() {
                             <span className="sr-only">{t("adm.common.delete")}</span>
                           </PermissionButton>
                         </span>
-                      </td>
-                    </tr>
+                      </GazaTableCell>
+                    </GazaTableRow>
                   ))}
-                </tbody>
-              </table>
+                </GazaTableBody>
+              </GazaTable>
             </div>
 
             <ul className="divide-y divide-border xl:hidden">

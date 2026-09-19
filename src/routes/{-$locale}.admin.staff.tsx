@@ -1,3 +1,4 @@
+import { GazaTable, GazaTableBody, GazaTableCaption, GazaTableCell, GazaTableHead, GazaTableHeader, GazaTableRow } from "@/components/gaza-table";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Field, Input, Select, btnClass } from "@/components/kit";
@@ -48,26 +49,26 @@ function AdminStaffPage() {
 
       <AdminPanel bodyClassName="p-0">
         <div className="hidden overflow-x-auto lg:block">
-          <table className="w-full text-sm">
-            <caption className="sr-only">{t("a2.st.title")}</caption>
-            <thead>
-              <tr className="border-b border-border type-th">
+          <GazaTable className="w-full text-sm">
+            <GazaTableCaption className="sr-only">{t("a2.st.title")}</GazaTableCaption>
+            <GazaTableHeader>
+              <GazaTableRow className="border-b border-border type-th">
                 {[t("a2.st.member"), t("a2.cu.email"), t("a2.st.role"), t("a2.status"), t("a2.st.lastActive"), t("a2.actions")].map((h) => (
-                  <th key={h} scope="col" className="px-3 py-2 text-start font-bold">{h}</th>
+                  <GazaTableHead key={h} scope="col" className="px-3 py-2 text-start font-bold">{h}</GazaTableHead>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
+              </GazaTableRow>
+            </GazaTableHeader>
+            <GazaTableBody>
               {staffRows.map((s) => (
-                <tr key={s.id} className="border-b border-border last:border-0">
-                  <td className="px-3 py-2 font-semibold">{pick(lang, s.name)}</td>
-                  <td className="px-3 py-2"><Ltr>{s.email}</Ltr></td>
-                  <td className="px-3 py-2">{roleLabel(s.role)}</td>
-                  <td className="px-3 py-2">
+                <GazaTableRow key={s.id} className="border-b border-border last:border-0">
+                  <GazaTableCell className="px-3 py-2 font-semibold">{pick(lang, s.name)}</GazaTableCell>
+                  <GazaTableCell className="px-3 py-2"><Ltr>{s.email}</Ltr></GazaTableCell>
+                  <GazaTableCell className="px-3 py-2">{roleLabel(s.role)}</GazaTableCell>
+                  <GazaTableCell className="px-3 py-2">
                     <AdminChip tone={s.status === "active" ? "brand" : "muted"}>{t(s.status === "active" ? "a2.st.active" : "a2.st.disabled")}</AdminChip>
-                  </td>
-                  <td className="px-3 py-2"><Ltr>{s.lastActive}</Ltr></td>
-                  <td className="px-3 py-2">
+                  </GazaTableCell>
+                  <GazaTableCell className="px-3 py-2"><Ltr>{s.lastActive}</Ltr></GazaTableCell>
+                  <GazaTableCell className="px-3 py-2">
                     <div className="flex flex-wrap gap-1.5">
                       <PermissionButton
                         allowed={mayEdit}
@@ -83,11 +84,11 @@ function AdminStaffPage() {
                         {t("a2.st.disable")}
                       </PermissionButton>
                     </div>
-                  </td>
-                </tr>
+                  </GazaTableCell>
+                </GazaTableRow>
               ))}
-            </tbody>
-          </table>
+            </GazaTableBody>
+          </GazaTable>
         </div>
 
         <ul className="divide-y divide-border lg:hidden">

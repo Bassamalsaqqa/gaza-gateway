@@ -1,3 +1,4 @@
+import { GazaTable, GazaTableBody, GazaTableCaption, GazaTableCell, GazaTableHead, GazaTableHeader, GazaTableRow } from "@/components/gaza-table";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { ArrowLeft } from "lucide-react";
@@ -241,40 +242,40 @@ function AdminFlightDetailPage() {
               <AdminEmpty title={t("adm.fd.pax.empty")} body={t("adm.fd.pax.emptyBody")} />
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[38rem] text-sm">
-                  <caption className="sr-only">{t("adm.fd.tab.passengers")}</caption>
-                  <thead>
-                    <tr className="border-b border-border type-th">
-                      <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.fd.pax.name")}</th>
-                      <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.pnr")}</th>
-                      <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.fd.pax.seat")}</th>
-                      <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.fd.pax.booking")}</th>
-                      <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.checkin")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                <GazaTable className="w-full min-w-[38rem] text-sm">
+                  <GazaTableCaption className="sr-only">{t("adm.fd.tab.passengers")}</GazaTableCaption>
+                  <GazaTableHeader>
+                    <GazaTableRow className="border-b border-border type-th">
+                      <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("adm.fd.pax.name")}</GazaTableHead>
+                      <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.pnr")}</GazaTableHead>
+                      <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("adm.fd.pax.seat")}</GazaTableHead>
+                      <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("adm.fd.pax.booking")}</GazaTableHead>
+                      <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.checkin")}</GazaTableHead>
+                    </GazaTableRow>
+                  </GazaTableHeader>
+                  <GazaTableBody>
                     {pax.map((p) => (
-                      <tr key={p.key} className="border-b border-border last:border-0">
-                        <td className="px-3 py-2 font-semibold">
+                      <GazaTableRow key={p.key} className="border-b border-border last:border-0">
+                        <GazaTableCell className="px-3 py-2 font-semibold">
                           {p.name}
                           {p.infant ? (
                             <AdminChip tone="muted" className="ms-2">
                               {t("adm.fd.pax.infant")}
                             </AdminChip>
                           ) : null}
-                        </td>
-                        <td className="px-3 py-2">
+                        </GazaTableCell>
+                        <GazaTableCell className="px-3 py-2">
                           <Ltr>{p.ref}</Ltr>
-                        </td>
-                        <td className="px-3 py-2">
+                        </GazaTableCell>
+                        <GazaTableCell className="px-3 py-2">
                           {p.seat ? <Ltr>{p.seat}</Ltr> : <span className="text-muted-foreground">—</span>}
-                        </td>
-                        <td className="px-3 py-2">
+                        </GazaTableCell>
+                        <GazaTableCell className="px-3 py-2">
                           <AdminChip tone={p.cancelled ? "danger" : "brand"}>
                             {t(p.cancelled ? "adm.booking.cancelled" : "adm.booking.confirmed")}
                           </AdminChip>
-                        </td>
-                        <td className="px-3 py-2">
+                        </GazaTableCell>
+                        <GazaTableCell className="px-3 py-2">
                           {p.infant ? (
                             <span className="text-xs text-muted-foreground">—</span>
                           ) : (
@@ -282,11 +283,11 @@ function AdminFlightDetailPage() {
                               {t(p.checked ? "adm.fd.pax.checkedIn" : "adm.fd.pax.notCheckedIn")}
                             </AdminChip>
                           )}
-                        </td>
-                      </tr>
+                        </GazaTableCell>
+                      </GazaTableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </GazaTableBody>
+                </GazaTable>
               </div>
             )
           ) : null}

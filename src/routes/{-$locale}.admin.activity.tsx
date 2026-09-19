@@ -1,3 +1,4 @@
+import { GazaTable, GazaTableBody, GazaTableCaption, GazaTableCell, GazaTableHead, GazaTableHeader, GazaTableRow } from "@/components/gaza-table";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Input, Select } from "@/components/kit";
@@ -78,31 +79,31 @@ function AdminActivityPage() {
         ) : (
           <>
             <div className="hidden overflow-x-auto lg:block">
-              <table className="w-full text-sm">
-                <caption className="sr-only">{t("a2.ac.title")}</caption>
-                <thead>
-                  <tr className="border-b border-border type-th">
+              <GazaTable className="w-full text-sm">
+                <GazaTableCaption className="sr-only">{t("a2.ac.title")}</GazaTableCaption>
+                <GazaTableHeader>
+                  <GazaTableRow className="border-b border-border type-th">
                     {[t("a2.ac.actor"), t("a2.ac.action"), t("a2.ac.module"), t("a2.ac.object"), t("a2.ac.when")].map((h) => (
-                      <th key={h} scope="col" className="px-3 py-2 text-start font-bold">{h}</th>
+                      <GazaTableHead key={h} scope="col" className="px-3 py-2 text-start font-bold">{h}</GazaTableHead>
                     ))}
-                  </tr>
-                </thead>
-                <tbody>
+                  </GazaTableRow>
+                </GazaTableHeader>
+                <GazaTableBody>
                   {rows.map((e) => (
-                    <tr key={e.id} className="border-b border-border last:border-0">
-                      <td className="px-3 py-2">
+                    <GazaTableRow key={e.id} className="border-b border-border last:border-0">
+                      <GazaTableCell className="px-3 py-2">
                         <button type="button" className="font-semibold underline decoration-dotted" onClick={() => setOpen(e)}>
                           {pick(lang, e.actor)}
                         </button>
-                      </td>
-                      <td className="px-3 py-2"><AdminChip tone="muted">{t(`a2.ac.act.${e.action}`)}</AdminChip></td>
-                      <td className="px-3 py-2">{t(e.module)}</td>
-                      <td className="px-3 py-2"><Ltr>{e.object}</Ltr></td>
-                      <td className="px-3 py-2"><Ltr>{e.when}</Ltr></td>
-                    </tr>
+                      </GazaTableCell>
+                      <GazaTableCell className="px-3 py-2"><AdminChip tone="muted">{t(`a2.ac.act.${e.action}`)}</AdminChip></GazaTableCell>
+                      <GazaTableCell className="px-3 py-2">{t(e.module)}</GazaTableCell>
+                      <GazaTableCell className="px-3 py-2"><Ltr>{e.object}</Ltr></GazaTableCell>
+                      <GazaTableCell className="px-3 py-2"><Ltr>{e.when}</Ltr></GazaTableCell>
+                    </GazaTableRow>
                   ))}
-                </tbody>
-              </table>
+                </GazaTableBody>
+              </GazaTable>
             </div>
 
             <ul className="divide-y divide-border lg:hidden">

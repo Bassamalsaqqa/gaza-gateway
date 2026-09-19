@@ -1,3 +1,4 @@
+import { GazaTable, GazaTableBody, GazaTableCaption, GazaTableCell, GazaTableHead, GazaTableHeader, GazaTableRow } from "@/components/gaza-table";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { AppLink } from "@/components/app-link";
@@ -59,37 +60,37 @@ function AdminCustomersPage() {
         ) : (
           <>
             <div className="hidden overflow-x-auto lg:block">
-              <table className="w-full text-sm">
-                <caption className="sr-only">{t("a2.cu.title")}</caption>
-                <thead>
-                  <tr className="border-b border-border type-th">
+              <GazaTable className="w-full text-sm">
+                <GazaTableCaption className="sr-only">{t("a2.cu.title")}</GazaTableCaption>
+                <GazaTableHeader>
+                  <GazaTableRow className="border-b border-border type-th">
                     {[t("a2.cu.customer"), t("a2.cu.email"), t("a2.cu.bookings"), t("a2.cu.upcoming"), t("a2.cu.travelers"), t("a2.cu.language"), t("a2.status")].map((h) => (
-                      <th key={h} scope="col" className="px-3 py-2 text-start font-bold">
+                      <GazaTableHead key={h} scope="col" className="px-3 py-2 text-start font-bold">
                         {h}
-                      </th>
+                      </GazaTableHead>
                     ))}
-                  </tr>
-                </thead>
-                <tbody>
+                  </GazaTableRow>
+                </GazaTableHeader>
+                <GazaTableBody>
                   {rows.map((c) => (
-                    <tr key={c.id} className="border-b border-border last:border-0">
-                      <td className="px-3 py-2">
+                    <GazaTableRow key={c.id} className="border-b border-border last:border-0">
+                      <GazaTableCell className="px-3 py-2">
                         <AppLink to="/admin/customers/$id" params={{ id: c.id }} className="font-semibold underline decoration-dotted">
                           {c.name}
                         </AppLink>
-                      </td>
-                      <td className="px-3 py-2"><Ltr>{c.email}</Ltr></td>
-                      <td className="px-3 py-2"><Ltr>{c.bookings}</Ltr></td>
-                      <td className="px-3 py-2"><Ltr>{c.upcoming}</Ltr></td>
-                      <td className="px-3 py-2"><Ltr>{c.travelers.length}</Ltr></td>
-                      <td className="px-3 py-2">{langLabel(c.language)}</td>
-                      <td className="px-3 py-2">
+                      </GazaTableCell>
+                      <GazaTableCell className="px-3 py-2"><Ltr>{c.email}</Ltr></GazaTableCell>
+                      <GazaTableCell className="px-3 py-2"><Ltr>{c.bookings}</Ltr></GazaTableCell>
+                      <GazaTableCell className="px-3 py-2"><Ltr>{c.upcoming}</Ltr></GazaTableCell>
+                      <GazaTableCell className="px-3 py-2"><Ltr>{c.travelers.length}</Ltr></GazaTableCell>
+                      <GazaTableCell className="px-3 py-2">{langLabel(c.language)}</GazaTableCell>
+                      <GazaTableCell className="px-3 py-2">
                         <AdminChip tone={c.status === "active" ? "brand" : c.status === "guest" ? "info" : "muted"}>{t(`a2.cu.st.${c.status}`)}</AdminChip>
-                      </td>
-                    </tr>
+                      </GazaTableCell>
+                    </GazaTableRow>
                   ))}
-                </tbody>
-              </table>
+                </GazaTableBody>
+              </GazaTable>
             </div>
 
             <ul className="divide-y divide-border lg:hidden">

@@ -1,3 +1,4 @@
+import { GazaTable, GazaTableBody, GazaTableCaption, GazaTableCell, GazaTableHead, GazaTableHeader, GazaTableRow } from "@/components/gaza-table";
 import { AppLink } from "@/components/app-link";
 import { ChevronDown, Plane } from "lucide-react";
 import { Fragment, useState } from "react";
@@ -26,61 +27,61 @@ export function FlightTable({
   }
 
   return (
-    <table className="w-full border-collapse text-start">
-      <caption className="sr-only">{t(mode === "departures" ? "flights.departures" : "flights.arrivals")}</caption>
-      <thead className="hidden sm:table-header-group">
-        <tr className="border-b border-border text-start text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          <th scope="col" className="py-3 pe-4 text-start">
+    <GazaTable className="w-full border-collapse text-start">
+      <GazaTableCaption className="sr-only">{t(mode === "departures" ? "flights.departures" : "flights.arrivals")}</GazaTableCaption>
+      <GazaTableHeader className="hidden sm:table-header-group">
+        <GazaTableRow className="border-b border-border text-start text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <GazaTableHead scope="col" className="py-3 pe-4 text-start">
             {t("flights.scheduled")}
-          </th>
-          <th scope="col" className="py-3 pe-4 text-start">
+          </GazaTableHead>
+          <GazaTableHead scope="col" className="py-3 pe-4 text-start">
             {t("flights.flight")}
-          </th>
-          <th scope="col" className="py-3 pe-4 text-start">
+          </GazaTableHead>
+          <GazaTableHead scope="col" className="py-3 pe-4 text-start">
             {t(mode === "departures" ? "flights.destination" : "flights.origin")}
-          </th>
-          <th scope="col" className="py-3 pe-4 text-start">
+          </GazaTableHead>
+          <GazaTableHead scope="col" className="py-3 pe-4 text-start">
             {t("flights.status")}
-          </th>
+          </GazaTableHead>
           {!compact ? (
-            <th scope="col" className="py-3 pe-4 text-start">
+            <GazaTableHead scope="col" className="py-3 pe-4 text-start">
               {t("flights.gate")}
-            </th>
+            </GazaTableHead>
           ) : null}
-          <th scope="col" className="py-3 text-end">
+          <GazaTableHead scope="col" className="py-3 text-end">
             <span className="sr-only">{t("flights.details")}</span>
-          </th>
-        </tr>
-      </thead>
-      <tbody>
+          </GazaTableHead>
+        </GazaTableRow>
+      </GazaTableHeader>
+      <GazaTableBody>
         {flights.map((flight) => {
           const other = airportByCode(mode === "departures" ? flight.destinationCode : flight.originCode) ?? GZA;
           const time = mode === "departures" ? flight.departTime : flight.arriveTime;
           const expanded = open === flight.id;
           return (
             <Fragment key={flight.id}>
-              <tr className="border-b border-border align-middle">
-                <td className="py-3.5 pe-4">
+              <GazaTableRow className="border-b border-border align-middle">
+                <GazaTableCell className="py-3.5 pe-4">
                   <span className="code-id text-lg font-semibold sm:text-base">{time}</span>
-                </td>
-                <td className="py-3.5 pe-4">
+                </GazaTableCell>
+                <GazaTableCell className="py-3.5 pe-4">
                   <Code className="text-sm font-semibold">{flight.number}</Code>
-                </td>
-                <td className="py-3.5 pe-4">
+                </GazaTableCell>
+                <GazaTableCell className="py-3.5 pe-4">
                   <span className="flex flex-col">
                     <span className="text-sm font-semibold">{pick(lang, other.city)}</span>
                     <Code className="text-xs text-muted-foreground">{other.code}</Code>
                   </span>
-                </td>
-                <td className="py-3.5 pe-4">
+                </GazaTableCell>
+                <GazaTableCell className="py-3.5 pe-4">
                   <StatusBadge status={flight.status} />
-                </td>
+                </GazaTableCell>
                 {!compact ? (
-                  <td className="hidden py-3.5 pe-4 md:table-cell">
+                  <GazaTableCell className="hidden py-3.5 pe-4 md:table-cell">
                     <Code className="text-sm">{flight.gate}</Code>
-                  </td>
+                  </GazaTableCell>
                 ) : null}
-                <td className="py-3.5 text-end">
+                <GazaTableCell className="py-3.5 text-end">
                   <button
                     type="button"
                     onClick={() => setOpen(expanded ? null : flight.id)}
@@ -90,11 +91,11 @@ export function FlightTable({
                     <span className="hidden sm:inline">{t("flights.details")}</span>
                     <ChevronDown aria-hidden="true" className={cn("size-4 transition-transform", expanded && "rotate-180")} />
                   </button>
-                </td>
-              </tr>
+                </GazaTableCell>
+              </GazaTableRow>
               {expanded ? (
-                <tr className="border-b border-border bg-sand/60">
-                  <td colSpan={compact ? 5 : 6} className="px-1 py-4">
+                <GazaTableRow className="border-b border-border bg-sand/60">
+                  <GazaTableCell colSpan={compact ? 5 : 6} className="px-1 py-4">
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                       <Detail label={t("flights.aircraft")} value={flight.aircraft} />
                       <Detail label={t("flights.duration")} value={minutesToLabel(flight.durationMinutes, lang)} mono />
@@ -119,14 +120,14 @@ export function FlightTable({
                         {t("flights.book")}
                       </AppLink>
                     </div>
-                  </td>
-                </tr>
+                  </GazaTableCell>
+                </GazaTableRow>
               ) : null}
             </Fragment>
           );
         })}
-      </tbody>
-    </table>
+      </GazaTableBody>
+    </GazaTable>
   );
 }
 

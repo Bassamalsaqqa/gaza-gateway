@@ -1,3 +1,4 @@
+import { GazaTable, GazaTableBody, GazaTableCaption, GazaTableCell, GazaTableHead, GazaTableHeader, GazaTableRow } from "@/components/gaza-table";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
@@ -152,25 +153,25 @@ function AdminBookingsPage() {
         ) : (
           <>
             <div className="hidden overflow-x-auto xl:block">
-              <table className="w-full min-w-[62rem] text-sm">
-                <caption className="sr-only">{t("a2.bk.title")}</caption>
-                <thead>
-                  <tr className="border-b border-border type-th">
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bk.pnr")}</th>
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bk.lead")}</th>
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bk.route")}</th>
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bk.date")}</th>
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bk.pax")}</th>
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bk.cabin")}</th>
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bk.total")}</th>
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bk.checkin")}</th>
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("a2.status")}</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <GazaTable className="w-full min-w-[62rem] text-sm">
+                <GazaTableCaption className="sr-only">{t("a2.bk.title")}</GazaTableCaption>
+                <GazaTableHeader>
+                  <GazaTableRow className="border-b border-border type-th">
+                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bk.pnr")}</GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bk.lead")}</GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bk.route")}</GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bk.date")}</GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bk.pax")}</GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bk.cabin")}</GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bk.total")}</GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bk.checkin")}</GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("a2.status")}</GazaTableHead>
+                  </GazaTableRow>
+                </GazaTableHeader>
+                <GazaTableBody>
                   {rows.map((b) => (
-                    <tr key={b.ref} className="border-b border-border last:border-0 hover:bg-secondary/50">
-                      <td className="px-3 py-2">
+                    <GazaTableRow key={b.ref} className="border-b border-border last:border-0 hover:bg-secondary/50">
+                      <GazaTableCell className="px-3 py-2">
                         <AppLink
                           to="/admin/bookings/$ref"
                           params={{ ref: b.ref }}
@@ -178,31 +179,31 @@ function AdminBookingsPage() {
                         >
                           <Ltr>{b.ref}</Ltr>
                         </AppLink>
-                      </td>
-                      <td className="px-3 py-2">{b.lead}</td>
-                      <td className="px-3 py-2">
+                      </GazaTableCell>
+                      <GazaTableCell className="px-3 py-2">{b.lead}</GazaTableCell>
+                      <GazaTableCell className="px-3 py-2">
                         <Ltr>{b.route}</Ltr>
-                      </td>
-                      <td className="px-3 py-2">
+                      </GazaTableCell>
+                      <GazaTableCell className="px-3 py-2">
                         <Ltr>{b.date}</Ltr>
-                      </td>
-                      <td className="px-3 py-2">
+                      </GazaTableCell>
+                      <GazaTableCell className="px-3 py-2">
                         <Ltr>{b.paxCount}</Ltr>
-                      </td>
-                      <td className="px-3 py-2 text-muted-foreground">{`${b.cabin} · ${b.fare}`}</td>
-                      <td className="px-3 py-2">
+                      </GazaTableCell>
+                      <GazaTableCell className="px-3 py-2 text-muted-foreground">{`${b.cabin} · ${b.fare}`}</GazaTableCell>
+                      <GazaTableCell className="px-3 py-2">
                         <Ltr>{money(b.total, lang)}</Ltr>
-                      </td>
-                      <td className="px-3 py-2">
+                      </GazaTableCell>
+                      <GazaTableCell className="px-3 py-2">
                         <Ltr>{checkinLabel(b)}</Ltr>
-                      </td>
-                      <td className="px-3 py-2">
+                      </GazaTableCell>
+                      <GazaTableCell className="px-3 py-2">
                         <AdminChip tone={bookingStatusChip(b.status)}>{t(`a2.bk.st.${b.status}`)}</AdminChip>
-                      </td>
-                    </tr>
+                      </GazaTableCell>
+                    </GazaTableRow>
                   ))}
-                </tbody>
-              </table>
+                </GazaTableBody>
+              </GazaTable>
             </div>
 
             <ul className="divide-y divide-border xl:hidden">

@@ -1,3 +1,4 @@
+import { GazaTable, GazaTableBody, GazaTableCaption, GazaTableCell, GazaTableHead, GazaTableHeader, GazaTableRow } from "@/components/gaza-table";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { PlaneLanding, PlaneTakeoff } from "lucide-react";
@@ -137,24 +138,25 @@ function AdminDashboardPage() {
     <AdminPanel title={t("adm.dash.operation")} description={t("adm.dash.operationSub")} bodyClassName="p-0">
       {/* Desktop table */}
       <div className="hidden overflow-x-auto xl:block">
-        <table className="w-full min-w-[58rem] text-sm">
-          <thead>
-            <tr className="border-b border-border type-th">
-              <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.time")}</th>
-              <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.flight")}</th>
-              <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.route")}</th>
-              <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.aircraft")}</th>
-              <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.gate")}</th>
-              <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.load")}</th>
-              <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.checkin")}</th>
-              <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.status")}</th>
-              <th scope="col" className="px-3 py-2 text-end font-bold">{t("adm.col.actions")}</th>
-            </tr>
-          </thead>
-          <tbody>
+        <GazaTable className="w-full min-w-[58rem] text-sm">
+          <GazaTableCaption>{t("adm.dash.operation")}</GazaTableCaption>
+          <GazaTableHeader>
+            <GazaTableRow className="border-b border-border type-th">
+              <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.time")}</GazaTableHead>
+              <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.flight")}</GazaTableHead>
+              <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.route")}</GazaTableHead>
+              <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.aircraft")}</GazaTableHead>
+              <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.gate")}</GazaTableHead>
+              <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.load")}</GazaTableHead>
+              <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.checkin")}</GazaTableHead>
+              <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.status")}</GazaTableHead>
+              <GazaTableHead scope="col" className="px-3 py-2 text-end font-bold">{t("adm.col.actions")}</GazaTableHead>
+            </GazaTableRow>
+          </GazaTableHeader>
+          <GazaTableBody>
             {data.operation.map((f) => (
-              <tr key={`${f.id}-${f.direction}`} className="border-b border-border last:border-0">
-                <td className="px-3 py-2">
+              <GazaTableRow key={`${f.id}-${f.direction}`} className="border-b border-border last:border-0">
+                <GazaTableCell className="px-3 py-2">
                   <Ltr className="font-semibold">{f.direction === "dep" ? f.departTime : f.arriveTime}</Ltr>
                   <span className="ms-1.5 inline-flex align-middle text-muted-foreground">
                     {f.direction === "dep" ? (
@@ -170,24 +172,24 @@ function AdminDashboardPage() {
                       </AdminChip>
                     </span>
                   ) : null}
-                </td>
-                <td className="px-3 py-2">
+                </GazaTableCell>
+                <GazaTableCell className="px-3 py-2">
                   <Ltr className="font-bold">{f.number}</Ltr>
-                </td>
-                <td className="px-3 py-2">
+                </GazaTableCell>
+                <GazaTableCell className="px-3 py-2">
                   <Ltr>{`${f.originCode} → ${f.destinationCode}`}</Ltr>
-                </td>
-                <td className="px-3 py-2 text-muted-foreground">
+                </GazaTableCell>
+                <GazaTableCell className="px-3 py-2 text-muted-foreground">
                   <Ltr>{f.aircraft}</Ltr>
-                </td>
-                <td className="px-3 py-2">
+                </GazaTableCell>
+                <GazaTableCell className="px-3 py-2">
                   {f.gate ? (
                     <Ltr>{`${f.terminal} · ${f.gate}`}</Ltr>
                   ) : (
                     <AdminChip tone="warn">{t("adm.flight.noGate")}</AdminChip>
                   )}
-                </td>
-                <td className="px-3 py-2">
+                </GazaTableCell>
+                <GazaTableCell className="px-3 py-2">
                   <span className="flex items-center gap-2">
                     <span aria-hidden="true" className="h-1.5 w-16 overflow-hidden rounded-full bg-secondary">
                       <span
@@ -198,8 +200,8 @@ function AdminDashboardPage() {
                     <Ltr className="text-xs text-muted-foreground">{`${loadOf(f)}/${CAPACITY}`}</Ltr>
                   </span>
                   <span className="sr-only">{t("adm.flight.loadOf", { n: loadOf(f), total: CAPACITY })}</span>
-                </td>
-                <td className="px-3 py-2">
+                </GazaTableCell>
+                <GazaTableCell className="px-3 py-2">
                   {checkinFor(f).total === 0 ? (
                     <span className="text-xs text-muted-foreground">—</span>
                   ) : (
@@ -207,11 +209,11 @@ function AdminDashboardPage() {
                       {t("adm.flight.checkedOf", { n: checkinFor(f).checked, total: checkinFor(f).total })}
                     </AdminChip>
                   )}
-                </td>
-                <td className="px-3 py-2">
+                </GazaTableCell>
+                <GazaTableCell className="px-3 py-2">
                   <StatusBadge status={f.status} />
-                </td>
-                <td className="whitespace-nowrap px-3 py-2 text-end">
+                </GazaTableCell>
+                <GazaTableCell className="whitespace-nowrap px-3 py-2 text-end">
                   <PermissionButton
                     allowed={mayEditOps}
                     reason={t("adm.edit.readOnly")}
@@ -219,11 +221,11 @@ function AdminDashboardPage() {
                   >
                     {t("adm.flight.quickEdit")}
                   </PermissionButton>
-                </td>
-              </tr>
+                </GazaTableCell>
+              </GazaTableRow>
             ))}
-          </tbody>
-        </table>
+          </GazaTableBody>
+        </GazaTable>
       </div>
 
       {/* Mobile / tablet stacked list */}
@@ -361,25 +363,26 @@ function AdminDashboardPage() {
 
           {/* Desktop / tablet table */}
           <div className="hidden overflow-x-auto sm:block">
-            <table className="w-full min-w-[34rem] text-sm">
-              <thead>
-                <tr className="border-b border-border type-th">
-                  <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.pnr")}</th>
-                  <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.passenger")}</th>
-                  <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.route")}</th>
-                  <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.date")}</th>
-                  <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.checkin")}</th>
-                  <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.status")}</th>
-                </tr>
-              </thead>
-              <tbody>
+            <GazaTable className="w-full min-w-[34rem] text-sm">
+              <GazaTableCaption>{t("adm.dash.recent")}</GazaTableCaption>
+              <GazaTableHeader>
+                <GazaTableRow className="border-b border-border type-th">
+                  <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.pnr")}</GazaTableHead>
+                  <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.passenger")}</GazaTableHead>
+                  <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.route")}</GazaTableHead>
+                  <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.date")}</GazaTableHead>
+                  <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.checkin")}</GazaTableHead>
+                  <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.status")}</GazaTableHead>
+                </GazaTableRow>
+              </GazaTableHeader>
+              <GazaTableBody>
                 {data.recent.map((b) => {
                   const lead = b.passengers[0];
                   const checked = checkedInPax(b, "out").length;
                   const total = seatedPassengers(b).length;
                   return (
-                    <tr key={b.ref} className="border-b border-border last:border-0">
-                      <td className="px-3 py-2">
+                    <GazaTableRow key={b.ref} className="border-b border-border last:border-0">
+                      <GazaTableCell className="px-3 py-2">
                         <AppLink
                           to="/admin/bookings/$ref"
                           params={{ ref: b.ref }}
@@ -387,13 +390,13 @@ function AdminDashboardPage() {
                         >
                           <Ltr>{b.ref}</Ltr>
                         </AppLink>
-                      </td>
-                      <td className="px-3 py-2">{`${lead?.firstName ?? ""} ${lead?.lastName ?? ""}`.trim() || "—"}</td>
-                      <td className="px-3 py-2">
+                      </GazaTableCell>
+                      <GazaTableCell className="px-3 py-2">{`${lead?.firstName ?? ""} ${lead?.lastName ?? ""}`.trim() || "—"}</GazaTableCell>
+                      <GazaTableCell className="px-3 py-2">
                         <Ltr>{`${b.outbound.originCode} → ${b.outbound.destinationCode}`}</Ltr>
-                      </td>
-                      <td className="px-3 py-2 text-muted-foreground">{dateShort(b.outbound.date, lang)}</td>
-                      <td className="px-3 py-2">
+                      </GazaTableCell>
+                      <GazaTableCell className="px-3 py-2 text-muted-foreground">{dateShort(b.outbound.date, lang)}</GazaTableCell>
+                      <GazaTableCell className="px-3 py-2">
                         {b.status === "cancelled" ? (
                           <span className="text-xs text-muted-foreground">—</span>
                         ) : (
@@ -401,17 +404,17 @@ function AdminDashboardPage() {
                             {t("adm.flight.checkedOf", { n: checked, total })}
                           </AdminChip>
                         )}
-                      </td>
-                      <td className="px-3 py-2">
+                      </GazaTableCell>
+                      <GazaTableCell className="px-3 py-2">
                         <AdminChip tone={b.status === "cancelled" ? "danger" : "brand"}>
                           {t(`adm.booking.${b.status}`)}
                         </AdminChip>
-                      </td>
-                    </tr>
+                      </GazaTableCell>
+                    </GazaTableRow>
                   );
                 })}
-              </tbody>
-            </table>
+              </GazaTableBody>
+            </GazaTable>
           </div>
         </>
       )}
