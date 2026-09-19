@@ -1,33 +1,170 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Archive, MapPin, PlaneTakeoff, Search, Ticket, UsersRound, X } from "lucide-react";
+import {
+  Archive,
+  CalendarClock,
+  Command,
+  Inbox,
+  Landmark,
+  LayoutDashboard,
+  MapPin,
+  PlaneLanding,
+  PlaneTakeoff,
+  PlusCircle,
+  Search,
+  Ticket,
+  UsersRound,
+  X,
+} from "lucide-react";
 import { pick, useI18n } from "@/lib/i18n";
-import { useStore } from "@/lib/store";
 import { useAdmin } from "@/lib/admin-store";
-import { contentItems } from "@/lib/admin";
+import { contentItems, type Permission } from "@/lib/admin";
+import { mockBookings, mockCustomers } from "@/lib/admin-mock";
 import { arrivalsOn, departuresOn, destinations, todayISO } from "@/lib/data";
 import { useAppNavigate } from "@/components/app-link";
 import { cn } from "@/lib/utils";
-import { AdminChip, Ltr } from "./admin-kit";
+import { Ltr } from "./admin-kit";
 
-type GroupId = "flights" | "bookings" | "customers" | "destinations" | "content";
+type GroupId = "commands" | "flights" | "bookings" | "customers" | "destinations" | "content";
 
 type Result = {
   id: string;
   group: GroupId;
   title: string;
   meta: string;
-  /** Canonical English path, or null when the target module is not built yet. */
-  to: string | null;
-  params?: Record<string, string>;
+  to: string;
+  params?: Record<string, string> | undefined;
+  search?: Record<string, unknown> | undefined;
+  icon?: typeof Search | undefined;
 };
 
 const groupIcons: Record<GroupId, typeof Search> = {
+  commands: Command,
   flights: PlaneTakeoff,
   bookings: Ticket,
   customers: UsersRound,
   destinations: MapPin,
   content: Archive,
 };
+
+interface AdminCommandDef {
+  id: string;
+  key: string;
+  to: string;
+  permission?: Permission | undefined;
+  search?: Record<string, unknown> | undefined;
+  icon: typeof Search;
+  keywords: string[];
+}
+
+const COMMAND_DEFINITIONS: AdminCommandDef[] = [
+  {
+    id: "cmd-dashboard",
+    key: "adm.nav.dashboard",
+    to: "/admin",
+    permission: "dashboard.view",
+    icon: LayoutDashboard,
+    keywords: ["dashboard", "home", "لوحة المتابعة", "الرئيسية"],
+  },
+  {
+    id: "cmd-flights",
+    key: "adm.nav.flights",
+    to: "/admin/flights",
+    permission: "ops.view",
+    icon: PlaneTakeoff,
+    keywords: ["flight", "board", "رحلات", "لوحة", "طيران", "عمليات", "ops"],
+  },
+  {
+    id: "cmd-arrivals",
+    key: "adm.cmd.filterArrivals",
+    to: "/admin/flights",
+    permission: "ops.view",
+    search: { dir: "arr" },
+    icon: PlaneLanding,
+    keywords: ["arrival", "arrivals", "قادمة", "وصول", "هبوط", "arr"],
+  },
+  {
+    id: "cmd-departures",
+    key: "adm.cmd.filterDepartures",
+    to: "/admin/flights",
+    permission: "ops.view",
+    search: { dir: "dep" },
+    icon: PlaneTakeoff,
+    keywords: ["departure", "departures", "مغادرة", "إقلاع", "dep"],
+  },
+  {
+    id: "cmd-delayed",
+    key: "adm.cmd.filterDelayed",
+    to: "/admin/flights",
+    permission: "ops.view",
+    search: { status: "delayed" },
+    icon: PlaneTakeoff,
+    keywords: ["delayed", "delay", "متأخرة", "تأخير"],
+  },
+  {
+    id: "cmd-new-booking",
+    key: "adm.cmd.newBooking",
+    to: "/admin/bookings/new",
+    permission: "commercial.edit",
+    icon: PlusCircle,
+    keywords: ["new booking", "create booking", "حجز جديد", "إنشاء حجز"],
+  },
+  {
+    id: "cmd-bookings",
+    key: "adm.nav.bookings",
+    to: "/admin/bookings",
+    permission: "commercial.view",
+    icon: Ticket,
+    keywords: ["booking", "bookings", "pnr", "حجز", "حجوزات", "سجل"],
+  },
+  {
+    id: "cmd-customers",
+    key: "adm.nav.customers",
+    to: "/admin/customers",
+    permission: "commercial.view",
+    icon: UsersRound,
+    keywords: ["customer", "passenger", "traveler", "عميل", "مسافر", "ركاب", "دليل"],
+  },
+  {
+    id: "cmd-destinations",
+    key: "adm.nav.destinations",
+    to: "/admin/destinations",
+    permission: "ops.view",
+    icon: MapPin,
+    keywords: ["destination", "destinations", "route", "routes", "وجهات", "محطات", "خطوط"],
+  },
+  {
+    id: "cmd-schedules",
+    key: "adm.cmd.newSchedule",
+    to: "/admin/schedules",
+    permission: "ops.edit",
+    icon: CalendarClock,
+    keywords: ["schedule", "timetable", "مواعيد", "جدول", "جداول"],
+  },
+  {
+    id: "cmd-inbox",
+    key: "adm.nav.inbox",
+    to: "/admin/inbox",
+    permission: "engagement.view",
+    icon: Inbox,
+    keywords: ["inbox", "messages", "requests", "بريد", "صندوق", "رسائل", "طلبات"],
+  },
+  {
+    id: "cmd-website",
+    key: "a2.nav.website",
+    to: "/admin/website",
+    permission: "content.view",
+    icon: Archive,
+    keywords: ["website", "content", "cms", "موقع", "محتوى", "بوابة"],
+  },
+  {
+    id: "cmd-airport",
+    key: "a2.nav.airport",
+    to: "/admin/airport",
+    permission: "content.view",
+    icon: Landmark,
+    keywords: ["airport", "facility", "runway", "gate", "مطار", "مرافق", "مدارج", "بوابات"],
+  },
+];
 
 function normalizeSearch(text: string): string {
   return text
@@ -41,8 +178,7 @@ function normalizeSearch(text: string): string {
 
 export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t, lang } = useI18n();
-  const { bookings, travelers } = useStore();
-  const { toast, can } = useAdmin();
+  const { can } = useAdmin();
   const navigate = useAppNavigate();
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
@@ -57,27 +193,59 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
   const today = todayISO();
 
   const suggestions = useMemo(() => {
-    if (canCommercial || canOps) return ["PS", "GZA", "AMM", "IST"];
+    if (canCommercial || canOps) return ["PS", "GZA", "AMM", "IST", "Delayed"];
     return ["GZA", "AMM", "IST", "Archive"];
   }, [canCommercial, canOps]);
 
+  // Permitted commands
+  const permittedCommands = useMemo(() => {
+    return COMMAND_DEFINITIONS.filter((c) => !c.permission || can(c.permission));
+  }, [can]);
+
   const results = useMemo<Result[]>(() => {
     const raw = query.trim();
-    if (!raw) return [];
     const q = normalizeSearch(raw);
     const out: Result[] = [];
 
-    // 1. Flights (requires ops.view)
+    // If query is empty, surface permitted quick commands
+    if (!raw) {
+      for (const cmd of permittedCommands) {
+        out.push({
+          id: cmd.id,
+          group: "commands",
+          title: t(cmd.key),
+          meta: cmd.to,
+          to: cmd.to,
+          search: cmd.search,
+          icon: cmd.icon,
+        });
+      }
+      return out;
+    }
+
+    // 1. Commands matching query
+    for (const cmd of permittedCommands) {
+      const title = t(cmd.key);
+      const hay = normalizeSearch(`${title} ${cmd.keywords.join(" ")} ${cmd.to}`);
+      if (hay.includes(q)) {
+        out.push({
+          id: cmd.id,
+          group: "commands",
+          title,
+          meta: cmd.to,
+          to: cmd.to,
+          search: cmd.search,
+          icon: cmd.icon,
+        });
+      }
+    }
+
+    // 2. Flights (requires ops.view)
     if (canOps) {
       const flightMap = new Map<string, typeof departuresOn extends (d: string) => (infer F)[] ? F : never>();
       for (const f of [...departuresOn(today), ...arrivalsOn(today)]) {
         flightMap.set(f.id, f);
       }
-      for (const b of bookings) {
-        if (b.outbound && !flightMap.has(b.outbound.id)) flightMap.set(b.outbound.id, b.outbound);
-        if (b.inbound && !flightMap.has(b.inbound.id)) flightMap.set(b.inbound.id, b.inbound);
-      }
-
       for (const f of flightMap.values()) {
         const hay = normalizeSearch(`${f.number} ${f.originCode} ${f.destinationCode} ${f.aircraft}`);
         if (hay.includes(q)) {
@@ -90,47 +258,45 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
             params: { flightId: f.id },
           });
         }
-        if (out.length >= 8) break;
+        if (out.length >= 12) break;
       }
     }
 
-    // 2. Bookings and customers (requires commercial.view)
+    // 3. Bookings and customers (requires commercial.view)
     if (canCommercial) {
       const seenEmails = new Set<string>();
-      for (const b of bookings) {
-        const lead = b.passengers[0];
-        const leadName = lead ? `${lead.firstName} ${lead.lastName}`.trim() : "";
-        const hay = normalizeSearch(`${b.ref} ${leadName} ${b.contact.email}`);
+      for (const b of mockBookings) {
+        const hay = normalizeSearch(`${b.ref} ${b.lead} ${b.email} ${b.route} ${b.flightOut}`);
         if (hay.includes(q)) {
           out.push({
             id: `b-${b.ref}`,
             group: "bookings",
             title: b.ref,
-            meta: `${leadName} · ${b.outbound.originCode} → ${b.outbound.destinationCode}`.trim(),
-            to: null,
+            meta: `${b.lead} · ${b.route}`,
+            to: "/admin/bookings/$ref",
+            params: { ref: b.ref },
           });
-        }
-        if (lead && leadName) {
-          const nameHay = normalizeSearch(leadName);
-          const emailHay = normalizeSearch(b.contact.email || "");
-          if ((nameHay.includes(q) || emailHay.includes(q)) && !seenEmails.has(b.contact.email || leadName)) {
-            seenEmails.add(b.contact.email || leadName);
-            out.push({ id: `c-${b.ref}`, group: "customers", title: leadName, meta: b.contact.email || b.ref, to: null });
-          }
         }
       }
 
-      for (const tr of travelers) {
-        const name = `${tr.firstName} ${tr.lastName}`.trim();
-        const trHay = normalizeSearch(`${name} ${tr.nationality || ""} ${tr.document || ""}`);
-        if (trHay.includes(q) && !seenEmails.has(name)) {
-          seenEmails.add(name);
-          out.push({ id: `tr-${tr.id}`, group: "customers", title: name, meta: tr.nationality || tr.document || "", to: null });
+      // Check mockCustomers
+      for (const mc of mockCustomers) {
+        const hay = normalizeSearch(`${mc.name} ${mc.email} ${mc.phone} ${mc.id}`);
+        if (hay.includes(q) && !seenEmails.has(mc.email)) {
+          seenEmails.add(mc.email);
+          out.push({
+            id: `mc-${mc.id}`,
+            group: "customers",
+            title: mc.name,
+            meta: `${mc.email} · ${mc.phone}`,
+            to: "/admin/customers/$id",
+            params: { id: mc.id },
+          });
         }
       }
     }
 
-    // 3. Destinations (requires ops.view or content.view)
+    // 4. Destinations (requires ops.view or content.view)
     if (canOps || canContent) {
       for (const d of destinations) {
         const labelEn = d.city.en;
@@ -152,20 +318,26 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
       }
     }
 
-    // 4. Content (requires content.view)
+    // 5. Content (requires content.view)
     if (canContent) {
       for (const c of contentItems) {
         const label = t(c.titleKey);
         const moduleLabel = t(c.module);
         const hay = normalizeSearch(`${label} ${moduleLabel}`);
         if (hay.includes(q)) {
-          out.push({ id: `k-${c.id}`, group: "content", title: label, meta: moduleLabel, to: null });
+          out.push({
+            id: `k-${c.id}`,
+            group: "content",
+            title: label,
+            meta: moduleLabel,
+            to: "/admin/website",
+          });
         }
       }
     }
 
     return out.slice(0, 30);
-  }, [query, bookings, travelers, lang, t, today, canOps, canCommercial, canContent]);
+  }, [query, lang, t, today, canOps, canCommercial, canContent, permittedCommands]);
 
   useEffect(() => setActive(0), [query]);
 
@@ -203,7 +375,7 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
 
   if (!open) return null;
 
-  const grouped = (["flights", "bookings", "customers", "destinations", "content"] as GroupId[])
+  const grouped = (["commands", "flights", "bookings", "customers", "destinations", "content"] as GroupId[])
     .map((g) => ({ group: g, items: results.filter((r) => r.group === g) }))
     .filter((g) => g.items.length > 0);
   const flat = grouped.flatMap((g) => g.items);
@@ -211,21 +383,35 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
   const activate = (result: Result | undefined) => {
     if (!result) return;
     onClose();
-    if (result.to) {
-      void navigate(result.params ? { to: result.to, params: result.params } : { to: result.to });
-      return;
+    if (result.params && result.search) {
+      void navigate({ to: result.to, params: result.params, search: result.search });
+    } else if (result.params) {
+      void navigate({ to: result.to, params: result.params });
+    } else if (result.search) {
+      void navigate({ to: result.to, search: result.search });
+    } else {
+      void navigate({ to: result.to });
     }
-    toast(t("adm.quick.later", { action: result.title }));
   };
 
   const onInputKey = (e: React.KeyboardEvent) => {
     if (flat.length === 0) return;
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setActive((i) => Math.min(flat.length - 1, i + 1));
+      const next = Math.min(flat.length - 1, active + 1);
+      setActive(next);
+      const targetId = flat[next]?.id;
+      if (targetId) {
+        document.getElementById(`admin-search-opt-${targetId}`)?.scrollIntoView({ block: "nearest" });
+      }
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      setActive((i) => Math.max(0, i - 1));
+      const prev = Math.max(0, active - 1);
+      setActive(prev);
+      const targetId = flat[prev]?.id;
+      if (targetId) {
+        document.getElementById(`admin-search-opt-${targetId}`)?.scrollIntoView({ block: "nearest" });
+      }
     } else if (e.key === "Enter") {
       e.preventDefault();
       activate(flat[active]);
@@ -269,7 +455,7 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
                 inputRef.current?.focus();
               }}
               aria-label={t("adm.search.clear")}
-              className="rounded-md p-1 text-muted-foreground hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md p-1 text-muted-foreground hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               <X aria-hidden="true" className="size-4" />
             </button>
@@ -278,7 +464,7 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
             type="button"
             onClick={onClose}
             aria-label={t("adm.search.close")}
-            className="rounded-md p-1 text-muted-foreground hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md p-1 text-muted-foreground hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             <X aria-hidden="true" className="size-4" />
           </button>
@@ -286,11 +472,11 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
 
         <div id="admin-search-results" className="flex-1 overflow-y-auto">
           {query.trim() === "" ? (
-            <div className="px-4 py-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                {t("adm.search.suggested")}
-              </p>
-              <div className="mt-2 flex flex-wrap gap-2">
+            <div className="px-4 py-3">
+              <div className="flex flex-wrap items-center gap-2 pb-2">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {t("adm.search.suggested")}
+                </span>
                 {suggestions.map((s) => (
                   <button
                     key={s}
@@ -302,7 +488,47 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
                   </button>
                 ))}
               </div>
-              <p className="mt-4 text-xs text-muted-foreground">{t("adm.search.hintKeys")}</p>
+              <ul id="admin-search-listbox" role="listbox" aria-label={t("adm.search.results")} className="py-1">
+                {grouped.map((g) => {
+                  return (
+                    <li key={g.group} role="presentation">
+                      <p className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        {t(`adm.search.group.${g.group}`)}
+                      </p>
+                      <ul role="presentation">
+                        {g.items.map((r) => {
+                          cursor += 1;
+                          const index = cursor;
+                          const ItemIcon = r.icon || groupIcons[r.group];
+                          return (
+                            <li
+                              key={r.id}
+                              id={`admin-search-opt-${r.id}`}
+                              role="option"
+                              aria-selected={index === active}
+                              onMouseEnter={() => setActive(index)}
+                              onClick={() => activate(r)}
+                              className={cn(
+                                "flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-start text-sm select-none",
+                                index === active ? "bg-secondary text-foreground" : "hover:bg-secondary/60",
+                              )}
+                            >
+                              <ItemIcon aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+                              <span className="min-w-0 flex-1 truncate font-semibold">
+                                {r.group === "flights" || r.group === "bookings" ? <Ltr>{r.title}</Ltr> : r.title}
+                              </span>
+                              <span dir="ltr" className="hidden truncate text-xs text-muted-foreground sm:block">
+                                {r.meta}
+                              </span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </li>
+                  );
+                })}
+              </ul>
+              <p className="border-t border-border pt-3 text-xs text-muted-foreground">{t("adm.search.hintKeys")}</p>
             </div>
           ) : flat.length === 0 ? (
             <div className="px-4 py-8 text-center">
@@ -312,7 +538,6 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
           ) : (
             <ul id="admin-search-listbox" role="listbox" aria-label={t("adm.search.results")} className="py-1">
               {grouped.map((g) => {
-                const Icon = groupIcons[g.group];
                 return (
                   <li key={g.group} role="presentation">
                     <p className="px-4 pb-1 pt-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -322,6 +547,7 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
                       {g.items.map((r) => {
                         cursor += 1;
                         const index = cursor;
+                        const ItemIcon = r.icon || groupIcons[r.group];
                         return (
                           <li
                             key={r.id}
@@ -332,17 +558,16 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
                             onClick={() => activate(r)}
                             className={cn(
                               "flex w-full cursor-pointer items-center gap-3 px-4 py-2 text-start text-sm select-none",
-                              index === active ? "bg-secondary" : "hover:bg-secondary/60",
+                              index === active ? "bg-secondary text-foreground" : "hover:bg-secondary/60",
                             )}
                           >
-                            <Icon aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+                            <ItemIcon aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
                             <span className="min-w-0 flex-1 truncate font-semibold">
                               {r.group === "flights" || r.group === "bookings" ? <Ltr>{r.title}</Ltr> : r.title}
                             </span>
                             <span dir="ltr" className="hidden truncate text-xs text-muted-foreground sm:block">
                               {r.meta}
                             </span>
-                            {!r.to ? <AdminChip tone="muted">{t("adm.search.later")}</AdminChip> : null}
                           </li>
                         );
                       })}

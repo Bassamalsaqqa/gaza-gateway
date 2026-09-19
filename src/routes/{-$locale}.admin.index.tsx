@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { PlaneLanding, PlaneTakeoff } from "lucide-react";
+import { AppLink } from "@/components/app-link";
 import { Field, Input, Select, Textarea, btnClass } from "@/components/kit";
 import { StatusBadge } from "@/components/flight-status";
 import {
@@ -123,11 +124,11 @@ function AdminDashboardPage() {
   const quickActions = useMemo(
     () =>
       [
-        { key: "adm.quick.schedule", permission: "ops.edit" as const, show: mayOps },
-        { key: "adm.quick.booking", permission: "commercial.edit" as const, show: mayCommercial },
-        { key: "adm.quick.media", permission: "content.edit" as const, show: mayContent },
-        { key: "adm.quick.archive", permission: "content.edit" as const, show: mayContent },
-        { key: "adm.quick.homepage", permission: "content.edit" as const, show: mayContent },
+        { key: "adm.quick.schedule", to: "/admin/schedules", permission: "ops.edit" as const, show: mayOps },
+        { key: "adm.quick.booking", to: "/admin/bookings/new", permission: "commercial.edit" as const, show: mayCommercial },
+        { key: "adm.quick.media", to: "/admin/website", permission: "content.edit" as const, show: mayContent },
+        { key: "adm.quick.archive", to: "/admin/airport", permission: "content.edit" as const, show: mayContent },
+        { key: "adm.quick.homepage", to: "/admin/website", permission: "content.edit" as const, show: mayContent },
       ].filter((a) => a.show),
     [mayOps, mayCommercial, mayContent],
   );
@@ -324,7 +325,13 @@ function AdminDashboardPage() {
               return (
                 <li key={`${b.ref}-m`} className="space-y-1.5 p-3">
                   <div className="flex items-center justify-between gap-2">
-                    <Ltr className="text-sm font-bold">{b.ref}</Ltr>
+                    <AppLink
+                      to="/admin/bookings/$ref"
+                      params={{ ref: b.ref }}
+                      className="text-sm font-bold text-foreground underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <Ltr>{b.ref}</Ltr>
+                    </AppLink>
                     <AdminChip tone={b.status === "cancelled" ? "danger" : "brand"}>
                       {t(`adm.booking.${b.status}`)}
                     </AdminChip>
@@ -373,7 +380,13 @@ function AdminDashboardPage() {
                   return (
                     <tr key={b.ref} className="border-b border-border last:border-0">
                       <td className="px-3 py-2">
-                        <Ltr className="font-bold">{b.ref}</Ltr>
+                        <AppLink
+                          to="/admin/bookings/$ref"
+                          params={{ ref: b.ref }}
+                          className="font-bold text-foreground underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          <Ltr>{b.ref}</Ltr>
+                        </AppLink>
                       </td>
                       <td className="px-3 py-2">{`${lead?.firstName ?? ""} ${lead?.lastName ?? ""}`.trim() || "—"}</td>
                       <td className="px-3 py-2">
@@ -411,25 +424,34 @@ function AdminDashboardPage() {
         {quickActions.map((action) => {
           const label = t(action.key);
           const allowed = can(action.permission);
+          if (!allowed) {
+            return (
+              <PermissionButton
+                key={action.key}
+                allowed={false}
+                reason={t("adm.quick.noPermission")}
+              >
+                {label}
+              </PermissionButton>
+            );
+          }
           return (
-            <PermissionButton
+            <AppLink
               key={action.key}
-              allowed={allowed}
-              reason={t("adm.quick.noPermission")}
-              onClick={() => toast(t("adm.quick.later", { action: label }))}
+              to={action.to}
+              className={btnClass("outline", "sm")}
             >
               {label}
-            </PermissionButton>
+            </AppLink>
           );
         })}
         {mayCommercial ? (
-          <button
-            type="button"
-            onClick={() => toast(t("adm.quick.later", { action: t("adm.quick.findBooking") }))}
+          <AppLink
+            to="/admin/bookings"
             className={btnClass("primary", "sm")}
           >
             {t("adm.quick.findBooking")}
-          </button>
+          </AppLink>
         ) : null}
       </div>
     </AdminPanel>
@@ -440,15 +462,21 @@ function AdminDashboardPage() {
       <AdminPageHeader
         title={t("adm.dash.title")}
         description={t("adm.dash.sub", { date: dateLong(data.today, lang) })}
+        meta={
+          <div className="flex items-center gap-2">
+            <AdminChip tone="muted" className="text-[11px]">
+              {t("adm.shell.simulation")}
+            </AdminChip>
+          </div>
+        }
         action={
           mayOps ? (
-            <button
-              type="button"
-              onClick={() => toast(t("adm.quick.later", { action: t("adm.dash.allFlights") }))}
+            <AppLink
+              to="/admin/flights"
               className={btnClass("outline", "sm")}
             >
               {t("adm.dash.allFlights")}
-            </button>
+            </AppLink>
           ) : null
         }
       />

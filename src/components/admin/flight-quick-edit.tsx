@@ -15,6 +15,8 @@ export const FLIGHT_STATUSES: FlightStatus[] = [
   "Cancelled",
 ];
 
+export const GATE_IDENTIFIER_PATTERN = /^[A-Za-z0-9]{1,10}$/;
+
 export type QuickEditFlight = Flight & { note?: string; revisedDepart?: string };
 
 /**
@@ -28,22 +30,40 @@ export function FlightQuickEdit({ flight, onClose }: { flight: QuickEditFlight |
 
   const [form, setForm] = useState(() => blank(flight));
   const [loaded, setLoaded] = useState<string | null>(flight?.id ?? null);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   // Reset the form whenever a different flight is opened.
   if (flight && flight.id !== loaded) {
     setLoaded(flight.id);
     setForm(blank(flight));
+    setValidationError(null);
   }
 
   const save = () => {
     if (!flight) return;
+    setValidationError(null);
+
+    // Validate revised time if provided
+    if (form.revised && form.revised.trim()) {
+      const timeMatch = /^([01]\d|2[0-3]):[0-5]\d$/.test(form.revised.trim());
+      if (!timeMatch) {
+        setValidationError(t("adm.flight.revisedError"));
+        return;
+      }
+    }
+
+    if (form.gate && !GATE_IDENTIFIER_PATTERN.test(form.gate.trim())) {
+      setValidationError(t("adm.flight.gateError"));
+      return;
+    }
+
     applyOverride(flight.id, {
       status: form.status,
-      gate: form.gate,
-      terminal: form.terminal,
-      aircraft: form.aircraft,
-      revisedDepart: form.revised,
-      note: form.note,
+      gate: form.gate.trim(),
+      terminal: form.terminal.trim(),
+      aircraft: form.aircraft.trim(),
+      revisedDepart: form.revised.trim(),
+      note: form.note.trim(),
     });
     toast(t("adm.edit.saved", { flight: flight.number }));
     onClose();
@@ -71,6 +91,14 @@ export function FlightQuickEdit({ flight, onClose }: { flight: QuickEditFlight |
     >
       {flight ? (
         <div className="space-y-4">
+          {validationError ? (
+            <div
+              role="alert"
+              className="rounded-md border border-status-cancelled/30 bg-status-cancelled/10 px-3 py-2 text-xs font-semibold text-status-cancelled"
+            >
+              {validationError}
+            </div>
+          ) : null}
           <p className="text-sm">
             <Ltr className="font-bold">{flight.number}</Ltr>{" "}
             <Ltr className="text-muted-foreground">{`${flight.originCode} → ${flight.destinationCode}`}</Ltr>

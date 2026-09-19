@@ -77,7 +77,13 @@ function AdminSignInPage() {
             <ShieldCheck aria-hidden="true" className="size-5" />
           </span>
           <h1 className="mt-4 text-2xl font-bold">{t("adm.signin.title")}</h1>
-          <p className="mt-1 text-sm text-muted-foreground lg:hidden">{t("adm.signin.sub")}</p>
+          <div className="mt-2 flex items-start gap-2 rounded-md border border-border/80 bg-sand/60 px-3 py-2 text-xs text-muted-foreground">
+            <AdminChip tone="muted" className="mt-0.5 shrink-0 text-[10px]">
+              {t("adm.shell.simulation")}
+            </AdminChip>
+            <span>{t("adm.signin.simulationNote")}</span>
+          </div>
+          <p className="mt-2 text-sm text-muted-foreground lg:hidden">{t("adm.signin.sub")}</p>
 
           <form onSubmit={submit} className="mt-6 space-y-4" noValidate>
             <Field label={t("adm.signin.email")} htmlFor="adm-email" error={error ?? undefined}>

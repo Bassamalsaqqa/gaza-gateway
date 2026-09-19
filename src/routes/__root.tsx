@@ -18,6 +18,7 @@ import { AdminProvider } from "@/lib/admin-store";
 import { stripLocale } from "@/lib/locale";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { BackToTop } from "@/components/back-to-top";
 import { btnClass } from "@/components/kit";
 
 function NotFoundComponent() {
@@ -157,18 +158,21 @@ function SiteFrame() {
   const path = stripLocale(usePathname());
   const isAdmin = path === "/admin" || path.startsWith("/admin/");
 
-  if (isAdmin) {
-    return <Outlet />;
-  }
-
   return (
-    <div className="flex min-h-screen flex-col">
-      <SiteHeader />
-      <main id="main" className="flex-1">
-        {/* Required: nested routes render here. */}
+    <>
+      {isAdmin ? (
         <Outlet />
-      </main>
-      <SiteFooter />
-    </div>
+      ) : (
+        <div className="flex min-h-screen flex-col">
+          <SiteHeader />
+          <main id="main" className="flex-1">
+            {/* Required: nested routes render here. */}
+            <Outlet />
+          </main>
+          <SiteFooter />
+        </div>
+      )}
+      <BackToTop />
+    </>
   );
 }

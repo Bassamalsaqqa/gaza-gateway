@@ -1,5 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { createFileRoute, useRouterState } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
 import { PlaneLanding, PlaneTakeoff } from "lucide-react";
 import { AppLink } from "@/components/app-link";
 import { Input, Select, btnClass } from "@/components/kit";
@@ -14,7 +14,12 @@ import {
   Toolbar,
 } from "@/components/admin/admin-kit";
 import { AdminDenied } from "@/components/admin/admin-denied";
-import { FLIGHT_STATUSES, FlightQuickEdit, type QuickEditFlight } from "@/components/admin/flight-quick-edit";
+import {
+  FLIGHT_STATUSES,
+  GATE_IDENTIFIER_PATTERN,
+  FlightQuickEdit,
+  type QuickEditFlight,
+} from "@/components/admin/flight-quick-edit";
 import { useAdmin } from "@/lib/admin-store";
 import { useI18n, pick } from "@/lib/i18n";
 import { dateLong } from "@/lib/format";
@@ -55,8 +60,11 @@ type Direction = "all" | "dep" | "arr";
 
 function AdminFlightsPage() {
   const { t, lang } = useI18n();
-  const { can, withOverride } = useAdmin();
+  const { can, withOverride, applyOverride, toast } = useAdmin();
   const { bookings } = useStore();
+  const urlSearch = useRouterState({
+    select: (s) => (s.location.search as Record<string, string | undefined>) || {},
+  });
 
   const [date, setDate] = useState(todayISO());
   const [direction, setDirection] = useState<Direction>("all");
@@ -64,8 +72,36 @@ function AdminFlightsPage() {
   const [status, setStatus] = useState<FlightStatus | "all">("all");
   const [route, setRoute] = useState("all");
   const [edit, setEdit] = useState<QuickEditFlight | null>(null);
+  const [editingGate, setEditingGate] = useState<{ flightId: string; value: string; error?: string | undefined } | null>(null);
+
+  useEffect(() => {
+    const dir = urlSearch["dir"];
+    const st = urlSearch["status"];
+    if (dir === "dep" || dir === "arr" || dir === "all") {
+      setDirection(dir);
+    }
+    if (
+      st &&
+      ["scheduled", "boarding", "delayed", "departed", "arrived", "cancelled", "all"].includes(st)
+    ) {
+      setStatus(st as FlightStatus | "all");
+    }
+  }, [urlSearch]);
 
   const mayEdit = can("ops.edit");
+
+  const handleSaveGate = (flightId: string) => {
+    if (!editingGate) return;
+    const trimmed = editingGate.value.trim();
+    if (!GATE_IDENTIFIER_PATTERN.test(trimmed)) {
+      setEditingGate({ ...editingGate, error: t("adm.flight.gateError") });
+      return;
+    }
+    applyOverride(flightId, { gate: trimmed });
+    const fl = rows.find((r) => r.id === flightId);
+    toast(t("adm.edit.saved", { flight: fl?.number ?? flightId }));
+    setEditingGate(null);
+  };
 
   const rows = useMemo(() => {
     const dep = departuresOn(date).map((f) => ({ ...withOverride(f), direction: "dep" as const }));
@@ -217,25 +253,27 @@ function AdminFlightsPage() {
             <div className="hidden overflow-x-auto xl:block">
               <table className="w-full min-w-[62rem] text-sm">
                 <caption className="sr-only">{t("adm.fl.title")}</caption>
-                <thead>
-                  <tr className="border-b border-border type-th">
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.time")}</th>
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.flight")}</th>
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.route")}</th>
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.aircraft")}</th>
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.gate")}</th>
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.load")}</th>
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.checkin")}</th>
-                    <th scope="col" className="px-3 py-2 text-start font-bold">{t("adm.col.status")}</th>
-                    <th scope="col" className="px-3 py-2 text-end font-bold">{t("adm.col.actions")}</th>
+                <thead className="sticky top-0 z-10 border-b border-border bg-card/95 backdrop-blur shadow-sm">
+                  <tr className="type-th">
+                    <th scope="col" className="px-3 py-2.5 text-start font-bold">{t("adm.col.time")}</th>
+                    <th scope="col" className="px-3 py-2.5 text-start font-bold">{t("adm.col.flight")}</th>
+                    <th scope="col" className="px-3 py-2.5 text-start font-bold">{t("adm.col.route")}</th>
+                    <th scope="col" className="px-3 py-2.5 text-start font-bold">{t("adm.col.aircraft")}</th>
+                    <th scope="col" className="px-3 py-2.5 text-start font-bold">{t("adm.col.gate")}</th>
+                    <th scope="col" className="px-3 py-2.5 text-start font-bold">{t("adm.col.load")}</th>
+                    <th scope="col" className="px-3 py-2.5 text-start font-bold">{t("adm.col.checkin")}</th>
+                    <th scope="col" className="px-3 py-2.5 text-start font-bold">{t("adm.col.status")}</th>
+                    <th scope="col" className="px-3 py-2.5 text-end font-bold">{t("adm.col.actions")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {rows.map((f) => {
                     const sold = Math.max(0, CAPACITY - f.seatsLeft);
                     const p = progress(f.id);
+                    const isEditingThisGate = editingGate?.flightId === f.id;
+
                     return (
-                      <tr key={`${f.id}-${f.direction}`} className="border-b border-border last:border-0">
+                      <tr key={`${f.id}-${f.direction}`} className="border-b border-border last:border-0 hover:bg-secondary/30 transition-colors">
                         <td className="px-3 py-2">
                           <Ltr className="font-semibold">{f.direction === "dep" ? f.departTime : f.arriveTime}</Ltr>
                           <span className="ms-1.5 inline-flex align-middle text-muted-foreground">
@@ -263,7 +301,58 @@ function AdminFlightsPage() {
                           <Ltr>{f.aircraft}</Ltr>
                         </td>
                         <td className="px-3 py-2">
-                          {f.gate ? (
+                          {isEditingThisGate ? (
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-center gap-1">
+                                <Input
+                                  autoFocus
+                                  dir="ltr"
+                                  value={editingGate.value}
+                                  onChange={(e) => setEditingGate({ ...editingGate, value: e.target.value, error: undefined })}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") handleSaveGate(f.id);
+                                    if (e.key === "Escape") setEditingGate(null);
+                                  }}
+                                  className="h-7 w-20 px-1.5 text-xs font-semibold"
+                                  aria-label={t("adm.flight.inlineGate", { flight: f.number })}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleSaveGate(f.id)}
+                                  className="rounded bg-primary px-1.5 py-1 text-[11px] font-semibold text-primary-foreground hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-ring"
+                                >
+                                  {t("adm.flight.inlineSave")}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingGate(null)}
+                                  className="rounded border border-border px-1.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-secondary focus-visible:outline-2 focus-visible:outline-ring"
+                                >
+                                  {t("adm.flight.inlineCancel")}
+                                </button>
+                              </div>
+                              {editingGate.error ? (
+                                <span role="alert" className="text-[10px] font-semibold text-status-cancelled">
+                                  {editingGate.error}
+                                </span>
+                              ) : null}
+                            </div>
+                          ) : mayEdit ? (
+                            <button
+                              type="button"
+                              onClick={() => setEditingGate({ flightId: f.id, value: f.gate || "" })}
+                              aria-label={t("adm.flight.inlineGate", { flight: f.number })}
+                              title={t("adm.flight.inlineGate", { flight: f.number })}
+                              className="group flex items-center gap-1 rounded px-1.5 py-1 text-start hover:bg-secondary focus-visible:outline-2 focus-visible:outline-ring"
+                            >
+                              {f.gate ? (
+                                <Ltr className="font-semibold text-foreground group-hover:text-primary">{`${f.terminal} · ${f.gate}`}</Ltr>
+                              ) : (
+                                <AdminChip tone="warn">{t("adm.flight.noGate")}</AdminChip>
+                              )}
+                              <span aria-hidden="true" className="text-[11px] text-muted-foreground group-hover:text-foreground">✎</span>
+                            </button>
+                          ) : f.gate ? (
                             <Ltr>{`${f.terminal} · ${f.gate}`}</Ltr>
                           ) : (
                             <AdminChip tone="warn">{t("adm.flight.noGate")}</AdminChip>
@@ -279,7 +368,26 @@ function AdminFlightsPage() {
                           </AdminChip>
                         </td>
                         <td className="px-3 py-2">
-                          <StatusBadge status={f.status} />
+                          {mayEdit ? (
+                            <select
+                              aria-label={t("adm.flight.inlineStatus", { flight: f.number })}
+                              value={f.status}
+                              onChange={(e) => {
+                                const newStatus = e.target.value as FlightStatus;
+                                applyOverride(f.id, { status: newStatus });
+                                toast(t("adm.edit.saved", { flight: f.number }));
+                              }}
+                              className="h-8 rounded-md border border-border bg-card px-2 text-xs font-semibold text-foreground hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                            >
+                              {FLIGHT_STATUSES.map((s) => (
+                                <option key={s} value={s}>
+                                  {t(`status.${s}`)}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <StatusBadge status={f.status} />
+                          )}
                         </td>
                         <td className="px-3 py-2">
                           <span className="flex flex-wrap justify-end gap-1.5">
@@ -311,8 +419,10 @@ function AdminFlightsPage() {
               {rows.map((f) => {
                 const sold = Math.max(0, CAPACITY - f.seatsLeft);
                 const p = progress(f.id);
+                const isEditingThisGate = editingGate?.flightId === f.id;
+
                 return (
-                  <li key={`${f.id}-${f.direction}-card`} className="px-4 py-3">
+                  <li key={`${f.id}-${f.direction}-card`} className="px-4 py-3.5 space-y-2.5">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="flex items-center gap-2">
@@ -330,40 +440,127 @@ function AdminFlightsPage() {
                           <Ltr>{`${f.originCode} → ${f.destinationCode} · ${f.aircraft}`}</Ltr>
                         </p>
                       </div>
-                      <StatusBadge status={f.status} />
+
+                      <div className="shrink-0">
+                        {mayEdit ? (
+                          <select
+                            aria-label={t("adm.flight.inlineStatus", { flight: f.number })}
+                            value={f.status}
+                            onChange={(e) => {
+                              const newStatus = e.target.value as FlightStatus;
+                              applyOverride(f.id, { status: newStatus });
+                              toast(t("adm.edit.saved", { flight: f.number }));
+                            }}
+                            className="h-11 min-h-11 rounded-md border border-border bg-card px-2 text-xs font-semibold text-foreground hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                          >
+                            {FLIGHT_STATUSES.map((s) => (
+                              <option key={s} value={s}>
+                                {t(`status.${s}`)}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <StatusBadge status={f.status} />
+                        )}
+                      </div>
                     </div>
-                    <dl className="mt-2 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+
+                    <dl className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
                       <div>
                         <dt className="font-semibold text-muted-foreground">{t("adm.col.gate")}</dt>
-                        <dd>{f.gate ? <Ltr>{`${f.terminal} · ${f.gate}`}</Ltr> : t("adm.flight.noGate")}</dd>
+                        <dd className="mt-0.5">
+                          {isEditingThisGate ? (
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-center gap-1">
+                                <Input
+                                  autoFocus
+                                  dir="ltr"
+                                  value={editingGate.value}
+                                  onChange={(e) => setEditingGate({ ...editingGate, value: e.target.value, error: undefined })}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") handleSaveGate(f.id);
+                                    if (e.key === "Escape") setEditingGate(null);
+                                  }}
+                                  className="h-11 w-20 px-1.5 text-xs font-semibold"
+                                  aria-label={t("adm.flight.inlineGate", { flight: f.number })}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleSaveGate(f.id)}
+                                  className="min-h-11 min-w-11 rounded bg-primary px-2 py-1 text-[11px] font-semibold text-primary-foreground hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
+                                >
+                                  {t("adm.flight.inlineSave")}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingGate(null)}
+                                  className="min-h-11 min-w-11 rounded border border-border px-2 py-1 text-[11px] font-medium text-muted-foreground hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
+                                >
+                                  {t("adm.flight.inlineCancel")}
+                                </button>
+                              </div>
+                              {editingGate.error ? (
+                                <span role="alert" className="text-[10px] font-semibold text-status-cancelled">
+                                  {editingGate.error}
+                                </span>
+                              ) : null}
+                            </div>
+                          ) : mayEdit ? (
+                            <button
+                              type="button"
+                              onClick={() => setEditingGate({ flightId: f.id, value: f.gate || "" })}
+                              aria-label={t("adm.flight.inlineGate", { flight: f.number })}
+                              title={t("adm.flight.inlineGate", { flight: f.number })}
+                              className="group inline-flex min-h-11 items-center gap-1 rounded px-2 py-1 text-start hover:bg-secondary focus-visible:outline-2 focus-visible:outline-ring"
+                            >
+                              {f.gate ? (
+                                <Ltr className="font-semibold text-foreground group-hover:text-primary">{`${f.terminal} · ${f.gate}`}</Ltr>
+                              ) : (
+                                <AdminChip tone="warn">{t("adm.flight.noGate")}</AdminChip>
+                              )}
+                              <span aria-hidden="true" className="text-[11px] text-muted-foreground group-hover:text-foreground">✎</span>
+                            </button>
+                          ) : f.gate ? (
+                            <Ltr>{`${f.terminal} · ${f.gate}`}</Ltr>
+                          ) : (
+                            <AdminChip tone="warn">{t("adm.flight.noGate")}</AdminChip>
+                          )}
+                        </dd>
                       </div>
                       <div>
                         <dt className="font-semibold text-muted-foreground">{t("adm.col.load")}</dt>
-                        <dd>
+                        <dd className="mt-0.5">
                           <Ltr>{`${sold}/${CAPACITY}`}</Ltr>
                         </dd>
                       </div>
                       <div>
                         <dt className="font-semibold text-muted-foreground">{t("adm.col.checkin")}</dt>
-                        <dd>{t("adm.flight.checkedOf", { n: p.checked, total: p.total })}</dd>
+                        <dd className="mt-0.5">{t("adm.flight.checkedOf", { n: p.checked, total: p.total })}</dd>
                       </div>
                       {f.revisedDepart ? (
                         <div>
                           <dt className="font-semibold text-muted-foreground">{t("adm.fd.revised")}</dt>
-                          <dd>
+                          <dd className="mt-0.5">
                             <Ltr>{f.revisedDepart}</Ltr>
                           </dd>
                         </div>
                       ) : null}
                     </dl>
-                    <div className="mt-2.5 flex flex-wrap gap-2">
-                      <PermissionButton allowed={mayEdit} reason={t("adm.edit.readOnly")} onClick={() => setEdit(f)}>
+
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      <PermissionButton
+                        allowed={mayEdit}
+                        reason={t("adm.edit.readOnly")}
+                        size="sm"
+                        className="h-11 min-h-11"
+                        onClick={() => setEdit(f)}
+                      >
                         {t("adm.flight.quickEdit")}
                       </PermissionButton>
                       <AppLink
                         to="/admin/flights/$flightId"
                         params={{ flightId: f.id }}
-                        className={btnClass("primary", "sm")}
+                        className={btnClass("primary", "sm", "h-11 min-h-11")}
                       >
                         {t("adm.fl.open")}
                       </AppLink>

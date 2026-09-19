@@ -38,6 +38,7 @@ const en: Dict = {
   "nav.language": "Language",
   "nav.primary": "Primary navigation",
   "nav.skip": "Skip to main content",
+  "common.backToTop": "Back to top",
 
   // search
   "search.title": "Search flights",
@@ -736,6 +737,7 @@ const ar: Dict = {
   "nav.language": "اللغة",
   "nav.primary": "التنقل الرئيسي",
   "nav.skip": "الانتقال إلى المحتوى",
+  "common.backToTop": "العودة إلى الأعلى",
 
   "search.title": "ابحث عن رحلة",
   "search.roundTrip": "ذهاب وعودة",

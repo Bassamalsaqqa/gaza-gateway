@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   Bell,
   ChevronDown,
@@ -373,8 +373,28 @@ export function AdminShell({
   const [search, setSearch] = useState(false);
   const pathname = usePathname();
   const drawerRef = useRef<HTMLDivElement>(null);
+  const openDrawerBtnRef = useRef<HTMLButtonElement>(null);
+  const restoreDrawerFocusRef = useRef(true);
 
-  useEffect(() => setDrawer(false), [pathname]);
+  const closeDrawer = useCallback((restoreFocus = true) => {
+    restoreDrawerFocusRef.current = restoreFocus;
+    setDrawer(false);
+  }, []);
+
+  useEffect(() => {
+    closeDrawer(false);
+  }, [pathname, closeDrawer]);
+
+  // Breakpoint crossing cleanup: close drawer when crossing to desktop layout
+  useEffect(() => {
+    const onResize = () => {
+      if (window.innerWidth >= 1024) {
+        closeDrawer(false);
+      }
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [closeDrawer]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -389,14 +409,26 @@ export function AdminShell({
 
   useEffect(() => {
     if (!drawer) return;
-    const originalOverflow = document.body.style.overflow;
+    const drawerOpener = openDrawerBtnRef.current;
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
     document.body.style.overflow = "hidden";
-    const trigger = document.activeElement as HTMLElement | null;
-    drawerRef.current?.querySelector<HTMLElement>("button, a")?.focus();
+    document.documentElement.style.overflow = "hidden";
+
+    // Initial focus on the close button or first interactive element inside drawer
+    const closeBtn = drawerRef.current?.querySelector<HTMLElement>("button[aria-label]");
+    if (closeBtn) closeBtn.focus();
+    else drawerRef.current?.querySelector<HTMLElement>("button, a")?.focus();
+
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setDrawer(false);
+      if (e.key === "Escape") {
+        closeDrawer(true);
+        return;
+      }
       if (e.key !== "Tab") return;
-      const items = Array.from(drawerRef.current?.querySelectorAll<HTMLElement>("button, a") ?? []);
+      const items = Array.from(
+        drawerRef.current?.querySelectorAll<HTMLElement>("button:not([disabled]), a:not([disabled])") ?? []
+      );
       const first = items[0];
       const last = items[items.length - 1];
       if (!first || !last) return;
@@ -410,11 +442,15 @@ export function AdminShell({
     };
     window.addEventListener("keydown", onKey);
     return () => {
-      document.body.style.overflow = originalOverflow;
+      document.body.style.overflow = originalBodyOverflow;
+      document.documentElement.style.overflow = originalHtmlOverflow;
       window.removeEventListener("keydown", onKey);
-      trigger?.focus?.();
+      if (restoreDrawerFocusRef.current && drawerOpener && drawerOpener.offsetParent !== null) {
+        drawerOpener.focus();
+      }
+      restoreDrawerFocusRef.current = true;
     };
-  }, [drawer]);
+  }, [drawer, closeDrawer]);
 
   const sidebarWidth = useMemo(() => (collapsed ? "lg:w-16" : "lg:w-64"), [collapsed]);
 
@@ -462,19 +498,19 @@ export function AdminShell({
               <WorkspaceMark />
               <button
                 type="button"
-                onClick={() => setDrawer(false)}
+                onClick={() => closeDrawer(true)}
                 aria-label={t("adm.shell.closeNav")}
-                className="me-2 rounded-md p-1.5 text-ink-muted hover:text-ink-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                className="me-2 flex size-11 min-h-11 min-w-11 items-center justify-center rounded-md text-ink-muted hover:text-ink-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               >
                 <X aria-hidden="true" className="size-5" />
               </button>
             </div>
-            <SidebarBody collapsed={false} onNavigate={() => setDrawer(false)} />
+            <SidebarBody collapsed={false} onNavigate={() => closeDrawer(false)} />
           </div>
           <button
             type="button"
             aria-label={t("adm.shell.closeNav")}
-            onClick={() => setDrawer(false)}
+            onClick={() => closeDrawer(true)}
             className="flex-1 cursor-default"
           />
         </div>
@@ -485,30 +521,40 @@ export function AdminShell({
         <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur">
           <div className="flex h-14 items-center gap-2 px-3 sm:px-4">
             <button
+              ref={openDrawerBtnRef}
               type="button"
-              onClick={() => setDrawer(true)}
+              onClick={() => {
+                restoreDrawerFocusRef.current = true;
+                setDrawer(true);
+              }}
               aria-label={t("adm.shell.openNav")}
-              className="rounded-md border border-border p-1.5 lg:hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              className="flex size-11 min-h-11 min-w-11 items-center justify-center rounded-md border border-border lg:hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               <Menu aria-hidden="true" className="size-4" />
             </button>
 
-            <div className="min-w-0 flex-1">
+            <div className="flex min-w-0 flex-1 items-center gap-2">
               {breadcrumb ? (
                 <nav aria-label={t("adm.shell.breadcrumb")} className="truncate text-xs text-muted-foreground">
-                  <span>{t("adm.workspace")}</span>
+                  <AppLink to="/admin" className="hover:text-foreground">
+                    {t("adm.workspace")}
+                  </AppLink>
                   <span aria-hidden="true" className="mx-1.5">
                     /
                   </span>
                   <span className="font-semibold text-foreground">{breadcrumb}</span>
                 </nav>
               ) : null}
+              <AdminChip tone="muted" className="hidden sm:inline-flex text-[10px]">
+                {t("adm.shell.simulation")}
+              </AdminChip>
             </div>
 
             <button
               type="button"
               onClick={() => setSearch(true)}
-              className="flex items-center gap-2 rounded-md border border-border px-2 py-1.5 text-xs font-semibold text-muted-foreground hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              aria-label={t("adm.search.title")}
+              className="flex h-11 sm:h-9 items-center gap-2 rounded-md border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               <Search aria-hidden="true" className="size-4" />
               <span className="hidden md:inline">{t("adm.shell.searchHint")}</span>
