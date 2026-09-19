@@ -1,13 +1,31 @@
 import { AppLink } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowRight, Camera, Luggage, Plane, Ticket } from "lucide-react";
+import {
+  ArrowRight,
+  Building2,
+  Calendar,
+  Clock,
+  Luggage,
+  Plane,
+  Ticket,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { FlightSearchForm } from "@/components/flight-search-form";
 import { DestinationCard } from "@/components/destination-card";
 import { FlightTable } from "@/components/flight-table";
+import { StatusBadge } from "@/components/flight-status";
 import { btnClass, Code, Container, Eyebrow, SectionHeader } from "@/components/kit";
-import { arrivalsOn, departuresOn, destinations, galleryItems, img, todayISO } from "@/lib/data";
-import { useI18n } from "@/lib/i18n";
+import {
+  airportByCode,
+  arrivalsOn,
+  departuresOn,
+  destinations,
+  galleryItems,
+  GZA,
+  img,
+  todayISO,
+} from "@/lib/data";
+import { pick, useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/{-$locale}/")({
@@ -41,40 +59,143 @@ function Home() {
 
   return (
     <>
-      {/* Hero */}
+      {/* 1. Civic Hero Section with Atmospheric Lighting & Identity */}
       <section className="relative isolate overflow-hidden bg-ink text-ink-foreground">
         <img
           src={img("coastal-runway-sky-dusk", 1920, 1080)}
           alt=""
-          className="absolute inset-0 -z-10 size-full object-cover opacity-30"
+          className="absolute inset-0 -z-10 size-full object-cover opacity-25"
         />
-        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-ink/85 via-ink/70 to-ink" />
-        <Container className="pt-14 pb-32 sm:pt-20 sm:pb-40">
-          <Eyebrow className="text-clay-soft">{t("home.kicker")}</Eyebrow>
-          <h1 className="mt-4 max-w-3xl text-3xl leading-[1.08] font-bold sm:text-5xl lg:text-6xl">{t("home.h1")}</h1>
-          <p className="mt-5 max-w-xl text-sm text-ink-muted sm:text-base">{t("home.sub")}</p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <AppLink to="/airport" className={btnClass("clay", "md")}>
-              {t("home.exploreAirport")}
-              <ArrowRight aria-hidden="true" className="size-4 rtl:rotate-180" />
-            </AppLink>
-            <AppLink
-              to="/flights"
-              className={btnClass("ghost", "md", "border border-ink-border text-ink-foreground hover:bg-ink-border")}
-            >
-              {t("home.viewFlights")}
-            </AppLink>
+        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-ink/90 via-ink/75 to-ink" />
+
+        <Container className="pt-12 pb-32 sm:pt-16 sm:pb-40 lg:pt-20 lg:pb-44">
+          <div className="flex flex-col items-start">
+            {/* Ambient Station Protocol Badge */}
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-ink-border bg-ink/60 px-3 py-1 text-xs text-ink-muted backdrop-blur-xs">
+              <span className="size-2 rounded-full bg-status-ontime animate-pulse" aria-hidden="true" />
+              <span className="code-id font-bold text-ink-foreground">GZA</span>
+              <span className="opacity-40" aria-hidden="true">·</span>
+              <span>{t("home.statusNotice")}</span>
+            </div>
+
+            <Eyebrow className="text-clay-soft">
+              <span className="code-id font-mono font-bold">GZA · PS</span>
+              <span className="mx-1.5 opacity-60" aria-hidden="true">·</span>
+              <span>{t("brand.airline")}</span>
+            </Eyebrow>
+
+            <h1 className="mt-4 max-w-3xl text-3xl font-bold leading-[1.12] tracking-tight sm:text-5xl lg:text-6xl">
+              {t("home.h1")}
+            </h1>
+
+            <p className="mt-5 max-w-2xl text-sm leading-relaxed text-ink-muted sm:text-base lg:text-lg">
+              {t("home.sub")}
+            </p>
+
+            <div className="mt-8 flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+              <AppLink
+                to="/airport"
+                className={btnClass("clay", "md", "w-full justify-center sm:w-auto shadow-[var(--shadow-soft)] hover:shadow-md")}
+              >
+                <span>{t("home.exploreAirport")}</span>
+                <ArrowRight aria-hidden="true" className="size-4 rtl:rotate-180" />
+              </AppLink>
+
+              <AppLink
+                to="/flights"
+                className={btnClass(
+                  "ghost",
+                  "md",
+                  "w-full justify-center sm:w-auto border border-ink-border text-ink-foreground hover:bg-ink-border/80",
+                )}
+              >
+                {t("home.viewFlights")}
+              </AppLink>
+            </div>
           </div>
         </Container>
       </section>
 
-      {/* Search */}
-      <Container className="-mt-24 sm:-mt-28">
-        <FlightSearchForm />
+      {/* 2. Integrated Flight Search Console (Overlapping Hero Boundary) */}
+      <Container className="-mt-20 sm:-mt-28 lg:-mt-32">
+        <FlightSearchForm variant="panel" />
       </Container>
 
-      {/* Board */}
-      <Container className="mt-20">
+      {/* 3. Passenger Quick Services Bar (4 High-Frequency Actions) */}
+      <Container className="mt-6 sm:mt-8">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <AppLink
+            to="/flights"
+            className="group flex items-center gap-3.5 rounded-xl border border-border bg-card p-4 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-[var(--shadow-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand-deep transition-colors group-hover:bg-brand group-hover:text-primary-foreground">
+              <Plane aria-hidden="true" className="size-5 rtl:-scale-x-100" />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-sm font-bold text-foreground group-hover:text-brand-deep">
+                {t("home.quickStatusTitle")}
+              </span>
+              <span className="truncate text-xs text-muted-foreground">
+                {t("home.quickStatusSub")}
+              </span>
+            </div>
+          </AppLink>
+
+          <AppLink
+            to="/check-in"
+            className="group flex items-center gap-3.5 rounded-xl border border-border bg-card p-4 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-[var(--shadow-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand-deep transition-colors group-hover:bg-brand group-hover:text-primary-foreground">
+              <Ticket aria-hidden="true" className="size-5" />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-sm font-bold text-foreground group-hover:text-brand-deep">
+                {t("home.quickCheckinTitle")}
+              </span>
+              <span className="truncate text-xs text-muted-foreground">
+                {t("home.quickCheckinSub")}
+              </span>
+            </div>
+          </AppLink>
+
+          <AppLink
+            to="/travel"
+            className="group flex items-center gap-3.5 rounded-xl border border-border bg-card p-4 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-[var(--shadow-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-clay-soft text-clay transition-colors group-hover:bg-clay group-hover:text-primary-foreground">
+              <Luggage aria-hidden="true" className="size-5" />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-sm font-bold text-foreground group-hover:text-clay">
+                {t("home.quickBaggageTitle")}
+              </span>
+              <span className="truncate text-xs text-muted-foreground">
+                {t("home.quickBaggageSub")}
+              </span>
+            </div>
+          </AppLink>
+
+          <AppLink
+            to="/airport"
+            className="group flex items-center gap-3.5 rounded-xl border border-border bg-card p-4 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-[var(--shadow-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-sand-deep text-foreground transition-colors group-hover:bg-foreground group-hover:text-background">
+              <Building2 aria-hidden="true" className="size-5" />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-sm font-bold text-foreground">
+                {t("home.quickHeritageTitle")}
+              </span>
+              <span className="truncate text-xs text-muted-foreground">
+                {t("home.quickHeritageSub")}
+              </span>
+            </div>
+          </AppLink>
+        </div>
+      </Container>
+
+      {/* 4. Today at GZA / Flight Schedule Matrix */}
+      <Container className="mt-16 sm:mt-20">
         <SectionHeader
           eyebrow={t("flights.today")}
           title={t("home.boardTitle")}
@@ -85,8 +206,14 @@ function Home() {
             </AppLink>
           }
         />
-        <div className="mt-6 rounded-xl border border-border bg-card p-4 sm:p-6">
-          <div className="flex gap-1 rounded-lg bg-secondary p-1" role="tablist" aria-label={t("flights.title")}>
+
+        <div className="mt-6 rounded-2xl border border-border bg-card p-4 sm:p-6 shadow-[var(--shadow-soft)]">
+          {/* Departures / Arrivals Tablist */}
+          <div
+            className="flex gap-1 rounded-xl bg-secondary p-1"
+            role="tablist"
+            aria-label={t("flights.title")}
+          >
             {(["departures", "arrivals"] as const).map((mode) => (
               <button
                 key={mode}
@@ -95,22 +222,162 @@ function Home() {
                 aria-selected={board === mode}
                 onClick={() => setBoard(mode)}
                 className={cn(
-                  "flex-1 rounded-md px-3 py-2 text-sm font-semibold transition-colors",
-                  board === mode ? "bg-card text-foreground shadow-[var(--shadow-soft)]" : "text-muted-foreground",
+                  "flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition-all focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
+                  board === mode
+                    ? "bg-card text-foreground shadow-[var(--shadow-soft)]"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 {t(mode === "departures" ? "flights.departures" : "flights.arrivals")}
               </button>
             ))}
           </div>
-          <div className="mt-4 overflow-x-auto">
+
+          {/* Desktop Tabular View */}
+          <div className="mt-5 hidden sm:block overflow-x-auto">
             <FlightTable flights={flights} mode={board} compact />
+          </div>
+
+          {/* Mobile Reflow Cards View (320px - 639px) for Zero Horizontal Clipping */}
+          <div className="mt-4 space-y-3 sm:hidden">
+            {flights.map((flight) => {
+              const other =
+                airportByCode(board === "departures" ? flight.destinationCode : flight.originCode) ?? GZA;
+              const time = board === "departures" ? flight.departTime : flight.arriveTime;
+              return (
+                <div
+                  key={flight.id}
+                  className="flex flex-col gap-2.5 rounded-xl border border-border bg-sand/60 p-3.5"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="code-id text-base font-bold text-foreground">{time}</span>
+                    <StatusBadge status={flight.status} />
+                  </div>
+                  <div className="flex items-baseline justify-between gap-2 border-t border-border/60 pt-2 text-sm">
+                    <span className="font-semibold text-foreground">
+                      {pick(lang, other.city)}{" "}
+                      <Code className="text-xs text-muted-foreground">{other.code}</Code>
+                    </span>
+                    <span className="code-id text-xs text-muted-foreground">{flight.number}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>{flight.gate}</span>
+                    <AppLink
+                      to="/flight/$flightId"
+                      params={{ flightId: flight.id }}
+                      className="font-semibold text-primary hover:underline"
+                    >
+                      {t("flights.details")} →
+                    </AppLink>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </Container>
 
-      {/* Destinations */}
-      <Container className="mt-20">
+      {/* 5. Living Heritage Spotlight (First-Class Structural Chapter Bridge) */}
+      <section className="mt-20 sm:mt-24 border-y border-border bg-sand/80 py-16 sm:py-20">
+        <Container>
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-bold text-brand-deep">
+                {t("home.heritageBadge")}
+              </span>
+              <span className="text-xs font-medium text-clay">
+                {t("home.heritageTag")}
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div className="max-w-2xl">
+                <h2 className="text-2xl font-bold tracking-tight sm:text-4xl text-foreground">
+                  {t("home.heritageSpotlightTitle")}
+                </h2>
+                <p className="mt-3 text-sm leading-relaxed text-muted-foreground sm:text-base">
+                  {t("home.heritageSpotlightDesc")}
+                </p>
+              </div>
+
+              <AppLink
+                to="/gallery"
+                className={btnClass("outline", "sm", "self-start lg:self-auto shrink-0")}
+              >
+                <span>{t("home.exploreArchive")}</span>
+                <ArrowRight aria-hidden="true" className="size-4 rtl:rotate-180" />
+              </AppLink>
+            </div>
+          </div>
+
+          {/* 3 Heritage Chapters (Past, Present, Future) */}
+          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {(
+              [
+                {
+                  to: "/airport/past",
+                  title: "home.past",
+                  sub: "home.pastSub",
+                  seed: "archive-terminal-old",
+                  era: t("home.eraPast"),
+                },
+                {
+                  to: "/airport/present",
+                  title: "home.present",
+                  sub: "home.presentSub",
+                  seed: "empty-runway-today",
+                  era: t("home.eraPresent"),
+                },
+                {
+                  to: "/airport/future",
+                  title: "home.future",
+                  sub: "home.futureSub",
+                  seed: "terminal-concept-render",
+                  era: t("home.eraFuture"),
+                },
+              ] as const
+            ).map((chapter) => (
+              <AppLink
+                key={chapter.to}
+                to={chapter.to}
+                className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-xs transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-lift)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              >
+                <div className="relative aspect-[16/10] overflow-hidden bg-ink">
+                  <img
+                    src={img(chapter.seed, 800, 500)}
+                    alt=""
+                    loading="lazy"
+                    className="size-full object-cover opacity-70 transition-transform duration-500 group-hover:scale-105 group-hover:opacity-85"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/30 to-transparent" />
+                  <span className="absolute start-3.5 top-3.5 rounded-md bg-ink/70 px-2.5 py-1 text-xs font-semibold text-ink-foreground backdrop-blur-xs">
+                    {chapter.era}
+                  </span>
+                </div>
+
+                <div className="flex flex-1 flex-col justify-between p-5">
+                  <div>
+                    <h3 className="text-xl font-bold text-foreground group-hover:text-primary transition-colors">
+                      {t(chapter.title)}
+                    </h3>
+                    <p className="mt-2 text-xs leading-relaxed text-muted-foreground sm:text-sm">
+                      {t(chapter.sub)}
+                    </p>
+                  </div>
+
+                  <span className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-brand-deep group-hover:text-primary">
+                    <span>{t("airport.readChapter")}</span>
+                    <ArrowRight aria-hidden="true" className="size-3.5 rtl:rotate-180" />
+                  </span>
+                </div>
+              </AppLink>
+            ))}
+          </div>
+        </Container>
+      </section>
+
+      {/* 6. Opening Regional Route Network */}
+      <Container className="mt-16 sm:mt-20">
         <SectionHeader
           eyebrow={t("nav.destinations")}
           title={t("home.destTitle")}
@@ -128,56 +395,22 @@ function Home() {
         </div>
       </Container>
 
-      {/* Airport story */}
-      <section className="mt-24 bg-ink py-20 text-ink-foreground">
-        <Container>
-          <SectionHeader
-            tone="dark"
-            eyebrow={t("home.storyKicker")}
-            title={t("home.storyTitle")}
-            description={t("home.storySub")}
-          />
-          <div className="mt-8 grid gap-4 lg:grid-cols-3">
-            {(
-              [
-                { to: "/airport/past", title: "home.past", sub: "home.pastSub", seed: "archive-terminal-old" },
-                { to: "/airport/present", title: "home.present", sub: "home.presentSub", seed: "empty-runway-today" },
-                { to: "/airport/future", title: "home.future", sub: "home.futureSub", seed: "terminal-concept-render" },
-              ] as const
-            ).map((chapter) => (
-              <AppLink
-                key={chapter.to}
-                to={chapter.to}
-                className="group relative overflow-hidden rounded-xl border border-ink-border focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-clay-soft"
-              >
-                <img
-                  src={img(chapter.seed, 800, 600)}
-                  alt=""
-                  loading="lazy"
-                  className="aspect-[4/3] size-full object-cover opacity-45 transition-all duration-500 group-hover:opacity-60 group-hover:scale-[1.03]"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/40 to-transparent" />
-                <div className="absolute inset-x-0 bottom-0 p-5">
-                  <h3 className="text-2xl font-bold">{t(chapter.title)}</h3>
-                  <p className="mt-1.5 text-sm text-ink-muted">{t(chapter.sub)}</p>
-                  <span className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-clay-soft">
-                    {t("airport.readChapter")}
-                    <ArrowRight aria-hidden="true" className="size-3.5 rtl:rotate-180" />
-                  </span>
-                </div>
-              </AppLink>
-            ))}
+      {/* 7. Manage Booking & Passenger Information */}
+      <Container className="mt-16 sm:mt-20 grid gap-4 lg:grid-cols-3">
+        <div className="flex flex-col justify-between rounded-2xl border border-border bg-brand-soft/70 p-6 lg:col-span-2">
+          <div>
+            <div className="flex size-11 items-center justify-center rounded-xl bg-brand text-primary-foreground">
+              <Ticket aria-hidden="true" className="size-5" />
+            </div>
+            <h2 className="mt-4 text-2xl font-bold text-foreground sm:text-3xl">
+              {t("home.manageTitle")}
+            </h2>
+            <p className="mt-2 max-w-lg text-sm text-muted-foreground leading-relaxed">
+              {t("home.manageSub")}
+            </p>
           </div>
-        </Container>
-      </section>
 
-      {/* Manage + travel info */}
-      <Container className="mt-20 grid gap-4 lg:grid-cols-3">
-        <div className="rounded-xl border border-border bg-brand-soft/60 p-6 lg:col-span-2">
-          <Ticket aria-hidden="true" className="size-6 text-brand-deep" />
-          <h2 className="mt-4 text-2xl font-bold">{t("home.manageTitle")}</h2>
-          <p className="mt-2 max-w-md text-sm text-muted-foreground">{t("home.manageSub")}</p>
-          <div className="mt-5 flex flex-wrap gap-2">
+          <div className="mt-6 flex flex-wrap gap-3">
             <AppLink to="/manage" className={btnClass("primary", "md")}>
               {t("nav.manage")}
             </AppLink>
@@ -186,30 +419,42 @@ function Home() {
             </AppLink>
           </div>
         </div>
-        <div className="rounded-xl border border-border bg-card p-6">
-          <Luggage aria-hidden="true" className="size-6 text-clay" />
-          <h2 className="mt-4 text-lg font-bold">{t("home.infoTitle")}</h2>
-          <ul className="mt-4 space-y-3 text-sm">
-            {(
-              [
-                { key: "travel.baggage", label: "Baggage", to: "/travel" },
-                { key: "travel.documents", label: "Documents", to: "/travel" },
-                { key: "travel.accessibility", label: "Accessibility", to: "/travel" },
-              ] as const
-            ).map((item, i) => (
-              <li key={i}>
-                <AppLink to={item.to} className="flex items-center justify-between gap-2 text-foreground hover:text-primary">
-                  {[t("book.baggage"), t("book.docNumber"), t("book.assistance")][i]}
-                  <ArrowRight aria-hidden="true" className="size-4 text-muted-foreground rtl:rotate-180" />
-                </AppLink>
-              </li>
-            ))}
-          </ul>
+
+        <div className="flex flex-col justify-between rounded-2xl border border-border bg-card p-6 shadow-xs">
+          <div>
+            <div className="flex size-11 items-center justify-center rounded-xl bg-clay-soft text-clay">
+              <Luggage aria-hidden="true" className="size-5" />
+            </div>
+            <h2 className="mt-4 text-lg font-bold text-foreground">{t("home.infoTitle")}</h2>
+            <ul className="mt-4 space-y-3 text-sm divide-y divide-border/60">
+              {(
+                [
+                  { label: t("book.baggage"), to: "/travel" },
+                  { label: t("book.docNumber"), to: "/travel" },
+                  { label: t("book.assistance"), to: "/travel" },
+                ] as const
+              ).map((item, i) => (
+                <li key={i} className={i > 0 ? "pt-3" : ""}>
+                  <AppLink
+                    to={item.to}
+                    className="flex items-center justify-between gap-2 text-foreground font-medium hover:text-primary transition-colors"
+                  >
+                    <span>{item.label}</span>
+                    <ArrowRight aria-hidden="true" className="size-4 text-muted-foreground rtl:rotate-180" />
+                  </AppLink>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <AppLink to="/travel" className={btnClass("ghost", "sm", "mt-6 self-start text-xs font-semibold")}>
+            {t("common.learnMore")} →
+          </AppLink>
         </div>
       </Container>
 
-      {/* Archive */}
-      <Container className="mt-20">
+      {/* 8. Archival Gallery Preview */}
+      <Container className="mt-16 sm:mt-20">
         <SectionHeader
           eyebrow={t("nav.gallery")}
           title={t("home.archiveTitle")}
@@ -222,13 +467,16 @@ function Home() {
         />
         <ul className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {archive.map((item) => (
-            <li key={item.id} className="overflow-hidden rounded-lg border border-border">
+            <li
+              key={item.id}
+              className="group overflow-hidden rounded-xl border border-border bg-card shadow-xs transition-transform hover:-translate-y-1"
+            >
               <AppLink to="/gallery" aria-label={item.title[lang === "ar" ? "ar" : "en"]}>
                 <img
                   src={img(item.imageSeed, 400, 400)}
                   alt=""
                   loading="lazy"
-                  className="aspect-square size-full object-cover transition-opacity hover:opacity-85"
+                  className="aspect-square size-full object-cover transition-opacity group-hover:opacity-85"
                 />
               </AppLink>
             </li>
@@ -236,19 +484,21 @@ function Home() {
         </ul>
       </Container>
 
-      <Container className="mt-20 mb-4">
-        <div className="flex flex-col items-start gap-4 rounded-xl border border-border bg-sand p-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <Plane aria-hidden="true" className="mt-0.5 size-5 text-brand-deep rtl:-scale-x-100" />
-            <p className="max-w-xl text-sm text-muted-foreground">
+      {/* 9. Civic Airport Callout Banner */}
+      <Container className="mt-16 sm:mt-20 mb-8">
+        <div className="flex flex-col items-start gap-4 rounded-2xl border border-border bg-sand p-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3.5">
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand-deep">
+              <Plane aria-hidden="true" className="size-5 rtl:-scale-x-100" />
+            </div>
+            <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
               <span className="font-semibold text-foreground">
                 <Code>GZA</Code> · <Code>PS</Code>
               </span>{" "}
               {t("footer.rights")}
             </p>
           </div>
-          <AppLink to="/about" className={btnClass("outline", "sm")}>
-            <Camera aria-hidden="true" className="size-4" />
+          <AppLink to="/about" className={btnClass("outline", "sm", "shrink-0")}>
             {t("nav.about")}
           </AppLink>
         </div>

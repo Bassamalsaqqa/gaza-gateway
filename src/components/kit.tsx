@@ -51,6 +51,7 @@ export function Field({
   hint,
   error,
   htmlFor,
+  errorId,
   children,
   className,
 }: {
@@ -58,6 +59,8 @@ export function Field({
   hint?: string | undefined;
   error?: string | undefined;
   htmlFor?: string | undefined;
+  /** Stable id to place on the error message element so inputs can reference it via aria-describedby. */
+  errorId?: string | undefined;
   children: ReactNode;
   className?: string;
 }) {
@@ -69,7 +72,7 @@ export function Field({
       {children}
       {hint && !error ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
       {error ? (
-        <p className="text-xs font-medium text-destructive" role="alert">
+        <p id={errorId} className="text-xs font-medium text-destructive" role="alert">
           {error}
         </p>
       ) : null}
