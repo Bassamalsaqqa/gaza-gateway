@@ -1,10 +1,11 @@
 import type { Lang } from "./i18n";
 
 export function money(amount: number, lang: Lang): string {
-  const formatted = new Intl.NumberFormat(lang === "ar" ? "ar-EG" : "en-US", {
+  const formatted = new Intl.NumberFormat(lang === "ar" ? "ar-EG-u-nu-latn" : "en-US", {
     style: "currency",
     currency: "USD",
     maximumFractionDigits: 0,
+    numberingSystem: "latn",
   }).format(amount);
   return formatted;
 }
