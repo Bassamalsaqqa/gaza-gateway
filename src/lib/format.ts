@@ -11,7 +11,7 @@ export function money(amount: number, lang: Lang): string {
 
 export function dateLong(iso: string, lang: Lang): string {
   const d = new Date(`${iso}T12:00:00`);
-  return new Intl.DateTimeFormat(lang === "ar" ? "ar" : "en-GB", {
+  return new Intl.DateTimeFormat(lang === "ar" ? "ar-u-nu-latn" : "en-GB", {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -21,7 +21,7 @@ export function dateLong(iso: string, lang: Lang): string {
 
 export function dateShort(iso: string, lang: Lang): string {
   const d = new Date(`${iso}T12:00:00`);
-  return new Intl.DateTimeFormat(lang === "ar" ? "ar" : "en-GB", {
+  return new Intl.DateTimeFormat(lang === "ar" ? "ar-u-nu-latn" : "en-GB", {
     weekday: "short",
     day: "numeric",
     month: "short",

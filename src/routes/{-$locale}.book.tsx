@@ -1,12 +1,12 @@
 import { useAppNavigate } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowLeft, ArrowRight, Baby, Check, Luggage, Ticket, Utensils } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { ArrowLeft, ArrowRight, Baby, Check, Luggage, Ticket } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FlightSearchForm } from "@/components/flight-search-form";
 import { FlightOption } from "@/components/booking/flight-option";
 import { PriceSummary } from "@/components/booking/price-summary";
 import { SeatMap } from "@/components/booking/seat-map";
-import { Stepper, type BookingStep } from "@/components/booking/stepper";
+import { Stepper, bookingSteps, type BookingStep } from "@/components/booking/stepper";
 import {
   btnClass,
   Code,
@@ -29,6 +29,7 @@ import {
   mealOptions,
   searchFlights,
   suggestSeat,
+  todayISO,
   type Flight,
 } from "@/lib/data";
 import { dateLong, money } from "@/lib/format";
@@ -41,11 +42,24 @@ import {
   paxCount,
   totalExtraBags,
   type PaxExtras,
+  type Passenger,
+  type Draft,
   useStore,
 } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
+type BookSearch = {
+  step?: BookingStep;
+};
+
 export const Route = createFileRoute("/{-$locale}/book")({
+  validateSearch: (search: Record<string, unknown>): BookSearch => {
+    const rawStep = search["step"];
+    if (typeof rawStep === "string" && (bookingSteps as readonly string[]).includes(rawStep)) {
+      return { step: rawStep as BookingStep };
+    }
+    return {};
+  },
   head: () => ({
     meta: [
       { title: "Book a flight — Palestinian Airlines from Gaza (GZA)" },
@@ -61,19 +75,46 @@ export const Route = createFileRoute("/{-$locale}/book")({
   component: BookPage,
 });
 
+const stepRanks: Record<BookingStep, number> = {
+  search: 0,
+  results: 1,
+  fare: 2,
+  passengers: 3,
+  seats: 4,
+  extras: 5,
+  review: 6,
+  confirmation: 7,
+};
+
+function calculateMaxStep(draft: Draft, paxList: Passenger[]): BookingStep {
+  if (!draft.criteria.origin || !draft.criteria.destination || !draft.criteria.departDate) {
+    return "search";
+  }
+  const hasFlights = Boolean(
+    draft.outbound && (draft.criteria.tripType !== "round" || draft.inbound),
+  );
+  if (!hasFlights) return "results";
+  if (!draft.fareId) return "fare";
+
+  const arePassengersValid =
+    paxList.length > 0 &&
+    paxList.every((p) => Boolean(p.firstName.trim() && p.lastName.trim() && p.dob)) &&
+    /.+@.+\..+/.test(draft.contact.email.trim());
+  if (!arePassengersValid) return "passengers";
+
+  return "review";
+}
+
 function BookPage() {
   const { t, lang } = useI18n();
   const navigate = useAppNavigate();
+  const search = Route.useSearch();
   const { draft, setDraft, addBooking, account, travelers } = useStore();
-  const [step, setStep] = useState<BookingStep>(draft.entry === "results" ? "results" : "search");
-  const [errors, setErrors] = useState(false);
+
   const [activePax, setActivePax] = useState(0);
   const [seatLeg, setSeatLeg] = useState<"out" | "in">("out");
-
-  // Searching from the first step of this page must move the traveller to results.
-  useEffect(() => {
-    if (draft.entry === "results" && step === "search") setStep("results");
-  }, [draft.entry, step]);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const headingRef = useRef<HTMLHeadingElement | null>(null);
 
   const paxList = draft.passengers.length
     ? draft.passengers
@@ -83,8 +124,11 @@ function BookPage() {
   const seatable = paxList.flatMap((p, i) => (p.type === "infant" ? [] : [i]));
   const paxName = (i: number) => {
     const p = paxList[i];
-    return p && (p.firstName || p.lastName) ? `${p.firstName} ${p.lastName}`.trim() : t("book.pax", { n: i + 1 });
+    return p && (p.firstName || p.lastName)
+      ? `${p.firstName} ${p.lastName}`.trim()
+      : `${t("book.passenger")} ${i + 1}`;
   };
+
   const outboundOptions = useMemo(
     () => searchFlights(draft.criteria.origin, draft.criteria.destination, draft.criteria.departDate),
     [draft.criteria],
@@ -97,28 +141,56 @@ function BookPage() {
     [draft.criteria],
   );
 
-  const go = (next: BookingStep) => {
-    setErrors(false);
-    setStep(next);
-    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  const maxStep = useMemo(() => calculateMaxStep(draft, paxList), [draft, paxList]);
 
-  /* -------------------------------- search -------------------------------- */
-  if (step === "search") {
-    return (
-      <Container className="py-10 sm:py-14">
-        <Eyebrow>{t("home.kicker")}</Eyebrow>
-        <h1 className="mt-2 text-3xl font-bold sm:text-4xl">{t("book.title")}</h1>
-        <p className="mt-2 max-w-xl text-sm text-muted-foreground">{t("search.title")}</p>
-        <div className="mt-6">
-          <FlightSearchForm />
-        </div>
-        <div className="mt-6">
-          <Notice>{t("book.guestNote")}</Notice>
-        </div>
-      </Container>
-    );
+  // Determine current active milestone: URL param takes precedence if within maxStep
+  const requestedStep = search.step;
+  let currentStep: BookingStep;
+
+  if (requestedStep) {
+    if (stepRanks[requestedStep] <= stepRanks[maxStep]) {
+      currentStep = requestedStep;
+    } else {
+      // Clamped if user attempted an invalid forward jump
+      currentStep = maxStep;
+    }
+  } else {
+    currentStep = draft.entry === "results" ? "results" : "search";
   }
+
+  // Repair/clamp URL search parameter without trapping the user
+  useEffect(() => {
+    if (requestedStep && stepRanks[requestedStep] > stepRanks[maxStep]) {
+      void navigate({
+        to: "/book",
+        search: { step: maxStep },
+        replace: true,
+      });
+    } else if (!requestedStep && draft.entry === "results") {
+      void navigate({
+        to: "/book",
+        search: { step: "results" },
+        replace: true,
+      });
+    }
+  }, [requestedStep, maxStep, draft.entry, navigate]);
+
+  // Manage focus on step transition
+  useEffect(() => {
+    headingRef.current?.focus();
+  }, [currentStep]);
+
+  const goToStep = (next: BookingStep, replace = false) => {
+    setFieldErrors({});
+    void navigate({
+      to: "/book",
+      search: { step: next },
+      replace,
+    });
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
 
   const selectSeat = (position: number, seat: string) => {
     const paxIndex = seatable[position];
@@ -144,9 +216,43 @@ function BookPage() {
 
   const passengerLabels = seatable.map((i) => paxName(i));
 
-  const passengersValid = () =>
-    paxList.every((p) => Boolean(p.firstName.trim() && p.lastName.trim() && p.dob)) &&
-    /.+@.+\..+/.test(draft.contact.email);
+  const validatePassengers = (): boolean => {
+    const errors: Record<string, string> = {};
+    let firstErrorId = "";
+
+    paxList.forEach((p, i) => {
+      if (!p.firstName.trim()) {
+        errors[`fn-${i}`] = t("book.errFirstName");
+        if (!firstErrorId) firstErrorId = `fn-${i}`;
+      }
+      if (!p.lastName.trim()) {
+        errors[`ln-${i}`] = t("book.errLastName");
+        if (!firstErrorId) firstErrorId = `ln-${i}`;
+      }
+      if (!p.dob) {
+        errors[`dob-${i}`] = t("book.errDob");
+        if (!firstErrorId) firstErrorId = `dob-${i}`;
+      }
+    });
+
+    if (!draft.contact.email.trim()) {
+      errors["contact-email"] = t("book.errEmail");
+      if (!firstErrorId) firstErrorId = "contact-email";
+    } else if (!/.+@.+\..+/.test(draft.contact.email.trim())) {
+      errors["contact-email"] = t("book.errEmailValid");
+      if (!firstErrorId) firstErrorId = "contact-email";
+    }
+
+    setFieldErrors(errors);
+
+    if (firstErrorId) {
+      setTimeout(() => {
+        document.getElementById(firstErrorId)?.focus();
+      }, 50);
+      return false;
+    }
+    return true;
+  };
 
   const confirm = () => {
     if (!draft.outbound) return;
@@ -167,31 +273,65 @@ function BookPage() {
 
   const totals = bookingTotal(draft);
 
+  /* -------------------------------- search -------------------------------- */
+  if (currentStep === "search") {
+    return (
+      <Container className="py-10 sm:py-14">
+        <Eyebrow>{t("home.kicker")}</Eyebrow>
+        <h1
+          ref={headingRef}
+          tabIndex={-1}
+          className="mt-2 text-3xl font-bold sm:text-4xl outline-none"
+        >
+          {t("book.title")}
+        </h1>
+        <p className="mt-2 max-w-xl text-sm text-muted-foreground">{t("search.title")}</p>
+        <div className="mt-6">
+          <FlightSearchForm />
+        </div>
+        <div className="mt-6">
+          <Notice>{t("book.guestNote")}</Notice>
+        </div>
+      </Container>
+    );
+  }
+
   return (
     <>
-      <Stepper current={step} />
+      <Stepper current={currentStep} maxStep={maxStep} onStepClick={(s) => goToStep(s)} />
       <Container className="py-8">
         <div className="grid gap-8 lg:grid-cols-[1.7fr_1fr]">
-          <div>
-            {/* Compact trip summary for narrow screens; desktop keeps the sticky panel. */}
-            {step === "fare" || step === "passengers" || step === "seats" || step === "extras" || step === "review" ? (
-              <details className="surface mb-6 p-4 lg:hidden">
-                <summary className="flex cursor-pointer items-center justify-between gap-3 text-sm font-semibold">
+          <div className="min-w-0">
+            {/* Compact trip summary for mobile screens; desktop displays persistent sticky docket. */}
+            <details className="surface mb-6 p-4 rounded-xl border border-border lg:hidden">
+              <summary className="flex cursor-pointer items-center justify-between gap-3 text-sm font-semibold select-none">
+                <span className="flex items-center gap-2">
                   <span>{t("book.summaryToggle")}</span>
-                  <span className="text-base font-bold">{money(bookingTotal(draft).total, lang)}</span>
-                </summary>
-                <div className="mt-3">
-                  <PriceSummary draft={draft} compact />
-                </div>
-              </details>
-            ) : null}
+                  {draft.outbound ? (
+                    <span className="text-xs text-muted-foreground font-normal">
+                      ({draft.criteria.origin} → {draft.criteria.destination})
+                    </span>
+                  ) : null}
+                </span>
+                <span className="text-base font-bold text-primary">{money(totals.total, lang)}</span>
+              </summary>
+              <div className="mt-3 pt-3 border-t border-border/60">
+                <PriceSummary draft={draft} compact />
+              </div>
+            </details>
+
             {/* ------------------------------ results ------------------------------ */}
-            {step === "results" ? (
+            {currentStep === "results" ? (
               <section aria-labelledby="results-title">
                 <div className="flex flex-wrap items-end justify-between gap-3">
                   <div>
                     <Eyebrow>{t("step.results")}</Eyebrow>
-                    <h1 id="results-title" className="mt-2 text-2xl font-bold sm:text-3xl">
+                    <h1
+                      id="results-title"
+                      ref={headingRef}
+                      tabIndex={-1}
+                      className="mt-2 text-2xl font-bold sm:text-3xl outline-none"
+                    >
                       <Code>{draft.criteria.origin}</Code> → <Code>{draft.criteria.destination}</Code>
                     </h1>
                     <p className="mt-1 text-sm text-muted-foreground">
@@ -201,7 +341,11 @@ function BookPage() {
                         : t("search.passengerCount", { n: paxCount(draft.criteria) })}
                     </p>
                   </div>
-                  <button type="button" onClick={() => go("search")} className={btnClass("outline", "sm")}>
+                  <button
+                    type="button"
+                    onClick={() => goToStep("search")}
+                    className={btnClass("outline", "sm")}
+                  >
                     {t("book.changeSearch")}
                   </button>
                 </div>
@@ -211,7 +355,19 @@ function BookPage() {
                 </h2>
                 <div className="mt-3 space-y-3">
                   {outboundOptions.length === 0 ? (
-                    <EmptyState title={t("book.noResults")} description={t("book.noResultsSub")} />
+                    <EmptyState
+                      title={t("book.noResults")}
+                      description={t("book.noResultsSub")}
+                      action={
+                        <button
+                          type="button"
+                          onClick={() => goToStep("search")}
+                          className={btnClass("primary", "sm")}
+                        >
+                          {t("book.changeSearch")}
+                        </button>
+                      }
+                    />
                   ) : (
                     outboundOptions.map((flight) => (
                       <FlightOption
@@ -232,7 +388,19 @@ function BookPage() {
                     </h2>
                     <div className="mt-3 space-y-3">
                       {inboundOptions.length === 0 ? (
-                        <EmptyState title={t("book.noResults")} description={t("book.noResultsSub")} />
+                        <EmptyState
+                          title={t("book.noResults")}
+                          description={t("book.noResultsSub")}
+                          action={
+                            <button
+                              type="button"
+                              onClick={() => goToStep("search")}
+                              className={btnClass("primary", "sm")}
+                            >
+                              {t("book.changeSearch")}
+                            </button>
+                          }
+                        />
                       ) : (
                         inboundOptions.map((flight) => (
                           <FlightOption
@@ -249,18 +417,23 @@ function BookPage() {
                 ) : null}
 
                 <StepNav
-                  onBack={() => go("search")}
-                  onNext={() => go("fare")}
+                  onBack={() => goToStep("search")}
+                  onNext={() => goToStep("fare")}
                   nextDisabled={!draft.outbound || (draft.criteria.tripType === "round" && !draft.inbound)}
                 />
               </section>
             ) : null}
 
             {/* -------------------------------- fare -------------------------------- */}
-            {step === "fare" ? (
+            {currentStep === "fare" ? (
               <section aria-labelledby="fare-title">
                 <Eyebrow>{t("step.fare")}</Eyebrow>
-                <h1 id="fare-title" className="mt-2 text-2xl font-bold sm:text-3xl">
+                <h1
+                  id="fare-title"
+                  ref={headingRef}
+                  tabIndex={-1}
+                  className="mt-2 text-2xl font-bold sm:text-3xl outline-none"
+                >
                   {t("book.fareTitle")}
                 </h1>
                 <p className="mt-1 text-sm text-muted-foreground">{t("book.fareSub")}</p>
@@ -278,8 +451,10 @@ function BookPage() {
                         onClick={() => setDraft((prev) => ({ ...prev, fareId: fare.id }))}
                         aria-pressed={selected}
                         className={cn(
-                          "flex flex-col rounded-xl border bg-card p-5 text-start transition-colors",
-                          selected ? "border-primary ring-1 ring-primary/40" : "border-border hover:border-primary/50",
+                          "flex flex-col rounded-xl border bg-card p-5 text-start transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                          selected
+                            ? "border-primary ring-1 ring-primary/40 shadow-xs"
+                            : "border-border hover:border-primary/50",
                         )}
                       >
                         <div className="flex items-center justify-between gap-2">
@@ -293,7 +468,7 @@ function BookPage() {
                             <Luggage aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-brand-deep" />
                             <span className="numeral">
                               {fare.checkedBags === 0
-                                ? pick(lang, { en: "Cabin bag only", ar: "حقيبة كابينة فقط" })
+                                ? t("book.cabinBagOnly")
                                 : `${fare.checkedBags} × 23 kg`}
                             </span>
                           </li>
@@ -302,7 +477,10 @@ function BookPage() {
                             {pick(lang, fare.seatSelection)}
                           </li>
                           <li className="flex gap-2">
-                            <ArrowRight aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-brand-deep rtl:rotate-180" />
+                            <ArrowRight
+                              aria-hidden="true"
+                              className="mt-0.5 size-4 shrink-0 text-brand-deep rtl:rotate-180"
+                            />
                             {pick(lang, fare.changes)}
                           </li>
                           <li className="flex gap-2">
@@ -318,21 +496,29 @@ function BookPage() {
                   })}
                 </div>
 
-                <StepNav onBack={() => go("results")} onNext={() => go("passengers")} />
+                <StepNav onBack={() => goToStep("results")} onNext={() => goToStep("passengers")} />
               </section>
             ) : null}
 
             {/* ----------------------------- passengers ---------------------------- */}
-            {step === "passengers" ? (
+            {currentStep === "passengers" ? (
               <section aria-labelledby="pax-title">
                 <Eyebrow>{t("step.passengers")}</Eyebrow>
-                <h1 id="pax-title" className="mt-2 text-2xl font-bold sm:text-3xl">
+                <h1
+                  id="pax-title"
+                  ref={headingRef}
+                  tabIndex={-1}
+                  className="mt-2 text-2xl font-bold sm:text-3xl outline-none"
+                >
                   {t("book.paxTitle")}
                 </h1>
                 <p className="mt-1 text-sm text-muted-foreground">{t("book.paxSub")}</p>
 
-                {errors ? (
-                  <p className="mt-4 rounded-lg bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive" role="alert">
+                {Object.keys(fieldErrors).length > 0 ? (
+                  <p
+                    className="mt-4 rounded-lg bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive"
+                    role="alert"
+                  >
                     {t("book.required")}
                   </p>
                 ) : null}
@@ -341,7 +527,9 @@ function BookPage() {
                   {paxList.map((p, i) => {
                     const update = (patch: Partial<typeof p>) =>
                       setDraft((prev) => {
-                        const passengers = prev.passengers.length ? [...prev.passengers] : passengersFor(prev.criteria);
+                        const passengers = prev.passengers.length
+                          ? [...prev.passengers]
+                          : passengersFor(prev.criteria);
                         while (passengers.length < pax) passengers.push(emptyPassenger());
                         passengers[i] = { ...(passengers[i] ?? emptyPassenger()), ...patch };
                         return { ...prev, passengers };
@@ -353,8 +541,14 @@ function BookPage() {
                           <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
                             {t("book.pax", { n: i + 1 })}
                           </h2>
-                          <Pill>
-                            {t(p.type === "infant" ? "book.infant" : p.type === "child" ? "book.child" : "book.adult")}
+                          <Pill tone="neutral">
+                            {t(
+                              p.type === "infant"
+                                ? "book.infant"
+                                : p.type === "child"
+                                  ? "book.child"
+                                  : "book.adult",
+                            )}
                           </Pill>
                         </div>
                         {isInfant ? (
@@ -395,32 +589,102 @@ function BookPage() {
                           </div>
                         ) : null}
                         <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                          <Field label={t("book.firstName")} htmlFor={`fn-${i}`}>
+                          <Field
+                            label={t("book.firstName")}
+                            htmlFor={`fn-${i}`}
+                            error={fieldErrors[`fn-${i}`]}
+                            errorId={`fn-${i}-error`}
+                          >
                             <Input
                               id={`fn-${i}`}
                               value={p.firstName}
                               autoComplete="given-name"
-                              onChange={(e) => update({ firstName: e.target.value })}
+                              aria-invalid={Boolean(fieldErrors[`fn-${i}`])}
+                              aria-describedby={fieldErrors[`fn-${i}`] ? `fn-${i}-error` : undefined}
+                              onChange={(e) => {
+                                update({ firstName: e.target.value });
+                                if (fieldErrors[`fn-${i}`]) {
+                                  setFieldErrors((prev) => {
+                                    const next = { ...prev };
+                                    delete next[`fn-${i}`];
+                                    return next;
+                                  });
+                                }
+                              }}
                               required
                             />
                           </Field>
-                          <Field label={t("book.lastName")} htmlFor={`ln-${i}`}>
+                          <Field
+                            label={t("book.lastName")}
+                            htmlFor={`ln-${i}`}
+                            error={fieldErrors[`ln-${i}`]}
+                            errorId={`ln-${i}-error`}
+                          >
                             <Input
                               id={`ln-${i}`}
                               value={p.lastName}
                               autoComplete="family-name"
-                              onChange={(e) => update({ lastName: e.target.value })}
+                              aria-invalid={Boolean(fieldErrors[`ln-${i}`])}
+                              aria-describedby={fieldErrors[`ln-${i}`] ? `ln-${i}-error` : undefined}
+                              onChange={(e) => {
+                                update({ lastName: e.target.value });
+                                if (fieldErrors[`ln-${i}`]) {
+                                  setFieldErrors((prev) => {
+                                    const next = { ...prev };
+                                    delete next[`ln-${i}`];
+                                    return next;
+                                  });
+                                }
+                              }}
                               required
                             />
                           </Field>
-                          <Field label={t("book.dob")} htmlFor={`dob-${i}`}>
-                            <Input id={`dob-${i}`} type="date" value={p.dob} onChange={(e) => update({ dob: e.target.value })} />
+                          <Field
+                            label={t("book.dob")}
+                            htmlFor={`dob-${i}`}
+                            error={fieldErrors[`dob-${i}`]}
+                            errorId={`dob-${i}-error`}
+                          >
+                            <Input
+                              id={`dob-${i}`}
+                              type="date"
+                              max={todayISO()}
+                              value={p.dob}
+                              dir="ltr"
+                              aria-invalid={Boolean(fieldErrors[`dob-${i}`])}
+                              aria-describedby={fieldErrors[`dob-${i}`] ? `dob-${i}-error` : undefined}
+                              className="code-id text-start font-mono tabular-nums"
+                              onChange={(e) => {
+                                update({ dob: e.target.value });
+                                if (fieldErrors[`dob-${i}`]) {
+                                  setFieldErrors((prev) => {
+                                    const next = { ...prev };
+                                    delete next[`dob-${i}`];
+                                    return next;
+                                  });
+                                }
+                              }}
+                              required
+                            />
                           </Field>
                           <Field label={t("book.nationality")} htmlFor={`nat-${i}`}>
-                            <Input id={`nat-${i}`} value={p.nationality} onChange={(e) => update({ nationality: e.target.value })} />
+                            <Input
+                              id={`nat-${i}`}
+                              value={p.nationality}
+                              onChange={(e) => update({ nationality: e.target.value })}
+                            />
                           </Field>
-                          <Field label={t("book.docNumber")} htmlFor={`doc-${i}`} hint={t("common.optional")} className="sm:col-span-2">
-                            <Input id={`doc-${i}`} value={p.document} onChange={(e) => update({ document: e.target.value })} />
+                          <Field
+                            label={t("book.docNumber")}
+                            htmlFor={`doc-${i}`}
+                            hint={t("common.optional")}
+                            className="sm:col-span-2"
+                          >
+                            <Input
+                              id={`doc-${i}`}
+                              value={p.document}
+                              onChange={(e) => update({ document: e.target.value })}
+                            />
                           </Field>
                         </div>
                       </Panel>
@@ -428,17 +692,38 @@ function BookPage() {
                   })}
 
                   <Panel>
-                    <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">{t("book.contact")}</h2>
+                    <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                      {t("book.contact")}
+                    </h2>
                     <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                      <Field label={t("book.email")} htmlFor="contact-email">
+                      <Field
+                        label={t("book.email")}
+                        htmlFor="contact-email"
+                        error={fieldErrors["contact-email"]}
+                        errorId="contact-email-error"
+                      >
                         <Input
                           id="contact-email"
                           type="email"
                           autoComplete="email"
+                          dir="ltr"
+                          className="code-id"
                           value={draft.contact.email}
-                          onChange={(e) =>
-                            setDraft((prev) => ({ ...prev, contact: { ...prev.contact, email: e.target.value } }))
-                          }
+                          aria-invalid={Boolean(fieldErrors["contact-email"])}
+                          aria-describedby={fieldErrors["contact-email"] ? "contact-email-error" : undefined}
+                          onChange={(e) => {
+                            setDraft((prev) => ({
+                              ...prev,
+                              contact: { ...prev.contact, email: e.target.value },
+                            }));
+                            if (fieldErrors["contact-email"]) {
+                              setFieldErrors((prev) => {
+                                const next = { ...prev };
+                                delete next["contact-email"];
+                                return next;
+                              });
+                            }
+                          }}
                           required
                         />
                       </Field>
@@ -447,9 +732,14 @@ function BookPage() {
                           id="contact-phone"
                           type="tel"
                           autoComplete="tel"
+                          dir="ltr"
+                          className="code-id"
                           value={draft.contact.phone}
                           onChange={(e) =>
-                            setDraft((prev) => ({ ...prev, contact: { ...prev.contact, phone: e.target.value } }))
+                            setDraft((prev) => ({
+                              ...prev,
+                              contact: { ...prev.contact, phone: e.target.value },
+                            }))
                           }
                         />
                       </Field>
@@ -461,17 +751,24 @@ function BookPage() {
                 </div>
 
                 <StepNav
-                  onBack={() => go("fare")}
-                  onNext={() => (passengersValid() ? go("seats") : setErrors(true))}
+                  onBack={() => goToStep("fare")}
+                  onNext={() => {
+                    if (validatePassengers()) goToStep("seats");
+                  }}
                 />
               </section>
             ) : null}
 
             {/* -------------------------------- seats ------------------------------- */}
-            {step === "seats" ? (
+            {currentStep === "seats" ? (
               <section aria-labelledby="seats-title">
                 <Eyebrow>{t("step.seats")}</Eyebrow>
-                <h1 id="seats-title" className="mt-2 text-2xl font-bold sm:text-3xl">
+                <h1
+                  id="seats-title"
+                  ref={headingRef}
+                  tabIndex={-1}
+                  className="mt-2 text-2xl font-bold sm:text-3xl outline-none"
+                >
                   {t("book.seatTitle")}
                 </h1>
                 <p className="mt-1 text-sm text-muted-foreground">{t("book.seatSub")}</p>
@@ -490,7 +787,7 @@ function BookPage() {
                         onClick={() => setSeatLeg(leg)}
                         aria-pressed={seatLeg === leg}
                         className={cn(
-                          "flex-1 rounded-md px-3 py-2 text-sm font-semibold",
+                          "flex-1 rounded-md px-3 py-2 text-sm font-semibold transition-colors",
                           seatLeg === leg ? "bg-card shadow-[var(--shadow-soft)]" : "text-muted-foreground",
                         )}
                       >
@@ -516,14 +813,17 @@ function BookPage() {
                       Object.values(draft.seats),
                     )}
                   />
-
                 </div>
 
                 <StepNav
-                  onBack={() => go("passengers")}
-                  onNext={() => go("extras")}
+                  onBack={() => goToStep("passengers")}
+                  onNext={() => goToStep("extras")}
                   secondary={
-                    <button type="button" onClick={() => go("extras")} className={btnClass("ghost", "md")}>
+                    <button
+                      type="button"
+                      onClick={() => goToStep("extras")}
+                      className={btnClass("ghost", "md")}
+                    >
                       {t("book.seatSkip")}
                     </button>
                   }
@@ -532,14 +832,18 @@ function BookPage() {
             ) : null}
 
             {/* -------------------------------- extras ------------------------------ */}
-            {step === "extras" ? (
+            {currentStep === "extras" ? (
               <section aria-labelledby="extras-title">
                 <Eyebrow>{t("step.extras")}</Eyebrow>
-                <h1 id="extras-title" className="mt-2 text-2xl font-bold sm:text-3xl">
+                <h1
+                  id="extras-title"
+                  ref={headingRef}
+                  tabIndex={-1}
+                  className="mt-2 text-2xl font-bold sm:text-3xl outline-none"
+                >
                   {t("book.extrasTitle")}
                 </h1>
                 <p className="mt-1 text-sm text-muted-foreground">{t("book.extrasSub")}</p>
-
                 <p className="mt-1 text-sm text-muted-foreground">{t("book.extrasPaxNote")}</p>
 
                 <div className="mt-6 space-y-4">
@@ -570,9 +874,9 @@ function BookPage() {
                             <p className="mt-1 text-sm text-muted-foreground">
                               {t("book.included")}:{" "}
                               <span className="numeral">
-                                {(fares.find((f) => f.id === draft.fareId)?.checkedBags ?? 0) === 0
-                                  ? pick(lang, { en: "cabin bag only", ar: "حقيبة كابينة فقط" })
-                                  : `${fares.find((f) => f.id === draft.fareId)?.checkedBags} × 23 kg`}
+                                  {(fares.find((f) => f.id === draft.fareId)?.checkedBags ?? 0) === 0
+                                    ? t("book.cabinBagOnly")
+                                    : `${fares.find((f) => f.id === draft.fareId)?.checkedBags} × 23 kg`}
                               </span>
                             </p>
                             <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-sand p-3">
@@ -582,7 +886,7 @@ function BookPage() {
                               <div className="flex items-center gap-2">
                                 <button
                                   type="button"
-                                  className="size-11 rounded-md border border-input bg-card disabled:opacity-40"
+                                  className="size-11 rounded-md border border-input bg-card disabled:opacity-40 transition-colors hover:bg-secondary/40 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
                                   disabled={extras.extraBags === 0}
                                   onClick={() => setPax({ extraBags: Math.max(0, extras.extraBags - 1) })}
                                   aria-label={`${t("book.extraBag")} − ${label}`}
@@ -592,7 +896,7 @@ function BookPage() {
                                 <span className="numeral w-6 text-center font-semibold">{extras.extraBags}</span>
                                 <button
                                   type="button"
-                                  className="size-11 rounded-md border border-input bg-card disabled:opacity-40"
+                                  className="size-11 rounded-md border border-input bg-card disabled:opacity-40 transition-colors hover:bg-secondary/40 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
                                   disabled={extras.extraBags >= 4}
                                   onClick={() => setPax({ extraBags: Math.min(4, extras.extraBags + 1) })}
                                   aria-label={`${t("book.extraBag")} + ${label}`}
@@ -632,8 +936,8 @@ function BookPage() {
                                   <label
                                     key={option.id}
                                     className={cn(
-                                      "flex cursor-pointer items-center gap-3 rounded-lg border px-3.5 py-3 text-sm",
-                                      checked ? "border-primary bg-brand-soft/50" : "border-input bg-card",
+                                      "flex cursor-pointer items-center gap-3 rounded-lg border px-3.5 py-3 text-sm transition-colors",
+                                      checked ? "border-primary bg-brand-soft/50 font-medium" : "border-input bg-card hover:bg-secondary/30",
                                     )}
                                   >
                                     <input
@@ -660,16 +964,20 @@ function BookPage() {
                   })}
                 </div>
 
-
-                <StepNav onBack={() => go("seats")} onNext={() => go("review")} />
+                <StepNav onBack={() => goToStep("seats")} onNext={() => goToStep("review")} />
               </section>
             ) : null}
 
             {/* -------------------------------- review ----------------------------- */}
-            {step === "review" ? (
+            {currentStep === "review" ? (
               <section aria-labelledby="review-title">
                 <Eyebrow>{t("step.review")}</Eyebrow>
-                <h1 id="review-title" className="mt-2 text-2xl font-bold sm:text-3xl">
+                <h1
+                  id="review-title"
+                  ref={headingRef}
+                  tabIndex={-1}
+                  className="mt-2 text-2xl font-bold sm:text-3xl outline-none"
+                >
                   {t("book.reviewTitle")}
                 </h1>
                 <p className="mt-1 text-sm text-muted-foreground">{t("book.reviewSub")}</p>
@@ -680,7 +988,16 @@ function BookPage() {
                     const to = airportByCode(flight.destinationCode);
                     return (
                       <Panel key={flight.id}>
-                        <p className="eyebrow text-clay">{t(index === 0 ? "book.outbound" : "book.inbound")}</p>
+                        <div className="flex items-center justify-between">
+                          <p className="eyebrow text-clay">{t(index === 0 ? "book.outbound" : "book.inbound")}</p>
+                          <button
+                            type="button"
+                            onClick={() => goToStep("results")}
+                            className="text-xs font-semibold text-brand-deep hover:underline"
+                          >
+                            {t("common.edit")}
+                          </button>
+                        </div>
                         <p className="mt-2 text-lg font-bold">
                           {from ? pick(lang, from.city) : flight.originCode} →{" "}
                           {to ? pick(lang, to.city) : flight.destinationCode}
@@ -695,9 +1012,18 @@ function BookPage() {
                   })}
 
                   <Panel>
-                    <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
-                      {t("book.passengersLabel")}
-                    </h2>
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                        {t("book.passengersLabel")}
+                      </h2>
+                      <button
+                        type="button"
+                        onClick={() => goToStep("passengers")}
+                        className="text-xs font-semibold text-brand-deep hover:underline"
+                      >
+                        {t("common.edit")}
+                      </button>
+                    </div>
                     <ul className="mt-3 divide-y divide-border">
                       {paxList.map((p, i) => (
                         <li key={i} className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-sm">
@@ -716,9 +1042,18 @@ function BookPage() {
                   </Panel>
 
                   <Panel>
-                    <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
-                      {t("step.extras")}
-                    </h2>
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                        {t("step.extras")}
+                      </h2>
+                      <button
+                        type="button"
+                        onClick={() => goToStep("extras")}
+                        className="text-xs font-semibold text-brand-deep hover:underline"
+                      >
+                        {t("common.edit")}
+                      </button>
+                    </div>
                     <ul className="mt-3 divide-y divide-border text-sm">
                       {paxList.map((p, i) => {
                         const extras = extrasFor(draft.extras, i);
@@ -756,26 +1091,31 @@ function BookPage() {
                   </Panel>
                 </div>
 
-                <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <button type="button" onClick={() => go("extras")} className={btnClass("outline", "md")}>
+                <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between border-t border-border pt-6">
+                  <button
+                    type="button"
+                    onClick={() => goToStep("extras")}
+                    className={btnClass("outline", "md")}
+                  >
                     <ArrowLeft aria-hidden="true" className="size-4 rtl:rotate-180" />
                     {t("book.back")}
                   </button>
-                  <button type="button" onClick={confirm} className={btnClass("primary", "lg")}>
+                  <button
+                    type="button"
+                    onClick={confirm}
+                    className={btnClass("primary", "lg")}
+                  >
                     {t("book.confirm")} · {money(totals.total, lang)}
                   </button>
                 </div>
               </section>
             ) : null}
-
-
           </div>
 
-          {step !== "confirmation" ? (
-            <div className="hidden lg:block">
-              <PriceSummary draft={draft} />
-            </div>
-          ) : null}
+          {/* Persistent sticky PriceSummary docket on larger screens */}
+          <div className="hidden lg:block">
+            <PriceSummary draft={draft} />
+          </div>
         </div>
       </Container>
     </>
@@ -802,7 +1142,12 @@ function StepNav({
       </button>
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
         {secondary}
-        <button type="button" onClick={onNext} disabled={nextDisabled} className={btnClass("primary", "md")}>
+        <button
+          type="button"
+          onClick={onNext}
+          disabled={nextDisabled}
+          className={btnClass("primary", "md")}
+        >
           {t("book.continue")}
           <ArrowRight aria-hidden="true" className="size-4 rtl:rotate-180" />
         </button>

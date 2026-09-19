@@ -55,7 +55,12 @@ export function FlightOption({
             <p className="text-lg font-bold">{money(price, lang)}</p>
             <p className="text-xs text-muted-foreground">{t("book.perPassenger")}</p>
           </div>
-          <button type="button" onClick={onSelect} className={btnClass(selected ? "secondary" : "primary", "sm")}>
+          <button
+            type="button"
+            onClick={onSelect}
+            aria-pressed={selected}
+            className={btnClass(selected ? "secondary" : "primary", "sm")}
+          >
             {selected ? t("book.selected") : t("book.select")}
           </button>
         </div>

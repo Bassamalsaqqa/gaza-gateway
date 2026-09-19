@@ -1,11 +1,32 @@
 import { useAppNavigate } from "@/components/app-link";
-import { ArrowLeftRight, Calendar, Search, Users } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { ArrowLeftRight, Calendar as CalendarIcon, Search, Users } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { btnClass, Field, Input, Select } from "./kit";
 import { GZA, addDaysISO, cabins, destinations, todayISO } from "@/lib/data";
+import { dateShort } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
 import { paxCount, useStore, type SearchCriteria } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
+import { Calendar as DayPickerCalendar } from "@/components/ui/calendar";
+
+function parseISOLocal(iso: string): Date | undefined {
+  if (!iso) return undefined;
+  const parts = iso.split("-").map(Number);
+  if (parts.length !== 3 || parts.some(isNaN)) return undefined;
+  const year = parts[0];
+  const month = parts[1];
+  const day = parts[2];
+  if (year === undefined || month === undefined || day === undefined) return undefined;
+  return new Date(year, month - 1, day, 12, 0, 0);
+}
+
+function formatISOLocal(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
 
 export function FlightSearchForm({
   variant = "panel",
@@ -28,6 +49,25 @@ export function FlightSearchForm({
   const [minDate, setMinDate] = useState<string>(() => criteria.departDate || "");
   const [paxOpen, setPaxOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [calendarTarget, setCalendarTarget] = useState<"depart" | "return">("depart");
+  const [numberOfMonths, setNumberOfMonths] = useState(1);
+
+  const departTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const returnTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const lastDateTriggerRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    const updateMonths = () => {
+      if (typeof window !== "undefined") {
+        setNumberOfMonths(window.innerWidth >= 1024 && criteria.tripType === "round" ? 2 : 1);
+      }
+    };
+    updateMonths();
+    window.addEventListener("resize", updateMonths);
+    return () => window.removeEventListener("resize", updateMonths);
+  }, [criteria.tripType]);
 
   const paxButtonRef = useRef<HTMLButtonElement | null>(null);
   const paxDropdownRef = useRef<HTMLDivElement | null>(null);
@@ -97,6 +137,7 @@ export function FlightSearchForm({
       if (criteria.returnDate) {
         setReturnDateDraft(criteria.returnDate);
       }
+      setCalendarTarget("depart");
       setCriteria((prev) => ({ ...prev, tripType: "oneway" }));
     } else {
       const restored = returnDateDraft || addDaysISO(criteria.departDate || todayISO(), 6);
@@ -185,7 +226,7 @@ export function FlightSearchForm({
     setError(problem);
     if (problem) return;
     resetDraft(criteria);
-    void navigate({ to: "/book" });
+    void navigate({ to: "/book", search: { step: "results" } });
   };
 
   return (
@@ -267,60 +308,321 @@ export function FlightSearchForm({
           </Field>
         </div>
 
-        {/* Departure Date (Strict LTR Latin ASCII Digits) */}
-        <Field label={t("search.depart")} htmlFor="search-depart">
-          <div className="relative">
-            <Input
-              id="search-depart"
-              type="date"
-              min={minDate || undefined}
-              value={criteria.departDate}
-              onChange={(e) => {
-                handleDepartDateChange(e.target.value);
-                if (!minDate) setMinDate(todayISO());
-              }}
-              dir="ltr"
-              required
-              className="code-id text-start font-mono tabular-nums ps-9"
-            />
-            <Calendar
-              aria-hidden="true"
-              className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-            />
-          </div>
-        </Field>
+        {/* Mobile Date Inputs (< md): Native pickers */}
+        <div className="contents md:hidden">
+          {/* Departure Date (Strict LTR Latin ASCII Digits) */}
+          <Field label={t("search.depart")} htmlFor="search-depart">
+            <div className="relative">
+              <Input
+                id="search-depart"
+                type="date"
+                min={minDate || undefined}
+                value={criteria.departDate}
+                onChange={(e) => {
+                  handleDepartDateChange(e.target.value);
+                  if (!minDate) setMinDate(todayISO());
+                }}
+                dir="ltr"
+                required
+                className="code-id text-start font-mono tabular-nums ps-9"
+              />
+              <CalendarIcon
+                aria-hidden="true"
+                className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+              />
+            </div>
+          </Field>
 
-        {/* Return Date (Strict LTR digits; error programmatically associated via aria-describedby) */}
-        <Field
-          label={t("search.return")}
-          htmlFor="search-return"
-          hint={criteria.tripType === "oneway" ? t("search.oneWay") : undefined}
-          error={isDatePairInvalid ? t("search.errReturn") : undefined}
-          errorId="search-return-error"
-        >
-          <div className="relative">
-            <Input
-              id="search-return"
-              type="date"
-              min={criteria.departDate || minDate || undefined}
-              value={criteria.tripType === "oneway" ? "" : criteria.returnDate}
-              onChange={(e) => handleReturnDateChange(e.target.value)}
-              disabled={criteria.tripType === "oneway"}
-              aria-invalid={isDatePairInvalid}
-              aria-describedby={isDatePairInvalid ? "search-return-error" : undefined}
-              dir="ltr"
-              className={cn(
-                "code-id text-start font-mono tabular-nums ps-9",
-                isDatePairInvalid && "border-destructive focus-visible:outline-destructive",
-                criteria.tripType === "oneway" && "bg-muted/40 cursor-not-allowed",
-              )}
-            />
-            <Calendar
-              aria-hidden="true"
-              className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-            />
+          {/* Return Date (Strict LTR digits; error programmatically associated via aria-describedby) */}
+          <Field
+            label={t("search.return")}
+            htmlFor="search-return"
+            hint={criteria.tripType === "oneway" ? t("search.oneWay") : undefined}
+            error={isDatePairInvalid ? t("search.errReturn") : undefined}
+            errorId="search-return-error"
+          >
+            <div className="relative">
+              <Input
+                id="search-return"
+                type="date"
+                min={criteria.departDate || minDate || undefined}
+                value={criteria.tripType === "oneway" ? "" : criteria.returnDate}
+                onChange={(e) => handleReturnDateChange(e.target.value)}
+                disabled={criteria.tripType === "oneway"}
+                aria-invalid={isDatePairInvalid}
+                aria-describedby={isDatePairInvalid ? "search-return-error" : undefined}
+                dir="ltr"
+                className={cn(
+                  "code-id text-start font-mono tabular-nums ps-9",
+                  isDatePairInvalid && "border-destructive focus-visible:outline-destructive",
+                  criteria.tripType === "oneway" && "bg-muted/40 cursor-not-allowed",
+                )}
+              />
+              <CalendarIcon
+                aria-hidden="true"
+                className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+              />
+            </div>
+          </Field>
+        </div>
+
+        {/* Desktop & Tablet Date Experience (>= md): Anchored Console Popover */}
+        <div className="hidden md:contents">
+          <div className="relative md:col-span-2">
+            <Popover
+              open={datePickerOpen}
+              onOpenChange={(open) => {
+                setDatePickerOpen(open);
+                if (!open && lastDateTriggerRef.current) {
+                  lastDateTriggerRef.current.focus();
+                }
+              }}
+            >
+              <PopoverAnchor asChild>
+                <div className="grid grid-cols-2 gap-3.5 sm:gap-4">
+                  {/* Departure Trigger */}
+                  <Field label={t("search.depart")} htmlFor="desktop-search-depart">
+                    <button
+                      ref={departTriggerRef}
+                      id="desktop-search-depart"
+                      type="button"
+                      onClick={() => {
+                        lastDateTriggerRef.current = departTriggerRef.current;
+                        setCalendarTarget("depart");
+                        setDatePickerOpen(true);
+                      }}
+                      aria-expanded={datePickerOpen && calendarTarget === "depart"}
+                      aria-haspopup="dialog"
+                      className="flex h-11 w-full items-center justify-between rounded-lg border border-input bg-card px-3.5 text-sm font-medium transition-colors hover:bg-secondary/40 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
+                    >
+                      <span className="flex items-center gap-2">
+                        <CalendarIcon aria-hidden="true" className="size-4 text-muted-foreground" />
+                        <span className="tabular-nums font-mono font-semibold text-foreground">
+                          {criteria.departDate
+                            ? dateShort(criteria.departDate, lang)
+                            : t("search.selectDates")}
+                        </span>
+                      </span>
+                      <span className="text-xs text-muted-foreground font-mono">
+                        {criteria.departDate || ""}
+                      </span>
+                    </button>
+                  </Field>
+
+                  {/* Return Trigger */}
+                  <Field
+                    label={t("search.return")}
+                    htmlFor="desktop-search-return"
+                    hint={criteria.tripType === "oneway" ? t("search.oneWay") : undefined}
+                    error={isDatePairInvalid ? t("search.errReturn") : undefined}
+                    errorId="desktop-search-return-error"
+                  >
+                    <button
+                      ref={returnTriggerRef}
+                      id="desktop-search-return"
+                      type="button"
+                      onClick={() => {
+                        if (criteria.tripType === "oneway") return;
+                        lastDateTriggerRef.current = returnTriggerRef.current;
+                        setCalendarTarget("return");
+                        setDatePickerOpen(true);
+                      }}
+                      disabled={criteria.tripType === "oneway"}
+                      aria-expanded={datePickerOpen && calendarTarget === "return"}
+                      aria-haspopup="dialog"
+                      aria-invalid={isDatePairInvalid}
+                      aria-describedby={
+                        isDatePairInvalid ? "desktop-search-return-error" : undefined
+                      }
+                      className={cn(
+                        "flex h-11 w-full items-center justify-between rounded-lg border border-input bg-card px-3.5 text-sm font-medium transition-colors hover:bg-secondary/40 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
+                        isDatePairInvalid && "border-destructive focus-visible:outline-destructive",
+                        criteria.tripType === "oneway" &&
+                          "bg-muted/40 cursor-not-allowed text-muted-foreground",
+                      )}
+                    >
+                      <span className="flex items-center gap-2">
+                        <CalendarIcon aria-hidden="true" className="size-4 text-muted-foreground" />
+                        <span className="tabular-nums font-mono font-semibold text-foreground">
+                          {criteria.tripType === "oneway"
+                            ? "—"
+                            : criteria.returnDate
+                              ? dateShort(criteria.returnDate, lang)
+                              : t("search.selectDates")}
+                        </span>
+                      </span>
+                      <span className="text-xs text-muted-foreground font-mono">
+                        {criteria.tripType === "oneway" ? "" : criteria.returnDate || ""}
+                      </span>
+                    </button>
+                  </Field>
+                </div>
+              </PopoverAnchor>
+
+              <PopoverContent
+                align="start"
+                sideOffset={8}
+                className="w-auto p-4 sm:p-5 max-w-[calc(100vw-2rem)] shadow-[var(--shadow-lift)] rounded-2xl border-border bg-card z-50"
+              >
+                {/* Header Tabs: Departure / Return Selection */}
+                <div className="flex items-center gap-2 border-b border-border/60 pb-3 mb-3">
+                  <button
+                    type="button"
+                    onClick={() => setCalendarTarget("depart")}
+                    className={cn(
+                      "flex-1 rounded-lg px-3 py-2 text-start transition-all border",
+                      calendarTarget === "depart"
+                        ? "border-primary bg-primary/5 text-foreground ring-1 ring-primary"
+                        : "border-border/60 bg-secondary/30 text-muted-foreground hover:bg-secondary/60",
+                    )}
+                  >
+                    <div className="text-[11px] font-semibold uppercase tracking-wider">
+                      {t("search.depart")}
+                    </div>
+                    <div className="font-mono text-sm font-semibold tabular-nums text-foreground">
+                      {criteria.departDate
+                        ? dateShort(criteria.departDate, lang)
+                        : t("search.selectDates")}
+                    </div>
+                  </button>
+
+                  {criteria.tripType === "round" && (
+                    <button
+                      type="button"
+                      onClick={() => setCalendarTarget("return")}
+                      className={cn(
+                        "flex-1 rounded-lg px-3 py-2 text-start transition-all border",
+                        calendarTarget === "return"
+                          ? "border-primary bg-primary/5 text-foreground ring-1 ring-primary"
+                          : "border-border/60 bg-secondary/30 text-muted-foreground hover:bg-secondary/60",
+                      )}
+                    >
+                      <div className="text-[11px] font-semibold uppercase tracking-wider">
+                        {t("search.return")}
+                      </div>
+                      <div className="font-mono text-sm font-semibold tabular-nums text-foreground">
+                        {criteria.returnDate
+                          ? dateShort(criteria.returnDate, lang)
+                          : t("search.selectDates")}
+                      </div>
+                    </button>
+                  )}
+                </div>
+
+                {/* Date Validation Alert inside Popover if Invalid */}
+                {isDatePairInvalid && criteria.tripType === "round" && (
+                  <div
+                    role="alert"
+                    className="mb-3 rounded-md border border-destructive/40 bg-destructive/10 px-2.5 py-1.5 text-xs font-medium text-destructive"
+                  >
+                    {t("search.errReturn")}
+                  </div>
+                )}
+
+                {/* Calendar Picker Surface */}
+                {criteria.tripType === "round" ? (
+                  <DayPickerCalendar
+                    mode="range"
+                    selected={{
+                      from: criteria.departDate ? parseISOLocal(criteria.departDate) : undefined,
+                      to:
+                        criteria.returnDate &&
+                        criteria.departDate &&
+                        criteria.returnDate >= criteria.departDate
+                          ? parseISOLocal(criteria.returnDate)
+                          : undefined,
+                    }}
+                    onSelect={(_range, triggerDate) => {
+                      if (!triggerDate) return;
+                      const iso = formatISOLocal(triggerDate);
+                      if (calendarTarget === "depart") {
+                        handleDepartDateChange(iso);
+                        setCalendarTarget("return");
+                      } else {
+                        handleReturnDateChange(iso);
+                        if (!criteria.departDate || iso >= criteria.departDate) {
+                          setDatePickerOpen(false);
+                          returnTriggerRef.current?.focus();
+                        }
+                      }
+                    }}
+                    numberOfMonths={numberOfMonths}
+                    defaultMonth={
+                      parseISOLocal(criteria.departDate) ?? new Date()
+                    }
+                    disabled={{ before: parseISOLocal(todayISO()) ?? new Date() }}
+                    dir={lang === "ar" ? "rtl" : "ltr"}
+                    formatters={{
+                      formatDay: (d) => String(d.getDate()),
+                      formatMonthCaption: (d) =>
+                        new Intl.DateTimeFormat(lang === "ar" ? "ar-u-nu-latn" : "en-GB", {
+                          month: "long",
+                          year: "numeric",
+                        }).format(d),
+                      formatWeekdayName: (d) =>
+                        new Intl.DateTimeFormat(lang === "ar" ? "ar-u-nu-latn" : "en-GB", {
+                          weekday: "short",
+                        }).format(d),
+                    }}
+                    className="p-0"
+                  />
+                ) : (
+                  <DayPickerCalendar
+                    mode="single"
+                    selected={criteria.departDate ? parseISOLocal(criteria.departDate) : undefined}
+                    onSelect={(date) => {
+                      if (!date) return;
+                      const iso = formatISOLocal(date);
+                      handleDepartDateChange(iso);
+                      setDatePickerOpen(false);
+                      departTriggerRef.current?.focus();
+                    }}
+                    numberOfMonths={1}
+                    defaultMonth={
+                      parseISOLocal(criteria.departDate) ?? new Date()
+                    }
+                    disabled={{ before: parseISOLocal(todayISO()) ?? new Date() }}
+                    dir={lang === "ar" ? "rtl" : "ltr"}
+                    formatters={{
+                      formatDay: (d) => String(d.getDate()),
+                      formatMonthCaption: (d) =>
+                        new Intl.DateTimeFormat(lang === "ar" ? "ar-u-nu-latn" : "en-GB", {
+                          month: "long",
+                          year: "numeric",
+                        }).format(d),
+                      formatWeekdayName: (d) =>
+                        new Intl.DateTimeFormat(lang === "ar" ? "ar-u-nu-latn" : "en-GB", {
+                          weekday: "short",
+                        }).format(d),
+                    }}
+                    className="p-0"
+                  />
+                )}
+
+                {/* Popover Footer: Summary & Done */}
+                <div className="mt-3 flex items-center justify-between border-t border-border/60 pt-2.5">
+                  <span className="text-xs text-muted-foreground font-mono">
+                    {criteria.departDate && criteria.tripType === "round" && criteria.returnDate
+                      ? `${criteria.departDate} → ${criteria.returnDate}`
+                      : criteria.departDate || ""}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDatePickerOpen(false);
+                      if (lastDateTriggerRef.current) {
+                        lastDateTriggerRef.current.focus();
+                      }
+                    }}
+                    className={btnClass("secondary", "sm")}
+                  >
+                    {t("search.calendarDone")}
+                  </button>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
-        </Field>
+        </div>
       </div>
 
       {/* Secondary Controls: Passengers, Cabin & Search Action */}

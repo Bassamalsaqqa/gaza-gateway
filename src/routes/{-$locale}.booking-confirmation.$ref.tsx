@@ -5,7 +5,8 @@ import { EXTRA_BAG_PRICE, airportByCode, fares, mealOptions } from "@/lib/data";
 import { btnClass, Code, Container, EmptyState, Notice, Panel } from "@/components/kit";
 import { dateLong, money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
-import { anyCheckedIn, extrasFor, totalExtraBags, useStore } from "@/lib/store";
+import { extrasFor, totalExtraBags, useStore } from "@/lib/store";
+import { passesForBooking } from "@/components/booking/boarding-pass";
 
 export const Route = createFileRoute("/{-$locale}/booking-confirmation/$ref")({
   head: ({ params }) => ({
@@ -30,6 +31,8 @@ function ConfirmationPage() {
   const { t, lang } = useI18n();
   const { findBooking, account, claimBooking, ready } = useStore();
   const booking = findBooking(ref);
+  const passes = booking ? passesForBooking(booking) : [];
+  const firstPass = passes[0];
 
   if (!ready) {
     return (
@@ -175,10 +178,10 @@ function ConfirmationPage() {
             <AppLink to="/manage/$ref" params={{ ref: booking.ref }} className={btnClass("primary", "md")}>
               {t("book.viewBooking")}
             </AppLink>
-            {anyCheckedIn(booking) ? (
+            {firstPass ? (
               <AppLink
-                to="/boarding-pass/$ref/$pax"
-                params={{ ref: booking.ref, pax: "0" }}
+                to="/boarding-pass/$ref/$leg/$pax"
+                params={{ ref: booking.ref, leg: firstPass.leg, pax: String(firstPass.paxIndex) }}
                 className={btnClass("outline", "md")}
               >
                 {t("book.boardingPass")}
