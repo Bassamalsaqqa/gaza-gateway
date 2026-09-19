@@ -18,6 +18,7 @@ const columns = [
     links: [
       { to: "/airport", key: "nav.airport" },
       { to: "/airport/past", key: "airport.past" },
+      { to: "/airport/present", key: "airport.present" },
       { to: "/airport/future", key: "airport.future" },
       { to: "/gallery", key: "nav.gallery" },
     ],

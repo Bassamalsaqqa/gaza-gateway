@@ -293,6 +293,92 @@ const en: Dict = {
   "airport.placeholder": "Placeholder content",
   "airport.placeholderNote":
     "Text and imagery in this section are placeholders. Verified archive material will replace them.",
+  "airport.chapterSequence": "Chronological Sequence",
+  "airport.chapterLabel": "Chapter {n}",
+  "airport.chapter1": "Chapter 01",
+  "airport.chapter2": "Chapter 02",
+  "airport.chapter3": "Chapter 03",
+  "airport.navAria": "Airport story chapters",
+  "airport.nextChapter": "Next chapter",
+  "airport.prevChapter": "Previous chapter",
+  "airport.exploreArchive": "Explore archive",
+  "airport.curatorialNotice":
+    "Curatorial note: Provisional study records awaiting verified archival ingestion.",
+  "airport.pastHorizon": "Provisional chronology",
+  "airport.presentHorizon": "Documentary State",
+  "airport.futureHorizon": "Masterplan & Vision",
+  "airport.siteLocation": "Southern Gaza Strip, near Rafah",
+  "airport.facilityStatus": "Closed / Non-operational · Subject to verification",
+  "airport.provisionalRecord": "Provisional record",
+  "airport.documentaryRecord": "Documentary record",
+  "airport.conceptStudy": "Concept study",
+  "airport.introTitle": "A civic story documented across three distinct horizons.",
+  "airport.introBody":
+    "Gaza International Airport (Yasser Arafat International Airport; IATA: GZA, ICAO: LVGZ) represents Palestine's civil aviation history. The digital dossier separates historical record, contemporary documentation, and forward-looking masterplan concepts into three distinct chapters.",
+  "airport.pastSummary":
+    "From early planning and the 1998 inauguration to commercial flight operations and preserved civil aviation memories.",
+  "airport.presentSummary":
+    "A factual account of the airport grounds today: terminal structures, runway condition, documented records, and ongoing survey requirements.",
+  "airport.futureSummary":
+    "Architectural proposals, passenger service philosophy, phased masterplanning, and route connectivity for a restored Mediterranean civil gateway.",
+  "airport.sourcesBody":
+    "In accordance with institutional evidentiary standards, all timeline entries, imagery, and catalog records currently shown are provisional study placeholders. No simulated record may masquerade as verified historical provenance. Authentic archival materials may replace placeholders if provided by the repository owner and verified.",
+  "airport.pastSubtitle":
+    "The history of Gaza International Airport documented across its planning, inauguration, commercial operational years, and enduring civic memory.",
+  "airport.pastNotice":
+    "All timeline entries, dates, and historical depictions in this chapter are provisional prototype records. In accordance with archive integrity rules, authentic historical imagery and verified documentation may be integrated if provided by the repository owner.",
+  "airport.awaitingReferences":
+    "Awaiting primary archival references and verified records.",
+  "airport.methodologyBody":
+    "This historical chapter is structured to support verified archival documentation. If primary records are provided and authenticated, milestones may link to verified references.",
+  "airport.presentSubtitle":
+    "A factual, disciplined account of Gaza International Airport's physical site today: surveyed structures, verifiable records, and ongoing documentation standards.",
+  "airport.presentNotice":
+    "This chapter strictly maintains documentary restraint. No synthetic photography or ungrounded estimates are shown as evidence. Physical condition reports require dated satellite surveys, on-the-ground engineering assessments, and verified provenance.",
+  "airport.siteLocationLabel": "Geographic Location",
+  "airport.siteLocationValue": "Southern Gaza Strip, near Rafah",
+  "airport.siteAeroCodesLabel": "Aeronautical Codes",
+  "airport.siteOperatingPeriodLabel": "Operational Period",
+  "airport.siteOperatingPeriodValue": "November 1998 – December 2001",
+  "airport.siteStatusLabel": "Current Facility Status",
+  "airport.siteStatusValue": "Closed / Non-operational",
+  "airport.siteBoundariesTitle": "The Airfield Site & Boundaries",
+  "airport.siteBoundariesBody1":
+    "The airport site is situated in the southernmost area of the Gaza Strip, east of Rafah and adjacent to the border. The original installation occupied approximately 235 hectares, designed for independent civil passenger and cargo throughput.",
+  "airport.siteBoundariesBody2":
+    "Current ground documentation indicates substantial structural destruction across the terminal building, control tower, and support hangars resulting from military operations in 2001–2002 and subsequent decades.",
+  "airport.runwayTitle": "Runway & Airfield Infrastructure",
+  "airport.runwayBody":
+    "The operational runway (designated 01/19) measured 3,080 metres in length and 60 metres in width, constructed with high-grade asphalt capable of accommodating widebody aircraft. Satellite documentation confirms multiple runway cuts and asphalt disruption.",
+  "airport.verificationTitle": "Verification Standard & Missing Evidence",
+  "airport.verificationBody":
+    "To maintain historical and technical integrity, assertions regarding the site's condition require primary records. A dedicated engineering survey panel may integrate verified multispectral satellite records, physical soil assessments, and structural concrete core reports when conditions permit.",
+  "airport.spatialEyebrow": "Spatial Documentation",
+  "airport.spatialTitle": "Cadastral & Airfield Geometry",
+  "airport.spatialBody":
+    "Provisional diagram representing the 1998 master layout: passenger terminal, VIP pavilion, cargo terminal, control tower, and access boulevard. Sourced geo-referenced vector maps may replace this provisional graphic.",
+  "airport.evidentiaryRuleTitle": "Evidentiary Rule",
+  "airport.evidentiaryRuleBody":
+    "No unverified claims regarding equipment salvage or current perimeter security are asserted.",
+  "airport.futureSubtitle":
+    "Architectural proposals, masterplanning principles, and passenger experience design for a restored civil gateway connecting Gaza to the world.",
+  "airport.futureNotice":
+    "The proposals presented here represent architectural and planning research concepts. They demonstrate physical readiness, environmental design, and service capacity ahead of operational reconstruction, rather than contracted commercial timelines.",
+  "airport.themeTerminalTitle": "Terminal Architecture & Civic Identity",
+  "airport.themeTerminalBody":
+    "Proposals for the terminal embrace Mediterranean limestone, natural daylighting, terraced courtyards, and deep shade canopies. The layout separates arrivals and departures smoothly while creating dignified civic public spaces.",
+  "airport.themeHospitalityTitle": "Passenger Hospitality & Wayfinding",
+  "airport.themeHospitalityBody":
+    "Passenger service is structured around ease, dignity, and calm. Features include streamlined self-service bag drop, spacious security halls without punitive crowding, dedicated family lounges, and universal accessibility.",
+  "airport.themeMasterplanTitle": "Phased Airfield Masterplan",
+  "airport.themeMasterplanBody":
+    "A structured, phased reconstruction strategy: primary runway reconstruction (3,080m) and navigational aids, expanding apron stands for regional and narrowbody rotations, integrated solar generation, and intermodal bus links.",
+  "airport.designIntentLabel": "Design intent:",
+  "airport.designIntentText":
+    "Civic warmth, Mediterranean climate adaptation, and passenger dignity.",
+  "airport.networkTitle": "Restored Route Network Vision",
+  "airport.networkBody":
+    "The planned opening network re-establishes direct air links between Gaza and major regional hubs across Jordan, Egypt, Saudi Arabia, the United Arab Emirates, Qatar, and Turkey. Browse the destinations below to inspect schedules and flight details.",
 
   // gallery
   "gallery.title": "Archive & gallery",
@@ -308,6 +394,23 @@ const en: Dict = {
   "gallery.metadata": "Item details",
   "gallery.credit": "Credit",
   "gallery.items": "{n} items",
+  "gallery.catalogSchema": "Provisional Catalog Schema",
+  "gallery.provenancePending": "[PROVENANCE]",
+  "gallery.catalogIdField": "Catalog ID",
+  "gallery.viewDetails": "Inspect record",
+  "gallery.itemPosition": "Record {current} of {total}",
+  "gallery.format": "Medium / Format",
+  "gallery.curatorialStatus": "Archival status",
+  "gallery.provisionalNotice":
+    "Provisional study record. Not verified archival photography of Gaza International Airport.",
+  "gallery.filterAria": "Filter archive collection",
+  "gallery.close": "Close viewer",
+  "gallery.eraAll": "All chapters",
+  "gallery.categoryAll": "All categories",
+  "gallery.noticeBody":
+    "All media items in this digital archive currently utilize neutral schema placeholders ([CATALOG-ID-FIELD], [PROVENANCE]). They do not represent authentic historical records of Gaza International Airport. Authentic materials may replace these records if provided by the repository owner and verified.",
+  "gallery.emptyDescription":
+    "No records match your selected category and chapter filters. Clear filters to view all catalogued items.",
 
   // account / auth
   "auth.signinTitle": "Sign in",
@@ -879,7 +982,93 @@ const ar: Dict = {
   "airport.sources": "المصادر وبيانات الأرشيف",
   "airport.placeholder": "محتوى مؤقت",
   "airport.placeholderNote": "النصوص والصور في هذا القسم مؤقتة، وستُستبدل بمواد أرشيفية موثّقة.",
+  "airport.chapterSequence": "التسلسل الزمني",
+  "airport.chapterLabel": "الفصل {n}",
+  "airport.chapter1": "الفصل الأول",
+  "airport.chapter2": "الفصل الثاني",
+  "airport.chapter3": "الفصل الثالث",
+  "airport.navAria": "فصول قصة المطار",
+  "airport.nextChapter": "الفصل التالي",
+  "airport.prevChapter": "الفصل السابق",
+  "airport.exploreArchive": "استكشف الأرشيف",
+  "airport.curatorialNotice": "إشعار تحريري: سجلات دراسية مؤقتة بانتظار إيداع الوثائق الأرشيفية الموثّقة.",
+  "airport.pastHorizon": "تسلسل زمني مؤقت",
+  "airport.presentHorizon": "الواقع التوثيقي",
+  "airport.futureHorizon": "المخطط العام والرؤية",
+  "airport.siteLocation": "جنوب قطاع غزة، قرب رفح",
+  "airport.facilityStatus": "مغلق / غير عامل — خاضع للتحقق",
+  "airport.provisionalRecord": "سجل مؤقت",
+  "airport.documentaryRecord": "سجل توثيقي",
+  "airport.conceptStudy": "دراسة تصورية",
+  "airport.introTitle": "قصة مدنية موثقة عبر ثلاثة آفاق متمايزة.",
+  "airport.introBody":
+    "يمثل مطار غزة الدولي (مطار ياسر عرفات الدولي؛ IATA: GZA، ICAO: LVGZ) تاريخ الطيران المدني الفلسطيني. يفصل هذا الملف الرقمي بين السجل التاريخي، والتوثيق المعاصر، ومفاهيم المخطط العام المستقبلية في ثلاثة فصول متمايزة.",
+  "airport.pastSummary":
+    "من التخطيط المبكر والافتتاح عام 1998 إلى تشغيل الرحلات التجارية والذكريات المحفوظة للطيران المدني.",
+  "airport.presentSummary":
+    "تقرير واقعي عن موقع المطار اليوم: منشآت مبنى الركاب، حالة المدرج، السجلات الموثقة، ومتطلبات المسح الميداني المستمرة.",
+  "airport.futureSummary":
+    "مقترحات معمارية، وفلسفة خدمة المسافرين، ومخطط عام مرحلي، وشبكة ربط جوي لبوابة مدنية متوسطية مستعادة.",
+  "airport.sourcesBody":
+    "وفقاً للمعايير التوثيقية المؤسسية، تُعد جميع محطات التسلسل الزمني والصور وسجلات الفهرسة المعروضة حالياً عناصر دراسية مؤقتة. لا يجوز لأي محتوى تجريبي أن يقدَّم كسجل تاريخي مؤكَّد. قد تحل المواد الأرشيفية الموثقة محل هذه النماذج إذا وفرها مالك المستودع وتم التحقق منها.",
+  "airport.pastSubtitle":
+    "تاريخ مطار غزة الدولي موثقاً عبر مراحل التخطيط، والافتتاح، وسنوات التشغيل التجاري، والذاكرة المدنية الباقية.",
+  "airport.pastNotice":
+    "جميع محطات التسلسل الزمني والتواريخ والتصويرات التاريخية في هذا الفصل هي سجلات نموذجية مؤقتة. وتماشياً مع قواعد النزاهة الأرشيفية، قد تُدمج المواد التاريخية والوثائق الموثقة إذا وفرها مالك المستودع وتم التحقق منها.",
+  "airport.awaitingReferences":
+    "بانتظار المراجع الأرشيفية الأولية والسجلات الموثقة.",
+  "airport.methodologyBody":
+    "صُمم هذا الفصل التاريخي ليدعم التوثيق الأرشيفي المعتمد. وإذا قُدمت سجلات أولية وتم التحقق منها، يمكن ربط المحطات بمراجع موثقة.",
+  "airport.presentSubtitle":
+    "توثيق واقعي منضبط للموقع الميداني لمطار غزة الدولي اليوم: المنشآت التي شملها المسح، والسجلات القابلة للتحقق، ومعايير التوثيق المستمرة.",
+  "airport.presentNotice":
+    "يلتزم هذا الفصل التزاماً صارماً بالانضباط التوثيقي. ولا تُعرض صور مركبة أو تقديرات غير مثبتة كأدلة. تتطلب تقارير الحالة المادية مسوحات فضائية مؤرخة، وتقييمات هندسية ميدانية، وتوثيقاً معتمداً لمصادر البيانات.",
+  "airport.siteLocationLabel": "الموقع الجغرافي",
+  "airport.siteLocationValue": "جنوب قطاع غزة، قرب رفح",
+  "airport.siteAeroCodesLabel": "رموز الطيران الدولية",
+  "airport.siteOperatingPeriodLabel": "فترة التشغيل",
+  "airport.siteOperatingPeriodValue": "نوفمبر 1998 – ديسمبر 2001",
+  "airport.siteStatusLabel": "حالة المنشأة الحالية",
+  "airport.siteStatusValue": "مغلق / غير عامل",
+  "airport.siteBoundariesTitle": "موقع المطار وحدوده",
+  "airport.siteBoundariesBody1":
+    "يقع موقع المطار في أقصى جنوب قطاع غزة، شرق رفح وبمحاذاة الحدود. شغلت المنشأة الأصلية نحو 235 هكتاراً، وصُممت لحركة مدنية مستقلة للمسافرين والشحن الجوي.",
+  "airport.siteBoundariesBody2":
+    "تشير الوثائق الميدانية الحالية إلى دمار إنشائي واسع في مبنى الركاب وبرج المراقبة وهناجر الدعم ناتج عن العمليات العسكرية في 2001–2002 والعقود اللاحقة.",
+  "airport.runwayTitle": "المدرج والبنية التحتية للمطار",
+  "airport.runwayBody":
+    "بلغ طول المدرج التشغيلي (المسمى 01/19) 3,080 متراً وعرضه 60 متراً، وشُيّد بإسفلت عالي المواصفات قادر على استيعاب الطائرات العريضة البدن. وتؤكد صور الأقمار الصناعية وجود قطوع متعددة وأضرار في الإسفلت.",
+  "airport.verificationTitle": "معيار التحقق والأدلة الناقصة",
+  "airport.verificationBody":
+    "حفاظاً على النزاهة التاريخية والفنية، تتطلب المعطيات حول حالة الموقع سجلات أولية. قد يدمج فريق المسح الهندسي سجلات فضائية متعددة الأطياف موثقة، وتقييمات فيزيائية للتربة، وتقارير فحص الخرسانة الإنشائية متى سمحت الظروف.",
+  "airport.spatialEyebrow": "التوثيق المكاني",
+  "airport.spatialTitle": "المخطط المساحي وهندسة المطار",
+  "airport.spatialBody":
+    "مخطط توضيحي مؤقت يمثل التخطيط العام لعام 1998: مبنى المسافرين، وصالة كبار الشخصيات، ومبنى الشحن، وبرج المراقبة، وشارع الوصول. قد تحل خرائط موجهة جغرافياً وموثقة المصدر محل هذا الرسم المؤقت.",
+  "airport.evidentiaryRuleTitle": "القاعدة التوثيقية",
+  "airport.evidentiaryRuleBody":
+    "لا تُطرح أي ادعاءات غير موثقة بشأن استرداد المعدات أو أمن المحيط الحالي.",
+  "airport.futureSubtitle":
+    "مقترحات معمارية، ومبادئ المخطط العام، وتصميم تجربة المسافرين لبوابة مدنية مستعادة تصل غزة بالعالم.",
+  "airport.futureNotice":
+    "تمثل المقترحات المعروضة هنا مفاهيم بحثية معمارية وتخطيطية. وهي توضح الجاهزية المادية، والتصميم البيئي، والقدرة الاستيعابية قبل إعادة الإعمار التشغيلي، ولا تمثل جداول زمنية تجارية تعاقدية.",
+  "airport.themeTerminalTitle": "عمارة مبنى الركاب والهوية المدنية",
+  "airport.themeTerminalBody":
+    "تعتمد مقترحات مبنى الركاب على الحجر الجيري المتوسطي، والإضاءة الطبيعية، والأفنية المتدرجة، ومظلات الظل العميقة. ويفصل التصميم بين حركة القادمين والمغادرين بسلاسة مع توفير مساحات عامة مدنية كريمة.",
+  "airport.themeHospitalityTitle": "ضيافة المسافرين والإرشاد المكاني",
+  "airport.themeHospitalityBody":
+    "صُممت خدمة المسافرين لتتمحور حول السهولة والكرامة والهدوء. وتشمل تسليم الأمتعة الذاتي الانسيابي، وقاعات تفتيش رحبة دون ازدحام مرهق، وصالات مخصصة للعائلات، وتيسير الوصول الشامل.",
+  "airport.themeMasterplanTitle": "المخطط العام المرحلي للمطار",
+  "airport.themeMasterplanBody":
+    "استراتيجية إعادة إعمار مرحلية ومنظمة: إعادة بناء المدرج الرئيسي (3,080 متراً) والمساعدات الملاحية، وتوسيع مواقف الطائرات لرحلات الطائرات الإقليمية وضيقة البدن، وتوليد الطاقة الشمسية المدمج، وربط حافلات النقل المتعدد الوسائط.",
+  "airport.designIntentLabel": "الهدف التصميمي:",
+  "airport.designIntentText":
+    "دفء مدني، وتكيف مع المناخ المتوسطي، وكرامة المسافر.",
+  "airport.networkTitle": "رؤية شبكة الخطوط المستعادة",
+  "airport.networkBody":
+    "تعيد الشبكة المخططة لافتتاح المطار الروابط الجوية المباشرة بين غزة ومراكز إقليمية رئيسية في الأردن، ومصر، والسعودية، والإمارات، وقطر، وتركيا. تصفح الوجهات أدناه للاطلاع على الجداول وتفاصيل الرحلات.",
 
+  // gallery
   "gallery.title": "الأرشيف والمعرض",
   "gallery.sub": "صور ووثائق ومواد معمارية وتصورية.",
   "gallery.all": "الكل",
@@ -893,6 +1082,22 @@ const ar: Dict = {
   "gallery.metadata": "تفاصيل العنصر",
   "gallery.credit": "المصدر",
   "gallery.items": "{n} عنصراً",
+  "gallery.catalogSchema": "مخطط الفهرسة المؤقت",
+  "gallery.provenancePending": "[PROVENANCE]",
+  "gallery.catalogIdField": "معرّف الفهرس",
+  "gallery.viewDetails": "معاينة السجل",
+  "gallery.itemPosition": "السجل {current} من {total}",
+  "gallery.format": "الوسيط / الصيغة",
+  "gallery.curatorialStatus": "الحالة الأرشيفية",
+  "gallery.provisionalNotice": "سجل دراسي مؤقت. ليست مادة أرشيفية موثّقة لمطار غزة الدولي.",
+  "gallery.filterAria": "تصفية مجموعة الأرشيف",
+  "gallery.close": "إغلاق العارض",
+  "gallery.eraAll": "جميع الفصول",
+  "gallery.categoryAll": "جميع التصنيفات",
+  "gallery.noticeBody":
+    "تستخدم جميع الوسائط في هذا الأرشيف الرقمي حالياً معرّفات نموذجية محايدة ([CATALOG-ID-FIELD]، [PROVENANCE]). وهي لا تمثل سجلات تاريخية موثقة لمطار غزة الدولي. وقد تحل مواد موثقة محل هذه السجلات إذا وفرها مالك المستودع وتم التحقق منها.",
+  "gallery.emptyDescription":
+    "لا توجد سجلات تطابق عوامل التصفية المختارة للتصنيف والفصل. قم بإلغاء التصفية لعرض جميع العناصر المفهرسة.",
 
   "auth.signinTitle": "تسجيل الدخول",
   "auth.signinSub": "اطّلع على رحلاتك وبطاقات الصعود والمسافرين المحفوظين.",

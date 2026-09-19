@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import { btnClass, Container, Notice, PageHeader, Pill } from "@/components/kit";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { ChevronLeft, ChevronRight, Filter, Info, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { btnClass, Container, EmptyState, Notice, PageHeader, Pill } from "@/components/kit";
 import {
   galleryCategoryLabels,
   galleryEraLabels,
@@ -36,6 +37,9 @@ function GalleryPage() {
   const [category, setCategory] = useState<CategoryFilter>("all");
   const [era, setEra] = useState<EraFilter>("all");
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [openingItemId, setOpeningItemId] = useState<string | null>(null);
+
+  const triggerRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
   const items = useMemo(
     () =>
@@ -45,95 +49,223 @@ function GalleryPage() {
     [category, era],
   );
 
+  // Keyboard navigation for Lightbox while open
   useEffect(() => {
     if (openIndex === null) return;
+
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpenIndex(null);
-      if (e.key === "ArrowRight") setOpenIndex((i) => (i === null ? i : (i + 1) % items.length));
-      if (e.key === "ArrowLeft") setOpenIndex((i) => (i === null ? i : (i - 1 + items.length) % items.length));
+      if (items.length <= 1) return;
+
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        // In RTL Arabic, ArrowRight points backwards in reading direction
+        setOpenIndex((i) => {
+          if (i === null) return null;
+          return lang === "ar" ? (i - 1 + items.length) % items.length : (i + 1) % items.length;
+        });
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        // In RTL Arabic, ArrowLeft points forward in reading direction
+        setOpenIndex((i) => {
+          if (i === null) return null;
+          return lang === "ar" ? (i + 1) % items.length : (i - 1 + items.length) % items.length;
+        });
+      }
     };
+
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [openIndex, items.length]);
+  }, [openIndex, items.length, lang]);
 
-  const current = openIndex === null ? null : items[openIndex] ?? null;
+  // Prevent background page scrolling while Lightbox modal is open
+  useEffect(() => {
+    if (openIndex === null) return;
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    const lockedY = window.scrollY;
+    const lockScroll = () => {
+      if (window.scrollY !== lockedY) {
+        window.scrollTo(0, lockedY);
+      }
+    };
+    window.addEventListener("scroll", lockScroll, { passive: false });
+
+    return () => {
+      document.body.style.overflow = originalBodyOverflow;
+      document.documentElement.style.overflow = originalHtmlOverflow;
+      window.removeEventListener("scroll", lockScroll);
+    };
+  }, [openIndex]);
+
+  const current = openIndex !== null ? items[openIndex] ?? null : null;
+
+  const handleOpen = (index: number, id: string) => {
+    setOpeningItemId(id);
+    setOpenIndex(index);
+  };
+
+  const handleClose = () => {
+    setOpenIndex(null);
+  };
+
+  const handlePrev = () => {
+    if (openIndex === null || items.length === 0) return;
+    setOpenIndex((openIndex - 1 + items.length) % items.length);
+  };
+
+  const handleNext = () => {
+    if (openIndex === null || items.length === 0) return;
+    setOpenIndex((openIndex + 1) % items.length);
+  };
 
   return (
     <>
-      <PageHeader eyebrow={t("nav.gallery")} title={t("gallery.title")} description={t("gallery.sub")} />
+      <PageHeader
+        eyebrow={t("nav.gallery")}
+        title={t("gallery.title")}
+        description={t("gallery.sub")}
+      />
 
-      <Container className="py-8">
-        <Notice title={t("common.notice")}>{pick(lang, {
-          en: "All images are temporary placeholders and are not authentic Gaza International Airport material.",
-          ar: "جميع الصور مؤقتة وليست مواد أصلية لمطار غزة الدولي.",
-        })}</Notice>
+      <Container className="py-8 sm:py-12">
+        {/* Curatorial Provenance Standard Notice */}
+        <Notice title={t("gallery.catalogSchema")}>
+          <div className="space-y-1.5 text-sm leading-relaxed">
+            <p>
+              {t("gallery.noticeBody")}
+            </p>
+            <div className="flex flex-wrap items-center gap-2 pt-1 font-mono text-xs">
+              <span className="code-id rounded bg-secondary px-2 py-0.5 text-muted-foreground">
+                [CATALOG-ID-FIELD]
+              </span>
+              <span className="code-id rounded bg-secondary px-2 py-0.5 text-muted-foreground">
+                [PROVENANCE]
+              </span>
+            </div>
+          </div>
+        </Notice>
 
-        <div className="mt-6 space-y-3">
-          <FilterRow
-            legend={t("gallery.filterCategory")}
-            options={[
-              { id: "all", label: t("gallery.all") },
-              ...Object.entries(galleryCategoryLabels).map(([id, label]) => ({ id, label: pick(lang, label) })),
-            ]}
-            value={category}
-            onChange={(value) => {
-              setCategory(value as CategoryFilter);
-              setOpenIndex(null);
-            }}
-          />
-          <FilterRow
-            legend={t("gallery.filterEra")}
-            options={[
-              { id: "all", label: t("gallery.all") },
-              ...Object.entries(galleryEraLabels).map(([id, label]) => ({ id, label: pick(lang, label) })),
-            ]}
-            value={era}
-            onChange={(value) => {
-              setEra(value as EraFilter);
-              setOpenIndex(null);
-            }}
-          />
+        {/* Filter Toolbar */}
+        <div className="mt-8 rounded-2xl border border-border bg-card p-5 shadow-xs">
+          <div className="mb-4 flex items-center gap-2 text-foreground">
+            <Filter aria-hidden="true" className="size-4 text-primary" />
+            <h2 className="text-sm font-bold tracking-tight">{t("gallery.filterAria")}</h2>
+          </div>
+
+          <div className="space-y-4">
+            <FilterRow
+              legend={t("gallery.filterCategory")}
+              options={[
+                { id: "all", label: t("gallery.categoryAll") },
+                ...Object.entries(galleryCategoryLabels).map(([id, label]) => ({
+                  id,
+                  label: pick(lang, label),
+                })),
+              ]}
+              value={category}
+              onChange={(value) => {
+                setCategory(value as CategoryFilter);
+                setOpenIndex(null);
+              }}
+            />
+            <FilterRow
+              legend={t("gallery.filterEra")}
+              options={[
+                { id: "all", label: t("gallery.eraAll") },
+                ...Object.entries(galleryEraLabels).map(([id, label]) => ({
+                  id,
+                  label: pick(lang, label),
+                })),
+              ]}
+              value={era}
+              onChange={(value) => {
+                setEra(value as EraFilter);
+                setOpenIndex(null);
+              }}
+            />
+          </div>
         </div>
 
-        <p className="numeral mt-5 text-sm text-muted-foreground">{t("gallery.items", { n: items.length })}</p>
-
-        {items.length === 0 ? (
-          <div className="py-16 text-center">
-            <p className="text-sm text-muted-foreground">{t("gallery.empty")}</p>
+        {/* Result Counter in Strict Latin Numerals */}
+        <div className="mt-6 flex items-center justify-between text-sm text-muted-foreground">
+          <p className="numeral font-mono">
+            {t("gallery.items", { n: items.length })}
+          </p>
+          {(category !== "all" || era !== "all") && (
             <button
               type="button"
               onClick={() => {
                 setCategory("all");
                 setEra("all");
               }}
-              className={btnClass("outline", "sm", "mt-4")}
+              className="text-xs font-semibold text-primary underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
             >
               {t("gallery.reset")}
             </button>
+          )}
+        </div>
+
+        {/* Catalog Item Grid or Resilient Empty State */}
+        {items.length === 0 ? (
+          <div className="mt-6">
+            <EmptyState
+              title={t("gallery.empty")}
+              description={t("gallery.emptyDescription")}
+              action={
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCategory("all");
+                    setEra("all");
+                  }}
+                  className={btnClass("outline", "md", "mt-4")}
+                >
+                  {t("gallery.reset")}
+                </button>
+              }
+            />
           </div>
         ) : (
-          <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {items.map((item, index) => (
               <li key={item.id}>
                 <button
+                  ref={(el) => {
+                    if (el) triggerRefs.current.set(item.id, el);
+                    else triggerRefs.current.delete(item.id);
+                  }}
                   type="button"
-                  onClick={() => setOpenIndex(index)}
-                  className="group block w-full overflow-hidden rounded-xl border border-border bg-card text-start"
+                  onClick={() => handleOpen(index, item.id)}
+                  aria-haspopup="dialog"
+                  className="group flex w-full flex-col overflow-hidden rounded-2xl border border-border bg-card text-start shadow-[var(--shadow-soft)] transition-all hover:border-border/80 hover:shadow-[var(--shadow-lift)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 >
-                  <span className="block aspect-4/3 overflow-hidden bg-secondary">
+                  {/* Archival Preview Image */}
+                  <span className="relative block aspect-4/3 w-full overflow-hidden bg-ink">
                     <img
                       src={img(item.imageSeed, 800, 600)}
-                      alt={pick(lang, item.title)}
+                      alt=""
                       loading="lazy"
-                      className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      className="size-full object-cover opacity-80 transition-transform duration-500 group-hover:scale-105"
                     />
+                    <span className="absolute bottom-2 start-2 rounded bg-ink/80 px-2 py-0.5 font-mono text-[10px] text-ink-muted">
+                      [PROVENANCE]
+                    </span>
                   </span>
-                  <span className="block p-3.5">
+
+                  {/* Card Content & Metadata */}
+                  <span className="flex flex-1 flex-col p-4">
                     <span className="flex flex-wrap items-center gap-1.5">
                       <Pill tone="brand">{pick(lang, galleryCategoryLabels[item.category])}</Pill>
-                      <Pill>{pick(lang, galleryEraLabels[item.era])}</Pill>
+                      <Pill tone="neutral">{pick(lang, galleryEraLabels[item.era])}</Pill>
                     </span>
-                    <span className="mt-2 block text-sm font-semibold">{pick(lang, item.title)}</span>
+                    <span className="mt-2.5 block text-sm font-bold text-foreground transition-colors group-hover:text-primary">
+                      {pick(lang, item.title)}
+                    </span>
+                    <span className="code-id mt-2 block text-xs text-clay">
+                      [CATALOG-ID-FIELD]
+                    </span>
                   </span>
                 </button>
               </li>
@@ -142,74 +274,133 @@ function GalleryPage() {
         )}
       </Container>
 
-      {current ? (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label={t("gallery.viewer")}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/90 p-4"
-          onClick={() => setOpenIndex(null)}
-        >
-          <div
-            className="max-h-full w-full max-w-4xl overflow-y-auto rounded-2xl bg-card"
-            onClick={(e) => e.stopPropagation()}
+      {/* Accessible Radix Dialog Media Lightbox */}
+      <DialogPrimitive.Root
+        open={openIndex !== null}
+        onOpenChange={(open) => {
+          if (!open) handleClose();
+        }}
+      >
+        <DialogPrimitive.Portal>
+          <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-ink/85 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+          <DialogPrimitive.Content
+            onCloseAutoFocus={(e) => {
+              if (openingItemId) {
+                const el = triggerRefs.current.get(openingItemId);
+                if (el) {
+                  e.preventDefault();
+                  el.focus();
+                }
+              }
+            }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto"
           >
-            <div className="relative">
-              <img
-                src={img(current.imageSeed, 1600, 1000)}
-                alt={pick(lang, current.title)}
-                className="aspect-16/10 w-full object-cover"
-              />
-              <button
-                type="button"
-                onClick={() => setOpenIndex(null)}
-                aria-label={t("common.close")}
-                className="absolute end-3 top-3 grid size-10 place-items-center rounded-full bg-ink/70 text-ink-foreground"
+            {current && (
+              <div
+                className="relative my-auto flex w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-lift)] focus:outline-none"
+                tabIndex={-1}
               >
-                <X aria-hidden="true" className="size-5" />
-              </button>
-            </div>
-            <div className="p-5 sm:p-6">
-              <div className="flex flex-wrap items-center gap-1.5">
-                <Pill tone="brand">{pick(lang, galleryCategoryLabels[current.category])}</Pill>
-                <Pill>{pick(lang, galleryEraLabels[current.era])}</Pill>
-              </div>
-              <h2 className="mt-3 text-xl font-bold">{pick(lang, current.title)}</h2>
-              <p className="mt-2 text-sm text-muted-foreground">{pick(lang, current.caption)}</p>
-              <dl className="mt-4 grid gap-3 border-t border-border pt-4 text-sm sm:grid-cols-2">
-                <div>
-                  <dt className="eyebrow text-muted-foreground">{t("gallery.credit")}</dt>
-                  <dd className="mt-1">{pick(lang, current.credit)}</dd>
+                {/* Visual Image Stage */}
+                <div className="relative aspect-16/10 max-h-[50vh] w-full overflow-hidden bg-ink sm:max-h-[55vh]">
+                  <img
+                    src={img(current.imageSeed, 1600, 1000)}
+                    alt=""
+                    className="size-full object-cover sm:object-contain"
+                  />
+                  {/* Close Control (44×44px minimum touch target) */}
+                  <DialogPrimitive.Close
+                    className="absolute end-3 top-3 inline-flex size-11 items-center justify-center rounded-full bg-ink/80 text-ink-foreground backdrop-blur-xs transition-colors hover:bg-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
+                    aria-label={t("gallery.close")}
+                  >
+                    <X aria-hidden="true" className="size-5" />
+                  </DialogPrimitive.Close>
+                  <span className="absolute bottom-3 start-4 rounded-md bg-ink/80 px-2 py-0.5 font-mono text-xs text-ink-muted">
+                    [CATALOG-ID-FIELD]
+                  </span>
                 </div>
-                <div>
-                  <dt className="eyebrow text-muted-foreground">{t("gallery.metadata")}</dt>
-                  <dd className="mt-1">
-                    <span className="code-id">{current.id}</span> · {current.date}
-                  </dd>
+
+                {/* Metadata & Archival Dossier */}
+                <div className="flex flex-col p-5 sm:p-7">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <Pill tone="brand">{pick(lang, galleryCategoryLabels[current.category])}</Pill>
+                      <Pill tone="neutral">{pick(lang, galleryEraLabels[current.era])}</Pill>
+                    </div>
+                    <span className="numeral font-mono text-xs text-muted-foreground">
+                      {openIndex !== null &&
+                        t("gallery.itemPosition", {
+                          current: openIndex + 1,
+                          total: items.length,
+                        })}
+                    </span>
+                  </div>
+
+                  <DialogPrimitive.Title className="mt-3 text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+                    {pick(lang, current.title)}
+                  </DialogPrimitive.Title>
+
+                  <DialogPrimitive.Description className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                    {pick(lang, current.caption)}
+                  </DialogPrimitive.Description>
+
+                  {/* Curatorial Neutral Metadata Schema */}
+                  <dl className="mt-5 grid gap-3 rounded-xl border border-border bg-secondary/50 p-4 text-xs sm:grid-cols-2 lg:grid-cols-4">
+                    <div>
+                      <dt className="eyebrow text-muted-foreground">{t("gallery.catalogIdField")}</dt>
+                      <dd className="code-id mt-1 font-semibold text-clay">[CATALOG-ID-FIELD]</dd>
+                    </div>
+                    <div>
+                      <dt className="eyebrow text-muted-foreground">{t("gallery.format")}</dt>
+                      <dd className="code-id mt-1 font-medium text-foreground">[PROVENANCE]</dd>
+                    </div>
+                    <div>
+                      <dt className="eyebrow text-muted-foreground">{t("gallery.credit")}</dt>
+                      <dd className="code-id mt-1 font-medium text-foreground">{t("gallery.provenancePending")}</dd>
+                    </div>
+                    <div>
+                      <dt className="eyebrow text-muted-foreground">{t("gallery.curatorialStatus")}</dt>
+                      <dd className="code-id mt-1 font-medium text-foreground">[PROVENANCE]</dd>
+                    </div>
+                  </dl>
+
+                  {/* Provisional Study Notice */}
+                  <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
+                    <Info aria-hidden="true" className="size-3.5 shrink-0 text-clay" />
+                    <span>{t("gallery.provisionalNotice")}</span>
+                  </div>
+
+                  {/* Modal Navigation Controls (44px min touch target) */}
+                  <div className="mt-6 flex items-center justify-between border-t border-border pt-4">
+                    <button
+                      type="button"
+                      onClick={handlePrev}
+                      className={cn(
+                        btnClass("outline", "md"),
+                        "min-h-11 min-w-11 px-4 gap-2",
+                      )}
+                    >
+                      <ChevronLeft aria-hidden="true" className="size-4 rtl:rotate-180" />
+                      <span>{t("gallery.prev")}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleNext}
+                      className={cn(
+                        btnClass("outline", "md"),
+                        "min-h-11 min-w-11 px-4 gap-2",
+                      )}
+                    >
+                      <span>{t("gallery.next")}</span>
+                      <ChevronRight aria-hidden="true" className="size-4 rtl:rotate-180" />
+                    </button>
+                  </div>
                 </div>
-              </dl>
-              <div className="mt-5 flex justify-between gap-2">
-                <button
-                  type="button"
-                  onClick={() => setOpenIndex((i) => (i === null ? i : (i - 1 + items.length) % items.length))}
-                  className={btnClass("outline", "sm")}
-                >
-                  <ChevronLeft aria-hidden="true" className="size-4 rtl:rotate-180" />
-                  {t("gallery.prev")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setOpenIndex((i) => (i === null ? i : (i + 1) % items.length))}
-                  className={btnClass("outline", "sm")}
-                >
-                  {t("gallery.next")}
-                  <ChevronRight aria-hidden="true" className="size-4 rtl:rotate-180" />
-                </button>
               </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
+            )}
+          </DialogPrimitive.Content>
+        </DialogPrimitive.Portal>
+      </DialogPrimitive.Root>
     </>
   );
 }
@@ -236,10 +427,10 @@ function FilterRow({
             onClick={() => onChange(option.id)}
             aria-pressed={value === option.id}
             className={cn(
-              "rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-colors",
+              "inline-flex min-h-11 items-center justify-center rounded-xl border px-4 py-2 text-sm font-semibold transition-all focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
               value === option.id
-                ? "border-primary bg-primary text-primary-foreground"
-                : "border-input bg-card text-muted-foreground hover:text-foreground",
+                ? "border-primary bg-primary text-primary-foreground shadow-xs"
+                : "border-input bg-card text-muted-foreground hover:bg-secondary hover:text-foreground",
             )}
           >
             {option.label}
