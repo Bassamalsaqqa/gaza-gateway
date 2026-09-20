@@ -9,7 +9,7 @@ import {
   AdminEmpty,
   AdminPageHeader,
   AdminPanel,
-  AdminSheet,
+  GazaSheet,
   AdminTabs,
   Ltr,
   PermissionButton,
@@ -351,7 +351,7 @@ function AdminBookingDetailPage() {
         </div>
       </AdminPanel>
 
-      <AdminSheet
+      <GazaSheet
         open={sheet !== null}
         title={sheet === "contact" ? t("a2.bd.editContact") : sheet === "seat" ? t("a2.bd.changeSeat") : t("a2.bd.editExtras")}
         description={booking.ref}
@@ -424,7 +424,7 @@ function AdminBookingDetailPage() {
             ))}
           </div>
         ) : null}
-      </AdminSheet>
+      </GazaSheet>
 
       <ConfirmDialog
         open={confirmCancel}

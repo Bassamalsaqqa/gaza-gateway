@@ -1,6 +1,6 @@
 import { AppLink } from "@/components/app-link";
 import { Outlet, createFileRoute } from "@tanstack/react-router";
-import { btnClass, Container, EmptyState, PageHeader } from "@/components/kit";
+import { Container, EmptyState, GazaLoadingState, PageHeader, btnClass } from "@/components/kit";
 import { useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 
@@ -25,7 +25,7 @@ function AccountLayout() {
   if (!ready) {
     return (
       <Container className="py-16">
-        <p className="text-sm text-muted-foreground">…</p>
+        <GazaLoadingState />
       </Container>
     );
   }

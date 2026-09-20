@@ -10,8 +10,10 @@ export function money(amount: number, lang: Lang): string {
   return formatted;
 }
 
-export function dateLong(iso: string, lang: Lang): string {
+export function dateLong(iso: string | undefined | null, lang: Lang): string {
+  if (!iso) return "";
   const d = new Date(`${iso}T12:00:00`);
+  if (isNaN(d.getTime())) return "";
   return new Intl.DateTimeFormat(lang === "ar" ? "ar-u-nu-latn" : "en-GB", {
     weekday: "long",
     day: "numeric",
@@ -20,8 +22,10 @@ export function dateLong(iso: string, lang: Lang): string {
   }).format(d);
 }
 
-export function dateShort(iso: string, lang: Lang): string {
+export function dateShort(iso: string | undefined | null, lang: Lang): string {
+  if (!iso) return "";
   const d = new Date(`${iso}T12:00:00`);
+  if (isNaN(d.getTime())) return "";
   return new Intl.DateTimeFormat(lang === "ar" ? "ar-u-nu-latn" : "en-GB", {
     weekday: "short",
     day: "numeric",

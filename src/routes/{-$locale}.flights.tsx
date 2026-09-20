@@ -1,3 +1,4 @@
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { createFileRoute } from "@tanstack/react-router";
 import { Search } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -58,23 +59,31 @@ function FlightsPage() {
       <PageHeader eyebrow="GZA · Terminal 1" title={t("flights.title")} description={t("flights.sub")} />
 
       <Container className="py-8">
-        <div className="flex gap-1 rounded-lg bg-secondary p-1" role="tablist" aria-label={t("flights.title")}>
-          {(["departures", "arrivals"] as const).map((value) => (
-            <button
-              key={value}
-              type="button"
-              role="tab"
-              aria-selected={mode === value}
-              onClick={() => setMode(value)}
-              className={cn(
-                "flex-1 rounded-md px-4 py-2.5 text-sm font-semibold transition-colors",
-                mode === value ? "bg-card text-foreground shadow-[var(--shadow-soft)]" : "text-muted-foreground",
-              )}
-            >
-              {t(value === "departures" ? "flights.departures" : "flights.arrivals")}
-            </button>
-          ))}
-        </div>
+        <Tabs
+          value={mode}
+          onValueChange={(val) => setMode(val as "departures" | "arrivals")}
+          dir={lang === "ar" ? "rtl" : "ltr"}
+          className="w-full"
+        >
+          <TabsList
+            aria-label={t("flights.title")}
+            className="flex w-full h-auto gap-1 rounded-lg bg-secondary p-1"
+          >
+            {(["departures", "arrivals"] as const).map((value) => (
+              <TabsTrigger
+                key={value}
+                value={value}
+                className={cn(
+                  "flex-1 rounded-md px-4 py-2.5 text-sm font-semibold transition-colors cursor-pointer select-none",
+                  "data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-[var(--shadow-soft)]",
+                  "data-[state=inactive]:text-muted-foreground hover:data-[state=inactive]:text-foreground",
+                )}
+              >
+                {t(value === "departures" ? "flights.departures" : "flights.arrivals")}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
 
         <div className="mt-4 -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
           <div className="flex gap-2">

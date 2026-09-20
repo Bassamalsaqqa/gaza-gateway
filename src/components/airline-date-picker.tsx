@@ -44,6 +44,8 @@ interface AirlineCalendarContextValue {
   t: (key: string, vars?: Record<string, string | number>) => string;
   getMinFareForMonth: (year: number, month: number) => number | null;
   minDate: string;
+  departDate: string;
+  getDepartFare: (isoDate: string) => { hasService: boolean; lowestFare: number | null };
 }
 
 const AirlineCalendarContext = createContext<AirlineCalendarContextValue | null>(null);
@@ -70,7 +72,11 @@ function AirlineDayButton({
   const isRangeMiddle = Boolean(modifiers["range_middle"]);
   const isSelectedSingle = isSelected && !isRangeStart && !isRangeEnd && !isRangeMiddle;
 
-  const fareInfo = ctx && !isOutside ? ctx.getRouteFare(iso) : null;
+  const fareInfo = ctx && !isOutside
+    ? iso === ctx.departDate
+      ? ctx.getDepartFare(iso)
+      : ctx.getRouteFare(iso)
+    : null;
   const hasService = fareInfo ? fareInfo.hasService : false;
   const lowestFare = fareInfo ? fareInfo.lowestFare : null;
 
@@ -111,12 +117,16 @@ function AirlineDayButton({
   const accessibleDayName = `${fullDateStr}${separator}${statusText}`;
 
   const { "aria-label": _defaultAriaLabel, ...restProps } = props;
+  const effectiveDisabled = isDisabled || !hasService;
 
   return (
     <Button
       ref={ref}
       variant="ghost"
       size="icon"
+      {...restProps}
+      disabled={effectiveDisabled}
+      aria-disabled={effectiveDisabled ? "true" : undefined}
       data-day={iso}
       data-service={hasService}
       data-fare={lowestFare ?? undefined}
@@ -125,7 +135,6 @@ function AirlineDayButton({
       data-range-start={isRangeStart}
       data-range-end={isRangeEnd}
       data-range-middle={isRangeMiddle}
-      {...restProps}
       aria-label={accessibleDayName}
       className={cn(
         "relative flex flex-col items-center justify-center p-0 font-normal select-none transition-colors cursor-pointer",
@@ -160,7 +169,7 @@ function AirlineDayButton({
               : "text-muted-foreground/80",
           )}
         >
-          ${lowestFare}
+          {money(lowestFare, lang)}
         </span>
       )}
       {!isOutside && (!hasService || isDisabled) && (
@@ -271,6 +280,26 @@ export function AirlineDatePicker({
     };
   }, [activeFrom, activeTo]);
 
+  const getDepartFare = useMemo(() => {
+    const cache = new Map<string, { hasService: boolean; lowestFare: number | null }>();
+    return (isoDate: string) => {
+      const cached = cache.get(isoDate);
+      if (cached) return cached;
+      const flights = origin && destination && origin !== destination
+        ? searchFlights(origin, destination, isoDate)
+        : [];
+      const result = flights.length
+        ? { hasService: true, lowestFare: Math.min(...flights.map((flight) => flight.basePrice)) }
+        : { hasService: false, lowestFare: null };
+      cache.set(isoDate, result);
+      return result;
+    };
+  }, [origin, destination]);
+
+  const effectiveMinDate = activeTarget === "return" && departDate
+    ? departDate > (minDate || todayISO()) ? departDate : (minDate || todayISO())
+    : (minDate || todayISO());
+
   // Defect 2: Independent meaningful lowest fare per visible month
   // A month has a meaningful minimum only when at least two selectable service dates have fares
   const getMinFareForMonth = useMemo(() => {
@@ -281,7 +310,7 @@ export function AirlineDatePicker({
       if (cached !== undefined) return cached;
 
       const daysInMonth = new Date(year, month + 1, 0).getDate();
-      const effectiveMin = minDate || todayISO();
+      const effectiveMin = effectiveMinDate;
       const fares: number[] = [];
 
       for (let d = 1; d <= daysInMonth; d++) {
@@ -298,7 +327,7 @@ export function AirlineDatePicker({
       cache.set(key, res);
       return res;
     };
-  }, [activeFrom, activeTo, minDate, getRouteFare]);
+  }, [activeFrom, activeTo, effectiveMinDate, getRouteFare]);
 
   // Defect 3: Route-aware service availability checks for entered dates
   const isNetworkValid = (origin === "GZA" || destination === "GZA") && origin !== destination;
@@ -348,6 +377,7 @@ export function AirlineDatePicker({
   const handleSelectDate = (iso: string) => {
     if (activeTarget === "depart") {
       onDepartChange(iso);
+      if (returnDate && returnDate < iso) onReturnChange("");
       if (tripType === "round") {
         setActiveTarget("return");
       }
@@ -368,8 +398,6 @@ export function AirlineDatePicker({
     lastDateTriggerRef.current?.focus();
   };
 
-  const effectiveMinDate = minDate || todayISO();
-
   const contextValue = useMemo<AirlineCalendarContextValue>(
     () => ({
       activeFrom,
@@ -379,8 +407,10 @@ export function AirlineDatePicker({
       t,
       getMinFareForMonth,
       minDate: effectiveMinDate,
+      departDate,
+      getDepartFare,
     }),
-    [activeFrom, activeTo, getRouteFare, lang, t, getMinFareForMonth, effectiveMinDate],
+    [activeFrom, activeTo, getRouteFare, lang, t, getMinFareForMonth, effectiveMinDate, departDate, getDepartFare],
   );
 
   // Common calendar surface shared between desktop popover and mobile dialog
@@ -435,6 +465,13 @@ export function AirlineDatePicker({
           )}
         </div>
 
+        <div className="mb-3 flex items-center justify-between gap-3 text-xs text-muted-foreground">
+          <span>{activeTarget === "depart" ? t("search.depart") : t("search.return")}</span>
+          <span dir="ltr" className="font-mono font-semibold text-foreground">
+            {activeFrom} → {activeTo}
+          </span>
+        </div>
+
         {/* Date Validation Alert inside Surface if Invalid */}
         {isDatePairInvalid && tripType === "round" && (
           <div
@@ -481,7 +518,7 @@ export function AirlineDatePicker({
               }}
               numberOfMonths={isMobile ? 1 : numberOfMonths}
               disabled={[
-                { before: parseISOLocal(minDate || todayISO()) ?? new Date() },
+                { before: parseISOLocal(effectiveMinDate) ?? new Date() },
                 (date: Date) => {
                   const iso = formatISOLocal(date);
                   return !getRouteFare(iso).hasService;
@@ -517,7 +554,7 @@ export function AirlineDatePicker({
               }}
               numberOfMonths={1}
               disabled={[
-                { before: parseISOLocal(minDate || todayISO()) ?? new Date() },
+                { before: parseISOLocal(effectiveMinDate) ?? new Date() },
                 (date: Date) => {
                   const iso = formatISOLocal(date);
                   return !getRouteFare(iso).hasService;
@@ -574,10 +611,10 @@ export function AirlineDatePicker({
   );
 
   return (
-    <div className={cn("grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4 md:col-span-2 lg:col-span-2", className)}>
+    <div className={cn("md:col-span-2 lg:col-span-2", className)}>
       <Popover open={!isMobile && open} onOpenChange={(val) => { if (!val) handleClose(); }}>
         <PopoverAnchor asChild>
-          <div className="contents">
+          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 sm:gap-4">
             {/* Departure Field and Trigger */}
             <Field
               label={t("search.depart")}

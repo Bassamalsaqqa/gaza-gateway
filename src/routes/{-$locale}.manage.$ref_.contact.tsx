@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { AppLink, useAppNavigate } from "@/components/app-link";
-import { btnClass, Container, EmptyState, Field, Input, PageHeader, Panel } from "@/components/kit";
+import { Container, EmptyState, Field, GazaLoadingState, Input, PageHeader, Panel, btnClass } from "@/components/kit";
 import { pageHead } from "@/lib/head";
 import { useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
@@ -40,7 +40,7 @@ function ManageContactPage() {
   if (!ready) {
     return (
       <Container className="py-16">
-        <p className="text-sm text-muted-foreground">…</p>
+        <GazaLoadingState />
       </Container>
     );
   }

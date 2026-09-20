@@ -1,4 +1,5 @@
-import { useEffect, useId, useRef, type ReactNode } from "react";
+import * as TabsPrimitive from "@radix-ui/react-tabs";
+import { useId, useRef, type ReactNode } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { AlertTriangle, Info, Lock, X } from "lucide-react";
@@ -368,34 +369,37 @@ export function AdminTabs<T extends string>({
   onChange: (id: T) => void;
   label: string;
 }) {
+  const { lang } = useI18n();
   return (
-    <div
-      role="tablist"
-      aria-label={label}
-      className="flex flex-wrap gap-1 border-b border-border px-2"
+    <TabsPrimitive.Root
+      value={active}
+      onValueChange={(val) => onChange(val as T)}
+      dir={lang === "ar" ? "rtl" : "ltr"}
+      className="w-full"
     >
-      {tabs.map((tab) => (
-        <button
-          key={tab.id}
-          role="tab"
-          type="button"
-          aria-selected={active === tab.id}
-          onClick={() => onChange(tab.id)}
-          className={cn(
-            "-mb-px border-b-2 px-3 py-2 text-sm font-semibold transition-colors",
-            "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-            active === tab.id
-              ? "border-primary text-foreground"
-              : "border-transparent text-muted-foreground hover:text-foreground",
-          )}
-        >
-          {tab.label}
-          {typeof tab.count === "number" ? (
-            <span className="code-id ms-1.5 text-xs text-muted-foreground">{tab.count}</span>
-          ) : null}
-        </button>
-      ))}
-    </div>
+      <TabsPrimitive.List
+        aria-label={label}
+        className="flex flex-wrap gap-1 border-b border-border px-2"
+      >
+        {tabs.map((tab) => (
+          <TabsPrimitive.Trigger
+            key={tab.id}
+            value={tab.id}
+            className={cn(
+              "-mb-px border-b-2 px-3 py-2 text-sm font-semibold transition-colors cursor-pointer select-none",
+              "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+              "data-[state=active]:border-primary data-[state=active]:text-foreground",
+              "data-[state=inactive]:border-transparent data-[state=inactive]:text-muted-foreground hover:data-[state=inactive]:text-foreground",
+            )}
+          >
+            {tab.label}
+            {typeof tab.count === "number" ? (
+              <span className="code-id ms-1.5 text-xs text-muted-foreground">{tab.count}</span>
+            ) : null}
+          </TabsPrimitive.Trigger>
+        ))}
+      </TabsPrimitive.List>
+    </TabsPrimitive.Root>
   );
 }
 
@@ -499,116 +503,6 @@ export function GazaSheet({
         ) : null}
       </AnimatePresence>
     </DialogPrimitive.Root>
-  );
-}
-
-/**
- * Existing admin sheet retained for the remaining migration backlog. New
- * representative work should use GazaSheet while each workflow is verified.
- */
-export function AdminSheet({
-  open,
-  title,
-  description,
-  onClose,
-  children,
-  footer,
-}: {
-  open: boolean;
-  title: string;
-  description?: string;
-  onClose: () => void;
-  children: ReactNode;
-  footer?: ReactNode;
-}) {
-  const { t } = useI18n();
-  const panelRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLElement | null>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    triggerRef.current = document.activeElement as HTMLElement | null;
-    const focusables = () =>
-      Array.from(
-        panelRef.current?.querySelectorAll<HTMLElement>(
-          "button:not([disabled]), [href], input, select, textarea",
-        ) ?? [],
-      );
-    focusables()[0]?.focus();
-
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-        return;
-      }
-      if (e.key !== "Tab") return;
-      const items = focusables();
-      const first = items[0];
-      const last = items[items.length - 1];
-      if (!first || !last) return;
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => {
-      document.body.style.overflow = originalOverflow;
-      window.removeEventListener("keydown", onKey);
-      triggerRef.current?.focus?.();
-    };
-  }, [open, onClose]);
-
-  if (!open) return null;
-
-  return (
-    <div
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-      className="fixed inset-0 z-50 flex justify-end bg-ink/50"
-    >
-      <div
-        ref={panelRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="admin-sheet-title"
-        aria-describedby={description ? "admin-sheet-desc" : undefined}
-        className="flex h-full w-full max-w-md flex-col border-s border-border bg-card shadow-[var(--shadow-lift)]"
-      >
-        <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-3">
-          <div className="min-w-0">
-            <h2 id="admin-sheet-title" className="text-sm font-bold">
-              {title}
-            </h2>
-            {description ? (
-              <p id="admin-sheet-desc" className="text-xs text-muted-foreground">
-                {description}
-              </p>
-            ) : null}
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={t("adm.common.close")}
-            className="rounded-md p-1 text-muted-foreground hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-          >
-            <X aria-hidden="true" className="size-4" />
-          </button>
-        </div>
-        <div className="flex-1 overflow-y-auto px-4 py-4">{children}</div>
-        {footer ? (
-          <div className="flex flex-wrap justify-end gap-2 border-t border-border px-4 py-3">
-            {footer}
-          </div>
-        ) : null}
-      </div>
-    </div>
   );
 }
 

@@ -7,7 +7,7 @@ import {
   AdminEmpty,
   AdminPageHeader,
   AdminPanel,
-  AdminSheet,
+  GazaSheet,
   Ltr,
   PermissionButton,
   Toolbar,
@@ -168,7 +168,7 @@ function AdminCheckInPage() {
         )}
       </AdminPanel>
 
-      <AdminSheet
+      <GazaSheet
         open={selected !== null}
         title={t("a2.ci.sheet")}
         description={selected?.name ?? ""}
@@ -209,7 +209,7 @@ function AdminCheckInPage() {
             ))}
           </dl>
         ) : null}
-      </AdminSheet>
+      </GazaSheet>
     </div>
   );
 }

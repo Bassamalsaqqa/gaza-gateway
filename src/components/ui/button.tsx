@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 const buttonVariants = cva(
   [
     "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-semibold tracking-tight select-none",
-    "cursor-pointer transition-all duration-150 active:scale-[0.99] active:transition-none motion-reduce:active:scale-100 motion-reduce:transform-none motion-reduce:transition-none",
+    "cursor-pointer transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-150 active:scale-[0.99] active:transition-none motion-reduce:active:scale-100 motion-reduce:transform-none motion-reduce:transition-none",
     "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
     "disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed aria-disabled:pointer-events-none aria-disabled:opacity-50 aria-disabled:cursor-not-allowed",
     "[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
@@ -68,7 +68,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         className={cn(
           buttonVariants({ variant, size, className }),
-          pending && "relative !text-transparent transition-none hover:!text-transparent",
+          pending && "relative transition-none",
         )}
         ref={ref}
         disabled={disabled || pending}
@@ -76,13 +76,13 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         data-pending={pending ? "true" : undefined}
         {...props}
       >
-        {children}
+        <span className={cn("contents", pending && "invisible")}>{children}</span>
         {pending ? (
           <span
             aria-hidden="true"
             className="absolute inset-0 flex items-center justify-center text-current"
           >
-            <Loader2 className="size-4 animate-spin text-foreground motion-reduce:animate-none" />
+            <Loader2 className="size-4 animate-spin text-current motion-reduce:animate-none" />
           </span>
         ) : null}
       </button>

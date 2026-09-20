@@ -272,3 +272,5 @@ export function Container({ children, className }: { children: ReactNode; classN
 export function Code({ children, className }: { children: ReactNode; className?: string }) {
   return <span className={cn("code-id", className)}>{children}</span>;
 }
+
+export { GazaLoadingState, Skeleton } from '@/components/ui/skeleton';

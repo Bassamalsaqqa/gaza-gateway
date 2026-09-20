@@ -2,7 +2,7 @@ import { AppLink } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
 import { Check, Ticket, UserPlus } from "lucide-react";
 import { EXTRA_BAG_PRICE, airportByCode, fares, mealOptions } from "@/lib/data";
-import { btnClass, Code, Container, EmptyState, Notice, Panel } from "@/components/kit";
+import { Code, Container, EmptyState, GazaLoadingState, Notice, Panel, btnClass } from "@/components/kit";
 import { dateLong, money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
 import { extrasFor, totalExtraBags, useStore } from "@/lib/store";
@@ -37,7 +37,7 @@ function ConfirmationPage() {
   if (!ready) {
     return (
       <Container className="py-16">
-        <p className="text-sm text-muted-foreground">…</p>
+        <GazaLoadingState />
       </Container>
     );
   }

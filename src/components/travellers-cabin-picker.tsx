@@ -421,8 +421,8 @@ export function TravellersCabinPicker({
     idPrefix,
   };
 
-  /* The trigger button is shared between both overlay modes */
-  const triggerButton = (
+  /* Desktop activation belongs to Radix. The mobile trigger sits outside DialogTrigger. */
+  const triggerButton = (manualActivation: boolean) => (
     <button
       ref={triggerRef}
       type="button"
@@ -441,7 +441,7 @@ export function TravellersCabinPicker({
         "disabled:pointer-events-none disabled:opacity-50",
         "cursor-pointer select-none",
       )}
-      onClick={() => setOpen((v) => !v)}
+      onClick={manualActivation ? () => setOpen((v) => !v) : undefined}
     >
       <span className="flex items-center gap-2 min-w-0">
         <Users aria-hidden="true" className="size-4 text-muted-foreground shrink-0" />
@@ -453,7 +453,7 @@ export function TravellersCabinPicker({
   if (isMobile) {
     return (
       <>
-        {triggerButton}
+        {triggerButton(true)}
         <Dialog
           open={open}
           onOpenChange={(v) => {
@@ -464,6 +464,12 @@ export function TravellersCabinPicker({
           <DialogContent
             id={`${idPrefix}-panel`}
             closeLabel={t("common.close")}
+            onCloseAutoFocus={(e) => {
+              if (triggerRef.current && triggerRef.current.isConnected) {
+                e.preventDefault();
+                triggerRef.current.focus();
+              }
+            }}
             className={cn(
               /* Bottom sheet: fixed bottom, full width, tall max, no center transform */
               "fixed inset-x-0 bottom-0 top-auto left-0 right-0",
@@ -502,7 +508,7 @@ export function TravellersCabinPicker({
       }}
     >
       <PopoverPrimitive.Trigger asChild>
-        {triggerButton}
+        {triggerButton(false)}
       </PopoverPrimitive.Trigger>
       <PopoverPrimitive.Portal>
         <PopoverPrimitive.Content
@@ -519,6 +525,12 @@ export function TravellersCabinPicker({
             "origin-(--radix-popover-content-transform-origin)",
             "motion-reduce:transition-none",
           )}
+          onCloseAutoFocus={(e) => {
+            if (triggerRef.current && triggerRef.current.isConnected) {
+              e.preventDefault();
+              triggerRef.current.focus();
+            }
+          }}
           /* Keep focus inside until the user explicitly closes */
           onOpenAutoFocus={(e) => {
             // Let Radix handle the first-focus, but prevent page scroll

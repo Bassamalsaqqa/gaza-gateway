@@ -1,7 +1,7 @@
 import { AppLink } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
 import { BookingDetail } from "@/components/booking/booking-detail";
-import { btnClass, Container, EmptyState, PageHeader } from "@/components/kit";
+import { Container, EmptyState, GazaLoadingState, PageHeader, btnClass } from "@/components/kit";
 import { useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 
@@ -32,7 +32,7 @@ function ManageDetailPage() {
   if (!ready) {
     return (
       <Container className="py-16">
-        <p className="text-sm text-muted-foreground">…</p>
+        <GazaLoadingState />
       </Container>
     );
   }

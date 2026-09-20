@@ -1,3 +1,5 @@
+import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { ChevronDown, ChevronUp, Plus } from "lucide-react";
@@ -6,7 +8,7 @@ import {
   AdminChip,
   AdminPageHeader,
   AdminPanel,
-  AdminSheet,
+  GazaSheet,
   AdminStickyActions,
   AdminTabs,
   BilingualStatus,
@@ -161,7 +163,7 @@ function AircraftTab() {
         ))}
       </ul>
 
-      <AdminSheet
+      <GazaSheet
         open={draft !== null}
         title={isNew ? t("adm.prod.ac.new") : t("adm.prod.ac.edit")}
         onClose={() => setDraft(null)}
@@ -205,39 +207,39 @@ function AircraftTab() {
               <legend className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 {t("adm.prod.ac.cabins")}
               </legend>
-              <div className="mt-1.5 flex flex-wrap gap-3">
+              <div className="mt-1.5 flex flex-wrap gap-4">
                 {cabins.map((c) => (
-                  <label key={c.id} className="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
+                  <label key={c.id} className="flex items-center gap-2 text-sm font-medium cursor-pointer select-none">
+                    <Checkbox
                       checked={draft.cabins.includes(c.id)}
-                      onChange={(e) =>
+                      onCheckedChange={(checked) =>
                         setDraft({
                           ...draft,
-                          cabins: e.target.checked
+                          cabins: checked === true
                             ? [...draft.cabins, c.id]
                             : draft.cabins.filter((x) => x !== c.id),
                         })
                       }
-                      className="size-4 accent-[var(--brand)]"
+                      className="size-4"
                     />
                     {t(`cabin.${c.id}`)}
                   </label>
                 ))}
               </div>
             </fieldset>
-            <label className="flex items-center gap-2 text-sm font-semibold">
-              <input
-                type="checkbox"
+            <div className="flex items-center gap-2.5">
+              <Switch
+                id="ac-draft-active"
                 checked={draft.active}
-                onChange={(e) => setDraft({ ...draft, active: e.target.checked })}
-                className="size-4 accent-[var(--brand)]"
+                onCheckedChange={(val) => setDraft({ ...draft, active: val })}
               />
-              {t("adm.common.active")}
-            </label>
+              <label htmlFor="ac-draft-active" className="text-sm font-semibold cursor-pointer select-none">
+                {t("adm.common.active")}
+              </label>
+            </div>
           </div>
         ) : null}
-      </AdminSheet>
+      </GazaSheet>
     </div>
   );
 }
@@ -519,7 +521,7 @@ function FaresTab() {
         ))}
       </ul>
 
-      <AdminSheet
+      <GazaSheet
         open={draft !== null}
         title={t("adm.prod.fare.edit")}
         onClose={() => setDraft(null)}
@@ -546,21 +548,20 @@ function FaresTab() {
               <legend className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 {t("adm.prod.fare.cabins")}
               </legend>
-              <div className="mt-1.5 flex flex-wrap gap-3">
+              <div className="mt-1.5 flex flex-wrap gap-4">
                 {cabins.map((c) => (
-                  <label key={c.id} className="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
+                  <label key={c.id} className="flex items-center gap-2 text-sm font-medium cursor-pointer select-none">
+                    <Checkbox
                       checked={draft.cabins.includes(c.id)}
-                      onChange={(e) =>
+                      onCheckedChange={(checked) =>
                         setDraft({
                           ...draft,
-                          cabins: e.target.checked
+                          cabins: checked === true
                             ? [...draft.cabins, c.id as CabinId]
                             : draft.cabins.filter((x) => x !== c.id),
                         })
                       }
-                      className="size-4 accent-[var(--brand)]"
+                      className="size-4"
                     />
                     {t(`cabin.${c.id}`)}
                   </label>
@@ -608,18 +609,19 @@ function FaresTab() {
             <Field label={`${t("adm.prod.fare.refund")} — ${t("adm.common.arabic")}`} htmlFor="fa-rf-ar">
               <Input id="fa-rf-ar" dir="rtl" value={draft.refundAr} onChange={(e) => setDraft({ ...draft, refundAr: e.target.value })} />
             </Field>
-            <label className="flex items-center gap-2 text-sm font-semibold">
-              <input
-                type="checkbox"
+            <div className="flex items-center gap-2.5">
+              <Switch
+                id="fare-featured"
                 checked={draft.featured}
-                onChange={(e) => setDraft({ ...draft, featured: e.target.checked })}
-                className="size-4 accent-[var(--brand)]"
+                onCheckedChange={(val) => setDraft({ ...draft, featured: val })}
               />
-              {t("adm.prod.fare.featured")}
-            </label>
+              <label htmlFor="fare-featured" className="text-sm font-semibold cursor-pointer select-none">
+                {t("adm.prod.fare.featured")}
+              </label>
+            </div>
           </div>
         ) : null}
-      </AdminSheet>
+      </GazaSheet>
     </div>
   );
 }

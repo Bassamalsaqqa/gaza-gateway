@@ -10,7 +10,7 @@ import {
   AdminEmpty,
   AdminPageHeader,
   AdminPanel,
-  AdminSheet,
+  GazaSheet,
   AttentionRow,
   BilingualStatus,
   ContentStateChip,
@@ -106,16 +106,23 @@ function AdminDashboardPage() {
     setEdit(null);
   };
 
-  const summaryMetrics = useMemo(
+  const primaryMetrics = useMemo(
     () =>
       [
         { key: "dep", show: mayOps, label: t("adm.dash.departures"), value: data.metrics.departures, emphasis: true },
         { key: "arr", show: mayOps, label: t("adm.dash.arrivals"), value: data.metrics.arrivals, emphasis: true },
         { key: "bks", show: mayCommercial, label: t("adm.dash.bookings"), value: data.metrics.bookingsToday },
         { key: "pax", show: mayCommercial, label: t("adm.dash.passengers"), value: data.metrics.passengersTravelling },
-        { key: "chk", show: mayCommercial, label: t("adm.dash.checkedIn"), value: data.metrics.passengersCheckedIn, tone: "brand" as const },
+      ].filter((m) => m.show),
+    [mayOps, mayCommercial, data.metrics, t],
+  );
+
+  const secondarySignals = useMemo(
+    () =>
+      [
         { key: "del", show: mayOps, label: t("adm.dash.delayed"), value: data.metrics.delayed, tone: data.metrics.delayed ? ("warn" as const) : ("neutral" as const) },
         { key: "cxl", show: mayOps, label: t("adm.dash.cancelled"), value: data.metrics.cancelled, tone: data.metrics.cancelled ? ("danger" as const) : ("neutral" as const) },
+        { key: "chk", show: mayCommercial, label: t("adm.dash.checkedIn"), value: data.metrics.passengersCheckedIn, tone: "brand" as const },
         { key: "enq", show: mayEngagement, label: t("adm.dash.enquiries"), value: data.metrics.enquiries },
         { key: "cnt", show: mayContent, label: t("adm.dash.contentAttention"), value: data.metrics.contentAttention },
       ].filter((m) => m.show),
@@ -484,26 +491,41 @@ function AdminDashboardPage() {
         }
       />
 
-      {/* A. Today summary */}
-      {summaryMetrics.length > 0 ? (
-        <section aria-label={t("adm.dash.today")}>
-          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+      {/* A. Today summary: primary metrics + compact secondary signals & warnings */}
+      {primaryMetrics.length > 0 || secondarySignals.length > 0 ? (
+        <section aria-label={t("adm.dash.today")} className="space-y-2.5">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             {t("adm.dash.today")}
           </h2>
-          <div
-            className={cn(
-              "grid gap-2",
-              summaryMetrics.length <= 2
-                ? "grid-cols-2"
-                : summaryMetrics.length <= 4
-                  ? "grid-cols-2 sm:grid-cols-4"
-                  : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-9",
-            )}
-          >
-            {summaryMetrics.map((m) => (
-              <Metric key={m.key} label={m.label} value={m.value} emphasis={m.emphasis} tone={m.tone} />
-            ))}
-          </div>
+          {primaryMetrics.length > 0 ? (
+            <div
+              className={cn(
+                "grid gap-2.5",
+                primaryMetrics.length <= 2
+                  ? "grid-cols-2"
+                  : "grid-cols-2 sm:grid-cols-4",
+              )}
+            >
+              {primaryMetrics.map((m) => (
+                <Metric key={m.key} label={m.label} value={m.value} emphasis={m.emphasis} />
+              ))}
+            </div>
+          ) : null}
+
+          {secondarySignals.length > 0 ? (
+            <div
+              className={cn(
+                "grid gap-2",
+                secondarySignals.length <= 3
+                  ? "grid-cols-2 sm:grid-cols-3"
+                  : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5",
+              )}
+            >
+              {secondarySignals.map((m) => (
+                <Metric key={m.key} label={m.label} value={m.value} tone={m.tone} />
+              ))}
+            </div>
+          ) : null}
         </section>
       ) : null}
 
@@ -561,7 +583,7 @@ function AdminDashboardPage() {
       )}
 
       {/* Quick-edit drawer */}
-      <AdminSheet
+      <GazaSheet
         open={edit !== null}
         title={edit ? t("adm.edit.title", { flight: edit.flight.number }) : ""}
         description={t("adm.edit.sub")}
@@ -625,7 +647,7 @@ function AdminDashboardPage() {
             {!mayEditOps ? <p className="text-xs text-muted-foreground">{t("adm.edit.readOnly")}</p> : null}
           </div>
         ) : null}
-      </AdminSheet>
+      </GazaSheet>
     </div>
   );
 }

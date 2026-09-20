@@ -1,3 +1,5 @@
+import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   Bell,
@@ -22,6 +24,17 @@ import { cn } from "@/lib/utils";
 import { AdminChip, AdminToasts } from "./admin-kit";
 import { AdminSearch } from "./admin-search";
 import { useDashboardData } from "./dashboard-data";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const ROLES: AdminRole[] = ["admin", "editor", "viewer"];
 
@@ -135,95 +148,36 @@ function WorkspaceMark({ collapsed = false }: { collapsed?: boolean }) {
 function AccountMenu() {
   const { t, lang } = useI18n();
   const { staff, setRole, signOut } = useAdmin();
-  const [open, setOpen] = useState(false);
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: MouseEvent) => {
-      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("mousedown", onDown);
-    window.addEventListener("keydown", onKey);
-    const triggerEl = triggerRef.current;
-    return () => {
-      document.removeEventListener("mousedown", onDown);
-      window.removeEventListener("keydown", onKey);
-      triggerEl?.focus?.();
-    };
-  }, [open]);
 
   if (!staff) return null;
 
   return (
-    <div ref={wrapRef} className="relative">
-      <button
-        ref={triggerRef}
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        aria-haspopup="dialog"
-        aria-label={t("adm.shell.account")}
-        className="flex items-center gap-2 rounded-md border border-border px-2 py-1.5 text-sm font-semibold hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-      >
-        <UserRound aria-hidden="true" className="size-4 text-muted-foreground" />
-        <span className="hidden max-w-32 truncate sm:block">{pick(lang, staff.name)}</span>
-        <ChevronDown aria-hidden="true" className="size-3.5 text-muted-foreground" />
-      </button>
-      {open ? (
-        <div
-          role="dialog"
-          aria-modal="false"
-          aria-label={t("adm.shell.account")}
-          className="absolute end-0 z-50 mt-1 w-72 rounded-lg border border-border bg-card p-3 shadow-[var(--shadow-lift)]"
-        >
-          <p className="text-sm font-bold">{pick(lang, staff.name)}</p>
-          <p dir="ltr" className="truncate text-xs text-muted-foreground">
-            {staff.email}
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">{pick(lang, staff.title)}</p>
-          <div className="mt-2">
-            <AdminChip tone="brand">{t(`adm.role.${staff.role}`)}</AdminChip>
-          </div>
-
-          <div className="mt-3 border-t border-border pt-3">
-            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              <Sparkles aria-hidden="true" className="size-3" />
-              {t("adm.shell.switchRole")}
-            </p>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {ROLES.map((role) => (
-                <button
-                  key={role}
-                  type="button"
-                  aria-pressed={staff.role === role}
-                  onClick={() => setRole(role)}
-                  className={cn(
-                    "rounded-md border px-2 py-1 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-                    staff.role === role ? "border-primary bg-brand-soft text-brand-deep" : "border-border hover:bg-secondary",
-                  )}
-                >
-                  {t(`adm.role.${role}`)}
-                </button>
-              ))}
-            </div>
-            <p className="mt-1.5 text-xs text-muted-foreground">{t("adm.shell.switchRoleNote")}</p>
-          </div>
-
-          <button
-            type="button"
-            onClick={signOut}
-            className="mt-3 w-full rounded-md border border-border px-2 py-1.5 text-sm font-semibold hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-          >
-            {t("adm.shell.signOut")}
-          </button>
-        </div>
-      ) : null}
-    </div>
+    <DropdownMenu dir={lang === "ar" ? "rtl" : "ltr"}>
+      <DropdownMenuTrigger asChild>
+        <button type="button" aria-label={t("adm.shell.account")} className="flex items-center gap-2 rounded-md border border-border px-2 py-1.5 text-sm font-semibold hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+          <UserRound aria-hidden="true" className="size-4 text-muted-foreground" />
+          <span className="hidden max-w-32 truncate sm:block">{pick(lang, staff.name)}</span>
+          <ChevronDown aria-hidden="true" className="size-3.5 text-muted-foreground" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-72 p-2">
+        <DropdownMenuLabel className="space-y-0.5 normal-case tracking-normal">
+          <span className="block text-sm font-bold">{pick(lang, staff.name)}</span>
+          <span dir="ltr" className="block truncate text-xs font-normal text-muted-foreground">{staff.email}</span>
+          <span className="block text-xs font-normal text-muted-foreground">{pick(lang, staff.title)}</span>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Sparkles aria-hidden="true" className="size-3" />{t("adm.shell.switchRole")}
+        </DropdownMenuLabel>
+        <DropdownMenuRadioGroup value={staff.role} onValueChange={(value) => setRole(value as AdminRole)}>
+          {ROLES.map((role) => <DropdownMenuRadioItem key={role} value={role}>{t(`adm.role.${role}`)}</DropdownMenuRadioItem>)}
+        </DropdownMenuRadioGroup>
+        <p className="px-2 py-1 text-xs text-muted-foreground">{t("adm.shell.switchRoleNote")}</p>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={signOut} className="font-semibold">{t("adm.shell.signOut")}</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -256,39 +210,18 @@ function AttentionBell() {
   const { toast } = useAdmin();
   const { attention } = useDashboardData();
   const [open, setOpen] = useState(false);
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
   const count = attention.length;
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    const onClick = (e: MouseEvent) => {
-      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
-    };
-    window.addEventListener("keydown", onKey);
-    window.addEventListener("mousedown", onClick);
-    const triggerEl = triggerRef.current;
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      window.removeEventListener("mousedown", onClick);
-      triggerEl?.focus?.();
-    };
-  }, [open]);
 
   const tone = (severity: "high" | "medium" | "low") =>
     severity === "high" ? "danger" : severity === "medium" ? "warn" : "muted";
 
   return (
-    <div ref={wrapRef} className="relative">
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
       <button
-        ref={triggerRef}
         type="button"
         aria-expanded={open}
-        aria-haspopup="dialog"
-        onClick={() => setOpen((v) => !v)}
+        aria-label={count > 0 ? t("adm.shell.attentionCount", { n: count }) : t("adm.shell.attention")}
         className="relative rounded-md border border-border p-1.5 text-muted-foreground hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         <Bell aria-hidden="true" className="size-4" />
@@ -301,13 +234,12 @@ function AttentionBell() {
           {count > 0 ? t("adm.shell.attentionCount", { n: count }) : t("adm.shell.attention")}
         </span>
       </button>
-
-      {open ? (
-        <div
-          role="dialog"
-          aria-modal="false"
+      </PopoverTrigger>
+      <PopoverContent
+          align="end"
+          collisionPadding={12}
           aria-label={t("adm.notif.title")}
-          className="fixed end-3 top-14 z-60 w-[calc(100vw-1.5rem)] overflow-hidden rounded-lg border border-border bg-card shadow-[var(--shadow-lift)] sm:absolute sm:end-0 sm:top-11 sm:w-80"
+          className="w-[calc(100vw-1.5rem)] max-w-80 overflow-hidden rounded-lg border-border bg-card p-0 shadow-[var(--shadow-lift)]"
         >
           <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2">
             <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("adm.notif.title")}</p>
@@ -352,9 +284,8 @@ function AttentionBell() {
               {t("adm.notif.viewAll")}
             </button>
           </div>
-        </div>
-      ) : null}
-    </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -523,10 +454,7 @@ export function AdminShell({
             <button
               ref={openDrawerBtnRef}
               type="button"
-              onClick={() => {
-                restoreDrawerFocusRef.current = true;
-                setDrawer(true);
-              }}
+              onClick={() => setDrawer(true)}
               aria-label={t("adm.shell.openNav")}
               className="flex size-11 min-h-11 min-w-11 items-center justify-center rounded-md border border-border lg:hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >

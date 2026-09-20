@@ -1,3 +1,5 @@
+import { PassengerDobPicker } from "@/components/booking/passenger-dob-picker";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { createFileRoute } from "@tanstack/react-router";
 import { Pencil, Trash2, UserPlus } from "lucide-react";
 import { useState } from "react";
@@ -25,6 +27,7 @@ function TravelersPage() {
   const [form, setForm] = useState(blank);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [edit, setEdit] = useState(blank);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   return (
     <div className="space-y-4">
@@ -55,11 +58,10 @@ function TravelersPage() {
             />
           </Field>
           <Field label={t("book.dob")} htmlFor="tv-dob">
-            <Input
+            <PassengerDobPicker
               id="tv-dob"
-              type="date"
               value={form.dob}
-              onChange={(e) => setForm((prev) => ({ ...prev, dob: e.target.value }))}
+              onChange={(dob) => setForm((prev) => ({ ...prev, dob }))}
             />
           </Field>
           <Field label={t("book.nationality")} htmlFor="tv-nat">
@@ -118,11 +120,10 @@ function TravelersPage() {
                       />
                     </Field>
                     <Field label={t("book.dob")} htmlFor={`ed-dob-${traveler.id}`}>
-                      <Input
+                      <PassengerDobPicker
                         id={`ed-dob-${traveler.id}`}
-                        type="date"
                         value={edit.dob}
-                        onChange={(e) => setEdit((prev) => ({ ...prev, dob: e.target.value }))}
+                        onChange={(dob) => setEdit((prev) => ({ ...prev, dob }))}
                       />
                     </Field>
                     <Field label={t("book.nationality")} htmlFor={`ed-nat-${traveler.id}`}>
@@ -154,9 +155,9 @@ function TravelersPage() {
                       <p className="font-semibold">
                         {traveler.firstName} {traveler.lastName}
                       </p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        <span className="numeral">{traveler.dob || "—"}</span> · {traveler.nationality || "—"} ·{" "}
-                        <span className="code-id">{traveler.document || "—"}</span>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        <span dir="ltr" className="numeral font-mono tabular-nums">{traveler.dob || "—"}</span> · {traveler.nationality || "—"} ·{" "}
+                        <span dir="ltr" className="code-id font-mono tabular-nums">{traveler.document || "—"}</span>
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-1">
@@ -180,11 +181,11 @@ function TravelersPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => removeTraveler(traveler.id)}
+                        onClick={() => setDeletingId(traveler.id)}
                         className={btnClass("ghost", "sm")}
                         aria-label={`${t("account.remove")} ${traveler.firstName} ${traveler.lastName}`}
                       >
-                        <Trash2 aria-hidden="true" className="size-4" />
+                        <Trash2 aria-hidden="true" className="size-4 text-destructive" />
                         {t("account.remove")}
                       </button>
                     </div>
@@ -195,6 +196,19 @@ function TravelersPage() {
           </ul>
         </Panel>
       )}
+      <ConfirmDialog
+        open={deletingId !== null}
+        title={t("account.remove")}
+        body={t("account.removeConfirm")}
+        confirmLabel={t("common.delete")}
+        onConfirm={() => {
+          if (deletingId) {
+            removeTraveler(deletingId);
+            setDeletingId(null);
+          }
+        }}
+        onClose={() => setDeletingId(null)}
+      />
     </div>
   );
 }

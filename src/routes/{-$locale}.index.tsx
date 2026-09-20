@@ -1,3 +1,4 @@
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AppLink } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
 import { ArrowRight, Building2, Calendar, Clock, Luggage, Plane, Ticket } from "lucide-react";
@@ -200,29 +201,31 @@ function Home() {
 
         <div className="mt-6 rounded-2xl border border-border bg-card p-4 sm:p-6 shadow-[var(--shadow-soft)]">
           {/* Departures / Arrivals Tablist */}
-          <div
-            className="flex gap-1 rounded-xl bg-secondary p-1"
-            role="tablist"
-            aria-label={t("flights.title")}
+          <Tabs
+            value={board}
+            onValueChange={(val) => setBoard(val as "departures" | "arrivals")}
+            dir={lang === "ar" ? "rtl" : "ltr"}
+            className="w-full"
           >
-            {(["departures", "arrivals"] as const).map((mode) => (
-              <button
-                key={mode}
-                type="button"
-                role="tab"
-                aria-selected={board === mode}
-                onClick={() => setBoard(mode)}
-                className={cn(
-                  "flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition-all focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
-                  board === mode
-                    ? "bg-card text-foreground shadow-[var(--shadow-soft)]"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {t(mode === "departures" ? "flights.departures" : "flights.arrivals")}
-              </button>
-            ))}
-          </div>
+            <TabsList
+              aria-label={t("flights.title")}
+              className="flex w-full h-auto gap-1 rounded-xl bg-secondary p-1"
+            >
+              {(["departures", "arrivals"] as const).map((mode) => (
+                <TabsTrigger
+                  key={mode}
+                  value={mode}
+                  className={cn(
+                    "flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition-all focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring cursor-pointer select-none",
+                    "data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-[var(--shadow-soft)]",
+                    "data-[state=inactive]:text-muted-foreground hover:data-[state=inactive]:text-foreground",
+                  )}
+                >
+                  {t(mode === "departures" ? "flights.departures" : "flights.arrivals")}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
 
           {/* Desktop Tabular View */}
           <div className="mt-5 hidden sm:block overflow-x-auto">

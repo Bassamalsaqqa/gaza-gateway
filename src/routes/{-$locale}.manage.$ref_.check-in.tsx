@@ -1,10 +1,11 @@
+import { Checkbox } from "@/components/ui/checkbox";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Check, ChevronRight } from "lucide-react";
 import { AppLink } from "@/components/app-link";
 import { SeatMap } from "@/components/booking/seat-map";
 import { StatusBadge } from "@/components/flight-status";
-import { btnClass, Code, Container, EmptyState, Field, Input, Notice, PageHeader, Panel, Pill } from "@/components/kit";
+import { Code, Container, EmptyState, Field, GazaLoadingState, Input, Notice, PageHeader, Panel, Pill, btnClass } from "@/components/kit";
 import { airportByCode, suggestSeat } from "@/lib/data";
 import { dateLong } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
@@ -63,7 +64,7 @@ function CheckInPage() {
   if (!ready) {
     return (
       <Container className="py-16">
-        <p className="text-sm text-muted-foreground">…</p>
+        <GazaLoadingState />
       </Container>
     );
   }
@@ -238,27 +239,50 @@ function CheckInPage() {
             </button>
           </div>
           <ul className="mt-4 divide-y divide-border">
-            {eligible.map((i) => (
-              <li key={i} className="py-3">
-                <label className="flex items-center gap-3 text-sm font-medium">
-                  <input
-                    type="checkbox"
-                    className="size-5 rounded border-input accent-[var(--color-primary)]"
-                    checked={selected.includes(i)}
-                    onChange={(e) =>
-                      setSelected((prev) => (e.target.checked ? [...prev, i] : prev.filter((x) => x !== i)))
-                    }
-                  />
-                  {paxLabel(i)}
-                  <Pill>{t(booking.passengers[i]?.type === "child" ? "book.child" : "book.adult")}</Pill>
-                </label>
-                {infantsOf(i).map((inf) => (
-                  <p key={inf} className="ms-8 mt-1 text-xs text-muted-foreground">
-                    {t("book.infantOf")} {paxLabel(inf)} · {t("book.noSeatInfant")}
-                  </p>
-                ))}
-              </li>
-            ))}
+            {eligible.map((i) => {
+              const isChecked = selected.includes(i);
+              const labelId = `ci-pax-label-${i}`;
+              const checkId = `ci-pax-${i}`;
+              return (
+                <li key={i} className="py-2.5">
+                  <label
+                    htmlFor={checkId}
+                    className={cn(
+                      "flex min-h-[44px] items-center justify-between gap-3 rounded-xl border p-3.5 transition-colors cursor-pointer select-none",
+                      isChecked ? "border-primary bg-primary/5 shadow-xs" : "border-input bg-card hover:bg-secondary/40",
+                    )}
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <Checkbox
+                        id={checkId}
+                        checked={isChecked}
+                        aria-labelledby={labelId}
+                        onCheckedChange={(checked) => {
+                          setSelected((prev) =>
+                            checked ? [...new Set([...prev, i])] : prev.filter((x) => x !== i)
+                          );
+                        }}
+                        className="size-5"
+                      />
+                      <span
+                        id={labelId}
+                        className="flex-1 min-w-0 text-sm font-semibold truncate text-foreground"
+                      >
+                        {paxLabel(i)}
+                      </span>
+                    </div>
+                    <Pill tone="neutral">
+                      {t(booking.passengers[i]?.type === "child" ? "book.child" : "book.adult")}
+                    </Pill>
+                  </label>
+                  {infantsOf(i).map((inf) => (
+                    <p key={inf} className="ms-10 mt-1.5 text-xs text-muted-foreground">
+                      {t("book.infantOf")} {paxLabel(inf)} · {t("book.noSeatInfant")}
+                    </p>
+                  ))}
+                </li>
+              );
+            })}
           </ul>
           <StepNav
             error={error}

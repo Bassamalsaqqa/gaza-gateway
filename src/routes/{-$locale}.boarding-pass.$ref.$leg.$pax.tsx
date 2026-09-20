@@ -2,7 +2,7 @@ import { AppLink } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
 import { Printer, Ticket } from "lucide-react";
 import { BoardingPassCard, passesForBooking } from "@/components/booking/boarding-pass";
-import { btnClass, Container, EmptyState, Notice, PageHeader } from "@/components/kit";
+import { Container, EmptyState, GazaLoadingState, Notice, PageHeader, btnClass } from "@/components/kit";
 import { useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 
@@ -35,7 +35,7 @@ function BoardingPassDetailPage() {
   if (!ready) {
     return (
       <Container className="py-16">
-        <p className="text-sm text-muted-foreground">…</p>
+        <GazaLoadingState />
       </Container>
     );
   }

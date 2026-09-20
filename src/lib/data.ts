@@ -224,8 +224,8 @@ export const destinations: Destination[] = [
 export const destinationByCode = (code: string): Destination | undefined =>
   destinations.find((d) => d.code.toLowerCase() === code.toLowerCase());
 
-export const airportByCode = (code: string): Airport | undefined =>
-  code.toUpperCase() === "GZA" ? GZA : destinationByCode(code);
+export const airportByCode = (code?: string): Airport | undefined =>
+  !code ? undefined : code.toUpperCase() === "GZA" ? GZA : destinationByCode(code);
 
 export const fares: Fare[] = [
   {

@@ -2,7 +2,7 @@ import { GazaTable, GazaTableBody, GazaTableCaption, GazaTableCell, GazaTableHea
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Input, Select } from "@/components/kit";
-import { AdminChip, AdminEmpty, AdminPageHeader, AdminPanel, AdminSheet, Ltr, Toolbar } from "@/components/admin/admin-kit";
+import { AdminChip, AdminEmpty, AdminPageHeader, AdminPanel, GazaSheet, Ltr, Toolbar } from "@/components/admin/admin-kit";
 import { AdminDenied } from "@/components/admin/admin-denied";
 import { useAdmin } from "@/lib/admin-store";
 import { pick, useI18n } from "@/lib/i18n";
@@ -122,7 +122,7 @@ function AdminActivityPage() {
         )}
       </AdminPanel>
 
-      <AdminSheet open={open !== null} title={t("a2.ac.detail")} description={open ? pick(lang, open.actor) : ""} onClose={() => setOpen(null)}>
+      <GazaSheet open={open !== null} title={t("a2.ac.detail")} description={open ? pick(lang, open.actor) : ""} onClose={() => setOpen(null)}>
         {open ? (
           <dl className="space-y-3 text-sm">
             {[
@@ -142,7 +142,7 @@ function AdminActivityPage() {
             <p className="rounded-md border border-border bg-sand p-3 text-xs">{pick(lang, open.summary)}</p>
           </dl>
         ) : null}
-      </AdminSheet>
+      </GazaSheet>
     </div>
   );
 }

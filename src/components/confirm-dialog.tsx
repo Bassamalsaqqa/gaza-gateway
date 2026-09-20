@@ -37,30 +37,6 @@ export function ConfirmDialog({
 }) {
   const { t } = useI18n();
   const triggerRef = React.useRef<HTMLElement | null>(null);
-  const prevOpenRef = React.useRef(open);
-
-  // Capture active element when dialog transitions from closed to open
-  if (typeof window !== "undefined" && open && !prevOpenRef.current) {
-    if (
-      document.activeElement instanceof HTMLElement &&
-      document.activeElement !== document.body
-    ) {
-      triggerRef.current = document.activeElement;
-    }
-  }
-
-  React.useEffect(() => {
-    if (open && !prevOpenRef.current) {
-      if (
-        !triggerRef.current &&
-        document.activeElement instanceof HTMLElement &&
-        document.activeElement !== document.body
-      ) {
-        triggerRef.current = document.activeElement;
-      }
-    }
-    prevOpenRef.current = open;
-  }, [open]);
 
   return (
     <AlertDialog
@@ -72,6 +48,14 @@ export function ConfirmDialog({
       }}
     >
       <AlertDialogContent
+        onOpenAutoFocus={() => {
+          if (
+            document.activeElement instanceof HTMLElement &&
+            document.activeElement !== document.body
+          ) {
+            triggerRef.current = document.activeElement;
+          }
+        }}
         onCloseAutoFocus={(event) => {
           if (triggerRef.current && triggerRef.current.isConnected) {
             event.preventDefault();

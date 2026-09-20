@@ -8,7 +8,7 @@ import {
   AdminField,
   AdminPageHeader,
   AdminPanel,
-  AdminSheet,
+  GazaSheet,
   AdminTabs,
   BilingualStatus,
   ContentStateChip,
@@ -451,7 +451,7 @@ function AdminAirportPage() {
       </AdminPanel>
 
       {/* -------------------------------- sheets -------------------------------- */}
-      <AdminSheet open={entry !== null} title={t("a2.ap.past.editor")} description={entry?.period ?? ""} onClose={() => setEntry(null)} footer={sheetFooter(() => setEntry(null))}>
+      <GazaSheet open={entry !== null} title={t("a2.ap.past.editor")} description={entry?.period ?? ""} onClose={() => setEntry(null)} footer={sheetFooter(() => setEntry(null))}>
         {entry ? (
           <div className="space-y-3">
             <AdminField label={t("a2.ap.past.period")} htmlFor="pa-period">
@@ -475,9 +475,9 @@ function AdminAirportPage() {
             </AdminField>
           </div>
         ) : null}
-      </AdminSheet>
+      </GazaSheet>
 
-      <AdminSheet open={item !== null} title={t("a2.ap.ar.editor")} description={item?.id ?? ""} onClose={() => setItem(null)} footer={sheetFooter(() => setItem(null))}>
+      <GazaSheet open={item !== null} title={t("a2.ap.ar.editor")} description={item?.id ?? ""} onClose={() => setItem(null)} footer={sheetFooter(() => setItem(null))}>
         {item ? (
           <div className="space-y-3">
             <AdminField label={t("a2.title")} htmlFor="ai-title">
@@ -537,9 +537,9 @@ function AdminAirportPage() {
             </AdminField>
           </div>
         ) : null}
-      </AdminSheet>
+      </GazaSheet>
 
-      <AdminSheet open={source !== null} title={t("a2.ap.src.editor")} description={source?.id ?? ""} onClose={() => setSource(null)} footer={sheetFooter(() => setSource(null))}>
+      <GazaSheet open={source !== null} title={t("a2.ap.src.editor")} description={source?.id ?? ""} onClose={() => setSource(null)} footer={sheetFooter(() => setSource(null))}>
         {source ? (
           <div className="space-y-3">
             <AdminField label={t("a2.title")} htmlFor="sr-title">
@@ -567,9 +567,9 @@ function AdminAirportPage() {
             </AdminField>
           </div>
         ) : null}
-      </AdminSheet>
+      </GazaSheet>
 
-      <AdminSheet open={media !== null} title={t("a2.ap.md.editor")} description={media?.filename ?? ""} onClose={() => setMedia(null)} footer={sheetFooter(() => setMedia(null))}>
+      <GazaSheet open={media !== null} title={t("a2.ap.md.editor")} description={media?.filename ?? ""} onClose={() => setMedia(null)} footer={sheetFooter(() => setMedia(null))}>
         {media ? (
           <div className="space-y-3">
             <div aria-hidden="true" className="h-28 rounded bg-sand" />
@@ -615,9 +615,9 @@ function AdminAirportPage() {
             </div>
           </div>
         ) : null}
-      </AdminSheet>
+      </GazaSheet>
 
-      <AdminSheet
+      <GazaSheet
         open={upload}
         title={t("a2.ap.md.upload")}
         description={t("a2.ap.md.uploadBody")}
@@ -625,7 +625,7 @@ function AdminAirportPage() {
         footer={sheetFooter(() => setUpload(false))}
       >
         <div className="rounded-md border border-dashed border-border p-6 text-center text-xs text-muted-foreground">{t("a2.ap.md.uploadBody")}</div>
-      </AdminSheet>
+      </GazaSheet>
     </div>
   );
 }

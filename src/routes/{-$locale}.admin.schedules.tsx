@@ -1,3 +1,4 @@
+import { Switch } from "@/components/ui/switch";
 import { GazaTable, GazaTableBody, GazaTableCaption, GazaTableCell, GazaTableHead, GazaTableHeader, GazaTableRow } from "@/components/gaza-table";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
@@ -9,7 +10,7 @@ import {
   AdminEmpty,
   AdminPageHeader,
   AdminPanel,
-  AdminSheet,
+  GazaSheet,
   Ltr,
   PermissionButton,
   Toolbar,
@@ -316,7 +317,7 @@ function AdminSchedulesPage() {
       </AdminPanel>
 
       {/* Schedule editor */}
-      <AdminSheet
+      <GazaSheet
         open={draft !== null}
         title={isNew ? t("adm.sch.new") : t("adm.sch.edit")}
         description={draft ? routeLabel(draft) : ""}
@@ -428,15 +429,16 @@ function AdminSchedulesPage() {
               </Field>
             </div>
 
-            <label className="flex items-center gap-2 text-sm font-semibold">
-              <input
-                type="checkbox"
+            <div className="flex items-center gap-3">
+              <Switch
+                id="sc-active"
                 checked={draft.active}
-                onChange={(e) => setDraft({ ...draft, active: e.target.checked })}
-                className="size-4 accent-[var(--brand)]"
+                onCheckedChange={(val) => setDraft({ ...draft, active: val })}
               />
-              {t("adm.common.active")}
-            </label>
+              <label htmlFor="sc-active" className="text-sm font-semibold cursor-pointer select-none">
+                {t("adm.common.active")}
+              </label>
+            </div>
 
             <div className="border-t border-border pt-3">
               <div className="flex items-center justify-between gap-2">
@@ -522,7 +524,7 @@ function AdminSchedulesPage() {
             </div>
           </div>
         ) : null}
-      </AdminSheet>
+      </GazaSheet>
 
       <ConfirmDialog
         open={confirmDelete !== null}

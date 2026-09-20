@@ -1,3 +1,4 @@
+import { Switch } from "@/components/ui/switch";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Input, Select } from "@/components/kit";
@@ -91,18 +92,22 @@ function AdminSettingsPage() {
 
             {tab === "localization" ? (
               <>
-                <AdminField label={t("a2.se.enEnabled")} htmlFor="se-en">
-                  <Select id="se-en" defaultValue="on">
-                    <option value="on">{t("a2.visible")}</option>
-                    <option value="off">{t("a2.hidden")}</option>
-                  </Select>
-                </AdminField>
-                <AdminField label={t("a2.se.arEnabled")} htmlFor="se-ar">
-                  <Select id="se-ar" defaultValue="on">
-                    <option value="on">{t("a2.visible")}</option>
-                    <option value="off">{t("a2.hidden")}</option>
-                  </Select>
-                </AdminField>
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="se-en" className="type-label text-muted-foreground">
+                    {t("a2.se.enEnabled")}
+                  </label>
+                  <div className="flex h-11 items-center">
+                    <Switch id="se-en" defaultChecked />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="se-ar" className="type-label text-muted-foreground">
+                    {t("a2.se.arEnabled")}
+                  </label>
+                  <div className="flex h-11 items-center">
+                    <Switch id="se-ar" defaultChecked />
+                  </div>
+                </div>
                 <AdminField label={t("a2.se.defaultLang")} htmlFor="se-default">
                   <Select id="se-default" defaultValue="en">
                     <option value="en">{t("a2.english")}</option>

@@ -140,9 +140,8 @@ export function AirportCombobox({
           aria-haspopup="listbox"
           aria-label={ariaLabel || label || t("search.selectAirport")}
           disabled={disabled}
-          onClick={() => handleOpenChange(!open)}
           onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " " || e.key === "ArrowDown") {
+            if (e.key === "ArrowDown" && !open) {
               e.preventDefault();
               handleOpenChange(true);
             }

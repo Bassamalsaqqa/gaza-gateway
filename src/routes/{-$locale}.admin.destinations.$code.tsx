@@ -1,3 +1,4 @@
+import { Switch } from "@/components/ui/switch";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { ArrowLeft, Plus, X } from "lucide-react";
@@ -254,25 +255,27 @@ function AdminDestinationEditorPage() {
                         onChange={(e) => set({ priceFrom: Number(e.target.value) || 0 })}
                       />
                     </Field>
-                    <div className="flex flex-col justify-center gap-2 pt-4">
-                      <label className="flex items-center gap-2 text-sm font-semibold">
-                        <input
-                          type="checkbox"
+                    <div className="flex flex-col justify-center gap-3 pt-4">
+                      <div className="flex items-center gap-2.5">
+                        <Switch
+                          id="dest-featured"
                           checked={draft.featured}
-                          onChange={(e) => set({ featured: e.target.checked })}
-                          className="size-4 accent-[var(--brand)]"
+                          onCheckedChange={(val) => set({ featured: val })}
                         />
-                        {t("adm.dest.featured")}
-                      </label>
-                      <label className="flex items-center gap-2 text-sm font-semibold">
-                        <input
-                          type="checkbox"
+                        <label htmlFor="dest-featured" className="text-sm font-semibold cursor-pointer select-none">
+                          {t("adm.dest.featured")}
+                        </label>
+                      </div>
+                      <div className="flex items-center gap-2.5">
+                        <Switch
+                          id="dest-published"
                           checked={draft.published}
-                          onChange={(e) => set({ published: e.target.checked })}
-                          className="size-4 accent-[var(--brand)]"
+                          onCheckedChange={(val) => set({ published: val })}
                         />
-                        {t("adm.dest.visible")}
-                      </label>
+                        <label htmlFor="dest-published" className="text-sm font-semibold cursor-pointer select-none">
+                          {t("adm.dest.visible")}
+                        </label>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -326,15 +329,16 @@ function AdminDestinationEditorPage() {
               <p className="text-sm">
                 <Ltr>{`GZA ↔ ${draft.code}`}</Ltr>
               </p>
-              <label className="flex items-center gap-2 text-sm font-semibold">
-                <input
-                  type="checkbox"
+              <div className="flex items-center gap-2.5">
+                <Switch
+                  id="dest-service-active"
                   checked={draft.serviceActive}
-                  onChange={(e) => set({ serviceActive: e.target.checked })}
-                  className="size-4 accent-[var(--brand)]"
+                  onCheckedChange={(val) => set({ serviceActive: val })}
                 />
-                {t("adm.dest.serviceActive")}
-              </label>
+                <label htmlFor="dest-service-active" className="text-sm font-semibold cursor-pointer select-none">
+                  {t("adm.dest.serviceActive")}
+                </label>
+              </div>
 
               <fieldset>
                 <legend className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">

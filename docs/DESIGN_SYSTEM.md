@@ -169,3 +169,37 @@ Natural tinted shadows using low-opacity ink rather than synthetic black:
 
 - **Public Pill**: `rounded-full px-2.5 py-1 text-xs font-semibold`.
 - **Admin Chip**: `rounded-md px-2 py-0.5 text-xs font-semibold whitespace-nowrap`.
+
+---
+
+## 7. Master UI/UX Modernization Closure Record (Phase 3B)
+
+The UI/UX Modernization Pass successfully converged and hardened all interactive controls, overlays, and responsive behaviors across public and administrative surfaces:
+
+1. **Headless Primitive Foundation**:
+   - Standardized on installed `@radix-ui` primitives: `Dialog`, `AlertDialog`, `Popover`, `DropdownMenu`, `Tabs`, `Select`, `Switch`, `Checkbox`, and `RadioGroup`.
+   - Replaced all ad-hoc focus traps, tab-cycle loops, and manual `document.body.style.overflow` mutations with accessible, battle-tested Radix implementations that guarantee exact focus restoration.
+
+2. **Unified Motion & Reduced Motion Policy**:
+   - Functional transitions only (`150ms`–`300ms` ease-out); zero decorative scaling, bouncing, or physics overhead.
+   - Strict `motion-reduce:animate-none` compliance across all dialogs, drawers, and spinners.
+
+3. **GazaSheet Consolidation**:
+   - Replaced fragmented legacy `AdminSheet` with unified `GazaSheet` across all 11 admin modules (Schedules, Bookings, Flights, Staff, Website CMS, Airport CMS, Check-in, Customers, Products, Activity).
+   - Enforced focus containment, Escape key handling, and seamless focus restoration to triggering buttons.
+
+4. **Passenger Pickers & Date Architecture**:
+   - `AirportCombobox`: Accessible combobox on `cmdk` with single-click activation, ArrowDown closed navigation, Escape dismissal, and reliable focus return without double toggling.
+   - `TravellersCabinPicker`: Split activation model (Radix Popover on desktop, full Dialog on mobile), strict adult/infant clamp logic, roving radio cabin selector, and Done button.
+   - `AirlineDatePicker`: Built on `react-day-picker` with centralized `money()` pricing, immutable outbound visual retention during return selection, disabled past/invalid return dates, and Western Latin digits in all locales.
+   - `PassengerDobPicker`: Controlled DOB selection with year/month dropdown navigation, ISO draft format (`YYYY-MM-DD`), and strict Latin numeral formatting.
+
+5. **SeatMap 2D Roving Navigation**:
+   - Spatial 2D roving `tabIndex` (`ArrowUp`, `ArrowDown`, `ArrowLeft`, `ArrowRight`) allowing keyboard users to traverse aircraft seating grids smoothly with live region announcements and LTR isolation.
+
+6. **Shared Skeleton & Readiness Family**:
+   - Introduced `GazaLoadingState` in `src/components/ui/skeleton.tsx` (re-exported via `kit.tsx`) replacing bare ellipses placeholders with structured, layout-stable skeletons featuring `role="status"` and localized screen-reader announcements.
+
+7. **Admin Hierarchy & Density**:
+   - Refined the operational dashboard "Today" summary into 4 primary KPI metrics (Departures, Arrivals, Bookings, Passengers) and a compact secondary signal strip (Delayed, Cancelled, Checked-in, Enquiries, Attention).
+   - Standardized `AdminTabs` on Radix Tabs with roving tabindex and arrow navigation across all tabbed admin subviews.

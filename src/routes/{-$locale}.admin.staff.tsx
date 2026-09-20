@@ -2,7 +2,7 @@ import { GazaTable, GazaTableBody, GazaTableCaption, GazaTableCell, GazaTableHea
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Field, Input, Select, btnClass } from "@/components/kit";
-import { AdminChip, AdminPageHeader, AdminPanel, AdminSheet, Ltr, PermissionButton } from "@/components/admin/admin-kit";
+import { AdminChip, AdminPageHeader, AdminPanel, GazaSheet, Ltr, PermissionButton } from "@/components/admin/admin-kit";
 import { AdminDenied } from "@/components/admin/admin-denied";
 import { useAdmin } from "@/lib/admin-store";
 import { pick, useI18n } from "@/lib/i18n";
@@ -123,7 +123,7 @@ function AdminStaffPage() {
         </ul>
       </AdminPanel>
 
-      <AdminSheet
+      <GazaSheet
         open={sheet !== null}
         title={sheet === "invite" ? t("a2.st.inviteTitle") : t("a2.st.changeRole")}
         description={sheet === "role" && target ? pick(lang, target.name) : ""}
@@ -162,7 +162,7 @@ function AdminStaffPage() {
           </Field>
           <p className="text-xs text-muted-foreground">{t("a2.st.roleNote")}</p>
         </div>
-      </AdminSheet>
+      </GazaSheet>
     </div>
   );
 }

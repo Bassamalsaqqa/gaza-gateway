@@ -1,7 +1,10 @@
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select as UiSelect, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { AppLink, useAppNavigate } from "@/components/app-link";
-import { btnClass, Container, EmptyState, Field, PageHeader, Panel, Select } from "@/components/kit";
+import { Container, EmptyState, Field, GazaLoadingState, PageHeader, Panel, Select, btnClass } from "@/components/kit";
 import { EXTRA_BAG_PRICE, assistanceOptions, mealOptions } from "@/lib/data";
 import { money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
@@ -49,7 +52,7 @@ function ManageExtrasPage() {
   if (!ready) {
     return (
       <Container className="py-16">
-        <p className="text-sm text-muted-foreground">…</p>
+        <GazaLoadingState />
       </Container>
     );
   }
@@ -131,36 +134,46 @@ function ManageExtrasPage() {
                       {t("book.bagsFor")} · {money(EXTRA_BAG_PRICE, lang)}
                     </legend>
                     <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label={`${t("book.extraBag")} — ${label}`}>
-                      {[0, 1, 2, 3, 4].map((count) => (
-                        <button
-                          key={count}
-                          type="button"
-                          aria-pressed={value.extraBags === count}
-                          onClick={() => setPax(index, { extraBags: count })}
-                          className={
-                            value.extraBags === count
-                              ? "min-h-11 min-w-11 rounded-full border border-primary bg-primary px-4 text-sm font-semibold text-primary-foreground"
-                              : "min-h-11 min-w-11 rounded-full border border-input bg-card px-4 text-sm font-semibold text-muted-foreground"
-                          }
-                        >
-                          <span className="numeral">{count}</span>
-                        </button>
-                      ))}
+                      {[0, 1, 2, 3, 4].map((count) => {
+                        const isSelected = value.extraBags === count;
+                        return (
+                          <button
+                            key={count}
+                            type="button"
+                            aria-pressed={isSelected}
+                            onClick={() => setPax(index, { extraBags: count })}
+                            className={cn(
+                              "min-h-11 min-w-11 rounded-xl border px-4 text-sm font-semibold transition-colors cursor-pointer select-none",
+                              "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
+                              isSelected
+                                ? "border-primary bg-primary text-primary-foreground shadow-xs"
+                                : "border-input bg-card text-muted-foreground hover:bg-secondary/60 hover:text-foreground",
+                            )}
+                          >
+                            <span className="numeral font-mono tabular-nums">{count}</span>
+                          </button>
+                        );
+                      })}
                     </div>
                   </fieldset>
 
                   <Field label={t("book.meal")} htmlFor={`meal-${index}`}>
-                    <Select
-                      id={`meal-${index}`}
+                    <UiSelect
                       value={value.meal}
-                      onChange={(e) => setPax(index, { meal: e.target.value })}
+                      onValueChange={(m) => setPax(index, { meal: m })}
+                      dir={lang === "ar" ? "rtl" : "ltr"}
                     >
-                      {mealOptions.map((option) => (
-                        <option key={option.id} value={option.id}>
-                          {pick(lang, option.label)}
-                        </option>
-                      ))}
-                    </Select>
+                      <SelectTrigger id={`meal-${index}`} className="h-11 rounded-lg bg-card">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {mealOptions.map((option) => (
+                          <SelectItem key={option.id} value={option.id}>
+                            {pick(lang, option.label)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </UiSelect>
                   </Field>
                 </div>
 
@@ -169,23 +182,37 @@ function ManageExtrasPage() {
                     {t("book.assistance")}
                   </legend>
                   <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                    {assistanceOptions.map((option) => (
-                      <label key={option.id} className="flex items-center gap-3 text-sm">
-                        <input
-                          type="checkbox"
-                          className="size-5 rounded border-input accent-[var(--color-primary)]"
-                          checked={value.assistance.includes(option.id)}
-                          onChange={(e) =>
-                            setPax(index, {
-                              assistance: e.target.checked
-                                ? [...value.assistance, option.id]
-                                : value.assistance.filter((id) => id !== option.id),
-                            })
-                          }
-                        />
-                        {pick(lang, option.label)}
-                      </label>
-                    ))}
+                    {assistanceOptions.map((option) => {
+                      const checked = value.assistance.includes(option.id);
+                      const checkId = `assistance-${index}-${option.id}`;
+                      return (
+                        <label
+                          key={option.id}
+                          htmlFor={checkId}
+                          className={cn(
+                            "flex cursor-pointer items-center gap-3 rounded-lg border px-3.5 py-3 text-sm transition-colors select-none",
+                            checked
+                              ? "border-primary bg-brand-soft/50 font-medium"
+                              : "border-input bg-card hover:bg-secondary/30",
+                          )}
+                        >
+                          <Checkbox
+                            id={checkId}
+                            className="size-5"
+                            checked={checked}
+                            onCheckedChange={(next) =>
+                              setPax(index, {
+                                assistance:
+                                  next === true
+                                    ? [...value.assistance, option.id]
+                                    : value.assistance.filter((id) => id !== option.id),
+                              })
+                            }
+                          />
+                          <span>{pick(lang, option.label)}</span>
+                        </label>
+                      );
+                    })}
                   </div>
                 </fieldset>
               </li>

@@ -7,7 +7,7 @@ import {
   AdminField,
   AdminPageHeader,
   AdminPanel,
-  AdminSheet,
+  GazaSheet,
   AdminTabs,
   BilingualStatus,
   ContentStateChip,
@@ -301,7 +301,7 @@ function AdminWebsitePage() {
         </div>
       </AdminPanel>
 
-      <AdminSheet
+      <GazaSheet
         open={page !== null}
         title={page ? t(page.labelKey) : ""}
         description={page?.path ?? ""}
@@ -361,7 +361,7 @@ function AdminWebsitePage() {
             </AdminField>
           </div>
         ) : null}
-      </AdminSheet>
+      </GazaSheet>
     </div>
   );
 }

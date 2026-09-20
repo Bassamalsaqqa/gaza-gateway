@@ -8,7 +8,7 @@ import {
   AdminEmpty,
   AdminPageHeader,
   AdminPanel,
-  AdminSheet,
+  GazaSheet,
   AdminTabs,
   Ltr,
   PermissionButton,
@@ -211,7 +211,7 @@ function AdminCustomerDetailPage() {
         </div>
       </AdminPanel>
 
-      <AdminSheet
+      <GazaSheet
         open={sheet}
         title={t("a2.cu.editContact")}
         description={customer.name}
@@ -243,7 +243,7 @@ function AdminCustomerDetailPage() {
             <Input id="cu-phone" dir="ltr" defaultValue={customer.phone} />
           </Field>
         </div>
-      </AdminSheet>
+      </GazaSheet>
 
       <ConfirmDialog
         open={confirm}
