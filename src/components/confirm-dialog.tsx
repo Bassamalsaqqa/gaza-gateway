@@ -1,11 +1,24 @@
-import { useEffect, useRef } from "react";
-import { btnClass } from "@/components/kit";
+import * as React from "react";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 import { useI18n } from "@/lib/i18n";
 
 /**
- * Restrained confirmation dialog for destructive actions.
- * Focus moves to the dismiss button, Tab stays inside, Escape closes and focus
- * returns to whatever opened the dialog.
+ * Restrained confirmation dialog for destructive actions, built on installed Radix AlertDialog.
+ * - Safe initial focus moves to the non-destructive cancel/keep action.
+ * - Tab containment, Escape key, and trigger focus restoration are managed by Radix.
+ * - Exact trigger node is preserved on open and restored via Radix onCloseAutoFocus.
+ * - Single-close path on controlled onOpenChange(false) prevents duplicate callbacks.
+ * - Casual backdrop clicks are prevented from dismissing the confirmation.
+ * - Body scroll lock is safely managed and cleanly restored.
  */
 export function ConfirmDialog({
   open,
@@ -23,69 +36,63 @@ export function ConfirmDialog({
   onClose: () => void;
 }) {
   const { t } = useI18n();
-  const panelRef = useRef<HTMLDivElement>(null);
-  const dismissRef = useRef<HTMLButtonElement>(null);
-  const triggerRef = useRef<HTMLElement | null>(null);
+  const triggerRef = React.useRef<HTMLElement | null>(null);
+  const prevOpenRef = React.useRef(open);
 
-  useEffect(() => {
-    if (!open) return;
-    triggerRef.current = document.activeElement as HTMLElement | null;
-    dismissRef.current?.focus();
+  // Capture active element when dialog transitions from closed to open
+  if (typeof window !== "undefined" && open && !prevOpenRef.current) {
+    if (
+      document.activeElement instanceof HTMLElement &&
+      document.activeElement !== document.body
+    ) {
+      triggerRef.current = document.activeElement;
+    }
+  }
 
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-        return;
+  React.useEffect(() => {
+    if (open && !prevOpenRef.current) {
+      if (
+        !triggerRef.current &&
+        document.activeElement instanceof HTMLElement &&
+        document.activeElement !== document.body
+      ) {
+        triggerRef.current = document.activeElement;
       }
-      if (e.key !== "Tab") return;
-      const focusables = panelRef.current?.querySelectorAll<HTMLElement>("button, [href], input, select, textarea");
-      if (!focusables || focusables.length === 0) return;
-      const first = focusables[0];
-      const last = focusables[focusables.length - 1];
-      if (!first || !last) return;
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    };
-
-    window.addEventListener("keydown", onKey);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      triggerRef.current?.focus?.();
-    };
-  }, [open, onClose]);
-
-  if (!open) return null;
+    }
+    prevOpenRef.current = open;
+  }, [open]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/60 p-4 sm:items-center">
-      <div
-        ref={panelRef}
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby="confirm-title"
-        aria-describedby="confirm-body"
-        className="w-full max-w-md rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow-lift)]"
+    <AlertDialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) {
+          onClose();
+        }
+      }}
+    >
+      <AlertDialogContent
+        onCloseAutoFocus={(event) => {
+          if (triggerRef.current && triggerRef.current.isConnected) {
+            event.preventDefault();
+            triggerRef.current.focus();
+          }
+          triggerRef.current = null;
+        }}
       >
-        <h2 id="confirm-title" className="text-lg font-bold">
-          {title}
-        </h2>
-        <p id="confirm-body" className="mt-2 text-sm text-muted-foreground">
-          {body}
-        </p>
-        <div className="mt-5 flex flex-wrap justify-end gap-2">
-          <button ref={dismissRef} type="button" onClick={onClose} className={btnClass("secondary", "sm")}>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogDescription>{body}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel autoFocus>
             {t("common.keep")}
-          </button>
-          <button type="button" onClick={onConfirm} className={btnClass("ink", "sm")}>
+          </AlertDialogCancel>
+          <AlertDialogAction onClick={onConfirm}>
             {confirmLabel}
-          </button>
-        </div>
-      </div>
-    </div>
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

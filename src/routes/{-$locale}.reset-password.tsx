@@ -1,7 +1,8 @@
 import { AppLink } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { btnClass, Container, Field, Input, Notice, Panel } from "@/components/kit";
+import { btnClass, Field, Input, Notice, Panel } from "@/components/kit";
+import { PassengerAuthShell } from "@/components/passenger-auth-shell";
 import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/{-$locale}/reset-password")({
@@ -29,11 +30,11 @@ function ResetPasswordPage() {
   const [done, setDone] = useState(false);
 
   return (
-    <Container className="flex justify-center py-14">
-      <div className="w-full max-w-md">
-        <h1 className="text-3xl font-bold">{t("auth.resetTitle")}</h1>
-        <p className="mt-2 text-sm text-muted-foreground">{t("auth.resetSub")}</p>
-
+    <PassengerAuthShell
+      title={t("auth.resetTitle")}
+      description={t("auth.resetSub")}
+      footer={<AppLink to="/signin" className="text-sm font-semibold text-brand-deep underline">{t("auth.backToSignIn")}</AppLink>}
+    >
         {done ? (
           <Panel className="mt-6 space-y-4">
             <p className="text-sm font-semibold">{t("auth.resetDone")}</p>
@@ -62,7 +63,7 @@ function ResetPasswordPage() {
               setError(null);
               setDone(true);
             }}
-            className="surface mt-6 space-y-4 p-5 sm:p-6"
+            className="space-y-4"
           >
             <Field label={t("auth.newPassword")} htmlFor="rp-password">
               <Input
@@ -95,13 +96,6 @@ function ResetPasswordPage() {
             <Notice>{t("auth.recoveryNote")}</Notice>
           </form>
         )}
-
-        <p className="mt-5 text-sm text-muted-foreground">
-          <AppLink to="/signin" className="font-semibold text-brand-deep underline">
-            {t("auth.backToSignIn")}
-          </AppLink>
-        </p>
-      </div>
-    </Container>
+    </PassengerAuthShell>
   );
 }

@@ -1,32 +1,62 @@
+import * as RadioGroupPrimitive from "@radix-ui/react-radio-group";
 import { Plane } from "lucide-react";
-import { btnClass, Code } from "@/components/kit";
+import { useMemo } from "react";
+import { Code } from "@/components/kit";
 import { StatusBadge } from "@/components/flight-status";
 import { airportByCode, farePrice, minutesToLabel, type Flight } from "@/lib/data";
 import { money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
+export interface FlightOptionProps {
+  flight: Flight;
+  cabin: string;
+  className?: string;
+}
+
 export function FlightOption({
   flight,
   cabin,
-  selected,
-  onSelect,
-}: {
-  flight: Flight;
-  cabin: string;
-  selected: boolean;
-  onSelect: () => void;
-}) {
+  className,
+}: FlightOptionProps) {
   const { t, lang } = useI18n();
   const from = airportByCode(flight.originCode);
   const to = airportByCode(flight.destinationCode);
   const price = farePrice(flight.basePrice, "essential", cabin);
 
+  const accessibleName = useMemo(() => {
+    const originCity = from ? pick(lang, from.city) : flight.originCode;
+    const destCity = to ? pick(lang, to.city) : flight.destinationCode;
+    const durationStr = minutesToLabel(flight.durationMinutes, lang);
+    const priceStr = money(price, lang);
+
+    return t("book.flightOptionAria", {
+      number: flight.number,
+      originCity,
+      originCode: flight.originCode,
+      destCity,
+      destCode: flight.destinationCode,
+      departTime: flight.departTime,
+      arriveTime: flight.arriveTime,
+      duration: durationStr,
+      nonstop: t("book.nonstop"),
+      price: priceStr,
+    });
+  }, [flight, from, to, price, lang, t]);
+
   return (
-    <div
+    <RadioGroupPrimitive.Item
+      value={flight.id}
+      id={`flight-option-${flight.id}`}
+      aria-label={accessibleName}
       className={cn(
-        "rounded-xl border bg-card p-4 transition-colors sm:p-5",
-        selected ? "border-primary ring-1 ring-primary/40" : "border-border",
+        "group relative block w-full text-start rounded-xl border p-4 sm:p-5",
+        "cursor-pointer select-none transition-all duration-150",
+        "border-border bg-card hover:border-primary/40 hover:bg-card/90",
+        "active:scale-[0.99] active:transition-none motion-reduce:active:scale-100 motion-reduce:transform-none motion-reduce:transition-none",
+        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+        "data-[state=checked]:border-primary data-[state=checked]:ring-1 data-[state=checked]:ring-primary/40 data-[state=checked]:bg-brand-soft/20",
+        className,
       )}
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -55,14 +85,39 @@ export function FlightOption({
             <p className="text-lg font-bold">{money(price, lang)}</p>
             <p className="text-xs text-muted-foreground">{t("book.perPassenger")}</p>
           </div>
-          <button
-            type="button"
-            onClick={onSelect}
-            aria-pressed={selected}
-            className={btnClass(selected ? "secondary" : "primary", "sm")}
-          >
-            {selected ? t("book.selected") : t("book.select")}
-          </button>
+
+          {/* Visual Radio Selection Affordance */}
+          <div className="flex items-center gap-2">
+            <span
+              className={cn(
+                "inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors",
+                "border min-h-[36px] sm:min-h-0",
+                "group-data-[state=checked]:border-primary group-data-[state=checked]:bg-primary group-data-[state=checked]:text-primary-foreground",
+                "group-data-[state=unchecked]:border-border group-data-[state=unchecked]:bg-secondary/60 group-data-[state=unchecked]:text-muted-foreground",
+                "group-hover:border-primary/50",
+              )}
+            >
+              {/* Radio Circle Indicator */}
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "size-4 rounded-full border-2 flex items-center justify-center transition-colors shrink-0",
+                  "group-data-[state=checked]:border-primary-foreground",
+                  "group-data-[state=unchecked]:border-muted-foreground group-hover:border-primary",
+                )}
+              >
+                <RadioGroupPrimitive.Indicator asChild>
+                  <span className="block size-2 rounded-full bg-primary-foreground" />
+                </RadioGroupPrimitive.Indicator>
+              </span>
+              <span className="group-data-[state=checked]:inline group-data-[state=unchecked]:hidden">
+                {t("book.selected")}
+              </span>
+              <span className="group-data-[state=checked]:hidden group-data-[state=unchecked]:inline">
+                {t("book.select")}
+              </span>
+            </span>
+          </div>
         </div>
       </div>
 
@@ -77,6 +132,6 @@ export function FlightOption({
         <StatusBadge status={flight.status} />
         <span className="numeral">{t("book.seatsLeft", { n: flight.seatsLeft })}</span>
       </div>
-    </div>
+    </RadioGroupPrimitive.Item>
   );
 }

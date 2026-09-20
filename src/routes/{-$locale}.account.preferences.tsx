@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { btnClass, Field, Notice, Panel, Select } from "@/components/kit";
+import { btnClass, Field, Notice, Panel } from "@/components/kit";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { mealOptions } from "@/lib/data";
 import { pick, useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
@@ -37,28 +39,25 @@ function PreferencesPage() {
         }}
         className="mt-4 grid gap-3 sm:grid-cols-2"
       >
-        <Field label={t("account.prefSeat")} htmlFor="pref-seat">
-          <Select
-            id="pref-seat"
-            value={form.seat}
-            onChange={(e) => setForm((prev) => ({ ...prev, seat: e.target.value }))}
-          >
-            <option value="window">{t("account.seatWindow")}</option>
-            <option value="aisle">{t("account.seatAisle")}</option>
-            <option value="none">{t("account.seatNone")}</option>
-          </Select>
-        </Field>
-        <Field label={t("account.prefMeal")} htmlFor="pref-meal">
-          <Select
-            id="pref-meal"
-            value={form.meal}
-            onChange={(e) => setForm((prev) => ({ ...prev, meal: e.target.value }))}
-          >
-            {mealOptions.map((meal) => (
-              <option key={meal.id} value={meal.id}>
-                {pick(lang, meal.label)}
-              </option>
+        <fieldset>
+          <legend className="mb-2 text-sm font-semibold">{t("account.prefSeat")}</legend>
+          <RadioGroup value={form.seat} onValueChange={(seat) => setForm((prev) => ({ ...prev, seat }))} className="grid grid-cols-3 gap-2">
+            {([[
+              "window", t("account.seatWindow"),
+            ], ["aisle", t("account.seatAisle")], ["none", t("account.seatNone")]] as const).map(([value, label]) => (
+              <div key={value} className="relative">
+                <RadioGroupItem id={`pref-seat-${value}`} value={value} className="peer sr-only" />
+                <label htmlFor={`pref-seat-${value}`} className="flex min-h-11 cursor-pointer items-center justify-center rounded-lg border border-input bg-card px-2 text-center text-sm font-semibold transition-colors hover:bg-secondary/40 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-brand-soft peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ring">
+                  {label}
+                </label>
+              </div>
             ))}
+          </RadioGroup>
+        </fieldset>
+        <Field label={t("account.prefMeal")} htmlFor="pref-meal">
+          <Select value={form.meal} onValueChange={(meal) => setForm((prev) => ({ ...prev, meal }))}>
+            <SelectTrigger id="pref-meal" className="h-11"><SelectValue /></SelectTrigger>
+            <SelectContent>{mealOptions.map((meal) => <SelectItem key={meal.id} value={meal.id}>{pick(lang, meal.label)}</SelectItem>)}</SelectContent>
           </Select>
         </Field>
         <div className="sm:col-span-2">

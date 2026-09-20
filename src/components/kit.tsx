@@ -1,44 +1,86 @@
 import type { ReactNode, ButtonHTMLAttributes, InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
+import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /* ---------------------------------- button --------------------------------- */
 
-type Variant = "primary" | "secondary" | "ghost" | "ink" | "clay" | "outline";
-type Size = "sm" | "md" | "lg";
+export type Variant = "primary" | "secondary" | "ghost" | "ink" | "clay" | "outline" | "destructive";
+export type Size = "sm" | "md" | "lg" | "icon";
 
 const variants: Record<Variant, string> = {
-  primary: "bg-primary text-primary-foreground hover:bg-brand-deep",
-  secondary: "bg-secondary text-secondary-foreground hover:bg-sand-deep",
+  primary: "bg-primary text-primary-foreground hover:bg-brand-deep shadow-xs",
+  secondary: "bg-secondary text-secondary-foreground hover:bg-sand-deep shadow-xs",
   ghost: "bg-transparent text-foreground hover:bg-secondary",
-  ink: "bg-ink text-ink-foreground hover:bg-brand-deep",
-  clay: "bg-clay text-primary-foreground hover:brightness-95",
-  outline: "border border-input bg-card text-foreground hover:bg-secondary",
+  ink: "bg-ink text-ink-foreground hover:bg-brand-deep shadow-xs",
+  clay: "bg-clay text-primary-foreground hover:brightness-95 shadow-xs",
+  outline: "border border-input bg-card text-foreground hover:bg-secondary shadow-xs",
+  destructive: "bg-destructive text-destructive-foreground hover:brightness-95 shadow-xs",
 };
 
 const sizes: Record<Size, string> = {
   sm: "h-9 px-3 text-sm gap-1.5",
   md: "h-11 px-5 text-sm gap-2",
   lg: "h-13 px-6 text-base gap-2",
+  icon: "size-9 p-0 min-h-9 min-w-9",
 };
 
 export function btnClass(variant: Variant = "primary", size: Size = "md", extra?: string): string {
   return cn(
-    "inline-flex items-center justify-center rounded-lg font-semibold tracking-tight transition-colors",
+    // Base & typography
+    "inline-flex items-center justify-center rounded-lg font-semibold tracking-tight whitespace-nowrap select-none",
+    // Motion & cursor
+    "cursor-pointer transition-all duration-150 active:scale-[0.99] active:transition-none motion-reduce:active:scale-100 motion-reduce:transform-none motion-reduce:transition-none",
+    // Focus visible ring
     "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-    "disabled:pointer-events-none disabled:opacity-50",
+    // Disabled states (native & ARIA)
+    "disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed aria-disabled:pointer-events-none aria-disabled:opacity-50 aria-disabled:cursor-not-allowed",
+    // Selected / open state hooks
+    "data-[state=open]:bg-sand-deep data-[state=selected]:bg-brand-soft/80 data-[state=selected]:text-brand-deep aria-pressed:bg-brand-soft aria-pressed:text-brand-deep data-[state=active]:bg-brand-soft/80",
+    // Pending / busy state hooks
+    "data-[pending=true]:pointer-events-none data-[pending=true]:opacity-80 data-[pending=true]:cursor-wait aria-busy:pointer-events-none aria-busy:opacity-80 aria-busy:cursor-wait",
     variants[variant],
     sizes[size],
     extra,
   );
 }
 
+export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: Variant;
+  size?: Size;
+  pending?: boolean;
+}
+
 export function Button({
   variant = "primary",
   size = "md",
+  pending = false,
   className,
+  disabled,
+  children,
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: Size }) {
-  return <button className={btnClass(variant, size, className)} {...props} />;
+}: ButtonProps) {
+  return (
+    <button
+      className={cn(
+        btnClass(variant, size, className),
+        pending && "relative !text-transparent transition-none hover:!text-transparent",
+      )}
+      disabled={disabled || pending}
+      aria-busy={pending || undefined}
+      data-pending={pending ? "true" : undefined}
+      {...props}
+    >
+      {children}
+      {pending ? (
+        <span
+          aria-hidden="true"
+          className="absolute inset-0 flex items-center justify-center text-current"
+        >
+          <Loader2 className="size-4 animate-spin text-foreground motion-reduce:animate-none" />
+        </span>
+      ) : null}
+    </button>
+  );
 }
 
 /* ---------------------------------- inputs -------------------------------- */

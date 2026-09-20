@@ -229,7 +229,7 @@ export function SeatMap({
               onClick={() => onActivePassengerChange(index)}
               aria-pressed={activePassenger === index}
               className={cn(
-                "min-h-11 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                "min-h-11 cursor-pointer rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors active:scale-[0.99] motion-reduce:active:scale-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                 activePassenger === index
                   ? "border-primary bg-primary text-primary-foreground shadow-xs"
                   : "border-input bg-card text-muted-foreground hover:bg-secondary/60",
@@ -257,7 +257,7 @@ export function SeatMap({
               setFocusedSeat(suggestedSeat);
               handleSelectSeat(suggestedSeat);
             }}
-            className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-clay/50 bg-clay-soft px-3.5 py-1.5 text-xs font-semibold text-accent-foreground hover:border-clay focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
+            className="inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-full border border-clay/50 bg-clay-soft px-3.5 py-1.5 text-xs font-semibold text-accent-foreground hover:border-clay active:scale-[0.99] motion-reduce:active:scale-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
           >
             <Sparkles aria-hidden="true" className="size-3.5 text-clay" />
             {t("book.useSuggested")} <span className="code-id">{suggestedSeat}</span>
@@ -379,7 +379,7 @@ export function SeatMap({
                       onFocus={() => setFocusedSeat(seat)}
                       onKeyDown={(e) => handleKeyDown(e, row, colIndex)}
                       className={cn(
-                        "size-11 min-h-11 min-w-11 rounded-md border text-xs font-semibold transition-all flex items-center justify-center",
+                        "size-11 min-h-11 min-w-11 rounded-md border text-xs font-semibold transition-colors flex items-center justify-center",
                         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                         isCurrentPaxSelected
                           ? "border-transparent bg-primary text-primary-foreground shadow-xs font-bold ring-1 ring-primary/40"
@@ -389,7 +389,7 @@ export function SeatMap({
                               ? "cursor-not-allowed border-transparent bg-secondary/80 text-muted-foreground/50"
                               : extra
                                 ? "border-clay/60 bg-clay-soft text-accent-foreground hover:border-clay"
-                                : "border-input bg-card hover:border-primary",
+                                : "cursor-pointer border-input bg-card hover:border-primary active:bg-brand-soft",
                         suggested && !isSelected && "ring-2 ring-clay ring-offset-1",
                       )}
                     >

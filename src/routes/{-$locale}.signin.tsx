@@ -1,7 +1,8 @@
 import { AppLink, useAppNavigate } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { btnClass, Container, Field, Input, Notice } from "@/components/kit";
+import { btnClass, Field, Input } from "@/components/kit";
+import { PassengerAuthShell } from "@/components/passenger-auth-shell";
 import { useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 
@@ -28,18 +29,21 @@ function SignInPage() {
   const [password, setPassword] = useState("");
 
   return (
-    <Container className="flex justify-center py-14">
-      <div className="w-full max-w-md">
-        <h1 className="text-3xl font-bold">{t("auth.signinTitle")}</h1>
-        <p className="mt-2 text-sm text-muted-foreground">{t("auth.signinSub")}</p>
-
+    <PassengerAuthShell
+      title={t("auth.signinTitle")}
+      description={t("auth.signinSub")}
+      footer={<>
+        <p className="text-sm text-muted-foreground">{t("auth.noAccount")} <AppLink to="/register" className="font-semibold text-brand-deep underline">{t("auth.register")}</AppLink></p>
+        <p className="mt-2 text-sm text-muted-foreground">{t("auth.guest")} <AppLink to="/manage" className="font-semibold text-brand-deep underline">{t("manage.title")}</AppLink></p>
+      </>}
+    >
         <form
           onSubmit={(e) => {
             e.preventDefault();
             signIn(email);
             void navigate({ to: "/account" });
           }}
-          className="surface mt-6 space-y-4 p-5 sm:p-6"
+          className="space-y-4"
         >
           <Field label={t("book.email")} htmlFor="email">
             <Input
@@ -69,22 +73,8 @@ function SignInPage() {
           <button type="submit" className={btnClass("primary", "md", "w-full")}>
             {t("auth.signin")}
           </button>
-          <Notice>{t("auth.demoNote")}</Notice>
         </form>
 
-        <p className="mt-5 text-sm text-muted-foreground">
-          {t("auth.noAccount")}{" "}
-          <AppLink to="/register" className="font-semibold text-brand-deep underline">
-            {t("auth.register")}
-          </AppLink>
-        </p>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {t("auth.guest")}{" "}
-          <AppLink to="/manage" className="font-semibold text-brand-deep underline">
-            {t("manage.title")}
-          </AppLink>
-        </p>
-      </div>
-    </Container>
+    </PassengerAuthShell>
   );
 }

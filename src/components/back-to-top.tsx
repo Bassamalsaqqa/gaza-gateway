@@ -85,9 +85,9 @@ export function BackToTop() {
       title={t("common.backToTop")}
       className={cn(
         "fixed end-4 sm:end-6 bottom-[calc(1.5rem+env(safe-area-inset-bottom,0px))] z-30",
-        "flex size-11 min-h-11 min-w-11 items-center justify-center rounded-md border border-border bg-card/95 text-foreground shadow-sm",
-        "hover:bg-secondary hover:text-primary active:scale-95 transition-all duration-200",
-        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+        "flex size-11 min-h-11 min-w-11 items-center justify-center rounded-full border border-border bg-card/95 text-foreground shadow-sm cursor-pointer select-none",
+        "hover:bg-secondary hover:text-primary active:scale-[0.98] transition-all duration-200 motion-reduce:transition-none motion-reduce:active:scale-100",
+        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring rounded-full",
         visible
           ? "opacity-100 translate-y-0 pointer-events-auto"
           : "opacity-0 translate-y-2 pointer-events-none",

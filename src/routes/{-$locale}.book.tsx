@@ -4,6 +4,12 @@ import { ArrowLeft, ArrowRight, Baby, Check, Luggage, Ticket } from "lucide-reac
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FlightSearchForm } from "@/components/flight-search-form";
 import { FlightOption } from "@/components/booking/flight-option";
+import { FareOption } from "@/components/booking/fare-option";
+import { PassengerDobPicker } from "@/components/booking/passenger-dob-picker";
+import { SavedTravellerPicker } from "@/components/booking/saved-traveller-picker";
+import { RadioGroup } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select as UiSelect, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PriceSummary } from "@/components/booking/price-summary";
 import { SeatMap } from "@/components/booking/seat-map";
 import { Stepper, bookingSteps, type BookingStep } from "@/components/booking/stepper";
@@ -30,6 +36,7 @@ import {
   searchFlights,
   suggestSeat,
   todayISO,
+  type Fare,
   type Flight,
 } from "@/lib/data";
 import { dateLong, money } from "@/lib/format";
@@ -350,10 +357,13 @@ function BookPage() {
                   </button>
                 </div>
 
-                <h2 className="mt-8 text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                <h2
+                  id="outbound-flights-heading"
+                  className="mt-8 text-sm font-bold uppercase tracking-wider text-muted-foreground"
+                >
                   {t("book.outbound")}
                 </h2>
-                <div className="mt-3 space-y-3">
+                <div className="mt-3">
                   {outboundOptions.length === 0 ? (
                     <EmptyState
                       title={t("book.noResults")}
@@ -369,24 +379,35 @@ function BookPage() {
                       }
                     />
                   ) : (
-                    outboundOptions.map((flight) => (
-                      <FlightOption
-                        key={flight.id}
-                        flight={flight}
-                        cabin={draft.criteria.cabin}
-                        selected={draft.outbound?.id === flight.id}
-                        onSelect={() => setDraft((prev) => ({ ...prev, outbound: flight }))}
-                      />
-                    ))
+                    <RadioGroup
+                      value={draft.outbound?.id ?? ""}
+                      onValueChange={(flightId) => {
+                        const flight = outboundOptions.find((f) => f.id === flightId);
+                        if (flight) setDraft((prev) => ({ ...prev, outbound: flight }));
+                      }}
+                      aria-labelledby="outbound-flights-heading"
+                      className="grid gap-3"
+                    >
+                      {outboundOptions.map((flight) => (
+                        <FlightOption
+                          key={flight.id}
+                          flight={flight}
+                          cabin={draft.criteria.cabin}
+                        />
+                      ))}
+                    </RadioGroup>
                   )}
                 </div>
 
                 {draft.criteria.tripType === "round" ? (
                   <>
-                    <h2 className="mt-10 text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                    <h2
+                      id="inbound-flights-heading"
+                      className="mt-10 text-sm font-bold uppercase tracking-wider text-muted-foreground"
+                    >
                       {t("book.inbound")} · {dateLong(draft.criteria.returnDate, lang)}
                     </h2>
-                    <div className="mt-3 space-y-3">
+                    <div className="mt-3">
                       {inboundOptions.length === 0 ? (
                         <EmptyState
                           title={t("book.noResults")}
@@ -402,15 +423,23 @@ function BookPage() {
                           }
                         />
                       ) : (
-                        inboundOptions.map((flight) => (
-                          <FlightOption
-                            key={flight.id}
-                            flight={flight}
-                            cabin={draft.criteria.cabin}
-                            selected={draft.inbound?.id === flight.id}
-                            onSelect={() => setDraft((prev) => ({ ...prev, inbound: flight }))}
-                          />
-                        ))
+                        <RadioGroup
+                          value={draft.inbound?.id ?? ""}
+                          onValueChange={(flightId) => {
+                            const flight = inboundOptions.find((f) => f.id === flightId);
+                            if (flight) setDraft((prev) => ({ ...prev, inbound: flight }));
+                          }}
+                          aria-labelledby="inbound-flights-heading"
+                          className="grid gap-3"
+                        >
+                          {inboundOptions.map((flight) => (
+                            <FlightOption
+                              key={flight.id}
+                              flight={flight}
+                              cabin={draft.criteria.cabin}
+                            />
+                          ))}
+                        </RadioGroup>
                       )}
                     </div>
                   </>
@@ -438,63 +467,25 @@ function BookPage() {
                 </h1>
                 <p className="mt-1 text-sm text-muted-foreground">{t("book.fareSub")}</p>
 
-                <div className="mt-6 grid gap-4 md:grid-cols-3">
+                <RadioGroup
+                  value={draft.fareId}
+                  onValueChange={(val) => setDraft((prev) => ({ ...prev, fareId: val as Fare["id"] }))}
+                  aria-labelledby="fare-title"
+                  className="mt-6 grid gap-4 md:grid-cols-3"
+                >
                   {fares.map((fare) => {
                     const price = draft.outbound
                       ? farePrice(draft.outbound.basePrice, fare.id, draft.criteria.cabin)
                       : 0;
-                    const selected = draft.fareId === fare.id;
                     return (
-                      <button
+                      <FareOption
                         key={fare.id}
-                        type="button"
-                        onClick={() => setDraft((prev) => ({ ...prev, fareId: fare.id }))}
-                        aria-pressed={selected}
-                        className={cn(
-                          "flex flex-col rounded-xl border bg-card p-5 text-start transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-                          selected
-                            ? "border-primary ring-1 ring-primary/40 shadow-xs"
-                            : "border-border hover:border-primary/50",
-                        )}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <h2 className="text-lg font-bold">{pick(lang, fare.name)}</h2>
-                          {fare.highlight ? <Pill tone="clay">{t("common.learnMore")}</Pill> : null}
-                        </div>
-                        <p className="mt-3 text-2xl font-bold">{money(price, lang)}</p>
-                        <p className="text-xs text-muted-foreground">{t("book.perPassenger")}</p>
-                        <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
-                          <li className="flex gap-2">
-                            <Luggage aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-brand-deep" />
-                            <span className="numeral">
-                              {fare.checkedBags === 0
-                                ? t("book.cabinBagOnly")
-                                : `${fare.checkedBags} × 23 kg`}
-                            </span>
-                          </li>
-                          <li className="flex gap-2">
-                            <Ticket aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-brand-deep" />
-                            {pick(lang, fare.seatSelection)}
-                          </li>
-                          <li className="flex gap-2">
-                            <ArrowRight
-                              aria-hidden="true"
-                              className="mt-0.5 size-4 shrink-0 text-brand-deep rtl:rotate-180"
-                            />
-                            {pick(lang, fare.changes)}
-                          </li>
-                          <li className="flex gap-2">
-                            <Check aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-brand-deep" />
-                            {pick(lang, fare.refund)}
-                          </li>
-                        </ul>
-                        <p className="mt-4 border-t border-border pt-3 text-xs text-muted-foreground">
-                          {pick(lang, fare.flexibility)}
-                        </p>
-                      </button>
+                        fare={fare}
+                        price={price}
+                      />
                     );
                   })}
-                </div>
+                </RadioGroup>
 
                 <StepNav onBack={() => goToStep("results")} onNext={() => goToStep("passengers")} />
               </section>
@@ -557,35 +548,45 @@ function BookPage() {
                           </p>
                         ) : null}
                         {account && !isInfant ? (
-                          <div className="mt-3 flex flex-wrap gap-2">
+                          <div className="mt-3 flex flex-wrap items-center gap-2">
                             {i === 0 ? (
                               <button
                                 type="button"
                                 className={btnClass("outline", "sm")}
                                 onClick={() => {
                                   update({ firstName: account.firstName, lastName: account.lastName });
+                                  setFieldErrors((prev) => {
+                                    const next = { ...prev };
+                                    if (account.firstName) delete next[`fn-${i}`];
+                                    if (account.lastName) delete next[`ln-${i}`];
+                                    return next;
+                                  });
                                 }}
                               >
                                 {t("book.useProfile")}
                               </button>
                             ) : null}
-                            {travelers.map((traveler) => (
-                              <button
-                                key={traveler.id}
-                                type="button"
-                                className={btnClass("ghost", "sm")}
-                                onClick={() =>
+                            {travelers.length > 0 ? (
+                              <SavedTravellerPicker
+                                travelers={travelers}
+                                onSelectTraveler={(traveler) => {
                                   update({
                                     firstName: traveler.firstName,
                                     lastName: traveler.lastName,
+                                    dob: traveler.dob,
                                     nationality: traveler.nationality,
                                     document: traveler.document,
-                                  })
-                                }
-                              >
-                                {t("book.useSaved")}: {traveler.firstName} {traveler.lastName}
-                              </button>
-                            ))}
+                                  });
+                                  setFieldErrors((prev) => {
+                                    const next = { ...prev };
+                                    if (traveler.firstName) delete next[`fn-${i}`];
+                                    if (traveler.lastName) delete next[`ln-${i}`];
+                                    if (traveler.dob) delete next[`dob-${i}`];
+                                    return next;
+                                  });
+                                }}
+                              />
+                            ) : null}
                           </div>
                         ) : null}
                         <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -645,17 +646,14 @@ function BookPage() {
                             error={fieldErrors[`dob-${i}`]}
                             errorId={`dob-${i}-error`}
                           >
-                            <Input
+                            <PassengerDobPicker
                               id={`dob-${i}`}
-                              type="date"
-                              max={todayISO()}
                               value={p.dob}
-                              dir="ltr"
-                              aria-invalid={Boolean(fieldErrors[`dob-${i}`])}
-                              aria-describedby={fieldErrors[`dob-${i}`] ? `dob-${i}-error` : undefined}
-                              className="code-id text-start font-mono tabular-nums"
-                              onChange={(e) => {
-                                update({ dob: e.target.value });
+                              passengerType={p.type}
+                              ariaInvalid={Boolean(fieldErrors[`dob-${i}`])}
+                              ariaDescribedBy={fieldErrors[`dob-${i}`] ? `dob-${i}-error` : undefined}
+                              onChange={(val) => {
+                                update({ dob: val });
                                 if (fieldErrors[`dob-${i}`]) {
                                   setFieldErrors((prev) => {
                                     const next = { ...prev };
@@ -909,17 +907,14 @@ function BookPage() {
 
                           <div className="max-w-sm">
                             <Field label={t("book.meal")} htmlFor={`meal-${index}`}>
-                              <Select
-                                id={`meal-${index}`}
-                                value={extras.meal}
-                                onChange={(e) => setPax({ meal: e.target.value })}
-                              >
-                                {mealOptions.map((option) => (
-                                  <option key={option.id} value={option.id}>
-                                    {pick(lang, option.label)}
-                                  </option>
-                                ))}
-                              </Select>
+                              <UiSelect value={extras.meal} onValueChange={(meal) => setPax({ meal })}>
+                                <SelectTrigger id={`meal-${index}`} className="h-11 rounded-lg bg-card">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {mealOptions.map((option) => <SelectItem key={option.id} value={option.id}>{pick(lang, option.label)}</SelectItem>)}
+                                </SelectContent>
+                              </UiSelect>
                             </Field>
                           </div>
 
@@ -935,18 +930,19 @@ function BookPage() {
                                 return (
                                   <label
                                     key={option.id}
+                                    htmlFor={`assistance-${index}-${option.id}`}
                                     className={cn(
                                       "flex cursor-pointer items-center gap-3 rounded-lg border px-3.5 py-3 text-sm transition-colors",
                                       checked ? "border-primary bg-brand-soft/50 font-medium" : "border-input bg-card hover:bg-secondary/30",
                                     )}
                                   >
-                                    <input
-                                      type="checkbox"
-                                      className="size-4 accent-[var(--color-primary)]"
+                                    <Checkbox
+                                      id={`assistance-${index}-${option.id}`}
+                                      className="size-5"
                                       checked={checked}
-                                      onChange={(e) =>
+                                      onCheckedChange={(next) =>
                                         setPax({
-                                          assistance: e.target.checked
+                                          assistance: next === true
                                             ? [...extras.assistance, option.id]
                                             : extras.assistance.filter((id) => id !== option.id),
                                         })

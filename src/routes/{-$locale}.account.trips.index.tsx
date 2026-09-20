@@ -7,6 +7,7 @@ import { dateLong, money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
 import { useState } from "react";
 import { passCount, useStore } from "@/lib/store";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/{-$locale}/account/trips/")({
   head: () => ({
@@ -56,24 +57,21 @@ function TripsPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <div role="tablist" aria-label={t("account.trips")} className="flex flex-wrap gap-2">
+    <Tabs value={group} onValueChange={(value) => setGroup(value as Group)} className="space-y-4" dir={lang === "ar" ? "rtl" : "ltr"}>
+      <TabsList aria-label={t("account.trips")} className="h-auto w-full justify-start gap-1 overflow-x-auto rounded-none border-b border-border bg-transparent p-0">
         {tabs.map((tab) => (
-          <button
+          <TabsTrigger
             key={tab.id}
-            type="button"
-            role="tab"
-            aria-selected={group === tab.id}
-            onClick={() => setGroup(tab.id)}
-            className={btnClass(group === tab.id ? "ink" : "outline", "sm")}
+            value={tab.id}
+            className="relative min-h-11 rounded-none bg-transparent px-4 shadow-none after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:origin-center after:scale-x-0 after:bg-primary after:transition-transform data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:after:scale-x-100 motion-reduce:after:transition-none"
           >
             {tab.label}
             <span className="numeral ms-1">{grouped[tab.id].length}</span>
-          </button>
+          </TabsTrigger>
         ))}
-      </div>
+      </TabsList>
 
-      {list.length === 0 ? (
+      <TabsContent value={group} className="mt-0">{list.length === 0 ? (
         <EmptyState
           title={t(`account.empty.${group}`)}
           description={t("account.emptyGroupSub")}
@@ -84,7 +82,7 @@ function TripsPage() {
           }
         />
       ) : (
-        <ul className="space-y-4" role="tabpanel">
+        <ul className="space-y-4">
           {list.map((booking) => (
         <li key={booking.ref}>
           <Panel>
@@ -135,8 +133,8 @@ function TripsPage() {
         </li>
           ))}
         </ul>
-      )}
-    </div>
+      )}</TabsContent>
+    </Tabs>
   );
 }
 

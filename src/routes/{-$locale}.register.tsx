@@ -1,7 +1,8 @@
 import { AppLink, useAppNavigate } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { btnClass, Container, Field, Input, Notice } from "@/components/kit";
+import { btnClass, Field, Input } from "@/components/kit";
+import { PassengerAuthShell } from "@/components/passenger-auth-shell";
 import { useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 
@@ -31,10 +32,11 @@ function RegisterPage() {
   const [form, setForm] = useState({ firstName: "", lastName: "", email: "", password: "" });
 
   return (
-    <Container className="flex justify-center py-14">
-      <div className="w-full max-w-md">
-        <h1 className="text-3xl font-bold">{t("auth.registerTitle")}</h1>
-        <p className="mt-2 text-sm text-muted-foreground">{t("auth.registerSub")}</p>
+    <PassengerAuthShell
+      title={t("auth.registerTitle")}
+      description={t("auth.registerSub")}
+      footer={<p className="text-sm text-muted-foreground">{t("auth.haveAccount")} <AppLink to="/signin" className="font-semibold text-brand-deep underline">{t("auth.signin")}</AppLink></p>}
+    >
         {ref ? (
           <p className="mt-3 text-sm font-semibold text-brand-deep">{t("auth.saveBookingNote", { ref })}</p>
         ) : null}
@@ -45,7 +47,7 @@ function RegisterPage() {
             signIn(form.email, form.firstName, form.lastName);
             void navigate({ to: "/verify-email", search: ref ? { ref } : {} });
           }}
-          className="surface mt-6 space-y-4 p-5 sm:p-6"
+          className="mt-4 space-y-4"
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label={t("book.firstName")} htmlFor="r-first">
@@ -90,16 +92,8 @@ function RegisterPage() {
           <button type="submit" className={btnClass("primary", "md", "w-full")}>
             {t("auth.register")}
           </button>
-          <Notice>{t("auth.demoNote")}</Notice>
         </form>
 
-        <p className="mt-5 text-sm text-muted-foreground">
-          {t("auth.haveAccount")}{" "}
-          <AppLink to="/signin" className="font-semibold text-brand-deep underline">
-            {t("auth.signin")}
-          </AppLink>
-        </p>
-      </div>
-    </Container>
+    </PassengerAuthShell>
   );
 }

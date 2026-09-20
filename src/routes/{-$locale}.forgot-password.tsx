@@ -1,7 +1,8 @@
 import { AppLink } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { btnClass, Container, Field, Input, Notice, Panel } from "@/components/kit";
+import { btnClass, Field, Input, Notice, Panel } from "@/components/kit";
+import { PassengerAuthShell } from "@/components/passenger-auth-shell";
 import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/{-$locale}/forgot-password")({
@@ -28,11 +29,11 @@ function ForgotPasswordPage() {
   const [sent, setSent] = useState(false);
 
   return (
-    <Container className="flex justify-center py-14">
-      <div className="w-full max-w-md">
-        <h1 className="text-3xl font-bold">{t("auth.forgotTitle")}</h1>
-        <p className="mt-2 text-sm text-muted-foreground">{t("auth.forgotSub")}</p>
-
+    <PassengerAuthShell
+      title={t("auth.forgotTitle")}
+      description={t("auth.forgotSub")}
+      footer={<AppLink to="/signin" className="text-sm font-semibold text-brand-deep underline">{t("auth.backToSignIn")}</AppLink>}
+    >
         {sent ? (
           <Panel className="mt-6 space-y-4">
             <p className="text-sm font-semibold">{t("auth.forgotSent", { email })}</p>
@@ -52,7 +53,7 @@ function ForgotPasswordPage() {
               e.preventDefault();
               setSent(true);
             }}
-            className="surface mt-6 space-y-4 p-5 sm:p-6"
+            className="space-y-4"
           >
             <Field label={t("book.email")} htmlFor="fp-email">
               <Input
@@ -70,13 +71,6 @@ function ForgotPasswordPage() {
             <Notice>{t("auth.recoveryNote")}</Notice>
           </form>
         )}
-
-        <p className="mt-5 text-sm text-muted-foreground">
-          <AppLink to="/signin" className="font-semibold text-brand-deep underline">
-            {t("auth.backToSignIn")}
-          </AppLink>
-        </p>
-      </div>
-    </Container>
+    </PassengerAuthShell>
   );
 }

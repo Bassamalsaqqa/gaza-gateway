@@ -23,6 +23,7 @@ import { arrivalsOn, departuresOn, destinations, todayISO } from "@/lib/data";
 import { useAppNavigate } from "@/components/app-link";
 import { cn } from "@/lib/utils";
 import { Ltr } from "./admin-kit";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 
 type GroupId = "commands" | "flights" | "bookings" | "customers" | "destinations" | "content";
 
@@ -183,7 +184,6 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
 
   const canOps = can("ops.view");
@@ -342,36 +342,8 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
   useEffect(() => setActive(0), [query]);
 
   useEffect(() => {
-    if (!open) return;
-    triggerRef.current = document.activeElement as HTMLElement | null;
-    inputRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-        return;
-      }
-      if (e.key === "Tab") {
-        const items = Array.from(
-          panelRef.current?.querySelectorAll<HTMLElement>("button:not([disabled]), input") ?? [],
-        );
-        const first = items[0];
-        const last = items[items.length - 1];
-        if (!first || !last) return;
-        if (e.shiftKey && document.activeElement === first) {
-          e.preventDefault();
-          last.focus();
-        } else if (!e.shiftKey && document.activeElement === last) {
-          e.preventDefault();
-          first.focus();
-        }
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      triggerRef.current?.focus?.();
-    };
-  }, [open, onClose]);
+    if (open) triggerRef.current = document.activeElement as HTMLElement | null;
+  }, [open]);
 
   if (!open) return null;
 
@@ -421,14 +393,23 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
   let cursor = -1;
 
   return (
-    <div className="fixed inset-0 z-60 flex items-start justify-center bg-ink/50 p-4 pt-[8vh]">
-      <div
-        ref={panelRef}
-        role="dialog"
-        aria-modal="true"
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent
+        closeLabel={t("adm.search.close")}
         aria-label={t("adm.search.title")}
-        className="flex max-h-[75vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-border bg-card shadow-[var(--shadow-lift)]"
+        className="top-[8vh] flex max-h-[75vh] w-[calc(100%_-_2rem)] max-w-2xl translate-y-0 flex-col gap-0 overflow-hidden rounded-xl border-border bg-card p-0 shadow-[var(--shadow-lift)]"
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          inputRef.current?.focus();
+        }}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          if (triggerRef.current?.isConnected) triggerRef.current.focus();
+          triggerRef.current = null;
+        }}
       >
+        <DialogTitle className="sr-only">{t("adm.search.title")}</DialogTitle>
+        <DialogDescription className="sr-only">{t("adm.search.placeholder")}</DialogDescription>
         <div className="flex items-center gap-2 border-b border-border px-3 py-2.5">
           <Search aria-hidden="true" className="size-4 text-muted-foreground" />
           <input
@@ -460,14 +441,7 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
               <X aria-hidden="true" className="size-4" />
             </button>
           ) : null}
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={t("adm.search.close")}
-            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md p-1 text-muted-foreground hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-          >
-            <X aria-hidden="true" className="size-4" />
-          </button>
+          <span className="size-11 shrink-0" aria-hidden="true" />
         </div>
 
         <div id="admin-search-results" className="flex-1 overflow-y-auto">
@@ -578,7 +552,7 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
             </ul>
           )}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
