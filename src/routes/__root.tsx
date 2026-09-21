@@ -52,6 +52,29 @@ function NotFoundComponent() {
   );
 }
 
+/** Detect locale from pathname safely without requiring I18nProvider. */
+function detectLocale(): "ar" | "en" {
+  if (typeof window !== "undefined") {
+    return window.location.pathname.startsWith("/ar") ? "ar" : "en";
+  }
+  return "en";
+}
+
+const ERROR_STRINGS = {
+  en: {
+    heading: "Something went wrong",
+    body: "This page didn't load. You can try again or head back to the homepage.",
+    tryAgain: "Try again",
+    goHome: "Go home",
+  },
+  ar: {
+    heading: "حدث خطأ",
+    body: "تعذّر تحميل هذه الصفحة. يمكنك المحاولة مرة أخرى أو العودة إلى الصفحة الرئيسية.",
+    tryAgain: "حاول مرة أخرى",
+    goHome: "العودة إلى الرئيسية",
+  },
+} as const;
+
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
@@ -59,12 +82,17 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
 
+  const locale = detectLocale();
+  const s = ERROR_STRINGS[locale];
+  const dir = locale === "ar" ? "rtl" : "ltr";
+  const homeHref = locale === "ar" ? "/ar" : "/";
+
   return (
-    <div className="flex min-h-[60vh] items-center justify-center bg-background px-4">
+    <div dir={dir} className="flex min-h-[60vh] items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">Something went wrong</h1>
+        <h1 className="text-xl font-semibold tracking-tight text-foreground">{s.heading}</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          This page didn't load. You can try again or head back to the homepage.
+          {s.body}
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
@@ -74,10 +102,10 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
             }}
             className={btnClass("primary", "md")}
           >
-            Try again
+            {s.tryAgain}
           </button>
-          <a href="/" className={btnClass("outline", "md")}>
-            Go home
+          <a href={homeHref} className={btnClass("outline", "md")}>
+            {s.goHome}
           </a>
         </div>
       </div>
@@ -102,11 +130,23 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content: "Book Palestinian Airlines flights from Gaza and explore the airport's history and future vision.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:image", content: "/social/gaza-airport.jpg" },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      {
+        property: "og:image:alt",
+        content:
+          "Aerial architectural concept of the future Gaza International Airport — illustrative future concept.",
+      },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: "/social/gaza-airport.jpg" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "icon", href: "/favicon.ico", type: "image/x-icon", sizes: "16x16 32x32 48x48" },
+      { rel: "icon", href: "/favicon-16x16.png", type: "image/png", sizes: "16x16" },
+      { rel: "icon", href: "/favicon-32x32.png", type: "image/png", sizes: "32x32" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png", sizes: "180x180" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {

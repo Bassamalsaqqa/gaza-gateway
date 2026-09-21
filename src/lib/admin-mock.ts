@@ -804,7 +804,7 @@ export const archiveItems: ArchiveItem[] = [
     credit: "",
     rights: "Placeholder",
     chapter: null,
-    note: "Placeholder only — no generated architecture imagery.",
+    note: "Illustrative concept imagery. Not documentary evidence of the airport's historical or current condition.",
   },
 ];
 

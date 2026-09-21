@@ -69,8 +69,8 @@ const sections: Section[] = [
     heading: { en: "Content, imagery and the archive", ar: "المحتوى والصور والأرشيف" },
     body: [
       {
-        en: "Historical, present-day and future sections use placeholder text and generic imagery while sourced archive material is gathered. Placeholder material is marked as such and should not be cited as a record of the airport.",
-        ar: "تستخدم أقسام الماضي والحاضر والمستقبل نصوصاً وصوراً مؤقتة إلى أن تُجمع المواد الأرشيفية الموثقة. المواد المؤقتة موسومة بذلك ولا يجوز الاستشهاد بها كسجل عن المطار.",
+        en: "Historical and present-day sections may use clearly identified placeholders while verified source material is gathered. Future-vision sections may use labeled owner-provided AI-generated concept imagery. Such concept imagery is illustrative only and must not be treated as documentary evidence of the airport's historical or current condition.",
+        ar: "قد تستخدم الأقسام التاريخية وأقسام الواقع الحالي عناصر مؤقتة موسومة بوضوح إلى حين جمع مواد موثّقة. وقد تستخدم أقسام الرؤية المستقبلية صوراً مفاهيمية مولّدة بالذكاء الاصطناعي ومقدّمة من مالك المشروع مع وسمها بوضوح. هذه الصور المستقبلية توضيحية فقط ولا تُعدّ دليلاً توثيقياً على الحالة التاريخية أو الحالية للمطار.",
       },
     ],
   },

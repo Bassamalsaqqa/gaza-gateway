@@ -73,8 +73,8 @@ const sections: Section[] = [
     heading: { en: "Imagery and archive material", ar: "الصور ومواد الأرشيف" },
     body: [
       {
-        en: "Photographs shown across the site are generic placeholder imagery used for layout only. They are not authentic Gaza International Airport historical or documentary material, and will be replaced with sourced archive material.",
-        ar: "الصور المعروضة في الموقع صور مؤقتة عامة للتخطيط البصري فقط. وهي ليست مواد تاريخية أو وثائقية أصلية لمطار غزة الدولي، وسيتم استبدالها بمواد أرشيفية موثقة.",
+        en: "Visual material is classified by purpose. Future-vision imagery may include owner-provided AI-generated concept visualizations and is labeled as illustrative. Historical and present-day documentary imagery remains placeholder material until verified and rights-cleared sources are supplied.",
+        ar: "تُصنّف المواد البصرية بحسب الغرض منها. قد تتضمن أقسام الرؤية المستقبلية تصوّرات مفاهيمية مولّدة بالذكاء الاصطناعي ومقدّمة من مالك المشروع، وتُوسم على أنها مواد توضيحية. أما الصور التاريخية وصور الواقع الحالي ذات الطابع التوثيقي فتبقى مواد مؤقتة إلى حين توفير مصادر موثّقة ومصرّح باستخدامها.",
       },
     ],
   },

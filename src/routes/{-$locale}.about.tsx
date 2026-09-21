@@ -74,8 +74,8 @@ function AboutPage() {
           <h2 className="text-xl font-bold">{pick(lang, { en: "About the material", ar: "عن المواد المعروضة" })}</h2>
           <p className="mt-2 max-w-3xl text-base leading-relaxed text-muted-foreground">
             {pick(lang, {
-              en: "Imagery on this site is temporary and generic. Nothing here is presented as authentic Gaza International Airport photography, and historical detail is marked as a placeholder until an archive source is attached. Flight schedules, fares and bookings are demonstration data held in your browser only.",
-              ar: "الصور في هذا الموقع مؤقتة وعامة. لا شيء هنا يُعرض كصور أصلية لمطار غزة الدولي، والتفاصيل التاريخية تبقى مؤقتة حتى إسناد مصدر أرشيفي. جداول الرحلات والأسعار والحجوزات بيانات تجريبية محفوظة في متصفحك فقط.",
+              en: "Imagery on this site is clearly separated by purpose and evidentiary role. Future-vision sections may use owner-provided AI-generated architectural concepts and are labeled as illustrative rather than documentary. Historical and present-day sections continue to use clearly marked placeholders until verified, rights-cleared source material is attached. Flight schedules, fares and bookings remain demonstration data held in your browser only.",
+              ar: "تُفصل الصور في هذا الموقع بوضوح بحسب الغرض منها ودورها التوثيقي. قد تستخدم أقسام الرؤية المستقبلية تصوّرات معمارية مولّدة بالذكاء الاصطناعي ومقدّمة من مالك المشروع، وتُوسم بوضوح على أنها مواد توضيحية وليست توثيقية. أما الأقسام التاريخية وأقسام الواقع الحالي فتبقى فيها الصور المؤقتة موسومة بوضوح إلى حين إرفاق مواد موثّقة ومصرّح باستخدامها. جداول الرحلات والأسعار والحجوزات تبقى بيانات تجريبية محفوظة في متصفحك فقط.",
             })}
           </p>
           <img

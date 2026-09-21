@@ -19,6 +19,7 @@ import {
   todayISO,
 } from "@/lib/data";
 import { pick, useI18n } from "@/lib/i18n";
+import { MEDIA, buildSrcSet, smallestSrc } from "@/lib/media";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/{-$locale}/")({
@@ -55,11 +56,25 @@ function Home() {
     <>
       {/* 1. Civic Hero Section with Atmospheric Lighting & Identity */}
       <section className="relative isolate overflow-hidden bg-ink text-ink-foreground">
-        <img
-          src={img("coastal-runway-sky-dusk", 1920, 1080)}
-          alt=""
-          className="absolute inset-0 -z-10 size-full object-cover opacity-25"
-        />
+        {/* Real owner-provided concept hero — eager, high-priority LCP candidate */}
+        {(() => {
+          const hero = MEDIA["home-hero"]!;
+          return (
+            <img
+              src={smallestSrc(hero)}
+              srcSet={buildSrcSet(hero)}
+              sizes="100vw"
+              width={hero.width}
+              height={hero.height}
+              alt={lang === "ar" ? hero.altAr : hero.altEn}
+              loading="eager"
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              fetchPriority={"high" as any}
+              decoding="sync"
+              className="absolute inset-0 -z-10 size-full object-cover opacity-30"
+            />
+          );
+        })()}
         <div className="absolute inset-0 -z-10 bg-gradient-to-b from-ink/90 via-ink/75 to-ink" />
 
         <Container className="pt-12 pb-32 sm:pt-16 sm:pb-40 lg:pt-20 lg:pb-44">
@@ -119,6 +134,10 @@ function Home() {
             </div>
           </div>
         </Container>
+        {/* Concept truth label — restrained, bottom-right */}
+        <p className="absolute bottom-3 end-4 text-[0.6rem] text-ink-foreground/50 select-none pointer-events-none">
+          {t("media.conceptShortLabel")}
+        </p>
       </section>
 
       {/* 2. Integrated Flight Search Console (Overlapping Hero Boundary) */}

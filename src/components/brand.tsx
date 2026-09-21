@@ -1,11 +1,14 @@
 import { AppLink } from "@/components/app-link";
 import { useI18n } from "@/lib/i18n";
+import { LOGO_SRC } from "@/lib/media";
 import { cn } from "@/lib/utils";
 
 /**
  * Institutional brand lockup for Gaza International Airport & Palestinian Airlines.
  * Strictly preserves pre-operational truth, responsive mobile ergonomics,
  * and LTR monospace isolation on the GZA code.
+ * Integrates owner-provided approved mark on light surfaces while preserving
+ * high-contrast dark-context fallback for dark surfaces.
  */
 export function Brand({
   tone = "light",
@@ -21,17 +24,29 @@ export function Brand({
       className="group inline-flex items-center gap-2 sm:gap-2.5 rounded-lg min-w-0 shrink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       aria-label={`${t("brand.airport")} — ${t("brand.airline")}`}
     >
-      <span
-        aria-hidden="true"
-        className={cn(
-          "grid size-9 sm:size-10 shrink-0 place-items-center rounded-lg border font-mono text-[0.7rem] sm:text-[0.75rem] font-bold tracking-wider transition-transform duration-200 group-hover:scale-[1.02]",
-          tone === "dark"
-            ? "border-ink-border bg-ink-foreground text-ink shadow-sm"
-            : "border-brand-deep/20 bg-brand text-primary-foreground shadow-[var(--shadow-soft)]",
-        )}
-      >
-        <span className="code-id">GZA</span>
-      </span>
+      {tone === "dark" ? (
+        <span
+          aria-hidden="true"
+          className="grid size-9 sm:size-10 shrink-0 place-items-center rounded-lg border border-ink-border bg-ink-foreground text-ink shadow-sm font-mono text-[0.7rem] sm:text-[0.75rem] font-bold tracking-wider transition-transform duration-200 group-hover:scale-[1.02]"
+        >
+          <span className="code-id">GZA</span>
+        </span>
+      ) : (
+        <span
+          aria-hidden="true"
+          className="grid size-9 sm:size-10 shrink-0 place-items-center rounded-lg border border-brand-deep/15 bg-sand/60 p-0.5 shadow-[var(--shadow-soft)] transition-transform duration-200 group-hover:scale-[1.02]"
+        >
+          <img
+            src={LOGO_SRC}
+            alt=""
+            width={36}
+            height={36}
+            className="size-7 sm:size-8 object-contain"
+            loading="eager"
+            decoding="sync"
+          />
+        </span>
+      )}
       <span className="flex flex-col leading-tight min-w-0 truncate">
         <span
           className={cn(

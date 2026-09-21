@@ -7,6 +7,7 @@ import { useState } from "react";
 import { btnClass, Container, PageHeader } from "@/components/kit";
 import { travelSections } from "@/lib/data";
 import { pick, useI18n } from "@/lib/i18n";
+import { MEDIA, buildSrcSet, smallestSrc } from "@/lib/media";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/{-$locale}/travel")({
@@ -112,6 +113,36 @@ function TravelPage() {
                   ))}
                 </ul>
               </article>
+
+              {section.id === "accessibility" && (() => {
+                const assistance = MEDIA["passenger-assistance"]!;
+                return (
+                  <figure className="mt-8 overflow-hidden rounded-2xl border border-border bg-card shadow-xs">
+                    <div className="relative aspect-[16/10] overflow-hidden bg-ink max-h-[380px]">
+                      <img
+                        src={smallestSrc(assistance)}
+                        srcSet={buildSrcSet(assistance)}
+                        sizes="(min-width: 1024px) 60vw, 100vw"
+                        width={assistance.width}
+                        height={assistance.height}
+                        alt={lang === "ar" ? assistance.altAr : assistance.altEn}
+                        loading="lazy"
+                        decoding="async"
+                        className="size-full object-cover"
+                      />
+                      <span className="absolute bottom-2.5 start-3 rounded bg-ink/80 px-2 py-0.5 font-mono text-xs text-ink-muted">
+                        {t("media.conceptShortLabel")}
+                      </span>
+                    </div>
+                    <figcaption className="p-4 text-xs leading-relaxed text-muted-foreground border-t border-border">
+                      <span className="font-semibold text-foreground">
+                        {t("travel.assistanceConceptLabel")}{" "}
+                      </span>
+                      {t("travel.assistanceConceptNote")}
+                    </figcaption>
+                  </figure>
+                );
+              })()}
             </TabsPrimitive.Content>
           ))}
         </TabsPrimitive.Root>

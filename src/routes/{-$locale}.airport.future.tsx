@@ -1,10 +1,11 @@
 import { AppLink } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowRight, Building2, Lightbulb, Plane, Sparkles } from "lucide-react";
+import { ArrowRight, Lightbulb, Building2, Plane, Sparkles } from "lucide-react";
 import { ChapterNav, ChapterPagination } from "@/components/airport/chapter-nav";
 import { Container, Notice, Panel } from "@/components/kit";
-import { destinations, img } from "@/lib/data";
+import { destinations } from "@/lib/data";
 import { pick, useI18n } from "@/lib/i18n";
+import { MEDIA, buildSrcSet, smallestSrc } from "@/lib/media";
 
 export const Route = createFileRoute("/{-$locale}/airport/future")({
   head: () => ({
@@ -25,41 +26,67 @@ export const Route = createFileRoute("/{-$locale}/airport/future")({
 function FuturePage() {
   const { t, lang } = useI18n();
 
-  const themes = [
+  const aerialDay = MEDIA["aerial-day"]!;
+  const landsideDay = MEDIA["landside-day"]!;
+  const concourseDay = MEDIA["concourse-day"]!;
+  const runwayDay = MEDIA["runway-day"]!;
+
+  /** Day/night pairs for the editorial study sequence */
+  const nightStudies = [
     {
-      icon: Building2,
-      numeral: "01",
+      slug: "aerial-night" as const,
       titleKey: "airport.themeTerminalTitle" as const,
-      bodyKey: "airport.themeTerminalBody" as const,
-      seed: "terminal-concept-render",
-      tag: "[PROVENANCE]",
+      captionEn: "Night aerial concept of the future terminal and airfield.",
+      captionAr: "تصوّر جوي ليلي لمفهوم مبنى المطار المستقبلي وساحة الطائرات.",
     },
     {
-      icon: Sparkles,
-      numeral: "02",
+      slug: "landside-night" as const,
       titleKey: "airport.themeHospitalityTitle" as const,
-      bodyKey: "airport.themeHospitalityBody" as const,
-      seed: "future-departures-hall",
-      tag: "[PROVENANCE]",
+      captionEn: "Night architectural concept of the future landside departures entrance.",
+      captionAr: "تصوّر معماري ليلي لمفهوم واجهة المغادرة المستقبلية.",
     },
     {
-      icon: Plane,
-      numeral: "03",
+      slug: "runway-night" as const,
       titleKey: "airport.themeMasterplanTitle" as const,
-      bodyKey: "airport.themeMasterplanBody" as const,
-      seed: "masterplan-diagram",
-      tag: "[PROVENANCE]",
+      captionEn: "Night concept along the future airport runway toward the coastal horizon.",
+      captionAr: "تصوّر ليلي لمدرج المطار المستقبلي باتجاه الأفق الساحلي.",
     },
-  ];
+    {
+      slug: "concourse-night" as const,
+      captionEn: "Night interior architectural concept of a future passenger concourse.",
+      captionAr: "تصوّر داخلي معماري ليلي لصالة الركاب المستقبلية.",
+    },
+    {
+      slug: "interior-wide-a" as const,
+      captionEn: "Wide interior concept of the future Gaza International Airport terminal.",
+      captionAr: "تصوّر داخلي فسيح لمبنى مطار غزة الدولي المستقبلي.",
+    },
+    {
+      slug: "interior-wide-b" as const,
+      captionEn: "Wide interior concept of the modern Gaza International Airport terminal.",
+      captionAr: "تصوّر داخلي فسيح آخر لمبنى مطار غزة الدولي المستقبلي.",
+    },
+  ] as const;
+
+  const conceptLabel = t("media.ownerConceptLabel");
+  const conceptNote = t("media.ownerConceptNote");
 
   return (
     <>
-      {/* Editorial Chapter Hero */}
+      {/* Editorial Chapter Hero — day aerial */}
       <section className="relative isolate overflow-hidden bg-ink text-ink-foreground">
         <img
-          src={img("future-airport-vision", 1920, 1000)}
-          alt=""
-          className="absolute inset-0 -z-10 size-full object-cover opacity-35"
+          src={smallestSrc(aerialDay)}
+          srcSet={buildSrcSet(aerialDay)}
+          sizes="100vw"
+          width={aerialDay.width}
+          height={aerialDay.height}
+          alt={lang === "ar" ? aerialDay.altAr : aerialDay.altEn}
+          loading="eager"
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          fetchPriority={"high" as any}
+          decoding="sync"
+          className="absolute inset-0 -z-10 size-full object-cover opacity-40"
         />
         <div className="absolute inset-0 -z-10 bg-gradient-to-t from-ink via-ink/80 to-ink/50" />
         <Container className="py-16 sm:py-24">
@@ -77,73 +104,203 @@ function FuturePage() {
           <p className="mt-4 max-w-2xl text-base leading-relaxed text-ink-muted sm:text-lg">
             {t("airport.futureSubtitle")}
           </p>
+          {/* Concept truth label */}
+          <p className="mt-6 text-xs text-ink-muted/70">
+            <span className="font-semibold text-clay-soft">{conceptLabel}</span>
+            {" — "}{conceptNote}
+          </p>
         </Container>
+        <p className="absolute bottom-3 end-4 text-[0.6rem] text-ink-foreground/40 select-none pointer-events-none">
+          {t("media.conceptShortLabel")}
+        </p>
       </section>
 
       <Container className="py-8 sm:py-12">
         {/* Persistent Chapter Sequence Navigation */}
         <ChapterNav activeChapter="future" className="mb-10" />
 
-        {/* Conceptual Planning Status Notice */}
-        <Notice title={t("airport.placeholder")}>
+        {/* Page-level disclosure (once) */}
+        <Notice title={conceptLabel}>
           <p className="text-sm leading-relaxed">
-            {t("airport.futureNotice")}
+            {t("media.conceptLongDisclosure")}
           </p>
         </Notice>
 
-        {/* Masterplan Pillars / Themes */}
-        <div className="mt-12 space-y-10">
-          {themes.map((theme, index) => (
-            <article
-              key={theme.numeral}
-              className={`grid gap-6 overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-soft)] sm:grid-cols-2 ${
-                index % 2 === 1 ? "sm:[&>figure]:order-last" : ""
-              }`}
-            >
-              {/* Architectural Concept Visual */}
-              <figure className="relative m-0 aspect-16/10 size-full overflow-hidden bg-ink sm:aspect-auto">
-                <img
-                  src={img(theme.seed, 900, 700)}
-                  alt=""
-                  loading="lazy"
-                  className="size-full object-cover opacity-85 transition-transform duration-500 hover:scale-105"
-                />
-                <span className="absolute bottom-3 start-4 rounded-md bg-ink/80 px-2 py-0.5 font-mono text-xs text-ink-muted">
-                  {theme.tag}
-                </span>
-              </figure>
-
-              {/* Narrative Content */}
-              <div className="flex flex-col justify-between p-6 sm:p-8">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="numeral font-mono text-xs font-bold text-clay">
-                      {theme.numeral}
-                    </span>
-                    <span className="text-xs text-muted-foreground">·</span>
-                    <theme.icon aria-hidden="true" className="size-4 text-primary" />
-                    <span className="type-label text-xs text-muted-foreground">{t("airport.conceptStudy")}</span>
-                  </div>
-                  <h2 className="mt-2 text-2xl font-bold tracking-tight text-foreground">
-                    {t(theme.titleKey)}
-                  </h2>
-                  <p className="mt-3 text-base leading-relaxed text-muted-foreground">
-                    {t(theme.bodyKey)}
-                  </p>
-                </div>
-
-                <div className="mt-6 border-t border-border pt-4 text-xs text-muted-foreground">
-                  <span className="font-semibold text-foreground">
-                    {t("airport.designIntentLabel")}{" "}
-                  </span>
-                  <span>
-                    {t("airport.designIntentText")}
-                  </span>
-                </div>
-              </div>
-            </article>
-          ))}
+        {/* Conceptual Planning Status Notice */}
+        <div className="mt-4">
+          <Notice title={t("airport.futureNoticeTitle")}>
+            <p className="text-sm leading-relaxed">
+              {t("airport.futureNotice")}
+            </p>
+          </Notice>
         </div>
+
+        {/* ── Main chapters: day imagery with editorial narrative ── */}
+        <div className="mt-12 space-y-10">
+          {/* Chapter 1 — Landside / Terminal Arrival */}
+          <article className="grid gap-6 overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-soft)] sm:grid-cols-2">
+            <figure className="relative m-0 aspect-[16/10] size-full overflow-hidden bg-ink sm:aspect-auto">
+              <img
+                src={smallestSrc(landsideDay)}
+                srcSet={buildSrcSet(landsideDay)}
+                sizes="(min-width: 640px) 50vw, 100vw"
+                width={landsideDay.width}
+                height={landsideDay.height}
+                alt={lang === "ar" ? landsideDay.altAr : landsideDay.altEn}
+                loading="lazy"
+                decoding="async"
+                className="size-full object-cover opacity-85 transition-transform duration-500 hover:scale-105"
+              />
+              <figcaption className="absolute bottom-3 start-4 rounded-md bg-ink/80 px-2 py-0.5 font-mono text-xs text-ink-muted">
+                {t("media.conceptShortLabel")}
+              </figcaption>
+            </figure>
+            <div className="flex flex-col justify-between p-6 sm:p-8">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="numeral font-mono text-xs font-bold text-clay">01</span>
+                  <span className="text-xs text-muted-foreground">·</span>
+                  <Building2 aria-hidden="true" className="size-4 text-primary" />
+                  <span className="type-label text-xs text-muted-foreground">{t("airport.conceptStudy")}</span>
+                </div>
+                <h2 className="mt-2 text-2xl font-bold tracking-tight text-foreground">
+                  {t("airport.themeTerminalTitle")}
+                </h2>
+                <p className="mt-3 text-base leading-relaxed text-muted-foreground">
+                  {t("airport.themeTerminalBody")}
+                </p>
+              </div>
+              <div className="mt-6 border-t border-border pt-4 text-xs text-muted-foreground">
+                <span className="font-semibold text-foreground">{t("airport.designIntentLabel")}{" "}</span>
+                <span>{t("airport.designIntentText")}</span>
+              </div>
+            </div>
+          </article>
+
+          {/* Chapter 2 — Passenger Concourse */}
+          <article className="grid gap-6 overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-soft)] sm:grid-cols-2 sm:[&>figure]:order-last">
+            <div className="flex flex-col justify-between p-6 sm:p-8">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="numeral font-mono text-xs font-bold text-clay">02</span>
+                  <span className="text-xs text-muted-foreground">·</span>
+                  <Sparkles aria-hidden="true" className="size-4 text-primary" />
+                  <span className="type-label text-xs text-muted-foreground">{t("airport.conceptStudy")}</span>
+                </div>
+                <h2 className="mt-2 text-2xl font-bold tracking-tight text-foreground">
+                  {t("airport.themeHospitalityTitle")}
+                </h2>
+                <p className="mt-3 text-base leading-relaxed text-muted-foreground">
+                  {t("airport.themeHospitalityBody")}
+                </p>
+              </div>
+              <div className="mt-6 border-t border-border pt-4 text-xs text-muted-foreground">
+                <span className="font-semibold text-foreground">{t("airport.designIntentLabel")}{" "}</span>
+                <span>{t("airport.designIntentText")}</span>
+              </div>
+            </div>
+            <figure className="relative m-0 aspect-[16/10] size-full overflow-hidden bg-ink sm:aspect-auto">
+              <img
+                src={smallestSrc(concourseDay)}
+                srcSet={buildSrcSet(concourseDay)}
+                sizes="(min-width: 640px) 50vw, 100vw"
+                width={concourseDay.width}
+                height={concourseDay.height}
+                alt={lang === "ar" ? concourseDay.altAr : concourseDay.altEn}
+                loading="lazy"
+                decoding="async"
+                className="size-full object-cover opacity-85 transition-transform duration-500 hover:scale-105"
+              />
+              <figcaption className="absolute bottom-3 start-4 rounded-md bg-ink/80 px-2 py-0.5 font-mono text-xs text-ink-muted">
+                {t("media.conceptShortLabel")}
+              </figcaption>
+            </figure>
+          </article>
+
+          {/* Chapter 3 — Airfield & Coastal Runway */}
+          <article className="grid gap-6 overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-soft)] sm:grid-cols-2">
+            <figure className="relative m-0 aspect-[16/10] size-full overflow-hidden bg-ink sm:aspect-auto">
+              <img
+                src={smallestSrc(runwayDay)}
+                srcSet={buildSrcSet(runwayDay)}
+                sizes="(min-width: 640px) 50vw, 100vw"
+                width={runwayDay.width}
+                height={runwayDay.height}
+                alt={lang === "ar" ? runwayDay.altAr : runwayDay.altEn}
+                loading="lazy"
+                decoding="async"
+                className="size-full object-cover opacity-85 transition-transform duration-500 hover:scale-105"
+              />
+              <figcaption className="absolute bottom-3 start-4 rounded-md bg-ink/80 px-2 py-0.5 font-mono text-xs text-ink-muted">
+                {t("media.conceptShortLabel")}
+              </figcaption>
+            </figure>
+            <div className="flex flex-col justify-between p-6 sm:p-8">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="numeral font-mono text-xs font-bold text-clay">03</span>
+                  <span className="text-xs text-muted-foreground">·</span>
+                  <Plane aria-hidden="true" className="size-4 text-primary" />
+                  <span className="type-label text-xs text-muted-foreground">{t("airport.conceptStudy")}</span>
+                </div>
+                <h2 className="mt-2 text-2xl font-bold tracking-tight text-foreground">
+                  {t("airport.themeMasterplanTitle")}
+                </h2>
+                <p className="mt-3 text-base leading-relaxed text-muted-foreground">
+                  {t("airport.themeMasterplanBody")}
+                </p>
+              </div>
+              <div className="mt-6 border-t border-border pt-4 text-xs text-muted-foreground">
+                <span className="font-semibold text-foreground">{t("airport.designIntentLabel")}{" "}</span>
+                <span>{t("airport.designIntentText")}</span>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        {/* ── Editorial night/interior study sequence ── */}
+        <section aria-labelledby="night-study-heading" className="mt-16 border-t border-border pt-12">
+          <h2 id="night-study-heading" className="text-2xl font-bold text-foreground">
+            {lang === "ar" ? "دراسة الرؤية الليلية والداخلية" : "Night & Interior Study Sequence"}
+          </h2>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+            {lang === "ar"
+              ? "تصوّرات إضافية من المالك تُكمل رؤية النهار — جميعها مواد توضيحية مستقبلية."
+              : "Additional owner-provided visualizations complementing the day sequence — all illustrative future concepts."}
+          </p>
+          <ul className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3" aria-label={lang === "ar" ? "دراسات ليلية وداخلية" : "Night and interior studies"}>
+            {nightStudies.map((study) => {
+              const entry = MEDIA[study.slug];
+              if (!entry) return null;
+              const captionText = lang === "ar" ? study.captionAr : study.captionEn;
+              return (
+                <li key={study.slug} className="overflow-hidden rounded-2xl border border-border bg-card shadow-xs">
+                  <figure className="m-0">
+                    <div className="relative aspect-[16/10] overflow-hidden bg-ink">
+                      <img
+                        src={smallestSrc(entry)}
+                        srcSet={buildSrcSet(entry)}
+                        sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                        width={entry.width}
+                        height={entry.height}
+                        alt={lang === "ar" ? entry.altAr : entry.altEn}
+                        loading="lazy"
+                        decoding="async"
+                        className="size-full object-cover opacity-80 transition-transform duration-500 hover:scale-105"
+                      />
+                      <span className="absolute bottom-2 start-3 rounded bg-ink/80 px-1.5 py-0.5 font-mono text-[0.6rem] text-ink-muted">
+                        {t("media.conceptShortLabel")}
+                      </span>
+                    </div>
+                    <figcaption className="px-4 py-3 text-xs leading-relaxed text-muted-foreground">
+                      {captionText}
+                    </figcaption>
+                  </figure>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
 
         {/* Future Network Vision Panel */}
         <Panel className="mt-14 border-clay/20 bg-card">

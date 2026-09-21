@@ -312,6 +312,9 @@ const en: Dict = {
   // travel info
   "travel.title": "Travel information",
   "travel.sub": "What you need before, during and after your journey through GZA.",
+  "travel.assistanceConceptLabel": "Future passenger-experience concept:",
+  "travel.assistanceConceptNote":
+    "Illustrative passenger assistance scene inside a future airport terminal — does not infer operational commitments.",
 
   // airport
   "airport.title": "Gaza International Airport",
@@ -394,6 +397,7 @@ const en: Dict = {
     "No unverified claims regarding equipment salvage or current perimeter security are asserted.",
   "airport.futureSubtitle":
     "Architectural proposals, masterplanning principles, and passenger experience design for a restored civil gateway connecting Gaza to the world.",
+  "airport.futureNoticeTitle": "Planning status & design studies",
   "airport.futureNotice":
     "The proposals presented here represent architectural and planning research concepts. They demonstrate physical readiness, environmental design, and service capacity ahead of operational reconstruction, rather than contracted commercial timelines.",
   "airport.themeTerminalTitle": "Terminal Architecture & Civic Identity",
@@ -530,7 +534,7 @@ const en: Dict = {
   "common.loading": "Loading...",
   "common.delete": "Delete",
   "account.removeConfirm": "Are you sure you want to remove this saved traveller?",
-  "footer.rights": "Content and imagery are placeholders.",
+  "footer.rights": "Imagery is classified by purpose: future-vision sections use owner-provided concept visualizations labeled as illustrative; historical sections use placeholders pending verified sources.",
   "footer.plan": "Plan your trip",
   "footer.discover": "Discover",
   "footer.help": "Help",
@@ -747,6 +751,22 @@ const en: Dict = {
   "auth.saveBookingNote": "Booking {ref} will be saved to this account once you confirm your email.",
   "auth.bookingSaved": "Booking {ref} is now saved in My trips.",
   "auth.viewTrip": "View in my trips",
+
+  // media truth / disclosure copy
+  "media.conceptShortLabel": "Illustrative future concept",
+  "media.conceptLongDisclosure":
+    "AI-generated visualization provided by the project owner. It represents a future design concept and is not a photograph of the airport's current or historical condition.",
+  "media.figureCaptionEn": "Illustrative future concept — not a current or historical photograph.",
+  "media.figureCaptionAr": "تصوّر مستقبلي توضيحي — وليس صورة فوتوغرافية للحالة الحالية أو التاريخية.",
+  "media.ownerConceptLabel": "Owner-provided future concept visualization",
+  "media.ownerConceptNote":
+    "Illustrative concept imagery. Not documentary evidence of the airport's historical or current condition.",
+
+  // error boundary (locale-aware, no i18n provider required — duplicated as static strings in root)
+  "error.heading": "Something went wrong",
+  "error.body": "This page didn't load. You can try again or head back to the homepage.",
+  "error.tryAgain": "Try again",
+  "error.goHome": "Go home",
 };
 
 
@@ -1039,6 +1059,9 @@ const ar: Dict = {
 
   "travel.title": "معلومات السفر",
   "travel.sub": "ما تحتاج معرفته قبل رحلتك عبر مطار غزة وخلالها وبعدها.",
+  "travel.assistanceConceptLabel": "مفهوم تجربة المسافر المستقبلية:",
+  "travel.assistanceConceptNote":
+    "مشهد توضيحي لمساعدة مسافر داخل مبنى مطار مستقبلي — لا يُمثّل التزاماً تشغيلياً.",
 
   "airport.title": "مطار غزة الدولي",
   "airport.sub": "مطار واحد، ثلاثة فصول.",
@@ -1118,6 +1141,7 @@ const ar: Dict = {
     "لا تُطرح أي ادعاءات غير موثقة بشأن استرداد المعدات أو أمن المحيط الحالي.",
   "airport.futureSubtitle":
     "مقترحات معمارية، ومبادئ المخطط العام، وتصميم تجربة المسافرين لبوابة مدنية مستعادة تصل غزة بالعالم.",
+  "airport.futureNoticeTitle": "حالة التخطيط ودراسات التصميم",
   "airport.futureNotice":
     "تمثل المقترحات المعروضة هنا مفاهيم بحثية معمارية وتخطيطية. وهي توضح الجاهزية المادية، والتصميم البيئي، والقدرة الاستيعابية قبل إعادة الإعمار التشغيلي، ولا تمثل جداول زمنية تجارية تعاقدية.",
   "airport.themeTerminalTitle": "عمارة مبنى الركاب والهوية المدنية",
@@ -1250,7 +1274,7 @@ const ar: Dict = {
   "common.loading": "جارٍ التحميل...",
   "common.delete": "حذف",
   "account.removeConfirm": "هل أنت متأكد من رغبتك في إزالة هذا المسافر المحفوظ؟",
-  "footer.rights": "موقع نموذجي — المحتوى والصور مؤقتة.",
+  "footer.rights": "تُصنّف الصور بحسب الغرض منها: تستخدم أقسام الرؤية المستقبلية تصوّرات مفاهيمية مقدّمة من مالك المشروع مع وسمها بوضوح، أما الأقسام التاريخية فتستخدم صوراً مؤقتة إلى حين توفير مصادر موثّقة.",
   "footer.plan": "خطّط لرحلتك",
   "footer.discover": "اكتشف",
   "footer.help": "المساعدة",
@@ -1463,6 +1487,22 @@ const ar: Dict = {
   "auth.saveBookingNote": "سيتم حفظ الحجز {ref} في هذا الحساب بعد تأكيد بريدك.",
   "auth.bookingSaved": "الحجز {ref} محفوظ الآن في رحلاتي.",
   "auth.viewTrip": "عرضه في رحلاتي",
+
+  // media truth / disclosure copy (AR)
+  "media.conceptShortLabel": "تصوّر مستقبلي توضيحي",
+  "media.conceptLongDisclosure":
+    "تصوّر مولّد بالذكاء الاصطناعي ومقدّم من مالك المشروع. يمثّل مفهوماً تصميمياً مستقبلياً، وليس صورة فوتوغرافية للحالة الحالية أو التاريخية للمطار.",
+  "media.figureCaptionEn": "Illustrative future concept — not a current or historical photograph.",
+  "media.figureCaptionAr": "تصوّر مستقبلي توضيحي — وليس صورة فوتوغرافية للحالة الحالية أو التاريخية.",
+  "media.ownerConceptLabel": "تصوّر مستقبلي مقدّم من مالك المشروع",
+  "media.ownerConceptNote":
+    "صورة مفاهيمية توضيحية، وليست مادة توثيقية للحالة التاريخية أو الحالية للمطار.",
+
+  // error boundary (locale-aware)
+  "error.heading": "حدث خطأ",
+  "error.body": "تعذّر تحميل هذه الصفحة. يمكنك المحاولة مرة أخرى أو العودة إلى الصفحة الرئيسية.",
+  "error.tryAgain": "حاول مرة أخرى",
+  "error.goHome": "العودة إلى الرئيسية",
 };
 
 
