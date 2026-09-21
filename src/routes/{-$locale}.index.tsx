@@ -19,7 +19,8 @@ import {
   todayISO,
 } from "@/lib/data";
 import { pick, useI18n } from "@/lib/i18n";
-import { MEDIA, buildSrcSet, smallestSrc } from "@/lib/media";
+import { ResponsiveImage } from "@/components/responsive-image";
+import { MEDIA } from "@/lib/media";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/{-$locale}/")({
@@ -56,28 +57,18 @@ function Home() {
     <>
       {/* 1. Civic Hero Section with Atmospheric Lighting & Identity */}
       <section className="relative isolate overflow-hidden bg-ink text-ink-foreground">
-        {/* Real owner-provided concept hero — eager, high-priority LCP candidate */}
-        {(() => {
-          const hero = MEDIA["home-hero"]!;
-          return (
-            <img
-              src={smallestSrc(hero)}
-              srcSet={buildSrcSet(hero)}
-              sizes="100vw"
-              width={hero.width}
-              height={hero.height}
-              alt={lang === "ar" ? hero.altAr : hero.altEn}
-              loading="eager"
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              fetchPriority={"high" as any}
-              decoding="sync"
-              className="absolute inset-0 -z-10 size-full object-cover opacity-30"
-            />
-          );
-        })()}
-        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-ink/90 via-ink/75 to-ink" />
+        {/* Real owner-provided concept hero — eager, high-priority LCP candidate with explicit positive stacking */}
+        <ResponsiveImage
+          entry="home-hero"
+          sizes="100vw"
+          loading="eager"
+          fetchPriority="high"
+          className="absolute inset-0 z-0 size-full object-cover opacity-90"
+        />
+        {/* Directional, localized overlay: stronger behind copy, lighter on photographic features */}
+        <div className="absolute inset-0 z-10 bg-gradient-to-t from-ink via-ink/65 to-ink/35 sm:bg-gradient-to-r sm:from-ink/90 sm:via-ink/60 sm:to-ink/20 sm:rtl:bg-gradient-to-l" />
 
-        <Container className="pt-12 pb-32 sm:pt-16 sm:pb-40 lg:pt-20 lg:pb-44">
+        <Container className="relative z-20 pt-12 pb-32 sm:pt-16 sm:pb-40 lg:pt-20 lg:pb-44">
           <div className="flex flex-col items-start">
             {/* Ambient Station Protocol Badge */}
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-ink-border bg-ink/60 px-3 py-1 text-xs text-ink-muted backdrop-blur-xs">
@@ -134,8 +125,8 @@ function Home() {
             </div>
           </div>
         </Container>
-        {/* Concept truth label — restrained, bottom-right */}
-        <p className="absolute bottom-3 end-4 text-[0.6rem] text-ink-foreground/50 select-none pointer-events-none">
+        {/* Concept truth label — restrained, bottom-right with positive stacking */}
+        <p className="absolute bottom-3 end-4 z-20 text-[0.6rem] text-ink-foreground/60 select-none pointer-events-none">
           {t("media.conceptShortLabel")}
         </p>
       </section>
@@ -333,6 +324,7 @@ function Home() {
                   sub: "home.pastSub",
                   seed: "archive-terminal-old",
                   era: t("home.eraPast"),
+                  isFuture: false,
                 },
                 {
                   to: "/airport/present",
@@ -340,6 +332,7 @@ function Home() {
                   sub: "home.presentSub",
                   seed: "empty-runway-today",
                   era: t("home.eraPresent"),
+                  isFuture: false,
                 },
                 {
                   to: "/airport/future",
@@ -347,6 +340,7 @@ function Home() {
                   sub: "home.futureSub",
                   seed: "terminal-concept-render",
                   era: t("home.eraFuture"),
+                  isFuture: true,
                 },
               ] as const
             ).map((chapter) => (
@@ -356,16 +350,29 @@ function Home() {
                 className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-xs transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-lift)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               >
                 <div className="relative aspect-[16/10] overflow-hidden bg-ink">
-                  <img
-                    src={img(chapter.seed, 800, 500)}
-                    alt=""
-                    loading="lazy"
-                    className="size-full object-cover opacity-70 transition-transform duration-500 group-hover:scale-105 group-hover:opacity-85"
-                  />
+                  {chapter.isFuture ? (
+                    <ResponsiveImage
+                      entry="aerial-day"
+                      sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                      className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                  ) : (
+                    <img
+                      src={img(chapter.seed, 800, 500)}
+                      alt=""
+                      loading="lazy"
+                      className="size-full object-cover opacity-70 transition-transform duration-500 group-hover:scale-105 group-hover:opacity-85"
+                    />
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/30 to-transparent" />
                   <span className="absolute start-3.5 top-3.5 rounded-md bg-ink/70 px-2.5 py-1 text-xs font-semibold text-ink-foreground backdrop-blur-xs">
                     {chapter.era}
                   </span>
+                  {chapter.isFuture && (
+                    <span className="absolute bottom-2.5 end-3 rounded bg-ink/80 px-1.5 py-0.5 font-mono text-[0.65rem] text-ink-muted">
+                      {t("media.conceptShortLabel")}
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex flex-1 flex-col justify-between p-5">

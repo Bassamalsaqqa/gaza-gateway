@@ -1567,22 +1567,22 @@ Continue developing this project in the [Lovable editor](https://lovable.dev/pro
 
 ## Development & Build
 
-Prefer working locally? You need Bun (or Node.js 20+):
+Prefer working locally? You need Node.js 20+ and npm:
 
 ```sh
 # Install dependencies
-bun install
+npm ci
 
 # Local development server
-bun run dev
+npm run dev
 
 # Normal build (Nitro SSR / Cloudflare Pages)
-bun run build
+npm run build
 
 # Static HostPapa build (Static prerender + shells in dist/client/ for Apache cPanel)
-bun run build:hostpapa
+npm run build:hostpapa
 
 # Quality gates
-bun run typecheck
-bun run lint
+npm run typecheck
+npm run lint
 ```

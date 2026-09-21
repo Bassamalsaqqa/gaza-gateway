@@ -1,6 +1,6 @@
 import { AppLink } from "@/components/app-link";
 import { useI18n } from "@/lib/i18n";
-import { LOGO_SRC } from "@/lib/media";
+import { LOGO_SRC, LOGO_64_SRC, LOGO_128_SRC } from "@/lib/media";
 import { cn } from "@/lib/utils";
 
 /**
@@ -38,6 +38,7 @@ export function Brand({
         >
           <img
             src={LOGO_SRC}
+            srcSet={`${LOGO_64_SRC} 1x, ${LOGO_128_SRC} 2x`}
             alt=""
             width={36}
             height={36}

@@ -1,7 +1,7 @@
 # HostPapa Deployment Architecture & Verification Guide
 
 > **Current Status**: **Phase 1 Static Implementation Complete (Ready for Codex Review)**.
-> **Deployable Artifact**: `dist/client/` produced by `bun.cmd run build:hostpapa`.
+> **Deployable Artifact**: `dist/client/` produced by `npm run build:hostpapa`.
 > **Deployment Reality**: Local build and static simulation verified. **No live deployment to HostPapa hosting has occurred yet.**
 
 ---
@@ -16,10 +16,10 @@ To satisfy the HostPapa shared cPanel hosting constraint (`public_html/` static 
   - Configures `nitro: false`.
   - Disables SPA wrapper injection (`spa: { enabled: false }`) to manage dedicated prerendered shells explicitly.
   - Configures TanStack Start crawler and explicit `prerender.pages` for all 42 public pages and 4 targeted application shells.
-- **Normal Build Unchanged**: `vite.config.ts` remains 100% untouched for Lovable editor compatibility and normal SSR builds (`bun.cmd run build` emits Cloudflare/Nitro SSR bundle into `.output/`).
+- **Normal Build Unchanged**: `vite.config.ts` remains 100% untouched for Lovable editor compatibility and normal SSR builds (`npm run build` emits Cloudflare/Nitro SSR bundle into `.output/`).
 - **HostPapa Build Command**:
   ```bash
-  bun.cmd run build:hostpapa
+  npm run build:hostpapa
   ```
   (Backed by `package.json`: `"build:hostpapa": "vite build --config vite.config.hostpapa.ts"`).
 
@@ -27,7 +27,7 @@ To satisfy the HostPapa shared cPanel hosting constraint (`public_html/` static 
 
 ## 2. Deployable Artifact Structure (`dist/client/`)
 
-Running `bun.cmd run build:hostpapa` generates a pure static directory under `dist/client/`:
+Running `npm run build:hostpapa` generates a pure static directory under `dist/client/`:
 
 - **Static Pages (46 HTML files total)**:
   - **42 Public Content Pages** (21 English + 21 Arabic): Full semantic HTML rendered at build time with route-specific content, metadata, and appropriate `lang` / `dir` attributes (`lang="en" dir="ltr"` vs `lang="ar" dir="rtl"`).
@@ -224,7 +224,7 @@ When deployment authorization is granted:
 
 1. **Build the static artifact locally**:
    ```bash
-   bun.cmd run build:hostpapa
+   npm run build:hostpapa
    ```
 2. **Deployable Files**:
    - Upload the entire contents of `dist/client/` (including `dist/client/.htaccess`) into the HostPapa cPanel `public_html/` directory.

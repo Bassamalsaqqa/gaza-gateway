@@ -11,7 +11,7 @@
 
 | Layer                         | Technology                                 | Version                                    | Purpose & Implementation Reality                                                                                                                                                                                                                                                                                                                                                                           |
 | :---------------------------- | :----------------------------------------- | :----------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Runtime & Package Manager** | Bun / Node.js                              | Bun 1.2.22 / Node v24.12.0                 | Script runner (`bun.cmd`), lockfile (`bun.lock`).                                                                                                                                                                                                                                                                                                                                                          |
+| **Runtime & Package Manager** | Node.js / npm                              | Node v24.12.0 / npm 11.11.0                | Script runner (`npm`), lockfile (`package-lock.json`). (Note: Full architecture refresh deferred until Phase 4 repository convergence).                                                                                                                                                                                                                                                                    |
 | **Frontend Framework**        | React                                      | 19.2.0                                     | Component hierarchy, hooks, context providers.                                                                                                                                                                                                                                                                                                                                                             |
 | **Routing & SSR Engine**      | TanStack Start / Router                    | Router 1.170.18 / Start 1.168.32           | File-based flat routing, route loaders, SSR hydration, head management.                                                                                                                                                                                                                                                                                                                                    |
 | **Bundler & Build Tool**      | Vite / Nitro                               | Vite 8.1.5 / Nitro 3.0.260603-beta         | Client/server bundling (`@lovable.dev/vite-tanstack-config`). Emits Cloudflare Pages/Nitro SSR worker bundle.                                                                                                                                                                                                                                                                                              |
@@ -97,7 +97,7 @@ Public and admin pages use the optional prefix segment `{-$locale}`:
 
 ## 4. Bundle Layout & Asset Footprint
 
-Measured from production build (`bun run build`):
+Measured from production build (`npm run build`):
 
 - **Total Client Assets**: **1,172,759 bytes** across **106 assets** (105 `.js` chunks, 1 `.css` chunk) in `.output/public/assets/`.
 - **Core Runtime Chunks**:
@@ -131,7 +131,7 @@ The styling system is configured in `src/styles.css` using Tailwind CSS v4 `@the
 2. **Serving Mechanism**: Apache web server serving static files from `public_html/`.
 3. **No Persistent Runtime**: No Node.js daemon, no serverless edge workers, no Docker container, and no remote build step.
 4. **Static Build Implementation (Phase 1 Complete)**:
-   - Dedicated build command: `bun.cmd run build:hostpapa` backed by `vite.config.hostpapa.ts`.
+   - Dedicated build command: `npm run build:hostpapa` backed by `vite.config.hostpapa.ts`.
    - Uses `@lovable.dev/vite-tanstack-config` with `nitro: false`, keeping `vite.config.ts` untouched for Lovable editor compatibility and SSR preview.
    - Outputs a pure static artifact in `dist/client/` (no server runtime required).
 5. **Prerender & Dynamic Shell Architecture**:
@@ -181,5 +181,5 @@ Codex ran Playwright against the local Vite dev server across mobile (**390x844*
 ### 7.3 Semantic Lint Gate Separation & Formatting Debt
 
 - **ESLint Configuration Update**: Updated `eslint.config.js` to use `eslint-config-prettier` instead of `eslint-plugin-prettier/recommended`. This preserves all substantive TypeScript, JavaScript, and React hooks rules while suppressing formatting rule conflicts without turning Prettier code-wrap deviations into ESLint errors.
-- **Semantic Lint Gate**: `bun.cmd run lint` (`eslint .`) passes cleanly with exit code 0 (**0 errors**, 43 `react-refresh/only-export-components` warnings).
+- **Semantic Lint Gate**: `npm run lint` (`eslint .`) passes cleanly with exit code 0 (**0 errors**, 43 `react-refresh/only-export-components` warnings).
 - **Formatting Debt Check**: Added `"format:check": "prettier --check ."` to `package.json`. It runs Prettier independently and documents remaining code-wrap formatting debt across repository files without blocking the semantic lint gate.

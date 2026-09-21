@@ -5,7 +5,7 @@ import { ChapterNav, ChapterPagination } from "@/components/airport/chapter-nav"
 import { Container, Notice, Panel } from "@/components/kit";
 import { destinations } from "@/lib/data";
 import { pick, useI18n } from "@/lib/i18n";
-import { MEDIA, buildSrcSet, smallestSrc } from "@/lib/media";
+import { ResponsiveImage } from "@/components/responsive-image";
 
 export const Route = createFileRoute("/{-$locale}/airport/future")({
   head: () => ({
@@ -26,10 +26,7 @@ export const Route = createFileRoute("/{-$locale}/airport/future")({
 function FuturePage() {
   const { t, lang } = useI18n();
 
-  const aerialDay = MEDIA["aerial-day"]!;
-  const landsideDay = MEDIA["landside-day"]!;
-  const concourseDay = MEDIA["concourse-day"]!;
-  const runwayDay = MEDIA["runway-day"]!;
+
 
   /** Day/night pairs for the editorial study sequence */
   const nightStudies = [
@@ -73,23 +70,17 @@ function FuturePage() {
 
   return (
     <>
-      {/* Editorial Chapter Hero — day aerial */}
+      {/* Editorial Chapter Hero — day aerial with explicit positive stacking */}
       <section className="relative isolate overflow-hidden bg-ink text-ink-foreground">
-        <img
-          src={smallestSrc(aerialDay)}
-          srcSet={buildSrcSet(aerialDay)}
+        <ResponsiveImage
+          entry="aerial-day"
           sizes="100vw"
-          width={aerialDay.width}
-          height={aerialDay.height}
-          alt={lang === "ar" ? aerialDay.altAr : aerialDay.altEn}
           loading="eager"
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          fetchPriority={"high" as any}
-          decoding="sync"
-          className="absolute inset-0 -z-10 size-full object-cover opacity-40"
+          fetchPriority="high"
+          className="absolute inset-0 z-0 size-full object-cover opacity-90"
         />
-        <div className="absolute inset-0 -z-10 bg-gradient-to-t from-ink via-ink/80 to-ink/50" />
-        <Container className="py-16 sm:py-24">
+        <div className="absolute inset-0 z-10 bg-gradient-to-t from-ink via-ink/75 to-ink/40 sm:bg-gradient-to-r sm:from-ink/90 sm:via-ink/65 sm:to-ink/25 sm:rtl:bg-gradient-to-l" />
+        <Container className="relative z-20 py-16 sm:py-24">
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-ink-border px-3 py-1 text-xs font-semibold text-clay-soft">
               <span className="numeral font-mono">03</span>
@@ -110,7 +101,7 @@ function FuturePage() {
             {" — "}{conceptNote}
           </p>
         </Container>
-        <p className="absolute bottom-3 end-4 text-[0.6rem] text-ink-foreground/40 select-none pointer-events-none">
+        <p className="absolute bottom-3 end-4 z-20 text-[0.6rem] text-ink-foreground/50 select-none pointer-events-none">
           {t("media.conceptShortLabel")}
         </p>
       </section>
@@ -140,16 +131,10 @@ function FuturePage() {
           {/* Chapter 1 — Landside / Terminal Arrival */}
           <article className="grid gap-6 overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-soft)] sm:grid-cols-2">
             <figure className="relative m-0 aspect-[16/10] size-full overflow-hidden bg-ink sm:aspect-auto">
-              <img
-                src={smallestSrc(landsideDay)}
-                srcSet={buildSrcSet(landsideDay)}
+              <ResponsiveImage
+                entry="landside-day"
                 sizes="(min-width: 640px) 50vw, 100vw"
-                width={landsideDay.width}
-                height={landsideDay.height}
-                alt={lang === "ar" ? landsideDay.altAr : landsideDay.altEn}
-                loading="lazy"
-                decoding="async"
-                className="size-full object-cover opacity-85 transition-transform duration-500 hover:scale-105"
+                className="size-full object-cover opacity-90 transition-transform duration-500 hover:scale-105"
               />
               <figcaption className="absolute bottom-3 start-4 rounded-md bg-ink/80 px-2 py-0.5 font-mono text-xs text-ink-muted">
                 {t("media.conceptShortLabel")}
@@ -200,16 +185,10 @@ function FuturePage() {
               </div>
             </div>
             <figure className="relative m-0 aspect-[16/10] size-full overflow-hidden bg-ink sm:aspect-auto">
-              <img
-                src={smallestSrc(concourseDay)}
-                srcSet={buildSrcSet(concourseDay)}
+              <ResponsiveImage
+                entry="concourse-day"
                 sizes="(min-width: 640px) 50vw, 100vw"
-                width={concourseDay.width}
-                height={concourseDay.height}
-                alt={lang === "ar" ? concourseDay.altAr : concourseDay.altEn}
-                loading="lazy"
-                decoding="async"
-                className="size-full object-cover opacity-85 transition-transform duration-500 hover:scale-105"
+                className="size-full object-cover opacity-90 transition-transform duration-500 hover:scale-105"
               />
               <figcaption className="absolute bottom-3 start-4 rounded-md bg-ink/80 px-2 py-0.5 font-mono text-xs text-ink-muted">
                 {t("media.conceptShortLabel")}
@@ -220,16 +199,10 @@ function FuturePage() {
           {/* Chapter 3 — Airfield & Coastal Runway */}
           <article className="grid gap-6 overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-soft)] sm:grid-cols-2">
             <figure className="relative m-0 aspect-[16/10] size-full overflow-hidden bg-ink sm:aspect-auto">
-              <img
-                src={smallestSrc(runwayDay)}
-                srcSet={buildSrcSet(runwayDay)}
+              <ResponsiveImage
+                entry="runway-day"
                 sizes="(min-width: 640px) 50vw, 100vw"
-                width={runwayDay.width}
-                height={runwayDay.height}
-                alt={lang === "ar" ? runwayDay.altAr : runwayDay.altEn}
-                loading="lazy"
-                decoding="async"
-                className="size-full object-cover opacity-85 transition-transform duration-500 hover:scale-105"
+                className="size-full object-cover opacity-90 transition-transform duration-500 hover:scale-105"
               />
               <figcaption className="absolute bottom-3 start-4 rounded-md bg-ink/80 px-2 py-0.5 font-mono text-xs text-ink-muted">
                 {t("media.conceptShortLabel")}
@@ -270,23 +243,15 @@ function FuturePage() {
           </p>
           <ul className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3" aria-label={lang === "ar" ? "دراسات ليلية وداخلية" : "Night and interior studies"}>
             {nightStudies.map((study) => {
-              const entry = MEDIA[study.slug];
-              if (!entry) return null;
               const captionText = lang === "ar" ? study.captionAr : study.captionEn;
               return (
                 <li key={study.slug} className="overflow-hidden rounded-2xl border border-border bg-card shadow-xs">
                   <figure className="m-0">
                     <div className="relative aspect-[16/10] overflow-hidden bg-ink">
-                      <img
-                        src={smallestSrc(entry)}
-                        srcSet={buildSrcSet(entry)}
+                      <ResponsiveImage
+                        entry={study.slug}
                         sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                        width={entry.width}
-                        height={entry.height}
-                        alt={lang === "ar" ? entry.altAr : entry.altEn}
-                        loading="lazy"
-                        decoding="async"
-                        className="size-full object-cover opacity-80 transition-transform duration-500 hover:scale-105"
+                        className="size-full object-cover opacity-85 transition-transform duration-500 hover:scale-105"
                       />
                       <span className="absolute bottom-2 start-3 rounded bg-ink/80 px-1.5 py-0.5 font-mono text-[0.6rem] text-ink-muted">
                         {t("media.conceptShortLabel")}

@@ -4,6 +4,7 @@ import { ArrowRight, BookOpen, Layers, ShieldAlert } from "lucide-react";
 import { ChapterNav } from "@/components/airport/chapter-nav";
 import { btnClass, Container, Eyebrow, PageHeader, Panel } from "@/components/kit";
 import { img } from "@/lib/data";
+import { ResponsiveImage } from "@/components/responsive-image";
 import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/{-$locale}/airport/")({
@@ -32,6 +33,7 @@ const chapterCards = [
     horizonKey: "airport.pastHorizon" as const,
     summaryKey: "airport.pastSummary" as const,
     tagKey: "airport.provisionalRecord" as const,
+    isFuture: false,
   },
   {
     id: "present" as const,
@@ -42,6 +44,7 @@ const chapterCards = [
     horizonKey: "airport.presentHorizon" as const,
     summaryKey: "airport.presentSummary" as const,
     tagKey: "airport.documentaryRecord" as const,
+    isFuture: false,
   },
   {
     id: "future" as const,
@@ -52,6 +55,7 @@ const chapterCards = [
     horizonKey: "airport.futureHorizon" as const,
     summaryKey: "airport.futureSummary" as const,
     tagKey: "airport.conceptStudy" as const,
+    isFuture: true,
   },
 ] as const;
 
@@ -91,12 +95,20 @@ function AirportPage() {
               >
                 {/* Visual Anchor */}
                 <div className="relative aspect-16/10 w-full overflow-hidden bg-ink">
-                  <img
-                    src={img(ch.seed, 900, 560)}
-                    alt=""
-                    loading="lazy"
-                    className="size-full object-cover opacity-75 transition-transform duration-500 group-hover:scale-105"
-                  />
+                  {ch.isFuture ? (
+                    <ResponsiveImage
+                      entry="aerial-day"
+                      sizes="(min-width: 1024px) 33vw, 100vw"
+                      className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                  ) : (
+                    <img
+                      src={img(ch.seed, 900, 560)}
+                      alt=""
+                      loading="lazy"
+                      className="size-full object-cover opacity-75 transition-transform duration-500 group-hover:scale-105"
+                    />
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/30 to-transparent" />
                   <div className="absolute bottom-3 start-4 end-4 flex items-center justify-between text-xs text-ink-muted">
                     <span className="inline-flex items-center gap-1.5 rounded-md bg-ink/70 px-2 py-0.5 font-mono text-[11px] text-ink-foreground backdrop-blur-xs">
@@ -104,7 +116,13 @@ function AirportPage() {
                       <span>·</span>
                       <span>{t(ch.tagKey)}</span>
                     </span>
-                    <span className="text-[11px] text-ink-muted/80">[PROVENANCE]</span>
+                    {ch.isFuture ? (
+                      <span className="text-[11px] text-clay-soft/90 font-mono">
+                        {t("media.conceptShortLabel")}
+                      </span>
+                    ) : (
+                      <span className="text-[11px] text-ink-muted/80">[PROVENANCE]</span>
+                    )}
                   </div>
                 </div>
 

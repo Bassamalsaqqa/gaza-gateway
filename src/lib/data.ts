@@ -1,8 +1,11 @@
 /**
  * Frontend mock data for Gaza International Airport (GZA) and
  * Palestinian Airlines (PS). No backend, no external APIs.
- * Imagery uses generic placeholder photography that is easy to swap later:
- * every image URL is produced by `img()` below.
+ *
+ * Imagery guidelines:
+ * - Generic unresolved placeholder photography uses `img()` below.
+ * - Approved owner concept and brand assets are registered in `src/lib/media.ts`.
+ * - Future AI concepts must never be used as historical or present-condition evidence.
  */
 
 export type Bilingual = { en: string; ar: string };
@@ -73,7 +76,11 @@ export const GZA: Airport = {
   tz: "Asia/Gaza",
 };
 
-/** Placeholder imagery helper — replace this single function to swap image sources. */
+/**
+ * Generic placeholder imagery helper for unresolved image domains.
+ * For owner concept and brand assets, use the media registry in `src/lib/media.ts`.
+ * Future AI concepts must never be used as historical or present-condition evidence.
+ */
 export function img(seed: string, w = 1200, h = 800): string {
   return `https://picsum.photos/seed/${encodeURIComponent(seed)}/${w}/${h}`;
 }

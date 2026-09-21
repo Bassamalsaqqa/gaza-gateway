@@ -45,5 +45,8 @@
    - Deployment workflow is: local build/test → git push → HostPapa git pull/deploy of prebuilt static assets.
 
 8. **Asset & Content Integrity**:
-   - Real logos and archive imagery will be provided by the owner in a dedicated asset phase. Do not invent placeholder logos or replace assets without explicit instruction.
+   - The owner-approved logo and AI-generated Future concepts are integrated through `src/lib/media.ts`.
+   - Future concepts must remain visibly classified as illustrative.
+   - Verified historical and present-condition imagery has not been supplied; archive provenance must never be fabricated.
+   - Future AI renderings must never substitute for Past/Present evidence.
    - Maintain historical accuracy for Gaza International Airport (Yasser Arafat International Airport) and Palestinian Airlines. Never fabricate historical dates, codes, or archive provenance.

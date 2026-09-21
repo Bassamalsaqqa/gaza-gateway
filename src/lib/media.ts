@@ -113,8 +113,10 @@ import assistance800 from "@/assets/media/travel/assistance-800.webp";
 import assistance1200 from "@/assets/media/travel/assistance-1200.webp";
 import assistance1376 from "@/assets/media/travel/assistance-1376.webp";
 
-// Brand logo
-import logoSrc from "@/assets/media/brand/logo.png";
+// Brand logo derivatives
+import logoOriginalSrc from "@/assets/media/brand/logo.png";
+import logo64Src from "@/assets/media/brand/logo-64.png?url";
+import logo128Src from "@/assets/media/brand/logo-128.png";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Registry
@@ -330,5 +332,14 @@ export function largestSrc(entry: MediaEntry): string {
   return entry.variants[entry.variants.length - 1]!.src;
 }
 
-/** Owner logo PNG path (transparent, RGBA, 1254x1254). */
-export const LOGO_SRC: string = logoSrc;
+/** Original owner logo PNG path (transparent RGBA, 1254x1254, ~398 KB). */
+export const LOGO_ORIGINAL_SRC: string = logoOriginalSrc;
+
+/** Optimized 64x64 header logo PNG (transparent RGBA, ~4 KB). */
+export const LOGO_64_SRC: string = logo64Src;
+
+/** Optimized 128x128 header logo PNG (transparent RGBA, ~11 KB). */
+export const LOGO_128_SRC: string = logo128Src;
+
+/** Default production header logo PNG (optimized 128x128 transparent RGBA, ~11 KB vs ~398 KB). */
+export const LOGO_SRC: string = logo128Src;
