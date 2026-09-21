@@ -11,6 +11,7 @@ node_modules
 dist
 dist-ssr
 .output
+.hostpapa-release/
 .vinxi
 .tanstack/**
 .nitro

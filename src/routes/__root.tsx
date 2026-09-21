@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { AppLink, useLang, usePathname } from "@/components/app-link";
+import { useLang, usePathname } from "@/components/app-link";
 import { dirOf } from "@/lib/locale";
 import {
   Outlet,
@@ -12,7 +12,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-import { I18nProvider, useI18n } from "@/lib/i18n";
+import { I18nProvider } from "@/lib/i18n";
 import { StoreProvider } from "@/lib/store";
 import { AdminProvider } from "@/lib/admin-store";
 import { stripLocale } from "@/lib/locale";
@@ -20,37 +20,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { BackToTop } from "@/components/back-to-top";
 import { btnClass } from "@/components/kit";
-
-function NotFoundComponent() {
-  const { t } = useI18n();
-  const links = [
-    { to: "/", label: t("nav.home") },
-    { to: "/flights", label: t("nav.flights") },
-    { to: "/manage", label: t("nav.manage") },
-    { to: "/contact", label: t("nav.contact") },
-  ] as const;
-
-  return (
-    <div className="bg-background px-4 py-16 sm:py-24">
-      <div className="mx-auto max-w-2xl">
-        <p className="code-id text-5xl font-bold text-clay sm:text-7xl">404</p>
-        <h1 className="mt-4 text-2xl font-bold text-foreground sm:text-4xl">{t("notfound.title")}</h1>
-        <p className="mt-3 max-w-lg text-sm text-muted-foreground sm:text-base">{t("notfound.sub")}</p>
-
-        <p className="eyebrow mt-8 text-muted-foreground">{t("notfound.help")}</p>
-        <ul className="mt-3 flex flex-wrap gap-2">
-          {links.map((link) => (
-            <li key={link.to}>
-              <AppLink to={link.to} className={btnClass(link.to === "/" ? "primary" : "outline", "md")}>
-                {link.label}
-              </AppLink>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  );
-}
+import { PublicNotFound } from "@/components/public-not-found";
 
 /** Detect locale from pathname safely without requiring I18nProvider. */
 function detectLocale(): "ar" | "en" {
@@ -157,7 +127,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   }),
   shellComponent: RootShell,
   component: RootComponent,
-  notFoundComponent: NotFoundComponent,
+  notFoundComponent: PublicNotFound,
   errorComponent: ErrorComponent,
 });
 

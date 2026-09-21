@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as Char123LocaleChar125RouteImport } from './routes/{-$locale}'
 import { Route as Char123LocaleChar125IndexRouteImport } from './routes/{-$locale}.index'
+import { Route as Char123LocaleChar125SplatRouteImport } from './routes/{-$locale}.$'
 import { Route as Char123LocaleChar125AboutRouteImport } from './routes/{-$locale}.about'
 import { Route as Char123LocaleChar125AccessDeniedRouteImport } from './routes/{-$locale}.access-denied'
 import { Route as Char123LocaleChar125AccountRouteImport } from './routes/{-$locale}.account'
@@ -86,6 +87,12 @@ const Char123LocaleChar125IndexRoute =
   Char123LocaleChar125IndexRouteImport.update({
     id: '/',
     path: '/',
+    getParentRoute: () => Char123LocaleChar125Route,
+  } as any)
+const Char123LocaleChar125SplatRoute =
+  Char123LocaleChar125SplatRouteImport.update({
+    id: '/$',
+    path: '/$',
     getParentRoute: () => Char123LocaleChar125Route,
   } as any)
 const Char123LocaleChar125AboutRoute =
@@ -481,6 +488,7 @@ const Char123LocaleChar125BoardingPassRefLegPaxRoute =
 
 export interface FileRoutesByFullPath {
   '/{-$locale}': typeof Char123LocaleChar125RouteWithChildren
+  '/{-$locale}/$': typeof Char123LocaleChar125SplatRoute
   '/{-$locale}/about': typeof Char123LocaleChar125AboutRoute
   '/{-$locale}/access-denied': typeof Char123LocaleChar125AccessDeniedRoute
   '/{-$locale}/account': typeof Char123LocaleChar125AccountRouteWithChildren
@@ -549,6 +557,7 @@ export interface FileRoutesByFullPath {
   '/{-$locale}/boarding-pass/$ref/$leg/$pax': typeof Char123LocaleChar125BoardingPassRefLegPaxRoute
 }
 export interface FileRoutesByTo {
+  '/{-$locale}/$': typeof Char123LocaleChar125SplatRoute
   '/{-$locale}/about': typeof Char123LocaleChar125AboutRoute
   '/{-$locale}/access-denied': typeof Char123LocaleChar125AccessDeniedRoute
   '/{-$locale}/book': typeof Char123LocaleChar125BookRoute
@@ -614,6 +623,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/{-$locale}': typeof Char123LocaleChar125RouteWithChildren
+  '/{-$locale}/$': typeof Char123LocaleChar125SplatRoute
   '/{-$locale}/about': typeof Char123LocaleChar125AboutRoute
   '/{-$locale}/access-denied': typeof Char123LocaleChar125AccessDeniedRoute
   '/{-$locale}/account': typeof Char123LocaleChar125AccountRouteWithChildren
@@ -685,6 +695,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/{-$locale}'
+    | '/{-$locale}/$'
     | '/{-$locale}/about'
     | '/{-$locale}/access-denied'
     | '/{-$locale}/account'
@@ -753,6 +764,7 @@ export interface FileRouteTypes {
     | '/{-$locale}/boarding-pass/$ref/$leg/$pax'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/{-$locale}/$'
     | '/{-$locale}/about'
     | '/{-$locale}/access-denied'
     | '/{-$locale}/book'
@@ -817,6 +829,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/{-$locale}'
+    | '/{-$locale}/$'
     | '/{-$locale}/about'
     | '/{-$locale}/access-denied'
     | '/{-$locale}/account'
@@ -903,6 +916,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/{-$locale}/'
       preLoaderRoute: typeof Char123LocaleChar125IndexRouteImport
+      parentRoute: typeof Char123LocaleChar125Route
+    }
+    '/{-$locale}/$': {
+      id: '/{-$locale}/$'
+      path: '/$'
+      fullPath: '/{-$locale}/$'
+      preLoaderRoute: typeof Char123LocaleChar125SplatRouteImport
       parentRoute: typeof Char123LocaleChar125Route
     }
     '/{-$locale}/about': {
@@ -1553,6 +1573,7 @@ const Char123LocaleChar125ManageRouteWithChildren =
   )
 
 interface Char123LocaleChar125RouteChildren {
+  Char123LocaleChar125SplatRoute: typeof Char123LocaleChar125SplatRoute
   Char123LocaleChar125AboutRoute: typeof Char123LocaleChar125AboutRoute
   Char123LocaleChar125AccessDeniedRoute: typeof Char123LocaleChar125AccessDeniedRoute
   Char123LocaleChar125AccountRoute: typeof Char123LocaleChar125AccountRouteWithChildren
@@ -1581,6 +1602,7 @@ interface Char123LocaleChar125RouteChildren {
 }
 
 const Char123LocaleChar125RouteChildren: Char123LocaleChar125RouteChildren = {
+  Char123LocaleChar125SplatRoute: Char123LocaleChar125SplatRoute,
   Char123LocaleChar125AboutRoute: Char123LocaleChar125AboutRoute,
   Char123LocaleChar125AccessDeniedRoute: Char123LocaleChar125AccessDeniedRoute,
   Char123LocaleChar125AccountRoute:

@@ -9,6 +9,8 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "build:hostpapa": "vite build --config vite.config.hostpapa.ts",
+    "hostpapa:prepare": "node scripts/prepare-hostpapa-release.mjs",
+    "hostpapa:verify": "node scripts/verify-hostpapa-release.mjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
