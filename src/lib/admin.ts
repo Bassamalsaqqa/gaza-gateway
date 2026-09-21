@@ -146,16 +146,10 @@ export const adminNav: AdminNavGroup[] = [
     ],
   },
   {
-    id: "website",
-    labelKey: "adm.group.website",
+    id: "content",
+    labelKey: "adm.group.content",
     items: [
       { id: "website", labelKey: "a2.nav.website", icon: Home, to: "/admin/website", permission: "content.view" },
-    ],
-  },
-  {
-    id: "airport",
-    labelKey: "adm.group.airport",
-    items: [
       { id: "airport", labelKey: "a2.nav.airport", icon: Landmark, to: "/admin/airport", permission: "content.view" },
     ],
   },

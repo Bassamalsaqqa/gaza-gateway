@@ -274,7 +274,7 @@ function Home() {
       </Container>
 
       {/* 5. Living Heritage Spotlight (First-Class Structural Chapter Bridge) */}
-      <section className="mt-20 sm:mt-24 border-y border-border bg-sand/80 py-16 sm:py-20">
+      <section className="mt-20 sm:mt-24 border-y border-border bg-ambient-sand py-16 sm:py-20">
         <Container>
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-2xl">

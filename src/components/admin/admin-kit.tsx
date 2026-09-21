@@ -406,8 +406,8 @@ export function AdminTabs<T extends string>({
 /* -------------------------------- side sheet ------------------------------ */
 
 /**
- * Quick-edit sheet. Slides in from the inline end, traps focus while open and
- * returns focus to the trigger on close.
+ * Quick-edit sheet / modal drawer. Supports logical inline start or end, traps focus
+ * while open and returns focus to the trigger on close via Radix Dialog.
  */
 export function GazaSheet({
   open,
@@ -416,6 +416,15 @@ export function GazaSheet({
   onClose,
   children,
   footer,
+  side = "end",
+  className,
+  overlayClassName,
+  bodyClassName,
+  headerLeading,
+  closeLabel,
+  restoreFocus = true,
+  restoreFocusRef,
+  triggerRef,
 }: {
   open: boolean;
   title: string;
@@ -423,12 +432,30 @@ export function GazaSheet({
   onClose: () => void;
   children: ReactNode;
   footer?: ReactNode;
+  side?: "start" | "end";
+  className?: string;
+  overlayClassName?: string;
+  bodyClassName?: string;
+  headerLeading?: ReactNode;
+  closeLabel?: string;
+  restoreFocus?: boolean;
+  restoreFocusRef?: React.RefObject<boolean>;
+  triggerRef?: React.RefObject<HTMLElement | null>;
 }) {
   const { t, lang } = useI18n();
   const titleId = useId();
   const descriptionId = useId();
   const returnFocusRef = useRef<HTMLElement | null>(null);
   const reduceMotion = useReducedMotion();
+
+  const xOffset =
+    side === "start"
+      ? lang === "ar"
+        ? "100%"
+        : "-100%"
+      : lang === "ar"
+        ? "-100%"
+        : "100%";
 
   return (
     <DialogPrimitive.Root
@@ -446,7 +473,7 @@ export function GazaSheet({
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: reduceMotion ? 0 : 0.16 }}
-                className="fixed inset-0 z-50 bg-ink/55"
+                className={cn("fixed inset-0 z-50 bg-ink/55", overlayClassName)}
               />
             </DialogPrimitive.Overlay>
             <DialogPrimitive.Content
@@ -458,40 +485,75 @@ export function GazaSheet({
                 returnFocusRef.current = document.activeElement as HTMLElement | null;
               }}
               onCloseAutoFocus={(event) => {
-                if (!returnFocusRef.current) return;
+                const shouldRestore = restoreFocusRef ? restoreFocusRef.current : restoreFocus;
+                if (!shouldRestore) {
+                  event.preventDefault();
+                  return;
+                }
+                const target = triggerRef?.current ?? returnFocusRef.current;
+                if (!target || !document.body.contains(target) || target.offsetParent === null) {
+                  return;
+                }
                 event.preventDefault();
-                returnFocusRef.current.focus();
+                target.focus();
               }}
             >
               <motion.aside
-                initial={reduceMotion ? false : { x: lang === "ar" ? "-100%" : "100%" }}
+                initial={reduceMotion ? false : { x: xOffset }}
                 animate={{ x: 0 }}
-                exit={reduceMotion ? { opacity: 0 } : { x: lang === "ar" ? "-100%" : "100%" }}
+                exit={reduceMotion ? { opacity: 0 } : { x: xOffset }}
                 transition={{ duration: reduceMotion ? 0 : 0.22, ease: [0.22, 1, 0.36, 1] }}
-                className="fixed inset-y-0 end-0 z-50 flex h-dvh w-full max-w-md flex-col border-s border-border bg-card shadow-[var(--shadow-lift)] focus:outline-none"
+                className={cn(
+                  "fixed inset-y-0 z-50 flex h-dvh flex-col shadow-[var(--shadow-lift)] focus:outline-none",
+                  side === "start" ? "start-0 border-e border-border" : "end-0 border-s border-border",
+                  "w-full max-w-md bg-card",
+                  className,
+                )}
               >
-                <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-3">
-                  <div className="min-w-0">
-                    <DialogPrimitive.Title id={titleId} className="text-sm font-bold">
+                {headerLeading ? (
+                  <div className="flex items-center justify-between border-b border-white/10">
+                    <DialogPrimitive.Title id={titleId} className="sr-only">
                       {title}
                     </DialogPrimitive.Title>
                     {description ? (
-                      <DialogPrimitive.Description
-                        id={descriptionId}
-                        className="text-xs text-muted-foreground"
-                      >
+                      <DialogPrimitive.Description id={descriptionId} className="sr-only">
                         {description}
                       </DialogPrimitive.Description>
                     ) : null}
+                    <div className="min-w-0">{headerLeading}</div>
+                    <DialogPrimitive.Close
+                      aria-label={closeLabel ?? t("adm.common.close")}
+                      className="me-2 flex size-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-md text-[var(--admin-nav-muted)] hover:text-[var(--admin-nav-foreground)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                    >
+                      <X aria-hidden="true" className="size-5" />
+                    </DialogPrimitive.Close>
                   </div>
-                  <DialogPrimitive.Close
-                    aria-label={t("adm.common.close")}
-                    className="flex size-11 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                  >
-                    <X aria-hidden="true" className="size-4" />
-                  </DialogPrimitive.Close>
+                ) : (
+                  <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-3">
+                    <div className="min-w-0">
+                      <DialogPrimitive.Title id={titleId} className="text-sm font-bold">
+                        {title}
+                      </DialogPrimitive.Title>
+                      {description ? (
+                        <DialogPrimitive.Description
+                          id={descriptionId}
+                          className="text-xs text-muted-foreground"
+                        >
+                          {description}
+                        </DialogPrimitive.Description>
+                      ) : null}
+                    </div>
+                    <DialogPrimitive.Close
+                      aria-label={closeLabel ?? t("adm.common.close")}
+                      className="flex size-11 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                    >
+                      <X aria-hidden="true" className="size-4" />
+                    </DialogPrimitive.Close>
+                  </div>
+                )}
+                <div className={cn("flex-1 overflow-y-auto", bodyClassName ?? "px-4 py-4")}>
+                  {children}
                 </div>
-                <div className="flex-1 overflow-y-auto px-4 py-4">{children}</div>
                 {footer ? (
                   <div className="flex flex-wrap justify-end gap-2 border-t border-border px-4 py-3">
                     {footer}

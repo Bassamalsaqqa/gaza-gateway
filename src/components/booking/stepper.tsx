@@ -34,7 +34,7 @@ export function Stepper({ current, maxStep, onStepClick }: StepperProps) {
   return (
     <nav aria-label={t("book.title")} className="border-b border-border bg-card">
       {/* Compact progress on small screens: where you are, what remains, and quick revisit */}
-      <div className="mx-auto w-full max-w-6xl px-4 py-3 sm:px-6 md:hidden">
+      <div className="page-shell px-4 py-3 sm:px-6 md:hidden">
         <div className="flex items-baseline justify-between gap-3">
           <p className="text-sm font-bold">{t(`step.${visible[index] ?? "results"}`)}</p>
           <p className="numeral text-xs font-semibold text-muted-foreground">
@@ -75,7 +75,7 @@ export function Stepper({ current, maxStep, onStepClick }: StepperProps) {
       </div>
 
       {/* Full step progression on desktop */}
-      <ol className="mx-auto hidden w-full max-w-6xl items-center gap-1 overflow-x-auto px-4 py-3 sm:px-6 md:flex">
+      <ol className="page-shell hidden items-center gap-1 overflow-x-auto px-4 py-3 sm:px-6 md:flex">
         {visible.map((step, i) => {
           const active = index === i;
           const isPrior = index > i;

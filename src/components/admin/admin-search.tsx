@@ -193,9 +193,11 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
   const today = todayISO();
 
   const suggestions = useMemo(() => {
-    if (canCommercial || canOps) return ["PS", "GZA", "AMM", "IST", "Delayed"];
-    return ["GZA", "AMM", "IST", "Archive"];
-  }, [canCommercial, canOps]);
+    const delayedTerm = lang === "ar" ? "متأخرة" : "Delayed";
+    const archiveTerm = lang === "ar" ? "الأرشيف" : "Archive";
+    if (canCommercial || canOps) return ["PS", "GZA", "AMM", "IST", delayedTerm];
+    return ["GZA", "AMM", "IST", archiveTerm];
+  }, [canCommercial, canOps, lang]);
 
   // Permitted commands
   const permittedCommands = useMemo(() => {
@@ -247,7 +249,8 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
         flightMap.set(f.id, f);
       }
       for (const f of flightMap.values()) {
-        const hay = normalizeSearch(`${f.number} ${f.originCode} ${f.destinationCode} ${f.aircraft}`);
+        const statusText = f.status === "Delayed" ? "delayed متأخرة" : f.status;
+        const hay = normalizeSearch(`${f.number} ${f.originCode} ${f.destinationCode} ${f.aircraft} ${statusText}`);
         if (hay.includes(q)) {
           out.push({
             id: `f-${f.id}`,
@@ -458,7 +461,7 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
                     onClick={() => setQuery(s)}
                     className="rounded-md border border-border px-2.5 py-1 text-xs font-semibold hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                   >
-                    <Ltr>{s}</Ltr>
+                    {/^[A-Z0-9 ]+$/.test(s) ? <Ltr>{s}</Ltr> : <span>{s}</span>}
                   </button>
                 ))}
               </div>

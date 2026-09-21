@@ -265,6 +265,7 @@ export function AirlineDatePicker({
                 ref={departTriggerRef}
                 id="search-depart"
                 type="button"
+                title={departDate || undefined}
                 onClick={() => handleTriggerClick("depart")}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
@@ -287,9 +288,6 @@ export function AirlineDatePicker({
                   <span className="tabular-nums font-mono font-semibold text-foreground">
                     {departDate ? dateShort(departDate, lang) : t("search.selectDates")}
                   </span>
-                </span>
-                <span className="text-xs text-muted-foreground font-mono tabular-nums">
-                  {departDate || ""}
                 </span>
               </button>
             </Field>
@@ -321,6 +319,7 @@ export function AirlineDatePicker({
                   id="search-return"
                   data-slot="return-date-slot"
                   type="button"
+                  title={returnDate || undefined}
                   onClick={() => handleTriggerClick("return")}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
@@ -347,9 +346,6 @@ export function AirlineDatePicker({
                         ? dateShort(returnDate, lang)
                         : t("search.selectDates")}
                     </span>
-                  </span>
-                  <span className="text-xs text-muted-foreground font-mono tabular-nums">
-                    {returnDate || ""}
                   </span>
                 </button>
               )}

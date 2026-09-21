@@ -106,40 +106,18 @@ function AdminDashboardPage() {
     setEdit(null);
   };
 
-  const primaryMetrics = useMemo(
+  const summaryMetrics = useMemo(
     () =>
       [
-        { key: "dep", show: mayOps, label: t("adm.dash.departures"), value: data.metrics.departures, emphasis: true },
-        { key: "arr", show: mayOps, label: t("adm.dash.arrivals"), value: data.metrics.arrivals, emphasis: true },
+        { key: "dep", show: mayOps, label: t("adm.dash.departures"), value: data.metrics.departures },
+        { key: "arr", show: mayOps, label: t("adm.dash.arrivals"), value: data.metrics.arrivals },
         { key: "bks", show: mayCommercial, label: t("adm.dash.bookings"), value: data.metrics.bookingsToday },
         { key: "pax", show: mayCommercial, label: t("adm.dash.passengers"), value: data.metrics.passengersTravelling },
       ].filter((m) => m.show),
     [mayOps, mayCommercial, data.metrics, t],
   );
 
-  const secondarySignals = useMemo(
-    () =>
-      [
-        { key: "del", show: mayOps, label: t("adm.dash.delayed"), value: data.metrics.delayed, tone: data.metrics.delayed ? ("warn" as const) : ("neutral" as const) },
-        { key: "cxl", show: mayOps, label: t("adm.dash.cancelled"), value: data.metrics.cancelled, tone: data.metrics.cancelled ? ("danger" as const) : ("neutral" as const) },
-        { key: "chk", show: mayCommercial, label: t("adm.dash.checkedIn"), value: data.metrics.passengersCheckedIn, tone: "brand" as const },
-        { key: "enq", show: mayEngagement, label: t("adm.dash.enquiries"), value: data.metrics.enquiries },
-        { key: "cnt", show: mayContent, label: t("adm.dash.contentAttention"), value: data.metrics.contentAttention },
-      ].filter((m) => m.show),
-    [mayOps, mayCommercial, mayContent, mayEngagement, data.metrics, t],
-  );
-
-  const quickActions = useMemo(
-    () =>
-      [
-        { key: "adm.quick.schedule", to: "/admin/schedules", permission: "ops.edit" as const, show: mayOps },
-        { key: "adm.quick.booking", to: "/admin/bookings/new", permission: "commercial.edit" as const, show: mayCommercial },
-        { key: "adm.quick.media", to: "/admin/website", permission: "content.edit" as const, show: mayContent },
-        { key: "adm.quick.archive", to: "/admin/airport", permission: "content.edit" as const, show: mayContent },
-        { key: "adm.quick.homepage", to: "/admin/website", permission: "content.edit" as const, show: mayContent },
-      ].filter((a) => a.show),
-    [mayOps, mayCommercial, mayContent],
-  );
+  const hasIrregularity = (data.metrics.delayed > 0 || data.metrics.cancelled > 0) && mayOps;
 
   const operationPanel = (
     <AdminPanel title={t("adm.dash.operation")} description={t("adm.dash.operationSub")} bodyClassName="p-0">
@@ -428,57 +406,11 @@ function AdminDashboardPage() {
     </AdminPanel>
   );
 
-  const quickActionsPanel = (
-    <AdminPanel title={t("adm.dash.quick")}>
-      <div className="flex flex-wrap gap-2">
-        {quickActions.map((action) => {
-          const label = t(action.key);
-          const allowed = can(action.permission);
-          if (!allowed) {
-            return (
-              <PermissionButton
-                key={action.key}
-                allowed={false}
-                reason={t("adm.quick.noPermission")}
-              >
-                {label}
-              </PermissionButton>
-            );
-          }
-          return (
-            <AppLink
-              key={action.key}
-              to={action.to}
-              className={btnClass("outline", "sm")}
-            >
-              {label}
-            </AppLink>
-          );
-        })}
-        {mayCommercial ? (
-          <AppLink
-            to="/admin/bookings"
-            className={btnClass("primary", "sm")}
-          >
-            {t("adm.quick.findBooking")}
-          </AppLink>
-        ) : null}
-      </div>
-    </AdminPanel>
-  );
-
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <AdminPageHeader
         title={t("adm.dash.title")}
         description={t("adm.dash.sub", { date: dateLong(data.today, lang) })}
-        meta={
-          <div className="flex items-center gap-2">
-            <AdminChip tone="muted" className="text-[11px]">
-              {t("adm.shell.simulation")}
-            </AdminChip>
-          </div>
-        }
         action={
           mayOps ? (
             <AppLink
@@ -491,93 +423,96 @@ function AdminDashboardPage() {
         }
       />
 
-      {/* A. Today summary: primary metrics + compact secondary signals & warnings */}
-      {primaryMetrics.length > 0 || secondarySignals.length > 0 ? (
-        <section aria-label={t("adm.dash.today")} className="space-y-2.5">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            {t("adm.dash.today")}
-          </h2>
-          {primaryMetrics.length > 0 ? (
-            <div
-              className={cn(
-                "grid gap-2.5",
-                primaryMetrics.length <= 2
+      {/* D1. Single operational summary surface (Departures, Arrivals, Bookings, Passengers) */}
+      {summaryMetrics.length > 0 ? (
+        <section
+          aria-label={t("adm.dash.today")}
+          data-testid="operations-summary"
+          className="overflow-hidden rounded-xl border border-border bg-card shadow-xs"
+        >
+          <div
+            className={cn(
+              "grid divide-y divide-border sm:divide-y-0 sm:divide-x rtl:sm:divide-x-reverse",
+              summaryMetrics.length === 4
+                ? "grid-cols-2 sm:grid-cols-4"
+                : summaryMetrics.length === 2
                   ? "grid-cols-2"
-                  : "grid-cols-2 sm:grid-cols-4",
-              )}
-            >
-              {primaryMetrics.map((m) => (
-                <Metric key={m.key} label={m.label} value={m.value} emphasis={m.emphasis} />
-              ))}
-            </div>
-          ) : null}
+                  : "grid-cols-1 sm:grid-cols-3",
+            )}
+          >
+            {summaryMetrics.map((m) => (
+              <div key={m.key} className="flex flex-col justify-center px-4 py-3 sm:px-5 sm:py-3.5">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  {m.label}
+                </span>
+                <span className="code-id mt-1 text-2xl sm:text-3xl font-bold tracking-tight text-foreground tabular-nums">
+                  {m.value}
+                </span>
+              </div>
+            ))}
+          </div>
 
-          {secondarySignals.length > 0 ? (
-            <div
-              className={cn(
-                "grid gap-2",
-                secondarySignals.length <= 3
-                  ? "grid-cols-2 sm:grid-cols-3"
-                  : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5",
-              )}
-            >
-              {secondarySignals.map((m) => (
-                <Metric key={m.key} label={m.label} value={m.value} tone={m.tone} />
-              ))}
+          {/* D2. Restrained secondary irregularity line */}
+          {hasIrregularity ? (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border bg-sand/30 px-4 py-2 text-xs">
+              <span className="font-semibold text-muted-foreground">{t("adm.dash.today")}:</span>
+              {data.metrics.delayed > 0 ? (
+                <span className="inline-flex items-center gap-1 font-medium text-status-delayed">
+                  <span className="size-1.5 rounded-full bg-status-delayed" aria-hidden="true" />
+                  <span className="tabular-nums">{data.metrics.delayed}</span> {t("adm.dash.delayed")}
+                </span>
+              ) : null}
+              {data.metrics.delayed > 0 && data.metrics.cancelled > 0 ? (
+                <span aria-hidden="true" className="text-muted-foreground/40">·</span>
+              ) : null}
+              {data.metrics.cancelled > 0 ? (
+                <span className="inline-flex items-center gap-1 font-medium text-status-cancelled">
+                  <span className="size-1.5 rounded-full bg-status-cancelled" aria-hidden="true" />
+                  <span className="tabular-nums">{data.metrics.cancelled}</span> {t("adm.dash.cancelled")}
+                </span>
+              ) : null}
             </div>
           ) : null}
         </section>
       ) : null}
 
-      {/* Dynamic layout based on available domains */}
+      {/* D3. Dominant operational layout */}
       {mayOps && mayCommercial ? (
         <>
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)]">
             {operationPanel}
             <div id="attention" className="space-y-4">
               {attentionPanel}
-              {mayContent ? contentPanel : null}
             </div>
           </div>
 
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
+          <div className={cn("grid gap-4", mayContent ? "xl:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)]" : "grid-cols-1")}>
             {recentBookingsPanel}
-            {quickActionsPanel}
+            {mayContent ? contentPanel : null}
           </div>
         </>
       ) : mayOps && !mayCommercial ? (
-        <>
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
-            {operationPanel}
-            <div id="attention" className="space-y-4">
-              {attentionPanel}
-              {mayContent ? contentPanel : null}
-            </div>
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)]">
+          {operationPanel}
+          <div id="attention" className="space-y-4">
+            {attentionPanel}
+            {mayContent ? contentPanel : null}
           </div>
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)]">
-            {quickActionsPanel}
-          </div>
-        </>
+        </div>
       ) : !mayOps && mayCommercial ? (
-        <>
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
-            {recentBookingsPanel}
-            <div id="attention" className="space-y-4">
-              {attentionPanel}
-              {mayContent ? contentPanel : null}
-            </div>
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)]">
+          {recentBookingsPanel}
+          <div id="attention" className="space-y-4">
+            {attentionPanel}
+            {mayContent ? contentPanel : null}
           </div>
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)]">
-            {quickActionsPanel}
-          </div>
-        </>
+        </div>
       ) : (
         /* Content Editor / content-only layout */
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
           {mayContent ? contentPanel : null}
           <div id="attention" className="space-y-4">
             {attentionPanel}
-            {quickActionsPanel}
           </div>
         </div>
       )}

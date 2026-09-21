@@ -777,11 +777,11 @@ The dual-deck navigation (dark institutional utility bar stacked atop an ivory n
 
 ### 22.3 Ambient Architectural Skin & Hero Patterns `[Proposed Design Contract]`
 To evoke authentic Palestinian architectural heritage (limestone masonry, arched gateways, structured stonework) without visual distraction:
-- **Hero Patterns (Architect)**: Sourced from Steve Schoger's Hero Patterns under CC BY 4.0 (documented in `docs/ATTRIBUTIONS.md`).
+- **Hero Patterns (Geometric 60×60)**: Sourced from Steve Schoger's Hero Patterns under CC BY 4.0 (documented in `docs/ATTRIBUTIONS.md`).
 - **Palette & Opacity Tuning**:
-  - `.bg-ambient`: Applied to public page background (`#FBFAF6` base) with deep olive `#073724` at **1.6%** opacity (`fill-opacity='0.016'`).
-  - `.bg-ambient-sand`: Applied to hero and section headers (`#F5F2E7` base) with deep olive `#195B3B` at **1.4%** opacity (`fill-opacity='0.014'`).
-  - `.bg-ambient-admin`: Applied to station operations desk (`#FBFAF6` base) with olive `#073724` at **0.9%** opacity (`fill-opacity='0.009'`) for calm data density.
+  - `.bg-ambient`: Applied to public page background (`#FBFAF6` base) with deep olive `#073724` at **6.5%** opacity (`fill-opacity='0.065'`).
+  - `.bg-ambient-sand`: Applied to hero and section headers (`#F5F2E7` base) with deep olive `#195B3B` at **5.5%** opacity (`fill-opacity='0.055'`).
+  - `.bg-ambient-admin`: Applied to station operations desk (`#FCF9F2` base) with olive `#073724` at **3.5%** opacity (`fill-opacity='0.035'`) for calm data density.
 - **Contrast & Legibility**: Subtle geometric linework sits entirely below content text and interactive controls, fully preserving WCAG 2.2 AA contrast compliance.
 
 ### 22.4 Semantic Restraint Standard `[Proposed Design Contract]`
@@ -790,6 +790,32 @@ In alignment with the anti-template contract (§1.4), UI chrome is disciplined t
 2. **Plain Operational Disclosures**: Pulsing "radar" badges and simulated station protocol pills are replaced with quiet, honest prose: `Pre-operational prototype; schedules are illustrative.`
 3. **Airport Dossier Chapter Rail**: Replaces card-like capsules with an editorial text rail (`Overview · 01 Past · 02 Present · 03 Future`) and clean directional pagination (`← Prev` and `Next →`) with automatic RTL glyph handling.
 4. **Archive & Future Vision Demarcation**: Historical and documentary records remain strictly in the Archive (`/gallery`), while illustrative AI concept studies reside solely in the Future Vision chapter (`/airport/future`), completely removing catalog tags (`[CATALOG-ID-FIELD]`) and provenance badges from thumbnail cards.
+
+### 22.5 Admin Operational Desk Architecture `[Proposed Design Contract]`
+The administrative workstation embodies an authentic airport Operations Desk: calm, dense, precise, warm, and distinctly Gaza:
+1. **Semantic Palette Tokens**:
+   - `--admin-nav: #18271F` (deep forest night foundation)
+   - `--admin-nav-active: #23372D` (distinguished active surface)
+   - `--admin-nav-foreground: #F7F2E8` (warm ivory primary text)
+   - `--admin-nav-muted: #CEC5B7` (warm grey secondary typography)
+   - `--admin-nav-accent: #C7A46A` (refined gold operational indicator)
+   - `--admin-workspace: #FCF9F2` (warm limestone canvas background)
+2. **Viewport-Sticky Sidebar & Independent Nav Scroll**:
+   - The desktop sidebar is `sticky top-0 h-dvh self-start flex flex-col` with a non-scrolling workspace header/monogram, an independently scrolling navigation container (`overflow-y-auto [scrollbar-width:thin]`), and no bottom buttons.
+   - The main workspace document retains standard browser window scroll (no nested-scroll containers).
+3. **Responsive Widths & Persistent Workstation Preference**:
+   - `<1024px`: Mobile slide-over drawer triggered by a minimum 44px topbar `Menu` button; persistent rail is never exposed.
+   - `1024–1279px`: Default collapsed rail (`72px`, `w-[72px]`) for visitors without saved preference.
+   - `>=1280px`: Default expanded sidebar (`268px`, `w-[268px]`) for visitors without saved preference.
+   - Persisted under `gza.admin.sidebar.collapsed` in `localStorage` without hydration mismatch.
+4. **Active Indicator & Tooltip System**:
+   - Active nav item features `--admin-nav-active` background, `--admin-nav-foreground` text, `--admin-nav-accent` icon, and a 3px logical `border-inline-start` gold rail that mirrors correctly in RTL.
+   - Collapsed rail links feature full accessible names (`aria-label`), `aria-current="page"`, and Radix Tooltips on hover and keyboard focus, opening towards the workspace (`side="right"` in LTR, `side="left"` in RTL).
+   - Mock unread enquiries display as a clean inline counter when expanded and a subtle corner dot when collapsed.
+5. **Dashboard Single Summary Surface Principle**:
+   - The 9 disparate KPI cards are unified into a single operational summary surface presenting Departures, Arrivals, Bookings, and Passengers with monospace numbers and subtle dividers (1 row on desktop, 2×2 on mobile).
+   - Irregularities (delays/cancellations) are reported in a single restrained line.
+   - Today's flight operation board is the dominant operational surface, paired with an attention rail and recent bookings/content below; redundant generic quick-actions panels are removed.
 
 ---
 

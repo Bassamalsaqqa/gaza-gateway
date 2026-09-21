@@ -1,8 +1,8 @@
 # External Asset Attributions
 
-## Hero Patterns (Architect)
-- **Asset**: Architect seamless SVG background pattern
+## Hero Patterns (Geometric 60×60)
+- **Asset**: Geometric seamless SVG background pattern (60×60)
 - **Creator**: Steve Schoger
 - **URL**: [heropatterns.com](https://heropatterns.com/)
 - **License**: Creative Commons Attribution 4.0 International ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/))
-- **Adaptation**: Converted to inline SVG data URIs; base background and fill colors adapted to the Gaza International Airport / Palestinian Airlines palette (`#073724` deep olive and `#195B3B` olive); opacity calibrated to ultra-restrained levels (0.9%–1.6%: public canvas at 1.6%, sand headers at 1.4%, admin workspace at 0.9%) for subtle ambient architectural texture that recedes into the background without interfering with content legibility or data density.
+- **Adaptation**: Converted to inline SVG data URIs; base background and fill colors adapted to the Gaza International Airport / Palestinian Airlines palette: public canvas `#FBFAF6` with deep olive `#073724` at 6.5% opacity (`fill-opacity='0.065'`), sand headers `#F5F2E7` with deep olive `#195B3B` at 5.5% opacity (`fill-opacity='0.055'`), and admin workstation `#FCF9F2` with deep olive `#073724` at 3.5% opacity (`fill-opacity='0.035'`) for a distinct, recognizable geometric architectural presence that sits cleanly beneath content without compromising legibility, operational clarity, or WCAG 2.2 AA contrast compliance.
