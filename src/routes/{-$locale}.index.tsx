@@ -7,7 +7,7 @@ import { FlightSearchForm } from "@/components/flight-search-form";
 import { DestinationCard } from "@/components/destination-card";
 import { FlightTable } from "@/components/flight-table";
 import { StatusBadge } from "@/components/flight-status";
-import { btnClass, Code, Container, Eyebrow, SectionHeader } from "@/components/kit";
+import { btnClass, Code, Container, SectionHeader } from "@/components/kit";
 import {
   airportByCode,
   arrivalsOn,
@@ -70,33 +70,24 @@ function Home() {
 
         <Container className="relative z-20 pt-12 pb-32 sm:pt-16 sm:pb-40 lg:pt-20 lg:pb-44">
           <div className="flex flex-col items-start">
-            {/* Ambient Station Protocol Badge */}
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-ink-border bg-ink/60 px-3 py-1 text-xs text-ink-muted backdrop-blur-xs">
-              <span
-                className="size-2 rounded-full bg-status-ontime animate-pulse"
-                aria-hidden="true"
-              />
-              <span className="code-id font-bold text-ink-foreground">GZA</span>
-              <span className="opacity-40" aria-hidden="true">
-                ·
-              </span>
-              <span>{t("home.statusNotice")}</span>
-            </div>
-
-            <Eyebrow className="text-clay-soft">
-              <span className="code-id font-mono font-bold">GZA · PS</span>
+            <p className="type-label text-clay-soft">
+              <span className="code-id font-mono font-semibold">GZA · PS</span>
               <span className="mx-1.5 opacity-60" aria-hidden="true">
                 ·
               </span>
               <span>{t("brand.airline")}</span>
-            </Eyebrow>
+            </p>
 
-            <h1 className="mt-4 max-w-3xl text-3xl font-bold leading-[1.12] tracking-tight sm:text-5xl lg:text-6xl">
+            <h1 className="type-title-hero mt-3 max-w-3xl text-ink-foreground">
               {t("home.h1")}
             </h1>
 
-            <p className="mt-5 max-w-2xl text-sm leading-relaxed text-ink-muted sm:text-base lg:text-lg">
+            <p className="mt-4 max-w-2xl text-base leading-relaxed text-ink-muted sm:text-lg">
               {t("home.sub")}
+            </p>
+
+            <p className="mt-2.5 text-xs text-ink-muted/80 sm:text-sm">
+              {t("home.heroNotice")}
             </p>
 
             <div className="mt-8 flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
@@ -199,7 +190,6 @@ function Home() {
       {/* 4. Today at GZA / Flight Schedule Matrix */}
       <Container className="mt-16 sm:mt-20">
         <SectionHeader
-          eyebrow={t("flights.today")}
           title={t("home.boardTitle")}
           description={t("home.boardSub")}
           action={
@@ -286,32 +276,23 @@ function Home() {
       {/* 5. Living Heritage Spotlight (First-Class Structural Chapter Bridge) */}
       <section className="mt-20 sm:mt-24 border-y border-border bg-sand/80 py-16 sm:py-20">
         <Container>
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-bold text-brand-deep">
-                {t("home.heritageBadge")}
-              </span>
-              <span className="text-xs font-medium text-clay">{t("home.heritageTag")}</span>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-2xl">
+              <h2 className="type-title-lg text-foreground">
+                {t("home.heritageSpotlightTitle")}
+              </h2>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground sm:text-base">
+                {t("home.heritageSpotlightDesc")}
+              </p>
             </div>
 
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-              <div className="max-w-2xl">
-                <h2 className="text-2xl font-bold tracking-tight sm:text-4xl text-foreground">
-                  {t("home.heritageSpotlightTitle")}
-                </h2>
-                <p className="mt-3 text-sm leading-relaxed text-muted-foreground sm:text-base">
-                  {t("home.heritageSpotlightDesc")}
-                </p>
-              </div>
-
-              <AppLink
-                to="/gallery"
-                className={btnClass("outline", "sm", "self-start lg:self-auto shrink-0")}
-              >
-                <span>{t("home.exploreArchive")}</span>
-                <ArrowRight aria-hidden="true" className="size-4 rtl:rotate-180" />
-              </AppLink>
-            </div>
+            <AppLink
+              to="/gallery"
+              className={btnClass("outline", "sm", "self-start lg:self-auto shrink-0")}
+            >
+              <span>{t("home.exploreArchive")}</span>
+              <ArrowRight aria-hidden="true" className="size-4 rtl:rotate-180" />
+            </AppLink>
           </div>
 
           {/* 3 Heritage Chapters (Past, Present, Future) */}
@@ -323,7 +304,6 @@ function Home() {
                   title: "home.past",
                   sub: "home.pastSub",
                   seed: "archive-terminal-old",
-                  era: t("home.eraPast"),
                   isFuture: false,
                 },
                 {
@@ -331,7 +311,6 @@ function Home() {
                   title: "home.present",
                   sub: "home.presentSub",
                   seed: "empty-runway-today",
-                  era: t("home.eraPresent"),
                   isFuture: false,
                 },
                 {
@@ -339,7 +318,6 @@ function Home() {
                   title: "home.future",
                   sub: "home.futureSub",
                   seed: "terminal-concept-render",
-                  era: t("home.eraFuture"),
                   isFuture: true,
                 },
               ] as const
@@ -365,9 +343,6 @@ function Home() {
                     />
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/30 to-transparent" />
-                  <span className="absolute start-3.5 top-3.5 rounded-md bg-ink/70 px-2.5 py-1 text-xs font-semibold text-ink-foreground backdrop-blur-xs">
-                    {chapter.era}
-                  </span>
                   {chapter.isFuture && (
                     <span className="absolute bottom-2.5 end-3 rounded bg-ink/80 px-1.5 py-0.5 font-mono text-[0.65rem] text-ink-muted">
                       {t("media.conceptShortLabel")}
@@ -399,7 +374,6 @@ function Home() {
       {/* 6. Opening Regional Route Network */}
       <Container className="mt-16 sm:mt-20">
         <SectionHeader
-          eyebrow={t("nav.destinations")}
           title={t("home.destTitle")}
           description={t("home.destSub")}
           action={
@@ -480,9 +454,8 @@ function Home() {
       </Container>
 
       {/* 8. Archival Gallery Preview */}
-      <Container className="mt-16 sm:mt-20">
+      <Container className="mt-16 sm:mt-20 mb-12">
         <SectionHeader
-          eyebrow={t("nav.gallery")}
           title={t("home.archiveTitle")}
           description={t("home.archiveSub")}
           action={
@@ -508,26 +481,6 @@ function Home() {
             </li>
           ))}
         </ul>
-      </Container>
-
-      {/* 9. Civic Airport Callout Banner */}
-      <Container className="mt-16 sm:mt-20 mb-8">
-        <div className="flex flex-col items-start gap-4 rounded-2xl border border-border bg-sand p-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3.5">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand-deep">
-              <Plane aria-hidden="true" className="size-5 rtl:-scale-x-100" />
-            </div>
-            <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
-              <span className="font-semibold text-foreground">
-                <Code>GZA</Code> · <Code>PS</Code>
-              </span>{" "}
-              {t("footer.rights")}
-            </p>
-          </div>
-          <AppLink to="/about" className={btnClass("outline", "sm", "shrink-0")}>
-            {t("nav.about")}
-          </AppLink>
-        </div>
       </Container>
     </>
   );

@@ -45,7 +45,7 @@ export function SiteFooter() {
   const { t } = useI18n();
   return (
     <footer className="mt-20 border-t border-ink-border bg-ink text-ink-foreground">
-      <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-14 sm:px-6 sm:grid-cols-2 lg:grid-cols-[1.4fr_repeat(4,1fr)]">
+      <div className="page-shell grid gap-10 px-4 py-14 sm:px-6 lg:px-8 sm:grid-cols-2 lg:grid-cols-[1.4fr_repeat(4,1fr)]">
         <div>
           <Brand tone="dark" />
           <p className="mt-4 max-w-xs text-sm text-ink-muted">{t("home.storySub")}</p>
@@ -66,7 +66,7 @@ export function SiteFooter() {
         ))}
       </div>
       <div className="border-t border-ink-border">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-4 py-6 text-xs text-ink-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div className="page-shell flex flex-col gap-2 px-4 py-6 text-xs text-ink-muted sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <p>
             © {new Date().getFullYear()} {t("brand.airport")} · <span className="code-id">GZA</span>
           </p>

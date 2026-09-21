@@ -56,7 +56,7 @@ function FlightsPage() {
 
   return (
     <>
-      <PageHeader eyebrow="GZA · Terminal 1" title={t("flights.title")} description={t("flights.sub")} />
+      <PageHeader title={t("flights.title")} description={t("flights.sub")} />
 
       <Container className="py-8">
         <Tabs

@@ -69,7 +69,7 @@ function ManageLookupPage() {
 
   return (
     <>
-      <PageHeader eyebrow={t("nav.manage")} title={t("manage.title")} description={t("manage.sub")} />
+      <PageHeader title={t("manage.title")} description={t("manage.sub")} />
 
       <Container className="grid gap-8 py-10 lg:grid-cols-[1fr_1.4fr]">
         <form onSubmit={submit} className="surface h-fit p-5" noValidate>

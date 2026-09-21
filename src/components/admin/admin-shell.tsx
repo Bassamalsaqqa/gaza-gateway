@@ -507,7 +507,7 @@ export function AdminShell({
           </div>
         </header>
 
-        <main id="admin-main" className="min-w-0 flex-1 px-3 py-4 sm:px-4 sm:py-5">
+        <main id="admin-main" className="min-w-0 flex-1 bg-ambient-admin px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
           {children}
         </main>
       </div>

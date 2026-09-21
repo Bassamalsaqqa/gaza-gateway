@@ -93,7 +93,7 @@ function PrivacyPage() {
   const { t, lang } = useI18n();
   return (
     <>
-      <PageHeader eyebrow="GZA" title={t("legal.privacyTitle")} description={t("legal.privacySub")} />
+      <PageHeader title={t("legal.privacyTitle")} description={t("legal.privacySub")} />
       <Container className="py-10">
         <div className="mx-auto max-w-3xl space-y-6">
           <Notice title={t("common.notice")}>{t("footer.rights")}</Notice>

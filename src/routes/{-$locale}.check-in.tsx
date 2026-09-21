@@ -62,7 +62,7 @@ function CheckInEntryPage() {
 
   return (
     <>
-      <PageHeader eyebrow={t("nav.checkin")} title={t("ci.publicTitle")} description={t("ci.publicSub")} />
+      <PageHeader title={t("ci.publicTitle")} description={t("ci.publicSub")} />
 
       <Container className="grid gap-8 py-10 lg:grid-cols-[1fr_1.2fr]">
         <form onSubmit={submit} className="surface h-fit p-5" noValidate>

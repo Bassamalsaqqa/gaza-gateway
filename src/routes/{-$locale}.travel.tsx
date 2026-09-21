@@ -38,7 +38,6 @@ function TravelPage() {
   return (
     <>
       <PageHeader
-        eyebrow={t("nav.travel")}
         title={t("travel.title")}
         description={t("travel.sub")}
       />

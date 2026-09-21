@@ -169,7 +169,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body>
+      <body className="bg-ambient">
         {children}
         <Scripts />
       </body>
@@ -203,7 +203,7 @@ function SiteFrame() {
       {isAdmin ? (
         <Outlet />
       ) : (
-        <div className="flex min-h-screen flex-col">
+        <div className="flex min-h-screen flex-col bg-ambient">
           <SiteHeader />
           <main id="main" className="flex-1">
             {/* Required: nested routes render here. */}

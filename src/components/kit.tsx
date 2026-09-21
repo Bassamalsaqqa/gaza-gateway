@@ -190,12 +190,13 @@ export function SectionHeader({
   tone?: "light" | "dark";
 }) {
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div className="max-w-2xl">
         {eyebrow ? <Eyebrow className={tone === "dark" ? "text-clay-soft" : undefined}>{eyebrow}</Eyebrow> : null}
         <h2
           className={cn(
-            "mt-2 text-2xl font-bold sm:text-3xl",
+            "type-title-md",
+            eyebrow ? "mt-1.5" : "",
             tone === "dark" ? "text-ink-foreground" : "text-foreground",
           )}
         >
@@ -224,12 +225,12 @@ export function PageHeader({
   children?: ReactNode;
 }) {
   return (
-    <header className="border-b border-border bg-sand">
-      <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
+    <header className="border-b border-border bg-ambient-sand">
+      <div className="page-shell px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
         {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
-        <h1 className="type-title-lg mt-3">{title}</h1>
-        {description ? <p className="mt-3 max-w-2xl text-sm text-muted-foreground sm:text-base">{description}</p> : null}
-        {children ? <div className="mt-6">{children}</div> : null}
+        <h1 className="type-title-lg mt-2">{title}</h1>
+        {description ? <p className="mt-2.5 max-w-2xl text-sm text-muted-foreground sm:text-base">{description}</p> : null}
+        {children ? <div className="mt-5">{children}</div> : null}
       </div>
     </header>
   );
@@ -266,7 +267,7 @@ export function Notice({ children, title }: { children: ReactNode; title?: strin
 }
 
 export function Container({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn("mx-auto w-full max-w-6xl px-4 sm:px-6", className)}>{children}</div>;
+  return <div className={cn("page-shell px-4 sm:px-6 lg:px-8", className)}>{children}</div>;
 }
 
 export function Code({ children, className }: { children: ReactNode; className?: string }) {

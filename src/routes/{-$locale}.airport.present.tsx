@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Compass, FileCheck2, MapPin, ShieldCheck } from "lucide-react";
 import { ChapterNav, ChapterPagination } from "@/components/airport/chapter-nav";
-import { Container, Eyebrow, Notice, Panel } from "@/components/kit";
+import { Container, Panel } from "@/components/kit";
 import { img } from "@/lib/data";
 import { useI18n } from "@/lib/i18n";
 
@@ -50,17 +50,9 @@ function PresentPage() {
   return (
     <>
       {/* Editorial Chapter Hero */}
-      <section className="border-b border-border bg-sand">
+      <section className="border-b border-border bg-ambient-sand">
         <Container className="py-14 sm:py-20">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-clay">
-              <span className="numeral font-mono">02</span>
-              <span>·</span>
-              <span>{t("airport.chapter2")}</span>
-            </span>
-            <span className="text-xs font-medium text-muted-foreground">{t("airport.documentaryRecord")}</span>
-          </div>
-          <h1 className="mt-4 max-w-3xl text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
+          <h1 className="type-title-hero max-w-3xl text-foreground">
             {t("airport.present")}
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
@@ -71,17 +63,15 @@ function PresentPage() {
 
       <Container className="py-8 sm:py-12">
         {/* Persistent Chapter Sequence Navigation */}
-        <ChapterNav activeChapter="present" className="mb-10" />
+        <ChapterNav activeChapter="present" className="mb-8" />
 
         {/* Factual Integrity Notice */}
-        <Notice title={t("common.notice")}>
-          <p className="text-sm leading-relaxed">
-            {t("airport.presentNotice")}
-          </p>
-        </Notice>
+        <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
+          {t("airport.presentNotice")}
+        </p>
 
         {/* Key Site Facts Strip */}
-        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {siteParameters.map((param) => (
             <div
               key={param.label}
@@ -130,14 +120,6 @@ function PresentPage() {
               <p className="mt-3 text-base leading-relaxed text-muted-foreground">
                 {t("airport.runwayBody")}
               </p>
-              <div className="mt-4 flex flex-wrap gap-2 text-xs">
-                <span className="code-id rounded-md bg-secondary px-2.5 py-1 text-muted-foreground">
-                  [CATALOG-ID-FIELD]
-                </span>
-                <span className="code-id rounded-md bg-secondary px-2.5 py-1 text-muted-foreground">
-                  [PROVENANCE]
-                </span>
-              </div>
             </Panel>
 
             <Panel>
@@ -163,16 +145,10 @@ function PresentPage() {
                 className="size-full object-cover opacity-75 transition-transform duration-500 hover:scale-105"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-transparent to-transparent" />
-              <span className="absolute bottom-3 start-4 rounded-md bg-ink/80 px-2 py-0.5 font-mono text-xs text-ink-muted">
-                [PROVENANCE]
-              </span>
             </div>
             <div className="flex flex-1 flex-col justify-between p-5 sm:p-6">
               <div>
-                <Eyebrow className="text-clay">
-                  {t("airport.spatialEyebrow")}
-                </Eyebrow>
-                <h3 className="mt-2 text-lg font-bold text-foreground">
+                <h3 className="text-lg font-bold text-foreground">
                   {t("airport.spatialTitle")}
                 </h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">

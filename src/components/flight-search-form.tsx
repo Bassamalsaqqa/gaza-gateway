@@ -1,5 +1,5 @@
 import { useAppNavigate } from "@/components/app-link";
-import { ArrowLeftRight, Search } from "lucide-react";
+import { ArrowDownUp, ArrowLeftRight, Search } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { btnClass, Field } from "./kit";
 import { AirportCombobox } from "./airport-combobox";
@@ -232,9 +232,9 @@ export function FlightSearchForm({
       </fieldset>
 
       {/* Main Console Inputs Grid */}
-      <div className="mt-4 grid gap-3.5 sm:gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {/* Origin and Destination with Tactile Swap */}
-        <div className="relative grid gap-3 sm:grid-cols-2 lg:col-span-2">
+      <div className="mt-4 grid grid-cols-1 gap-3.5 sm:gap-4 xl:grid-cols-2">
+        {/* Origin and Destination with Dedicated Swap Column */}
+        <div className="grid grid-cols-1 items-end gap-2.5 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:gap-2">
           <Field label={t("search.from")} htmlFor="search-from">
             <AirportCombobox
               id="search-from"
@@ -245,15 +245,33 @@ export function FlightSearchForm({
             />
           </Field>
 
-          <button
-            type="button"
-            onClick={swap}
-            aria-label={t("search.swap")}
-            title={t("search.swap")}
-            className="absolute start-1/2 top-1/2 z-10 hidden size-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-[var(--shadow-soft)] transition-transform hover:scale-105 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring sm:flex rtl:translate-x-1/2 cursor-pointer select-none"
-          >
-            <ArrowLeftRight aria-hidden="true" className="size-4 rtl:rotate-180" />
-          </button>
+          {/* Desktop/Tablet swap button in its own column */}
+          <div className="hidden sm:flex sm:h-11 sm:items-center sm:justify-center">
+            <button
+              type="button"
+              data-slot="route-swap-button"
+              onClick={swap}
+              aria-label={t("search.swap")}
+              title={t("search.swap")}
+              className="inline-flex size-9 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-xs transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring cursor-pointer select-none"
+            >
+              <ArrowLeftRight aria-hidden="true" className="size-4" />
+            </button>
+          </div>
+
+          {/* Mobile centered 44px vertical swap button */}
+          <div className="flex justify-center sm:hidden -my-1">
+            <button
+              type="button"
+              data-slot="route-swap-button"
+              onClick={swap}
+              aria-label={t("search.swap")}
+              title={t("search.swap")}
+              className="inline-flex size-11 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-xs transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring cursor-pointer select-none"
+            >
+              <ArrowDownUp aria-hidden="true" className="size-4" />
+            </button>
+          </div>
 
           <Field label={t("search.to")} htmlFor="search-to">
             <AirportCombobox

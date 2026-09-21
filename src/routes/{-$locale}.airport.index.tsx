@@ -2,7 +2,7 @@ import { AppLink } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
 import { ArrowRight, BookOpen, Layers, ShieldAlert } from "lucide-react";
 import { ChapterNav } from "@/components/airport/chapter-nav";
-import { btnClass, Container, Eyebrow, PageHeader, Panel } from "@/components/kit";
+import { btnClass, Container, PageHeader, Panel } from "@/components/kit";
 import { img } from "@/lib/data";
 import { ResponsiveImage } from "@/components/responsive-image";
 import { useI18n } from "@/lib/i18n";
@@ -65,19 +65,17 @@ function AirportPage() {
   return (
     <>
       <PageHeader
-        eyebrow={t("nav.airport")}
         title={t("airport.title")}
         description={t("airport.sub")}
       />
 
       <Container className="py-8 sm:py-12">
         {/* Persistent Chapter Sequence Navigation */}
-        <ChapterNav activeChapter="overview" className="mb-10" />
+        <ChapterNav activeChapter="overview" className="mb-8" />
 
         {/* Narrative Dossier Introduction */}
         <div className="mb-10 max-w-3xl">
-          <Eyebrow className="text-clay">{t("airport.chapterSequence")}</Eyebrow>
-          <h2 className="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+          <h2 className="type-title-lg text-foreground">
             {t("airport.introTitle")}
           </h2>
           <p className="mt-3 text-base leading-relaxed text-muted-foreground">
@@ -116,12 +114,10 @@ function AirportPage() {
                       <span>·</span>
                       <span>{t(ch.tagKey)}</span>
                     </span>
-                    {ch.isFuture ? (
+                    {ch.isFuture && (
                       <span className="text-[11px] text-clay-soft/90 font-mono">
                         {t("media.conceptShortLabel")}
                       </span>
-                    ) : (
-                      <span className="text-[11px] text-ink-muted/80">[PROVENANCE]</span>
                     )}
                   </div>
                 </div>
@@ -148,7 +144,7 @@ function AirportPage() {
 
         {/* Curatorial Standard & Archival Notice */}
         <div className="mt-12 grid gap-6 lg:grid-cols-[1.5fr_1fr]">
-          <Panel className="border-clay/20 bg-card">
+          <Panel className="border-border bg-card">
             <div className="flex items-center gap-2.5 text-clay">
               <ShieldAlert aria-hidden="true" className="size-5 shrink-0" />
               <h3 className="text-lg font-bold text-foreground">{t("airport.sources")}</h3>
@@ -156,14 +152,6 @@ function AirportPage() {
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
               {t("airport.sourcesBody")}
             </p>
-            <div className="mt-4 flex flex-wrap gap-2 text-xs">
-              <span className="code-id rounded-md bg-secondary px-2 py-1 text-muted-foreground">
-                [CATALOG-ID-FIELD]
-              </span>
-              <span className="code-id rounded-md bg-secondary px-2 py-1 text-muted-foreground">
-                [PROVENANCE]
-              </span>
-            </div>
           </Panel>
 
           <div className="flex flex-col justify-between rounded-2xl border border-border bg-sand p-6 shadow-xs">

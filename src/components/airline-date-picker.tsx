@@ -297,50 +297,62 @@ export function AirlineDatePicker({
             {/* Return Field and Trigger */}
             <Field
               label={t("search.return")}
-              htmlFor="search-return"
-              hint={tripType === "oneway" ? t("search.oneWay") : undefined}
-              error={isDatePairInvalid ? t("search.errReturn") : activeReturnError}
+              htmlFor={tripType === "oneway" ? undefined : "search-return"}
+              error={tripType === "round" && isDatePairInvalid ? t("search.errReturn") : activeReturnError}
               errorId="search-return-error"
             >
-              <button
-                ref={returnTriggerRef}
-                id="search-return"
-                type="button"
-                onClick={() => handleTriggerClick("return")}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    handleTriggerClick("return");
+              {tripType === "oneway" ? (
+                <div
+                  id="search-return"
+                  data-slot="return-date-slot"
+                  aria-disabled="true"
+                  className="flex h-11 w-full items-center justify-between rounded-lg border border-input bg-muted/30 px-3.5 text-sm font-medium text-muted-foreground select-none"
+                >
+                  <span className="flex items-center gap-2">
+                    <CalendarIcon aria-hidden="true" className="size-4 text-muted-foreground/60 shrink-0" />
+                    <span className="font-medium text-muted-foreground">
+                      {t("search.oneWay")}
+                    </span>
+                  </span>
+                </div>
+              ) : (
+                <button
+                  ref={returnTriggerRef}
+                  id="search-return"
+                  data-slot="return-date-slot"
+                  type="button"
+                  onClick={() => handleTriggerClick("return")}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleTriggerClick("return");
+                    }
+                  }}
+                  disabled={disabled}
+                  aria-expanded={open && activeTarget === "return"}
+                  aria-haspopup="dialog"
+                  aria-invalid={isDatePairInvalid || Boolean(activeReturnError)}
+                  aria-describedby={
+                    isDatePairInvalid || activeReturnError ? "search-return-error" : undefined
                   }
-                }}
-                disabled={disabled || tripType === "oneway"}
-                aria-disabled={disabled || tripType === "oneway"}
-                aria-expanded={open && activeTarget === "return"}
-                aria-haspopup="dialog"
-                aria-invalid={isDatePairInvalid || Boolean(activeReturnError)}
-                aria-describedby={
-                  isDatePairInvalid || activeReturnError ? "search-return-error" : undefined
-                }
-                className={cn(
-                  "flex h-11 w-full items-center justify-between rounded-lg border border-input bg-card px-3.5 text-sm font-medium transition-colors hover:bg-secondary/40 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring cursor-pointer select-none",
-                  (isDatePairInvalid || activeReturnError) && "border-destructive focus-visible:outline-destructive",
-                  tripType === "oneway" && "bg-muted/40 cursor-not-allowed text-muted-foreground",
-                )}
-              >
-                <span className="flex items-center gap-2">
-                  <CalendarIcon aria-hidden="true" className="size-4 text-muted-foreground shrink-0" />
-                  <span className="tabular-nums font-mono font-semibold text-foreground">
-                    {tripType === "oneway"
-                      ? "—"
-                      : returnDate
+                  className={cn(
+                    "flex h-11 w-full items-center justify-between rounded-lg border border-input bg-card px-3.5 text-sm font-medium transition-colors hover:bg-secondary/40 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring cursor-pointer select-none",
+                    (isDatePairInvalid || activeReturnError) && "border-destructive focus-visible:outline-destructive",
+                  )}
+                >
+                  <span className="flex items-center gap-2">
+                    <CalendarIcon aria-hidden="true" className="size-4 text-muted-foreground shrink-0" />
+                    <span className="tabular-nums font-mono font-semibold text-foreground">
+                      {returnDate
                         ? dateShort(returnDate, lang)
                         : t("search.selectDates")}
+                    </span>
                   </span>
-                </span>
-                <span className="text-xs text-muted-foreground font-mono tabular-nums">
-                  {tripType === "oneway" ? "" : returnDate || ""}
-                </span>
-              </button>
+                  <span className="text-xs text-muted-foreground font-mono tabular-nums">
+                    {returnDate || ""}
+                  </span>
+                </button>
+              )}
             </Field>
           </div>
         </PopoverAnchor>

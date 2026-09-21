@@ -35,7 +35,7 @@ function DestinationsPage() {
 
   return (
     <>
-      <PageHeader eyebrow="PS · Network" title={t("dest.title")} description={t("dest.sub")}>
+      <PageHeader title={t("dest.title")} description={t("dest.sub")}>
         <div className="max-w-sm">
           <Field label={t("flights.search")} htmlFor="dest-search">
             <Input

@@ -34,7 +34,7 @@ function ContactPage() {
 
   return (
     <>
-      <PageHeader eyebrow={t("nav.contact")} title={t("contact.title")} description={t("contact.sub")} />
+      <PageHeader title={t("contact.title")} description={t("contact.sub")} />
 
       <Container className="grid gap-8 py-10 lg:grid-cols-[1.4fr_1fr]">
         <div>

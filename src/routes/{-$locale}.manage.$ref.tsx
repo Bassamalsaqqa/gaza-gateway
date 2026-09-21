@@ -60,7 +60,7 @@ function ManageDetailPage() {
 
   return (
     <>
-      <PageHeader eyebrow={t("nav.manage")} title={t("manage.title")} description={t("manage.sub")}>
+      <PageHeader title={t("manage.title")} description={t("manage.sub")}>
         <AppLink to="/manage" className={btnClass("outline", "sm")}>
           {t("manage.find")}
         </AppLink>

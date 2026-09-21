@@ -118,6 +118,7 @@ const en: Dict = {
   "home.openArchive": "Open the archive",
   "search.tripType": "Trip type",
   "home.statusNotice": "Pre-operational station prototype · Illustrative schedule simulation",
+  "home.heroNotice": "Pre-operational prototype; schedules are illustrative.",
   "home.quickStatusTitle": "Flight status",
   "home.quickStatusSub": "Departures & arrivals",
   "home.quickCheckinTitle": "Online check-in",
@@ -397,6 +398,7 @@ const en: Dict = {
     "No unverified claims regarding equipment salvage or current perimeter security are asserted.",
   "airport.futureSubtitle":
     "Architectural proposals, masterplanning principles, and passenger experience design for a restored civil gateway connecting Gaza to the world.",
+  "airport.futurePlainDisclosure": "Illustrative future concepts; not current or historical photographs.",
   "airport.futureNoticeTitle": "Planning status & design studies",
   "airport.futureNotice":
     "The proposals presented here represent architectural and planning research concepts. They demonstrate physical readiness, environmental design, and service capacity ahead of operational reconstruction, rather than contracted commercial timelines.",
@@ -417,11 +419,14 @@ const en: Dict = {
     "The planned opening network re-establishes direct air links between Gaza and major regional hubs across Jordan, Egypt, Saudi Arabia, the United Arab Emirates, Qatar, and Turkey. Browse the destinations below to inspect schedules and flight details.",
 
   // gallery
-  "gallery.title": "Archive & gallery",
-  "gallery.sub": "Photographs, documents, architecture and concept material.",
+  "gallery.title": "Archive",
+  "gallery.sub": "Historical and documentary records of Gaza International Airport. Provisional imagery — verified historical archive pending.",
+  "gallery.futureIntro": "For future terminal concept studies, visit the",
+  "gallery.futureLink": "Future vision chapter",
+  "gallery.provenanceStatus": "Provisional imagery — verified historical archive pending",
   "gallery.all": "All",
   "gallery.filterCategory": "Category",
-  "gallery.filterEra": "Chapter",
+  "gallery.filterEra": "Era",
   "gallery.empty": "Nothing matches these filters yet.",
   "gallery.reset": "Clear filters",
   "gallery.viewer": "Item viewer",
@@ -441,12 +446,12 @@ const en: Dict = {
     "Provisional study record. Not verified archival photography of Gaza International Airport.",
   "gallery.filterAria": "Filter archive collection",
   "gallery.close": "Close viewer",
-  "gallery.eraAll": "All chapters",
+  "gallery.eraAll": "All eras",
   "gallery.categoryAll": "All categories",
   "gallery.noticeBody":
     "All media items in this digital archive currently utilize neutral schema placeholders ([CATALOG-ID-FIELD], [PROVENANCE]). They do not represent authentic historical records of Gaza International Airport. Authentic materials may replace these records if provided by the repository owner and verified.",
   "gallery.emptyDescription":
-    "No records match your selected category and chapter filters. Clear filters to view all catalogued items.",
+    "No records match your selected category and era filters. Clear filters to view all catalogued items.",
 
   // account / auth
   "auth.signinTitle": "Sign in",
@@ -870,6 +875,7 @@ const ar: Dict = {
   "home.openArchive": "افتح الأرشيف",
   "search.tripType": "نوع الرحلة",
   "home.statusNotice": "نموذج محطة تمهيدي · محاكاة توضيحية للجداول التشغيلية",
+  "home.heroNotice": "نموذج تمهيدي؛ الجداول المعروضة توضيحية.",
   "home.quickStatusTitle": "حالة الرحلات",
   "home.quickStatusSub": "المغادرة والوصول",
   "home.quickCheckinTitle": "إنهاء إجراءات السفر",
@@ -1141,6 +1147,7 @@ const ar: Dict = {
     "لا تُطرح أي ادعاءات غير موثقة بشأن استرداد المعدات أو أمن المحيط الحالي.",
   "airport.futureSubtitle":
     "مقترحات معمارية، ومبادئ المخطط العام، وتصميم تجربة المسافرين لبوابة مدنية مستعادة تصل غزة بالعالم.",
+  "airport.futurePlainDisclosure": "تصورات معمارية مستقبلية توضيحية وليست صوراً واقعية أو تاريخية.",
   "airport.futureNoticeTitle": "حالة التخطيط ودراسات التصميم",
   "airport.futureNotice":
     "تمثل المقترحات المعروضة هنا مفاهيم بحثية معمارية وتخطيطية. وهي توضح الجاهزية المادية، والتصميم البيئي، والقدرة الاستيعابية قبل إعادة الإعمار التشغيلي، ولا تمثل جداول زمنية تجارية تعاقدية.",
@@ -1161,11 +1168,14 @@ const ar: Dict = {
     "تعيد الشبكة المخططة لافتتاح المطار الروابط الجوية المباشرة بين غزة ومراكز إقليمية رئيسية في الأردن، ومصر، والسعودية، والإمارات، وقطر، وتركيا. تصفح الوجهات أدناه للاطلاع على الجداول وتفاصيل الرحلات.",
 
   // gallery
-  "gallery.title": "الأرشيف والمعرض",
-  "gallery.sub": "صور ووثائق ومواد معمارية وتصورية.",
+  "gallery.title": "الأرشيف",
+  "gallery.sub": "السجلات التاريخية والوثائقية لمطار غزة الدولي. المواد البصرية الحالية مؤقتة لحين اعتماد الأرشيف الموثق.",
+  "gallery.futureIntro": "للاطلاع على دراسات المخطط المستقبلي، تفضل بزيارة",
+  "gallery.futureLink": "فصل رؤية المستقبل",
+  "gallery.provenanceStatus": "مواد بصرية مؤقتة — بانتظار اعتماد الأرشيف التاريخي الموثق",
   "gallery.all": "الكل",
   "gallery.filterCategory": "التصنيف",
-  "gallery.filterEra": "الفصل",
+  "gallery.filterEra": "الحقبة",
   "gallery.empty": "لا عناصر مطابقة لهذه التصفية.",
   "gallery.reset": "إزالة التصفية",
   "gallery.viewer": "عارض العناصر",
@@ -1184,12 +1194,12 @@ const ar: Dict = {
   "gallery.provisionalNotice": "سجل دراسي مؤقت. ليست مادة أرشيفية موثّقة لمطار غزة الدولي.",
   "gallery.filterAria": "تصفية مجموعة الأرشيف",
   "gallery.close": "إغلاق العارض",
-  "gallery.eraAll": "جميع الفصول",
+  "gallery.eraAll": "جميع الحقب",
   "gallery.categoryAll": "جميع التصنيفات",
   "gallery.noticeBody":
     "تستخدم جميع الوسائط في هذا الأرشيف الرقمي حالياً معرّفات نموذجية محايدة ([CATALOG-ID-FIELD]، [PROVENANCE]). وهي لا تمثل سجلات تاريخية موثقة لمطار غزة الدولي. وقد تحل مواد موثقة محل هذه السجلات إذا وفرها مالك المستودع وتم التحقق منها.",
   "gallery.emptyDescription":
-    "لا توجد سجلات تطابق عوامل التصفية المختارة للتصنيف والفصل. قم بإلغاء التصفية لعرض جميع العناصر المفهرسة.",
+    "لا توجد سجلات تطابق عوامل التصفية المختارة للتصنيف والحقبة. قم بإلغاء التصفية لعرض جميع العناصر المفهرسة.",
 
   "auth.signinTitle": "تسجيل الدخول",
   "auth.secureAccess": "وصول آمن للمسافرين إلى رحلات الخطوط الجوية الفلسطينية",

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Clock, FileText } from "lucide-react";
+import { FileText } from "lucide-react";
 import { ChapterNav, ChapterPagination } from "@/components/airport/chapter-nav";
-import { Container, Notice, Panel, Pill } from "@/components/kit";
+import { Container, Panel } from "@/components/kit";
 import { img, timeline } from "@/lib/data";
 import { pick, useI18n } from "@/lib/i18n";
 
@@ -35,15 +35,7 @@ function PastPage() {
         />
         <div className="absolute inset-0 -z-10 bg-gradient-to-t from-ink via-ink/80 to-ink/60" />
         <Container className="py-16 sm:py-24">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-ink-border px-3 py-1 text-xs font-semibold text-clay-soft">
-              <span className="numeral font-mono">01</span>
-              <span>·</span>
-              <span>{t("airport.chapter1")}</span>
-            </span>
-            <span className="text-xs font-medium text-ink-muted">{t("airport.pastHorizon")}</span>
-          </div>
-          <h1 className="mt-4 max-w-3xl text-4xl font-bold tracking-tight sm:text-6xl">
+          <h1 className="type-title-hero max-w-3xl text-ink-foreground">
             {t("airport.past")}
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-relaxed text-ink-muted sm:text-lg">
@@ -54,14 +46,12 @@ function PastPage() {
 
       <Container className="py-8 sm:py-12">
         {/* Persistent Chapter Sequence Navigation */}
-        <ChapterNav activeChapter="past" className="mb-10" />
+        <ChapterNav activeChapter="past" className="mb-8" />
 
         {/* Curatorial Standard Notice */}
-        <Notice title={t("airport.placeholder")}>
-          <p className="text-sm leading-relaxed">
-            {t("airport.pastNotice")}
-          </p>
-        </Notice>
+        <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
+          {t("airport.pastNotice")}
+        </p>
 
         {/* Chronological Timeline */}
         <section aria-label={t("airport.chapterSequence")} className="mt-12">
@@ -77,17 +67,13 @@ function PastPage() {
                 </span>
 
                 {/* Milestone Era Tag */}
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-2">
                   <span className="numeral inline-block font-mono text-sm font-bold text-clay">
                     {entry.year}
                   </span>
                   <span className="text-xs text-muted-foreground">·</span>
-                  <Pill tone="clay" className="text-[11px]">
-                    <Clock aria-hidden="true" className="size-3" />
-                    <span>{t("airport.provisionalRecord")}</span>
-                  </Pill>
-                  <span className="code-id text-xs text-muted-foreground">
-                    [CATALOG-ID-FIELD]
+                  <span className="text-xs text-muted-foreground">
+                    {t("airport.provisionalRecord")}
                   </span>
                 </div>
 
@@ -115,9 +101,6 @@ function PastPage() {
                         loading="lazy"
                         className="size-full object-cover opacity-80 transition-transform duration-500 hover:scale-105"
                       />
-                      <span className="absolute bottom-2 end-2 rounded-md bg-ink/80 px-2 py-0.5 font-mono text-[10px] text-ink-muted">
-                        [PROVENANCE]
-                      </span>
                     </div>
                     <figcaption className="p-3 text-xs text-muted-foreground">
                       <span className="font-semibold text-foreground">

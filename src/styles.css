@@ -142,6 +142,10 @@
   --sidebar-border: oklch(0.9 0.012 95);
   --sidebar-ring: oklch(0.42 0.085 158);
 
+  --page-max: 108rem;
+  --page-width: 90vw;
+  --space-section: clamp(3.5rem, 3rem + 2vw, 5.5rem);
+
   --shadow-soft: 0 1px 2px oklch(0.22 0.02 160 / 6%), 0 12px 32px -18px oklch(0.22 0.02 160 / 22%);
   --shadow-lift: 0 2px 4px oklch(0.22 0.02 160 / 6%), 0 26px 60px -30px oklch(0.22 0.02 160 / 32%);
 }
@@ -207,6 +211,51 @@
   background-size: 64px 64px;
 }
 
+@utility page-shell {
+  width: min(var(--page-width), var(--page-max));
+  margin-inline: auto;
+}
+
+.page-shell {
+  width: min(var(--page-width), var(--page-max));
+  margin-inline: auto;
+}
+
+/* Hero Patterns Architect by Steve Schoger (CC BY 4.0) - adapted palette & opacity */
+@utility bg-ambient {
+  background-color: #FBFAF6;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='199' viewBox='0 0 100 199'%3E%3Cg fill='%23073724' fill-opacity='0.016'%3E%3Cpath d='M0 199V0h1v1.99L100 199h-1.12L1 4.22V199H0zM100 2h-.12l-1-2H100v2z'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+.bg-ambient {
+  background-color: #FBFAF6;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='199' viewBox='0 0 100 199'%3E%3Cg fill='%23073724' fill-opacity='0.016'%3E%3Cpath d='M0 199V0h1v1.99L100 199h-1.12L1 4.22V199H0zM100 2h-.12l-1-2H100v2z'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+@utility bg-ambient-sand {
+  background-color: #F5F2E7;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='199' viewBox='0 0 100 199'%3E%3Cg fill='%23195B3B' fill-opacity='0.014'%3E%3Cpath d='M0 199V0h1v1.99L100 199h-1.12L1 4.22V199H0zM100 2h-.12l-1-2H100v2z'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+.bg-ambient-sand {
+  background-color: #F5F2E7;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='199' viewBox='0 0 100 199'%3E%3Cg fill='%23195B3B' fill-opacity='0.014'%3E%3Cpath d='M0 199V0h1v1.99L100 199h-1.12L1 4.22V199H0zM100 2h-.12l-1-2H100v2z'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+@utility bg-ambient-admin {
+  background-color: #FBFAF6;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='199' viewBox='0 0 100 199'%3E%3Cg fill='%23073724' fill-opacity='0.009'%3E%3Cpath d='M0 199V0h1v1.99L100 199h-1.12L1 4.22V199H0zM100 2h-.12l-1-2H100v2z'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+.bg-ambient-admin {
+  background-color: #FBFAF6;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='199' viewBox='0 0 100 199'%3E%3Cg fill='%23073724' fill-opacity='0.009'%3E%3Cpath d='M0 199V0h1v1.99L100 199h-1.12L1 4.22V199H0zM100 2h-.12l-1-2H100v2z'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+@utility py-section {
+  padding-block: var(--space-section);
+}
+
 @utility eyebrow {
   font-size: 0.75rem;
   font-weight: 700;
@@ -214,9 +263,17 @@
   text-transform: uppercase;
 }
 
+@utility type-title-hero {
+  font-family: var(--font-display-family);
+  font-size: clamp(2.5rem, 3.2rem + 1.5vw, 5.25rem);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
 @utility type-title-lg {
   font-family: var(--font-display-family);
-  font-size: clamp(1.875rem, 3.5vw, 3rem);
+  font-size: clamp(2rem, 1.5rem + 1.4vw, 3.5rem);
   font-weight: 700;
   line-height: 1.15;
   letter-spacing: -0.015em;
@@ -224,7 +281,7 @@
 
 @utility type-title-md {
   font-family: var(--font-display-family);
-  font-size: clamp(1.25rem, 2vw, 1.5rem);
+  font-size: clamp(1.5rem, 1.25rem + 0.8vw, 2.25rem);
   font-weight: 700;
   line-height: 1.25;
   letter-spacing: -0.01em;
@@ -270,6 +327,7 @@
   h4,
   h5,
   h6,
+  .type-title-hero,
   .type-title-lg,
   .type-title-md,
   .type-title-sm,

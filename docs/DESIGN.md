@@ -754,4 +754,43 @@ Before entering implementation Phase 3B, the following gates must be formally sa
 
 ---
 
+## 22. Fluid Canvas, Architectural Skin & Shell Modernization
+
+### 22.1 Fluid Canvas & Page Shell (`--page-max`, `--page-width`, `.page-shell`) `[Proposed Design Contract]`
+To accommodate high-resolution widescreen monitors (1440px–1920px+) while retaining comfortable line lengths and generous margins on laptops and tablets, the layout transitions from rigid breakpoint wrappers to a fluid canvas:
+- **Tokens**:
+  - `--page-max: 108rem` (1728px maximum bounding ceiling)
+  - `--page-width: 90vw` (fluid width yielding dynamic side margins)
+  - `--space-section: clamp(3.5rem, 3rem + 2vw, 5.5rem)` (responsive vertical section rhythm)
+- **Container Utility**: `.page-shell` (`width: min(var(--page-width), var(--page-max)); margin-inline: auto;`) provides consistent horizontal alignment and margins across public and admin interfaces.
+- **Fluid Display Typography**:
+  - `.type-title-hero`: `clamp(2.5rem, 3.2rem + 1.5vw, 5.25rem)` with tracking and uppercase suppression in Arabic.
+  - `.type-title-lg`: `clamp(2rem, 1.5rem + 1.4vw, 3.5rem)`.
+  - `.type-title-md`: `clamp(1.5rem, 1.25rem + 0.8vw, 2.25rem)`.
+
+### 22.2 Unified Public Header `[Proposed Design Contract]`
+The dual-deck navigation (dark institutional utility bar stacked atop an ivory navbar) is unified into a single, cohesive, sticky row:
+- **Height & Surface**: 64–72px on desktop, 60–64px on mobile, set on `bg-card/95 backdrop-blur` with hairline border (`border-border`).
+- **Direct Alternate Language Switch**: Replaces dropdown or segmented toggles with a single-click button (`DirectLanguageButton`). In English, it directly displays `العربية` (or `AR` on compact viewports); in Arabic, it directly displays `English` (or `EN`). Includes comprehensive `aria-label` declaring the exact target language.
+- **Restrained Navigation & Active Indicators**: Primary links use subtle 2px bottom borders (`border-brand`) on active state, avoiding distracting pill boxes or noisy background fills.
+- **Mobile Drawer Streamlining**: Opens a clean slide-over drawer with the primary Book action at top, followed by full vertical navigation, legal links, and status info, avoiding duplicate language controls.
+
+### 22.3 Ambient Architectural Skin & Hero Patterns `[Proposed Design Contract]`
+To evoke authentic Palestinian architectural heritage (limestone masonry, arched gateways, structured stonework) without visual distraction:
+- **Hero Patterns (Architect)**: Sourced from Steve Schoger's Hero Patterns under CC BY 4.0 (documented in `docs/ATTRIBUTIONS.md`).
+- **Palette & Opacity Tuning**:
+  - `.bg-ambient`: Applied to public page background (`#FBFAF6` base) with deep olive `#073724` at **1.6%** opacity (`fill-opacity='0.016'`).
+  - `.bg-ambient-sand`: Applied to hero and section headers (`#F5F2E7` base) with deep olive `#195B3B` at **1.4%** opacity (`fill-opacity='0.014'`).
+  - `.bg-ambient-admin`: Applied to station operations desk (`#FBFAF6` base) with olive `#073724` at **0.9%** opacity (`fill-opacity='0.009'`) for calm data density.
+- **Contrast & Legibility**: Subtle geometric linework sits entirely below content text and interactive controls, fully preserving WCAG 2.2 AA contrast compliance.
+
+### 22.4 Semantic Restraint Standard `[Proposed Design Contract]`
+In alignment with the anti-template contract (§1.4), UI chrome is disciplined to avoid visual noise and badge clutter:
+1. **Elimination of Decorative Pills**: Uppercase category pills, badge containers, and redundant status labels above headings are systematically removed. Hierarchy is conveyed through scale, weight, and spatial grouping.
+2. **Plain Operational Disclosures**: Pulsing "radar" badges and simulated station protocol pills are replaced with quiet, honest prose: `Pre-operational prototype; schedules are illustrative.`
+3. **Airport Dossier Chapter Rail**: Replaces card-like capsules with an editorial text rail (`Overview · 01 Past · 02 Present · 03 Future`) and clean directional pagination (`← Prev` and `Next →`) with automatic RTL glyph handling.
+4. **Archive & Future Vision Demarcation**: Historical and documentary records remain strictly in the Archive (`/gallery`), while illustrative AI concept studies reside solely in the Future Vision chapter (`/airport/future`), completely removing catalog tags (`[CATALOG-ID-FIELD]`) and provenance badges from thumbnail cards.
+
+---
+
 *Authored for the Gaza International Airport & Palestinian Airlines Engineering Project.*
