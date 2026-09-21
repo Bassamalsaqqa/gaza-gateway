@@ -1,0 +1,43 @@
+# ----------------------------------------------------------------------
+# HostPapa cPanel Apache Configuration for Gaza Airport / Palestinian Airlines
+# Static Pre-rendered Architecture with Locale & Admin SPA Shell Fallback
+# ----------------------------------------------------------------------
+
+# Prevent directory indexing
+Options -Indexes
+
+# Set default directory index
+DirectoryIndex index.html
+
+RewriteEngine On
+RewriteBase /
+
+# 1. Existing regular files: serve directly
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
+
+# 2. Prerendered directory index matching: /path or /path/ -> /path/index.html
+# Only rewrite if an index.html actually exists in that directory.
+# This ensures directories without index.html (e.g. /admin, /ar/admin) can fall through to shell rules.
+RewriteCond %{DOCUMENT_ROOT}/$1/index.html -f [OR]
+RewriteCond %{REQUEST_FILENAME}/index.html -f
+RewriteRule ^(.*)/?$ $1/index.html [L]
+
+# 3. Missing static assets: return 404 directly (do not serve HTML shell)
+RewriteCond %{REQUEST_URI} \.(?:css|js|mjs|json|png|jpe?g|gif|webp|svg|ico|woff2?|ttf|eot|map)$ [NC]
+RewriteRule ^ - [R=404,L]
+
+# 4. Dynamic SPA fallbacks:
+# Directories without index.html (like /admin, /ar/admin) and dynamic subpaths fall through here.
+
+# 4a. Arabic Admin fallback (matches /ar/admin, /ar/admin/, /ar/admin/*)
+RewriteRule ^ar/admin(?:/.*)?$ ar/admin/_shell.html [L]
+
+# 4b. English Admin fallback (matches /admin, /admin/, /admin/*)
+RewriteRule ^admin(?:/.*)?$ admin/_shell.html [L]
+
+# 4c. Arabic Public dynamic fallback (/ar/manage/*, /ar/account/*, Arabic 404s, etc.)
+RewriteRule ^ar(?:/.*)?$ ar/_shell.html [L]
+
+# 4d. English Public dynamic fallback (/manage/*, /account/*, English 404s, etc.)
+RewriteRule ^ _shell.html [L]
