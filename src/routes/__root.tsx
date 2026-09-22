@@ -21,6 +21,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { BackToTop } from "@/components/back-to-top";
 import { btnClass } from "@/components/kit";
 import { PublicNotFound } from "@/components/public-not-found";
+import { SkinPreviewListener, SkinStyle } from "@/components/skin-provider";
 
 /** Detect locale from pathname safely without requiring I18nProvider. */
 function detectLocale(): "ar" | "en" {
@@ -138,8 +139,10 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang={lang} dir={dirOf(lang)}>
       <head>
         <HeadContent />
+        <SkinStyle />
       </head>
       <body className="bg-ambient">
+        <SkinPreviewListener />
         {children}
         <Scripts />
       </body>

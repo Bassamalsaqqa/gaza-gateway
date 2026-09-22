@@ -777,12 +777,19 @@ The dual-deck navigation (dark institutional utility bar stacked atop an ivory n
 
 ### 22.3 Ambient Architectural Skin & Hero Patterns `[Proposed Design Contract]`
 To evoke authentic Palestinian architectural heritage (limestone masonry, arched gateways, structured stonework) without visual distraction:
-- **Hero Patterns (Geometric 60×60)**: Sourced from Steve Schoger's Hero Patterns under CC BY 4.0 (documented in `docs/ATTRIBUTIONS.md`).
-- **Palette & Opacity Tuning**:
-  - `.bg-ambient`: Applied to public page background (`#FBFAF6` base) with deep olive `#073724` at **6.5%** opacity (`fill-opacity='0.065'`).
-  - `.bg-ambient-sand`: Applied to hero and section headers (`#F5F2E7` base) with deep olive `#195B3B` at **5.5%** opacity (`fill-opacity='0.055'`).
-  - `.bg-ambient-admin`: Applied to station operations desk (`#FCF9F2` base) with olive `#073724` at **3.5%** opacity (`fill-opacity='0.035'`) for calm data density.
-- **Contrast & Legibility**: Subtle geometric linework sits entirely below content text and interactive controls, fully preserving WCAG 2.2 AA contrast compliance.
+- **Hero Patterns & Portable Registry**: Sourced from Steve Schoger's Hero Patterns under CC BY 4.0 (`pie-factory`, `architect`, `graph-paper`, `rails`, `connections`, `signal`, `topography`, `steel-beams`, `overlapping-diamonds`, `floor-tile`, `circuit-board`). Built as a pure TypeScript portable registry in `src/design/patterns/` with strict ID whitelisting, color validation, and opacity/scale clamping.
+- **Accepted Default Skin (`DEFAULT_SITE_SKIN`)**:
+  - `.bg-ambient`: Applied to public canvas (`#FBFAF6` base) with deep olive `#073724` at **6.5%** opacity (`fill-opacity='0.065'`) using `pie-factory`.
+  - `.bg-ambient-sand`: Applied to hero and section headers (`#F5F2E7` base) with deep olive `#195B3B` at **5.5%** opacity (`fill-opacity='0.055'`) using `pie-factory`.
+  - `.bg-ambient-admin`: Applied to station operations desk (`#FCF9F2` base) with olive `#073724` at **3.5%** opacity (`fill-opacity='0.035'`) using `pie-factory`.
+- **Preview-Only Boundary**:
+  - The Admin Appearance Lab (`/admin/settings` Appearance tab) allows live inspection of pattern, intensity, and scale combinations.
+  - Selections are stored locally under `gza.skin.preview.v1` and applied **only** when `?skinPreview=1` is present in the query string.
+  - Normal URLs always render `DEFAULT_SITE_SKIN` identically during SSR and hydration with zero flash, zero layout shift, and zero client mismatch.
+- **Phase 4 Publication Path**:
+  - Current skin preview is browser-local and intentionally uncommitted to shared data layers.
+  - In Phase 4, the skin schema will integrate into the unified repository layer with optional CardSkin extensions, allowing audited administrative publishing.
+- **Contrast & Legibility**: Subtle geometric linework sits entirely below content text and interactive controls, fully preserving WCAG 2.2 AA contrast compliance. All decorative patterns are suppressed in print (`@media print`) and high-contrast modes (`@media (forced-colors: active)`).
 
 ### 22.4 Semantic Restraint Standard `[Proposed Design Contract]`
 In alignment with the anti-template contract (§1.4), UI chrome is disciplined to avoid visual noise and badge clutter:
