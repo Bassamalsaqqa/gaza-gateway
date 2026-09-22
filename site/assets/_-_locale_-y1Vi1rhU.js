@@ -1,1 +1,0 @@
-import{C as e,E as t,o as n}from"./useStore-DGHrA-jh.js";import{n as r}from"./Match-WGzcJdB6.js";import{S as i,x as a}from"./index-Cz5iSwI7.js";var o=t(e()),s=n(),c=()=>()=>{};function l(){let{locale:e}=a.useParams();return(0,o.useSyncExternalStore)(c,()=>!0,()=>!1)&&e&&e!==`ar`?(0,s.jsx)(i,{}):(0,s.jsx)(r,{})}export{l as component};

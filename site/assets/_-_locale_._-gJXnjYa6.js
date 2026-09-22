@@ -1,0 +1,1 @@
+import{F as e}from"./index-sR3h_cgz.js";var t=e;export{t as component};
