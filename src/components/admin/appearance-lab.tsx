@@ -7,7 +7,6 @@ import { btnClass } from "@/components/kit";
 import { AdminPanel } from "./admin-kit";
 import {
   DEFAULT_SITE_SKIN,
-  applySkinToDom,
   clearDomSkinOverrides,
   clearPreviewSkin,
   isSkinPreviewActive,
@@ -16,6 +15,7 @@ import {
   type SiteSkinConfig,
   type SurfaceSkinConfig,
 } from "@/lib/skin";
+import { applySkinToDom } from "@/lib/skin-preview";
 import {
   ADMIN_CANDIDATE_PATTERNS,
   INTENSITY_VALUES,

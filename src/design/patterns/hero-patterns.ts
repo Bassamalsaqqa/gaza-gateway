@@ -8,26 +8,22 @@
  * Does NOT import React, TanStack, Tailwind, Radix, i18n, stores, or media.
  */
 
-import type {
-  CanonicalPatternId,
-  PatternDefinition,
-  PatternId,
-  PatternStyle,
-  ResolvedPatternCss,
+import {
+  canonicalPatternId,
+  type CanonicalPatternId,
+  type PatternDefinition,
+  type PatternId,
+  type PatternStyle,
+  type ResolvedPatternCss,
 } from "./pattern-types";
+import {
+  encodeSvgDataUri,
+  renderPatternSvg,
+  validateHexColor,
+} from "./pattern-svg";
+import { PIE_FACTORY_DEFINITION } from "./pie-factory";
 
-export const HERO_PATTERNS_SHORTLIST: readonly PatternDefinition[] = [
-  {
-    id: "pie-factory",
-    name: "Pie Factory",
-    source: "hero-patterns",
-    license: "CC-BY-4.0",
-    tags: ["geometric","classic","default","authentic"],
-    width: 60,
-    height: 60,
-    viewBox: "0 0 60 60",
-    svgBody: "<g fill-rule='evenodd'><g fill='FILLCOLOR' fill-opacity='FILLOPACITY' fill-rule='nonzero'><path d='M29 58.58l7.38-7.39A30.95 30.95 0 0 1 29 37.84a30.95 30.95 0 0 1-7.38 13.36l7.37 7.38zm1.4 1.41l.01.01h-2.84l-7.37-7.38A30.95 30.95 0 0 1 6.84 60H0v-1.02a28.9 28.9 0 0 0 18.79-7.78L0 32.41v-4.84L18.78 8.79A28.9 28.9 0 0 0 0 1.02V0h6.84a30.95 30.95 0 0 1 13.35 7.38L27.57 0h2.84l7.39 7.38A30.95 30.95 0 0 1 51.16 0H60v27.58-.01V60h-8.84a30.95 30.95 0 0 1-13.37-7.4L30.4 60zM29 1.41l-7.4 7.38A30.95 30.95 0 0 1 29 22.16 30.95 30.95 0 0 1 36.38 8.8L29 1.4zM58 1A28.9 28.9 0 0 0 39.2 8.8L58 27.58V1.02zm-20.2 9.2A28.9 28.9 0 0 0 30.02 29h26.56L37.8 10.21zM30.02 31a28.9 28.9 0 0 0 7.77 18.79l18.79-18.79H30.02zm9.18 20.2A28.9 28.9 0 0 0 58 59V32.4L39.2 51.19zm-19-1.4a28.9 28.9 0 0 0 7.78-18.8H1.41l18.8 18.8zm7.78-20.8A28.9 28.9 0 0 0 20.2 10.2L1.41 29h26.57z'/></g></g>",
-  },
+const OPTIONAL_HERO_PATTERNS: readonly PatternDefinition[] = [
   {
     id: "architect",
     name: "Architect",
@@ -140,30 +136,25 @@ export const HERO_PATTERNS_SHORTLIST: readonly PatternDefinition[] = [
   },
 ];
 
+export const HERO_PATTERNS_SHORTLIST: readonly PatternDefinition[] = [
+  PIE_FACTORY_DEFINITION,
+  ...OPTIONAL_HERO_PATTERNS,
+];
+
 export const PATTERNS_BY_ID: Readonly<Record<CanonicalPatternId, PatternDefinition | null>> = {
   none: null,
-  "pie-factory": HERO_PATTERNS_SHORTLIST.find(p => p.id === "pie-factory")!,
-  "architect": HERO_PATTERNS_SHORTLIST.find(p => p.id === "architect")!,
-  "graph-paper": HERO_PATTERNS_SHORTLIST.find(p => p.id === "graph-paper")!,
-  "rails": HERO_PATTERNS_SHORTLIST.find(p => p.id === "rails")!,
-  "connections": HERO_PATTERNS_SHORTLIST.find(p => p.id === "connections")!,
-  "signal": HERO_PATTERNS_SHORTLIST.find(p => p.id === "signal")!,
-  "topography": HERO_PATTERNS_SHORTLIST.find(p => p.id === "topography")!,
-  "steel-beams": HERO_PATTERNS_SHORTLIST.find(p => p.id === "steel-beams")!,
-  "overlapping-diamonds": HERO_PATTERNS_SHORTLIST.find(p => p.id === "overlapping-diamonds")!,
-  "floor-tile": HERO_PATTERNS_SHORTLIST.find(p => p.id === "floor-tile")!,
-  "circuit-board": HERO_PATTERNS_SHORTLIST.find(p => p.id === "circuit-board")!
+  "pie-factory": PIE_FACTORY_DEFINITION,
+  architect: OPTIONAL_HERO_PATTERNS.find((p) => p.id === "architect")!,
+  "graph-paper": OPTIONAL_HERO_PATTERNS.find((p) => p.id === "graph-paper")!,
+  rails: OPTIONAL_HERO_PATTERNS.find((p) => p.id === "rails")!,
+  connections: OPTIONAL_HERO_PATTERNS.find((p) => p.id === "connections")!,
+  signal: OPTIONAL_HERO_PATTERNS.find((p) => p.id === "signal")!,
+  topography: OPTIONAL_HERO_PATTERNS.find((p) => p.id === "topography")!,
+  "steel-beams": OPTIONAL_HERO_PATTERNS.find((p) => p.id === "steel-beams")!,
+  "overlapping-diamonds": OPTIONAL_HERO_PATTERNS.find((p) => p.id === "overlapping-diamonds")!,
+  "floor-tile": OPTIONAL_HERO_PATTERNS.find((p) => p.id === "floor-tile")!,
+  "circuit-board": OPTIONAL_HERO_PATTERNS.find((p) => p.id === "circuit-board")!,
 };
-
-/**
- * Maps pattern alias identifiers to their canonical Hero Patterns ID.
- * Specifically, "gza-geometric" is an alias for the canonical "pie-factory" geometry.
- */
-export function canonicalPatternId(id: string): CanonicalPatternId {
-  if (id === "gza-geometric") return "pie-factory";
-  if (id in PATTERNS_BY_ID) return id as CanonicalPatternId;
-  return "none";
-}
 
 export function getPatternDefinition(id: string): PatternDefinition | null {
   const canon = canonicalPatternId(id);
@@ -172,53 +163,7 @@ export function getPatternDefinition(id: string): PatternDefinition | null {
 }
 
 /**
- * Validates a CSS hex color string (#RGB, #RRGGBB).
- */
-export function validateHexColor(color: string, fallback = "#073724"): string {
-  if (!color || typeof color !== "string") return fallback;
-  const trimmed = color.trim();
-  const hex = trimmed.startsWith("#") ? trimmed : `#${trimmed}`;
-  if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(hex)) {
-    return hex;
-  }
-  return fallback;
-}
-
-/**
- * Safely encodes SVG text for CSS data:image/svg+xml URIs.
- *
- * Guarantees:
- * - Deterministic encoding of trusted registry SVG geometry.
- * - Colors starting with '#' are strictly encoded as '%23' in the final data URI.
- * - Characters with special meaning in URLs or CSS (<, >, #, ", %, {, }, spaces)
- *   are safely encoded.
- * - Preserves readable delimiters (/, :, =, ,, ') inside CSS url("...").
- */
-export function encodeSvgDataUri(svg: string): string {
-  // Normalize any pre-encoded %23 to raw # first so encodeURIComponent handles it uniformly
-  const normalized = svg.replace(/%23/g, "#");
-  // encodeURIComponent encodes <, >, #, &, ?, %, {, }, spaces, etc.
-  const encoded = encodeURIComponent(normalized)
-    .replace(/%2F/g, "/")
-    .replace(/%3A/g, ":")
-    .replace(/%3D/g, "=")
-    .replace(/%2C/g, ",")
-    .replace(/%27/g, "'");
-
-  return "data:image/svg+xml," + encoded;
-}
-
-/**
- * Resolves CSS background properties for a given pattern style.
- *
- * Guarantees:
- * - Accepts only whitelisted pattern IDs.
- * - Validates CSS hex colors.
- * - Clamps opacity between 0 and 1.
- * - Clamps scale to a safe positive range.
- * - Safely URL-encodes SVG and preserves encoded %23 colors.
- * - Returns backgroundImage: "none" for "none" or zero opacity.
- * - Never injects arbitrary unvalidated SVG.
+ * Resolves CSS background properties for a given pattern style using the curated catalog.
  */
 export function patternCss(style: PatternStyle): ResolvedPatternCss {
   const canon = canonicalPatternId(style.pattern);
@@ -241,29 +186,12 @@ export function patternCss(style: PatternStyle): ResolvedPatternCss {
     };
   }
 
-  const clampedOpacity = Math.max(0, Math.min(1, typeof style.opacity === "number" ? style.opacity : 0.05));
-  if (clampedOpacity <= 0) {
-    return {
-      backgroundColor: bgColor,
-      backgroundImage: "none",
-      backgroundSize: "auto",
-    };
-  }
-
-  const fgHex = validateHexColor(style.foreground, "#073724");
-
-  const body = def.svgBody
-    .replace(/FILLCOLOR/g, fgHex)
-    .replace(/FILLOPACITY/g, String(clampedOpacity));
-
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${def.width}' height='${def.height}' viewBox='${def.viewBox}'>${body}</svg>`;
-  const uri = encodeSvgDataUri(svg);
-
-  const clampedScale = typeof style.scale === "number" && style.scale > 0 ? Math.max(0.2, Math.min(5, style.scale)) : 1;
-
-  return {
-    backgroundColor: bgColor,
-    backgroundImage: `url("${uri}")`,
-    backgroundSize: `${Math.round(def.width * clampedScale)}px ${Math.round(def.height * clampedScale)}px`,
-  };
+  return renderPatternSvg(def, style);
 }
+
+export { canonicalPatternId } from "./pattern-types";
+export {
+  encodeSvgDataUri,
+  renderPatternSvg,
+  validateHexColor,
+} from "./pattern-svg";

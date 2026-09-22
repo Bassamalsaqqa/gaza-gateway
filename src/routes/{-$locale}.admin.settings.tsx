@@ -1,13 +1,16 @@
 import { Switch } from "@/components/ui/switch";
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { Input, Select } from "@/components/kit";
 import { AdminField, AdminPageHeader, AdminPanel, AdminStickyActions, AdminTabs, PermissionButton } from "@/components/admin/admin-kit";
 import { AdminDenied } from "@/components/admin/admin-denied";
-import { AppearanceLab } from "@/components/admin/appearance-lab";
 import { useAdmin } from "@/lib/admin-store";
 import { useI18n } from "@/lib/i18n";
 import { pageHead } from "@/lib/head";
+
+const AppearanceLab = lazy(() =>
+  import("@/components/admin/appearance-lab").then((m) => ({ default: m.AppearanceLab })),
+);
 
 export const Route = createFileRoute("/{-$locale}/admin/settings")({
   head: ({ params }) =>
@@ -56,7 +59,9 @@ function AdminSettingsPage() {
         />
         <div className="p-4">
           {tab === "appearance" ? (
-            <AppearanceLab />
+            <Suspense fallback={<div className="p-4 text-xs text-muted-foreground animate-pulse">...</div>}>
+              <AppearanceLab />
+            </Suspense>
           ) : (
             <>
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">

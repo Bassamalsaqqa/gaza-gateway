@@ -1,8 +1,9 @@
 /**
- * Gaza Gateway — Site Skin Configuration and Preview Resolver
+ * Gaza Gateway — Site Skin Configuration and Preview Resolver (Root Safe)
  *
- * Defines site skin policy, approved surface configurations, and preview-mode
- * runtime resolution. Normal browsing always uses DEFAULT_SITE_SKIN.
+ * Defines site skin policy, approved surface configurations, and default CSS variables.
+ * Designed for lightweight root bundling: ordinary browsing only loads the default skin
+ * without the heavy ~100 KB optional pattern catalog.
  *
  * Storage key: `gza.skin.preview.v1` (consumed ONLY when `skinPreview=1` query is present).
  */
@@ -12,13 +13,14 @@ import type {
   PatternId,
   ScaleLevel,
 } from "@/design/patterns/pattern-types";
-import { canonicalPatternId } from "@/design/patterns/hero-patterns";
+import { canonicalPatternId } from "@/design/patterns/pattern-types";
 import {
-  resolveSurfaceCss,
   PUBLIC_CANDIDATE_PATTERNS,
   SAND_CANDIDATE_PATTERNS,
   ADMIN_CANDIDATE_PATTERNS,
-} from "@/design/patterns/pattern-presets";
+} from "@/design/patterns/pattern-meta";
+import { PIE_FACTORY_DEFINITION } from "@/design/patterns/pie-factory";
+import { renderPatternSvg } from "@/design/patterns/pattern-svg";
 
 export const SKIN_PREVIEW_STORAGE_KEY = "gza.skin.preview.v1";
 
@@ -108,6 +110,21 @@ export function sanitizeSiteSkinConfig(raw: unknown): SiteSkinConfig {
   };
 }
 
+export function isDefaultSiteSkin(config: SiteSkinConfig): boolean {
+  if (!config) return true;
+  return (
+    config.publicCanvas.pattern === "pie-factory" &&
+    config.publicCanvas.intensity === "present" &&
+    config.publicCanvas.scale === "standard" &&
+    config.sandSection.pattern === "pie-factory" &&
+    config.sandSection.intensity === "present" &&
+    config.sandSection.scale === "standard" &&
+    config.adminCanvas.pattern === "pie-factory" &&
+    config.adminCanvas.intensity === "present" &&
+    config.adminCanvas.scale === "standard"
+  );
+}
+
 export type ResolvedSkinVars = {
   "--skin-public-bg": string;
   "--skin-public-image": string;
@@ -120,26 +137,45 @@ export type ResolvedSkinVars = {
   "--skin-admin-size": string;
 };
 
-export function resolveSkinCssVars(config: SiteSkinConfig): ResolvedSkinVars {
-  const pub = resolveSurfaceCss("public", config.publicCanvas.pattern, config.publicCanvas.intensity, config.publicCanvas.scale);
-  const sand = resolveSurfaceCss("sand", config.sandSection.pattern, config.sandSection.intensity, config.sandSection.scale);
-  const adm = resolveSurfaceCss("admin", config.adminCanvas.pattern, config.adminCanvas.intensity, config.adminCanvas.scale);
+// Pure rendering of default surface patterns using isolated pie-factory geometry
+const defaultPublicCss = renderPatternSvg(PIE_FACTORY_DEFINITION, {
+  pattern: "pie-factory",
+  background: "#FBFAF6",
+  foreground: "#073724",
+  opacity: 0.065,
+  scale: 1.0,
+});
 
-  return {
-    "--skin-public-bg": pub.backgroundColor,
-    "--skin-public-image": pub.backgroundImage,
-    "--skin-public-size": pub.backgroundSize ?? "auto",
-    "--skin-sand-bg": sand.backgroundColor,
-    "--skin-sand-image": sand.backgroundImage,
-    "--skin-sand-size": sand.backgroundSize ?? "auto",
-    "--skin-admin-bg": adm.backgroundColor,
-    "--skin-admin-image": adm.backgroundImage,
-    "--skin-admin-size": adm.backgroundSize ?? "auto",
-  };
-}
+const defaultSandCss = renderPatternSvg(PIE_FACTORY_DEFINITION, {
+  pattern: "pie-factory",
+  background: "#F5F2E7",
+  foreground: "#195B3B",
+  opacity: 0.055,
+  scale: 1.0,
+});
 
-export function generateSkinStyleDeclaration(config: SiteSkinConfig): string {
-  const vars = resolveSkinCssVars(config);
+const defaultAdminCss = renderPatternSvg(PIE_FACTORY_DEFINITION, {
+  pattern: "pie-factory",
+  background: "#FCF9F2",
+  foreground: "#073724",
+  opacity: 0.035,
+  scale: 1.0,
+});
+
+export const DEFAULT_SKIN_CSS_VARS: ResolvedSkinVars = {
+  "--skin-public-bg": defaultPublicCss.backgroundColor,
+  "--skin-public-image": defaultPublicCss.backgroundImage,
+  "--skin-public-size": defaultPublicCss.backgroundSize ?? "auto",
+  "--skin-sand-bg": defaultSandCss.backgroundColor,
+  "--skin-sand-image": defaultSandCss.backgroundImage,
+  "--skin-sand-size": defaultSandCss.backgroundSize ?? "auto",
+  "--skin-admin-bg": defaultAdminCss.backgroundColor,
+  "--skin-admin-image": defaultAdminCss.backgroundImage,
+  "--skin-admin-size": defaultAdminCss.backgroundSize ?? "auto",
+};
+
+export function generateSkinStyleDeclaration(config?: SiteSkinConfig): string {
+  const vars = DEFAULT_SKIN_CSS_VARS;
   return `:root {
   --skin-public-bg: ${vars["--skin-public-bg"]};
   --skin-public-image: ${vars["--skin-public-image"]};
@@ -202,9 +238,8 @@ export function clearPreviewSkin(): void {
   }
 }
 
-export function applySkinToDom(config: SiteSkinConfig): void {
+export function applySkinVarsToDom(vars: ResolvedSkinVars): void {
   if (typeof document === "undefined") return;
-  const vars = resolveSkinCssVars(config);
   const root = document.documentElement;
   for (const [key, value] of Object.entries(vars)) {
     root.style.setProperty(key, value);
@@ -212,10 +247,5 @@ export function applySkinToDom(config: SiteSkinConfig): void {
 }
 
 export function clearDomSkinOverrides(): void {
-  if (typeof document === "undefined") return;
-  const vars = resolveSkinCssVars(DEFAULT_SITE_SKIN);
-  const root = document.documentElement;
-  for (const [key, value] of Object.entries(vars)) {
-    root.style.setProperty(key, value);
-  }
+  applySkinVarsToDom(DEFAULT_SKIN_CSS_VARS);
 }
