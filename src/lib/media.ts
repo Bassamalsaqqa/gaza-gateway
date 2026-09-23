@@ -113,10 +113,14 @@ import assistance800 from "@/assets/media/travel/assistance-800.webp";
 import assistance1200 from "@/assets/media/travel/assistance-1200.webp";
 import assistance1376 from "@/assets/media/travel/assistance-1376.webp";
 
-// Brand logo derivatives
-import logoOriginalSrc from "@/assets/media/brand/logo.png";
-import logo64Src from "@/assets/media/brand/logo-64.png?url";
-import logo128Src from "@/assets/media/brand/logo-128.png";
+// Owner brand mark derivatives (language-neutral visual mark)
+import markLight1x from "@/assets/media/brand/gaza-mark-light-1x.png";
+import markLight2x from "@/assets/media/brand/gaza-mark-light-2x.png";
+import markLightFull from "@/assets/media/brand/gaza-mark-light.png";
+
+import markDark1x from "@/assets/media/brand/gaza-mark-dark-1x.png";
+import markDark2x from "@/assets/media/brand/gaza-mark-dark-2x.png";
+import markDarkFull from "@/assets/media/brand/gaza-mark-dark.png";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Registry
@@ -136,8 +140,7 @@ export const MEDIA: Record<string, MediaEntry> = {
     truthClass: "future-concept-ai",
     altEn:
       "Aerial architectural concept of the future Gaza International Airport terminal and airfield.",
-    altAr:
-      "تصوّر معماري جوي لمفهوم مستقبلي لمبنى مطار غزة الدولي وساحة الطائرات.",
+    altAr: "تصوّر معماري جوي لمفهوم مستقبلي لمبنى مطار غزة الدولي وساحة الطائرات.",
   },
 
   "aerial-day": {
@@ -153,8 +156,7 @@ export const MEDIA: Record<string, MediaEntry> = {
     truthClass: "future-concept-ai",
     altEn:
       "Aerial architectural concept of the future Gaza International Airport terminal and airfield.",
-    altAr:
-      "تصوّر معماري جوي لمفهوم مستقبلي لمبنى مطار غزة الدولي وساحة الطائرات.",
+    altAr: "تصوّر معماري جوي لمفهوم مستقبلي لمبنى مطار غزة الدولي وساحة الطائرات.",
   },
 
   "aerial-night": {
@@ -170,8 +172,7 @@ export const MEDIA: Record<string, MediaEntry> = {
     truthClass: "future-concept-ai",
     altEn:
       "Night aerial architectural concept of the future Gaza International Airport terminal and airfield.",
-    altAr:
-      "تصوّر معماري جوي ليلي لمفهوم مستقبلي لمبنى مطار غزة الدولي وساحة الطائرات.",
+    altAr: "تصوّر معماري جوي ليلي لمفهوم مستقبلي لمبنى مطار غزة الدولي وساحة الطائرات.",
   },
 
   "landside-day": {
@@ -186,8 +187,7 @@ export const MEDIA: Record<string, MediaEntry> = {
     ],
     truthClass: "future-concept-ai",
     altEn: "Architectural concept of the future landside departures entrance.",
-    altAr:
-      "تصوّر معماري لمفهوم مستقبلي لواجهة المغادرة والمدخل من جهة اليابسة.",
+    altAr: "تصوّر معماري لمفهوم مستقبلي لواجهة المغادرة والمدخل من جهة اليابسة.",
   },
 
   "landside-night": {
@@ -201,10 +201,8 @@ export const MEDIA: Record<string, MediaEntry> = {
       { src: landsideNight1376, width: 1376, height: 768 },
     ],
     truthClass: "future-concept-ai",
-    altEn:
-      "Night architectural concept of the future landside departures entrance.",
-    altAr:
-      "تصوّر معماري ليلي لمفهوم مستقبلي لواجهة المغادرة والمدخل من جهة اليابسة.",
+    altEn: "Night architectural concept of the future landside departures entrance.",
+    altAr: "تصوّر معماري ليلي لمفهوم مستقبلي لواجهة المغادرة والمدخل من جهة اليابسة.",
   },
 
   "runway-day": {
@@ -233,8 +231,7 @@ export const MEDIA: Record<string, MediaEntry> = {
       { src: runwayNight1376, width: 1376, height: 768 },
     ],
     truthClass: "future-concept-ai",
-    altEn:
-      "Night concept view along the future airport runway toward the coastal horizon.",
+    altEn: "Night concept view along the future airport runway toward the coastal horizon.",
     altAr: "تصوّر ليلي لمشهد مستقبلي على امتداد مدرج المطار باتجاه الأفق الساحلي.",
   },
 
@@ -264,8 +261,7 @@ export const MEDIA: Record<string, MediaEntry> = {
       { src: concourseNight1376, width: 1376, height: 768 },
     ],
     truthClass: "future-concept-ai",
-    altEn:
-      "Night interior architectural concept of a future passenger concourse.",
+    altEn: "Night interior architectural concept of a future passenger concourse.",
     altAr: "تصوّر معماري داخلي ليلي لمفهوم مستقبلي لصالة الركاب.",
   },
 
@@ -295,8 +291,7 @@ export const MEDIA: Record<string, MediaEntry> = {
       { src: interiorB1376, width: 1376, height: 768 },
     ],
     truthClass: "future-concept-ai",
-    altEn:
-      "Wide interior concept of the modern Gaza International Airport terminal.",
+    altEn: "Wide interior concept of the modern Gaza International Airport terminal.",
     altAr: "تصوّر داخلي فسيح لمبنى مطار غزة الدولي الحديث المستقبلي.",
   },
 
@@ -311,8 +306,7 @@ export const MEDIA: Record<string, MediaEntry> = {
       { src: assistance1376, width: 1376, height: 768 },
     ],
     truthClass: "future-concept-ai",
-    altEn:
-      "Illustrative passenger assistance scene inside a future airport terminal.",
+    altEn: "Illustrative passenger assistance scene inside a future airport terminal.",
     altAr: "مشهد توضيحي لمساعدة مسافر داخل مبنى مطار مستقبلي.",
   },
 };
@@ -332,14 +326,20 @@ export function largestSrc(entry: MediaEntry): string {
   return entry.variants[entry.variants.length - 1]!.src;
 }
 
-/** Original owner logo PNG path (transparent RGBA, 1254x1254, ~398 KB). */
-export const LOGO_ORIGINAL_SRC: string = logoOriginalSrc;
+/** Light-surface owner mark (1x: 74x44, ~4 KB). */
+export const MARK_LIGHT_1X_SRC: string = markLight1x;
 
-/** Optimized 64x64 header logo PNG (transparent RGBA, ~4 KB). */
-export const LOGO_64_SRC: string = logo64Src;
+/** Light-surface owner mark (2x: 148x88, ~10 KB). */
+export const MARK_LIGHT_2X_SRC: string = markLight2x;
 
-/** Optimized 128x128 header logo PNG (transparent RGBA, ~11 KB). */
-export const LOGO_128_SRC: string = logo128Src;
+/** Light-surface owner mark full resolution (433x259, ~14 KB). */
+export const MARK_LIGHT_SRC: string = markLightFull;
 
-/** Default production header logo PNG (optimized 128x128 transparent RGBA, ~11 KB vs ~398 KB). */
-export const LOGO_SRC: string = logo128Src;
+/** Dark-surface owner mark (1x: 74x44, ~4 KB). */
+export const MARK_DARK_1X_SRC: string = markDark1x;
+
+/** Dark-surface owner mark (2x: 148x88, ~10 KB). */
+export const MARK_DARK_2X_SRC: string = markDark2x;
+
+/** Dark-surface owner mark full resolution (434x260, ~15 KB). */
+export const MARK_DARK_SRC: string = markDarkFull;

@@ -75,24 +75,48 @@ export function AdminPanel({
   title,
   description,
   action,
+  icon,
+  badge,
   children,
   className,
+  headerClassName,
   bodyClassName,
 }: {
   title?: string;
   description?: string;
   action?: ReactNode;
+  icon?: ReactNode;
+  badge?: ReactNode;
   children: ReactNode;
   className?: string;
+  headerClassName?: string;
   bodyClassName?: string;
 }) {
   return (
     <section className={cn("rounded-lg border border-border bg-card", className)}>
       {title ? (
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3">
-          <div className="min-w-0">
-            <h2 className="text-sm font-bold tracking-tight">{title}</h2>
-            {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
+        <div
+          className={cn(
+            "flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3",
+            headerClassName,
+          )}
+        >
+          <div className={cn("min-w-0", (icon || badge) && "flex items-center gap-2.5")}>
+            {icon ? (
+              <span
+                className="flex size-7 shrink-0 items-center justify-center rounded-md border border-border bg-secondary/60 text-muted-foreground"
+                aria-hidden="true"
+              >
+                {icon}
+              </span>
+            ) : null}
+            <div className="min-w-0">
+              <div className={badge ? "flex items-center gap-2" : undefined}>
+                <h2 className="text-sm font-bold tracking-tight">{title}</h2>
+                {badge}
+              </div>
+              {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
+            </div>
           </div>
           {action ? <div className="flex flex-wrap gap-2">{action}</div> : null}
         </div>
@@ -449,13 +473,7 @@ export function GazaSheet({
   const reduceMotion = useReducedMotion();
 
   const xOffset =
-    side === "start"
-      ? lang === "ar"
-        ? "100%"
-        : "-100%"
-      : lang === "ar"
-        ? "-100%"
-        : "100%";
+    side === "start" ? (lang === "ar" ? "100%" : "-100%") : lang === "ar" ? "-100%" : "100%";
 
   return (
     <DialogPrimitive.Root
@@ -505,7 +523,9 @@ export function GazaSheet({
                 transition={{ duration: reduceMotion ? 0 : 0.22, ease: [0.22, 1, 0.36, 1] }}
                 className={cn(
                   "fixed inset-y-0 z-50 flex h-dvh flex-col shadow-[var(--shadow-lift)] focus:outline-none",
-                  side === "start" ? "start-0 border-e border-border" : "end-0 border-s border-border",
+                  side === "start"
+                    ? "start-0 border-e border-border"
+                    : "end-0 border-s border-border",
                   "w-full max-w-md bg-card",
                   className,
                 )}

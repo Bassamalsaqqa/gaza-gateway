@@ -21,6 +21,7 @@ import { pick, useI18n } from "@/lib/i18n";
 import { stripLocale } from "@/lib/locale";
 import { adminNav, unreadEnquiries, type AdminNavItem, type AdminRole } from "@/lib/admin";
 import { useAdmin } from "@/lib/admin-store";
+import { MARK_DARK_SRC, MARK_DARK_1X_SRC, MARK_DARK_2X_SRC } from "@/lib/media";
 import { cn } from "@/lib/utils";
 import { AdminChip, AdminToasts, GazaSheet } from "./admin-kit";
 import { AdminSearch } from "./admin-search";
@@ -44,7 +45,9 @@ const SIDEBAR_STORAGE_KEY = "gza.admin.sidebar.collapsed";
 function useOsShortcut(): string {
   const [shortcut, setShortcut] = useState<string>("");
   useEffect(() => {
-    const isMac = typeof navigator !== "undefined" && /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform || navigator.userAgent);
+    const isMac =
+      typeof navigator !== "undefined" &&
+      /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform || navigator.userAgent);
     setShortcut(isMac ? "⌘ K" : "Ctrl K");
   }, []);
   return shortcut;
@@ -65,7 +68,8 @@ function NavLink({
   const label = t(item.labelKey);
   const Icon = item.icon;
   const permitted = can(item.permission);
-  const active = item.to === "/admin" ? pathname === "/admin" : item.to ? pathname.startsWith(item.to) : false;
+  const active =
+    item.to === "/admin" ? pathname === "/admin" : item.to ? pathname.startsWith(item.to) : false;
   const hasInboxBadge = item.id === "inbox" && unreadEnquiries > 0;
   const fullLabel = hasInboxBadge ? `${label} (${unreadEnquiries})` : label;
 
@@ -84,13 +88,18 @@ function NavLink({
             <span
               aria-disabled="true"
               aria-label={`${label} — ${reason}`}
-              className={cn(base, "cursor-not-allowed text-[var(--admin-nav-muted)]/50 border-s-[3px] border-s-transparent")}
+              className={cn(
+                base,
+                "cursor-not-allowed text-[var(--admin-nav-muted)]/50 border-s-[3px] border-s-transparent",
+              )}
             >
               <Icon aria-hidden="true" className="size-4 shrink-0" />
             </span>
           </TooltipTrigger>
           <TooltipContent side={lang === "ar" ? "left" : "right"}>
-            <span>{label} — {reason}</span>
+            <span>
+              {label} — {reason}
+            </span>
           </TooltipContent>
         </Tooltip>
       );
@@ -99,11 +108,16 @@ function NavLink({
       <span
         aria-disabled="true"
         title={`${label} — ${reason}`}
-        className={cn(base, "cursor-not-allowed text-[var(--admin-nav-muted)]/50 border-s-[3px] border-s-transparent")}
+        className={cn(
+          base,
+          "cursor-not-allowed text-[var(--admin-nav-muted)]/50 border-s-[3px] border-s-transparent",
+        )}
       >
         <Icon aria-hidden="true" className="size-4 shrink-0" />
         <span className="min-w-0 flex-1 truncate">{label}</span>
-        {!permitted ? <Lock aria-hidden="true" className="size-3 shrink-0 text-[var(--admin-nav-muted)]/40" /> : null}
+        {!permitted ? (
+          <Lock aria-hidden="true" className="size-3 shrink-0 text-[var(--admin-nav-muted)]/40" />
+        ) : null}
       </span>
     );
   }
@@ -162,7 +176,13 @@ function NavLink({
   );
 }
 
-function SidebarBody({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: (() => void) | undefined }) {
+function SidebarBody({
+  collapsed,
+  onNavigate,
+}: {
+  collapsed: boolean;
+  onNavigate?: (() => void) | undefined;
+}) {
   const { t } = useI18n();
   const { can } = useAdmin();
   const visibleGroups = useMemo(
@@ -178,7 +198,10 @@ function SidebarBody({ collapsed, onNavigate }: { collapsed: boolean; onNavigate
 
   return (
     <TooltipProvider delayDuration={150}>
-      <nav aria-label={t("adm.shell.nav")} className="flex-1 overflow-y-auto px-2 py-3 [scrollbar-width:thin]">
+      <nav
+        aria-label={t("adm.shell.nav")}
+        className="flex-1 overflow-y-auto px-2 py-3 [scrollbar-width:thin]"
+      >
         {visibleGroups.map((group) => (
           <div key={group.id} className="mb-4">
             {!collapsed ? (
@@ -205,16 +228,38 @@ function SidebarBody({ collapsed, onNavigate }: { collapsed: boolean; onNavigate
 function WorkspaceMark({ collapsed = false }: { collapsed?: boolean }) {
   const { t } = useI18n();
   return (
-    <div className={cn("flex items-center gap-2.5 px-3.5 py-3.5", collapsed && "justify-center px-0")}>
-      <span className="code-id inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-[var(--admin-nav-accent)] text-xs font-bold text-[#18271F]">
-        GZA
+    <div
+      className={cn("flex items-center gap-2.5 px-3.5 py-3", collapsed && "justify-center px-0")}
+    >
+      <span aria-hidden="true" className="shrink-0 flex items-center justify-center">
+        <img
+          src={MARK_DARK_SRC}
+          srcSet={`${MARK_DARK_1X_SRC} 1x, ${MARK_DARK_2X_SRC} 2x`}
+          alt=""
+          width={74}
+          height={44}
+          className={cn(
+            "w-auto object-contain shrink-0",
+            collapsed ? "h-6.5 max-w-[48px]" : "h-7.5 max-w-[56px]",
+          )}
+          loading="eager"
+          decoding="sync"
+        />
       </span>
       {!collapsed ? (
         <span className="min-w-0">
-          <span className="block truncate text-sm font-bold text-[var(--admin-nav-foreground)]">{t("adm.workspace")}</span>
-          <span className="block truncate text-[11px] text-[var(--admin-nav-muted)]">{t("adm.brandLine")}</span>
+          <span className="block truncate text-sm font-bold text-[var(--admin-nav-foreground)]">
+            {t("adm.workspace")}
+          </span>
+          <span className="block truncate text-[11px] text-[var(--admin-nav-muted)]">
+            {t("adm.brandLine")}
+          </span>
         </span>
-      ) : null}
+      ) : (
+        <span className="sr-only">
+          {t("adm.workspace")} — {t("adm.brandLine")}
+        </span>
+      )}
     </div>
   );
 }
@@ -235,25 +280,42 @@ function AccountMenu() {
         >
           <UserRound aria-hidden="true" className="size-4 text-muted-foreground shrink-0" />
           <span className="hidden max-w-32 truncate sm:block">{pick(lang, staff.name)}</span>
-          <ChevronDown aria-hidden="true" className="hidden size-3.5 text-muted-foreground shrink-0 sm:block" />
+          <ChevronDown
+            aria-hidden="true"
+            className="hidden size-3.5 text-muted-foreground shrink-0 sm:block"
+          />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-72 p-2">
         <DropdownMenuLabel className="space-y-0.5 normal-case tracking-normal">
           <span className="block text-sm font-bold">{pick(lang, staff.name)}</span>
-          <span dir="ltr" className="block truncate text-xs font-normal text-muted-foreground">{staff.email}</span>
-          <span className="block text-xs font-normal text-muted-foreground">{pick(lang, staff.title)}</span>
+          <span dir="ltr" className="block truncate text-xs font-normal text-muted-foreground">
+            {staff.email}
+          </span>
+          <span className="block text-xs font-normal text-muted-foreground">
+            {pick(lang, staff.title)}
+          </span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuLabel className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Sparkles aria-hidden="true" className="size-3" />{t("adm.shell.switchRole")}
+          <Sparkles aria-hidden="true" className="size-3" />
+          {t("adm.shell.switchRole")}
         </DropdownMenuLabel>
-        <DropdownMenuRadioGroup value={staff.role} onValueChange={(value) => setRole(value as AdminRole)}>
-          {ROLES.map((role) => <DropdownMenuRadioItem key={role} value={role}>{t(`adm.role.${role}`)}</DropdownMenuRadioItem>)}
+        <DropdownMenuRadioGroup
+          value={staff.role}
+          onValueChange={(value) => setRole(value as AdminRole)}
+        >
+          {ROLES.map((role) => (
+            <DropdownMenuRadioItem key={role} value={role}>
+              {t(`adm.role.${role}`)}
+            </DropdownMenuRadioItem>
+          ))}
         </DropdownMenuRadioGroup>
         <p className="px-2 py-1 text-xs text-muted-foreground">{t("adm.shell.switchRoleNote")}</p>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={signOut} className="font-semibold cursor-pointer">{t("adm.shell.signOut")}</DropdownMenuItem>
+        <DropdownMenuItem onSelect={signOut} className="font-semibold cursor-pointer">
+          {t("adm.shell.signOut")}
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -272,7 +334,9 @@ function DirectLanguageButton() {
       className="inline-flex size-11 min-h-[44px] min-w-[44px] sm:size-auto sm:h-9 sm:min-h-[36px] sm:min-w-0 sm:px-2.5 shrink-0 items-center justify-center gap-1.5 rounded-md border border-border text-xs font-semibold text-foreground transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring cursor-pointer"
     >
       <Globe aria-hidden="true" className="size-4 sm:size-3.5 text-muted-foreground shrink-0" />
-      <span className="hidden sm:inline whitespace-nowrap">{lang === "en" ? "العربية" : "English"}</span>
+      <span className="hidden sm:inline whitespace-nowrap">
+        {lang === "en" ? "العربية" : "English"}
+      </span>
     </button>
   );
 }
@@ -336,7 +400,9 @@ function AttentionBell() {
         <button
           type="button"
           aria-expanded={open}
-          aria-label={count > 0 ? t("adm.shell.attentionCount", { n: count }) : t("adm.shell.attention")}
+          aria-label={
+            count > 0 ? t("adm.shell.attentionCount", { n: count }) : t("adm.shell.attention")
+          }
           className="relative flex size-11 min-h-[44px] min-w-[44px] sm:size-9 sm:min-h-[36px] sm:min-w-[36px] shrink-0 items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring cursor-pointer"
         >
           <Bell aria-hidden="true" className="size-4" />
@@ -357,7 +423,9 @@ function AttentionBell() {
         className="w-[calc(100vw-1.5rem)] max-w-80 overflow-hidden rounded-lg border-border bg-card p-0 shadow-[var(--shadow-lift)]"
       >
         <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2">
-          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("adm.notif.title")}</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            {t("adm.notif.title")}
+          </p>
           <button
             type="button"
             onClick={() => setOpen(false)}
@@ -369,7 +437,9 @@ function AttentionBell() {
         </div>
 
         {count === 0 ? (
-          <p className="px-3 py-6 text-center text-xs text-muted-foreground">{t("adm.notif.empty")}</p>
+          <p className="px-3 py-6 text-center text-xs text-muted-foreground">
+            {t("adm.notif.empty")}
+          </p>
         ) : (
           <ul className="max-h-80 overflow-y-auto">
             {attention.slice(0, 6).map((item) => (
@@ -405,13 +475,7 @@ function AttentionBell() {
 }
 
 /** Admin chrome: Operational Desk with sticky sidebar, compact topbar, mobile drawer, search and toasts. */
-export function AdminShell({
-  children,
-  breadcrumb,
-}: {
-  children: ReactNode;
-  breadcrumb?: string;
-}) {
+export function AdminShell({ children, breadcrumb }: { children: ReactNode; breadcrumb?: string }) {
   const { t } = useI18n();
   const { toasts, dismissToast } = useAdmin();
   const [collapsed, setCollapsedState] = useState(false);
@@ -574,7 +638,10 @@ export function AdminShell({
             {/* Breadcrumb + Plain Simulation indicator */}
             <div className="hidden min-w-0 flex-1 items-center gap-2.5 sm:flex">
               {breadcrumb ? (
-                <nav aria-label={t("adm.shell.breadcrumb")} className="truncate text-xs text-muted-foreground">
+                <nav
+                  aria-label={t("adm.shell.breadcrumb")}
+                  className="truncate text-xs text-muted-foreground"
+                >
                   <AppLink to="/admin" className="hover:text-foreground">
                     {t("adm.workspace")}
                   </AppLink>
@@ -604,7 +671,10 @@ export function AdminShell({
               <span className="hidden md:inline truncate">{t("adm.shell.searchHint")}</span>
               <span className="sr-only">{t("adm.search.title")}</span>
               {shortcut ? (
-                <kbd dir="ltr" className="code-id ms-auto hidden rounded border border-border bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground lg:inline">
+                <kbd
+                  dir="ltr"
+                  className="code-id ms-auto hidden rounded border border-border bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground lg:inline"
+                >
                   {shortcut}
                 </kbd>
               ) : null}
@@ -633,7 +703,10 @@ export function AdminShell({
           </div>
         </header>
 
-        <main id="admin-main" className="min-w-0 flex-1 bg-ambient-admin px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
+        <main
+          id="admin-main"
+          className="min-w-0 flex-1 bg-ambient-admin px-4 py-5 sm:px-6 sm:py-6 lg:px-8"
+        >
           {children}
         </main>
       </div>
