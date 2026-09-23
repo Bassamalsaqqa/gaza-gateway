@@ -1,1 +1,0 @@
-import{S as e}from"./index-CtdZatcN.js";var t=e;export{t as component};
