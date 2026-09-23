@@ -128,67 +128,67 @@ function Home() {
       </Container>
 
       {/* 3. Integrated passenger utility rail */}
-      <Container className="mt-6 sm:mt-8">
+      <Container className="mt-5 sm:mt-6">
         <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-soft)] sm:grid sm:grid-cols-2 lg:grid-cols-[1.15fr_1.15fr_0.85fr_0.85fr]">
           <AppLink
             to="/flights"
-            className="group relative flex min-h-20 items-center gap-4 border-b border-border bg-brand px-4 py-4 text-primary-foreground transition-colors hover:bg-brand-deep focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-ring sm:min-h-24 sm:border-e lg:border-b-0"
+            className="group relative flex min-h-16 items-center gap-3.5 border-b border-border bg-brand px-4 py-3.5 text-primary-foreground transition-colors hover:bg-brand-deep focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-ring sm:min-h-18 sm:border-e lg:border-b-0"
           >
-            <Plane aria-hidden="true" className="size-6 shrink-0 opacity-85 rtl:-scale-x-100" />
+            <Plane aria-hidden="true" className="size-5 sm:size-6 shrink-0 opacity-85 rtl:-scale-x-100" />
             <div className="flex flex-col min-w-0">
-              <span className="text-base font-bold">{t("home.quickStatusTitle")}</span>
-              <span className="text-xs text-primary-foreground/75">{t("home.quickStatusSub")}</span>
+              <span className="text-sm sm:text-base font-bold">{t("home.quickStatusTitle")}</span>
+              <span className="text-xs text-primary-foreground/75 truncate">{t("home.quickStatusSub")}</span>
             </div>
-            <ArrowRight aria-hidden="true" className="ms-auto size-4 opacity-60 rtl:rotate-180" />
+            <ArrowRight aria-hidden="true" className="ms-auto size-4 opacity-60 rtl:rotate-180 shrink-0" />
           </AppLink>
 
           <AppLink
             to="/check-in"
-            className="group relative flex min-h-20 items-center gap-4 border-b border-border bg-sand-deep/55 px-4 py-4 transition-colors hover:bg-sand-deep focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-ring sm:min-h-24 lg:border-b-0 lg:border-e"
+            className="group relative flex min-h-16 items-center gap-3.5 border-b border-border bg-sand-deep/55 px-4 py-3.5 transition-colors hover:bg-sand-deep focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-ring sm:min-h-18 lg:border-b-0 lg:border-e"
           >
-            <Ticket aria-hidden="true" className="size-6 shrink-0 text-brand-deep" />
+            <Ticket aria-hidden="true" className="size-5 sm:size-6 shrink-0 text-brand-deep" />
             <div className="flex flex-col min-w-0">
-              <span className="text-base font-bold text-foreground group-hover:text-brand-deep">
+              <span className="text-sm sm:text-base font-bold text-foreground group-hover:text-brand-deep">
                 {t("home.quickCheckinTitle")}
               </span>
-              <span className="text-xs text-muted-foreground">{t("home.quickCheckinSub")}</span>
+              <span className="text-xs text-muted-foreground truncate">{t("home.quickCheckinSub")}</span>
             </div>
             <ArrowRight
               aria-hidden="true"
-              className="ms-auto size-4 text-brand-deep/60 rtl:rotate-180"
+              className="ms-auto size-4 text-brand-deep/60 rtl:rotate-180 shrink-0"
             />
           </AppLink>
 
           <AppLink
             to="/travel"
-            className="group relative flex min-h-16 items-center gap-3 border-b border-border px-4 py-3 transition-colors hover:bg-secondary focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-ring sm:min-h-20 sm:border-b-0 sm:border-e"
+            className="group relative flex min-h-16 items-center gap-3 border-b border-border px-4 py-3.5 transition-colors hover:bg-secondary focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-ring sm:min-h-18 sm:border-b-0 sm:border-e"
           >
             <Luggage aria-hidden="true" className="size-5 shrink-0 text-clay" />
             <div className="flex flex-col min-w-0">
               <span className="text-sm font-bold text-foreground group-hover:text-clay">
                 {t("home.quickBaggageTitle")}
               </span>
-              <span className="text-xs text-muted-foreground">{t("home.quickBaggageSub")}</span>
+              <span className="text-xs text-muted-foreground truncate">{t("home.quickBaggageSub")}</span>
             </div>
           </AppLink>
 
           <AppLink
             to="/airport"
-            className="group relative flex min-h-16 items-center gap-3 px-4 py-3 transition-colors hover:bg-secondary focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-ring sm:min-h-20"
+            className="group relative flex min-h-16 items-center gap-3 px-4 py-3.5 transition-colors hover:bg-secondary focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-ring sm:min-h-18"
           >
             <Building2 aria-hidden="true" className="size-5 shrink-0 text-foreground/75" />
             <div className="flex flex-col min-w-0">
               <span className="text-sm font-bold text-foreground">
                 {t("home.quickHeritageTitle")}
               </span>
-              <span className="text-xs text-muted-foreground">{t("home.quickHeritageSub")}</span>
+              <span className="text-xs text-muted-foreground truncate">{t("home.quickHeritageSub")}</span>
             </div>
           </AppLink>
         </div>
       </Container>
 
       {/* 4. Today at GZA / Flight Schedule Matrix */}
-      <Container className="mt-16 sm:mt-20">
+      <Container className="mt-12 sm:mt-16">
         <SectionHeader
           title={t("home.boardTitle")}
           description={t("home.boardSub")}

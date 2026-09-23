@@ -1,3 +1,4 @@
+import { ArrowRight } from "lucide-react";
 import { Code } from "@/components/kit";
 import { airportByCode, fares, type Flight } from "@/lib/data";
 import { money, dateShort } from "@/lib/format";
@@ -44,12 +45,14 @@ function Leg({ flight, label }: { flight: Flight; label: string }) {
   return (
     <div className="rounded-lg bg-sand p-3">
       <p className="eyebrow text-clay">{label}</p>
-      <p className="mt-1.5 text-sm font-semibold">
-        {from ? pick(lang, from.city) : flight.originCode} → {to ? pick(lang, to.city) : flight.destinationCode}
+      <p className="mt-1.5 text-sm font-semibold flex items-center gap-1.5">
+        <span>{from ? pick(lang, from.city) : flight.originCode}</span>
+        <ArrowRight aria-hidden="true" className="size-3.5 rtl:rotate-180 text-muted-foreground shrink-0" />
+        <span>{to ? pick(lang, to.city) : flight.destinationCode}</span>
       </p>
       <p className="mt-1 text-xs text-muted-foreground">
-        {dateShort(flight.date, lang)} · <span className="code-id">{flight.departTime}</span> ·{" "}
-        <Code>{flight.number}</Code>
+        {dateShort(flight.date, lang)} · <span className="code-id" dir="ltr">{flight.departTime}</span> ·{" "}
+        <Code dir="ltr">{flight.number}</Code>
       </p>
     </div>
   );

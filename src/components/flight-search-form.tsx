@@ -36,25 +36,35 @@ export function FlightSearchForm({
     const ret = addDaysISO(today, 6);
     setMinDate(today);
     setCriteria((prev) => {
-      const needsDate = !prev.departDate;
-      const isPast = prev.departDate && prev.departDate < today;
+      const activeDepart = draft.criteria.departDate || prev.departDate;
+      const activeReturn = draft.criteria.returnDate || prev.returnDate;
+      const needsDate = !activeDepart;
+      const isPast = activeDepart && activeDepart < today;
       if (needsDate || isPast) {
         const nextReturn =
           prev.tripType === "round"
-            ? prev.returnDate && prev.returnDate >= today
-              ? prev.returnDate
+            ? activeReturn && activeReturn >= today
+              ? activeReturn
               : ret
-            : prev.returnDate;
+            : activeReturn;
         setReturnDateDraft(nextReturn || ret);
         return {
           ...prev,
+          origin: draft.criteria.origin || prev.origin,
+          destination: draft.criteria.destination || prev.destination,
           departDate: today,
           returnDate: nextReturn,
         };
       }
-      return prev;
+      return {
+        ...prev,
+        origin: draft.criteria.origin || prev.origin,
+        destination: draft.criteria.destination || prev.destination,
+        departDate: activeDepart,
+        returnDate: activeReturn,
+      };
     });
-  }, []);
+  }, [draft.criteria]);
 
 
   /**
@@ -199,14 +209,14 @@ export function FlightSearchForm({
       className={cn(
         "relative rounded-2xl border border-border bg-card transition-shadow",
         variant === "panel"
-          ? "p-4 sm:p-6 lg:p-7 shadow-[var(--shadow-lift)]"
-          : "p-4 sm:p-5 shadow-[var(--shadow-soft)]",
+          ? "p-3.5 sm:p-5 lg:p-5 shadow-[var(--shadow-lift)]"
+          : "p-3 sm:p-4 shadow-[var(--shadow-soft)]",
       )}
     >
       {/* Accessible Trip Type Fieldset */}
       <fieldset className="border-0 p-0 m-0">
         <legend className="sr-only">{t("search.tripType")}</legend>
-        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 border-b border-border/60 pb-3">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 border-b border-border/50 pb-2.5">
           {(["round", "oneway"] as const).map((type) => {
             const isSelected = criteria.tripType === type;
             return (
@@ -216,11 +226,11 @@ export function FlightSearchForm({
                 onClick={() => handleTripTypeChange(type)}
                 aria-pressed={isSelected}
                 className={cn(
-                  "inline-flex items-center justify-center rounded-lg px-3.5 py-1.5 text-xs font-semibold sm:text-sm tracking-tight whitespace-nowrap select-none cursor-pointer transition-all duration-150",
+                  "inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-xs font-semibold sm:text-xs tracking-tight whitespace-nowrap select-none cursor-pointer transition-all duration-150",
                   "active:scale-[0.99] active:transition-none motion-reduce:active:scale-100 motion-reduce:transform-none motion-reduce:transition-none",
                   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                   isSelected
-                    ? "bg-primary text-primary-foreground shadow-xs shadow-[var(--shadow-soft)]"
+                    ? "bg-primary text-primary-foreground shadow-xs shadow-[var(--shadow-soft)] font-bold"
                     : "bg-secondary/70 text-muted-foreground hover:text-foreground hover:bg-sand-deep",
                 )}
               >
@@ -231,10 +241,10 @@ export function FlightSearchForm({
         </div>
       </fieldset>
 
-      {/* Main Console Inputs Grid */}
-      <div className="mt-4 grid grid-cols-1 gap-3.5 sm:gap-4 xl:grid-cols-2">
+      {/* Main Console Inputs Grid — Disciplined Row 1 */}
+      <div className="mt-3 grid grid-cols-1 gap-3 sm:gap-3.5 lg:grid-cols-2">
         {/* Origin and Destination with Dedicated Swap Column */}
-        <div className="grid grid-cols-1 items-end gap-2.5 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:gap-2">
+        <div className="grid grid-cols-1 items-end gap-2 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:gap-2">
           <Field label={t("search.from")} htmlFor="search-from">
             <AirportCombobox
               id="search-from"
@@ -300,8 +310,8 @@ export function FlightSearchForm({
         />
       </div>
 
-      {/* Secondary Controls: Travellers & Cabin + Search Action */}
-      <div className="mt-3.5 sm:mt-4 grid gap-3.5 sm:gap-4 md:grid-cols-[1fr_auto]">
+      {/* Secondary Controls: Travellers & Cabin + Search Action — Disciplined Row 2 */}
+      <div className="mt-3 grid gap-3 sm:gap-3.5 sm:grid-cols-[1fr_auto] items-end">
         {/* Unified Travellers & Cabin Picker */}
         <Field label={t("search.travellersAndCabin")} htmlFor="search-travellers">
           <TravellersCabinPicker
@@ -329,7 +339,7 @@ export function FlightSearchForm({
             className={btnClass(
               "primary",
               "lg",
-              "w-full md:w-auto min-h-[44px] px-7 shadow-[var(--shadow-soft)] hover:shadow-md",
+              "w-full sm:w-auto min-h-[44px] px-8 shadow-[var(--shadow-soft)] hover:shadow-md",
             )}
           >
             <Search aria-hidden="true" className="size-4" />
@@ -343,7 +353,7 @@ export function FlightSearchForm({
         <div
           role="alert"
           aria-live="polite"
-          className="mt-4 flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3.5 py-2.5 text-sm font-medium text-destructive"
+          className="mt-3 flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3.5 py-2 text-sm font-medium text-destructive"
         >
           <span>{error}</span>
         </div>

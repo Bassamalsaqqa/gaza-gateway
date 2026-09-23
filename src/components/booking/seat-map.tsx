@@ -23,6 +23,7 @@ export type SeatMapProps = {
   cabin?: string;
   /** Optional seat suggested from a saved seat preference. */
   suggestedSeat?: string | undefined;
+  className?: string;
 };
 
 function parseRow(seat: string): number {
@@ -52,6 +53,35 @@ function seatPositionLabel(
   return t("book.seatMiddle");
 }
 
+/**
+ * Top-down aircraft seat silhouette icon
+ */
+export function AircraftSeatIcon({
+  className,
+  isSelected,
+}: {
+  className?: string;
+  isSelected?: boolean;
+}) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+      className={cn("size-3.5 shrink-0 pointer-events-none", className)}
+    >
+      {/* Top Headrest */}
+      <rect x="7" y="2" width="10" height="3" rx="1.5" opacity={isSelected ? "1" : "0.75"} />
+      {/* Seat Cushion / Backrest */}
+      <rect x="6" y="6" width="12" height="12" rx="2.5" opacity={isSelected ? "1" : "0.55"} />
+      {/* Left armrest */}
+      <rect x="3" y="7" width="2" height="9" rx="1" opacity={isSelected ? "1" : "0.85"} />
+      {/* Right armrest */}
+      <rect x="19" y="7" width="2" height="9" rx="1" opacity={isSelected ? "1" : "0.85"} />
+    </svg>
+  );
+}
+
 export function SeatMap({
   flightId,
   assignments,
@@ -61,6 +91,7 @@ export function SeatMap({
   onActivePassengerChange,
   cabin = "economy",
   suggestedSeat,
+  className,
 }: SeatMapProps) {
   const { t, lang } = useI18n();
   const taken = useMemo(() => new Set(Object.values(assignments)), [assignments]);
@@ -214,35 +245,14 @@ export function SeatMap({
   };
 
   return (
-    <div className="w-full min-w-0">
+    <div className={cn("w-full min-w-0", className)}>
       {/* Live region for screen reader seat selection announcements */}
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         {liveMessage}
       </div>
 
-      {passengerLabels.length > 1 ? (
-        <div className="flex flex-wrap gap-2" role="group" aria-label={t("book.seatAssign")}>
-          {passengerLabels.map((label, index) => (
-            <button
-              key={index}
-              type="button"
-              onClick={() => onActivePassengerChange(index)}
-              aria-pressed={activePassenger === index}
-              className={cn(
-                "min-h-11 cursor-pointer rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors active:scale-[0.99] motion-reduce:active:scale-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-                activePassenger === index
-                  ? "border-primary bg-primary text-primary-foreground shadow-xs"
-                  : "border-input bg-card text-muted-foreground hover:bg-secondary/60",
-              )}
-            >
-              {label}
-              {assignments[index] ? <span className="code-id ms-1.5">{assignments[index]}</span> : null}
-            </button>
-          ))}
-        </div>
-      ) : null}
-
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+      {/* Cabin Zone Header and Suggestion */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           {t("book.cabinZone", {
             cabin: t(`cabin.${zone.id}`),
@@ -253,27 +263,53 @@ export function SeatMap({
         {suggestedSeat && !taken.has(suggestedSeat) ? (
           <button
             type="button"
+            data-testid="suggested-seat-btn"
+            data-suggested-seat={suggestedSeat}
             onClick={() => {
               setFocusedSeat(suggestedSeat);
               handleSelectSeat(suggestedSeat);
             }}
-            className="inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-full border border-clay/50 bg-clay-soft px-3.5 py-1.5 text-xs font-semibold text-accent-foreground hover:border-clay active:scale-[0.99] motion-reduce:active:scale-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
+            className="inline-flex min-h-10 cursor-pointer items-center gap-1.5 rounded-full border border-clay/50 bg-clay-soft px-3 py-1 text-xs font-semibold text-accent-foreground hover:border-clay active:scale-[0.99] motion-reduce:active:scale-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
           >
             <Sparkles aria-hidden="true" className="size-3.5 text-clay" />
-            {t("book.useSuggested")} <span className="code-id">{suggestedSeat}</span>
+            <span>{t("book.useSuggested")}</span>
+            <span className="code-id font-bold">{suggestedSeat}</span>
           </button>
         ) : null}
       </div>
-      <p className="mt-1 text-xs text-muted-foreground">{t("book.seatZoneNote")}</p>
 
-      <ul className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground" aria-label={t("book.seatLegend")}>
-        <Legend className="border-input bg-card" label={t("book.seatAvailable")} />
-        <Legend className="border-transparent bg-primary text-primary-foreground" label={t("book.seatSelected")} />
-        <Legend className="border-transparent bg-secondary text-muted-foreground/50" label={t("book.seatUnavailable")} />
-        <Legend className="border-clay/50 bg-clay-soft text-accent-foreground" label={`${t("book.seatExtra")} · ${money(18, lang)}`} />
+      {/* Consistent Icon Silhouette Legend */}
+      <ul
+        className="mt-3.5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground"
+        aria-label={t("book.seatLegend")}
+      >
+        <li className="flex items-center gap-1.5">
+          <span className="flex size-5 items-center justify-center rounded border border-input bg-card text-muted-foreground">
+            <AircraftSeatIcon />
+          </span>
+          <span>{t("book.seatAvailable")}</span>
+        </li>
+        <li className="flex items-center gap-1.5">
+          <span className="flex size-5 items-center justify-center rounded border border-transparent bg-primary text-primary-foreground shadow-xs">
+            <AircraftSeatIcon isSelected />
+          </span>
+          <span>{t("book.seatSelected")}</span>
+        </li>
+        <li className="flex items-center gap-1.5">
+          <span className="flex size-5 items-center justify-center rounded border border-clay/60 bg-clay-soft text-accent-foreground">
+            <AircraftSeatIcon />
+          </span>
+          <span>{`${t("book.seatExtra")} · ${money(18, lang)}`}</span>
+        </li>
+        <li className="flex items-center gap-1.5">
+          <span className="flex size-5 items-center justify-center rounded border border-transparent bg-secondary text-muted-foreground/40 opacity-70">
+            <AircraftSeatIcon />
+          </span>
+          <span>{t("book.seatUnavailable")}</span>
+        </li>
       </ul>
 
-      {/* Aircraft seating grid container with strict LTR geometry */}
+      {/* Aircraft seating grid container with strict LTR physical geometry */}
       <div className="mt-5 w-full min-w-0 max-w-full overflow-x-auto pb-3">
         <div
           dir="ltr"
@@ -281,7 +317,7 @@ export function SeatMap({
           aria-label={t("book.seatTitle")}
           aria-rowcount={rows.length}
           aria-colcount={SEAT_LETTERS.length}
-          className="mx-auto w-max rounded-t-[3.5rem] border border-border bg-sand/60 px-3 pt-8 pb-6 sm:px-8 shadow-[var(--shadow-soft)]"
+          className="mx-auto w-max rounded-t-[3.5rem] border border-border bg-sand px-3 pt-7 pb-6 sm:px-8 shadow-[var(--shadow-soft)]"
         >
           {/* Nose / Front of aircraft indicator */}
           <div className="mb-5 flex flex-col items-center justify-center text-muted-foreground/70 select-none">
@@ -372,6 +408,7 @@ export function SeatMap({
                       aria-label={ariaLabel}
                       aria-pressed={isCurrentPaxSelected}
                       aria-disabled={disabled ? "true" : undefined}
+                      data-suggested-seat={suggested ? seat : undefined}
                       onClick={() => {
                         setFocusedSeat(seat);
                         handleSelectSeat(seat);
@@ -379,21 +416,26 @@ export function SeatMap({
                       onFocus={() => setFocusedSeat(seat)}
                       onKeyDown={(e) => handleKeyDown(e, row, colIndex)}
                       className={cn(
-                        "size-11 min-h-11 min-w-11 rounded-md border text-xs font-semibold transition-colors flex items-center justify-center",
-                        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                        "size-11 min-h-11 min-w-11 rounded-lg border text-xs font-semibold transition-all flex flex-col items-center justify-center gap-0.5",
+                        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring cursor-pointer select-none",
                         isCurrentPaxSelected
-                          ? "border-transparent bg-primary text-primary-foreground shadow-xs font-bold ring-1 ring-primary/40"
+                          ? "border-primary bg-primary text-primary-foreground shadow-xs font-bold ring-2 ring-primary/40"
                           : !available
-                            ? "cursor-not-allowed border-transparent bg-secondary text-muted-foreground/35 opacity-70"
+                            ? "cursor-not-allowed border-transparent bg-secondary text-muted-foreground/35 opacity-65"
                             : isOtherPaxSelected
-                              ? "cursor-not-allowed border-transparent bg-secondary/80 text-muted-foreground/50"
+                              ? "cursor-not-allowed border-border/80 bg-secondary/80 text-muted-foreground/60"
                               : extra
-                                ? "border-clay/60 bg-clay-soft text-accent-foreground hover:border-clay"
-                                : "cursor-pointer border-input bg-card hover:border-primary active:bg-brand-soft",
+                                ? "border-clay/60 bg-clay-soft text-accent-foreground hover:border-clay hover:bg-clay-soft/80"
+                                : "border-input bg-card text-foreground hover:border-primary/80 hover:bg-secondary/40",
                         suggested && !isSelected && "ring-2 ring-clay ring-offset-1",
                       )}
                     >
-                      <span className="code-id">{taken.has(seat) && !isSelected ? "" : letter}</span>
+                      <AircraftSeatIcon isSelected={isCurrentPaxSelected} />
+                      <span className="code-id text-[10px] leading-none">
+                        {isOtherPaxSelected
+                          ? `P${Number(selectedBy?.[0]) + 1}`
+                          : letter}
+                      </span>
                     </button>
                   </div>
                 );
@@ -402,19 +444,6 @@ export function SeatMap({
           ))}
         </div>
       </div>
-
-      <p className="mt-3 text-center text-xs text-muted-foreground">
-        {t("book.seatExtra")}: {money(seatFee(EXTRA_LEGROOM_ROWS[0] ?? 11), lang)} · {t("book.seatSub")}
-      </p>
     </div>
-  );
-}
-
-function Legend({ className, label }: { className: string; label: string }) {
-  return (
-    <li className="flex items-center gap-1.5">
-      <span aria-hidden="true" className={cn("size-3.5 rounded border", className)} />
-      {label}
-    </li>
   );
 }

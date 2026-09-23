@@ -1,5 +1,5 @@
 import * as RadioGroupPrimitive from "@radix-ui/react-radio-group";
-import { Plane } from "lucide-react";
+import { ArrowRight, Plane } from "lucide-react";
 import { useMemo } from "react";
 import { Code } from "@/components/kit";
 import { StatusBadge } from "@/components/flight-status";
@@ -55,15 +55,21 @@ export function FlightOption({
         "border-border bg-card hover:border-primary/40 hover:bg-card/90",
         "active:scale-[0.99] active:transition-none motion-reduce:active:scale-100 motion-reduce:transform-none motion-reduce:transition-none",
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-        "data-[state=checked]:border-primary data-[state=checked]:ring-1 data-[state=checked]:ring-primary/40 data-[state=checked]:bg-brand-soft/20",
+        "data-[state=checked]:border-primary data-[state=checked]:ring-2 data-[state=checked]:ring-primary/30",
         className,
       )}
     >
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      {/* Localized brand tint overlay over opaque card base when checked */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 rounded-xl bg-brand-soft/20 group-data-[state=unchecked]:hidden"
+      />
+
+      <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4 sm:gap-6">
           <div>
-            <p className="code-id text-2xl font-bold">{flight.departTime}</p>
-            <Code className="text-xs text-muted-foreground">{flight.originCode}</Code>
+            <p className="code-id text-2xl font-bold" dir="ltr">{flight.departTime}</p>
+            <Code className="text-xs text-muted-foreground" dir="ltr">{flight.originCode}</Code>
           </div>
           <div className="flex flex-col items-center gap-1 text-muted-foreground">
             <span className="numeral text-xs">{minutesToLabel(flight.durationMinutes, lang)}</span>
@@ -75,8 +81,8 @@ export function FlightOption({
             <span className="text-xs">{t("book.nonstop")}</span>
           </div>
           <div>
-            <p className="code-id text-2xl font-bold">{flight.arriveTime}</p>
-            <Code className="text-xs text-muted-foreground">{flight.destinationCode}</Code>
+            <p className="code-id text-2xl font-bold" dir="ltr">{flight.arriveTime}</p>
+            <Code className="text-xs text-muted-foreground" dir="ltr">{flight.destinationCode}</Code>
           </div>
         </div>
 
@@ -121,13 +127,15 @@ export function FlightOption({
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border pt-3 text-xs text-muted-foreground">
+      <div className="relative mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border pt-3 text-xs text-muted-foreground">
         <span className="font-semibold text-foreground">
-          <Code>{flight.number}</Code>
+          <Code dir="ltr">{flight.number}</Code>
         </span>
         <span>{flight.aircraft}</span>
-        <span>
-          {from ? pick(lang, from.city) : flight.originCode} → {to ? pick(lang, to.city) : flight.destinationCode}
+        <span className="inline-flex items-center gap-1.5">
+          <span>{from ? pick(lang, from.city) : flight.originCode}</span>
+          <ArrowRight aria-hidden="true" className="size-3 rtl:rotate-180 text-muted-foreground shrink-0" />
+          <span>{to ? pick(lang, to.city) : flight.destinationCode}</span>
         </span>
         <StatusBadge status={flight.status} />
         <span className="numeral">{t("book.seatsLeft", { n: flight.seatsLeft })}</span>

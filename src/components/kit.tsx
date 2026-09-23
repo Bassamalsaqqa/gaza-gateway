@@ -270,8 +270,20 @@ export function Container({ children, className }: { children: ReactNode; classN
   return <div className={cn("page-shell px-4 sm:px-6 lg:px-8", className)}>{children}</div>;
 }
 
-export function Code({ children, className }: { children: ReactNode; className?: string }) {
-  return <span className={cn("code-id", className)}>{children}</span>;
+export function Code({
+  children,
+  className,
+  dir,
+}: {
+  children: ReactNode;
+  className?: string;
+  dir?: "ltr" | "rtl";
+}) {
+  return (
+    <span dir={dir} className={cn("code-id", className)}>
+      {children}
+    </span>
+  );
 }
 
 export { GazaLoadingState, Skeleton } from '@/components/ui/skeleton';

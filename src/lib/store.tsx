@@ -8,7 +8,15 @@ import {
   type ReactNode,
 } from "react";
 import type { Flight } from "./data";
-import { EXTRA_BAG_PRICE, addDaysISO, farePrice, seatFee, todayISO } from "./data";
+import {
+  EXTRA_BAG_PRICE,
+  addDaysISO,
+  destinationByCode,
+  farePrice,
+  searchFlights,
+  seatFee,
+  todayISO,
+} from "./data";
 import { makePnr } from "./format";
 
 export type PassengerType = "adult" | "child" | "infant";
@@ -277,9 +285,10 @@ type Persisted = {
   bookings: Booking[];
   account: Account | null;
   travelers: Traveler[];
+  draft?: Draft;
 };
 
-function initialDraft(): Draft {
+export function initialDraft(): Draft {
   return {
     entry: "search",
     criteria: defaultCriteria("", ""),
@@ -291,6 +300,238 @@ function initialDraft(): Draft {
     extras: { pax: [emptyPaxExtras()] },
     contact: { email: "", phone: "" },
   };
+}
+
+export function createFreshDraft(
+  today = todayISO(),
+  ret = addDaysISO(today, 6),
+): Draft {
+  return {
+    entry: "search",
+    criteria: defaultCriteria(today, ret),
+    outbound: null,
+    inbound: null,
+    fareId: "classic",
+    passengers: [emptyPassenger()],
+    seats: {},
+    extras: { pax: [emptyPaxExtras()] },
+    contact: { email: "", phone: "" },
+  };
+}
+
+export function validateAndSanitizeDraft(
+  raw: unknown,
+  clientToday = todayISO(),
+  clientReturn = addDaysISO(clientToday, 6),
+): Draft {
+  const fallback = createFreshDraft(clientToday, clientReturn);
+  if (!raw || typeof raw !== "object") return fallback;
+
+  try {
+    const rawDraft = raw as Record<string, unknown>;
+    const rawCriteria = rawDraft["criteria"] as Record<string, unknown> | undefined;
+    if (!rawCriteria || typeof rawCriteria !== "object") return fallback;
+
+    const tripType = rawCriteria["tripType"] === "oneway" ? "oneway" : "round";
+    const origin =
+      typeof rawCriteria["origin"] === "string"
+        ? rawCriteria["origin"].trim().toUpperCase()
+        : "GZA";
+    const destination =
+      typeof rawCriteria["destination"] === "string"
+        ? rawCriteria["destination"].trim().toUpperCase()
+        : "AMM";
+
+    const isKnown = (code: string) => code === "GZA" || Boolean(destinationByCode(code));
+    const isValidRoute =
+      isKnown(origin) && isKnown(destination) && origin !== destination && (origin === "GZA" || destination === "GZA");
+
+    if (!isValidRoute) {
+      return fallback;
+    }
+
+    const today = clientToday;
+    let departDate =
+      typeof rawCriteria["departDate"] === "string" ? rawCriteria["departDate"].trim() : "";
+    let returnDate =
+      typeof rawCriteria["returnDate"] === "string" ? rawCriteria["returnDate"].trim() : "";
+
+    const isValidIso = (d: string) => /^\d{4}-\d{2}-\d{2}$/.test(d);
+    let datesRolled = false;
+
+    if (!isValidIso(departDate) || departDate < today) {
+      departDate = today;
+      datesRolled = true;
+    }
+
+    if (tripType === "round") {
+      if (!isValidIso(returnDate) || returnDate < departDate || datesRolled) {
+        returnDate = addDaysISO(departDate, 6);
+        datesRolled = true;
+      }
+    } else {
+      returnDate = "";
+    }
+
+    const adults =
+      typeof rawCriteria["adults"] === "number" && rawCriteria["adults"] >= 1
+        ? Math.floor(rawCriteria["adults"])
+        : 1;
+    const children =
+      typeof rawCriteria["children"] === "number" && rawCriteria["children"] >= 0
+        ? Math.floor(rawCriteria["children"])
+        : 0;
+    const infants =
+      typeof rawCriteria["infants"] === "number" && rawCriteria["infants"] >= 0
+        ? Math.floor(rawCriteria["infants"])
+        : 0;
+    const cabin =
+      rawCriteria["cabin"] === "premium" || rawCriteria["cabin"] === "business"
+        ? rawCriteria["cabin"]
+        : "economy";
+
+    const effectiveCriteria: SearchCriteria = {
+      tripType,
+      origin,
+      destination,
+      departDate,
+      returnDate,
+      adults,
+      children,
+      infants,
+      cabin,
+    };
+
+    let validOutbound: Flight | null = null;
+    let validInbound: Flight | null = null;
+
+    // Validate outbound flight against effectiveCriteria
+    const rawOut = rawDraft["outbound"] as Record<string, unknown> | null | undefined;
+    if (
+      !datesRolled &&
+      rawOut &&
+      typeof rawOut === "object" &&
+      typeof rawOut["id"] === "string" &&
+      typeof rawOut["originCode"] === "string" &&
+      typeof rawOut["destinationCode"] === "string" &&
+      typeof rawOut["date"] === "string"
+    ) {
+      if (
+        rawOut["originCode"].toUpperCase() === origin &&
+        rawOut["destinationCode"].toUpperCase() === destination &&
+        rawOut["date"] === departDate
+      ) {
+        const availableOut = searchFlights(origin, destination, departDate);
+        const match = availableOut.find((f) => f.id === rawOut["id"]);
+        if (match) {
+          validOutbound = match;
+        }
+      }
+    }
+
+    // Validate inbound flight against effectiveCriteria
+    const rawIn = rawDraft["inbound"] as Record<string, unknown> | null | undefined;
+    if (
+      !datesRolled &&
+      tripType === "round" &&
+      rawIn &&
+      typeof rawIn === "object" &&
+      typeof rawIn["id"] === "string" &&
+      typeof rawIn["originCode"] === "string" &&
+      typeof rawIn["destinationCode"] === "string" &&
+      typeof rawIn["date"] === "string"
+    ) {
+      if (
+        rawIn["originCode"].toUpperCase() === destination &&
+        rawIn["destinationCode"].toUpperCase() === origin &&
+        rawIn["date"] === returnDate
+      ) {
+        const availableIn = searchFlights(destination, origin, returnDate);
+        const match = availableIn.find((f) => f.id === rawIn["id"]);
+        if (match) {
+          validInbound = match;
+        }
+      }
+    }
+
+    // Seat assignments: only retain seats for currently valid flights
+    const rawSeats =
+      rawDraft["seats"] && typeof rawDraft["seats"] === "object"
+        ? (rawDraft["seats"] as Record<string, unknown>)
+        : {};
+    const cleanSeats: Record<string, string> = {};
+    for (const [key, val] of Object.entries(rawSeats)) {
+      if (typeof val !== "string") continue;
+      if (key.startsWith("out-") && validOutbound) {
+        cleanSeats[key] = val;
+      } else if (key.startsWith("in-") && validInbound && tripType === "round") {
+        cleanSeats[key] = val;
+      }
+    }
+
+    // Passengers
+    let passengers: Passenger[] = [];
+    const rawPax = rawDraft["passengers"];
+    if (Array.isArray(rawPax) && rawPax.length > 0) {
+      passengers = rawPax.map((p) => {
+        if (!p || typeof p !== "object") return emptyPassenger();
+        const pObj = p as Record<string, unknown>;
+        const withAdult =
+          typeof pObj["withAdult"] === "number" ? pObj["withAdult"] : undefined;
+        return {
+          type: pObj["type"] === "child" || pObj["type"] === "infant" ? pObj["type"] : "adult",
+          ...(withAdult !== undefined ? { withAdult } : {}),
+          firstName: typeof pObj["firstName"] === "string" ? pObj["firstName"] : "",
+          lastName: typeof pObj["lastName"] === "string" ? pObj["lastName"] : "",
+          dob: typeof pObj["dob"] === "string" ? pObj["dob"] : "",
+          nationality: typeof pObj["nationality"] === "string" ? pObj["nationality"] : "PS",
+          document: typeof pObj["document"] === "string" ? pObj["document"] : "",
+        };
+      });
+    } else {
+      passengers = passengersFor(effectiveCriteria);
+    }
+
+    // Extras
+    const rawExtras = rawDraft["extras"] as Record<string, unknown> | undefined;
+    const rawExtrasPax = rawExtras?.["pax"];
+    const extras: Extras = Array.isArray(rawExtrasPax)
+      ? extrasForPassengers({ pax: rawExtrasPax as PaxExtras[] }, passengers.length)
+      : { pax: passengers.map(() => emptyPaxExtras()) };
+
+    // Contact
+    const rawContact = rawDraft["contact"] as Record<string, unknown> | undefined;
+    const contact: Contact = {
+      email: typeof rawContact?.["email"] === "string" ? rawContact["email"] : "",
+      phone: typeof rawContact?.["phone"] === "string" ? rawContact["phone"] : "",
+    };
+
+    // Fare
+    const rawFare = rawDraft["fareId"];
+    const fareId: Booking["fareId"] =
+      rawFare === "essential" || rawFare === "flex" ? rawFare : "classic";
+
+    const hasCompleteFlights = Boolean(
+      validOutbound && (tripType !== "round" || validInbound),
+    );
+
+    const entry: "search" | "results" =
+      rawDraft["entry"] === "search" && !hasCompleteFlights ? "search" : "results";
+
+    return {
+      entry,
+      criteria: effectiveCriteria,
+      outbound: validOutbound,
+      inbound: validInbound,
+      fareId,
+      passengers,
+      seats: cleanSeats,
+      extras,
+      contact,
+    };
+  } catch {
+    return fallback;
+  }
 }
 
 type LegacyExtras = { extraBags?: number; meal?: string; assistance?: string[] };
@@ -332,25 +573,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [travelers, setTravelers] = useState<Traveler[]>([]);
 
   useEffect(() => {
-    // Initialize volatile dates on client mount after hydration
-    const today = todayISO();
-    const ret = addDaysISO(today, 6);
-    setDraftState((prev) => {
-      const needsDate = !prev.criteria.departDate;
-      const isPast = prev.criteria.departDate && prev.criteria.departDate < today;
-      if (needsDate || isPast) {
-        return {
-          ...prev,
-          criteria: {
-            ...prev.criteria,
-            departDate: today,
-            returnDate: prev.criteria.tripType === "round" ? ret : prev.criteria.returnDate,
-          },
-        };
-      }
-      return prev;
-    });
-
+    const clientToday = todayISO();
+    const clientReturn = addDaysISO(clientToday, 6);
+    let currentDraft: Draft | undefined;
     try {
       const raw = window.localStorage.getItem(KEY);
       if (raw) {
@@ -358,18 +583,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setBookings((parsed.bookings ?? []).map(migrateBooking));
         setAccount(parsed.account ?? null);
         setTravelers((parsed.travelers ?? []).map((tr) => ({ ...tr, dob: tr.dob ?? "" })));
+        if (parsed.draft) {
+          currentDraft = validateAndSanitizeDraft(parsed.draft, clientToday, clientReturn);
+        }
       }
     } catch {
       /* ignore corrupted state */
     }
+
+    if (!currentDraft) {
+      currentDraft = createFreshDraft(clientToday, clientReturn);
+    }
+    setDraftState(currentDraft);
     setReady(true);
   }, []);
 
   useEffect(() => {
     if (!ready) return;
-    const payload: Persisted = { bookings, account, travelers };
+    const payload: Persisted = { bookings, account, travelers, draft };
     window.localStorage.setItem(KEY, JSON.stringify(payload));
-  }, [ready, bookings, account, travelers]);
+  }, [ready, bookings, account, travelers, draft]);
 
   const setDraft = useCallback((updater: (prev: Draft) => Draft) => {
     setDraftState((prev) => updater(prev));

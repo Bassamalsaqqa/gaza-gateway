@@ -1,7 +1,6 @@
 import * as RadioGroupPrimitive from "@radix-ui/react-radio-group";
-import { ArrowRight, Check, Luggage, Ticket } from "lucide-react";
-import { useMemo } from "react";
-import { Pill } from "@/components/kit";
+import { ArrowRight, Check, ChevronDown, ChevronUp, Luggage, Ticket } from "lucide-react";
+import { useMemo, useState } from "react";
 import type { Fare } from "@/lib/data";
 import { money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
@@ -10,11 +9,13 @@ import { cn } from "@/lib/utils";
 export interface FareOptionProps {
   fare: Fare;
   price: number;
+  selected?: boolean;
   className?: string;
 }
 
-export function FareOption({ fare, price, className }: FareOptionProps) {
+export function FareOption({ fare, price, selected = false, className }: FareOptionProps) {
   const { t, lang } = useI18n();
+  const [mobileExpanded, setMobileExpanded] = useState(false);
 
   const accessibleName = useMemo(() => {
     const localizedName = pick(lang, fare.name);
@@ -41,104 +42,171 @@ export function FareOption({ fare, price, className }: FareOptionProps) {
     });
   }, [fare, price, lang, t]);
 
+  const bagsLabel =
+    fare.checkedBags === 0
+      ? t("book.cabinBagOnly")
+      : t("book.checkedBagsCount", { n: fare.checkedBags });
+
   return (
-    <RadioGroupPrimitive.Item
-      value={fare.id}
-      id={`fare-option-${fare.id}`}
-      aria-label={accessibleName}
+    <div
       className={cn(
-        "group relative flex flex-col justify-between rounded-xl border p-5 text-start",
-        "cursor-pointer select-none transition-all duration-150",
-        "border-border bg-card hover:border-primary/40 hover:bg-card/90",
-        "active:scale-[0.99] active:transition-none motion-reduce:active:scale-100 motion-reduce:transform-none motion-reduce:transition-none",
-        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-        "data-[state=checked]:border-primary data-[state=checked]:ring-1 data-[state=checked]:ring-primary/40 data-[state=checked]:bg-brand-soft/20",
+        "relative flex flex-col justify-between rounded-xl border p-4 sm:p-5 text-start transition-all duration-150 h-full",
+        "border-border bg-card",
+        selected
+          ? "border-primary ring-2 ring-primary/30 shadow-xs"
+          : "hover:border-primary/50 hover:bg-card/95",
+        fare.highlight && !selected && "border-primary/30",
         className,
       )}
     >
-      <div>
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-bold">{pick(lang, fare.name)}</h2>
-            {fare.highlight ? (
-              <div className="mt-1">
-                <Pill tone="clay">{t("book.recommended")}</Pill>
-              </div>
-            ) : null}
-          </div>
+      {/* Localized brand tint overlay over opaque card base when selected */}
+      {selected ? (
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 rounded-xl bg-brand-soft/25"
+        />
+      ) : null}
+      <RadioGroupPrimitive.Item
+        value={fare.id}
+        id={`fare-option-${fare.id}`}
+        aria-label={accessibleName}
+        className={cn(
+          "group w-full text-start cursor-pointer select-none rounded-lg outline-none",
+          "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+        )}
+      >
+        <div>
+          {/* Header with Title, Recommended Tag, and Radio Indicator */}
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              {fare.highlight ? (
+                <span className="mb-1.5 inline-block rounded-full bg-clay-soft px-2.5 py-0.5 text-[11px] font-semibold text-accent-foreground">
+                  {t("book.recommended")}
+                </span>
+              ) : null}
+              <h2 className="text-base sm:text-lg font-bold text-foreground">
+                {pick(lang, fare.name)}
+              </h2>
+            </div>
 
-          {/* Visual Radio Selection Affordance */}
-          <div className="flex items-center gap-2 shrink-0">
-            <span
+            {/* Accessible Radio Circle Indicator — NOT a nested button */}
+            <div
+              aria-hidden="true"
               className={cn(
-                "inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors",
-                "border min-h-[36px] sm:min-h-0",
-                "group-data-[state=checked]:border-primary group-data-[state=checked]:bg-primary group-data-[state=checked]:text-primary-foreground",
-                "group-data-[state=unchecked]:border-border group-data-[state=unchecked]:bg-secondary/60 group-data-[state=unchecked]:text-muted-foreground",
-                "group-hover:border-primary/50",
+                "size-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors mt-0.5",
+                selected
+                  ? "border-primary bg-primary"
+                  : "border-border bg-card group-hover:border-primary/60",
               )}
             >
-              {/* Radio Circle Indicator */}
-              <span
-                aria-hidden="true"
-                className={cn(
-                  "size-4 rounded-full border-2 flex items-center justify-center transition-colors shrink-0",
-                  "group-data-[state=checked]:border-primary-foreground",
-                  "group-data-[state=unchecked]:border-muted-foreground group-hover:border-primary",
-                )}
-              >
-                <RadioGroupPrimitive.Indicator asChild>
-                  <span className="block size-2 rounded-full bg-primary-foreground" />
-                </RadioGroupPrimitive.Indicator>
-              </span>
-              <span className="group-data-[state=checked]:inline group-data-[state=unchecked]:hidden">
-                {t("book.selected")}
-              </span>
-              <span className="group-data-[state=checked]:hidden group-data-[state=unchecked]:inline">
-                {t("book.select")}
-              </span>
+              <RadioGroupPrimitive.Indicator asChild>
+                <span className="block size-2 rounded-full bg-primary-foreground" />
+              </RadioGroupPrimitive.Indicator>
+            </div>
+          </div>
+
+          {/* Pricing */}
+          <div className="mt-3">
+            <span className="text-2xl font-bold tracking-tight text-foreground">
+              {money(price, lang)}
             </span>
+            <span className="ms-1.5 text-xs text-muted-foreground">{t("book.perPassenger")}</span>
+          </div>
+
+          {/* Mobile Concise Summary (Compact by default) */}
+          <div className="mt-3 block sm:hidden">
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <Luggage aria-hidden="true" className="size-3.5 shrink-0 text-brand-deep" />
+              <span>{bagsLabel}</span>
+              <span>·</span>
+              <Ticket aria-hidden="true" className="size-3.5 shrink-0 text-brand-deep" />
+              <span className="truncate">{pick(lang, fare.seatSelection)}</span>
+            </p>
+          </div>
+
+          {/* Full Benefits List (Always visible on desktop) */}
+          <div className="hidden sm:block mt-4 space-y-2 text-sm text-muted-foreground">
+            <ul className="space-y-2.5">
+              <li className="flex items-start gap-2.5">
+                <Luggage aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-brand-deep" />
+                <span>{bagsLabel}</span>
+              </li>
+              <li className="flex items-start gap-2.5">
+                <Ticket aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-brand-deep" />
+                <span>{pick(lang, fare.seatSelection)}</span>
+              </li>
+              <li className="flex items-start gap-2.5">
+                <ArrowRight
+                  aria-hidden="true"
+                  className="mt-0.5 size-4 shrink-0 text-brand-deep rtl:rotate-180"
+                />
+                <span>{pick(lang, fare.changes)}</span>
+              </li>
+              <li className="flex items-start gap-2.5">
+                <Check aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-brand-deep" />
+                <span>{pick(lang, fare.refund)}</span>
+              </li>
+            </ul>
+
+            {/* Flexibility summary */}
+            <p className="mt-3.5 border-t border-border/70 pt-2.5 text-xs text-muted-foreground">
+              {pick(lang, fare.flexibility)}
+            </p>
           </div>
         </div>
+      </RadioGroupPrimitive.Item>
 
-        {/* Pricing */}
-        <div className="mt-4">
-          <p className="text-2xl font-bold">{money(price, lang)}</p>
-          <p className="text-xs text-muted-foreground">{t("book.perPassenger")}</p>
+      {/* Mobile Details Disclosure (Strictly outside RadioGroupPrimitive.Item) */}
+      <div className="block sm:hidden mt-2 border-t border-border/50 pt-1">
+        <button
+          type="button"
+          onClick={() => setMobileExpanded((prev) => !prev)}
+          aria-expanded={mobileExpanded}
+          aria-controls={`fare-details-${fare.id}`}
+          className="inline-flex min-h-[44px] min-w-[44px] items-center gap-1.5 py-2 text-xs font-semibold text-brand-deep hover:underline cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
+        >
+          <span>{mobileExpanded ? t("book.hideDetails") : t("book.showDetails")}</span>
+          {mobileExpanded ? (
+            <ChevronUp aria-hidden="true" className="size-3.5" />
+          ) : (
+            <ChevronDown aria-hidden="true" className="size-3.5" />
+          )}
+        </button>
+
+        <div
+          id={`fare-details-${fare.id}`}
+          hidden={!mobileExpanded}
+          className={cn(
+            "mt-1 space-y-2 text-sm text-muted-foreground pb-2",
+            !mobileExpanded && "hidden",
+          )}
+        >
+          <ul className="space-y-2">
+            <li className="flex items-start gap-2">
+              <Luggage aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-brand-deep" />
+              <span>{bagsLabel}</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <Ticket aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-brand-deep" />
+              <span>{pick(lang, fare.seatSelection)}</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <ArrowRight
+                aria-hidden="true"
+                className="mt-0.5 size-4 shrink-0 text-brand-deep rtl:rotate-180"
+              />
+              <span>{pick(lang, fare.changes)}</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <Check aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-brand-deep" />
+              <span>{pick(lang, fare.refund)}</span>
+            </li>
+          </ul>
+          <p className="mt-2 border-t border-border/60 pt-2 text-xs text-muted-foreground">
+            {pick(lang, fare.flexibility)}
+          </p>
         </div>
-
-        {/* Benefits list */}
-        <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
-          <li className="flex gap-2">
-            <Luggage aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-brand-deep" />
-            <span className="numeral">
-              {fare.checkedBags === 0
-                ? t("book.cabinBagOnly")
-                : t("book.checkedBagsCount", { n: fare.checkedBags })}
-            </span>
-          </li>
-          <li className="flex gap-2">
-            <Ticket aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-brand-deep" />
-            <span>{pick(lang, fare.seatSelection)}</span>
-          </li>
-          <li className="flex gap-2">
-            <ArrowRight
-              aria-hidden="true"
-              className="mt-0.5 size-4 shrink-0 text-brand-deep rtl:rotate-180"
-            />
-            <span>{pick(lang, fare.changes)}</span>
-          </li>
-          <li className="flex gap-2">
-            <Check aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-brand-deep" />
-            <span>{pick(lang, fare.refund)}</span>
-          </li>
-        </ul>
       </div>
-
-      {/* Flexibility summary footer */}
-      <p className="mt-5 border-t border-border pt-3 text-xs text-muted-foreground">
-        {pick(lang, fare.flexibility)}
-      </p>
-    </RadioGroupPrimitive.Item>
+    </div>
   );
 }
