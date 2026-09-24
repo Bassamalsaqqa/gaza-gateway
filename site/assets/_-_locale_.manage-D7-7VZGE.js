@@ -1,1 +1,0 @@
-import{o as e}from"./useStore-BN5_7baN.js";import{n as t}from"./Match-sRQBmkr6.js";var n=e(),r=()=>(0,n.jsx)(t,{});export{r as component};
