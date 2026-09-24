@@ -1555,19 +1555,9 @@ Make it complete enough for us to evaluate the overall product direction, not
 
 just the homepage.
 
-This project was built with [Lovable](https://lovable.dev).
-
-## Build with Lovable
-
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/7b9b672a-0315-4498-ad05-52201d6c5059).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
-
 ## Development & Build
 
-Prefer working locally? You need Node.js 20+ and npm:
+You need Node.js 20+ and npm:
 
 ```sh
 # Install dependencies

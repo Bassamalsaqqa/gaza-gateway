@@ -1,4 +1,8 @@
-import { defineConfig } from "@lovable.dev/vite-tanstack-config";
+import { fileURLToPath } from "node:url";
+import tailwindcss from "@tailwindcss/vite";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+import viteReact from "@vitejs/plugin-react";
+import { defineConfig } from "vite";
 import { destinations } from "./src/lib/data";
 
 const staticPages = [
@@ -29,54 +33,87 @@ const publicPages = [
 ].map((path) => ({ path }));
 
 export default defineConfig({
-  nitro: false,
-  tanstackStart: {
-    server: { entry: "server" },
-    spa: {
-      enabled: false,
+  server: {
+    host: "::",
+    port: 8080,
+  },
+  resolve: {
+    tsconfigPaths: true,
+    alias: {
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
-    prerender: {
-      enabled: true,
-      crawlLinks: false,
-    },
-    pages: [
-      ...publicPages,
-      // English public SPA fallback shell
-      {
-        path: "/?shell=1",
-        prerender: {
-          outputPath: "/_shell.html",
-          headers: { "X-TSS_SHELL": "true" },
-        },
-        sitemap: { exclude: true },
-      },
-      // Arabic public SPA fallback shell
-      {
-        path: "/ar?shell=1",
-        prerender: {
-          outputPath: "/ar/_shell.html",
-          headers: { "X-TSS_SHELL": "true" },
-        },
-        sitemap: { exclude: true },
-      },
-      // English admin SPA fallback shell
-      {
-        path: "/admin/signin?shell=1",
-        prerender: {
-          outputPath: "/admin/_shell.html",
-          headers: { "X-TSS_SHELL": "true" },
-        },
-        sitemap: { exclude: true },
-      },
-      // Arabic admin SPA fallback shell
-      {
-        path: "/ar/admin/signin?shell=1",
-        prerender: {
-          outputPath: "/ar/admin/_shell.html",
-          headers: { "X-TSS_SHELL": "true" },
-        },
-        sitemap: { exclude: true },
-      },
+    dedupe: [
+      "react",
+      "react-dom",
+      "react/jsx-runtime",
+      "react/jsx-dev-runtime",
+      "@tanstack/react-query",
+      "@tanstack/query-core",
     ],
   },
+  optimizeDeps: {
+    include: [
+      "react",
+      "react-dom",
+      "react-dom/client",
+      "react/jsx-runtime",
+      "react/jsx-dev-runtime",
+    ],
+  },
+  css: {
+    transformer: "lightningcss",
+  },
+  plugins: [
+    tailwindcss(),
+    tanstackStart({
+      server: { entry: "server" },
+      spa: {
+        enabled: false,
+      },
+      prerender: {
+        enabled: true,
+        crawlLinks: false,
+      },
+      pages: [
+        ...publicPages,
+        // English public SPA fallback shell
+        {
+          path: "/?shell=1",
+          prerender: {
+            outputPath: "/_shell.html",
+            headers: { "X-TSS_SHELL": "true" },
+          },
+          sitemap: { exclude: true },
+        },
+        // Arabic public SPA fallback shell
+        {
+          path: "/ar?shell=1",
+          prerender: {
+            outputPath: "/ar/_shell.html",
+            headers: { "X-TSS_SHELL": "true" },
+          },
+          sitemap: { exclude: true },
+        },
+        // English admin SPA fallback shell
+        {
+          path: "/admin/signin?shell=1",
+          prerender: {
+            outputPath: "/admin/_shell.html",
+            headers: { "X-TSS_SHELL": "true" },
+          },
+          sitemap: { exclude: true },
+        },
+        // Arabic admin SPA fallback shell
+        {
+          path: "/ar/admin/signin?shell=1",
+          prerender: {
+            outputPath: "/ar/admin/_shell.html",
+            headers: { "X-TSS_SHELL": "true" },
+          },
+          sitemap: { exclude: true },
+        },
+      ],
+    }),
+    viteReact(),
+  ],
 });
