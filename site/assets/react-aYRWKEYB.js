@@ -1,0 +1,1 @@
+import{n as e}from"./use-reduced-motion-CL7MKL4D.js";var t=e;export{t};
