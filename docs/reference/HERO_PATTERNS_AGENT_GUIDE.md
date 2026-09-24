@@ -393,6 +393,8 @@ After an accepted `main` commit:
 Expose:
 - None
 - Pie Factory (`pie-factory` / `gza-geometric`, canonical 60×60 default)
+- Gaza Lattice (`gza-lattice` — original project motif, source `gza`, license `project`: clean geometric diamond lattice with central structural cross, evocative of modern civic Mediterranean sunscreens; not tatreez)
+- Runway Datum (`runway-datum` — original project motif, source `gza`, license `project`: aeronautical centerline axis and runway threshold datum; not tatreez)
 - Architect (`architect`)
 - Graph Paper (`graph-paper`)
 - Rails (`rails`)
@@ -404,26 +406,46 @@ Expose:
 - Floor Tile (`floor-tile`)
 - Circuit Board (`circuit-board` — admin only)
 
-## A3. Appearance Lab
+Note on Provenance: `gza-lattice` and `runway-datum` are authored geometric project motifs (modern structural/aviation datums). They must never be described or mislabeled as historical tatreez or folk embroidery.
+
+## A3. Appearance Lab & Surface Lab
 
 Location:
 
 `/admin/settings` → `Appearance` (`المظهر`)
 
-Until Phase 4 repository convergence, this is **preview-only**.
+Until Phase 4 repository convergence, this is **preview-only**. Changes are stored browser-locally under `gza.skin.preview.v1` and activated via `?skinPreview=1`.
 
-Controls:
-- Public pattern
-- Sand/editorial pattern
-- Admin workspace pattern
-- Intensity (Off, Very subtle, Subtle, Present)
-- Scale (Small, Standard, Large)
-- Reset section
-- Representative previews
+Sub-Tabs:
+1. **Canvas Skin** (`المظهر العام`):
+   - Public pattern
+   - Sand/editorial pattern
+   - Admin workspace pattern
+   - Intensity (Off, Very subtle, Subtle, Present)
+   - Scale (Small, Standard, Large)
+   - Reset section
+2. **Surface Grammar** (`قواعد الأسطح`):
+   - Per-family controls across 6 semantic families (`operational`, `fare`, `dossier`, `form-sheet`, `guide`, `editorial`)
+   - Material tone swatches (`chalk`, `limestone`, `sand-deep`, `ink`)
+   - Gaza Rail toggle & accent choice (`brand`, `clay`, `gold`, `subtle`)
+   - Corner radius (`sm`, `md`, `lg`, `xl`) and elevation (`flat`, `sm`, `md`)
+   - Family-approved motif pattern and placement (`none`, `header-band`, `rail-strip`, `accent-corner`, `full`)
+3. **Surface Lab** (`مختبر الأسطح`):
+   - Live archetype comparisons across all 7 production components:
+     1. Flight Option card (`operational`)
+     2. Fare Option tier card (`fare`)
+     3. Trip Summary / Manifest (`dossier`)
+     4. Passenger Form Sheet (`form-sheet`)
+     5. Travel Guide Plate (`guide`)
+     6. Editorial Chapter Card (`editorial`)
+     7. Booking Review Dossier (`dossier`)
+   - Inspection modes: `baseline` (pure production baseline), `grammar` (Gaza Surface Grammar), `compare` (side-by-side synchronized view)
 
 Footer actions:
 - Reset all
 - Preview homepage (`/?skinPreview=1`)
+- Preview Booking (`/book?skinPreview=1`)
+- Preview Travel (`/travel?skinPreview=1`)
 - Preview Airport Future (`/airport/future?skinPreview=1`)
 - Preview admin (`/admin?skinPreview=1`)
 

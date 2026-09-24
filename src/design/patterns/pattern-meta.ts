@@ -64,6 +64,8 @@ export const PUBLIC_CANDIDATE_PATTERNS: readonly CanonicalPatternId[] = [
   "steel-beams",
   "overlapping-diamonds",
   "floor-tile",
+  "gza-lattice",
+  "runway-datum",
   "none",
 ];
 
@@ -77,6 +79,8 @@ export const SAND_CANDIDATE_PATTERNS: readonly CanonicalPatternId[] = [
   "steel-beams",
   "overlapping-diamonds",
   "floor-tile",
+  "gza-lattice",
+  "runway-datum",
   "none",
 ];
 
@@ -92,5 +96,7 @@ export const ADMIN_CANDIDATE_PATTERNS: readonly CanonicalPatternId[] = [
   "overlapping-diamonds",
   "floor-tile",
   "circuit-board",
+  "gza-lattice",
+  "runway-datum",
   "none",
 ];

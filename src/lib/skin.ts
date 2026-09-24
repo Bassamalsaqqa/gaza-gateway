@@ -21,6 +21,11 @@ import {
 } from "@/design/patterns/pattern-meta";
 import { PIE_FACTORY_DEFINITION } from "@/design/patterns/pie-factory";
 import { renderPatternSvg } from "@/design/patterns/pattern-svg";
+import type { SurfaceGrammarConfig } from "@/design/surfaces/types";
+import {
+  DEFAULT_SURFACE_GRAMMAR_CONFIG,
+  sanitizeSurfaceGrammarConfig,
+} from "@/design/surfaces/presets";
 
 export const SKIN_PREVIEW_STORAGE_KEY = "gza.skin.preview.v1";
 
@@ -34,7 +39,9 @@ export type SiteSkinConfig = {
   publicCanvas: SurfaceSkinConfig;
   sandSection: SurfaceSkinConfig;
   adminCanvas: SurfaceSkinConfig;
-  /** Reserved extension point for future Phase 4 CardSkin configuration. */
+  /** Authored Gaza Surface Grammar preview configuration */
+  surfaceGrammar?: SurfaceGrammarConfig;
+  /** Backwards compatibility for legacy stored preview objects */
   cards?: Record<string, unknown>;
 };
 
@@ -54,6 +61,7 @@ export const DEFAULT_SITE_SKIN: SiteSkinConfig = {
     intensity: "present",
     scale: "standard",
   },
+  surfaceGrammar: DEFAULT_SURFACE_GRAMMAR_CONFIG,
 };
 
 export {
@@ -107,6 +115,7 @@ export function sanitizeSiteSkinConfig(raw: unknown): SiteSkinConfig {
     publicCanvas: sanitizeSurfaceConfig(obj.publicCanvas, DEFAULT_SITE_SKIN.publicCanvas),
     sandSection: sanitizeSurfaceConfig(obj.sandSection, DEFAULT_SITE_SKIN.sandSection),
     adminCanvas: sanitizeSurfaceConfig(obj.adminCanvas, DEFAULT_SITE_SKIN.adminCanvas),
+    surfaceGrammar: sanitizeSurfaceGrammarConfig(obj.surfaceGrammar),
   };
 }
 
@@ -121,7 +130,8 @@ export function isDefaultSiteSkin(config: SiteSkinConfig): boolean {
     config.sandSection.scale === "standard" &&
     config.adminCanvas.pattern === "pie-factory" &&
     config.adminCanvas.intensity === "present" &&
-    config.adminCanvas.scale === "standard"
+    config.adminCanvas.scale === "standard" &&
+    (!config.surfaceGrammar || !config.surfaceGrammar.enabled)
   );
 }
 
@@ -194,14 +204,15 @@ export const SKIN_PREVIEW_EVENT = "gza:skin-preview-update";
 export function isSkinPreviewActive(searchStr?: string): boolean {
   try {
     const query =
-      searchStr !== undefined
+      typeof searchStr === "string" && searchStr.trim().length > 0
         ? searchStr
         : typeof window !== "undefined"
           ? window.location.search
-          : "";
+          : searchStr ?? "";
     if (!query) return false;
     const params = new URLSearchParams(query.startsWith("?") ? query : `?${query}`);
-    return params.get("skinPreview") === "1";
+    const val = params.get("skinPreview");
+    return val === "1" || val === '"1"' || val === "'1'";
   } catch {
     return false;
   }

@@ -26,6 +26,7 @@ import {
   Panel,
   Pill,
 } from "@/components/kit";
+import { GazaSurface } from "@/design/surfaces";
 import {
   searchFlights,
   type Flight,
@@ -45,15 +46,21 @@ import { cn } from "@/lib/utils";
 
 type BookSearch = {
   step?: BookingStep;
+  skinPreview?: "1" | 1;
 };
 
 export const Route = createFileRoute("/{-$locale}/book")({
   validateSearch: (search: Record<string, unknown>): BookSearch => {
+    const out: BookSearch = {};
     const rawStep = search["step"];
     if (typeof rawStep === "string" && (bookingSteps as readonly string[]).includes(rawStep)) {
-      return { step: rawStep as BookingStep };
+      out.step = rawStep as BookingStep;
     }
-    return {};
+    const rawPreview = search["skinPreview"];
+    if (rawPreview === "1" || rawPreview === 1 || rawPreview === '"1"') {
+      out.skinPreview = 1;
+    }
+    return out;
   },
   head: () => ({
     meta: [
@@ -269,23 +276,31 @@ function BookPage() {
     currentStep = draft.entry === "results" ? "results" : "search";
   }
 
+  const isPreview = search.skinPreview === "1" || search.skinPreview === 1;
+
   // Repair/clamp URL search parameter without trapping the user
   useEffect(() => {
     if (!ready) return;
     if (requestedStep && stepRanks[requestedStep] > stepRanks[maxStep]) {
       void navigate({
         to: "/book",
-        search: { step: maxStep },
+        search: {
+          step: maxStep,
+          ...(isPreview ? { skinPreview: 1 as const } : {}),
+        },
         replace: true,
       });
     } else if (!requestedStep && draft.entry === "results") {
       void navigate({
         to: "/book",
-        search: { step: "results" },
+        search: {
+          step: "results",
+          ...(isPreview ? { skinPreview: 1 as const } : {}),
+        },
         replace: true,
       });
     }
-  }, [ready, requestedStep, maxStep, draft.entry, navigate]);
+  }, [ready, requestedStep, maxStep, draft.entry, isPreview, navigate]);
 
   // Manage focus on step transition
   useEffect(() => {
@@ -296,7 +311,10 @@ function BookPage() {
     setFieldErrors({});
     void navigate({
       to: "/book",
-      search: { step: next },
+      search: {
+        step: next,
+        ...(isPreview ? { skinPreview: 1 as const } : {}),
+      },
       replace,
     });
     if (typeof window !== "undefined") {
@@ -380,7 +398,11 @@ function BookPage() {
       contact: draft.contact,
       total: totals.total,
     });
-    void navigate({ to: "/booking-confirmation/$ref", params: { ref: created.ref } });
+    void navigate({
+      to: "/booking-confirmation/$ref",
+      params: { ref: created.ref },
+      ...(isPreview ? { search: { skinPreview: 1 as const } } : {}),
+    });
   };
 
   const totals = bookingTotal(draft);
@@ -641,7 +663,7 @@ function BookPage() {
                         });
                       const isInfant = p.type === "infant";
                       return (
-                        <Panel key={i}>
+                        <GazaSurface family="form-sheet" key={i} className="p-5 sm:p-6">
                           <div className="flex flex-wrap items-center gap-2">
                             <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
                               {t("book.pax", { n: i + 1 })}
@@ -799,11 +821,11 @@ function BookPage() {
                               />
                             </Field>
                           </div>
-                        </Panel>
+                        </GazaSurface>
                       );
                     })}
 
-                    <Panel>
+                    <GazaSurface family="form-sheet" className="p-5 sm:p-6">
                       <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
                         {t("book.contact")}
                       </h2>
@@ -859,7 +881,7 @@ function BookPage() {
                       <div className="mt-4">
                         <Notice>{t("book.guestNote")}</Notice>
                       </div>
-                    </Panel>
+                    </GazaSurface>
                   </div>
 
                   <StepNav

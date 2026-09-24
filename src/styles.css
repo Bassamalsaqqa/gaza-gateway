@@ -54,6 +54,7 @@
   --color-brand: var(--brand);
   --color-brand-deep: var(--brand-deep);
   --color-brand-soft: var(--brand-soft);
+  --color-surface-olive-soft: var(--surface-olive-soft);
   --color-clay: var(--clay);
   --color-clay-soft: var(--clay-soft);
   --color-status-ontime: var(--status-ontime);
@@ -130,6 +131,7 @@
   --brand: oklch(0.42 0.085 158);
   --brand-deep: oklch(0.3 0.06 162);
   --brand-soft: oklch(0.93 0.03 158);
+  --surface-olive-soft: oklch(0.95 0.022 158);
 
   --clay: oklch(0.54 0.13 42);
   --clay-soft: oklch(0.94 0.035 55);
@@ -358,6 +360,74 @@
   letter-spacing: normal;
 }
 
+/*
+ * Gaza Surface Grammar — Scoped Dark-Tone Text & Contrast System
+ *
+ * Ensures all descendant headings, prose, metadata, borders, and links on
+ * dark surfaces (tone: 'ink' or 'olive') remain clearly legible and WCAG AA/AAA compliant.
+ */
+[data-surface-tone="ink"] {
+  --foreground: var(--ink-foreground);
+  --muted-foreground: var(--ink-muted);
+  --card-foreground: var(--ink-foreground);
+  --border: var(--ink-border);
+  --primary: oklch(0.88 0.06 158);
+  --primary-foreground: oklch(0.21 0.024 165);
+  color: var(--ink-foreground);
+}
+
+[data-surface-tone="ink"] .text-foreground,
+[data-surface-tone="ink"] h1,
+[data-surface-tone="ink"] h2,
+[data-surface-tone="ink"] h3,
+[data-surface-tone="ink"] h4 {
+  color: var(--ink-foreground) !important;
+}
+
+[data-surface-tone="ink"] .text-muted-foreground {
+  color: var(--ink-muted) !important;
+}
+
+[data-surface-tone="ink"] .border-border {
+  border-color: var(--ink-border) !important;
+}
+
+[data-surface-tone="ink"] a:not([class*="bg-"]):not([class*="text-clay"]),
+[data-surface-tone="ink"] button:not([class*="bg-"]):not([class*="text-clay"]) {
+  color: inherit;
+}
+
+[data-surface-tone="olive"] {
+  --foreground: var(--primary-foreground);
+  --muted-foreground: oklch(0.92 0.02 158);
+  --card-foreground: var(--primary-foreground);
+  --border: oklch(1 0 0 / 22%);
+  --primary: oklch(0.98 0.008 95);
+  --primary-foreground: oklch(0.3 0.06 162);
+  color: var(--primary-foreground);
+}
+
+[data-surface-tone="olive"] .text-foreground,
+[data-surface-tone="olive"] h1,
+[data-surface-tone="olive"] h2,
+[data-surface-tone="olive"] h3,
+[data-surface-tone="olive"] h4 {
+  color: var(--primary-foreground) !important;
+}
+
+[data-surface-tone="olive"] .text-muted-foreground {
+  color: oklch(0.92 0.02 158) !important;
+}
+
+[data-surface-tone="olive"] .border-border {
+  border-color: oklch(1 0 0 / 22%) !important;
+}
+
+[data-surface-tone="olive"] a:not([class*="bg-"]),
+[data-surface-tone="olive"] button:not([class*="bg-"]) {
+  color: inherit;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -372,7 +442,8 @@
 @media (forced-colors: active) {
   .bg-ambient,
   .bg-ambient-sand,
-  .bg-ambient-admin {
+  .bg-ambient-admin,
+  [data-surface-pattern] {
     background-image: none !important;
   }
 }
@@ -395,7 +466,8 @@
 
   .bg-ambient,
   .bg-ambient-sand,
-  .bg-ambient-admin {
+  .bg-ambient-admin,
+  [data-surface-pattern] {
     background-image: none !important;
   }
 }

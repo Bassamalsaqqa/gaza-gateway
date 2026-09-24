@@ -7,6 +7,14 @@ import { airportByCode, farePrice, minutesToLabel, type Flight } from "@/lib/dat
 import { money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import {
+  useSurfaceRecipe,
+  ACCENT_RAIL_CLASSES,
+  RADIUS_CLASSES,
+  ELEVATION_CLASSES,
+  TONE_CLASSES,
+  SurfaceIndex,
+} from "@/design/surfaces";
 
 export interface FlightOptionProps {
   flight: Flight;
@@ -44,26 +52,60 @@ export function FlightOption({
     });
   }, [flight, from, to, price, lang, t]);
 
+  const { active, recipe } = useSurfaceRecipe("operational");
+
   return (
     <RadioGroupPrimitive.Item
       value={flight.id}
       id={`flight-option-${flight.id}`}
       aria-label={accessibleName}
+      data-surface-family={active ? "operational" : undefined}
+      data-surface-frame={active ? recipe.frame : undefined}
+      data-surface-tone={active ? recipe.tone : undefined}
       className={cn(
-        "group relative block w-full text-start rounded-xl border p-4 sm:p-5",
+        "group relative block w-full text-start border p-4 sm:p-5",
         "cursor-pointer select-none transition-all duration-150",
-        "border-border bg-card hover:border-primary/40 hover:bg-card/90",
+        active
+          ? [
+              TONE_CLASSES[recipe.tone].bg,
+              TONE_CLASSES[recipe.tone].text,
+              TONE_CLASSES[recipe.tone].border,
+              RADIUS_CLASSES[recipe.radius],
+              ELEVATION_CLASSES[recipe.elevation],
+              (recipe.frame === "rail" || recipe.frame === "indexed") && [
+                recipe.frame === "rail" ? "border-s-[4px]" : "border-s-[5px]",
+                ACCENT_RAIL_CLASSES[recipe.accent],
+              ],
+              "hover:border-primary/50",
+              "data-[state=checked]:border-primary data-[state=checked]:ring-2 data-[state=checked]:ring-primary/40 data-[state=checked]:bg-surface-olive-soft",
+            ]
+          : [
+              "rounded-xl border-border bg-card hover:border-primary/40 hover:bg-card/90",
+              "data-[state=checked]:border-primary data-[state=checked]:ring-2 data-[state=checked]:ring-primary/30",
+            ],
         "active:scale-[0.99] active:transition-none motion-reduce:active:scale-100 motion-reduce:transform-none motion-reduce:transition-none",
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-        "data-[state=checked]:border-primary data-[state=checked]:ring-2 data-[state=checked]:ring-primary/30",
         className,
       )}
     >
-      {/* Localized brand tint overlay over opaque card base when checked */}
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 rounded-xl bg-brand-soft/20 group-data-[state=unchecked]:hidden"
-      />
+      {/* Localized brand tint overlay over opaque card base when checked (baseline only) */}
+      {!active ? (
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 rounded-xl bg-brand-soft/20 group-data-[state=unchecked]:hidden"
+        />
+      ) : null}
+
+      {/* Preview Surface Index */}
+      {active ? (
+        <div className="mb-2.5 flex items-center justify-between">
+          <SurfaceIndex
+            code={flight.number}
+            label={t("book.nonstop")}
+            accent={recipe.accent}
+          />
+        </div>
+      ) : null}
 
       <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4 sm:gap-6">

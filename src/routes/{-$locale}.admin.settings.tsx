@@ -12,7 +12,26 @@ const AppearanceLab = lazy(() =>
   import("@/components/admin/appearance-lab").then((m) => ({ default: m.AppearanceLab })),
 );
 
+type Tab = "airport" | "service" | "contact" | "localization" | "appearance";
+
+type SettingsSearch = {
+  tab?: Tab;
+  skinPreview?: 1;
+};
+
 export const Route = createFileRoute("/{-$locale}/admin/settings")({
+  validateSearch: (search: Record<string, unknown>): SettingsSearch => {
+    const out: SettingsSearch = {};
+    const raw = search["tab"];
+    if (raw === "airport" || raw === "service" || raw === "contact" || raw === "localization" || raw === "appearance") {
+      out.tab = raw;
+    }
+    const rawPreview = search["skinPreview"];
+    if (rawPreview === "1" || rawPreview === 1 || rawPreview === '"1"') {
+      out.skinPreview = 1;
+    }
+    return out;
+  },
   head: ({ params }) =>
     pageHead({
       locale: params.locale,
@@ -24,12 +43,11 @@ export const Route = createFileRoute("/{-$locale}/admin/settings")({
   component: AdminSettingsPage,
 });
 
-type Tab = "airport" | "service" | "contact" | "localization" | "appearance";
-
 function AdminSettingsPage() {
   const { t } = useI18n();
   const { can, toast } = useAdmin();
-  const [tab, setTab] = useState<Tab>("airport");
+  const search = Route.useSearch();
+  const [tab, setTab] = useState<Tab>(search.tab ?? "airport");
   const mayEdit = can("admin.manage");
 
   if (!can("admin.manage")) return <AdminDenied area={t("a2.se.title")} permission="admin.manage" />;

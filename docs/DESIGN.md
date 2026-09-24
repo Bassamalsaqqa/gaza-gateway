@@ -826,4 +826,31 @@ The administrative workstation embodies an authentic airport Operations Desk: ca
 
 ---
 
+### 22.6 Gaza Surface Grammar (`src/design/surfaces/`) `[Proposed Design Contract]`
+To eliminate visual fatigue and generic white-card SaaS boilerplate across the application, the **Gaza Surface Grammar** defines an authored, semantic structural system replacing default cards with authentic Mediterranean civic and aeronautical surfaces:
+1. **The 6 Semantic Surface Families**:
+   - `operational`: Active flight options, schedule boards, turnaround status cards (`limestone` tone, `rail` frame with 4px `--primary` Gaza Rail, `runway-datum` or `connections` motifs).
+   - `fare`: Cabin tier comparison cards, ancillary upgrade panels (`chalk` tone for unselected, `limestone` for selected, `rail` frame with 4px `--brand` / `--clay` Gaza Rail, `gza-lattice` motif).
+   - `dossier`: Flight manifests, price breakdown dockets, booking review summaries (`sand-deep` tone, `dossier` frame with dashed docket divider, subtle 2px rail, `runway-datum` or `graph-paper` motifs).
+   - `form-sheet`: Passenger detail inputs, contact forms, administrative modal drawers (`chalk` tone, `panel` frame, no rail, crisp input contrast).
+   - `guide`: Passenger travel advice, baggage rules, accessibility guidance (`limestone` tone, `panel` frame, `gza-lattice` or `architect` motifs).
+   - `editorial`: Airport historical chapters, Future Vision concept cards (`sand-deep` or `ink` tone, `hairline` or borderless frame, `gza-lattice` or `runway-datum` motifs).
+2. **Material Tone Palette**:
+   - `chalk`: Clean high-contrast white (`#FFFFFF`) for active input and decision surfaces.
+   - `limestone`: Warm civic Mediterranean stone (`#FBF8F1`) for operational and guide plates.
+   - `sand-deep`: Sun-baked clay stone (`#F2ECE1`) for dockets, manifests, and historical essays.
+   - `ink`: Deep forest night foundation (`#18271F`) for curatorial night studies and media framing.
+3. **The Structural Gaza Rail**:
+   - A 4px (or 5px selected) leading-edge rail using logical `border-inline-start` (`border-s-[4px]`), ensuring automatic physical mirroring between English (left) and Arabic (right).
+   - Accent tokens: `brand` (deep olive), `clay` (terracotta), `gold` (aeronautical gold), and `subtle` (limestone border).
+4. **Authored Project Motifs**:
+   - `gza-lattice`: Original project motif (source `gza`, license `project`), inspired by architectural brise-soleil sunscreens and passenger concourse trusses. Strictly non-tatreez.
+   - `runway-datum`: Original project motif (source `gza`, license `project`), inspired by airfield centerline and threshold markings. Strictly non-tatreez.
+   - Controlled Placements: `header-band` (top 28-36px), `rail-strip` (vertical 32px inline-start strip), `accent-corner` (64×64px corner vignette), `full` (large editorial cards only), or `none`.
+5. **Preview-Only Boundary & Baseline Invariant**:
+   - Production URLs without `?skinPreview=1` retain the exact baseline production appearance with zero visual drift.
+   - Admin Appearance Lab (`/admin/settings` Appearance tab) provides live configuration and side-by-side comparison (`baseline`, `grammar`, `compare`) across all 7 production archetypes.
+
+---
+
 *Authored for the Gaza International Airport & Palestinian Airlines Engineering Project.*

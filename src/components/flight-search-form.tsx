@@ -8,6 +8,7 @@ import { TravellersCabinPicker } from "./travellers-cabin-picker";
 import { GZA, addDaysISO, destinations, searchFlights, todayISO } from "@/lib/data";
 import { useI18n } from "@/lib/i18n";
 import { useStore, type SearchCriteria } from "@/lib/store";
+import { isSkinPreviewActive } from "@/lib/skin";
 import { cn } from "@/lib/utils";
 
 export function FlightSearchForm({
@@ -199,7 +200,14 @@ export function FlightSearchForm({
     setError(problem);
     if (problem) return;
     resetDraft(criteria);
-    void navigate({ to: "/book", search: { step: "results" } });
+    const isPreview = isSkinPreviewActive();
+    void navigate({
+      to: "/book",
+      search: {
+        step: "results",
+        ...(isPreview ? { skinPreview: 1 as const } : {}),
+      },
+    });
   };
 
   return (

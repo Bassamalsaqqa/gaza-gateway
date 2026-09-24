@@ -6,8 +6,20 @@ import { btnClass, Container, PageHeader, Panel } from "@/components/kit";
 import { img } from "@/lib/data";
 import { ResponsiveImage } from "@/components/responsive-image";
 import { useI18n } from "@/lib/i18n";
+import { GazaSurface } from "@/design/surfaces";
+
+type AirportSearch = {
+  skinPreview?: 1;
+};
 
 export const Route = createFileRoute("/{-$locale}/airport/")({
+  validateSearch: (search: Record<string, unknown>): AirportSearch => {
+    const rawPreview = search["skinPreview"];
+    if (rawPreview === "1" || rawPreview === 1 || rawPreview === '"1"') {
+      return { skinPreview: 1 };
+    }
+    return {};
+  },
   head: () => ({
     meta: [
       { title: "The airport — past, present and future of GZA" },
@@ -89,54 +101,60 @@ function AirportPage() {
             <li key={ch.id} className="flex flex-col">
               <AppLink
                 to={ch.to}
-                className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-soft)] transition-all hover:border-border/80 hover:shadow-[var(--shadow-lift)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                className="group flex h-full flex-col overflow-hidden rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               >
-                {/* Visual Anchor */}
-                <div className="relative aspect-16/10 w-full overflow-hidden bg-ink">
-                  {ch.isFuture ? (
-                    <ResponsiveImage
-                      entry="aerial-day"
-                      sizes="(min-width: 1024px) 33vw, 100vw"
-                      className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                  ) : (
-                    <img
-                      src={img(ch.seed, 900, 560)}
-                      alt=""
-                      loading="lazy"
-                      className="size-full object-cover opacity-75 transition-transform duration-500 group-hover:scale-105"
-                    />
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/30 to-transparent" />
-                  <div className="absolute bottom-3 start-4 end-4 flex items-center justify-between text-xs text-ink-muted">
-                    <span className="inline-flex items-center gap-1.5 rounded-md bg-ink/70 px-2 py-0.5 font-mono text-[11px] text-ink-foreground backdrop-blur-xs">
-                      <span className="numeral font-bold text-clay-soft">{ch.numeral}</span>
-                      <span>·</span>
-                      <span>{t(ch.tagKey)}</span>
-                    </span>
-                    {ch.isFuture && (
-                      <span className="text-[11px] text-clay-soft/90 font-mono">
-                        {t("media.conceptShortLabel")}
-                      </span>
+                <GazaSurface
+                  family="editorial"
+                  baselineClassName="flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-soft)] transition-all hover:border-border/80 hover:shadow-[var(--shadow-lift)]"
+                  className="flex h-full flex-col overflow-hidden transition-all hover:shadow-[var(--shadow-lift)]"
+                >
+                  {/* Visual Anchor */}
+                  <div className="relative aspect-16/10 w-full overflow-hidden bg-ink">
+                    {ch.isFuture ? (
+                      <ResponsiveImage
+                        entry="aerial-day"
+                        sizes="(min-width: 1024px) 33vw, 100vw"
+                        className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                    ) : (
+                      <img
+                        src={img(ch.seed, 900, 560)}
+                        alt=""
+                        loading="lazy"
+                        className="size-full object-cover opacity-75 transition-transform duration-500 group-hover:scale-105"
+                      />
                     )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/30 to-transparent" />
+                    <div className="absolute bottom-3 start-4 end-4 flex items-center justify-between text-xs text-ink-muted">
+                      <span className="inline-flex items-center gap-1.5 rounded-md bg-ink/70 px-2 py-0.5 font-mono text-[11px] text-ink-foreground backdrop-blur-xs">
+                        <span className="numeral font-bold text-clay-soft">{ch.numeral}</span>
+                        <span>·</span>
+                        <span>{t(ch.tagKey)}</span>
+                      </span>
+                      {ch.isFuture && (
+                        <span className="text-[11px] text-clay-soft/90 font-mono">
+                          {t("media.conceptShortLabel")}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
 
-                {/* Editorial Content */}
-                <div className="flex flex-1 flex-col p-5 sm:p-6">
-                  <span className="type-label text-xs text-clay">{t(ch.horizonKey)}</span>
-                  <h3 className="mt-1 text-2xl font-bold tracking-tight text-foreground transition-colors group-hover:text-primary">
-                    {t(ch.titleKey)}
-                  </h3>
-                  <p className="mt-3 flex-1 text-sm leading-relaxed text-muted-foreground">
-                    {t(ch.summaryKey)}
-                  </p>
+                  {/* Editorial Content */}
+                  <div className="flex flex-1 flex-col p-5 sm:p-6">
+                    <span className="type-label text-xs text-clay">{t(ch.horizonKey)}</span>
+                    <h3 className="mt-1 text-2xl font-bold tracking-tight text-foreground transition-colors group-hover:text-primary">
+                      {t(ch.titleKey)}
+                    </h3>
+                    <p className="mt-3 flex-1 text-sm leading-relaxed text-muted-foreground">
+                      {t(ch.summaryKey)}
+                    </p>
 
-                  <div className="mt-6 flex items-center gap-2 border-t border-border pt-4 text-sm font-semibold text-primary transition-colors group-hover:text-brand-deep">
-                    <span>{t("airport.readChapter")}</span>
-                    <ArrowRight aria-hidden="true" className="size-4 rtl:rotate-180" />
+                    <div className="mt-6 flex items-center gap-2 border-t border-border pt-4 text-sm font-semibold text-primary transition-colors group-hover:text-brand-deep">
+                      <span>{t("airport.readChapter")}</span>
+                      <ArrowRight aria-hidden="true" className="size-4 rtl:rotate-180" />
+                    </div>
                   </div>
-                </div>
+                </GazaSurface>
               </AppLink>
             </li>
           ))}

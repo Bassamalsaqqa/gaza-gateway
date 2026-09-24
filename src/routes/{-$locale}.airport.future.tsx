@@ -6,8 +6,20 @@ import { Container, Panel } from "@/components/kit";
 import { destinations } from "@/lib/data";
 import { pick, useI18n } from "@/lib/i18n";
 import { ResponsiveImage } from "@/components/responsive-image";
+import { GazaSurface } from "@/design/surfaces";
+
+type FutureSearch = {
+  skinPreview?: 1;
+};
 
 export const Route = createFileRoute("/{-$locale}/airport/future")({
+  validateSearch: (search: Record<string, unknown>): FutureSearch => {
+    const rawPreview = search["skinPreview"];
+    if (rawPreview === "1" || rawPreview === 1 || rawPreview === '"1"') {
+      return { skinPreview: 1 };
+    }
+    return {};
+  },
   head: () => ({
     meta: [
       { title: "The future — vision for Gaza International Airport" },
@@ -98,7 +110,12 @@ function FuturePage() {
         {/* ── Main chapters: day imagery with editorial narrative ── */}
         <div className="mt-10 space-y-10">
           {/* Chapter 1 — Landside / Terminal Arrival */}
-          <article className="grid gap-6 overflow-hidden rounded-2xl border border-border bg-card shadow-xs sm:grid-cols-2">
+          <GazaSurface
+            family="editorial"
+            as="article"
+            baselineClassName="grid gap-6 overflow-hidden rounded-2xl border border-border bg-card shadow-xs sm:grid-cols-2"
+            className="grid gap-6 overflow-hidden sm:grid-cols-2"
+          >
             <figure className="relative m-0 aspect-[16/10] size-full overflow-hidden bg-ink sm:aspect-auto">
               <ResponsiveImage
                 entry="landside-day"
@@ -117,10 +134,15 @@ function FuturePage() {
                 {t("airport.designIntentText")}
               </p>
             </div>
-          </article>
+          </GazaSurface>
 
           {/* Chapter 2 — Passenger Concourse */}
-          <article className="grid gap-6 overflow-hidden rounded-2xl border border-border bg-card shadow-xs sm:grid-cols-2 sm:[&>figure]:order-last">
+          <GazaSurface
+            family="editorial"
+            as="article"
+            baselineClassName="grid gap-6 overflow-hidden rounded-2xl border border-border bg-card shadow-xs sm:grid-cols-2 sm:[&>figure]:order-last"
+            className="grid gap-6 overflow-hidden sm:grid-cols-2 sm:[&>figure]:order-last"
+          >
             <div className="flex flex-col justify-center p-6 sm:p-8">
               <h2 className="type-title-md text-foreground">
                 {t("airport.themeHospitalityTitle")}
@@ -139,10 +161,15 @@ function FuturePage() {
                 className="size-full object-cover opacity-90 transition-transform duration-500 hover:scale-105"
               />
             </figure>
-          </article>
+          </GazaSurface>
 
           {/* Chapter 3 — Airfield & Coastal Runway */}
-          <article className="grid gap-6 overflow-hidden rounded-2xl border border-border bg-card shadow-xs sm:grid-cols-2">
+          <GazaSurface
+            family="editorial"
+            as="article"
+            baselineClassName="grid gap-6 overflow-hidden rounded-2xl border border-border bg-card shadow-xs sm:grid-cols-2"
+            className="grid gap-6 overflow-hidden sm:grid-cols-2"
+          >
             <figure className="relative m-0 aspect-[16/10] size-full overflow-hidden bg-ink sm:aspect-auto">
               <ResponsiveImage
                 entry="runway-day"
@@ -161,7 +188,7 @@ function FuturePage() {
                 {t("airport.designIntentText")}
               </p>
             </div>
-          </article>
+          </GazaSurface>
         </div>
 
         {/* ── Editorial night/interior study sequence ── */}

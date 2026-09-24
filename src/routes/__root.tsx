@@ -22,6 +22,7 @@ import { BackToTop } from "@/components/back-to-top";
 import { btnClass } from "@/components/kit";
 import { PublicNotFound } from "@/components/public-not-found";
 import { SkinPreviewListener, SkinStyle } from "@/components/skin-provider";
+import { SurfaceGrammarProvider } from "@/design/surfaces";
 
 /** Detect locale from pathname safely without requiring I18nProvider. */
 function detectLocale(): "ar" | "en" {
@@ -158,7 +159,9 @@ function RootComponent() {
       <I18nProvider>
         <StoreProvider>
           <AdminProvider>
-            <SiteFrame />
+            <SurfaceGrammarProvider>
+              <SiteFrame />
+            </SurfaceGrammarProvider>
           </AdminProvider>
         </StoreProvider>
       </I18nProvider>

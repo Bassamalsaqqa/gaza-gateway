@@ -9,8 +9,20 @@ import { travelSections } from "@/lib/data";
 import { pick, useI18n } from "@/lib/i18n";
 import { ResponsiveImage } from "@/components/responsive-image";
 import { cn } from "@/lib/utils";
+import { GazaSurface } from "@/design/surfaces";
+
+type TravelSearch = {
+  skinPreview?: 1;
+};
 
 export const Route = createFileRoute("/{-$locale}/travel")({
+  validateSearch: (search: Record<string, unknown>): TravelSearch => {
+    const rawPreview = search["skinPreview"];
+    if (rawPreview === "1" || rawPreview === 1 || rawPreview === '"1"') {
+      return { skinPreview: 1 };
+    }
+    return {};
+  },
   head: () => ({
     meta: [
       { title: "Travel information — Gaza International Airport (GZA)" },
@@ -85,7 +97,12 @@ function TravelPage() {
               value={section.id}
               className="pt-8 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
             >
-              <article className="grid gap-7 lg:grid-cols-[minmax(0,0.9fr)_minmax(24rem,1.1fr)] lg:gap-12">
+              <GazaSurface
+                family="guide"
+                as="article"
+                baselineClassName="grid gap-7 lg:grid-cols-[minmax(0,0.9fr)_minmax(24rem,1.1fr)] lg:gap-12"
+                className="grid gap-7 p-6 sm:p-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(24rem,1.1fr)] lg:gap-12"
+              >
                 <div>
                   <h2 className="text-2xl font-bold sm:text-3xl">{pick(lang, section.title)}</h2>
                   <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted-foreground">
@@ -111,7 +128,7 @@ function TravelPage() {
                     </li>
                   ))}
                 </ul>
-              </article>
+              </GazaSurface>
 
               {section.id === "accessibility" && (
                 <figure className="mt-8 overflow-hidden rounded-2xl border border-border bg-card shadow-xs">

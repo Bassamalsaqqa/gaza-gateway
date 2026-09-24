@@ -5,6 +5,14 @@ import type { Fare } from "@/lib/data";
 import { money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import {
+  useSurfaceRecipe,
+  ACCENT_RAIL_CLASSES,
+  RADIUS_CLASSES,
+  ELEVATION_CLASSES,
+  TONE_CLASSES,
+  SurfaceIndex,
+} from "@/design/surfaces";
 
 export interface FareOptionProps {
   fare: Fare;
@@ -47,20 +55,43 @@ export function FareOption({ fare, price, selected = false, className }: FareOpt
       ? t("book.cabinBagOnly")
       : t("book.checkedBagsCount", { n: fare.checkedBags });
 
+  const { active, recipe } = useSurfaceRecipe("fare");
+  const fareIndex = fare.id === "essential" ? "01" : fare.id === "classic" ? "02" : "03";
+
   return (
     <div
+      data-surface-family={active ? "fare" : undefined}
+      data-surface-frame={active ? recipe.frame : undefined}
+      data-surface-tone={active ? recipe.tone : undefined}
       className={cn(
-        "relative flex flex-col justify-between rounded-xl border p-4 sm:p-5 text-start transition-all duration-150 h-full",
-        "border-border bg-card",
-        selected
-          ? "border-primary ring-2 ring-primary/30 shadow-xs"
-          : "hover:border-primary/50 hover:bg-card/95",
-        fare.highlight && !selected && "border-primary/30",
+        "relative flex flex-col justify-between border p-4 sm:p-5 text-start transition-all duration-150 h-full",
+        active
+          ? [
+              TONE_CLASSES[recipe.tone].bg,
+              TONE_CLASSES[recipe.tone].text,
+              TONE_CLASSES[recipe.tone].border,
+              RADIUS_CLASSES[recipe.radius],
+              ELEVATION_CLASSES[recipe.elevation],
+              (recipe.frame === "rail" || recipe.frame === "indexed") && [
+                recipe.frame === "rail" ? "border-s-[4px]" : "border-s-[5px]",
+                ACCENT_RAIL_CLASSES[recipe.accent],
+              ],
+              selected
+                ? "border-primary ring-2 ring-primary/40 bg-surface-olive-soft"
+                : "hover:border-primary/50",
+            ]
+          : [
+              "rounded-xl border-border bg-card",
+              selected
+                ? "border-primary ring-2 ring-primary/30 shadow-xs"
+                : "hover:border-primary/50 hover:bg-card/95",
+              fare.highlight && !selected && "border-primary/30",
+            ],
         className,
       )}
     >
-      {/* Localized brand tint overlay over opaque card base when selected */}
-      {selected ? (
+      {/* Localized brand tint overlay over opaque card base when selected (baseline only) */}
+      {!active && selected ? (
         <span
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 rounded-xl bg-brand-soft/25"
@@ -84,9 +115,18 @@ export function FareOption({ fare, price, selected = false, className }: FareOpt
                   {t("book.recommended")}
                 </span>
               ) : null}
-              <h2 className="text-base sm:text-lg font-bold text-foreground">
-                {pick(lang, fare.name)}
-              </h2>
+              {active ? (
+                <div className="flex items-center gap-2">
+                  <SurfaceIndex code={fareIndex} accent={fare.highlight ? "brand" : "none"} />
+                  <h2 className="text-base sm:text-lg font-bold text-foreground">
+                    {pick(lang, fare.name)}
+                  </h2>
+                </div>
+              ) : (
+                <h2 className="text-base sm:text-lg font-bold text-foreground">
+                  {pick(lang, fare.name)}
+                </h2>
+              )}
             </div>
 
             {/* Accessible Radio Circle Indicator — NOT a nested button */}

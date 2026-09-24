@@ -4,16 +4,26 @@ import { airportByCode, fares, type Flight } from "@/lib/data";
 import { money, dateShort } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
 import { bookingTotal, paxCount, type Draft } from "@/lib/store";
+import { useSurfaceRecipe, GazaSurface, SurfaceIndex } from "@/design/surfaces";
 
 export function PriceSummary({ draft, compact = false }: { draft: Draft; compact?: boolean }) {
   const { t, lang } = useI18n();
   const totals = bookingTotal(draft);
   const fare = fares.find((f) => f.id === draft.fareId);
+  const { active } = useSurfaceRecipe("dossier");
 
   return (
-    <aside className={compact ? "p-1" : "surface sticky top-24 p-5"} aria-label={t("book.summary")}>
+    <GazaSurface
+      family="dossier"
+      as="aside"
+      className={compact ? "p-1" : "sticky top-24 p-5"}
+      aria-label={t("book.summary")}
+    >
       {compact ? null : (
-        <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">{t("book.summary")}</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">{t("book.summary")}</h2>
+          {active ? <SurfaceIndex code="MANIFEST" accent="brand" /> : null}
+        </div>
       )}
 
       <div className="mt-4 space-y-4">
@@ -34,7 +44,7 @@ export function PriceSummary({ draft, compact = false }: { draft: Draft; compact
         <span className="text-sm font-semibold">{t("book.total")}</span>
         <span className="text-2xl font-bold">{money(totals.total, lang)}</span>
       </div>
-    </aside>
+    </GazaSurface>
   );
 }
 

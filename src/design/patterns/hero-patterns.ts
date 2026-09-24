@@ -22,6 +22,10 @@ import {
   validateHexColor,
 } from "./pattern-svg";
 import { PIE_FACTORY_DEFINITION } from "./pie-factory";
+import {
+  GAZA_LATTICE_DEFINITION,
+  RUNWAY_DATUM_DEFINITION,
+} from "@/design/surfaces/motifs";
 
 const OPTIONAL_HERO_PATTERNS: readonly PatternDefinition[] = [
   {
@@ -138,6 +142,8 @@ const OPTIONAL_HERO_PATTERNS: readonly PatternDefinition[] = [
 
 export const HERO_PATTERNS_SHORTLIST: readonly PatternDefinition[] = [
   PIE_FACTORY_DEFINITION,
+  GAZA_LATTICE_DEFINITION,
+  RUNWAY_DATUM_DEFINITION,
   ...OPTIONAL_HERO_PATTERNS,
 ];
 
@@ -154,6 +160,8 @@ export const PATTERNS_BY_ID: Readonly<Record<CanonicalPatternId, PatternDefiniti
   "overlapping-diamonds": OPTIONAL_HERO_PATTERNS.find((p) => p.id === "overlapping-diamonds")!,
   "floor-tile": OPTIONAL_HERO_PATTERNS.find((p) => p.id === "floor-tile")!,
   "circuit-board": OPTIONAL_HERO_PATTERNS.find((p) => p.id === "circuit-board")!,
+  "gza-lattice": GAZA_LATTICE_DEFINITION,
+  "runway-datum": RUNWAY_DATUM_DEFINITION,
 };
 
 export function getPatternDefinition(id: string): PatternDefinition | null {

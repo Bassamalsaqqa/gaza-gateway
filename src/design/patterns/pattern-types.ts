@@ -18,7 +18,9 @@ export type PatternId =
   | "steel-beams"
   | "overlapping-diamonds"
   | "floor-tile"
-  | "circuit-board";
+  | "circuit-board"
+  | "gza-lattice"
+  | "runway-datum";
 
 export type CanonicalPatternId =
   | "none"
@@ -32,7 +34,9 @@ export type CanonicalPatternId =
   | "steel-beams"
   | "overlapping-diamonds"
   | "floor-tile"
-  | "circuit-board";
+  | "circuit-board"
+  | "gza-lattice"
+  | "runway-datum";
 
 export const CANONICAL_PATTERN_IDS: readonly CanonicalPatternId[] = [
   "none",
@@ -47,6 +51,8 @@ export const CANONICAL_PATTERN_IDS: readonly CanonicalPatternId[] = [
   "overlapping-diamonds",
   "floor-tile",
   "circuit-board",
+  "gza-lattice",
+  "runway-datum",
 ] as const;
 
 /**

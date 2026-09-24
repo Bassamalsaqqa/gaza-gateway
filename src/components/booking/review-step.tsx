@@ -18,6 +18,7 @@ import {
 } from "@/lib/store";
 import type { BookingStep } from "@/components/booking/stepper";
 import { cn } from "@/lib/utils";
+import { GazaSurface, SurfaceIndex } from "@/design/surfaces";
 
 export interface ReviewStepProps {
   draft: Draft;
@@ -62,7 +63,10 @@ export function ReviewStep({
       </div>
 
       {/* Unified Travel Dossier Document */}
-      <div className="rounded-2xl border border-border bg-card shadow-[var(--shadow-lift)] overflow-hidden divide-y divide-border">
+      <GazaSurface
+        family="dossier"
+        className="rounded-2xl border border-border bg-card shadow-[var(--shadow-lift)] overflow-hidden divide-y divide-border"
+      >
         {/* Dossier Header Banner */}
         <div className="bg-sand/70 px-5 py-3.5 sm:px-6 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -374,7 +378,7 @@ export function ReviewStep({
             </button>
           </div>
         </div>
-      </div>
+      </GazaSurface>
     </section>
   );
 }
