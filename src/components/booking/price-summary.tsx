@@ -15,6 +15,7 @@ export function PriceSummary({ draft, compact = false }: { draft: Draft; compact
   return (
     <GazaSurface
       family="dossier"
+      target="booking.trip-summary"
       as="aside"
       className={compact ? "p-1" : "sticky top-24 p-5"}
       aria-label={t("book.summary")}

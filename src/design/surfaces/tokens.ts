@@ -48,14 +48,14 @@ export const ACCENT_RAIL_CLASSES: Record<SurfaceAccent, string> = {
   none: "border-s-border/80",
   brand: "border-s-brand",
   clay: "border-s-clay",
-  brass: "border-s-[#C7A46A]",
+  brass: "border-s-brass",
 };
 
 export const ACCENT_TEXT_CLASSES: Record<SurfaceAccent, string> = {
   none: "text-muted-foreground",
   brand: "text-brand-deep",
   clay: "text-clay",
-  brass: "text-[#9E7B35]",
+  brass: "text-brass",
 };
 
 export const RADIUS_CLASSES: Record<SurfaceRadius, string> = {
@@ -86,13 +86,13 @@ export function resolveSurfaceClasses(
   selected = false,
   extraClasses = "",
 ): string {
-  const tone = selected ? (recipe.tone === "paper" ? "olive-soft" : recipe.tone) : recipe.tone;
-  const toneClass = TONE_CLASSES[tone];
-  const radiusClass = RADIUS_CLASSES[recipe.radius];
-  const elevationClass = ELEVATION_CLASSES[recipe.elevation];
-  const frameClass = FRAME_BORDER_CLASSES[recipe.frame];
-  const railClass = recipe.frame === "rail" || recipe.frame === "indexed"
-    ? ACCENT_RAIL_CLASSES[recipe.accent]
+  const tone = (selected ? (recipe.tone === "paper" ? "olive-soft" : recipe.tone) : recipe.tone) ?? "paper";
+  const toneClass = TONE_CLASSES[tone] ?? TONE_CLASSES["paper"];
+  const radiusClass = (recipe.radius ? RADIUS_CLASSES[recipe.radius] : undefined) ?? RADIUS_CLASSES["soft"];
+  const elevationClass = (recipe.elevation ? ELEVATION_CLASSES[recipe.elevation] : undefined) ?? ELEVATION_CLASSES["flat"];
+  const frameClass = (recipe.frame ? FRAME_BORDER_CLASSES[recipe.frame] : undefined) ?? FRAME_BORDER_CLASSES["plain"];
+  const railClass = (recipe.frame === "rail" || recipe.frame === "indexed") && recipe.accent
+    ? (ACCENT_RAIL_CLASSES[recipe.accent] ?? "")
     : "";
 
   const selectedClasses = selected

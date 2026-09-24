@@ -38,6 +38,7 @@ import type {
   SurfaceRecipe,
   SurfaceTone,
 } from "./types";
+import type { TargetId } from "./targets";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. GazaSurface (Base Container)
@@ -45,6 +46,7 @@ import type {
 
 export interface GazaSurfaceProps extends HTMLAttributes<HTMLElement> {
   family: SurfaceFamilyId;
+  target?: TargetId | undefined;
   recipe?: SurfaceRecipe | undefined;
   selected?: boolean | undefined;
   forceGrammar?: boolean | undefined;
@@ -57,6 +59,7 @@ export const GazaSurface = forwardRef<HTMLElement, GazaSurfaceProps>(
   (
     {
       family,
+      target,
       recipe: customRecipe,
       selected = false,
       forceGrammar = false,
@@ -69,7 +72,7 @@ export const GazaSurface = forwardRef<HTMLElement, GazaSurfaceProps>(
     },
     ref,
   ) => {
-    const { active, recipe: contextRecipe } = useSurfaceRecipe(family);
+    const { active, recipe: contextRecipe } = useSurfaceRecipe(family, target);
     const useGrammar = forceGrammar || active;
     const recipe = customRecipe ?? contextRecipe;
 
@@ -78,6 +81,7 @@ export const GazaSurface = forwardRef<HTMLElement, GazaSurfaceProps>(
       return (
         <Component
           ref={ref as unknown as React.Ref<HTMLDivElement>}
+          data-surface-target={target}
           className={
             baselineClassName !== undefined
               ? baselineClassName
@@ -108,6 +112,7 @@ export const GazaSurface = forwardRef<HTMLElement, GazaSurfaceProps>(
     return (
       <Component
         ref={ref as unknown as React.Ref<HTMLDivElement>}
+        data-surface-target={target}
         data-surface-family={family}
         data-surface-frame={recipe.frame}
         data-surface-tone={recipe.tone}
@@ -392,36 +397,101 @@ export function SurfaceMedia({
   illustrativeLabel,
   aspect = "16:10",
   className,
+  overlay,
+  focalX,
+  focalY,
+  contextKind,
+  treatment = "side",
 }: {
   children: ReactNode;
-  caption?: string;
-  provenance?: string;
-  truthClass?: "documentary" | "illustrative";
-  illustrativeLabel?: string;
-  aspect?: "16:10" | "16:9" | "4:3" | "1:1";
-  className?: string;
+  caption?: string | undefined;
+  provenance?: string | undefined;
+  truthClass?: ("documentary" | "illustrative" | "future-concept-ai" | "brand-mark" | "placeholder") | undefined;
+  illustrativeLabel?: string | undefined;
+  aspect?: ("16:10" | "16:9" | "4:3" | "3:2" | "1:1" | "auto") | undefined;
+  className?: string | undefined;
+  overlay?: ("none" | "subtle" | "dark" | "gradient") | undefined;
+  focalX?: number | undefined;
+  focalY?: number | undefined;
+  contextKind?: ("documentary" | "editorial-future" | "guide") | undefined;
+  treatment?: ("cover" | "top" | "side" | "watermark" | "none") | undefined;
 }) {
   const { lang } = useI18n();
   const isAr = lang === "ar";
+
+  // Treatment 'none' completely hides/omits media rendering
+  if (treatment === "none") {
+    return null;
+  }
+
+  // Runtime boundary check: AI concepts are strictly rejected in documentary contexts.
+  // Never silently re-label AI imagery as documentary.
+  if (contextKind === "documentary" && truthClass === "future-concept-ai") {
+    return null;
+  }
+
   const defaultIllustrativeLabel = isAr
     ? "دراسة تصورية · توضيحي"
     : "Concept Study · Illustrative";
   const badgeText = illustrativeLabel ?? defaultIllustrativeLabel;
 
-  const aspectClass = {
-    "16:10": "aspect-[16/10]",
-    "16:9": "aspect-video",
-    "4:3": "aspect-[4/3]",
-    "1:1": "aspect-square",
-  }[aspect];
+  const aspectClass =
+    treatment === "cover" || treatment === "watermark" || aspect === "auto"
+      ? "size-full min-h-full"
+      : {
+          "16:10": "aspect-[16/10]",
+          "16:9": "aspect-video",
+          "4:3": "aspect-[4/3]",
+          "3:2": "aspect-[3/2]",
+          "1:1": "aspect-square",
+        }[aspect];
+
+  const overlayClass = {
+    none: "",
+    subtle: "bg-black/20",
+    dark: "bg-black/60",
+    gradient: "bg-gradient-to-t from-black/80 via-black/30 to-transparent",
+  }[overlay ?? "none"];
+
+  const treatmentClass = {
+    cover: "relative w-full h-full",
+    top: "w-full overflow-hidden",
+    side: "relative size-full",
+    watermark: "absolute inset-0 size-full pointer-events-none opacity-20 -z-10",
+    none: "hidden",
+  }[treatment ?? "side"];
+
+  const showIllustrativeBadge =
+    truthClass === "illustrative" || truthClass === "future-concept-ai";
+  const showBrandBadge = truthClass === "brand-mark";
 
   return (
-    <figure className={cn("overflow-hidden rounded-xl border border-border bg-ink", className)}>
+    <figure
+      data-treatment={treatment ?? "side"}
+      className={cn("overflow-hidden rounded-xl border border-border bg-ink", treatmentClass, className)}
+    >
       <div className={cn("relative w-full overflow-hidden bg-ink", aspectClass)}>
         {children}
-        {truthClass === "illustrative" ? (
-          <span className="absolute bottom-2.5 start-3 rounded bg-ink/80 px-2 py-0.5 font-mono text-[10px] text-ink-muted uppercase tracking-wider backdrop-blur-xs">
+        {overlayClass ? (
+          <div
+            data-testid="media-overlay"
+            className={cn("absolute inset-0 pointer-events-none z-10", overlayClass)}
+            aria-hidden="true"
+          />
+        ) : null}
+        {showIllustrativeBadge ? (
+          <span
+            data-testid="truth-disclosure-badge"
+            className="absolute bottom-2.5 start-3 z-20 rounded bg-ink/80 px-2 py-0.5 font-mono text-[10px] text-ink-muted uppercase tracking-wider backdrop-blur-xs"
+          >
             {badgeText}
+          </span>
+        ) : showBrandBadge ? (
+          <span
+            data-testid="truth-disclosure-badge"
+            className="absolute bottom-2.5 start-3 z-20 rounded bg-ink/80 px-2 py-0.5 font-mono text-[10px] text-ink-muted uppercase tracking-wider backdrop-blur-xs"
+          >
+            {isAr ? "شعار وهوية معتمدة" : "Official Brand Asset"}
           </span>
         ) : null}
       </div>

@@ -11,6 +11,7 @@ export function DestinationCard({ destination, size = "md" }: { destination: Des
     <AppLink
       to="/destinations/$code"
       params={{ code: destination.code }}
+      data-surface-target="home.destination-card"
       className="group relative flex flex-col overflow-hidden rounded-xl border border-border bg-card transition-shadow hover:shadow-[var(--shadow-lift)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
     >
       <div className={size === "lg" ? "aspect-[4/3] overflow-hidden" : "aspect-[3/2] overflow-hidden"}>

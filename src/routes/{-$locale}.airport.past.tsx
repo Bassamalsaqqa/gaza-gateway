@@ -5,7 +5,29 @@ import { Container, Panel } from "@/components/kit";
 import { img, timeline } from "@/lib/data";
 import { pick, useI18n } from "@/lib/i18n";
 
+type AirportSearch = {
+  skinPreview?: 1;
+  studioPreview?: 1;
+  baseline?: 1;
+};
+
 export const Route = createFileRoute("/{-$locale}/airport/past")({
+  validateSearch: (search: Record<string, unknown>): AirportSearch => {
+    const out: AirportSearch = {};
+    const rawPreview = search["skinPreview"];
+    if (rawPreview === "1" || rawPreview === 1 || rawPreview === '"1"') {
+      out.skinPreview = 1;
+    }
+    const rawStudio = search["studioPreview"];
+    if (rawStudio === "1" || rawStudio === 1 || rawStudio === '"1"') {
+      out.studioPreview = 1;
+    }
+    const rawBaseline = search["baseline"];
+    if (rawBaseline === "1" || rawBaseline === 1 || rawBaseline === '"1"') {
+      out.baseline = 1;
+    }
+    return out;
+  },
   head: () => ({
     meta: [
       { title: "The past — history and archive of Gaza International Airport" },

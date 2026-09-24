@@ -110,11 +110,13 @@ export const PATTERN_PLACEMENTS: readonly PatternPlacement[] = [
 ] as const;
 
 export interface MediaTreatment {
+  mediaId?: string | undefined;
+  treatment?: ("none" | "top" | "side" | "cover" | "watermark") | undefined;
   focalX?: number | undefined; // 0 to 100
   focalY?: number | undefined; // 0 to 100
   overlay?: ("none" | "subtle" | "dark" | "gradient") | undefined;
   aspect?: ("auto" | "16:9" | "4:3" | "3:2" | "1:1") | undefined;
-  truthClass?: ("documentary" | "illustrative") | undefined;
+  truthClass?: ("documentary" | "illustrative" | "future-concept-ai" | "brand-mark" | "placeholder") | undefined;
 }
 
 export interface SurfaceRecipe {
@@ -135,4 +137,6 @@ export interface SurfaceGrammarConfig {
   /** Master preview toggle — only effective when `?skinPreview=1` is active */
   enabled: boolean;
   families: Record<SurfaceFamilyId, SurfaceRecipe>;
+  /** Bounded semantic component target overrides (e.g. "booking.flight-option") */
+  targetOverrides?: Record<string, Partial<SurfaceRecipe>> | undefined;
 }

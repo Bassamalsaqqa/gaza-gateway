@@ -309,6 +309,34 @@ export const MEDIA: Record<string, MediaEntry> = {
     altEn: "Illustrative passenger assistance scene inside a future airport terminal.",
     altAr: "مشهد توضيحي لمساعدة مسافر داخل مبنى مطار مستقبلي.",
   },
+
+  logo: {
+    id: "logo",
+    width: 433,
+    height: 259,
+    variants: [
+      { src: markLight1x, width: 74, height: 44 },
+      { src: markLight2x, width: 148, height: 88 },
+      { src: markLightFull, width: 433, height: 259 },
+    ],
+    truthClass: "brand-mark",
+    altEn: "Official insignia and emblem of Palestinian Airlines.",
+    altAr: "الشعار المعتمد للخطوط الجوية الفلسطينية ومطار غزة الدولي.",
+  },
+
+  "brand-mark": {
+    id: "brand-mark",
+    width: 433,
+    height: 259,
+    variants: [
+      { src: markLight1x, width: 74, height: 44 },
+      { src: markLight2x, width: 148, height: 88 },
+      { src: markLightFull, width: 433, height: 259 },
+    ],
+    truthClass: "brand-mark",
+    altEn: "Official insignia and emblem of Palestinian Airlines.",
+    altAr: "الشعار المعتمد للخطوط الجوية الفلسطينية ومطار غزة الدولي.",
+  },
 };
 
 /** Build srcSet string from variants. */

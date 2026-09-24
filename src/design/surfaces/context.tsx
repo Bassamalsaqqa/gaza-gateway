@@ -14,12 +14,14 @@ import {
 } from "react";
 import { useRouterState } from "@tanstack/react-router";
 import { isSkinPreviewActive, readPreviewSkin, SKIN_PREVIEW_EVENT } from "@/lib/skin";
+import { isBaselinePreviewActive } from "@/lib/studio-preview";
 import { DEFAULT_SURFACE_RECIPES } from "./presets";
 import type {
   SurfaceFamilyId,
   SurfaceGrammarConfig,
   SurfaceRecipe,
 } from "./types";
+import { resolveTargetRecipe, type TargetId } from "./targets";
 
 interface SurfaceGrammarContextValue {
   isPreview: boolean;
@@ -52,6 +54,11 @@ export function SurfaceGrammarProvider({
   const [storedConfig, setStoredConfig] = useState<SurfaceGrammarConfig | null>(() => {
     if (forcedConfig) return forcedConfig;
     if (typeof window === "undefined") return null;
+    const isBaseline =
+      isBaselinePreviewActive(searchStr) || isBaselinePreviewActive(window.location.search);
+    if (isBaseline) {
+      return { enabled: false, families: {} as Record<SurfaceFamilyId, SurfaceRecipe> };
+    }
     const skin = readPreviewSkin();
     return skin.surfaceGrammar ?? null;
   });
@@ -62,14 +69,28 @@ export function SurfaceGrammarProvider({
       return;
     }
 
-    const updateFromStorage = () => {
+    const updateFromEventOrStorage = (event?: Event) => {
+      if (event instanceof CustomEvent && event.detail) {
+        const detailConfig = event.detail as { surfaceGrammar?: SurfaceGrammarConfig };
+        if (detailConfig.surfaceGrammar !== undefined) {
+          setStoredConfig(detailConfig.surfaceGrammar);
+          return;
+        }
+      }
+      const isBaseline =
+        isBaselinePreviewActive(searchStr) ||
+        (typeof window !== "undefined" && isBaselinePreviewActive(window.location.search));
+      if (isBaseline) {
+        setStoredConfig({ enabled: false, families: {} as Record<SurfaceFamilyId, SurfaceRecipe> });
+        return;
+      }
       const skin = readPreviewSkin();
       setStoredConfig(skin.surfaceGrammar ?? null);
     };
 
-    updateFromStorage();
+    updateFromEventOrStorage();
 
-    const onUpdate = () => updateFromStorage();
+    const onUpdate = (e: Event) => updateFromEventOrStorage(e);
     window.addEventListener(SKIN_PREVIEW_EVENT, onUpdate);
     window.addEventListener("storage", onUpdate);
 
@@ -77,7 +98,7 @@ export function SurfaceGrammarProvider({
       window.removeEventListener(SKIN_PREVIEW_EVENT, onUpdate);
       window.removeEventListener("storage", onUpdate);
     };
-  }, [forcedConfig]);
+  }, [forcedConfig, searchStr]);
 
   const value: SurfaceGrammarContextValue = {
     isPreview,
@@ -92,10 +113,13 @@ export function SurfaceGrammarProvider({
 }
 
 /**
- * Accesses active surface recipe for a family.
+ * Accesses active surface recipe for a family or specific target ID.
  * Returns `active: true` ONLY when preview is active AND surface grammar is enabled.
  */
-export function useSurfaceRecipe(family: SurfaceFamilyId): {
+export function useSurfaceRecipe(
+  family: SurfaceFamilyId,
+  targetId?: TargetId,
+): {
   active: boolean;
   recipe: SurfaceRecipe;
 } {
@@ -108,16 +132,24 @@ export function useSurfaceRecipe(family: SurfaceFamilyId): {
   if (!ctx && typeof window !== "undefined") {
     isPreview = isSkinPreviewActive();
     if (isPreview) {
-      const skin = readPreviewSkin();
-      grammarConfig = skin.surfaceGrammar ?? null;
+      if (isBaselinePreviewActive()) {
+        grammarConfig = { enabled: false, families: {} as Record<SurfaceFamilyId, SurfaceRecipe> };
+      } else {
+        const skin = readPreviewSkin();
+        grammarConfig = skin.surfaceGrammar ?? null;
+      }
     }
   }
 
-  const enabled = isPreview && (grammarConfig ? Boolean(grammarConfig.enabled) : true);
-  const recipe =
+  const enabled = isPreview && Boolean(grammarConfig?.enabled);
+  let recipe =
     enabled && grammarConfig?.families?.[family]
       ? grammarConfig.families[family]
       : DEFAULT_SURFACE_RECIPES[family];
+
+  if (enabled && targetId && grammarConfig) {
+    recipe = resolveTargetRecipe(targetId, grammarConfig);
+  }
 
   return { active: enabled, recipe };
 }

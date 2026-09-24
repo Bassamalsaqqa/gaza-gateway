@@ -71,7 +71,11 @@ export function SeatSelectionWorkspace({
   }, 0);
 
   return (
-    <section aria-labelledby="seats-title" className="space-y-6">
+    <section
+      aria-labelledby="seats-title"
+      data-surface-target="booking.seat-console"
+      className="space-y-6"
+    >
       {/* Header */}
       <div>
         <Eyebrow>{t("step.seats")}</Eyebrow>

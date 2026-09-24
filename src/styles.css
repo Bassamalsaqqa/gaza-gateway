@@ -83,6 +83,7 @@
   --color-admin-nav-foreground: var(--admin-nav-foreground);
   --color-admin-nav-muted: var(--admin-nav-muted);
   --color-admin-nav-accent: var(--admin-nav-accent);
+  --color-brass: var(--admin-nav-accent);
   --color-admin-workspace: var(--admin-workspace);
 }
 

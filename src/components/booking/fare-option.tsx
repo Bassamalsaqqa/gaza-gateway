@@ -55,11 +55,12 @@ export function FareOption({ fare, price, selected = false, className }: FareOpt
       ? t("book.cabinBagOnly")
       : t("book.checkedBagsCount", { n: fare.checkedBags });
 
-  const { active, recipe } = useSurfaceRecipe("fare");
+  const { active, recipe } = useSurfaceRecipe("fare", "booking.fare-option");
   const fareIndex = fare.id === "essential" ? "01" : fare.id === "classic" ? "02" : "03";
 
   return (
     <div
+      data-surface-target="booking.fare-option"
       data-surface-family={active ? "fare" : undefined}
       data-surface-frame={active ? recipe.frame : undefined}
       data-surface-tone={active ? recipe.tone : undefined}

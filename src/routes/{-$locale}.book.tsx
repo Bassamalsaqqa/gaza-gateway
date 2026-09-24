@@ -47,6 +47,9 @@ import { cn } from "@/lib/utils";
 type BookSearch = {
   step?: BookingStep;
   skinPreview?: "1" | 1;
+  studioPreview?: "1" | 1;
+  scenario?: string;
+  baseline?: "1" | 1;
 };
 
 export const Route = createFileRoute("/{-$locale}/book")({
@@ -59,6 +62,17 @@ export const Route = createFileRoute("/{-$locale}/book")({
     const rawPreview = search["skinPreview"];
     if (rawPreview === "1" || rawPreview === 1 || rawPreview === '"1"') {
       out.skinPreview = 1;
+    }
+    const rawStudio = search["studioPreview"];
+    if (rawStudio === "1" || rawStudio === 1 || rawStudio === '"1"') {
+      out.studioPreview = 1;
+    }
+    if (typeof search["scenario"] === "string") {
+      out.scenario = search["scenario"];
+    }
+    const rawBaseline = search["baseline"];
+    if (rawBaseline === "1" || rawBaseline === 1 || rawBaseline === '"1"') {
+      out.baseline = 1;
     }
     return out;
   },
@@ -277,6 +291,17 @@ function BookPage() {
   }
 
   const isPreview = search.skinPreview === "1" || search.skinPreview === 1;
+  const isStudio = search.studioPreview === "1" || search.studioPreview === 1;
+
+  const previewParams = useMemo(
+    () => ({
+      ...(isPreview ? { skinPreview: 1 as const } : {}),
+      ...(isStudio ? { studioPreview: 1 as const } : {}),
+      ...(search.scenario ? { scenario: search.scenario } : {}),
+      ...(search.baseline ? { baseline: 1 as const } : {}),
+    }),
+    [isPreview, isStudio, search.scenario, search.baseline],
+  );
 
   // Repair/clamp URL search parameter without trapping the user
   useEffect(() => {
@@ -286,7 +311,7 @@ function BookPage() {
         to: "/book",
         search: {
           step: maxStep,
-          ...(isPreview ? { skinPreview: 1 as const } : {}),
+          ...previewParams,
         },
         replace: true,
       });
@@ -295,12 +320,12 @@ function BookPage() {
         to: "/book",
         search: {
           step: "results",
-          ...(isPreview ? { skinPreview: 1 as const } : {}),
+          ...previewParams,
         },
         replace: true,
       });
     }
-  }, [ready, requestedStep, maxStep, draft.entry, isPreview, navigate]);
+  }, [ready, requestedStep, maxStep, draft.entry, previewParams, navigate]);
 
   // Manage focus on step transition
   useEffect(() => {
@@ -313,7 +338,7 @@ function BookPage() {
       to: "/book",
       search: {
         step: next,
-        ...(isPreview ? { skinPreview: 1 as const } : {}),
+        ...previewParams,
       },
       replace,
     });
@@ -401,7 +426,7 @@ function BookPage() {
     void navigate({
       to: "/booking-confirmation/$ref",
       params: { ref: created.ref },
-      ...(isPreview ? { search: { skinPreview: 1 as const } } : {}),
+      ...(Object.keys(previewParams).length > 0 ? { search: previewParams } : {}),
     });
   };
 
@@ -663,7 +688,12 @@ function BookPage() {
                         });
                       const isInfant = p.type === "infant";
                       return (
-                        <GazaSurface family="form-sheet" key={i} className="p-5 sm:p-6">
+                        <GazaSurface
+                          family="form-sheet"
+                          target="booking.passenger-sheet"
+                          key={i}
+                          className="p-5 sm:p-6"
+                        >
                           <div className="flex flex-wrap items-center gap-2">
                             <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
                               {t("book.pax", { n: i + 1 })}
@@ -825,7 +855,11 @@ function BookPage() {
                       );
                     })}
 
-                    <GazaSurface family="form-sheet" className="p-5 sm:p-6">
+                    <GazaSurface
+                      family="form-sheet"
+                      target="booking.passenger-sheet"
+                      className="p-5 sm:p-6"
+                    >
                       <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
                         {t("book.contact")}
                       </h2>

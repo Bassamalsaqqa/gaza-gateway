@@ -52,13 +52,14 @@ export function FlightOption({
     });
   }, [flight, from, to, price, lang, t]);
 
-  const { active, recipe } = useSurfaceRecipe("operational");
+  const { active, recipe } = useSurfaceRecipe("operational", "booking.flight-option");
 
   return (
     <RadioGroupPrimitive.Item
       value={flight.id}
       id={`flight-option-${flight.id}`}
       aria-label={accessibleName}
+      data-surface-target="booking.flight-option"
       data-surface-family={active ? "operational" : undefined}
       data-surface-frame={active ? recipe.frame : undefined}
       data-surface-tone={active ? recipe.tone : undefined}

@@ -10,15 +10,21 @@ import { GazaSurface } from "@/design/surfaces";
 
 type AirportSearch = {
   skinPreview?: 1;
+  studioPreview?: 1;
 };
 
 export const Route = createFileRoute("/{-$locale}/airport/")({
   validateSearch: (search: Record<string, unknown>): AirportSearch => {
+    const out: AirportSearch = {};
     const rawPreview = search["skinPreview"];
     if (rawPreview === "1" || rawPreview === 1 || rawPreview === '"1"') {
-      return { skinPreview: 1 };
+      out.skinPreview = 1;
     }
-    return {};
+    const rawStudio = search["studioPreview"];
+    if (rawStudio === "1" || rawStudio === 1 || rawStudio === '"1"') {
+      out.studioPreview = 1;
+    }
+    return out;
   },
   head: () => ({
     meta: [
@@ -105,6 +111,7 @@ function AirportPage() {
               >
                 <GazaSurface
                   family="editorial"
+                  target="airport.chapter-card"
                   baselineClassName="flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-soft)] transition-all hover:border-border/80 hover:shadow-[var(--shadow-lift)]"
                   className="flex h-full flex-col overflow-hidden transition-all hover:shadow-[var(--shadow-lift)]"
                 >

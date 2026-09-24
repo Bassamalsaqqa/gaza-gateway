@@ -211,8 +211,12 @@ export function isSkinPreviewActive(searchStr?: string): boolean {
           : searchStr ?? "";
     if (!query) return false;
     const params = new URLSearchParams(query.startsWith("?") ? query : `?${query}`);
-    const val = params.get("skinPreview");
-    return val === "1" || val === '"1"' || val === "'1'";
+    const skinVal = params.get("skinPreview");
+    const studioVal = params.get("studioPreview");
+    const isSkin = skinVal === "1" || skinVal === '"1"' || skinVal === "'1'";
+    const isStudio =
+      studioVal === "1" || studioVal === '"1"' || studioVal === "'1'" || studioVal === "true";
+    return isSkin || isStudio;
   } catch {
     return false;
   }

@@ -1,6 +1,6 @@
 import { Switch } from "@/components/ui/switch";
 import { createFileRoute } from "@tanstack/react-router";
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Input, Select } from "@/components/kit";
 import { AdminField, AdminPageHeader, AdminPanel, AdminStickyActions, AdminTabs, PermissionButton } from "@/components/admin/admin-kit";
 import { AdminDenied } from "@/components/admin/admin-denied";
@@ -17,6 +17,7 @@ type Tab = "airport" | "service" | "contact" | "localization" | "appearance";
 type SettingsSearch = {
   tab?: Tab;
   skinPreview?: 1;
+  scenario?: string;
 };
 
 export const Route = createFileRoute("/{-$locale}/admin/settings")({
@@ -29,6 +30,10 @@ export const Route = createFileRoute("/{-$locale}/admin/settings")({
     const rawPreview = search["skinPreview"];
     if (rawPreview === "1" || rawPreview === 1 || rawPreview === '"1"') {
       out.skinPreview = 1;
+    }
+    const rawScenario = search["scenario"];
+    if (typeof rawScenario === "string" && rawScenario.trim().length > 0) {
+      out.scenario = rawScenario.trim();
     }
     return out;
   },
@@ -48,6 +53,11 @@ function AdminSettingsPage() {
   const { can, toast } = useAdmin();
   const search = Route.useSearch();
   const [tab, setTab] = useState<Tab>(search.tab ?? "airport");
+  useEffect(() => {
+    if (search.tab && search.tab !== tab) {
+      setTab(search.tab);
+    }
+  }, [search.tab, tab]);
   const mayEdit = can("admin.manage");
 
   if (!can("admin.manage")) return <AdminDenied area={t("a2.se.title")} permission="admin.manage" />;

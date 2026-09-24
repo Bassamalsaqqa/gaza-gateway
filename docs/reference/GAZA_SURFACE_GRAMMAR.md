@@ -167,7 +167,11 @@ Financial and pricing breakdown docket with dashed architectural rules and align
 ### 6.6 `<SurfaceMedia>`
 Constrained media frame with mandatory truth classification label:
 - Arabic: `"دراسة تصورية · توضيحي"`
-- English: `"Concept Study · Illustrative"`
+### 6.7 `<GazaSurface target={...}>` & Semantic Target Registry
+The polymorphic `<GazaSurface>` now accepts an optional `target?: TargetId` attribute, which:
+1. Emits `data-surface-target="<targetId>"` on the container DOM element, enabling the parent Appearance Studio to detect, highlight, and select the component in Inspect Mode.
+2. Resolves component-level recipe overrides configured in `config.surfaceGrammar.targetOverrides[targetId]` using `resolveTargetRecipe(family, targetId, config)` via `useSurfaceRecipe(family, targetId)`.
+3. Validates all overrides through `sanitizeTargetOverride(targetId, override)` against strict per-target allowlists.
 
 ---
 
@@ -177,25 +181,43 @@ Constrained media frame with mandatory truth classification label:
 2. **Historical Accuracy**: Archive imagery provenance must never be fabricated. Future AI renderings must never substitute for past evidence.
 3. **Operational Truth**: Flight statuses (`Scheduled`, `Delayed`, `Cancelled`) must reflect actual `flight.status` exactly once. Never normalize or fabricate operational status to fill a UI design slot.
 4. **Form Ergonomics**: Form sheet backgrounds (`form-sheet`) must remain completely free of patterns behind input elements to preserve legibility and accessibility.
+5. **Target Boundaries**: Operational, Fare, Dossier, and Form Sheet components are strictly disallowed from media overrides (`mediaAllowed: false`). Guide and Editorial components only accept approved media items from `src/lib/media.ts` with truth classification. AI concept visualizations are strictly prohibited on Past and Present chapters.
 
 ---
 
-## 8. Current Implementation Scope vs. Future Possibilities
+## 8. Appearance Studio Architecture (`src/components/admin/appearance-studio/`)
 
-### Implemented in Current Preview Pass:
-* Typed Surface Grammar schema and allowlists under `src/design/surfaces/`.
-* Admin Appearance Lab (`/admin/settings?tab=appearance`) with Sub-Tabs:
-  * **Canvas Skin**: Background patterns and canvas density.
-  * **Surface Grammar**: Interactive recipe editor across all 6 families with intensity, scale, and placement controls.
-  * **Surface Lab**: Side-by-side Baseline vs. Gaza Surface Grammar comparison across 7 live archetypes.
-* Real screen preview under `?skinPreview=1`:
-  * Flight booking steps (`/book?skinPreview=1`, `?step=results`, `?step=fare`, `?step=passengers`).
-  * Travel guides (`/travel?skinPreview=1`).
-  * Airport history (`/airport?skinPreview=1`).
-  * Future Vision articles (`/airport/future?skinPreview=1`).
-* Opaque surface materials (`--surface-olive-soft`, `bg-card`, `bg-sand`, `bg-ink`).
+The **Appearance Studio** replaces the former static lab at `/admin/settings?tab=appearance` with an interactive authoring workspace:
+1. **Inspector Panel (~420px)**:
+   - Target breadcrumb navigation and quick selector across all 20 targets (Canvases, Families, and Component recipes).
+   - Dynamic controls filtered by `meta.allowedControls` (Frame, Tone, Accent, Radius, Elevation, Pattern, Intensity, Scale, Media Treatment).
+   - Reset individual target recipe or all surface grammar overrides.
+2. **Persistent Iframe Preview Pane**:
+   - Sandboxed real-route preview loading real application routes with `?studioPreview=1`.
+   - Dynamic route & scenario switcher covering Home, Booking (Results, Fare, Passengers, Seats, Extras, Review), Travel (Preparing, Baggage, Accessibility), and Airport (Overview, Future Vision).
+   - Strict CSS media-query viewport emulator: `1440px`, `1280px`, `768px`, `390px`, `320px`, and `Fit`.
+   - Scale control: Fit vs 100% (using CSS transform scale to prevent breaking viewport responsive queries).
+   - Inspect Mode vs Browse Mode with bidirectional postMessage target synchronization.
+   - Baseline vs Draft comparison toggle.
+3. **Studio Isolation & Store Safety**:
+   - `isStudioPreviewActive()` guarantees `StoreProvider` never reads from or writes to `localStorage` (`gza.store.v1`). All scenarios run off deterministic mock fixtures with zero data leakage.
+4. **Retained Design System Specimens Sub-View**:
+   - The former Surface Lab is preserved as a dedicated "Design System Specimens" tab within the Appearance Studio workspace for direct archetypal comparison.
+
+---
+
+## 9. Current Implementation Scope vs. Future Possibilities
+
+### Implemented in Current Pass (Visual System B.1):
+* Typed Semantic Target Registry across 20 targets (`src/design/surfaces/targets.ts`).
+* Full-featured responsive Appearance Studio (`src/components/admin/appearance-studio/`).
+* Typed Parent <-> Iframe communication protocol (`src/lib/studio-protocol.ts`).
+* Deterministic mock fixtures and isolated scenario matrix (`src/lib/studio-scenarios.ts`).
+* Production component `data-surface-target` tagging and override resolution across Booking, Travel, Airport, and Home.
+* Retained Design System Specimens sub-view.
+* Zero baseline drift on production URLs without preview parameters.
 
 ### Proposed Future Possibilities (Not Implemented in this Pass):
 * Global publishing of custom surface themes to production cPanel without `?skinPreview=1`.
-* Full administrative backend reskinning outside the Appearance Lab workstation.
+* Exporting theme presets as JSON or downloadable CSS token bundles.
 * Additional project SVG motifs beyond `gza-lattice` and `runway-datum`.

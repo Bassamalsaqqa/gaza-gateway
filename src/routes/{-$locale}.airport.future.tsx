@@ -6,19 +6,31 @@ import { Container, Panel } from "@/components/kit";
 import { destinations } from "@/lib/data";
 import { pick, useI18n } from "@/lib/i18n";
 import { ResponsiveImage } from "@/components/responsive-image";
-import { GazaSurface } from "@/design/surfaces";
+import { GazaSurface, SurfaceMedia, useSurfaceRecipe } from "@/design/surfaces";
+import { MEDIA } from "@/lib/media";
 
 type FutureSearch = {
   skinPreview?: 1;
+  studioPreview?: 1;
+  baseline?: 1;
 };
 
 export const Route = createFileRoute("/{-$locale}/airport/future")({
   validateSearch: (search: Record<string, unknown>): FutureSearch => {
+    const out: FutureSearch = {};
     const rawPreview = search["skinPreview"];
     if (rawPreview === "1" || rawPreview === 1 || rawPreview === '"1"') {
-      return { skinPreview: 1 };
+      out.skinPreview = 1;
     }
-    return {};
+    const rawStudio = search["studioPreview"];
+    if (rawStudio === "1" || rawStudio === 1 || rawStudio === '"1"') {
+      out.studioPreview = 1;
+    }
+    const rawBaseline = search["baseline"];
+    if (rawBaseline === "1" || rawBaseline === 1 || rawBaseline === '"1"') {
+      out.baseline = 1;
+    }
+    return out;
   },
   head: () => ({
     meta: [
@@ -37,6 +49,11 @@ export const Route = createFileRoute("/{-$locale}/airport/future")({
 
 function FuturePage() {
   const { t, lang } = useI18n();
+  const { active: isEditorialActive, recipe: editorialRecipe } = useSurfaceRecipe(
+    "editorial",
+    "airport.future-editorial",
+  );
+  const mediaTreatment = editorialRecipe.mediaTreatment;
 
   /** Day/night pairs for the editorial study sequence */
   const nightStudies = [
@@ -110,35 +127,174 @@ function FuturePage() {
         {/* ── Main chapters: day imagery with editorial narrative ── */}
         <div className="mt-10 space-y-10">
           {/* Chapter 1 — Landside / Terminal Arrival */}
-          <GazaSurface
-            family="editorial"
-            as="article"
-            baselineClassName="grid gap-6 overflow-hidden rounded-2xl border border-border bg-card shadow-xs sm:grid-cols-2"
-            className="grid gap-6 overflow-hidden sm:grid-cols-2"
-          >
-            <figure className="relative m-0 aspect-[16/10] size-full overflow-hidden bg-ink sm:aspect-auto">
-              <ResponsiveImage
-                entry="landside-day"
-                sizes="(min-width: 640px) 50vw, 100vw"
-                className="size-full object-cover opacity-90 transition-transform duration-500 hover:scale-105"
-              />
-            </figure>
-            <div className="flex flex-col justify-center p-6 sm:p-8">
-              <h2 className="type-title-md text-foreground">
-                {t("airport.themeTerminalTitle")}
-              </h2>
-              <p className="mt-3 text-base leading-relaxed text-muted-foreground">
-                {t("airport.themeTerminalBody")}
-              </p>
-              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                {t("airport.designIntentText")}
-              </p>
-            </div>
-          </GazaSurface>
+          {(() => {
+            const chapter1Content = (
+              <>
+                <h2 className="type-title-md text-foreground">
+                  {t("airport.themeTerminalTitle")}
+                </h2>
+                <p className="mt-3 text-base leading-relaxed text-muted-foreground">
+                  {t("airport.themeTerminalBody")}
+                </p>
+                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                  {t("airport.designIntentText")}
+                </p>
+              </>
+            );
+
+            // ── Clean conditional at presentation boundary ──
+            // Normal mode (!isEditorialActive): retain accepted production presentation.
+            if (!isEditorialActive) {
+              return (
+                <GazaSurface
+                  family="editorial"
+                  as="article"
+                  baselineClassName="grid gap-6 overflow-hidden rounded-2xl border border-border bg-card shadow-xs sm:grid-cols-2"
+                  className="grid gap-6 overflow-hidden sm:grid-cols-2"
+                >
+                  <figure className="relative m-0 aspect-[16/10] size-full overflow-hidden bg-ink sm:aspect-auto">
+                    <ResponsiveImage
+                      entry="landside-day"
+                      sizes="(min-width: 640px) 50vw, 100vw"
+                      className="size-full object-cover opacity-90 transition-transform duration-500 hover:scale-105"
+                    />
+                  </figure>
+                  <div className="flex flex-col justify-center p-6 sm:p-8">
+                    {chapter1Content}
+                  </div>
+                </GazaSurface>
+              );
+            }
+
+            // ── Preview Mode (isEditorialActive): Distinct treatments for Appearance Studio / skin preview ──
+            const activeMediaId =
+              mediaTreatment?.mediaId && mediaTreatment.mediaId in MEDIA
+                ? mediaTreatment.mediaId
+                : "landside-day";
+            const activeMediaEntry = MEDIA[activeMediaId as keyof typeof MEDIA];
+            const activeTruthClass = activeMediaEntry?.truthClass ?? "future-concept-ai";
+            const activeTreatment = mediaTreatment?.treatment ?? "side";
+
+            const chapter1Media = (
+              <SurfaceMedia
+                treatment={activeTreatment}
+                aspect={
+                  activeTreatment === "top"
+                    ? "16:9"
+                    : mediaTreatment?.aspect && mediaTreatment.aspect !== "auto"
+                      ? mediaTreatment.aspect
+                      : "16:10"
+                }
+                truthClass={activeTruthClass}
+                overlay={mediaTreatment?.overlay}
+                focalX={mediaTreatment?.focalX}
+                focalY={mediaTreatment?.focalY}
+                contextKind="editorial-future"
+                className={
+                  activeTreatment === "cover" || activeTreatment === "watermark"
+                    ? "absolute inset-0 size-full -z-10 rounded-none border-0"
+                    : activeTreatment === "top"
+                      ? "w-full shrink-0"
+                      : "relative m-0 size-full overflow-hidden bg-ink sm:aspect-auto"
+                }
+              >
+                <ResponsiveImage
+                  entry={activeMediaId as keyof typeof MEDIA}
+                  sizes={
+                    activeTreatment === "top" || activeTreatment === "cover"
+                      ? "100vw"
+                      : "(min-width: 640px) 50vw, 100vw"
+                  }
+                  className="size-full object-cover opacity-90 transition-transform duration-500 hover:scale-105"
+                  style={{
+                    objectPosition: `${mediaTreatment?.focalX ?? 50}% ${mediaTreatment?.focalY ?? 50}%`,
+                  }}
+                />
+              </SurfaceMedia>
+            );
+
+            if (activeTreatment === "top") {
+              return (
+                <GazaSurface
+                  family="editorial"
+                  target="airport.future-editorial"
+                  as="article"
+                  baselineClassName="overflow-hidden rounded-2xl border border-border bg-card shadow-xs flex flex-col"
+                  className="overflow-hidden flex flex-col"
+                >
+                  {chapter1Media}
+                  <div className="p-6 sm:p-8">{chapter1Content}</div>
+                </GazaSurface>
+              );
+            }
+
+            if (activeTreatment === "cover") {
+              return (
+                <GazaSurface
+                  family="editorial"
+                  target="airport.future-editorial"
+                  as="article"
+                  baselineClassName="relative isolate overflow-hidden rounded-2xl border border-border bg-card shadow-xs min-h-[380px] sm:min-h-[440px] flex items-end"
+                  className="relative isolate overflow-hidden min-h-[380px] sm:min-h-[440px] flex items-end"
+                >
+                  {chapter1Media}
+                  <div className="relative z-10 m-4 sm:m-6 max-w-2xl rounded-xl border border-border/60 bg-card/90 p-6 sm:p-8 backdrop-blur-md">
+                    {chapter1Content}
+                  </div>
+                </GazaSurface>
+              );
+            }
+
+            if (activeTreatment === "watermark") {
+              return (
+                <GazaSurface
+                  family="editorial"
+                  target="airport.future-editorial"
+                  as="article"
+                  baselineClassName="relative isolate overflow-hidden rounded-2xl border border-border bg-card shadow-xs p-6 sm:p-8"
+                  className="relative isolate overflow-hidden p-6 sm:p-8"
+                >
+                  {chapter1Media}
+                  <div className="relative z-10 max-w-2xl">{chapter1Content}</div>
+                </GazaSurface>
+              );
+            }
+
+            if (activeTreatment === "none") {
+              return (
+                <GazaSurface
+                  family="editorial"
+                  target="airport.future-editorial"
+                  as="article"
+                  baselineClassName="overflow-hidden rounded-2xl border border-border bg-card shadow-xs p-6 sm:p-8"
+                  className="overflow-hidden p-6 sm:p-8"
+                >
+                  <div className="max-w-3xl">{chapter1Content}</div>
+                </GazaSurface>
+              );
+            }
+
+            return (
+              /* Default "side" */
+              <GazaSurface
+                family="editorial"
+                target="airport.future-editorial"
+                as="article"
+                baselineClassName="grid gap-6 overflow-hidden rounded-2xl border border-border bg-card shadow-xs sm:grid-cols-2"
+                className="grid gap-6 overflow-hidden sm:grid-cols-2"
+              >
+                {chapter1Media}
+                <div className="flex flex-col justify-center p-6 sm:p-8">
+                  {chapter1Content}
+                </div>
+              </GazaSurface>
+            );
+          })()}
 
           {/* Chapter 2 — Passenger Concourse */}
           <GazaSurface
             family="editorial"
+            target="airport.future-editorial"
             as="article"
             baselineClassName="grid gap-6 overflow-hidden rounded-2xl border border-border bg-card shadow-xs sm:grid-cols-2 sm:[&>figure]:order-last"
             className="grid gap-6 overflow-hidden sm:grid-cols-2 sm:[&>figure]:order-last"
@@ -166,6 +322,7 @@ function FuturePage() {
           {/* Chapter 3 — Airfield & Coastal Runway */}
           <GazaSurface
             family="editorial"
+            target="airport.future-editorial"
             as="article"
             baselineClassName="grid gap-6 overflow-hidden rounded-2xl border border-border bg-card shadow-xs sm:grid-cols-2"
             className="grid gap-6 overflow-hidden sm:grid-cols-2"

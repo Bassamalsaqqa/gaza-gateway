@@ -853,4 +853,41 @@ To eliminate visual fatigue and generic white-card SaaS boilerplate across the a
 
 ---
 
+### 22.7 Visual System B.1: Appearance Studio (`src/components/admin/appearance-studio/`) `[Accepted Design Contract]`
+The **Appearance Studio** advances the Gaza Surface Grammar from a static lab into an authoring workspace combining a responsive editor with a persistent, sandboxed real-route preview frame:
+1. **Responsive Studio Architecture**:
+   - Wide screens (`>=1024px`): A sticky ~420px inspector column paired with an adaptive preview pane maintaining sticky viewport geometry without nested scroll collisions.
+   - Medium & Mobile screens (`<1024px`): Segmented tab navigation (`[Inspector | Live Preview]`) prevents squeezed panels and crushed controls.
+   - Multi-Viewport Emulation: Strict CSS media-query viewport widths (`1440px`, `1280px`, `768px`, `390px`, `320px`, and `Fit`). In `Fit` mode on small screens, a CSS transform scale (`transform: scale(...)`) scales the viewport down without breaking fluid responsive evaluation inside the frame.
+2. **Deterministic Isolated Scenarios (`studioPreview=1`)**:
+   - Zero State Leakage: Real preview routes operate under `studioPreview=1`. All store reads/writes bypass persistent `localStorage` (`gza.store.v1`), running off isolated, deterministic in-memory fixtures.
+   - Scenario Coverage:
+     - **Home**: Homepage & Destinations (`/`, `/ar`)
+     - **Booking**: Results, Fare Selection, Passenger Details, Seat Map Console, Bags & Extras, Review Dossier (`/book?step=...`)
+     - **Travel**: Preparing for Travel, Baggage Policies, Accessibility Services (`/travel#...`)
+     - **Airport**: Heritage Overview & Opening Dossier (`/airport`), Future Architectural Vision (`/airport/future`)
+3. **Parent <-> Iframe Typed Synchronization Protocol**:
+   - Communication over `postMessage` using `isValidStudioOrigin(event)` (strict `event.origin === window.location.origin`).
+   - Schema validation with versioning (`STUDIO_PROTOCOL_VERSION = "1.0.0"`).
+   - Messages: `GZA_STUDIO_PARENT_INIT`, `GZA_STUDIO_FRAME_READY`, `GZA_STUDIO_CONFIG_SYNC`, `GZA_STUDIO_INSPECT_MODE`, `GZA_STUDIO_SELECT_TARGET_CMD`, `GZA_STUDIO_TARGET_HOVERED`, `GZA_STUDIO_TARGET_SELECTED`, `GZA_STUDIO_NAVIGATE_SCENARIO`.
+4. **Inspect Mode vs. Browse Mode**:
+   - **Browse Mode**: Full natural link clicking and router navigation inside the preview frame.
+   - **Inspect Mode**: Captures mouseover and clicks on elements tagged with `data-surface-target`. Highlights targeted components with the Gaza green dashed outline, immediately navigating the parent inspector to that recipe.
+5. **Semantic Target Registry (20 Targets)**:
+   - 3 Canvas Targets: `canvas.public`, `canvas.sand`, `canvas.admin`
+   - 6 Family Targets: `family.operational`, `family.fare`, `family.dossier`, `family.form-sheet`, `family.guide`, `family.editorial`
+   - 11 Component Recipes:
+     - `booking.flight-option`, `booking.fare-option`, `booking.trip-summary`, `booking.passenger-sheet`, `booking.seat-console`, `booking.extras`, `booking.review-dossier`
+     - `travel.guide`
+     - `airport.chapter-card`, `airport.future-editorial`
+     - `home.destination-card`
+6. **Media Truthfulness & Bounded Controls**:
+   - Operational, Fare, Dossier, and Form Sheet components are strictly disallowed from media overrides (`mediaAllowed: false`).
+   - Guide and Editorial components permit approved media items from `src/lib/media.ts` with mandatory truth classification tags.
+   - AI concept imagery is strictly restricted to Future Vision contexts and prohibited on Past or Present airport chapters.
+7. **Retained Design System Specimens Sub-View**:
+   - The former Surface Lab is preserved as a dedicated "Design System Specimens" tab within the Appearance settings, providing direct side-by-side archetypal comparison alongside the real-route Studio.
+
+---
+
 *Authored for the Gaza International Airport & Palestinian Airlines Engineering Project.*

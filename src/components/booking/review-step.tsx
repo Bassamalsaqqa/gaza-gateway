@@ -65,6 +65,7 @@ export function ReviewStep({
       {/* Unified Travel Dossier Document */}
       <GazaSurface
         family="dossier"
+        target="booking.review-dossier"
         className="rounded-2xl border border-border bg-card shadow-[var(--shadow-lift)] overflow-hidden divide-y divide-border"
       >
         {/* Dossier Header Banner */}

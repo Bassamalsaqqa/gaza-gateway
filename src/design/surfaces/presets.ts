@@ -23,6 +23,7 @@ import type {
   SurfaceRecipe,
 } from "./types";
 import { SURFACE_FAMILY_IDS } from "./types";
+import { isTargetId, sanitizeTargetOverride } from "./targets";
 
 export const DEFAULT_SURFACE_RECIPES: Record<SurfaceFamilyId, SurfaceRecipe> = {
   operational: {
@@ -84,6 +85,14 @@ export const DEFAULT_SURFACE_RECIPES: Record<SurfaceFamilyId, SurfaceRecipe> = {
     patternPlacement: "header",
     patternIntensity: "very-subtle",
     patternScale: "standard",
+    mediaTreatment: {
+      mediaId: "passenger-assistance",
+      treatment: "cover",
+      focalX: 50,
+      focalY: 50,
+      overlay: "subtle",
+      aspect: "auto",
+    },
   },
   editorial: {
     family: "editorial",
@@ -96,6 +105,14 @@ export const DEFAULT_SURFACE_RECIPES: Record<SurfaceFamilyId, SurfaceRecipe> = {
     patternPlacement: "watermark",
     patternIntensity: "subtle",
     patternScale: "standard",
+    mediaTreatment: {
+      mediaId: "landside-day",
+      treatment: "cover",
+      focalX: 50,
+      focalY: 50,
+      overlay: "subtle",
+      aspect: "auto",
+    },
   },
 };
 
@@ -107,6 +124,18 @@ export const DEFAULT_SURFACE_GRAMMAR_CONFIG: SurfaceGrammarConfig = {
 function sanitizeMediaTreatment(raw: unknown): MediaTreatment | undefined {
   if (!raw || typeof raw !== "object") return undefined;
   const obj = raw as Partial<MediaTreatment>;
+  const mediaId =
+    typeof obj.mediaId === "string" && obj.mediaId.trim().length > 0
+      ? obj.mediaId.trim()
+      : undefined;
+  const treatment =
+    obj.treatment === "none" ||
+    obj.treatment === "top" ||
+    obj.treatment === "side" ||
+    obj.treatment === "cover" ||
+    obj.treatment === "watermark"
+      ? obj.treatment
+      : "cover";
   const focalX =
     typeof obj.focalX === "number" && obj.focalX >= 0 && obj.focalX <= 100
       ? Math.round(obj.focalX)
@@ -125,7 +154,7 @@ function sanitizeMediaTreatment(raw: unknown): MediaTreatment | undefined {
       : "auto";
   const truthClass = obj.truthClass === "illustrative" ? "illustrative" : "documentary";
 
-  return { focalX, focalY, overlay, aspect, truthClass };
+  return { mediaId, treatment, focalX, focalY, overlay, aspect, truthClass };
 }
 
 export function sanitizeSurfaceRecipe(
@@ -232,5 +261,20 @@ export function sanitizeSurfaceGrammarConfig(raw: unknown): SurfaceGrammarConfig
     );
   }
 
-  return { enabled, families };
+  const rawOverrides = (obj.targetOverrides ?? {}) as Record<string, unknown>;
+  const targetOverrides: Record<string, Partial<SurfaceRecipe>> = {};
+  for (const [targetKey, rawOverride] of Object.entries(rawOverrides)) {
+    if (isTargetId(targetKey)) {
+      const sanitized = sanitizeTargetOverride(targetKey, rawOverride);
+      if (Object.keys(sanitized).length > 0) {
+        targetOverrides[targetKey] = sanitized;
+      }
+    }
+  }
+
+  return {
+    enabled,
+    families,
+    ...(Object.keys(targetOverrides).length > 0 ? { targetOverrides } : {}),
+  };
 }

@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -18,6 +19,8 @@ import {
   todayISO,
 } from "./data";
 import { makePnr } from "./format";
+import { isStudioPreviewActive } from "./studio-preview";
+import { createDeterministicMockDraft } from "./studio-scenarios";
 
 export type PassengerType = "adult" | "child" | "infant";
 
@@ -571,20 +574,43 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [account, setAccount] = useState<Account | null>(null);
   const [travelers, setTravelers] = useState<Traveler[]>([]);
+  const hasMutatedRef = useRef(false);
+  const extraKeysRef = useRef<Record<string, unknown>>({});
 
   useEffect(() => {
+    if (isStudioPreviewActive()) {
+      const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+      const rawStep = params?.get("step");
+      const validStep =
+        rawStep === "fare" ||
+        rawStep === "passengers" ||
+        rawStep === "seats" ||
+        rawStep === "extras" ||
+        rawStep === "review"
+          ? rawStep
+          : "results";
+      setDraftState(createDeterministicMockDraft(validStep));
+      setBookings([]);
+      setAccount(null);
+      setTravelers([]);
+      setReady(true);
+      return;
+    }
+
     const clientToday = todayISO();
     const clientReturn = addDaysISO(clientToday, 6);
     let currentDraft: Draft | undefined;
     try {
       const raw = window.localStorage.getItem(KEY);
       if (raw) {
-        const parsed = JSON.parse(raw) as Persisted;
-        setBookings((parsed.bookings ?? []).map(migrateBooking));
-        setAccount(parsed.account ?? null);
-        setTravelers((parsed.travelers ?? []).map((tr) => ({ ...tr, dob: tr.dob ?? "" })));
-        if (parsed.draft) {
-          currentDraft = validateAndSanitizeDraft(parsed.draft, clientToday, clientReturn);
+        const parsed = JSON.parse(raw) as Persisted & Record<string, unknown>;
+        const { bookings: b, account: a, travelers: t, draft: d, ...extra } = parsed;
+        extraKeysRef.current = extra;
+        setBookings((b ?? []).map(migrateBooking));
+        setAccount(a ?? null);
+        setTravelers((t ?? []).map((tr) => ({ ...tr, dob: tr.dob ?? "" })));
+        if (d) {
+          currentDraft = validateAndSanitizeDraft(d, clientToday, clientReturn);
         }
       }
     } catch {
@@ -599,17 +625,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!ready) return;
-    const payload: Persisted = { bookings, account, travelers, draft };
+    if (!ready || !hasMutatedRef.current || isStudioPreviewActive()) return;
+    const payload: Persisted = { ...extraKeysRef.current, bookings, account, travelers, draft };
     window.localStorage.setItem(KEY, JSON.stringify(payload));
   }, [ready, bookings, account, travelers, draft]);
 
   const setDraft = useCallback((updater: (prev: Draft) => Draft) => {
+    hasMutatedRef.current = true;
     setDraftState((prev) => updater(prev));
   }, []);
 
   const resetDraft = useCallback(
     (criteria: SearchCriteria) => {
+      hasMutatedRef.current = true;
       const passengers = passengersFor(criteria);
       // A signed-in traveller's saved meal preference becomes the booking default.
       const meal = account?.mealPreference ?? "standard";
@@ -630,6 +658,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const addBooking = useCallback(
     (booking: Omit<Booking, "ref" | "createdAt" | "status" | "checkedIn" | "ownerEmail">) => {
+      hasMutatedRef.current = true;
       const created: Booking = {
         ...booking,
         ref: makePnr(),
@@ -645,6 +674,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   );
 
   const claimBooking = useCallback((ref: string) => {
+    hasMutatedRef.current = true;
     setAccount((acc) => {
       if (acc) {
         setBookings((prev) =>
@@ -660,6 +690,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const checkInLeg = useCallback((ref: string, leg: Leg, paxIndexes: number[]) => {
+    hasMutatedRef.current = true;
     setBookings((prev) =>
       prev.map((b) => {
         if (b.ref.toUpperCase() !== ref.trim().toUpperCase() || b.status !== "confirmed") return b;
@@ -672,6 +703,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updateBooking = useCallback((ref: string, patch: Partial<Booking>) => {
+    hasMutatedRef.current = true;
     setBookings((prev) => prev.map((b) => (b.ref === ref ? { ...b, ...patch } : b)));
   }, []);
 
@@ -681,6 +713,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   );
 
   const signIn = useCallback((email: string, firstName?: string, lastName?: string) => {
+    hasMutatedRef.current = true;
     setAccount((prev) => ({
       email,
       firstName: firstName ?? prev?.firstName ?? email.split("@")[0] ?? "Traveller",
@@ -692,21 +725,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
-  const signOut = useCallback(() => setAccount(null), []);
+  const signOut = useCallback(() => {
+    hasMutatedRef.current = true;
+    setAccount(null);
+  }, []);
 
   const updateAccount = useCallback((patch: Partial<Account>) => {
+    hasMutatedRef.current = true;
     setAccount((prev) => (prev ? { ...prev, ...patch } : prev));
   }, []);
 
   const addTraveler = useCallback((traveler: Omit<Traveler, "id">) => {
+    hasMutatedRef.current = true;
     setTravelers((prev) => [...prev, { ...traveler, id: `t-${Date.now()}` }]);
   }, []);
 
   const updateTraveler = useCallback((id: string, patch: Partial<Omit<Traveler, "id">>) => {
+    hasMutatedRef.current = true;
     setTravelers((prev) => prev.map((tr) => (tr.id === id ? { ...tr, ...patch } : tr)));
   }, []);
 
   const removeTraveler = useCallback((id: string) => {
+    hasMutatedRef.current = true;
     setTravelers((prev) => prev.filter((t) => t.id !== id));
   }, []);
 

@@ -8,7 +8,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { type ReactNode } from "react";
+import { lazy, Suspense, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { I18nProvider } from "@/lib/i18n";
@@ -22,6 +22,25 @@ import { btnClass } from "@/components/kit";
 import { PublicNotFound } from "@/components/public-not-found";
 import { SkinPreviewListener, SkinStyle } from "@/components/skin-provider";
 import { SurfaceGrammarProvider } from "@/design/surfaces";
+
+const StudioFrameListenerLazy = lazy(() =>
+  import("@/components/studio-frame-listener").then((m) => ({ default: m.StudioFrameListener })),
+);
+
+function StudioFrameMount() {
+  if (typeof window === "undefined") return null;
+  const isStudio =
+    window.location.search.includes("studioPreview=1") ||
+    window.location.search.includes("studioPreview=%221%22") ||
+    Boolean((window as unknown as { __GZA_STUDIO_ISOLATED__?: boolean }).__GZA_STUDIO_ISOLATED__);
+  if (!isStudio) return null;
+
+  return (
+    <Suspense fallback={null}>
+      <StudioFrameListenerLazy />
+    </Suspense>
+  );
+}
 
 /** Detect locale from pathname safely without requiring I18nProvider. */
 function detectLocale(): "ar" | "en" {
@@ -140,6 +159,7 @@ function RootShell({ children }: { children: ReactNode }) {
       </head>
       <body className="bg-ambient">
         <SkinPreviewListener />
+        <StudioFrameMount />
         {children}
         <Scripts />
       </body>

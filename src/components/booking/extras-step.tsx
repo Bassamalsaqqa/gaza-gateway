@@ -72,7 +72,11 @@ export function ExtrasStep({
   const totalBagsFee = totalBags * EXTRA_BAG_PRICE;
 
   return (
-    <section aria-labelledby="extras-title" className="space-y-6">
+    <section
+      aria-labelledby="extras-title"
+      data-surface-target="booking.extras"
+      className="space-y-6"
+    >
       {/* Step Header */}
       <div>
         <Eyebrow>{t("step.extras")}</Eyebrow>

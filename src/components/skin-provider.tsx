@@ -7,6 +7,7 @@ import {
   generateSkinStyleDeclaration,
   isSkinPreviewActive,
 } from "@/lib/skin";
+import { isBaselinePreviewActive } from "@/lib/studio-preview";
 
 const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
@@ -24,8 +25,8 @@ export function SkinStyle() {
 }
 
 /**
- * Reactive client listener for `?skinPreview=1` query parameter during SPA transitions.
- * Normal URLs without `skinPreview=1` always use DEFAULT_SITE_SKIN and ignore preview storage.
+ * Reactive client listener for `?skinPreview=1` and `?studioPreview=1` query parameters during SPA transitions.
+ * Normal URLs without preview always use DEFAULT_SITE_SKIN and ignore preview storage.
  * The optional pattern catalog is loaded asynchronously ONLY when preview mode is active.
  */
 export function SkinPreviewListener() {
@@ -34,8 +35,11 @@ export function SkinPreviewListener() {
 
   useIsomorphicLayoutEffect(() => {
     let active = true;
+    const isBaseline =
+      isBaselinePreviewActive(searchStr) ||
+      (typeof window !== "undefined" && isBaselinePreviewActive(window.location.search));
 
-    if (isPreview) {
+    if (isPreview && !isBaseline) {
       import("@/lib/skin-preview")
         .then(({ applyActivePreviewSkin }) => {
           const currentQuery = typeof window !== "undefined" ? window.location.search : searchStr;
@@ -62,9 +66,28 @@ export function SkinPreviewListener() {
     if (!isPreview) return;
 
     let active = true;
-    const onUpdate = () => {
+    const onUpdate = (e?: Event) => {
       const currentQuery = typeof window !== "undefined" ? window.location.search : searchStr;
       if (!active || !isSkinPreviewActive(searchStr) || !isSkinPreviewActive(currentQuery)) {
+        return;
+      }
+      const isBaseline =
+        isBaselinePreviewActive(searchStr) ||
+        (typeof window !== "undefined" && isBaselinePreviewActive(window.location.search));
+      if (isBaseline) {
+        clearDomSkinOverrides();
+        return;
+      }
+      if (e instanceof CustomEvent && e.detail) {
+        import("@/lib/skin-preview")
+          .then(({ applySkinToDom }) => {
+            if (active) {
+              applySkinToDom(e.detail);
+            }
+          })
+          .catch(() => {
+            if (active) clearDomSkinOverrides();
+          });
         return;
       }
       import("@/lib/skin-preview")
