@@ -883,7 +883,7 @@ export function GuidePlateSpecimen({ forceGrammar, recipe }: SpecimenProps) {
             <div className="w-full md:w-56 shrink-0">
               <SurfaceMedia
                 caption={isAr ? "ممر صالة الوصول المركزية" : "Central Passenger Concourse"}
-                truthClass="illustrative"
+                truthClass="future-concept-ai"
                 aspect="4:3"
               >
                 <img
@@ -989,7 +989,7 @@ export function EditorialCardSpecimen({ forceGrammar, recipe }: SpecimenProps) {
                   : "Exploratory architectural concept for future terminal expansion"
               }
               provenance="PALESTINIAN CIVIL AVIATION STUDY ARCHIVE · 2026 CONCEPT"
-              truthClass="illustrative"
+              truthClass="future-concept-ai"
               aspect="16:9"
             >
               <img

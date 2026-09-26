@@ -28,7 +28,7 @@ import {
   SKIN_PREVIEW_EVENT,
   type SiteSkinConfig,
 } from "@/lib/skin";
-import { isTargetId, type TargetId } from "@/design/surfaces/targets";
+import { isTargetId, type TargetId } from "@/design/surfaces/runtime-targets";
 
 function applyPreviewSkin(config: SiteSkinConfig) {
   import("@/lib/skin-preview").then(({ applySkinToDom }) => {

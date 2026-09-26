@@ -9,11 +9,11 @@
 import {
   type SiteSkinConfig,
   sanitizeSiteSkinConfig,
-} from "./skin";
+} from "./skin.ts";
 import {
   isTargetId,
   type TargetId,
-} from "@/design/surfaces/targets";
+} from "../design/surfaces/runtime-targets.ts";
 
 export const STUDIO_PROTOCOL_VERSION = "1.0.0";
 

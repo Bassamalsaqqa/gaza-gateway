@@ -13,7 +13,13 @@
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type TruthClass = "future-concept-ai" | "brand-mark" | "placeholder";
+import {
+  APPROVED_MEDIA_CATALOG,
+  type ApprovedMediaId,
+  type TruthClass,
+} from "./media-policy.ts";
+export { APPROVED_MEDIA_CATALOG };
+export type { ApprovedMediaId, TruthClass };
 
 export interface MediaVariant {
   src: string;
@@ -126,7 +132,7 @@ import markDarkFull from "@/assets/media/brand/gaza-mark-dark.png";
 // Registry
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const MEDIA: Record<string, MediaEntry> = {
+export const MEDIA: Record<ApprovedMediaId, MediaEntry> = {
   "home-hero": {
     id: "home-hero",
     width: 1376,
@@ -310,7 +316,7 @@ export const MEDIA: Record<string, MediaEntry> = {
     altAr: "مشهد توضيحي لمساعدة مسافر داخل مبنى مطار مستقبلي.",
   },
 
-  logo: {
+  "logo": {
     id: "logo",
     width: 433,
     height: 259,

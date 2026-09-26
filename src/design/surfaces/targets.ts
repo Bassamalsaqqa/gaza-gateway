@@ -23,34 +23,24 @@ import {
 } from "./types";
 import { FAMILY_ALLOWLISTS } from "./allowlists";
 import { DEFAULT_SURFACE_RECIPES } from "./presets";
-import { MEDIA } from "@/lib/media";
 import type { PatternId, IntensityLevel, ScaleLevel } from "@/design/patterns/pattern-types";
 import { canonicalPatternId } from "@/design/patterns/pattern-types";
 
-export type CanvasTargetId = "canvas.public" | "canvas.sand" | "canvas.admin";
-
-export type FamilyTargetId =
-  | "family.operational"
-  | "family.fare"
-  | "family.dossier"
-  | "family.form-sheet"
-  | "family.guide"
-  | "family.editorial";
-
-export type ComponentTargetId =
-  | "booking.flight-option"
-  | "booking.fare-option"
-  | "booking.trip-summary"
-  | "booking.passenger-sheet"
-  | "booking.seat-console"
-  | "booking.extras"
-  | "booking.review-dossier"
-  | "travel.guide"
-  | "airport.chapter-card"
-  | "airport.future-editorial"
-  | "home.destination-card";
-
-export type TargetId = CanvasTargetId | FamilyTargetId | ComponentTargetId;
+export * from "./runtime-targets";
+import {
+  type CanvasTargetId,
+  type ComponentTargetId,
+  type FamilyTargetId,
+  type TargetId,
+  ALL_TARGET_IDS,
+  CANVAS_TARGET_IDS,
+  COMPONENT_TARGET_IDS,
+  FAMILY_TARGET_IDS,
+  TARGET_FAMILY_MAP,
+  getTargetFamily,
+  isTargetId,
+  resolveTargetRecipe,
+} from "./runtime-targets";
 
 export interface AllowedControls {
   frame: boolean;
@@ -80,41 +70,6 @@ export interface TargetMeta {
   allowedTruthClasses?: ("future-concept-ai" | "brand-mark" | "placeholder")[];
   allowedControls: AllowedControls;
 }
-
-export const CANVAS_TARGET_IDS: readonly CanvasTargetId[] = [
-  "canvas.public",
-  "canvas.sand",
-  "canvas.admin",
-] as const;
-
-export const FAMILY_TARGET_IDS: readonly FamilyTargetId[] = [
-  "family.operational",
-  "family.fare",
-  "family.dossier",
-  "family.form-sheet",
-  "family.guide",
-  "family.editorial",
-] as const;
-
-export const COMPONENT_TARGET_IDS: readonly ComponentTargetId[] = [
-  "booking.flight-option",
-  "booking.fare-option",
-  "booking.trip-summary",
-  "booking.passenger-sheet",
-  "booking.seat-console",
-  "booking.extras",
-  "booking.review-dossier",
-  "travel.guide",
-  "airport.chapter-card",
-  "airport.future-editorial",
-  "home.destination-card",
-] as const;
-
-export const ALL_TARGET_IDS: readonly TargetId[] = [
-  ...CANVAS_TARGET_IDS,
-  ...FAMILY_TARGET_IDS,
-  ...COMPONENT_TARGET_IDS,
-] as const;
 
 const CANVAS_CONTROLS: AllowedControls = {
   frame: false,
@@ -164,18 +119,6 @@ export const TARGET_REGISTRY: Record<TargetId, TargetMeta> = {
     descriptionAr: "خلفية الحجر الرملي لأدلة السفر ومعلومات المطار والفصول التاريخية.",
     route: "/travel",
     scenarioId: "travel.preparing",
-    mediaAllowed: false,
-    allowedControls: CANVAS_CONTROLS,
-  },
-  "canvas.admin": {
-    id: "canvas.admin",
-    kind: "canvas",
-    nameEn: "Admin Workspace Canvas",
-    nameAr: "خلفية مساحة العمل الإدارية",
-    descriptionEn: "Background pattern for staff administration workspace and telemetry panels.",
-    descriptionAr: "النقش الخلفي لمساحة العمل الإدارية ولوحات العمليات للطاقم.",
-    route: "/admin/settings?tab=appearance",
-    scenarioId: "admin.appearance",
     mediaAllowed: false,
     allowedControls: CANVAS_CONTROLS,
   },
@@ -434,149 +377,6 @@ export const TARGET_REGISTRY: Record<TargetId, TargetMeta> = {
   },
 };
 
-export function isTargetId(val: unknown): val is TargetId {
-  return typeof val === "string" && (ALL_TARGET_IDS as readonly string[]).includes(val);
-}
-
 export function getTargetMeta(id: TargetId): TargetMeta {
   return TARGET_REGISTRY[id] ?? TARGET_REGISTRY["booking.flight-option"];
-}
-
-export function getTargetFamily(id: TargetId): SurfaceFamilyId | undefined {
-  return TARGET_REGISTRY[id]?.familyId;
-}
-
-/**
- * Resolves effective SurfaceRecipe for a semantic target ID, taking into account:
- * 1. Authored default recipe for target's family
- * 2. Family recipe override from SurfaceGrammarConfig
- * 3. Component target override from SurfaceGrammarConfig.targetOverrides
- */
-export function resolveTargetRecipe(
-  targetId: TargetId,
-  config: SurfaceGrammarConfig,
-): SurfaceRecipe {
-  const meta = getTargetMeta(targetId);
-  const family = meta.familyId ?? "operational";
-  const familyDefault = DEFAULT_SURFACE_RECIPES[family];
-  const familyRecipe = config.families[family] ?? familyDefault;
-  const targetOverride = config.targetOverrides?.[targetId];
-
-  if (!targetOverride) {
-    return familyRecipe;
-  }
-
-  return {
-    ...familyRecipe,
-    ...targetOverride,
-    family,
-  };
-}
-
-/**
- * Validates and sanitizes a partial SurfaceRecipe for a specific TargetId,
- * enforcing the family allowlists and media truth classification policies.
- */
-export function sanitizeTargetOverride(
-  targetId: TargetId,
-  raw: unknown,
-): Partial<SurfaceRecipe> {
-  if (!raw || typeof raw !== "object") return {};
-  const meta = getTargetMeta(targetId);
-  const family = meta.familyId;
-  if (!family) return {};
-
-  const allowlist = FAMILY_ALLOWLISTS[family];
-  const obj = raw as Partial<SurfaceRecipe>;
-  const clean: Partial<SurfaceRecipe> = {};
-
-  if (obj.frame && (allowlist.frames as readonly string[]).includes(obj.frame)) {
-    clean.frame = obj.frame as SurfaceFrame;
-  }
-  if (obj.tone && (allowlist.tones as readonly string[]).includes(obj.tone)) {
-    clean.tone = obj.tone as SurfaceTone;
-  }
-  if (obj.accent && (allowlist.accents as readonly string[]).includes(obj.accent)) {
-    clean.accent = obj.accent as SurfaceAccent;
-  }
-  if (obj.radius && (allowlist.radii as readonly string[]).includes(obj.radius)) {
-    clean.radius = obj.radius as SurfaceRadius;
-  }
-  if (obj.elevation && (allowlist.elevations as readonly string[]).includes(obj.elevation)) {
-    clean.elevation = obj.elevation as SurfaceElevation;
-  }
-  if (typeof obj.pattern === "string") {
-    clean.pattern = canonicalPatternId(obj.pattern);
-  }
-  if (
-    obj.patternPlacement &&
-    (allowlist.patternPlacements as readonly string[]).includes(obj.patternPlacement)
-  ) {
-    clean.patternPlacement = obj.patternPlacement as PatternPlacement;
-  }
-  if (
-    obj.patternIntensity &&
-    ["off", "very-subtle", "subtle", "present"].includes(obj.patternIntensity)
-  ) {
-    clean.patternIntensity = obj.patternIntensity as IntensityLevel;
-  }
-  if (
-    obj.patternScale &&
-    ["small", "standard", "large"].includes(obj.patternScale)
-  ) {
-    clean.patternScale = obj.patternScale as ScaleLevel;
-  }
-
-  // Media treatment sanitization
-  if (meta.mediaAllowed && allowlist.mediaAllowed && obj.mediaTreatment) {
-    const rawMt = obj.mediaTreatment;
-    const mediaId = typeof rawMt.mediaId === "string" ? rawMt.mediaId : undefined;
-    const mediaItem = mediaId ? MEDIA[mediaId] : undefined;
-
-    // Truth policy check: only permit media whose truthClass is allowed for this target
-    let safeMediaId: string | undefined = undefined;
-    if (mediaItem && meta.allowedTruthClasses?.includes(mediaItem.truthClass)) {
-      safeMediaId = mediaItem.id;
-    }
-
-    const treatments = ["none", "top", "side", "cover", "watermark"] as const;
-    const treatment =
-      typeof rawMt.treatment === "string" && (treatments as readonly string[]).includes(rawMt.treatment)
-        ? rawMt.treatment
-        : undefined;
-
-    const focalX =
-      typeof rawMt.focalX === "number" && !isNaN(rawMt.focalX)
-        ? Math.max(0, Math.min(100, Math.round(rawMt.focalX)))
-        : 50;
-
-    const focalY =
-      typeof rawMt.focalY === "number" && !isNaN(rawMt.focalY)
-        ? Math.max(0, Math.min(100, Math.round(rawMt.focalY)))
-        : 50;
-
-    const overlays = ["none", "subtle", "dark", "gradient"] as const;
-    const overlay =
-      typeof rawMt.overlay === "string" && (overlays as readonly string[]).includes(rawMt.overlay)
-        ? rawMt.overlay
-        : "none";
-
-    const aspects = ["auto", "16:9", "4:3", "3:2", "1:1"] as const;
-    const aspect =
-      typeof rawMt.aspect === "string" && (aspects as readonly string[]).includes(rawMt.aspect)
-        ? rawMt.aspect
-        : "auto";
-
-    clean.mediaTreatment = {
-      mediaId: safeMediaId,
-      treatment,
-      focalX,
-      focalY,
-      overlay,
-      aspect,
-      truthClass: mediaItem ? mediaItem.truthClass : undefined,
-    };
-  }
-
-  return clean;
 }

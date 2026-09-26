@@ -37,8 +37,9 @@ import type {
   SurfaceFamilyId,
   SurfaceRecipe,
   SurfaceTone,
+  TruthClass,
 } from "./types";
-import type { TargetId } from "./targets";
+import type { TargetId } from "./runtime-targets";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. GazaSurface (Base Container)
@@ -406,7 +407,7 @@ export function SurfaceMedia({
   children: ReactNode;
   caption?: string | undefined;
   provenance?: string | undefined;
-  truthClass?: ("documentary" | "illustrative" | "future-concept-ai" | "brand-mark" | "placeholder") | undefined;
+  truthClass?: TruthClass | undefined;
   illustrativeLabel?: string | undefined;
   aspect?: ("16:10" | "16:9" | "4:3" | "3:2" | "1:1" | "auto") | undefined;
   className?: string | undefined;
@@ -461,8 +462,7 @@ export function SurfaceMedia({
     none: "hidden",
   }[treatment ?? "side"];
 
-  const showIllustrativeBadge =
-    truthClass === "illustrative" || truthClass === "future-concept-ai";
+  const showIllustrativeBadge = truthClass === "future-concept-ai";
   const showBrandBadge = truthClass === "brand-mark";
 
   return (

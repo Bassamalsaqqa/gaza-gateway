@@ -14,6 +14,9 @@
  */
 
 import type { IntensityLevel, PatternId, ScaleLevel } from "@/design/patterns/pattern-types";
+import type { TruthClass } from "../../lib/media.ts";
+
+export type { TruthClass };
 
 export type PatternIntensity = IntensityLevel;
 export type PatternScale = ScaleLevel;
@@ -116,7 +119,7 @@ export interface MediaTreatment {
   focalY?: number | undefined; // 0 to 100
   overlay?: ("none" | "subtle" | "dark" | "gradient") | undefined;
   aspect?: ("auto" | "16:9" | "4:3" | "3:2" | "1:1") | undefined;
-  truthClass?: ("documentary" | "illustrative" | "future-concept-ai" | "brand-mark" | "placeholder") | undefined;
+  truthClass?: TruthClass | undefined;
 }
 
 export interface SurfaceRecipe {

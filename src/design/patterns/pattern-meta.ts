@@ -10,7 +10,7 @@ import type {
   IntensityLevel,
   ScaleLevel,
   SurfaceRole,
-} from "./pattern-types";
+} from "./pattern-types.ts";
 
 export const SURFACE_COLORS: Record<SurfaceRole, { background: string; foreground: string }> = {
   public: {

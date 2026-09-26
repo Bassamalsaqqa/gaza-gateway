@@ -39,10 +39,11 @@ import { applySkinToDom } from "@/lib/skin-preview";
 import {
   ALL_TARGET_IDS,
   DEFAULT_SURFACE_RECIPES,
-  getTargetMeta,
   isTargetId,
   type TargetId,
+  type SurfaceFamilyId,
 } from "@/design/surfaces";
+import { getTargetMeta } from "@/design/surfaces/targets";
 import {
   isValidStudioOrigin,
   parseFrameMessage,
@@ -255,16 +256,13 @@ export function AppearanceStudio() {
           if (targetId === "canvas.sand") {
             return { ...prev, sandSection: { ...DEFAULT_SITE_SKIN.sandSection } };
           }
-          if (targetId === "canvas.admin") {
-            return { ...prev, adminCanvas: { ...DEFAULT_SITE_SKIN.adminCanvas } };
-          }
           return prev;
         });
         return;
       }
 
       if (meta.kind === "family" && meta.familyId) {
-        const famId = meta.familyId;
+        const famId: SurfaceFamilyId = meta.familyId;
         handleUpdateSkin((prev) => {
           const prevGrammar = prev.surfaceGrammar ?? {
             enabled: true,
@@ -408,41 +406,42 @@ export function AppearanceStudio() {
 
   return (
     <div className="space-y-4">
-      {/* Top Navigation: Appearance Studio vs Specimens Sub-view */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/80 pb-2">
-        <nav className="flex space-x-1 rtl:space-x-reverse" aria-label="Studio Views">
-          <button
-            type="button"
-            onClick={() => setActiveView("studio")}
-            className={cn(
-              "flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-semibold transition-colors",
-              activeView === "studio"
-                ? "border-primary text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <Layers className="size-4" />
-            <span>{isAr ? "استوديو المظهر التفاعلي" : "Appearance Studio"}</span>
-          </button>
+      {/* Top Header & Secondary Actions */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/80 pb-3">
+        <div className="flex items-center gap-2">
+          <Layers className="size-5 text-primary" />
+          <h2 className="text-base font-bold text-foreground">
+            {isAr ? "استوديو المظهر التفاعلي" : "Appearance Studio"}
+          </h2>
+        </div>
 
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Secondary Design QA / Specimens Affordance */}
           <button
             type="button"
-            onClick={() => setActiveView("specimens")}
+            onClick={() => setActiveView(activeView === "studio" ? "specimens" : "studio")}
             className={cn(
-              "flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-semibold transition-colors",
+              "flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none",
               activeView === "specimens"
-                ? "border-primary text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground",
+                ? "border-primary bg-primary text-primary-foreground shadow-xs"
+                : "border-input bg-background text-muted-foreground hover:bg-secondary hover:text-foreground",
             )}
           >
-            <FlaskConical className="size-4" />
-            <span>{isAr ? "معمل النماذج (Specimens)" : "Design System Specimens"}</span>
+            <FlaskConical className="size-3.5" />
+            <span>
+              {activeView === "specimens"
+                ? isAr
+                  ? "العودة للاستوديو"
+                  : "Back to Studio"
+                : isAr
+                  ? "فحص النماذج (Design QA)"
+                  : "Design QA (Specimens)"}
+            </span>
           </button>
-        </nav>
 
-        {/* Mobile View Toggle Switcher (< lg) */}
-        {activeView === "studio" ? (
-          <div className="flex lg:hidden items-center rounded-md border border-input bg-secondary/40 p-0.5 text-xs">
+          {/* Mobile View Toggle Switcher (< lg) */}
+          {activeView === "studio" ? (
+            <div className="flex lg:hidden items-center rounded-md border border-input bg-secondary/40 p-0.5 text-xs">
             <button
               type="button"
               onClick={() => setMobileTab("inspector")}
@@ -470,6 +469,7 @@ export function AppearanceStudio() {
           </div>
         ) : null}
       </div>
+    </div>
 
       {/* VIEW 1: APPEARANCE STUDIO (Main Layout) */}
       {activeView === "studio" ? (

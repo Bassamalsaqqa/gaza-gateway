@@ -2,184 +2,126 @@
 
 > **Repository**: `Bassamalsaqqa/gaza-gateway`
 > **Production Domain**: `https://www.gazaairport.com`
-> **Baseline Commit**: `fe294f4dc4049018d250843315b2b936c8417600` (Phase 0 baseline published; HEAD `9d1edc5673f0237bb23d40a5685c49b8fd90b3c0` includes Phase 0.1)
-> **Engineering Status**: **Phase 2 Complete (Visual Design-System Certification Complete, Ready for Codex Review)**
+> **Baseline Commit**: `1f49869ca83c82d23dcb4396a06b81e30843da54` (source main); `2ecf3577356e257d2e05ccb84d73c95e32fa7d97` (hostpapa-deploy release baseline)
+> **Engineering Status**: **Phase 3.9 Complete (System Stabilization & Source-of-Truth Reset Complete, Ready for Codex Review)**
+> **Immediate Next Step**: **Phase 4 — Canonical Mock Domain & Repository Layer**
 
 ---
 
 ## 1. Technical Stack & Build Environment
 
-| Layer                         | Technology                                 | Version                                    | Purpose & Implementation Reality                                                                                                                                                                                                                                                                                                                                                                           |
-| :---------------------------- | :----------------------------------------- | :----------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Runtime & Package Manager** | Node.js / npm                              | Node v24.12.0 / npm 11.11.0                | Script runner (`npm`), lockfile (`package-lock.json`). (Note: Full architecture refresh deferred until Phase 4 repository convergence).                                                                                                                                                                                                                                                                    |
-| **Frontend Framework**        | React                                      | 19.2.0                                     | Component hierarchy, hooks, context providers.                                                                                                                                                                                                                                                                                                                                                             |
-| **Routing & SSR Engine**      | TanStack Start / Router                    | Router 1.170.18 / Start 1.168.32           | File-based flat routing, route loaders, SSR hydration, head management.                                                                                                                                                                                                                                                                                                                                    |
-| **Bundler & Build Tool**      | Vite / Nitro                               | Vite 8.1.5 / Nitro 3.0.260603-beta         | Independent project-owned Vite configuration (`vite.config.ts`, `vite.config.hostpapa.ts`) using `@tanstack/react-start/plugin/vite`, `@vitejs/plugin-react`, and `@tailwindcss/vite`. Emits Cloudflare Pages/Nitro SSR worker bundle (`npm run build`) or static HostPapa artifact (`npm run build:hostpapa`). |
-| **Styling & Design Tokens**   | Tailwind CSS                               | 4.2.1                                      | CSS variables (`@theme inline`), oklch design tokens in `src/styles.css`, semantic typography utilities (`.type-*`), and Arabic RTL ligature protection documented in `docs/DESIGN_SYSTEM.md`.                                                                                                                                                                                                                                     |
-| **Component Primitives**      | Bespoke UI / Unmounted Radix               | Various (^1.1 - ^2.2)                      | Product screens and shells use bespoke React components and `src/components/kit.tsx`. Radix/shadcn wrappers exist in `src/components/ui/` as unmounted templates.                                                                                                                                                                                                                                          |
-| **Icons & Visuals**           | Lucide React                               | 0.575.0                                    | Aviation, navigation, and UI control icons.                                                                                                                                                                                                                                                                                                                                                                |
-| **Charts**                    | Custom CSS / Unmounted Recharts            | Recharts 2.15.4                            | Operational analytics (`{-$locale}.admin.analytics.tsx`) renders bespoke HTML/CSS bar charts (`<Bar />` with percentage widths). `recharts` is imported strictly in `src/components/ui/chart.tsx`, which is an unmounted template not imported by any product screen.                                                                                                                                      |
-| **Forms & Validation**        | Native HTML5 & React / Unmounted Hook Form | RHF 7.71.2 / Zod 3.25.76 / Resolvers 5.2.2 | Product screens across public and admin use native React `useState`, controlled inputs/selects/textareas, and standard HTML5 validation attributes (`required`, `type="date"`, `min`, `autoComplete`). `react-hook-form` is imported strictly in `src/components/ui/form.tsx` (unmounted template); `zod` and `@hookform/resolvers` are installed in `package.json` but never imported anywhere in `src/`. |
+| Layer | Technology | Version | Purpose & Implementation Reality |
+| :--- | :--- | :--- | :--- |
+| **Runtime & Test Runner** | Node.js / npm | Node v24.12.0 / npm 11.11.0 | Built-in test runner (`node --test --experimental-strip-types`), `package.json` scripts (`npm test`, `npm run test:smoke`). |
+| **Frontend Framework** | React | 19.2.0 | Component hierarchy, hooks, context providers. |
+| **Routing & SSR Engine** | TanStack Start / Router | Router 1.170.18 / Start 1.168.32 | File-based flat routing, route loaders, SSR hydration, head management. Auto-generated `src/routeTree.gen.ts`. |
+| **Bundler & Build Tool** | Vite / Nitro | Vite 8.1.5 / Nitro 3.0.260603-beta | Multi-target build configurations: SSR Cloudflare/Nitro (`npm run build`) and pure static HostPapa artifact (`npm run build:hostpapa`). |
+| **Styling & Design Tokens** | Tailwind CSS | 4.2.1 | CSS variables (`@theme inline`), oklch tokens in `src/styles.css`, semantic typography (`.type-*`), RTL cursive protection. |
+| **Component Primitives** | Radix UI Headless | Various (^1.1 - ^2.2) | Accessible headless primitives (`RadioGroup`, `Dialog`, `AlertDialog`, `Popover`, `Select`, `Switch`, `Tabs`, `Accordion`). |
+| **Icons** | Lucide React | 0.575.0 | Aviation, navigation, and UI control icons. |
+| **State & Cache Layer** | React Context & Query | React Query 5.101.1 | `<QueryClientProvider>` mounted in root shell; application state currently held in fragmented React Contexts; Phase 4 will introduce canonical query/mutation hooks. |
 
 ---
 
-## 2. Flat Route Architecture & Namespace
+## 2. Data Layer Fragmentation & Simulation Boundaries
 
-The application uses TanStack Start's file-based router with a **flat file topology directly in `src/routes/`**. Route files use dot notation to represent URL paths. The route tree is compiled automatically into `src/routeTree.gen.ts`. Never edit `src/routeTree.gen.ts` by hand.
+### 2.1 The Five State Stores (Pre-Phase 4 Reality)
 
-### 2.1 Bilingual URL Namespace (`{-$locale}`)
+The current application relies on five distinct storage singletons and in-memory caches. Phase 4 will converge these into a unified repository layer:
 
-Public and admin pages use the optional prefix segment `{-$locale}`:
+1. **`gza.store.v1` (`src/lib/store.tsx`)**:
+   - **Storage**: Browser `localStorage`.
+   - **Scope**: Public customer state: customer bookings (`bookings`), active booking draft (`draft`), customer account profile (`account`), saved travel companions (`travelers`).
+   - **Consumers**: Public booking engine (`/book`), Manage Booking (`/manage`), Public Check-in (`/check-in`), Boarding Pass issuance (`/boarding-pass`), Passenger Account (`/account`).
+2. **`gza.admin.v1` (`src/lib/admin-store.tsx`)**:
+   - **Storage**: Browser `localStorage`.
+   - **Scope**: Admin staff authentication session (`staffId`), operational quick-edits / flight overrides (`overrides: Record<string, FlightOverride>`).
+   - **Limitation**: Flight overrides (status adjustments, gate reassignments, revised departure times) apply only to views consuming `withOverride()` (Dashboard, Flight Operations). They do **not** automatically sync to `gza.store.v1` booking records or public passenger manifests.
+   - **Consumers**: Admin layout (`/admin/*`), Admin Dashboard (`/admin`), Flight Operations (`/admin/flights`).
+3. **`OpsState` (`src/lib/admin-ops.ts`)**:
+   - **Storage**: In-memory React state within `AdminProvider` (initialized from `seedOpsState()`).
+   - **Scope**: Real-time simulation metrics: turnaround timers, baggage carousel assignments, runway queue, active station alerts.
+   - **Consumers**: Admin Operations Dashboard (`/admin/index.tsx`), Flight Dispatch (`/admin/flights`).
+4. **`admin-mock.ts` (`src/lib/admin-mock.ts`)**:
+   - **Storage**: Static in-memory mock datasets.
+   - **Scope**: Customer CRM records, staff rosters, schedule master templates, system audit logs, and analytics metrics.
+   - **Consumers**: Customer Directory (`/admin/customers`), Staff Management (`/admin/staff`), Schedules (`/admin/schedules`), Analytics (`/admin/analytics`), Activity Log (`/admin/activity`).
+5. **`gza.skin.preview.v1` (`src/lib/skin.ts`)**:
+   - **Storage**: Browser `localStorage`.
+   - **Scope**: Appearance Studio authored surface skin and grammar configuration.
+   - **Strict Isolation**: Consumed **only** when `skinPreview=1` query parameter is explicitly present in the URL. Normal visitors on ordinary URLs (`/`, `/book`, etc.) completely ignore this key and render the committed default skin (`pie-factory`, `DEFAULT_SURFACE_GRAMMAR_CONFIG`).
 
-- **English (Default)**: Unprefixed URLs (`/`, `/flights`, `/admin`, `/manage/GZA-7K8P`).
-- **Arabic**: Prefixed with `/ar` (`/ar`, `/ar/flights`, `/ar/admin`, `/ar/manage/GZA-7K8P`).
-- **Directionality**: `src/routes/__root.tsx` resolves `<html lang={lang} dir={dirOf(lang)}>` on the server from the initial URL request. Technical identifiers (flight numbers, PNRs, dates, times) are styled with `dir="ltr"` and `font-mono`.
+### 2.2 Simulation Boundary & Security Declarations
 
-### 2.2 Route File Inventory (68 `.tsx` Files Total)
-
-#### 1. Root & Base Layout (2 files):
-
-- `src/routes/__root.tsx` — Root shell, HTML `lang`/`dir`, head metadata, and global providers (`QueryClientProvider`, `I18nProvider`, `StoreProvider`, `AdminProvider`).
-- `src/routes/{-$locale}.tsx` — Locale layout wrapper.
-
-#### 2. Public Feature Routes (43 files):
-
-- **Homepage & Global**: `{-$locale}.index.tsx`, `{-$locale}.about.tsx`, `{-$locale}.travel.tsx`, `{-$locale}.contact.tsx`, `{-$locale}.privacy.tsx`, `{-$locale}.terms.tsx`, `{-$locale}.access-denied.tsx`.
-- **Flights & Destinations**: `{-$locale}.flights.tsx`, `{-$locale}.flight.$flightId.tsx`, `{-$locale}.destinations.tsx`, `{-$locale}.destinations.$code.tsx`.
-- **Booking & Boarding**: `{-$locale}.book.tsx`, `{-$locale}.booking-confirmation.$ref.tsx`, `{-$locale}.check-in.tsx`, `{-$locale}.boarding-pass.$ref.$leg.$pax.tsx`.
-- **Manage Booking Hub & Subroutes**: `{-$locale}.manage.tsx`, `{-$locale}.manage.index.tsx`, `{-$locale}.manage.$ref.tsx`, `{-$locale}.manage.$ref_.seats.tsx`, `{-$locale}.manage.$ref_.extras.tsx`, `{-$locale}.manage.$ref_.contact.tsx`, `{-$locale}.manage.$ref_.check-in.tsx` (trailing `_` in `$ref_` bypasses the manage detail layout).
-- **Passenger Account & Auth**: `{-$locale}.signin.tsx`, `{-$locale}.register.tsx`, `{-$locale}.forgot-password.tsx`, `{-$locale}.reset-password.tsx`, `{-$locale}.verify-email.tsx`, `{-$locale}.account.tsx`, `{-$locale}.account.index.tsx`, `{-$locale}.account.profile.tsx`, `{-$locale}.account.preferences.tsx`, `{-$locale}.account.security.tsx`, `{-$locale}.account.travelers.tsx`, `{-$locale}.account.trips.tsx`, `{-$locale}.account.trips.index.tsx`, `{-$locale}.account.trips.$ref.tsx`, `{-$locale}.account.boarding-passes.tsx`.
-- **Airport Storytelling & Gallery**: `{-$locale}.airport.tsx`, `{-$locale}.airport.index.tsx`, `{-$locale}.airport.past.tsx`, `{-$locale}.airport.present.tsx`, `{-$locale}.airport.future.tsx`, `{-$locale}.gallery.tsx`.
-
-#### 3. Admin Workspace Routes (23 files):
-
-- **Admin Shell Layout**: `src/routes/{-$locale}.admin.tsx` — Renders `<AdminShell />` with sidebar, top bar, search palette, and mobile drawer.
-- **Admin Authentication**: `src/routes/{-$locale}.admin_.signin.tsx` — Staff login (trailing `_` in `admin_` bypasses the `admin.tsx` layout).
-- **Dashboard & Access**: `src/routes/{-$locale}.admin.index.tsx` (Operations Dashboard), `src/routes/{-$locale}.admin.access-denied.tsx`.
-- **Operations Modules**:
-  - `{-$locale}.admin.flights.index.tsx` & `{-$locale}.admin.flights.$flightId.tsx` (Flight Operations)
-  - `{-$locale}.admin.schedules.tsx` (Timetable Management)
-  - `{-$locale}.admin.destinations.index.tsx` & `{-$locale}.admin.destinations.$code.tsx` (Destinations)
-  - `{-$locale}.admin.products.tsx` (Fares & Ancillaries)
-  - `{-$locale}.admin.bookings.index.tsx`, `{-$locale}.admin.bookings.$ref.tsx`, `{-$locale}.admin.bookings.new.tsx` (Bookings Manifest & Counter Booking)
-  - `{-$locale}.admin.check-in.tsx` (Station Check-in Desk)
-  - `{-$locale}.admin.customers.index.tsx` & `{-$locale}.admin.customers.$id.tsx` (Customer Directory & Detail)
-  - `{-$locale}.admin.website.tsx` (Website CMS)
-  - `{-$locale}.admin.airport.index.tsx` (Airport History & Archive CMS)
-  - `{-$locale}.admin.staff.tsx` (Staff Accounts & Permissions)
-  - `{-$locale}.admin.activity.tsx` (System Audit Log)
-  - `{-$locale}.admin.analytics.tsx` (Operational Analytics)
-  - `{-$locale}.admin.settings.tsx` (Station Settings)
-  - `{-$locale}.admin.inbox.tsx` (Staff Inbox)
+- **Staff and Passenger Authentication**: Pure client-side simulation. Mock passphrases and email logins set local state tokens.
+- **Financial & Booking Mutations**: No real payment gateway, payment card processor, or banking API is integrated. Payment card inputs are simulated and discarded.
+- **Privacy & Secrets**: Zero real secrets, API keys, private customer PII, or mutation endpoints belong in client bundles or repositories.
+- **React Query Status**: `@tanstack/react-query` is mounted at root, but application data fetching currently uses direct synchronous context state. Phase 4 will introduce async repository contracts, query keys, and mutation hooks.
 
 ---
 
-## 3. UI Component Hierarchy & Interaction Primitives
+## 3. Startup Bundle Isolation & Surface Architecture
 
-### 3.1 Radix Primitives vs. Bespoke Implementations
+### 3.1 Runtime vs Editor Separation
 
-- **Installed Radix & shadcn Wrappers (`src/components/ui/`)**: Accordion, alert-dialog, aspect-ratio, avatar, badge, breadcrumb, button, calendar, card, carousel, chart, checkbox, collapsible, command, context-menu, dialog, drawer, dropdown-menu, form, hover-card, input-otp, input, label, menubar, navigation-menu, pagination, popover, progress, radio-group, resizable, scroll-area, select, separator, sheet, sidebar, skeleton, slider, sonner, switch, table, tabs, textarea, toggle-group, toggle, tooltip. All 46 template files in `src/components/ui/` exist as unmounted templates; static audit confirms that **none of these wrappers are imported or mounted** in product screens.
-- **Bespoke Public Components**:
-  - Native HTML5 inputs: `FlightSearchForm` uses native `<input type="date">` with `min` validation limits, not `react-day-picker` or `src/components/ui/calendar.tsx`.
-  - Forms & Validation: Controlled native inputs, selects, and textareas using React `useState` and native HTML5 validation constraints (`required`, `type`, `min`, `autoComplete`). Neither `src/components/ui/form.tsx` nor `zod` is used in any screen.
-  - `ConfirmDialog` (`src/components/confirm-dialog.tsx`): 100% bespoke confirmation dialog with `role="alertdialog"`, initial focus on dismiss, focus restoration on close, manual `Tab`/`Shift+Tab` focus trap, and Escape listener. Does not use Radix alert-dialog.
-  - UI Kit: `src/components/kit.tsx` provides styled native HTML elements (`Button`, `Field`, `Input`, `Select`, `Textarea`, `Panel`, `Notice`).
-- **Admin Workspace Bespoke Components (`src/components/admin/`)**:
-  - `AdminSearch` (`admin-search.tsx`): Custom React input and listbox with manual keyboard navigation (ArrowDown, ArrowUp, Enter, Escape) and click-outside handler. Does **not** import `cmdk` or `src/components/ui/command.tsx`.
-  - `AccountMenu` (`admin-shell.tsx`): Custom React dropdown with `useRef`, click-outside handler, and Escape listener. Does not use Radix dropdown.
-  - `AttentionBell` (`admin-shell.tsx`): Custom React popover with `useRef`, click-outside handler, and Escape listener. Does not use Radix popover.
-  - `MobileDrawer` (`admin-shell.tsx`): Custom off-canvas drawer with `document.body.style.overflow` scroll lock, manual Tab key focus loop (`e.shiftKey`), and Escape close. Does not use `vaul` or Radix dialog.
-  - `AdminSheet` (`admin-kit.tsx`, used by `flight-quick-edit.tsx`): Custom slide-over panel with `aria-modal="true"`, body scroll lock, manual focus trap, and Escape listener. Does not use `vaul` or Radix dialog.
-  - `AdminToasts` (`admin-kit.tsx`): Admin-only stacked toast notification manager mounted in `AdminShell`, driven by `useAdmin().toast()`. Does not use `sonner` or `src/components/ui/sonner.tsx`.
-  - Operational Analytics: Bespoke HTML/CSS bar visualization (`<Bar />` in `src/routes/{-$locale}.admin.analytics.tsx`) with styled percentage `<span>` elements; does not import `recharts` or `src/components/ui/chart.tsx`.
+In Phase 3.9, the surface system was split to eliminate startup bundle bloat:
 
----
-
-## 4. Bundle Layout & Asset Footprint
-
-Measured from production build (`npm run build`):
-
-- **Total Client Assets**: **1,172,759 bytes** across **106 assets** (105 `.js` chunks, 1 `.css` chunk) in `.output/public/assets/`.
-- **Core Runtime Chunks**:
-  - `index-BAvks629.js` (361.5 KB) — React, ReactDOM, TanStack Router runtime core.
-  - `kit-D6qOhOPL.js` (156.6 KB) — Shared UI kit components and Lucide icons.
-  - `styles-DkElmA4J.css` (110.0 KB) — Complete Tailwind CSS stylesheet.
-  - `Match-Di6JrQ0G.js` (48.7 KB) — TanStack Router route matching engine.
-- **Route-Split Chunks**:
-  - Public Booking Engine: `_-_locale_.book-*.js` (26.8 KB).
-  - Admin Shell: `_-_locale_.admin-*.js` (25.2 KB).
-  - Admin Mock Data: `admin-mock-*.js` (25.3 KB, loaded lazily on admin navigation).
-  - Admin Modules: `admin.airport.*.js` (20.8 KB), `admin.products.*.js` (19.8 KB), `admin.index.*.js` (16.5 KB).
+- **Lightweight Runtime (`src/design/surfaces/runtime-targets.ts`)**:
+  - Contains only target type identifiers (`TargetId`), semantic family mapping (`TARGET_FAMILY_MAP`), media allowance policy (`TARGET_MEDIA_ALLOWED`), canonical truth class allowlists, and recipe resolution logic (`resolveTargetRecipe`, `sanitizeTargetOverride`).
+  - **Zero imports of `MEDIA`** or editor UI metadata.
+  - Loaded by ordinary public pages and `SurfaceProvider`.
+- **Editor Registry (`src/design/surfaces/targets.ts`)**:
+  - Contains rich authoring metadata: target labels, human descriptions, preview routes, test scenarios, and editor allowlists.
+  - Imported **exclusively** by the Appearance Studio inspector (`src/components/admin/appearance-studio/`), keeping it out of the public initial JS graph.
+- **Measured Bundle Impact**:
+  - Root entry chunk: reduced from **465,009 bytes** (`index-dS7DcdvJ.js`) to **404,998 bytes** (`index-lGVaPZJr.js`), a **60,011 byte (~13%) net reduction**.
+  - Heavy Hero Patterns catalog (~104 kB) and Appearance Studio (~91 kB) are strictly code-split into lazy chunks.
+  - Public initial assets scanned: 0 traces of Studio protocol (`GZA_STUDIO_PARENT_INIT`), 0 traces of editor registry, 0 traces of Topography or Circuit Board SVG geometry.
 
 ---
 
-## 5. Design Tokens & Styling System
+## 4. Truth Classification & Media Registry
 
-The styling system is configured in `src/styles.css` using Tailwind CSS v4 `@theme inline` with CSS oklch variables:
+### 4.1 Canonical Media Truth Classification
 
-- **Surface Tokens**: `--background: oklch(0.985 0.006 95)` (Warm limestone), `--sand: oklch(0.96 0.015 92)`, `--card: oklch(1 0 0)`.
-- **Brand Tokens**: `--brand: oklch(0.42 0.085 158)` (Palestinian Airlines deep olive green), `--primary`.
-- **Accent Tokens**: `--clay: oklch(0.58 0.14 42)` (Terracotta / clay accent).
-- **Editorial / Storytelling Tokens**: `--ink: oklch(0.21 0.024 165)` (Deep slate for historical sections).
-- **Typography**: Display: `Bricolage Grotesque` / `IBM Plex Sans Arabic`; Body: `Manrope` / `IBM Plex Sans Arabic`; Monospace: `IBM Plex Mono` (for flight numbers, PNRs, dates, and times).
+All imagery across the platform is classified under three strict truth types defined in `src/lib/media.ts`:
 
----
+1. **`"future-concept-ai"`**: AI-generated conceptual architectural visualizations provided by the project owner. Must always carry visible illustrative disclosure badges and notices. Never presented as historical or present evidence.
+2. **`"brand-mark"`**: Official insignia, logo, and emblem assets of Palestinian Airlines and Gaza International Airport.
+3. **`"placeholder"`**: Generic visual placeholders for layout testing and development.
 
-## 6. Hosting Constraints & HostPapa Static Architecture
+### 4.2 Asset & Content Ingestion Protocol
 
-1. **Target Host**: HostPapa shared cPanel hosting.
-2. **Serving Mechanism**: Apache web server serving static files from `public_html/`.
-3. **No Persistent Runtime**: No Node.js daemon, no serverless edge workers, no Docker container, and no remote build step.
-4. **Static Build Implementation (Phase 1 Complete)**:
-   - Dedicated build command: `npm run build:hostpapa` backed by `vite.config.hostpapa.ts`.
-   - Uses independent `vite.config.hostpapa.ts` with static prerendering and no Nitro runtime (`prerender.enabled: true`), keeping `vite.config.ts` dedicated to SSR preview and Cloudflare bundling.
-   - Outputs a pure static artifact in `dist/client/` (no server runtime required).
-5. **Prerender & Dynamic Shell Architecture**:
-   - **42 Prerendered Public Routes**: Substantive HTML for all public paths (21 English + 21 Arabic), including home, flights, airport, travel, gallery, about, contact, legal, booking engine, and all 7 destination detail routes.
-   - **4 Targeted Application Shells**: Prerendered via explicit routes (`_shell.html` via `/?shell=1`, `ar/_shell.html` via `/ar?shell=1`, `admin/_shell.html` via `/admin/signin?shell=1`, and `ar/admin/_shell.html` via `/ar/admin/signin?shell=1`).
-   - **Apache `.htaccess`**: Direct file checks, directory indexes, asset 404s for missing static files, and locale/admin-aware fallback routing.
-6. **Hydration Error #418 & Volatile Date Resolution**:
-   - Resolved React Hydration Error #418 by matching shell layout DOM (admin shell without header/footer vs public shell) and locale text nodes.
-   - Resolved volatile date mismatches between build-time UTC ISO dates and client local dates: `initialDraft()` and `FlightSearchForm` initialize with deterministic empty values (`""`) during prerendering, populated safely on client mount via `useEffect`. Zero `suppressHydrationWarning` used.
-7. **Deployment Reality**: Local build and static simulation verified. Live upload to HostPapa hosting remains unexecuted pending Phase 12 production certification.
+Future asset and copy drops must adhere to the following protocol:
+1. **Preserve Masters**: Raw master assets must be placed in source storage without destructive lossy overwrites.
+2. **Classify Truth & Rights**: Every asset must have an assigned `TruthClass`, historical era, and provenance documentation before code inclusion.
+3. **Generate Optimized Variants**: Build WebP variants at standard widths (`640w`, `960w`, `1280w`, `1376w`) with explicit intrinsic aspect ratios.
+4. **Register in `src/lib/media.ts`**: Declare stable semantic IDs (`future-hero`, `future-aerial-day`, etc.) and bilingual accessible alt text (`altEn`, `altAr`).
+5. **Content Edits**: Small copy edits proceed via source updates; Phase 4B will introduce canonical typed content records.
 
 ---
 
-## 7. Empirical Verification & Measured Baseline Evidence
+## 5. Durable Local Regression Foundation
 
-### 7.1 Independent Codex Browser Evidence (Spot Check)
+Phase 3.9 established a permanent, lightweight local test foundation using Node 24 native capabilities:
 
-Codex ran Playwright against the local Vite dev server across mobile (**390x844**, **390x900**) and desktop (**1280x900**) viewports:
+- **Unit Test Runner**: `npm test` runs `node --test --experimental-strip-types tests/unit/*.test.ts` (58 tests across 25 suites, ~150ms execution time, zero external dependencies).
+  - `booking-rules.test.ts`: Operational status semantics, departure clock checks, inventory limits, and localized label mapping.
+  - `draft-recovery.test.ts`: Passenger details preservation across search criteria adjustments, stale flight clearance, seat clearance, and step gating.
+  - `surface-grammar.test.ts`: Target ID validation, family inheritance vs component overrides, media truth filtering, and config sanitization.
+  - `studio-protocol.test.ts`: Message schema parsing, version validation (`1.0.0`), route traversal protection (`isValidStudioRoutePath`).
+  - `i18n-parity.test.ts`: 100% key parity between English and Arabic dictionaries across public, admin, and admin2 catalogs.
+- **Browser Smoke Test**: `npm run test:smoke` runs `tests/smoke/browser-smoke.mjs` using Playwright with system Edge/Chrome (verifying `/`, `/ar`, `/book`, `/ar/book`, and `/admin/settings?tab=appearance`).
 
-- **Routes Sampled**:
-  - Public: `/`, `/ar`, `/flights`, `/ar/flights`, `/book`, `/ar/book`, `/destinations`, `/ar/destinations`, `/destinations/AMM`, `/ar/destinations/AMM`, `/gallery`, `/ar/gallery`, `/manage`, `/ar/manage`, `/account`, `/ar/account`, `/airport`, `/ar/airport`.
-  - Admin (after setting mock admin identity `adm-1` in `localStorage`): `/admin/signin`, `/ar/admin/signin`, `/admin`, `/ar/admin`, `/admin/flights`, `/ar/admin/flights`, `/admin/bookings`, `/ar/admin/bookings`, `/admin/check-in`, `/ar/admin/check-in`, `/admin/website`, `/ar/admin/website`, `/admin/analytics`, `/ar/admin/analytics`.
-- **Directionality & Overflow**: Confirmed that `document.documentElement.scrollWidth <= innerWidth` across all sampled requests (no page-level horizontal scrollbar blowout). Document `lang`/`dir` matched the URL locale (`lang="en" dir="ltr"` on English routes; `lang="ar" dir="rtl"` on Arabic routes).
-- **Visible Headings & Accessibility Scope**: Localized visible `<h1>` headings appeared on primary content pages; however, some auth/account pages lacked a visible H1 in the immediate sampled DOM. Full heading hierarchy, interactive states, and screen-reader accessibility remain open for Phase 8.
-- **Evidence Artifacts**:
-  - `.ai/antigravity-runs/20260918-phase-0-baseline/codex-ar-home-390.png`
-  - `.ai/antigravity-runs/20260918-phase-0-baseline/codex-ar-signin-1280.png`
-  - `.ai/antigravity-runs/20260918-phase-0-baseline/codex-ar-admin-bookings-390.png`
-  - Additional Playwright console logs and DOM snapshots in `.ai/antigravity-runs/20260918-phase-0-baseline/codex-playwright-artifacts/` and `codex-playwright-artifacts-2/`.
-- **Scope Note**: This represents an independent spot check of 32 sampled route paths (18 public, 14 admin), not complete Phase 8 visual/interaction certification.
+---
 
-### 7.2 Two Concrete Observed Risks & Technical Investigations
+## 6. Known Technical Gaps (Scheduled for Future Phases)
 
-1. **English Document Titles Across Arabic Public Pages**:
-   - **Observation**: While visible page headings were in Arabic, Arabic public routes produced English `<title>` text on `/ar`, `/ar/flights`, `/ar/book`, `/ar/destinations`, `/ar/destinations/AMM`, `/ar/gallery`, `/ar/manage`, `/ar/account`, and `/ar/airport`. In contrast, sampled Arabic admin titles were properly localized.
-   - **Root Cause**: Public route definitions use static `head: () => ({ meta: [ { title: "..." } ] })` without reading `params.locale`. In contrast, `{-$locale}.admin_.signin.tsx` uses the `pageHead({ locale: params.locale, en: {...}, ar: {...} })` helper.
-   - **Action**: Recorded under Phase 7 (Bilingual Certification) and Phase 12 (SEO Production Certification) metadata parity debt.
-2. **Date Input Hydration Attribute Mismatch on `/ar`**:
-   - **Observation**: Loading `/ar` once logged a React hydration attribute mismatch in `FlightSearchForm` around the flight-search date inputs at the UTC/local date boundary (`min` differed between server and client around the 2026-09-17/18 boundary, and `caret-color` appeared in the DOM diff).
-   - **Investigation Findings**:
-     - `initialDraft()` in `src/lib/store.tsx` sets default `departDate` using `new Date().toISOString().slice(0, 10)` (UTC timestamp).
-     - `todayISO()` in `src/lib/data.ts` uses local calendar date getters (`getFullYear()`, `getDate()`).
-     - **Confirmed Date-Basis Conflict**: When SSR runs in UTC or requests cross midnight boundaries (e.g. 22:54 UTC vs. 01:54 UTC+3 local time), `min="2026-09-18"` conflicts with `value="2026-09-17"`.
-     - **Unconfirmed Complete Cause**: A later repeat visit to `/ar` did **not** reproduce the warning. The warning's complete cause remains unconfirmed, and asserting that `caret-color: transparent` was injected by browser user-agent date-picker styling is unsupported.
-   - **Action**: No booking code is altered in Phase 0 without reproduction and a proven fix. The date conflict is mapped to Phase 5 (public booking workflow) and SSR behavior to Phase 1 investigation.
-
-### 7.3 Semantic Lint Gate Separation & Formatting Debt
-
-- **ESLint Configuration Update**: Updated `eslint.config.js` to use `eslint-config-prettier` instead of `eslint-plugin-prettier/recommended`. This preserves all substantive TypeScript, JavaScript, and React hooks rules while suppressing formatting rule conflicts without turning Prettier code-wrap deviations into ESLint errors.
-- **Semantic Lint Gate**: `npm run lint` (`eslint .`) passes cleanly with exit code 0 (**0 errors**, 43 `react-refresh/only-export-components` warnings).
-- **Formatting Debt Check**: Added `"format:check": "prettier --check ."` to `package.json`. It runs Prettier independently and documents remaining code-wrap formatting debt across repository files without blocking the semantic lint gate.
+1. **SEO & Head Metadata Parity (Phase 11)**:
+   - Arabic homepage `<title>` and `<meta name="description">` parity.
+   - Comprehensive OpenGraph and Twitter card metadata for Arabic routes.
+   - Automated `sitemap.xml` and `robots.txt` generation.
+   - Structured JSON-LD metadata for airline and airport entities.
+2. **Repository Convergence (Phase 4)**:
+   - Migration from direct `localStorage` access to unified repository hooks.
+   - Real-time cross-store synchronization between admin flight dispatch and public booking results.

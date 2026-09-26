@@ -27,6 +27,7 @@ export interface ReviewStepProps {
   onGoToStep: (step: BookingStep) => void;
   onConfirm: () => void;
   headingRef?: React.RefObject<HTMLHeadingElement | null>;
+  isTestFixture?: boolean;
 }
 
 export function ReviewStep({
@@ -36,8 +37,15 @@ export function ReviewStep({
   onGoToStep,
   onConfirm,
   headingRef,
+  isTestFixture,
 }: ReviewStepProps) {
   const { t, lang } = useI18n();
+
+  const isFixtureFlight = Boolean(
+    isTestFixture ||
+    draft.outbound?.id.startsWith("CAP-PROOF") ||
+    draft.inbound?.id.startsWith("CAP-PROOF"),
+  );
 
   const legs = [
     { type: "outbound" as const, flight: draft.outbound },
@@ -350,13 +358,25 @@ export function ReviewStep({
             </div>
           </dl>
 
-          {/* Prototype Disclosure Notice */}
-          <div className="rounded-xl border border-border bg-card p-4 text-xs text-muted-foreground">
-            <p className="flex items-start gap-2">
-              <ShieldCheck className="size-4 shrink-0 text-brand-deep mt-0.5" aria-hidden="true" />
-              <span>{t("book.prototypeNotice")}</span>
-            </p>
-          </div>
+          {/* Disclosure Notice: Test Fixture vs Production Prototype */}
+          {isFixtureFlight ? (
+            <div className="rounded-xl border border-brand/30 bg-brand/5 p-4 text-xs text-foreground">
+              <p className="flex items-start gap-2">
+                <ShieldCheck className="size-4 shrink-0 text-brand-deep mt-0.5" aria-hidden="true" />
+                <span>
+                  <strong className="block font-semibold text-brand-deep">{t("book.fixtureNoticeTitle")}</strong>
+                  <span className="text-muted-foreground">{t("book.fixtureNoticeDesc")}</span>
+                </span>
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-border bg-card p-4 text-xs text-muted-foreground">
+              <p className="flex items-start gap-2">
+                <ShieldCheck className="size-4 shrink-0 text-brand-deep mt-0.5" aria-hidden="true" />
+                <span>{t("book.prototypeNotice")}</span>
+              </p>
+            </div>
+          )}
 
           {/* Action Row */}
           <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
@@ -370,10 +390,14 @@ export function ReviewStep({
             </button>
             <button
               type="button"
-              onClick={onConfirm}
-              className={btnClass("primary", "lg", "shadow-[var(--shadow-soft)] hover:shadow-md")}
+              onClick={isFixtureFlight ? undefined : onConfirm}
+              disabled={isFixtureFlight}
+              className={cn(
+                btnClass("primary", "lg", "shadow-[var(--shadow-soft)] hover:shadow-md"),
+                isFixtureFlight && "opacity-60 cursor-not-allowed",
+              )}
             >
-              <span>{t("book.confirm")}</span>
+              <span>{isFixtureFlight ? t("book.fixtureNoticeBtn") : t("book.confirm")}</span>
               <span className="mx-1.5 opacity-60">·</span>
               <span className="tabular-nums">{money(totals.total, lang)}</span>
             </button>

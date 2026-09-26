@@ -75,7 +75,7 @@ export function StudioMediaPanel({
       : availableMedia[0]?.id;
 
   const handleSelectMedia = (id: string) => {
-    const item = MEDIA[id];
+    const item = (MEDIA as Record<string, MediaEntry | undefined>)[id];
     if (!item) return;
 
     const nextTreatment: MediaTreatment = {
@@ -131,7 +131,9 @@ export function StudioMediaPanel({
     );
   }
 
-  const selectedItem = selectedMediaId ? MEDIA[selectedMediaId] : undefined;
+  const selectedItem = selectedMediaId
+    ? (MEDIA as Record<string, MediaEntry | undefined>)[selectedMediaId]
+    : undefined;
 
   return (
     <div className="space-y-5">

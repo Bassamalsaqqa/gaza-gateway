@@ -62,9 +62,11 @@ export function isBaselinePreviewActive(searchStr?: string): boolean {
 }
 
 /**
- * Extracts requested scenario from query parameters if present.
+ * Extracts requested scenario from query parameters if present AND studioPreview is active.
+ * Guarantees scenario fixtures can never be consumed on ordinary URLs.
  */
 export function getStudioScenarioParam(searchStr?: string): string | null {
+  if (!isStudioPreviewActive(searchStr)) return null;
   try {
     const query =
       typeof searchStr === "string" && searchStr.trim().length > 0

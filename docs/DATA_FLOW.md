@@ -1,21 +1,22 @@
 # Data Flow, State Management & Pretend-Action Inventory
 
 > **Document Purpose**: Complete audit of current data sources, state persistence, cross-screen entity splits, and enabled no-op actions across public and admin workspaces.
-> **Status**: **Phase 0.1 Active (Baseline Accuracy & Semantic Lint Gate)**.
+> **Status**: **Phase 3.9 Active (System Stabilization & Source-of-Truth Reset)**.
 > **Future Target**: Convergence into a unified Mock Repository Layer in Phases 4–6 before any production backend.
 
 ---
 
 ## 1. Current State Stores & Persistence
 
-The application currently operates across four independent data sources:
+The application currently operates across five independent data sources and storage singletons:
 
 | Store / Source | Implementation Files | Persistence | Entities & Data Types Managed |
 | :--- | :--- | :--- | :--- |
-| **Public Store** (`useStore`) | `src/lib/store.tsx` | `localStorage["gza.store.v1"]` (persisted) + in-memory session draft | Public bookings (`Booking[]`), account session (`Account | null`), and saved travelers (`Traveler[]`) are persisted to `localStorage["gza.store.v1"]`. Active booking search/selection draft (`draft: Draft`) is in-memory session state in `StoreProvider` (`useState<Draft>`) and resets on page reload. |
+| **Public Store** (`useStore`) | `src/lib/store.tsx` | `localStorage["gza.store.v1"]` (persisted) + in-memory session draft | Public bookings (`Booking[]`), account session (`Account | null`), and saved travelers (`Traveler[]`) are persisted to `localStorage["gza.store.v1"]`. Active booking search/selection draft (`draft: Draft`) is in-memory session state in `StoreProvider` (`useState<Draft>`). Phase 3.9 added pure domain validation and draft sanitization (`validateAndSanitizeDraft`, `calculateDraftMaxStep` in `src/lib/booking-draft.ts`) to preserve traveler names and contact info while safely clearing invalid/stale flight legs and dependent seat allocations. |
 | **Admin Store** (`useAdmin`) | `src/lib/admin-store.tsx` | `localStorage["gza.admin.v1"]` | Staff identity (`Staff | null`), active role (`AdminRole`), flight operational overrides stored as `Record<string, FlightOverride>`. |
 | **Admin Operations State** (`useAdmin().ops`) | `src/lib/admin-ops.ts` (models & seeds), `src/lib/admin-store.tsx` (`ops` & `patchOps`) | Session in-memory state in `AdminProvider` (`useState<OpsState>`). Resets to seed on reload. | Schedules (`Schedule[]`), aircraft fleet (`AircraftType[]`), seat maps (`Record<string, SeatMapConfig>`), fare products (`FareConfig[]`), baggage allowance (`BaggageConfig`), meals (`OptionItem[]`), assistance options (`OptionItem[]`), destination parameters (`DestinationConfig[]`). |
 | **Admin Static Mock Data** | `src/lib/admin-mock.ts` | In-memory static constants | Bookings (`mockBookings: MockBooking[]`), customer profiles (`mockCustomers: MockCustomer[]`), check-in desk flights & passengers (`deskFlights: DeskFlight[]`, `deskPassengers: Record<string, DeskPassenger[]>`), staff inbox (`inboxMessages: InboxMessage[]`), staff directory (`staffRows: StaffRow[]`), audit log (`activityEntries: ActivityEntry[]`), operational analytics (`analyticsOverview`, `funnelSteps`, `routeStats`, `contentStats`), CMS & storytelling collections (`homeSections`, `travelSections`, `sitePages`, `timelineEntries`, `presentFacts`, `futureItems`, `archiveItems`, `sourceRecords`, `mediaItems`). |
+| **Appearance / Skin Preview Store** | `src/lib/skin.ts`, `src/design/surfaces/context.tsx` | `localStorage["gza.skin.preview.v1"]` | Authored surface skin, canvas motifs, and per-target recipe overrides (`SkinConfig`). Active **only** when `skinPreview=1` or `studioPreview=1` is present in the query string. Normal visitor sessions on ordinary URLs (`/`, `/book`, etc.) completely ignore this key and render the committed baseline design tokens with zero SSR/hydration mismatch and zero state leakage. |
 
 ### 1.1 Admin Flight Overrides Implementation Reality
 
@@ -24,14 +25,50 @@ In `src/lib/admin-store.tsx`:
 - Overrides are applied using `applyOverride(flightId: string, patch: FlightOverride)`.
 - Base flight objects are merged with active overrides using `withOverride(flight: Flight): Flight & { note?: string; revisedDepart?: string }`.
 - Overrides persist to `localStorage["gza.admin.v1"]` and are sanitized on load (`sanitizeOverride()`) to validate flight statuses and trim string fields while allowing intentional clears.
+- **Limitation**: Flight overrides apply exclusively to views consuming `withOverride()` (Admin Dashboard and Flight Operations). They do **not** automatically sync to `gza.store.v1` customer booking records, public flight status views (`/flights`), or public booking search results (`/book`).
 
 ### 1.2 Public Booking Draft & Date Synchronization Reality
 
-In `src/lib/store.tsx`:
-- Initial search criteria in `initialDraft()` computes default departure date using `new Date().toISOString().slice(0, 10)` (UTC timestamp).
-- Form validation and input limits in `FlightSearchForm` (`src/components/flight-search-form.tsx`) use `min={todayISO()}` from `src/lib/data.ts`, which uses local calendar date getters (`getFullYear()`, `getDate()`).
-- **Confirmed Date-Basis Conflict**: When SSR executes in UTC or requests cross midnight boundaries (e.g. 22:54 UTC vs. 01:54 UTC+3 local time), `min="2026-09-18"` conflicts with `value="2026-09-17"`.
-- **Observation Status**: A React hydration warning was observed once on `/ar` under dev-server testing around midnight, but did not reproduce on a repeat visit. The complete cause remains unconfirmed. Booking state code is left unchanged in Phase 0; resolution is mapped to Phase 1 (static pre-rendering) and Phase 5 (public booking workflow).
+In `src/lib/store.tsx` and `src/lib/booking-draft.ts`:
+- Search criteria in `createFreshDraft()` computes departure date using `todayISO()` from `src/lib/data.ts` (local calendar date getters `getFullYear()`, `getDate()`).
+- In Phase 3.9, draft restoration runs through `validateAndSanitizeDraft()`:
+  - If departure date is in the past, rolls forward to `todayISO()`.
+  - Re-evaluates bookability via `isFlightBookable(outboundFlight)`: if unbookable, clears flight selection and dependent seat selections.
+  - Preserves entered passenger names, dates of birth, and contact information even if flight criteria roll forward.
+  - Calculates maximum accessible wizard step (`calculateDraftMaxStep`), clamping wizard progression to Step 1 (flight selection) or Step 3 (passenger details) if prerequisites are missing.
+
+### 1.3 Appearance Studio & Skin Preview Store Reality (`gza.skin.preview.v1`)
+
+In `src/lib/skin.ts` and `src/components/admin/appearance-studio/`:
+- **Preview Isolation**: Preview changes made in the Appearance Studio write to `localStorage["gza.skin.preview.v1"]` or sync to the preview frame via typed `postMessage` protocol (`STUDIO_PROTOCOL_VERSION = "1.0.0"`).
+- **Public URL Immunity**: Ordinary public visits never read or apply `gza.skin.preview.v1`. The default site skin (`DEFAULT_SITE_SKIN`) and default surface grammar (`DEFAULT_SURFACE_GRAMMAR_CONFIG`) are compiled statically.
+- **Studio Scenario Fixtures**: In `studioPreview=1`, preview routes bypass `localStorage["gza.store.v1"]` mutations, rendering deterministic in-memory fixtures to prevent test booking debris from polluting user storage.
+- **Export Action**: The Appearance Studio provides a bounded "Export appearance configuration" dialog (`gza.appearance.v1`) that serializes sanitized preview configuration for copying or JSON file download without requiring a persistent backend or fake global Publish mutation.
+
+### 1.4 Simulation Boundary & Security Declarations
+
+- **Staff and Passenger Authentication**: Pure client-side simulation. Mock passphrases and email logins set local state tokens (`localStorage["gza.admin.v1"]` and `localStorage["gza.store.v1"]`). There is no session token verification, token rotation, or server-side authorization.
+- **Financial & Commercial Boundary**: The booking wizard concludes at Step 6 (Review & Confirmation) with PNR generation (e.g. `GZA-7K8P`). No real payment gateway, merchant facility, or financial processing exists. Payment card inputs are simulated and discarded.
+- **Secrets & Customer Privacy**: Zero real secrets, database credentials, payment card data, or private customer PII belong in client repositories or bundles. All customer profiles and staff accounts are synthetic fixtures.
+- **React Query Status**: `@tanstack/react-query` is mounted at the root (`QueryClientProvider`), but application query/mutation use is currently minimal (most screens bind directly to `useStore()`, `useAdmin()`, or static mock imports). Phase 4 will introduce formal repository contracts and query/mutation hooks.
+
+### 1.5 Asset & Content Ingestion Protocol and Archival Truth
+
+To maintain strict truth and prevent unverified imagery or text from entering the product:
+1. **Master File Preservation**: Preserve uncompressed master files in local source storage prior to web asset generation.
+2. **Truth & Rights Classification**: Every asset must be assigned a canonical `TruthClass` (`"future-concept-ai"`, `"brand-mark"`, or `"placeholder"`), historical era, and verifiable provenance record.
+3. **Optimized Variant Generation**: Output WebP/AVIF variants at standardized widths (`640w`, `960w`, `1280w`, `1376w`) with explicit intrinsic aspect ratios.
+4. **Registration in `src/lib/media.ts`**: Declare stable semantic IDs (`future-hero`, `future-aerial-day`, etc.) and bilingual accessible descriptions (`altEn`, `altAr`).
+5. **Content Workflow**: Before Phase 4B, small copy updates proceed directly via source edits. After Phase 4B, content is managed through canonical typed content records.
+6. **Strict Archival Truth**: Never present unlabeled material, mock data, or AI-generated concepts as historical evidence. AI future concepts must always display visible illustrative disclosure badges.
+
+### 1.6 Known SEO Gaps (Earmarked for Phase 11)
+
+Identified SEO debt recorded for Phase 11 resolution without expanding Phase 3.9 scope:
+1. **Arabic Homepage Metadata**: Ensure parity between English and Arabic `<title>`, `<meta name="description">`, and OpenGraph headers.
+2. **Route Head Parity**: Provide unique canonical URLs and localized hreflang tags for all public routes (`/` vs `/ar`).
+3. **Automated Sitemap & Robots**: Generate static `sitemap.xml` and `robots.txt` compatible with HostPapa Apache static hosting.
+4. **Structured Data**: Implement JSON-LD schemas for `Airline`, `Airport`, and `FlightReservation` entities.
 
 ---
 
@@ -138,7 +175,7 @@ For engineering clarity, the following controls perform authentic data mutations
 
 ---
 
-## 5. Mock Repository Convergence Plan (Phases 4–6)
+## 5. Mock Repository Convergence Plan (Phases 4–6) & Approved Roadmap Sequence
 
 To eliminate data splits and pretend actions without building a backend prematurely, the project will converge into a unified mock repository:
 
@@ -160,3 +197,37 @@ To eliminate data splits and pretend actions without building a backend prematur
            └── Phase 13+:   [ Remote API Repository ]
                               (Connects to production database & auth API)
 ```
+
+### 5.1 Approved Master Engineering Roadmap Sequence (Phases 4–14+)
+
+The development program follows this strictly sequenced progression:
+
+1. **Phase 4 — Canonical Mock Domain & Repository Layer**:
+   - Decouple UI components from direct `localStorage` access into domain entities and typed repository interfaces (`IBookingRepository`, `IFlightRepository`, `IOperationsRepository`).
+   - Create a unified mock repository converging public bookings (`gza.store.v1`) and admin manifests (`mockBookings`, `deskPassengers`).
+2. **Phase 4B — Typed Content & CMS Schema**:
+   - Formalize typed content models for homepage editorial blocks, travel advisories, airport history chapters, and bilingual metadata.
+3. **Phase 4C — Settings & Appearance Store Convergence**:
+   - Migrate Appearance Studio draft state from query-parameter / browser-local storage into the canonical settings repository.
+4. **Phase 5 — Public Workflows Convergence**:
+   - Connect booking engine, trip management, check-in, passenger account hub, and contact forms to canonical domain repositories with comprehensive client-side validation.
+5. **Phase 6 — Admin Workflows Convergence**:
+   - Connect admin flight quick-edit, schedule manager, passenger desk, customer notes, and activity logs to the shared domain repositories, eliminating simulated no-ops.
+6. **Phase 7 — CMS Admin Workflows**:
+   - Enable authored CMS management for destinations, airport historical chapters, and travel guidance.
+7. **Phase 7B — Media & Provenance Admin**:
+   - Implement structured media catalog management with strict truth classification, provenance tagging, and multi-resolution variant inspection.
+8. **Phase 8 — Visual System & Assets Finalization**:
+   - Complete asset delivery optimization, iconography audits, and surface grammar token refinements.
+9. **Phase 9 — Arabic, RTL, Accessibility & Responsive Certification**:
+   - Comprehensive multi-breakpoint audit (320px–1920px), keyboard navigation, focus management, and screen-reader semantics.
+10. **Phase 10 — Comprehensive Durable Regressions Program**:
+    - Expand test coverage with automated mock-state mutation tests, end-to-end user journeys, and regression baselines (expanding on Phase 3.9's minimal test foundation).
+11. **Phase 11 — SEO, Performance & HostPapa Production Certification**:
+    - Address known SEO gaps (Arabic homepage metadata, route head parity, sitemap, structured data), core web vitals, and HostPapa production deployment.
+12. **Phase 12 — Backend Readiness & API Contracts Design**:
+    - Design REST/RPC API contracts, payload schemas, and backend migration readiness blueprints.
+13. **Phase 13 — Production Backend, Auth & Database Integration**:
+    - Implement persistent server infrastructure, database, secure authentication, and payment processing.
+14. **Phase 14+ — Optional Ecosystem Integrations**:
+    - GDS flight data feeds, external loyalty programs, cargo logistics, and external partner APIs.

@@ -9,7 +9,7 @@ import type {
   PatternDefinition,
   PatternStyle,
   ResolvedPatternCss,
-} from "./pattern-types";
+} from "./pattern-types.ts";
 
 /**
  * Validates a CSS hex color string (#RGB, #RRGGBB).

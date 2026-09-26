@@ -8,7 +8,7 @@
  * to render the committed default skin without importing the ~100 KB optional catalog.
  */
 
-import type { PatternDefinition } from "./pattern-types";
+import type { PatternDefinition } from "./pattern-types.ts";
 
 export const PIE_FACTORY_DEFINITION: PatternDefinition = {
   id: "pie-factory",

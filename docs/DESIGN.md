@@ -849,44 +849,60 @@ To eliminate visual fatigue and generic white-card SaaS boilerplate across the a
    - Controlled Placements: `header-band` (top 28-36px), `rail-strip` (vertical 32px inline-start strip), `accent-corner` (64×64px corner vignette), `full` (large editorial cards only), or `none`.
 5. **Preview-Only Boundary & Baseline Invariant**:
    - Production URLs without `?skinPreview=1` retain the exact baseline production appearance with zero visual drift.
-   - Admin Appearance Lab (`/admin/settings` Appearance tab) provides live configuration and side-by-side comparison (`baseline`, `grammar`, `compare`) across all 7 production archetypes.
+   - Normal visitor sessions ignore `gza.skin.preview.v1`, rendering the committed default skin (`DEFAULT_SITE_SKIN`) and default surface grammar (`DEFAULT_SURFACE_GRAMMAR_CONFIG`).
+6. **Startup Bundle Isolation (`runtime-targets.ts` vs `targets.ts`)**:
+   - In Phase 3.9, lightweight runtime resolution was decoupled from authoring metadata:
+     - `src/design/surfaces/runtime-targets.ts`: Contains only target identifiers, family mapping, media allowance policies, canonical truth class allowlists, and recipe resolution (`resolveTargetRecipe`). Loaded by ordinary public runtime with **zero imports of `MEDIA`**.
+     - `src/design/surfaces/targets.ts`: Contains rich authoring metadata (labels, descriptions, preview routes, scenarios, allowlists), loaded **exclusively** by the Appearance Studio inspector.
+   - Result: Root entry bundle dropped from 465,009 bytes to 404,998 bytes (-60,011 bytes, ~13% reduction). Initial public graph contains 0 traces of Studio protocol, 0 editor metadata, and 0 Topography/Circuit Board SVG geometry.
 
 ---
 
 ### 22.7 Visual System B.1: Appearance Studio (`src/components/admin/appearance-studio/`) `[Accepted Design Contract]`
-The **Appearance Studio** advances the Gaza Surface Grammar from a static lab into an authoring workspace combining a responsive editor with a persistent, sandboxed real-route preview frame:
-1. **Responsive Studio Architecture**:
+The **Appearance Studio** provides an authoring workspace combining an accessible inspector with a persistent, sandboxed real-route preview frame:
+1. **Primary Authoring Flow**:
+   - The primary operator flow is: **screen -> scenario -> viewport -> Inspect -> click visible object -> edit**.
+   - Technical Target Navigator is demoted to a collapsible "Advanced: Target Navigator" disclosure.
+   - Design System Specimens is demoted to a collapsible "Advanced: Design QA (Specimens)" disclosure.
+2. **Accessible Single-Choice Controls (Radix `RadioGroup`)**:
+   - All mutually exclusive selectors (Tone, Accent, Radius, Elevation, Motif, Placement, Intensity, Scale, Frame, Canvas Pattern) are implemented using accessible headless Radix `RadioGroupPrimitive.Root` and `RadioGroupPrimitive.Item`.
+   - Supports natural arrow-key navigation (LTR and RTL), visible focus rings, and proper `aria-checked` states.
+3. **Family Inheritance vs. Component Overrides**:
+   - Explicitly displays inheritance status: `Inheriting from [Family]` or `Customized component override`.
+   - Single-click toggle between `Customize this component` (creates an active override) and `Use family settings` (`Reset to family`, clearing the target override).
+4. **Responsive Studio Architecture**:
    - Wide screens (`>=1024px`): A sticky ~420px inspector column paired with an adaptive preview pane maintaining sticky viewport geometry without nested scroll collisions.
    - Medium & Mobile screens (`<1024px`): Segmented tab navigation (`[Inspector | Live Preview]`) prevents squeezed panels and crushed controls.
    - Multi-Viewport Emulation: Strict CSS media-query viewport widths (`1440px`, `1280px`, `768px`, `390px`, `320px`, and `Fit`). In `Fit` mode on small screens, a CSS transform scale (`transform: scale(...)`) scales the viewport down without breaking fluid responsive evaluation inside the frame.
-2. **Deterministic Isolated Scenarios (`studioPreview=1`)**:
+5. **Deterministic Isolated Scenarios (`studioPreview=1`)**:
    - Zero State Leakage: Real preview routes operate under `studioPreview=1`. All store reads/writes bypass persistent `localStorage` (`gza.store.v1`), running off isolated, deterministic in-memory fixtures.
    - Scenario Coverage:
      - **Home**: Homepage & Destinations (`/`, `/ar`)
      - **Booking**: Results, Fare Selection, Passenger Details, Seat Map Console, Bags & Extras, Review Dossier (`/book?step=...`)
      - **Travel**: Preparing for Travel, Baggage Policies, Accessibility Services (`/travel#...`)
      - **Airport**: Heritage Overview & Opening Dossier (`/airport`), Future Architectural Vision (`/airport/future`)
-3. **Parent <-> Iframe Typed Synchronization Protocol**:
+6. **Parent <-> Iframe Typed Synchronization Protocol**:
    - Communication over `postMessage` using `isValidStudioOrigin(event)` (strict `event.origin === window.location.origin`).
    - Schema validation with versioning (`STUDIO_PROTOCOL_VERSION = "1.0.0"`).
    - Messages: `GZA_STUDIO_PARENT_INIT`, `GZA_STUDIO_FRAME_READY`, `GZA_STUDIO_CONFIG_SYNC`, `GZA_STUDIO_INSPECT_MODE`, `GZA_STUDIO_SELECT_TARGET_CMD`, `GZA_STUDIO_TARGET_HOVERED`, `GZA_STUDIO_TARGET_SELECTED`, `GZA_STUDIO_NAVIGATE_SCENARIO`.
-4. **Inspect Mode vs. Browse Mode**:
+7. **Inspect Mode vs. Browse Mode**:
    - **Browse Mode**: Full natural link clicking and router navigation inside the preview frame.
    - **Inspect Mode**: Captures mouseover and clicks on elements tagged with `data-surface-target`. Highlights targeted components with the Gaza green dashed outline, immediately navigating the parent inspector to that recipe.
-5. **Semantic Target Registry (20 Targets)**:
-   - 3 Canvas Targets: `canvas.public`, `canvas.sand`, `canvas.admin`
+8. **Semantic Target Registry (19 Selectable Targets)**:
+   - 2 Selectable Canvas Targets: `canvas.public`, `canvas.sand` (`canvas.admin` is removed from selectable targets until a real bounded preview shell exists).
    - 6 Family Targets: `family.operational`, `family.fare`, `family.dossier`, `family.form-sheet`, `family.guide`, `family.editorial`
    - 11 Component Recipes:
      - `booking.flight-option`, `booking.fare-option`, `booking.trip-summary`, `booking.passenger-sheet`, `booking.seat-console`, `booking.extras`, `booking.review-dossier`
      - `travel.guide`
      - `airport.chapter-card`, `airport.future-editorial`
      - `home.destination-card`
-6. **Media Truthfulness & Bounded Controls**:
+9. **Media Truthfulness & Bounded Controls**:
    - Operational, Fare, Dossier, and Form Sheet components are strictly disallowed from media overrides (`mediaAllowed: false`).
-   - Guide and Editorial components permit approved media items from `src/lib/media.ts` with mandatory truth classification tags.
-   - AI concept imagery is strictly restricted to Future Vision contexts and prohibited on Past or Present airport chapters.
-7. **Retained Design System Specimens Sub-View**:
-   - The former Surface Lab is preserved as a dedicated "Design System Specimens" tab within the Appearance settings, providing direct side-by-side archetypal comparison alongside the real-route Studio.
+   - Guide and Editorial components permit approved media items from `src/lib/media.ts` with mandatory canonical `TruthClass` tags (`"future-concept-ai"`, `"brand-mark"`, `"placeholder"`).
+   - AI concept imagery is strictly restricted to Future Vision contexts and prohibited on Past or Present airport chapters. Must always feature visible illustrative disclosure.
+10. **Export Appearance Configuration (`gza.appearance.v1`)**:
+    - Bounded export dialog providing one-click JSON copy to clipboard or `.json` file download.
+    - Exports a sanitized, serializable, versioned configuration envelope for offline archival or sharing, without requiring backend persistence or fake Publish mutations.
 
 ---
 

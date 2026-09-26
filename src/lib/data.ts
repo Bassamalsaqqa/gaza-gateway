@@ -290,20 +290,29 @@ export function hash(input: string): number {
   return Math.abs(h);
 }
 
-export function todayISO(): string {
-  return toISO(new Date());
+export function todayISO(now?: Date | string | number, timeZone = "Asia/Gaza"): string {
+  const d = now
+    ? typeof now === "number"
+      ? new Date(now)
+      : typeof now === "string"
+        ? new Date(now)
+        : now
+    : new Date();
+  return toISO(d, timeZone);
 }
 
-export function toISO(date: Date): string {
-  const y = date.getFullYear();
-  const m = `${date.getMonth() + 1}`.padStart(2, "0");
-  const d = `${date.getDate()}`.padStart(2, "0");
-  return `${y}-${m}-${d}`;
+export function toISO(date: Date, timeZone = "Asia/Gaza"): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
 }
 
 export function addDaysISO(iso: string, days: number): string {
-  const d = new Date(`${iso}T12:00:00`);
-  d.setDate(d.getDate() + days);
+  const d = new Date(`${iso}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
   return toISO(d);
 }
 
@@ -324,8 +333,8 @@ function addMinutesToTime(time: string, minutes: number): string {
 const departureSlots = ["07:15", "10:40", "13:05", "16:20", "19:45", "22:10"];
 const aircraftTypes = ["Airbus A320neo", "Airbus A321neo", "Boeing 737-800"];
 
-function statusFor(flightId: string, date: string): FlightStatus {
-  const today = todayISO();
+export function statusFor(flightId: string, date: string, now?: Date | string | number): FlightStatus {
+  const today = todayISO(now, "Asia/Gaza");
   if (date > today) return "Scheduled";
   const h = hash(flightId);
   if (date < today) return h % 11 === 0 ? "Cancelled" : "Landed";
@@ -344,7 +353,7 @@ function statusFor(flightId: string, date: string): FlightStatus {
 }
 
 /** Departures from GZA on a date (two rotations per served destination). */
-export function departuresOn(date: string): Flight[] {
+export function departuresOn(date: string, now?: Date | string | number): Flight[] {
   const weekday = new Date(`${date}T12:00:00`).getDay();
   const list: Flight[] = [];
   destinations.forEach((dest, index) => {
@@ -365,7 +374,7 @@ export function departuresOn(date: string): Flight[] {
         arriveTime: addMinutesToTime(slot, dest.flightMinutes),
         durationMinutes: dest.flightMinutes,
         aircraft: aircraftTypes[seed % aircraftTypes.length] ?? "Airbus A320neo",
-        status: statusFor(id, date),
+        status: statusFor(id, date, now),
         gate: `A${(seed % 8) + 1}`,
         terminal: "1",
         basePrice: Math.round(
@@ -379,7 +388,7 @@ export function departuresOn(date: string): Flight[] {
 }
 
 /** Arrivals into GZA on a date (two rotations per served destination). */
-export function arrivalsOn(date: string): Flight[] {
+export function arrivalsOn(date: string, now?: Date | string | number): Flight[] {
   const weekday = new Date(`${date}T12:00:00`).getDay();
   const list: Flight[] = [];
   destinations.forEach((dest, index) => {
@@ -400,7 +409,7 @@ export function arrivalsOn(date: string): Flight[] {
         arriveTime: addMinutesToTime(slot, dest.flightMinutes),
         durationMinutes: dest.flightMinutes,
         aircraft: aircraftTypes[seed % aircraftTypes.length] ?? "Airbus A321neo",
-        status: statusFor(id, date),
+        status: statusFor(id, date, now),
         gate: `A${(seed % 8) + 1}`,
         terminal: "1",
         basePrice: Math.round(
@@ -418,7 +427,12 @@ export function arrivalsOn(date: string): Flight[] {
  * The opening network is GZA <-> destination only: one endpoint must be GZA,
  * and the endpoints must differ. Anything else has no service.
  */
-export function searchFlights(origin: string, destination: string, date: string): Flight[] {
+export function searchFlights(
+  origin: string,
+  destination: string,
+  date: string,
+  now?: Date | string | number,
+): Flight[] {
   const from = origin.toUpperCase();
   const to = destination.toUpperCase();
   if (from === to) return [];
@@ -427,7 +441,7 @@ export function searchFlights(origin: string, destination: string, date: string)
   if (!outbound && !inbound) return [];
   if (outbound && !destinationByCode(to)) return [];
   if (inbound && !destinationByCode(from)) return [];
-  const pool = outbound ? departuresOn(date) : arrivalsOn(date);
+  const pool = outbound ? departuresOn(date, now) : arrivalsOn(date, now);
   return pool.filter((f) =>
     outbound ? f.destinationCode.toUpperCase() === to : f.originCode.toUpperCase() === from,
   );
@@ -722,3 +736,18 @@ export function flightById(id: string): Flight | null {
   const pool = direction === "out" ? departuresOn(date) : arrivalsOn(date);
   return pool.find((f) => f.id === id) ?? null;
 }
+
+export {
+  isFlightBookable,
+  getFlightBookability,
+  getSeatRequiredPaxCount,
+  flightDepartureEpoch,
+  localToUtcEpoch,
+  getFlightDepartureTimeZone,
+  DEFAULT_STATION_TIMEZONE,
+  STATION_TIMEZONES,
+  NON_BOOKABLE_STATUSES,
+  type FlightBookabilityResult,
+  type FlightUnbookableReason,
+  type BookabilityOptions,
+} from "./booking-rules.ts";

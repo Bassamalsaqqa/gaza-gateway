@@ -21,7 +21,7 @@ import type {
   SurfaceGrammarConfig,
   SurfaceRecipe,
 } from "./types";
-import { resolveTargetRecipe, type TargetId } from "./targets";
+import { resolveTargetRecipe, type TargetId } from "./runtime-targets";
 
 interface SurfaceGrammarContextValue {
   isPreview: boolean;

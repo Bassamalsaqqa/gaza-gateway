@@ -73,6 +73,7 @@ export default defineConfig({
       prerender: {
         enabled: true,
         crawlLinks: false,
+        concurrency: 4,
       },
       pages: [
         ...publicPages,

@@ -13,6 +13,8 @@
     "hostpapa:verify": "node scripts/verify-hostpapa-release.mjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
+    "test": "node --test --experimental-strip-types tests/unit/*.test.ts",
+    "test:smoke": "node tests/smoke/browser-smoke.mjs",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
@@ -87,6 +89,7 @@
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
     "nitro": "3.0.260603-beta",
+    "playwright-core": "^1.63.0",
     "prettier": "^3.7.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",

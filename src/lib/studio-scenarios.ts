@@ -11,11 +11,13 @@
  */
 
 import {
+  addDaysISO,
   searchFlights,
+  todayISO,
   type Flight,
-} from "@/lib/data";
-import type { Draft, Passenger, SearchCriteria } from "@/lib/store";
-import type { TargetId } from "@/design/surfaces/targets";
+} from "./data.ts";
+import type { Draft, Passenger, SearchCriteria } from "./booking-draft.ts";
+import type { TargetId } from "../design/surfaces/runtime-targets.ts";
 
 export type StudioPageId = "home" | "book" | "travel" | "airport";
 
@@ -30,19 +32,36 @@ export interface StudioScenario {
   pathAr: string;
   associatedTargetIds: TargetId[];
   step?: string;
-  getMockDraft?: () => Draft;
+  getMockDraft?: (now?: Date | string | number) => Draft;
 }
 
-// Deterministic future dates for reliable mock scenarios
-const MOCK_DEPART_DATE = "2026-10-15";
-const MOCK_RETURN_DATE = "2026-10-22";
+/**
+ * Computes deterministic future departure and return dates for Studio mock drafts
+ * using the declared Asia/Gaza station date policy.
+ * Defaults to 14 days after current station date for departure, and 21 days for return.
+ * Does not make wall-clock calls during module evaluation or static prerender.
+ */
+export function getStudioMockDates(now?: Date | string | number): {
+  departDate: string;
+  returnDate: string;
+} {
+  const stationToday = todayISO(now, "Asia/Gaza");
+  const departDate = addDaysISO(stationToday, 14);
+  const returnDate = addDaysISO(departDate, 7);
+  return { departDate, returnDate };
+}
 
-export function createDeterministicMockDraft(step: "results" | "fare" | "passengers" | "seats" | "extras" | "review"): Draft {
+export function createDeterministicMockDraft(
+  step: "results" | "fare" | "passengers" | "seats" | "extras" | "review",
+  now?: Date | string | number,
+): Draft {
+  const { departDate, returnDate } = getStudioMockDates(now);
+
   const criteria: SearchCriteria = {
     origin: "GZA",
     destination: "AMM",
-    departDate: MOCK_DEPART_DATE,
-    returnDate: MOCK_RETURN_DATE,
+    departDate,
+    returnDate,
     tripType: "round",
     adults: 1,
     children: 0,
@@ -50,15 +69,15 @@ export function createDeterministicMockDraft(step: "results" | "fare" | "passeng
     cabin: "economy",
   };
 
-  const outboundFlights = searchFlights("GZA", "AMM", MOCK_DEPART_DATE);
-  const inboundFlights = searchFlights("AMM", "GZA", MOCK_RETURN_DATE);
+  const outboundFlights = searchFlights("GZA", "AMM", departDate, now);
+  const inboundFlights = searchFlights("AMM", "GZA", returnDate, now);
 
   const outbound: Flight = outboundFlights[0] ?? {
-    id: "GZA-AMM-20261015-PS204",
+    id: `GZA-AMM-${departDate.replace(/-/g, "")}-PS204`,
     number: "PS 204",
     originCode: "GZA",
     destinationCode: "AMM",
-    date: MOCK_DEPART_DATE,
+    date: departDate,
     departTime: "08:30",
     arriveTime: "09:45",
     durationMinutes: 75,
@@ -71,11 +90,11 @@ export function createDeterministicMockDraft(step: "results" | "fare" | "passeng
   };
 
   const inbound: Flight = inboundFlights[0] ?? {
-    id: "AMM-GZA-20261022-PS205",
+    id: `AMM-GZA-${returnDate.replace(/-/g, "")}-PS205`,
     number: "PS 205",
     originCode: "AMM",
     destinationCode: "GZA",
-    date: MOCK_RETURN_DATE,
+    date: returnDate,
     departTime: "14:15",
     arriveTime: "15:30",
     durationMinutes: 75,
@@ -196,6 +215,141 @@ export function createDeterministicMockDraft(step: "results" | "fare" | "passeng
   }
 }
 
+/**
+ * Computes a future departure date for the capacity-proof smoke fixture
+ * using the declared Asia/Gaza station date policy.
+ * Defaults to 21 days after current station date.
+ * Does not make wall-clock calls during module evaluation or static prerender.
+ */
+export function getCapacityProofDate(now?: Date | string | number): string {
+  const stationToday = todayISO(now, "Asia/Gaza");
+  return addDaysISO(stationToday, 21);
+}
+
+/**
+ * Returns deterministic capacity-proof flight options keyed to the supplied departDate.
+ */
+export function getCapacityProofFlights(departDate: string): Flight[] {
+  return [
+    {
+      id: "CAP-PROOF-1SEAT",
+      number: "PS 204",
+      originCode: "GZA",
+      destinationCode: "AMM",
+      date: departDate,
+      departTime: "10:00",
+      arriveTime: "11:00",
+      durationMinutes: 60,
+      aircraft: "Airbus A320neo",
+      status: "Scheduled" as const,
+      gate: "A1",
+      terminal: "1",
+      basePrice: 150,
+      seatsLeft: 1,
+    },
+    {
+      id: "CAP-PROOF-CANCELLED",
+      number: "PS 206",
+      originCode: "GZA",
+      destinationCode: "AMM",
+      date: departDate,
+      departTime: "14:00",
+      arriveTime: "15:00",
+      durationMinutes: 60,
+      aircraft: "Airbus A320neo",
+      status: "Cancelled" as const,
+      gate: "A2",
+      terminal: "1",
+      basePrice: 150,
+      seatsLeft: 12,
+    },
+    {
+      id: "CAP-PROOF-BOARDING",
+      number: "PS 208",
+      originCode: "GZA",
+      destinationCode: "AMM",
+      date: departDate,
+      departTime: "16:00",
+      arriveTime: "17:00",
+      durationMinutes: 60,
+      aircraft: "Airbus A320neo",
+      status: "Boarding" as const,
+      gate: "A3",
+      terminal: "1",
+      basePrice: 150,
+      seatsLeft: 8,
+    },
+    {
+      id: "CAP-PROOF-AVAILABLE",
+      number: "PS 210",
+      originCode: "GZA",
+      destinationCode: "AMM",
+      date: departDate,
+      departTime: "18:00",
+      arriveTime: "19:00",
+      durationMinutes: 60,
+      aircraft: "Airbus A320neo",
+      status: "Scheduled" as const,
+      gate: "A4",
+      terminal: "1",
+      basePrice: 150,
+      seatsLeft: 15,
+    },
+  ];
+}
+
+/**
+ * Creates the deterministic mock draft for capacity-proof scenario.
+ * Evaluates the future departure date at invocation time using station timezone.
+ */
+export function createCapacityProofMockDraft(now?: Date | string | number): Draft {
+  const departDate = getCapacityProofDate(now);
+  return {
+    entry: "results",
+    criteria: {
+      origin: "GZA",
+      destination: "AMM",
+      departDate,
+      returnDate: "",
+      tripType: "oneway",
+      adults: 1,
+      children: 0,
+      infants: 1,
+      cabin: "economy",
+    },
+    outbound: null,
+    inbound: null,
+    fareId: "classic",
+    passengers: [
+      {
+        type: "adult",
+        firstName: "Samir",
+        lastName: "Khoury",
+        dob: "1985-05-15",
+        nationality: "PS",
+        document: "P12345678",
+      },
+      {
+        type: "infant",
+        withAdult: 0,
+        firstName: "Rami",
+        lastName: "Khoury",
+        dob: "2026-01-10",
+        nationality: "PS",
+        document: "",
+      },
+    ],
+    seats: {},
+    extras: {
+      pax: [
+        { extraBags: 0, meal: "standard", assistance: [] },
+        { extraBags: 0, meal: "standard", assistance: [] },
+      ],
+    },
+    contact: { email: "samir@example.ps", phone: "+970 59 912 3456" },
+  };
+}
+
 export const STUDIO_SCENARIOS: readonly StudioScenario[] = [
   // ───────────────────────────────────────────────────────────────────────────
   // Home
@@ -226,7 +380,20 @@ export const STUDIO_SCENARIOS: readonly StudioScenario[] = [
     pathAr: "/ar/book?step=results&studioPreview=1",
     step: "results",
     associatedTargetIds: ["booking.flight-option", "family.operational"],
-    getMockDraft: () => createDeterministicMockDraft("results"),
+    getMockDraft: (now?: Date | string | number) => createDeterministicMockDraft("results", now),
+  },
+  {
+    id: "booking.capacity-proof",
+    pageId: "book",
+    titleEn: "1b. Capacity & Booking Proof",
+    titleAr: "1ب. إثبات السعة وقواعد الحجز",
+    descriptionEn: "Deterministic proof fixture: 1 adult + 1 infant, 1 seat remaining flight, Cancelled and Boarding options.",
+    descriptionAr: "سيناريو إثبات السعة: بالغ ورضيع، رحلة بمقعد واحد متبقٍ، ورحلات ملغاة وجارية.",
+    pathEn: "/book?step=results&studioPreview=1&scenario=booking.capacity-proof",
+    pathAr: "/ar/book?step=results&studioPreview=1&scenario=booking.capacity-proof",
+    step: "results",
+    associatedTargetIds: ["booking.flight-option", "family.operational"],
+    getMockDraft: (now?: Date | string | number) => createCapacityProofMockDraft(now),
   },
   {
     id: "booking.fare",
@@ -239,7 +406,7 @@ export const STUDIO_SCENARIOS: readonly StudioScenario[] = [
     pathAr: "/ar/book?step=fare&studioPreview=1",
     step: "fare",
     associatedTargetIds: ["booking.fare-option", "booking.trip-summary", "family.fare"],
-    getMockDraft: () => createDeterministicMockDraft("fare"),
+    getMockDraft: (now?: Date | string | number) => createDeterministicMockDraft("fare", now),
   },
   {
     id: "booking.passengers",
@@ -252,7 +419,7 @@ export const STUDIO_SCENARIOS: readonly StudioScenario[] = [
     pathAr: "/ar/book?step=passengers&studioPreview=1",
     step: "passengers",
     associatedTargetIds: ["booking.passenger-sheet", "booking.trip-summary", "family.form-sheet"],
-    getMockDraft: () => createDeterministicMockDraft("passengers"),
+    getMockDraft: (now?: Date | string | number) => createDeterministicMockDraft("passengers", now),
   },
   {
     id: "booking.seats",
@@ -265,7 +432,7 @@ export const STUDIO_SCENARIOS: readonly StudioScenario[] = [
     pathAr: "/ar/book?step=seats&studioPreview=1",
     step: "seats",
     associatedTargetIds: ["booking.seat-console", "booking.trip-summary", "family.operational"],
-    getMockDraft: () => createDeterministicMockDraft("seats"),
+    getMockDraft: (now?: Date | string | number) => createDeterministicMockDraft("seats", now),
   },
   {
     id: "booking.extras",
@@ -278,7 +445,7 @@ export const STUDIO_SCENARIOS: readonly StudioScenario[] = [
     pathAr: "/ar/book?step=extras&studioPreview=1",
     step: "extras",
     associatedTargetIds: ["booking.extras", "booking.trip-summary"],
-    getMockDraft: () => createDeterministicMockDraft("extras"),
+    getMockDraft: (now?: Date | string | number) => createDeterministicMockDraft("extras", now),
   },
   {
     id: "booking.review",
@@ -291,7 +458,7 @@ export const STUDIO_SCENARIOS: readonly StudioScenario[] = [
     pathAr: "/ar/book?step=review&studioPreview=1",
     step: "review",
     associatedTargetIds: ["booking.review-dossier", "booking.trip-summary", "family.dossier"],
-    getMockDraft: () => createDeterministicMockDraft("review"),
+    getMockDraft: (now?: Date | string | number) => createDeterministicMockDraft("review", now),
   },
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -413,6 +580,7 @@ export function getScenariosForPage(pageId: StudioPageId): StudioScenario[] {
 export function findScenarioForPath(path: string): StudioScenario | undefined {
   const clean = path.replace(/^\/ar/, "").replace(/\?.*$/, "");
   if (clean === "/book") {
+    if (path.includes("scenario=booking.capacity-proof")) return getScenarioById("booking.capacity-proof");
     if (path.includes("step=fare")) return getScenarioById("booking.fare");
     if (path.includes("step=passengers")) return getScenarioById("booking.passengers");
     if (path.includes("step=seats")) return getScenarioById("booking.seats");

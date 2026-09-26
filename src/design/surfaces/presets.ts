@@ -5,7 +5,7 @@
  * Guarantees zero crash on missing, outdated, or corrupted stored preview settings.
  */
 
-import { canonicalPatternId } from "@/design/patterns/pattern-types";
+import { canonicalPatternId } from "../patterns/pattern-types.ts";
 import {
   FAMILY_ALLOWLISTS,
   isAllowedAccent,
@@ -15,15 +15,17 @@ import {
   isAllowedRadius,
   isAllowedTone,
   isMediaAllowed,
-} from "./allowlists";
+} from "./allowlists.ts";
 import type {
   MediaTreatment,
   SurfaceFamilyId,
   SurfaceGrammarConfig,
   SurfaceRecipe,
-} from "./types";
-import { SURFACE_FAMILY_IDS } from "./types";
-import { isTargetId, sanitizeTargetOverride } from "./targets";
+  TruthClass,
+} from "./types.ts";
+import { SURFACE_FAMILY_IDS } from "./types.ts";
+import { isTargetId, sanitizeTargetOverride } from "./runtime-targets.ts";
+import { sanitizeMediaTreatmentAuthoritative } from "../../lib/media-policy.ts";
 
 export const DEFAULT_SURFACE_RECIPES: Record<SurfaceFamilyId, SurfaceRecipe> = {
   operational: {
@@ -121,40 +123,12 @@ export const DEFAULT_SURFACE_GRAMMAR_CONFIG: SurfaceGrammarConfig = {
   families: DEFAULT_SURFACE_RECIPES,
 };
 
-function sanitizeMediaTreatment(raw: unknown): MediaTreatment | undefined {
-  if (!raw || typeof raw !== "object") return undefined;
-  const obj = raw as Partial<MediaTreatment>;
-  const mediaId =
-    typeof obj.mediaId === "string" && obj.mediaId.trim().length > 0
-      ? obj.mediaId.trim()
-      : undefined;
-  const treatment =
-    obj.treatment === "none" ||
-    obj.treatment === "top" ||
-    obj.treatment === "side" ||
-    obj.treatment === "cover" ||
-    obj.treatment === "watermark"
-      ? obj.treatment
-      : "cover";
-  const focalX =
-    typeof obj.focalX === "number" && obj.focalX >= 0 && obj.focalX <= 100
-      ? Math.round(obj.focalX)
-      : 50;
-  const focalY =
-    typeof obj.focalY === "number" && obj.focalY >= 0 && obj.focalY <= 100
-      ? Math.round(obj.focalY)
-      : 50;
-  const overlay =
-    obj.overlay === "subtle" || obj.overlay === "dark" || obj.overlay === "gradient"
-      ? obj.overlay
-      : "none";
-  const aspect =
-    obj.aspect === "16:9" || obj.aspect === "4:3" || obj.aspect === "3:2" || obj.aspect === "1:1"
-      ? obj.aspect
-      : "auto";
-  const truthClass = obj.truthClass === "illustrative" ? "illustrative" : "documentary";
-
-  return { mediaId, treatment, focalX, focalY, overlay, aspect, truthClass };
+function sanitizeMediaTreatment(
+  raw: unknown,
+  familyId?: SurfaceFamilyId,
+): MediaTreatment | undefined {
+  const result = sanitizeMediaTreatmentAuthoritative(raw, familyId ? { familyId } : undefined);
+  return result as MediaTreatment | undefined;
 }
 
 export function sanitizeSurfaceRecipe(
@@ -227,7 +201,7 @@ export function sanitizeSurfaceRecipe(
       : fallback.patternScale;
 
   const mediaTreatment = isMediaAllowed(family)
-    ? sanitizeMediaTreatment(obj.mediaTreatment) ?? fallback.mediaTreatment
+    ? sanitizeMediaTreatment(obj.mediaTreatment, family) ?? fallback.mediaTreatment
     : undefined;
 
   return {
@@ -264,11 +238,9 @@ export function sanitizeSurfaceGrammarConfig(raw: unknown): SurfaceGrammarConfig
   const rawOverrides = (obj.targetOverrides ?? {}) as Record<string, unknown>;
   const targetOverrides: Record<string, Partial<SurfaceRecipe>> = {};
   for (const [targetKey, rawOverride] of Object.entries(rawOverrides)) {
-    if (isTargetId(targetKey)) {
+    if (isTargetId(targetKey) && rawOverride && typeof rawOverride === "object") {
       const sanitized = sanitizeTargetOverride(targetKey, rawOverride);
-      if (Object.keys(sanitized).length > 0) {
-        targetOverrides[targetKey] = sanitized;
-      }
+      targetOverrides[targetKey] = sanitized;
     }
   }
 

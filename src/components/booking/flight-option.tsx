@@ -1,9 +1,17 @@
 import * as RadioGroupPrimitive from "@radix-ui/react-radio-group";
-import { ArrowRight, Plane } from "lucide-react";
+import { ArrowRight, Ban, Plane } from "lucide-react";
 import { useMemo } from "react";
 import { Code } from "@/components/kit";
 import { StatusBadge } from "@/components/flight-status";
-import { airportByCode, farePrice, minutesToLabel, type Flight } from "@/lib/data";
+import {
+  airportByCode,
+  farePrice,
+  getFlightBookability,
+  minutesToLabel,
+  type Flight,
+  type FlightUnbookableReason,
+} from "@/lib/data";
+import { unbookableReasonLabelKey } from "@/lib/booking-rules";
 import { money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -19,12 +27,18 @@ import {
 export interface FlightOptionProps {
   flight: Flight;
   cabin: string;
+  paxCount?: number;
+  disabled?: boolean;
+  unbookableReason?: FlightUnbookableReason;
   className?: string;
 }
 
 export function FlightOption({
   flight,
   cabin,
+  paxCount,
+  disabled: propDisabled,
+  unbookableReason: propReason,
   className,
 }: FlightOptionProps) {
   const { t, lang } = useI18n();
@@ -32,13 +46,21 @@ export function FlightOption({
   const to = airportByCode(flight.destinationCode);
   const price = farePrice(flight.basePrice, "essential", cabin);
 
+  const bookability = useMemo(
+    () => getFlightBookability(flight, { paxCount }),
+    [flight, paxCount],
+  );
+  const isBookable = propDisabled !== undefined ? !propDisabled : bookability.bookable;
+  const reason = propReason ?? bookability.reason;
+  const reasonLabel = !isBookable ? t(unbookableReasonLabelKey(reason)) : "";
+
   const accessibleName = useMemo(() => {
     const originCity = from ? pick(lang, from.city) : flight.originCode;
     const destCity = to ? pick(lang, to.city) : flight.destinationCode;
     const durationStr = minutesToLabel(flight.durationMinutes, lang);
     const priceStr = money(price, lang);
 
-    return t("book.flightOptionAria", {
+    const base = t("book.flightOptionAria", {
       number: flight.number,
       originCity,
       originCode: flight.originCode,
@@ -50,7 +72,9 @@ export function FlightOption({
       nonstop: t("book.nonstop"),
       price: priceStr,
     });
-  }, [flight, from, to, price, lang, t]);
+
+    return !isBookable ? `${base} (${reasonLabel})` : base;
+  }, [flight, from, to, price, lang, t, isBookable, reasonLabel]);
 
   const { active, recipe } = useSurfaceRecipe("operational", "booking.flight-option");
 
@@ -58,6 +82,7 @@ export function FlightOption({
     <RadioGroupPrimitive.Item
       value={flight.id}
       id={`flight-option-${flight.id}`}
+      disabled={!isBookable}
       aria-label={accessibleName}
       data-surface-target="booking.flight-option"
       data-surface-family={active ? "operational" : undefined}
@@ -66,6 +91,7 @@ export function FlightOption({
       className={cn(
         "group relative block w-full text-start border p-4 sm:p-5",
         "cursor-pointer select-none transition-all duration-150",
+        !isBookable && "cursor-not-allowed opacity-60 data-[state=unchecked]:hover:border-border data-[state=unchecked]:hover:bg-card",
         active
           ? [
               TONE_CLASSES[recipe.tone].bg,
@@ -77,14 +103,15 @@ export function FlightOption({
                 recipe.frame === "rail" ? "border-s-[4px]" : "border-s-[5px]",
                 ACCENT_RAIL_CLASSES[recipe.accent],
               ],
-              "hover:border-primary/50",
+              isBookable && "hover:border-primary/50",
               "data-[state=checked]:border-primary data-[state=checked]:ring-2 data-[state=checked]:ring-primary/40 data-[state=checked]:bg-surface-olive-soft",
             ]
           : [
-              "rounded-xl border-border bg-card hover:border-primary/40 hover:bg-card/90",
+              "rounded-xl border-border bg-card",
+              isBookable && "hover:border-primary/40 hover:bg-card/90",
               "data-[state=checked]:border-primary data-[state=checked]:ring-2 data-[state=checked]:ring-primary/30",
             ],
-        "active:scale-[0.99] active:transition-none motion-reduce:active:scale-100 motion-reduce:transform-none motion-reduce:transition-none",
+        isBookable && "active:scale-[0.99] active:transition-none motion-reduce:active:scale-100 motion-reduce:transform-none motion-reduce:transition-none",
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         className,
       )}
@@ -137,35 +164,47 @@ export function FlightOption({
 
           {/* Visual Radio Selection Affordance */}
           <div className="flex items-center gap-2">
-            <span
-              className={cn(
-                "inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors",
-                "border min-h-[36px] sm:min-h-0",
-                "group-data-[state=checked]:border-primary group-data-[state=checked]:bg-primary group-data-[state=checked]:text-primary-foreground",
-                "group-data-[state=unchecked]:border-border group-data-[state=unchecked]:bg-secondary/60 group-data-[state=unchecked]:text-muted-foreground",
-                "group-hover:border-primary/50",
-              )}
-            >
-              {/* Radio Circle Indicator */}
+            {!isBookable ? (
               <span
-                aria-hidden="true"
                 className={cn(
-                  "size-4 rounded-full border-2 flex items-center justify-center transition-colors shrink-0",
-                  "group-data-[state=checked]:border-primary-foreground",
-                  "group-data-[state=unchecked]:border-muted-foreground group-hover:border-primary",
+                  "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold",
+                  "border border-destructive/30 bg-destructive/10 text-destructive",
                 )}
               >
-                <RadioGroupPrimitive.Indicator asChild>
-                  <span className="block size-2 rounded-full bg-primary-foreground" />
-                </RadioGroupPrimitive.Indicator>
+                <Ban aria-hidden="true" className="size-3.5 shrink-0" />
+                <span>{reasonLabel || t("book.unavailable")}</span>
               </span>
-              <span className="group-data-[state=checked]:inline group-data-[state=unchecked]:hidden">
-                {t("book.selected")}
+            ) : (
+              <span
+                className={cn(
+                  "inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors",
+                  "border min-h-[36px] sm:min-h-0",
+                  "group-data-[state=checked]:border-primary group-data-[state=checked]:bg-primary group-data-[state=checked]:text-primary-foreground",
+                  "group-data-[state=unchecked]:border-border group-data-[state=unchecked]:bg-secondary/60 group-data-[state=unchecked]:text-muted-foreground",
+                  "group-hover:border-primary/50",
+                )}
+              >
+                {/* Radio Circle Indicator */}
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "size-4 rounded-full border-2 flex items-center justify-center transition-colors shrink-0",
+                    "group-data-[state=checked]:border-primary-foreground",
+                    "group-data-[state=unchecked]:border-muted-foreground group-hover:border-primary",
+                  )}
+                >
+                  <RadioGroupPrimitive.Indicator asChild>
+                    <span className="block size-2 rounded-full bg-primary-foreground" />
+                  </RadioGroupPrimitive.Indicator>
+                </span>
+                <span className="group-data-[state=checked]:inline group-data-[state=unchecked]:hidden">
+                  {t("book.selected")}
+                </span>
+                <span className="group-data-[state=checked]:hidden group-data-[state=unchecked]:inline">
+                  {t("book.select")}
+                </span>
               </span>
-              <span className="group-data-[state=checked]:hidden group-data-[state=unchecked]:inline">
-                {t("book.select")}
-              </span>
-            </span>
+            )}
           </div>
         </div>
       </div>
@@ -181,7 +220,13 @@ export function FlightOption({
           <span>{to ? pick(lang, to.city) : flight.destinationCode}</span>
         </span>
         <StatusBadge status={flight.status} />
-        <span className="numeral">{t("book.seatsLeft", { n: flight.seatsLeft })}</span>
+        {!isBookable ? (
+          <span className="font-medium text-destructive">
+            {reasonLabel}
+          </span>
+        ) : (
+          <span className="numeral">{t("book.seatsLeft", { n: flight.seatsLeft })}</span>
+        )}
       </div>
     </RadioGroupPrimitive.Item>
   );

@@ -66,10 +66,12 @@ Success means travelers and observers encounter an intuitive, authentic, and coh
 
 ### Current Technical & Architecture Constraints
 
-- **Client-Side Prototype State**: The application currently runs entirely on client-side state and mock repositories. There is no live backend database, authentication server, transactional email service, or external airline GDS integration.
-- **Pre-Operational Commercial Boundary**: The booking flow intentionally concludes at booking confirmation without real payment card processing or financial transactions.
+- **Client-Side Simulation & Prototype State**: The application runs entirely on client-side state and mock storage singletons (`gza.store.v1`, `gza.admin.v1`, `OpsState`, `admin-mock.ts`, `gza.skin.preview.v1`). Staff authentication, passenger login, booking creation, desk check-in, and flight dispatch operations are simulations. There is no live backend database, authentication server, transactional email service, external airline GDS integration, or payment processor.
+- **Pre-Operational Commercial Boundary**: The booking flow concludes at Step 6 (Review & Confirmation) with PNR issuance (e.g. `GZA-7K8P`). No real payment gateway, payment card transactions, or banking integrations exist. Simulated card inputs are validated synthetically and discarded.
+- **Privacy & Security Boundaries**: Zero real secrets, database credentials, payment card data, or private customer PII belong in client repositories or bundles. All customer profiles, bookings, and staff records are synthetic test fixtures.
 - **HostPapa Static Deployment**: Target hosting is static file serving on shared Apache cPanel hosting (`public_html/`) without persistent server-side Node.js, SSR runtimes, or build daemons. All public routes and application fallback shells are pre-built to static HTML supported by `.htaccess` rewrite rules.
 - **Provisional Prototype Data**: Specific initial routes (such as regional routes via Amman, Cairo, Istanbul, Doha, Dubai, Jeddah, Riyadh), named fare tiers, aircraft cabin layouts, and menu options represent current prototype examples and design baselines; they are subject to future refinement and do not bind future UX redesigns.
+- **Master Roadmap Progression**: Engineering follows the approved sequence: Phase 3.9 (System Stabilization & Source-of-Truth Reset, current/complete) -> Phase 4 (Canonical Mock Domain & Repository Layer) -> 4B (Typed Content/CMS) -> 4C (Settings/Appearance) -> 5 (Public Workflows) -> 6 (Admin Workflows) -> 7 (CMS Admin) -> 7B (Media/Provenance Admin) -> 8 (Visual/Assets) -> 9 (Arabic/RTL/a11y) -> 10 (Durable Regressions) -> 11 (SEO/Performance/HostPapa) -> 12 (Backend Readiness) -> 13 (Backend/Auth/Database) -> 14+ (Optional Integrations).
 
 ## Brand Commitments
 
@@ -77,20 +79,23 @@ Success means travelers and observers encounter an intuitive, authentic, and coh
 - **Tone & Voice**: Dignified, calm, professional, clear, and hospitable. Avoid generic corporate travel hype, aggressive artificial urgency, or polemical rhetoric.
 - **Factual & Archive Provenance**:
   - Historical dates, milestones, and documentation must be grounded in verified archival evidence.
-  - Timeline entries and archival media currently in the codebase are provisional prototype content awaiting formal archival verification; placeholder text and generic imagery must be transparently identified.
   - Official vector brand marks and authentic historical imagery will be provided by the owner in dedicated asset phases; no fabricated provenance or synthetic identities should be introduced.
+  - **Canonical Truth Classification**: All media is strictly classified under `TruthClass`: `"future-concept-ai"`, `"brand-mark"`, or `"placeholder"`. AI future concepts must always display visible illustrative disclosure badges and must never substitute for historical or present evidence.
+  - **Asset & Content Ingestion Protocol**: Future asset drops must preserve masters, classify truth/era/rights, generate optimized multi-breakpoint WebP variants, declare stable semantic IDs in `src/lib/media.ts`, provide bilingual accessible metadata (`altEn`/`altAr`), and verify in-browser. Content updates before Phase 4B proceed via source edits; after Phase 4B, via canonical typed CMS records.
 - **Visual Design Independence**: The incumbent color palette, typography hierarchy, and component styling documented in `docs/DESIGN_SYSTEM.md` represent the current baseline implementation and do not restrict future UI, typography, or visual redesign.
 
 ## Evidence on Hand
 
 - **Prototype Datasets**:
   - Network schedule generation logic for regional routes connecting Gaza (`src/lib/data.ts`).
+  - Canonical flight bookability rules (`isFlightBookable`, `getFlightBookability`) and draft recovery (`validateAndSanitizeDraft`) in `src/lib/booking-rules.ts` and `src/lib/booking-draft.ts`.
   - Illustrative aircraft cabin models with multi-zone seat maps (`src/lib/data.ts`, `src/lib/admin-ops.ts`).
   - Provisional historical milestones and placeholder gallery records (`src/lib/data.ts`).
   - Synthetic administrative records for bookings, customers, staff accounts, and activity logs (`src/lib/admin-mock.ts`).
+  - Authored Appearance Studio skin and surface grammar (`src/lib/skin.ts`, `src/design/surfaces/`).
 - **Confirmed Absences (Must Not Fabricate)**:
-  - No live commercial ticketing or airline merchant facilities.
-  - No verified historical photo archives or official logo files currently committed in the repository.
+  - No live commercial ticketing, payment processing, or airline merchant facilities.
+  - No verified historical photo archives or official vector logo files currently committed in the repository. Placeholder imagery and AI concepts must never masquerade as historical evidence.
 
 ## Product Principles
 

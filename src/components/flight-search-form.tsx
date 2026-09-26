@@ -9,6 +9,7 @@ import { GZA, addDaysISO, destinations, searchFlights, todayISO } from "@/lib/da
 import { useI18n } from "@/lib/i18n";
 import { useStore, type SearchCriteria } from "@/lib/store";
 import { isSkinPreviewActive } from "@/lib/skin";
+import { isStudioPreviewActive, getStudioScenarioParam } from "@/lib/studio-preview";
 import { cn } from "@/lib/utils";
 
 export function FlightSearchForm({
@@ -201,11 +202,15 @@ export function FlightSearchForm({
     if (problem) return;
     resetDraft(criteria);
     const isPreview = isSkinPreviewActive();
+    const isStudio = isStudioPreviewActive();
+    const scenario = getStudioScenarioParam();
     void navigate({
       to: "/book",
       search: {
         step: "results",
         ...(isPreview ? { skinPreview: 1 as const } : {}),
+        ...(isStudio ? { studioPreview: 1 as const } : {}),
+        ...(isStudio && scenario ? { scenario } : {}),
       },
     });
   };

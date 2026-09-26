@@ -14,7 +14,7 @@ import type {
   SurfaceFrame,
   SurfaceRadius,
   SurfaceTone,
-} from "./types";
+} from "./types.ts";
 
 export interface FamilyAllowlist {
   frames: readonly SurfaceFrame[];

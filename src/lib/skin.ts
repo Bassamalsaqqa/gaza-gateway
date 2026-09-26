@@ -12,20 +12,20 @@ import type {
   IntensityLevel,
   PatternId,
   ScaleLevel,
-} from "@/design/patterns/pattern-types";
-import { canonicalPatternId } from "@/design/patterns/pattern-types";
+} from "../design/patterns/pattern-types.ts";
+import { canonicalPatternId } from "../design/patterns/pattern-types.ts";
 import {
   PUBLIC_CANDIDATE_PATTERNS,
   SAND_CANDIDATE_PATTERNS,
   ADMIN_CANDIDATE_PATTERNS,
-} from "@/design/patterns/pattern-meta";
-import { PIE_FACTORY_DEFINITION } from "@/design/patterns/pie-factory";
-import { renderPatternSvg } from "@/design/patterns/pattern-svg";
-import type { SurfaceGrammarConfig } from "@/design/surfaces/types";
+} from "../design/patterns/pattern-meta.ts";
+import { PIE_FACTORY_DEFINITION } from "../design/patterns/pie-factory.ts";
+import { renderPatternSvg } from "../design/patterns/pattern-svg.ts";
+import type { SurfaceGrammarConfig } from "../design/surfaces/types.ts";
 import {
   DEFAULT_SURFACE_GRAMMAR_CONFIG,
   sanitizeSurfaceGrammarConfig,
-} from "@/design/surfaces/presets";
+} from "../design/surfaces/presets.ts";
 
 export const SKIN_PREVIEW_STORAGE_KEY = "gza.skin.preview.v1";
 

@@ -18,6 +18,7 @@ import {
   SplitSquareVertical,
   Tablet,
 } from "lucide-react";
+import * as RadioGroupPrimitive from "@radix-ui/react-radio-group";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import {
@@ -198,210 +199,277 @@ export function StudioToolbar({
           </div>
         </div>
 
-        {/* Center / Right: Device Viewport Presets */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Viewport Width Buttons */}
-          <div
-            role="toolbar"
-            aria-label={isAr ? "أبعاد العرض" : "Viewport Width Presets"}
-            className="inline-flex items-center rounded-md border border-input bg-secondary/40 p-0.5"
-          >
-            <button
-              type="button"
-              onClick={() => onViewportChange("desktop-wide")}
-              title="1440px — Wide Desktop"
-              className={cn(
-                "flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors",
-                viewport === "desktop-wide"
-                  ? "bg-background text-foreground shadow-xs"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
+        {/* Center / Right: Viewport, Zoom, Mode, and Preview Control Groups */}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Group 1: Viewport */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              {isAr ? "أبعاد العرض" : "Viewport"}
+            </span>
+            <RadioGroupPrimitive.Root
+              dir={isAr ? "rtl" : "ltr"}
+              value={viewport}
+              onValueChange={(val) => onViewportChange(val as ViewportPreset)}
+              aria-label={isAr ? "أبعاد العرض" : "Viewport"}
+              className="inline-flex items-center rounded-md border border-input bg-secondary/40 p-0.5"
             >
-              <Laptop className="size-3.5" />
-              <span className="hidden xl:inline">1440</span>
-            </button>
+              <RadioGroupPrimitive.Item
+                value="desktop-wide"
+                title="1440px — Wide Desktop"
+                className={cn(
+                  "flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none",
+                  viewport === "desktop-wide"
+                    ? "bg-background text-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Laptop className="size-3.5" />
+                <span className="hidden xl:inline">1440</span>
+              </RadioGroupPrimitive.Item>
 
-            <button
-              type="button"
-              onClick={() => onViewportChange("desktop")}
-              title="1280px — Standard Desktop"
-              className={cn(
-                "flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors",
-                viewport === "desktop"
-                  ? "bg-background text-foreground shadow-xs"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <Laptop className="size-3.5" />
-              <span className="hidden xl:inline">1280</span>
-            </button>
+              <RadioGroupPrimitive.Item
+                value="desktop"
+                title="1280px — Standard Desktop"
+                className={cn(
+                  "flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none",
+                  viewport === "desktop"
+                    ? "bg-background text-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Laptop className="size-3.5" />
+                <span className="hidden xl:inline">1280</span>
+              </RadioGroupPrimitive.Item>
 
-            <button
-              type="button"
-              onClick={() => onViewportChange("tablet")}
-              title="768px — Tablet"
-              className={cn(
-                "flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors",
-                viewport === "tablet"
-                  ? "bg-background text-foreground shadow-xs"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <Tablet className="size-3.5" />
-              <span className="hidden xl:inline">768</span>
-            </button>
+              <RadioGroupPrimitive.Item
+                value="tablet"
+                title="768px — Tablet"
+                className={cn(
+                  "flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none",
+                  viewport === "tablet"
+                    ? "bg-background text-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Tablet className="size-3.5" />
+                <span className="hidden xl:inline">768</span>
+              </RadioGroupPrimitive.Item>
 
-            <button
-              type="button"
-              onClick={() => onViewportChange("mobile-lg")}
-              title="390px — Mobile"
-              className={cn(
-                "flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors",
-                viewport === "mobile-lg"
-                  ? "bg-background text-foreground shadow-xs"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <Smartphone className="size-3.5" />
-              <span className="hidden xl:inline">390</span>
-            </button>
+              <RadioGroupPrimitive.Item
+                value="mobile-lg"
+                title="390px — Mobile"
+                className={cn(
+                  "flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none",
+                  viewport === "mobile-lg"
+                    ? "bg-background text-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Smartphone className="size-3.5" />
+                <span className="hidden xl:inline">390</span>
+              </RadioGroupPrimitive.Item>
 
-            <button
-              type="button"
-              onClick={() => onViewportChange("mobile-sm")}
-              title="320px — Compact Mobile"
-              className={cn(
-                "flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors",
-                viewport === "mobile-sm"
-                  ? "bg-background text-foreground shadow-xs"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <Smartphone className="size-3.5" />
-              <span className="hidden xl:inline">320</span>
-            </button>
+              <RadioGroupPrimitive.Item
+                value="mobile-sm"
+                title="320px — Compact Mobile"
+                className={cn(
+                  "flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none",
+                  viewport === "mobile-sm"
+                    ? "bg-background text-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Smartphone className="size-3.5" />
+                <span className="hidden xl:inline">320</span>
+              </RadioGroupPrimitive.Item>
 
-            <button
-              type="button"
-              onClick={() => onViewportChange("fill")}
-              title="100% Fluid Width"
-              className={cn(
-                "flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors",
-                viewport === "fill"
-                  ? "bg-background text-foreground shadow-xs"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <Maximize2 className="size-3.5" />
-              <span className="hidden xl:inline">{isAr ? "ملء" : "Fit"}</span>
-            </button>
+              <RadioGroupPrimitive.Item
+                value="fill"
+                title={isAr ? "عرض تلقائي 100%" : "Auto / 100% Fluid Width"}
+                className={cn(
+                  "flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none",
+                  viewport === "fill"
+                    ? "bg-background text-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Maximize2 className="size-3.5" />
+                <span className="hidden xl:inline">{isAr ? "تلقائي" : "Auto"}</span>
+              </RadioGroupPrimitive.Item>
+            </RadioGroupPrimitive.Root>
           </div>
 
-          {/* Fit Scale Toggle (for wide viewports on narrower parent workspaces) */}
+          {/* Group 2: Zoom [Fit | 100%] */}
           {viewport !== "fill" ? (
-            <button
-              type="button"
-              onClick={onToggleFitScale}
-              title={fitScale ? "Scale to fit container" : "100% unscaled"}
-              className={cn(
-                "flex h-8 items-center gap-1 rounded-md border border-input px-2 text-xs font-medium transition-colors",
-                fitScale
-                  ? "bg-primary/10 text-primary border-primary/30"
-                  : "bg-background text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {fitScale ? <Minimize2 className="size-3" /> : <Maximize2 className="size-3" />}
-              <span className="hidden lg:inline">{fitScale ? (isAr ? "ملاءمة" : "Fit") : "100%"}</span>
-            </button>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                {isAr ? "التقريب" : "Zoom"}
+              </span>
+              <RadioGroupPrimitive.Root
+                dir={isAr ? "rtl" : "ltr"}
+                value={fitScale ? "fit" : "100"}
+                onValueChange={(val) => {
+                  if (val === "fit" && !fitScale) onToggleFitScale();
+                  if (val === "100" && fitScale) onToggleFitScale();
+                }}
+                aria-label={isAr ? "نسبة التقريب" : "Zoom Scaling"}
+                className="inline-flex items-center rounded-md border border-input bg-secondary/40 p-0.5"
+              >
+                <RadioGroupPrimitive.Item
+                  value="fit"
+                  title={isAr ? "ملاءمة أبعاد الشاشة" : "Scale to fit container"}
+                  className={cn(
+                    "flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none",
+                    fitScale
+                      ? "bg-background text-foreground shadow-xs"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  <Minimize2 className="size-3" />
+                  <span>{isAr ? "ملاءمة" : "Fit"}</span>
+                </RadioGroupPrimitive.Item>
+                <RadioGroupPrimitive.Item
+                  value="100"
+                  title={isAr ? "الحجم الطبيعي 100%" : "100% unscaled"}
+                  className={cn(
+                    "flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none",
+                    !fitScale
+                      ? "bg-background text-foreground shadow-xs"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  <Maximize2 className="size-3" />
+                  <span>100%</span>
+                </RadioGroupPrimitive.Item>
+              </RadioGroupPrimitive.Root>
+            </div>
           ) : null}
 
-          {/* Inspect vs Browse Mode Toggle */}
-          <button
-            type="button"
-            data-testid="toggle-inspect-mode"
-            onClick={onToggleInspectMode}
-            className={cn(
-              "flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-semibold transition-all",
-              inspectMode
-                ? "border-primary bg-primary text-primary-foreground shadow-xs"
-                : "border-input bg-background text-foreground hover:bg-secondary/60",
-            )}
-            title={
-              inspectMode
-                ? isAr
-                  ? "وضع الفحص نشط: انقر لتحديد العنصر"
-                  : "Inspect Mode active: click to select surface"
-                : isAr
-                  ? "وضع التصفح: تفاعل مع الروابط بحرية"
-                  : "Browse Mode: interact freely"
-            }
-          >
-            {inspectMode ? (
-              <>
-                <MousePointer className="size-3.5 animate-bounce" />
-                <span>{isAr ? "فحص العناصر" : "Inspect"}</span>
-              </>
-            ) : (
-              <>
+          {/* Group 3: Mode [Inspect | Browse] */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              {isAr ? "النمط" : "Mode"}
+            </span>
+            <RadioGroupPrimitive.Root
+              dir={isAr ? "rtl" : "ltr"}
+              value={inspectMode ? "inspect" : "browse"}
+              onValueChange={(val) => {
+                if (val === "inspect" && !inspectMode) onToggleInspectMode();
+                if (val === "browse" && inspectMode) onToggleInspectMode();
+              }}
+              aria-label={isAr ? "نمط الاستوديو" : "Studio Mode"}
+              data-testid="toggle-inspect-mode"
+              className="inline-flex items-center rounded-md border border-input bg-secondary/40 p-0.5"
+            >
+              <RadioGroupPrimitive.Item
+                value="inspect"
+                className={cn(
+                  "flex items-center gap-1 rounded px-2.5 py-1 text-xs font-semibold transition-all focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none",
+                  inspectMode
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+                title={
+                  isAr
+                    ? "فحص العناصر: انقر لتحديد العنصر"
+                    : "Inspect Mode: click to select surface"
+                }
+              >
+                <MousePointer className={cn("size-3.5", inspectMode && "animate-bounce")} />
+                <span>{isAr ? "فحص" : "Inspect"}</span>
+              </RadioGroupPrimitive.Item>
+              <RadioGroupPrimitive.Item
+                value="browse"
+                className={cn(
+                  "flex items-center gap-1 rounded px-2.5 py-1 text-xs font-semibold transition-all focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none",
+                  !inspectMode
+                    ? "bg-background text-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+                title={
+                  isAr
+                    ? "تصفح: تفاعل مع الروابط بحرية"
+                    : "Browse Mode: interact freely"
+                }
+              >
                 <Navigation className="size-3.5" />
                 <span>{isAr ? "تصفح" : "Browse"}</span>
-              </>
-            )}
-          </button>
+              </RadioGroupPrimitive.Item>
+            </RadioGroupPrimitive.Root>
+          </div>
 
-          {/* Comparison Mode: Draft vs Baseline Toggle */}
-          <button
-            type="button"
-            data-testid="toggle-baseline-mode"
-            onClick={onToggleBaselineMode}
-            className={cn(
-              "flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-semibold transition-colors",
-              baselineMode
-                ? "border-amber-600 bg-amber-500/10 text-amber-800 dark:text-amber-200"
-                : "border-primary/40 bg-primary/5 text-primary",
-            )}
-            title={
-              baselineMode
-                ? isAr
-                  ? "معاينة الأصل (Baseline) بدون تخصيصات"
-                  : "Viewing baseline production styles"
-                : isAr
-                  ? "معاينة المسودة (Draft) مع التخصيصات"
-                  : "Viewing draft surface grammar customizations"
-            }
-          >
-            <SplitSquareVertical className="size-3.5" />
-            <span>
-              {baselineMode
-                ? isAr
-                  ? "الأصل (Baseline)"
-                  : "Baseline"
-                : isAr
-                  ? "المسودة (Draft)"
-                  : "Draft"}
+          {/* Group 4: Preview [Draft | Baseline] */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              {isAr ? "المعاينة" : "Preview"}
             </span>
-          </button>
+            <RadioGroupPrimitive.Root
+              dir={isAr ? "rtl" : "ltr"}
+              value={baselineMode ? "baseline" : "draft"}
+              onValueChange={(val) => {
+                if (val === "draft" && baselineMode) onToggleBaselineMode();
+                if (val === "baseline" && !baselineMode) onToggleBaselineMode();
+              }}
+              aria-label={isAr ? "مقارنة المعاينة" : "Preview Comparison"}
+              data-testid="toggle-baseline-mode"
+              className="inline-flex items-center rounded-md border border-input bg-secondary/40 p-0.5"
+            >
+              <RadioGroupPrimitive.Item
+                value="draft"
+                className={cn(
+                  "flex items-center gap-1 rounded px-2.5 py-1 text-xs font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none",
+                  !baselineMode
+                    ? "bg-primary/10 text-primary border border-primary/30 shadow-xs"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+                title={
+                  isAr
+                    ? "معاينة المسودة (Draft) مع التخصيصات"
+                    : "Viewing draft surface grammar customizations"
+                }
+              >
+                <SplitSquareVertical className="size-3.5" />
+                <span>{isAr ? "المسودة" : "Draft"}</span>
+              </RadioGroupPrimitive.Item>
+              <RadioGroupPrimitive.Item
+                value="baseline"
+                className={cn(
+                  "flex items-center gap-1 rounded px-2.5 py-1 text-xs font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none",
+                  baselineMode
+                    ? "bg-amber-500/20 text-amber-800 dark:text-amber-200 border border-amber-600/40 shadow-xs"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+                title={
+                  isAr
+                    ? "معاينة الأصل (Baseline) بدون تخصيصات"
+                    : "Viewing baseline production styles"
+                }
+              >
+                <span>{isAr ? "الأصل" : "Baseline"}</span>
+              </RadioGroupPrimitive.Item>
+            </RadioGroupPrimitive.Root>
+          </div>
 
-          {/* Reload Iframe */}
-          <button
-            type="button"
-            onClick={onReload}
-            aria-label={isAr ? "إعادة تحميل المعاينة" : "Reload preview"}
-            className="flex size-8 items-center justify-center rounded-md border border-input bg-background text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <RefreshCw className="size-3.5" />
-          </button>
-
-          {/* Open in New Tab */}
-          <a
-            href={previewUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={isAr ? "فتح في نافذة جديدة" : "Open preview in new tab"}
-            className="flex size-8 items-center justify-center rounded-md border border-input bg-background text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <ExternalLink className="size-3.5" />
-          </a>
+          {/* Quick Actions: Reload & External Link */}
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={onReload}
+              aria-label={isAr ? "إعادة تحميل المعاينة" : "Reload preview"}
+              className="flex size-8 items-center justify-center rounded-md border border-input bg-background text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
+            >
+              <RefreshCw className="size-3.5" />
+            </button>
+            <a
+              href={previewUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={isAr ? "فتح في نافذة جديدة" : "Open preview in new tab"}
+              className="flex size-8 items-center justify-center rounded-md border border-input bg-background text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
+            >
+              <ExternalLink className="size-3.5" />
+            </a>
+          </div>
         </div>
       </div>
     </div>

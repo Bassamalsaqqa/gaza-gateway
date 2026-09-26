@@ -28,6 +28,19 @@ import {
 } from "@/components/kit";
 import { GazaSurface } from "@/design/surfaces";
 import {
+  calculateMaxStep,
+  isFlightValidForCriteria,
+  stepRanks,
+} from "@/lib/booking-draft";
+import {
+  getScenarioById,
+  getCapacityProofDate,
+  getCapacityProofFlights,
+} from "@/lib/studio-scenarios";
+import { isStudioPreviewActive } from "@/lib/studio-preview";
+import {
+  getSeatRequiredPaxCount,
+  isFlightBookable,
   searchFlights,
   type Flight,
 } from "@/lib/data";
@@ -67,7 +80,8 @@ export const Route = createFileRoute("/{-$locale}/book")({
     if (rawStudio === "1" || rawStudio === 1 || rawStudio === '"1"') {
       out.studioPreview = 1;
     }
-    if (typeof search["scenario"] === "string") {
+    // ONLY accept scenario parameter when studioPreview is actively set
+    if (out.studioPreview === 1 && typeof search["scenario"] === "string") {
       out.scenario = search["scenario"];
     }
     const rawBaseline = search["baseline"];
@@ -91,63 +105,6 @@ export const Route = createFileRoute("/{-$locale}/book")({
   component: BookPage,
 });
 
-const stepRanks: Record<BookingStep, number> = {
-  search: 0,
-  results: 1,
-  fare: 2,
-  passengers: 3,
-  seats: 4,
-  extras: 5,
-  review: 6,
-  confirmation: 7,
-};
-
-function isFlightValidForCriteria(
-  flight: Flight | null | undefined,
-  origin: string,
-  destination: string,
-  date: string,
-): flight is Flight {
-  if (!flight) return false;
-  return (
-    flight.originCode?.toUpperCase() === origin.toUpperCase() &&
-    flight.destinationCode?.toUpperCase() === destination.toUpperCase() &&
-    flight.date === date
-  );
-}
-
-function calculateMaxStep(draft: Draft, paxList: Passenger[]): BookingStep {
-  if (!draft.criteria.origin || !draft.criteria.destination || !draft.criteria.departDate) {
-    return "search";
-  }
-  const outboundValid = isFlightValidForCriteria(
-    draft.outbound,
-    draft.criteria.origin,
-    draft.criteria.destination,
-    draft.criteria.departDate,
-  );
-  const inboundValid =
-    draft.criteria.tripType !== "round"
-      ? true
-      : isFlightValidForCriteria(
-          draft.inbound,
-          draft.criteria.destination,
-          draft.criteria.origin,
-          draft.criteria.returnDate,
-        );
-
-  const hasFlights = outboundValid && inboundValid;
-  if (!hasFlights) return "results";
-  if (!draft.fareId) return "fare";
-
-  const arePassengersValid =
-    paxList.length > 0 &&
-    paxList.every((p) => Boolean(p.firstName.trim() && p.lastName.trim() && p.dob)) &&
-    /.+@.+\..+/.test(draft.contact.email.trim());
-  if (!arePassengersValid) return "passengers";
-
-  return "review";
-}
 
 function BookPage() {
   const { t, lang } = useI18n();
@@ -159,11 +116,30 @@ function BookPage() {
   const [seatLeg, setSeatLeg] = useState<"out" | "in">("out");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const headingRef = useRef<HTMLHeadingElement | null>(null);
+  const loadedScenarioRef = useRef(search.scenario);
+
+  const isCapacityProof =
+    Boolean(search.studioPreview) &&
+    isStudioPreviewActive() &&
+    search.scenario === "booking.capacity-proof";
+
+  useEffect(() => {
+    if (!ready || !search.studioPreview || !search.scenario || !isStudioPreviewActive()) return;
+    if (loadedScenarioRef.current !== search.scenario) {
+      loadedScenarioRef.current = search.scenario;
+      const sc = getScenarioById(search.scenario);
+      if (sc?.getMockDraft) {
+        setDraft(() => sc.getMockDraft!());
+      }
+    }
+  }, [ready, search.studioPreview, search.scenario, setDraft]);
 
   const paxList = draft.passengers.length
     ? draft.passengers
     : passengersFor(draft.criteria);
-  const pax = paxList.length;
+  const totalPax = paxList.length;
+  // Dedicated seats required for passengers (excluding lap infants)
+  const seatRequiredCount = getSeatRequiredPaxCount(paxList);
   // Infants travel on an adult's lap, so they are never allocated a seat.
   const seatable = paxList.flatMap((p, i) => (p.type === "infant" ? [] : [i]));
   const paxName = (i: number) => {
@@ -174,8 +150,14 @@ function BookPage() {
   };
 
   const outboundOptions = useMemo(
-    () => searchFlights(draft.criteria.origin, draft.criteria.destination, draft.criteria.departDate),
-    [draft.criteria],
+    () => {
+      if (isCapacityProof) {
+        const fixtureDate = draft.criteria.departDate || getCapacityProofDate();
+        return getCapacityProofFlights(fixtureDate);
+      }
+      return searchFlights(draft.criteria.origin, draft.criteria.destination, draft.criteria.departDate);
+    },
+    [draft.criteria, isCapacityProof],
   );
   const inboundOptions = useMemo(
     () =>
@@ -193,6 +175,7 @@ function BookPage() {
         draft.criteria.origin,
         draft.criteria.destination,
         draft.criteria.departDate,
+        { paxCount: seatRequiredCount },
       ) &&
       outboundOptions.some((f) => f.id === draft.outbound?.id),
   );
@@ -206,11 +189,12 @@ function BookPage() {
             draft.criteria.destination,
             draft.criteria.origin,
             draft.criteria.returnDate,
+            { paxCount: seatRequiredCount },
           ) &&
           inboundOptions.some((f) => f.id === draft.inbound?.id),
       ));
 
-  // Defensive guard: clear stale flight selections that do not match effective criteria
+  // Defensive guard: clear stale flight selections that do not match effective criteria or are not bookable
   useEffect(() => {
     if (!ready) return;
     const staleOut =
@@ -220,6 +204,7 @@ function BookPage() {
         draft.criteria.origin,
         draft.criteria.destination,
         draft.criteria.departDate,
+        { paxCount: seatRequiredCount },
       ) ||
         !outboundOptions.some((f) => f.id === draft.outbound?.id));
 
@@ -231,6 +216,7 @@ function BookPage() {
           draft.criteria.destination,
           draft.criteria.origin,
           draft.criteria.returnDate,
+          { paxCount: seatRequiredCount },
         ) ||
         !inboundOptions.some((f) => f.id === draft.inbound?.id));
 
@@ -266,6 +252,7 @@ function BookPage() {
     draft.criteria.tripType,
     outboundOptions,
     inboundOptions,
+    seatRequiredCount,
     setDraft,
   ]);
 
@@ -297,7 +284,7 @@ function BookPage() {
     () => ({
       ...(isPreview ? { skinPreview: 1 as const } : {}),
       ...(isStudio ? { studioPreview: 1 as const } : {}),
-      ...(search.scenario ? { scenario: search.scenario } : {}),
+      ...(isStudio && search.scenario ? { scenario: search.scenario } : {}),
       ...(search.baseline ? { baseline: 1 as const } : {}),
     }),
     [isPreview, isStudio, search.scenario, search.baseline],
@@ -410,7 +397,44 @@ function BookPage() {
   };
 
   const confirm = () => {
-    if (!draft.outbound) return;
+    const seatableCount = getSeatRequiredPaxCount(paxList);
+    if (
+      !draft.outbound ||
+      !isFlightValidForCriteria(
+        draft.outbound,
+        draft.criteria.origin,
+        draft.criteria.destination,
+        draft.criteria.departDate,
+        { paxCount: seatableCount },
+      )
+    ) {
+      goToStep("results");
+      return;
+    }
+    if (
+      draft.criteria.tripType === "round" &&
+      (!draft.inbound ||
+        !isFlightValidForCriteria(
+          draft.inbound,
+          draft.criteria.destination,
+          draft.criteria.origin,
+          draft.criteria.returnDate,
+          { paxCount: seatableCount },
+        ))
+    ) {
+      goToStep("results");
+      return;
+    }
+    const isTestFlight =
+      draft.outbound?.id.startsWith("CAP-PROOF") || draft.inbound?.id.startsWith("CAP-PROOF");
+    if (isTestFlight) {
+      if (!isStudio || !isStudioPreviewActive()) {
+        goToStep("results");
+        return;
+      }
+      // Safety rule: test inventory cannot create a persistent booking or PNR
+      return;
+    }
     const totals = bookingTotal(draft);
     const created = addBooking({
       criteria: draft.criteria,
@@ -498,6 +522,14 @@ function BookPage() {
               onGoToStep={(step) => goToStep(step)}
               onConfirm={confirm}
               headingRef={headingRef}
+              isTestFixture={
+                isCapacityProof ||
+                Boolean(
+                  (draft.outbound?.id.startsWith("CAP-PROOF") || draft.inbound?.id.startsWith("CAP-PROOF")) &&
+                    isStudio &&
+                    isStudioPreviewActive(),
+                )
+              }
             />
           </div>
         ) : (
@@ -564,7 +596,12 @@ function BookPage() {
                         value={isOutboundSelected ? (draft.outbound?.id ?? "") : ""}
                         onValueChange={(flightId) => {
                           const flight = outboundOptions.find((f) => f.id === flightId);
-                          if (flight) setDraft((prev) => ({ ...prev, outbound: flight }));
+                          if (flight && isFlightBookable(flight, { paxCount: seatRequiredCount })) {
+                            if (flight.id.startsWith("CAP-PROOF") && (!isStudio || !isStudioPreviewActive())) {
+                              return;
+                            }
+                            setDraft((prev) => ({ ...prev, outbound: flight }));
+                          }
                         }}
                         aria-labelledby="outbound-flights-heading"
                         className="grid gap-3"
@@ -574,6 +611,7 @@ function BookPage() {
                             key={flight.id}
                             flight={flight}
                             cabin={draft.criteria.cabin}
+                            paxCount={seatRequiredCount}
                           />
                         ))}
                       </RadioGroup>
@@ -609,7 +647,9 @@ function BookPage() {
                             value={isInboundSelected && draft.criteria.tripType === "round" ? (draft.inbound?.id ?? "") : ""}
                             onValueChange={(flightId) => {
                               const flight = inboundOptions.find((f) => f.id === flightId);
-                              if (flight) setDraft((prev) => ({ ...prev, inbound: flight }));
+                              if (flight && isFlightBookable(flight, { paxCount: seatRequiredCount })) {
+                                setDraft((prev) => ({ ...prev, inbound: flight }));
+                              }
                             }}
                             aria-labelledby="inbound-flights-heading"
                             className="grid gap-3"
@@ -619,6 +659,7 @@ function BookPage() {
                                 key={flight.id}
                                 flight={flight}
                                 cabin={draft.criteria.cabin}
+                                paxCount={seatRequiredCount}
                               />
                             ))}
                           </RadioGroup>
@@ -682,7 +723,7 @@ function BookPage() {
                           const passengers = prev.passengers.length
                             ? [...prev.passengers]
                             : passengersFor(prev.criteria);
-                          while (passengers.length < pax) passengers.push(emptyPassenger());
+                          while (passengers.length < totalPax) passengers.push(emptyPassenger());
                           passengers[i] = { ...(passengers[i] ?? emptyPassenger()), ...patch };
                           return { ...prev, passengers };
                         });
