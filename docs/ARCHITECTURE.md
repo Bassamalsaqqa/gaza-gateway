@@ -2,8 +2,8 @@
 
 > **Repository**: `Bassamalsaqqa/gaza-gateway`
 > **Production Domain**: `https://www.gazaairport.com`
-> **Baseline Commit**: `1f49869ca83c82d23dcb4396a06b81e30843da54` (source main); `2ecf3577356e257d2e05ccb84d73c95e32fa7d97` (hostpapa-deploy release baseline)
-> **Engineering Status**: **Phase 3.9 Complete (System Stabilization & Source-of-Truth Reset Complete, Ready for Codex Review)**
+> **Baseline Commit**: `db6cb166bed047632906e5e02fa6052836b92745` (Phase 3.9 source release milestone on `main`); `b0bdadbf784070e7277034d314bc9fd18d45a305` (Phase 3.9 verified release on `hostpapa-deploy`)
+> **Engineering Status**: **Phase 3.9 & 3.9.1 Complete (System Stabilization, Appearance Studio UX, Truth Model, Flight-Detail Bookability & Local Regression Foundation)**
 > **Immediate Next Step**: **Phase 4 — Canonical Mock Domain & Repository Layer**
 
 ---
@@ -105,13 +105,13 @@ Future asset and copy drops must adhere to the following protocol:
 
 Phase 3.9 established a permanent, lightweight local test foundation using Node 24 native capabilities:
 
-- **Unit Test Runner**: `npm test` runs `node --test --experimental-strip-types tests/unit/*.test.ts` (58 tests across 25 suites, ~150ms execution time, zero external dependencies).
-  - `booking-rules.test.ts`: Operational status semantics, departure clock checks, inventory limits, and localized label mapping.
+- **Unit Test Runner**: `npm test` runs `node --test --experimental-strip-types tests/unit/*.test.ts` (81 tests across 28 suites, ~250ms execution time, zero external dependencies).
+  - `booking-rules.test.ts`: Operational status semantics, departure clock checks, inventory limits, localized label mapping, and flight-detail bookability guards.
   - `draft-recovery.test.ts`: Passenger details preservation across search criteria adjustments, stale flight clearance, seat clearance, and step gating.
   - `surface-grammar.test.ts`: Target ID validation, family inheritance vs component overrides, media truth filtering, and config sanitization.
   - `studio-protocol.test.ts`: Message schema parsing, version validation (`1.0.0`), route traversal protection (`isValidStudioRoutePath`).
   - `i18n-parity.test.ts`: 100% key parity between English and Arabic dictionaries across public, admin, and admin2 catalogs.
-- **Browser Smoke Test**: `npm run test:smoke` runs `tests/smoke/browser-smoke.mjs` using Playwright with system Edge/Chrome (verifying `/`, `/ar`, `/book`, `/ar/book`, and `/admin/settings?tab=appearance`).
+- **Browser Smoke Test**: `npm run test:smoke` runs `tests/smoke/browser-smoke.mjs` using Playwright with system Edge/Chrome (verifying `/`, `/ar`, `/book`, `/ar/book`, `/admin/settings?tab=appearance`, `/ar/admin/settings?tab=appearance`, flight detail bookability/unbookable states `/flight/*`, and Arabic flight detail `/ar/flight/*`).
 
 ---
 

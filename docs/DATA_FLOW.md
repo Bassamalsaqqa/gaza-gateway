@@ -1,7 +1,7 @@
 # Data Flow, State Management & Pretend-Action Inventory
 
 > **Document Purpose**: Complete audit of current data sources, state persistence, cross-screen entity splits, and enabled no-op actions across public and admin workspaces.
-> **Status**: **Phase 3.9 Active (System Stabilization & Source-of-Truth Reset)**.
+> **Status**: **Phase 3.9 & 3.9.1 Complete (System Stabilization, Flight-Detail Bookability & Source-of-Truth Reset)**.
 > **Future Target**: Convergence into a unified Mock Repository Layer in Phases 4–6 before any production backend.
 
 ---
@@ -12,7 +12,7 @@ The application currently operates across five independent data sources and stor
 
 | Store / Source | Implementation Files | Persistence | Entities & Data Types Managed |
 | :--- | :--- | :--- | :--- |
-| **Public Store** (`useStore`) | `src/lib/store.tsx` | `localStorage["gza.store.v1"]` (persisted) + in-memory session draft | Public bookings (`Booking[]`), account session (`Account | null`), and saved travelers (`Traveler[]`) are persisted to `localStorage["gza.store.v1"]`. Active booking search/selection draft (`draft: Draft`) is in-memory session state in `StoreProvider` (`useState<Draft>`). Phase 3.9 added pure domain validation and draft sanitization (`validateAndSanitizeDraft`, `calculateDraftMaxStep` in `src/lib/booking-draft.ts`) to preserve traveler names and contact info while safely clearing invalid/stale flight legs and dependent seat allocations. |
+| **Public Store** (`useStore`) | `src/lib/store.tsx` | `localStorage["gza.store.v1"]` (persisted) | Public bookings (`Booking[]`), account session (`Account | null`), saved travelers (`Traveler[]`), and active booking draft (`draft: Draft`) are persisted to `localStorage["gza.store.v1"]` upon mutation (`hasMutatedRef.current`). Draft state restores through pure domain validation and sanitization (`validateAndSanitizeDraft` in `src/lib/booking-draft.ts`), preserving traveler names and contact info while safely clearing invalid/stale flight legs and dependent seat allocations. Maximum wizard step progression is enforced via `calculateMaxStep`. |
 | **Admin Store** (`useAdmin`) | `src/lib/admin-store.tsx` | `localStorage["gza.admin.v1"]` | Staff identity (`Staff | null`), active role (`AdminRole`), flight operational overrides stored as `Record<string, FlightOverride>`. |
 | **Admin Operations State** (`useAdmin().ops`) | `src/lib/admin-ops.ts` (models & seeds), `src/lib/admin-store.tsx` (`ops` & `patchOps`) | Session in-memory state in `AdminProvider` (`useState<OpsState>`). Resets to seed on reload. | Schedules (`Schedule[]`), aircraft fleet (`AircraftType[]`), seat maps (`Record<string, SeatMapConfig>`), fare products (`FareConfig[]`), baggage allowance (`BaggageConfig`), meals (`OptionItem[]`), assistance options (`OptionItem[]`), destination parameters (`DestinationConfig[]`). |
 | **Admin Static Mock Data** | `src/lib/admin-mock.ts` | In-memory static constants | Bookings (`mockBookings: MockBooking[]`), customer profiles (`mockCustomers: MockCustomer[]`), check-in desk flights & passengers (`deskFlights: DeskFlight[]`, `deskPassengers: Record<string, DeskPassenger[]>`), staff inbox (`inboxMessages: InboxMessage[]`), staff directory (`staffRows: StaffRow[]`), audit log (`activityEntries: ActivityEntry[]`), operational analytics (`analyticsOverview`, `funnelSteps`, `routeStats`, `contentStats`), CMS & storytelling collections (`homeSections`, `travelSections`, `sitePages`, `timelineEntries`, `presentFacts`, `futureItems`, `archiveItems`, `sourceRecords`, `mediaItems`). |
@@ -30,12 +30,12 @@ In `src/lib/admin-store.tsx`:
 ### 1.2 Public Booking Draft & Date Synchronization Reality
 
 In `src/lib/store.tsx` and `src/lib/booking-draft.ts`:
-- Search criteria in `createFreshDraft()` computes departure date using `todayISO()` from `src/lib/data.ts` (local calendar date getters `getFullYear()`, `getDate()`).
-- In Phase 3.9, draft restoration runs through `validateAndSanitizeDraft()`:
-  - If departure date is in the past, rolls forward to `todayISO()`.
+- Search criteria in `createFreshDraft()` computes departure date using station timezone policy (`todayISO(now, "Asia/Gaza")` from `src/lib/data.ts`).
+- Active draft mutations persist to `localStorage["gza.store.v1"]` and are restored on load via `validateAndSanitizeDraft()`:
+  - If departure date is in the past relative to station date, rolls forward to `todayISO()`.
   - Re-evaluates bookability via `isFlightBookable(outboundFlight)`: if unbookable, clears flight selection and dependent seat selections.
   - Preserves entered passenger names, dates of birth, and contact information even if flight criteria roll forward.
-  - Calculates maximum accessible wizard step (`calculateDraftMaxStep`), clamping wizard progression to Step 1 (flight selection) or Step 3 (passenger details) if prerequisites are missing.
+  - Calculates maximum accessible wizard step (`calculateMaxStep`), clamping wizard progression to Step 1 (flight selection) or Step 3 (passenger details) if prerequisites are missing.
 
 ### 1.3 Appearance Studio & Skin Preview Store Reality (`gza.skin.preview.v1`)
 

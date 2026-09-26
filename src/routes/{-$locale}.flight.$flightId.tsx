@@ -1,6 +1,6 @@
 import { AppLink, useAppNavigate } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowRight, Plane } from "lucide-react";
+import { ArrowRight, Ban, Plane } from "lucide-react";
 import { StatusBadge } from "@/components/flight-status";
 import { btnClass, Code, Container, EmptyState, Notice, Panel, Pill } from "@/components/kit";
 import {
@@ -9,8 +9,11 @@ import {
   airportByCode,
   farePrice,
   flightById,
+  getFlightBookability,
+  isFlightBookable,
   GZA,
   minutesToLabel,
+  unbookableReasonLabelKey,
   type Flight,
 } from "@/lib/data";
 import { dateLong, money } from "@/lib/format";
@@ -81,7 +84,11 @@ function FlightDetail({
   const price = farePrice(flight.basePrice, "essential", "economy");
   const routeCode = flight.originCode === GZA.code ? flight.destinationCode : flight.originCode;
 
+  const bookability = getFlightBookability(flight, { paxCount: 1 });
+  const isBookable = bookability.bookable;
+
   function bookThisFlight() {
+    if (!isFlightBookable(flight, { paxCount: 1 })) return;
     const criteria = {
       ...defaultCriteria(flight.date, addDaysISO(flight.date, 7)),
       tripType: "oneway" as const,
@@ -100,7 +107,7 @@ function FlightDetail({
         <Container className="py-10 sm:py-14">
           <div className="flex flex-wrap items-center gap-3">
             <Pill tone="clay">
-              <Code>{flight.number}</Code>
+              <Code dir="ltr">{flight.number}</Code>
             </Pill>
             <StatusBadge status={flight.status} />
             <span className="text-xs text-ink-muted">{t("fd.operatedBy", { airline: pick(lang, AIRLINE.name) })}</span>
@@ -126,14 +133,32 @@ function FlightDetail({
           </div>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <button type="button" onClick={bookThisFlight} className={btnClass("clay", "lg")}>
-              {t("fd.bookThis")}
-              <ArrowRight aria-hidden="true" className="size-4 rtl:-scale-x-100" />
-            </button>
-            <AppLink to="/destinations/$code" params={{ code: routeCode }} className={btnClass("outline", "lg")}>
-              {t("flights.book")}
-            </AppLink>
-            <p className="numeral text-sm text-ink-muted">{t("fd.fromPrice", { price: money(price, lang) })}</p>
+            {isBookable ? (
+              <>
+                <button type="button" onClick={bookThisFlight} className={btnClass("clay", "lg")}>
+                  {t("fd.bookThis")}
+                  <ArrowRight aria-hidden="true" className="size-4 rtl:-scale-x-100" />
+                </button>
+                <AppLink to="/destinations/$code" params={{ code: routeCode }} className={btnClass("outline", "lg")}>
+                  {t("fd.destinationGuide")}
+                </AppLink>
+                <p className="numeral text-sm text-ink-muted">{t("fd.fromPrice", { price: money(price, lang) })}</p>
+              </>
+            ) : (
+              <>
+                <span className="inline-flex items-center gap-2 rounded-lg border border-ink-border bg-ink/60 px-4 py-3 text-sm font-medium text-ink-foreground">
+                  <Ban aria-hidden="true" className="size-4 shrink-0 text-clay" />
+                  <span>{t(unbookableReasonLabelKey(bookability.reason))}</span>
+                </span>
+                <AppLink to="/flights" className={btnClass("primary", "lg")}>
+                  {t("fd.openBoard")}
+                  <ArrowRight aria-hidden="true" className="size-4 rtl:-scale-x-100" />
+                </AppLink>
+                <AppLink to="/destinations/$code" params={{ code: routeCode }} className={btnClass("outline", "lg")}>
+                  {t("fd.destinationGuide")}
+                </AppLink>
+              </>
+            )}
           </div>
         </Container>
       </header>
@@ -185,9 +210,9 @@ function TimeBlock({ label, time, code, city }: { label: string; time: string; c
   return (
     <div>
       <p className="eyebrow text-clay-soft">{label}</p>
-      <p className="code-id mt-1 text-4xl font-bold sm:text-5xl">{time}</p>
+      <p className="code-id mt-1 text-4xl font-bold sm:text-5xl" dir="ltr">{time}</p>
       <p className="mt-1 text-sm text-ink-muted">
-        <Code>{code}</Code> · {city}
+        <Code dir="ltr">{code}</Code> · {city}
       </p>
     </div>
   );
@@ -215,11 +240,11 @@ function AirportBlock({
     <div>
       <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
       <p className="mt-1 text-sm font-semibold">
-        <Code>{airport.code}</Code> · {pick(lang, airport.city)}
+        <Code dir="ltr">{airport.code}</Code> · {pick(lang, airport.city)}
       </p>
       <p className="text-sm text-muted-foreground">{pick(lang, airport.name)}</p>
       <p className="text-xs text-muted-foreground">
-        {pick(lang, airport.country)} · <Code>{airport.tz}</Code>
+        {pick(lang, airport.country)} · <Code dir="ltr">{airport.tz}</Code>
       </p>
     </div>
   );

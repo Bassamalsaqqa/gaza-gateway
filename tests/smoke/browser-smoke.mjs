@@ -8,6 +8,8 @@
  * - Arabic Booking Wizard (`/ar/book`)
  * - Admin Appearance Studio with Material Interaction Proof (`/admin/settings?tab=appearance`)
  * - Arabic Appearance Studio Shell (`/ar/admin/settings?tab=appearance`)
+ * - Flight Detail Bookability & Unbookable States (`/flight/*`)
+ * - Arabic Flight Detail & Technical LTR Formatting (`/ar/flight/*`)
  *
  * Prerequisite:
  *   Standard installed browser (Microsoft Edge or Google Chrome) on the host machine.
@@ -453,6 +455,188 @@ async function runBrowserSmoke() {
       if ((await arInspectRadio.getAttribute("aria-checked")) !== "true") {
         throw new Error("ArrowRight in RTL did not move back to inspect radio");
       }
+    });
+
+    // 7. Flight Detail Bookability, Unavailable States & Navigation
+    await checkStep("7. Flight Detail Bookability & Unbookable States (/flight/*)", async () => {
+      // Deterministic future and past flight IDs (daily AMM service rotation 0)
+      function getFutureFlightId(daysAhead = 3) {
+        const d = new Date(Date.now() + daysAhead * 86400000);
+        const iso = d.toISOString().slice(0, 10);
+        const weekday = new Date(`${iso}T12:00:00`).getDay();
+        const num = weekday % 2 === 0 ? "PS100" : "PS101";
+        return `${num}-${iso}-out`;
+      }
+      function getPastFlightId(daysAgo = 7) {
+        const d = new Date(Date.now() - daysAgo * 86400000);
+        const iso = d.toISOString().slice(0, 10);
+        const weekday = new Date(`${iso}T12:00:00`).getDay();
+        const num = weekday % 2 === 0 ? "PS100" : "PS101";
+        return `${num}-${iso}-out`;
+      }
+
+      const futureId = getFutureFlightId(3);
+      const pastId = getPastFlightId(7);
+
+      // 7a. Future bookable flight discovery & booking entry
+      await page.goto(`${baseUrl}/flight/${futureId}`, { waitUntil: "domcontentloaded" });
+      await page.waitForSelector("h1", { timeout: 10000 });
+
+      // Invariant 1: Bookable flight must render primary "Book this flight" CTA
+      const bookBtn = page.locator('button:has-text("Book this flight")');
+      await bookBtn.waitFor({ state: "visible", timeout: 5000 });
+
+      // Invariant 2: Destination guide link must be present with accurate label (NOT "Book this route")
+      const guideLink = page.locator('a[href*="/destinations/"]:has-text("Destination guide")');
+      await guideLink.waitFor({ state: "visible", timeout: 5000 });
+
+      // Invariant 3: Focus & Keyboard navigation test on booking CTA
+      await bookBtn.focus();
+      const isFocused = await page.evaluate(() => document.activeElement?.textContent?.includes("Book this flight"));
+      if (!isFocused) throw new Error("Booking CTA did not receive keyboard focus");
+
+      // Invariant 4: Clicking "Book this flight" transitions to /book with flight preloaded
+      await bookBtn.click();
+      await page.waitForURL((url) => url.pathname.includes("/book"), { timeout: 5000 });
+      await page.waitForSelector('[data-surface-target="booking.flight-option"], [id^="flight-option-"]', { timeout: 10000 });
+
+      // Assert user-visible / React state: the preloaded flight option exists and is checked
+      const selectedOption = page.locator(`#flight-option-${futureId}`);
+      await selectedOption.waitFor({ state: "visible", timeout: 5000 });
+      const optionState = await selectedOption.getAttribute("data-state");
+      const optionAriaChecked = await selectedOption.getAttribute("aria-checked");
+      if (optionState !== "checked" || optionAriaChecked !== "true") {
+        throw new Error(`Expected preloaded flight option #${futureId} to be selected (data-state="checked", aria-checked="true"), got state="${optionState}", aria-checked="${optionAriaChecked}"`);
+      }
+
+      // Assert persistent draft store in localStorage: outbound matches clicked flight ID
+      const storedOutboundId = await page.evaluate(() => {
+        try {
+          const raw = localStorage.getItem("gza.store.v1");
+          if (!raw) return null;
+          const parsed = JSON.parse(raw);
+          return parsed?.draft?.outbound?.id ?? null;
+        } catch {
+          return null;
+        }
+      });
+      if (storedOutboundId !== futureId) {
+        throw new Error(`Expected persistent draft outbound flight ID to be "${futureId}", got "${storedOutboundId}"`);
+      }
+
+      // 7b. Unbookable flight (past flight)
+      await page.goto(`${baseUrl}/flight/${pastId}`, { waitUntil: "domcontentloaded" });
+      await page.waitForSelector("h1", { timeout: 10000 });
+
+      // Invariant 5: Unbookable flight must NOT render active "Book this flight" CTA
+      const unbookableBtnCount = await page.locator('button:has-text("Book this flight")').count();
+      if (unbookableBtnCount > 0) {
+        throw new Error("Unbookable/past flight unexpectedly rendered active 'Book this flight' button");
+      }
+
+      // Invariant 6: Localized unavailable explanation is present
+      const unavailableBadge = page.locator('header span:has-text("Flight landed"), header span:has-text("Departure in the past"), header span:has-text("Flight cancelled"), header span:has-text("Flight departed")').first();
+      await unavailableBadge.waitFor({ state: "visible", timeout: 5000 });
+
+      // Invariant 7: Alternative link to /flights is rendered as primary CTA
+      const flightsLink = page.locator('header a[href="/flights"]:has-text("Departures & arrivals")');
+      await flightsLink.waitFor({ state: "visible", timeout: 5000 });
+
+      // 7c. Missing / Unknown flight ID fallback
+      await page.goto(`${baseUrl}/flight/PS999-NOT-FOUND-out`, { waitUntil: "domcontentloaded" });
+      const notFoundHeading = page.locator('h3:has-text("Flight not found"), h2:has-text("Flight not found")');
+      await notFoundHeading.waitFor({ state: "visible", timeout: 5000 });
+      const returnToBoard = page.locator('a[href="/flights"]:has-text("Departures & arrivals")');
+      await returnToBoard.waitFor({ state: "visible", timeout: 5000 });
+    });
+
+    // 8. Arabic Flight Detail & LTR Technical Formatting
+    await checkStep("8. Arabic Flight Detail & Technical LTR Formatting (/ar/flight/*)", async () => {
+      function getFutureFlightId(daysAhead = 3) {
+        const d = new Date(Date.now() + daysAhead * 86400000);
+        const iso = d.toISOString().slice(0, 10);
+        const weekday = new Date(`${iso}T12:00:00`).getDay();
+        const num = weekday % 2 === 0 ? "PS100" : "PS101";
+        return `${num}-${iso}-out`;
+      }
+      function getPastFlightId(daysAgo = 7) {
+        const d = new Date(Date.now() - daysAgo * 86400000);
+        const iso = d.toISOString().slice(0, 10);
+        const weekday = new Date(`${iso}T12:00:00`).getDay();
+        const num = weekday % 2 === 0 ? "PS100" : "PS101";
+        return `${num}-${iso}-out`;
+      }
+
+      const futureId = getFutureFlightId(3);
+      const pastId = getPastFlightId(7);
+
+      // 8a. Future Arabic flight detail
+      await page.goto(`${baseUrl}/ar/flight/${futureId}`, { waitUntil: "domcontentloaded" });
+      await page.waitForSelector("h1", { timeout: 10000 });
+
+      // Invariant 1: Document attributes
+      const lang = await page.evaluate(() => document.documentElement.lang);
+      const dir = await page.evaluate(() => document.documentElement.dir);
+      if (lang !== "ar") throw new Error(`Expected lang="ar", got "${lang}"`);
+      if (dir !== "rtl") throw new Error(`Expected dir="rtl", got "${dir}"`);
+
+      // Invariant 2: Localized actions
+      const arBookBtn = page.locator('button:has-text("احجز هذه الرحلة")');
+      await arBookBtn.waitFor({ state: "visible", timeout: 5000 });
+      const arGuideLink = page.locator('a[href*="/destinations/"]:has-text("دليل المحطة")');
+      await arGuideLink.waitFor({ state: "visible", timeout: 5000 });
+
+      // Invariant 3: Technical identifiers remain LTR
+      const flightNumberEl = page.locator("header span.code-id").first();
+      const fnDir = await flightNumberEl.getAttribute("dir");
+      if (fnDir !== "ltr") {
+        throw new Error(`Expected flight number to have dir="ltr", got "${fnDir}"`);
+      }
+
+      // Invariant 4: Clicking Arabic "احجز هذه الرحلة" transitions to /ar/book with preloaded flight
+      await arBookBtn.click();
+      await page.waitForURL((url) => url.pathname.includes("/ar/book"), { timeout: 5000 });
+      await page.waitForSelector('[data-surface-target="booking.flight-option"], [id^="flight-option-"]', { timeout: 10000 });
+
+      const arSelectedOption = page.locator(`#flight-option-${futureId}`);
+      await arSelectedOption.waitFor({ state: "visible", timeout: 5000 });
+      const arOptionState = await arSelectedOption.getAttribute("data-state");
+      const arOptionAriaChecked = await arSelectedOption.getAttribute("aria-checked");
+      if (arOptionState !== "checked" || arOptionAriaChecked !== "true") {
+        throw new Error(`Expected Arabic preloaded flight option #${futureId} to be selected, got state="${arOptionState}", aria-checked="${arOptionAriaChecked}"`);
+      }
+
+      const arStoredOutboundId = await page.evaluate(() => {
+        try {
+          const raw = localStorage.getItem("gza.store.v1");
+          if (!raw) return null;
+          const parsed = JSON.parse(raw);
+          return parsed?.draft?.outbound?.id ?? null;
+        } catch {
+          return null;
+        }
+      });
+      if (arStoredOutboundId !== futureId) {
+        throw new Error(`Expected Arabic persistent draft outbound flight ID to be "${futureId}", got "${arStoredOutboundId}"`);
+      }
+
+      // 8b. Arabic unbookable flight
+      await page.goto(`${baseUrl}/ar/flight/${pastId}`, { waitUntil: "domcontentloaded" });
+      await page.waitForSelector("h1", { timeout: 10000 });
+
+      // Must not render active book button
+      const arUnbookableCount = await page.locator('button:has-text("احجز هذه الرحلة")').count();
+      if (arUnbookableCount > 0) {
+        throw new Error("Arabic unbookable flight unexpectedly rendered active 'احجز هذه الرحلة' button");
+      }
+
+      // Localized unbookable reason badge in Arabic (e.g. هبطت الرحلة, الرحلة ملغاة, etc.)
+      const arUnavailableBadge = page.locator('header span:has-text("هبطت الرحلة"), header span:has-text("موعد الإقلاع قد مضى"), header span:has-text("الرحلة ملغاة"), header span:has-text("غادرت الرحلة")').first();
+      await arUnavailableBadge.waitFor({ state: "visible", timeout: 5000 });
+
+      // Alternative link to Arabic flight board
+      const arFlightsLink = page.locator('header a[href="/ar/flights"]:has-text("المغادرة والوصول")');
+      await arFlightsLink.waitFor({ state: "visible", timeout: 5000 });
     });
 
   } finally {

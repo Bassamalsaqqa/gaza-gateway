@@ -740,6 +740,7 @@ export function flightById(id: string): Flight | null {
 export {
   isFlightBookable,
   getFlightBookability,
+  unbookableReasonLabelKey,
   getSeatRequiredPaxCount,
   flightDepartureEpoch,
   localToUtcEpoch,

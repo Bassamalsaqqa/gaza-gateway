@@ -282,6 +282,105 @@ describe("Booking Rules & Bookability", () => {
     });
   });
 
+  describe("Flight Detail Bookability Guard & Action Routing", () => {
+    const fixedNow = "2026-10-01T08:00:00Z";
+
+    it("evaluates future Scheduled flight as bookable and allows booking preloading", () => {
+      const flight = createMockFlight({ date: "2026-10-15", status: "Scheduled", seatsLeft: 10 });
+      const bookability = getFlightBookability(flight, { now: fixedNow, paxCount: 1 });
+      assert.equal(bookability.bookable, true);
+      assert.equal(bookability.reason, undefined);
+      assert.equal(isFlightBookable(flight, { now: fixedNow, paxCount: 1 }), true);
+
+      // Simulate flight-detail bookThisFlight() action:
+      let draftMutated = false;
+      function simulateBookThisFlight() {
+        if (!isFlightBookable(flight, { now: fixedNow, paxCount: 1 })) return;
+        draftMutated = true;
+      }
+      simulateBookThisFlight();
+      assert.equal(draftMutated, true, "Bookable flight must permit draft mutation and preloading");
+    });
+
+    it("blocks booking preloading for Cancelled flights and exposes localized reason", () => {
+      const flight = createMockFlight({ date: "2026-10-15", status: "Cancelled", seatsLeft: 10 });
+      const bookability = getFlightBookability(flight, { now: fixedNow, paxCount: 1 });
+      assert.equal(bookability.bookable, false);
+      assert.equal(bookability.reason, "cancelled");
+      assert.equal(unbookableReasonLabelKey(bookability.reason), "book.flightCancelled");
+
+      let draftMutated = false;
+      function simulateBookThisFlight() {
+        if (!isFlightBookable(flight, { now: fixedNow, paxCount: 1 })) return;
+        draftMutated = true;
+      }
+      simulateBookThisFlight();
+      assert.equal(draftMutated, false, "Cancelled flight must not mutate draft");
+    });
+
+    it("blocks booking preloading for Boarding flights and exposes localized reason", () => {
+      const flight = createMockFlight({ date: "2026-10-15", status: "Boarding", seatsLeft: 10 });
+      const bookability = getFlightBookability(flight, { now: fixedNow, paxCount: 1 });
+      assert.equal(bookability.bookable, false);
+      assert.equal(bookability.reason, "boarding");
+      assert.equal(unbookableReasonLabelKey(bookability.reason), "book.flightBoarding");
+
+      let draftMutated = false;
+      function simulateBookThisFlight() {
+        if (!isFlightBookable(flight, { now: fixedNow, paxCount: 1 })) return;
+        draftMutated = true;
+      }
+      simulateBookThisFlight();
+      assert.equal(draftMutated, false, "Boarding flight must not mutate draft");
+    });
+
+    it("blocks booking preloading for Departed / Landed flights and exposes localized reason", () => {
+      const departedFlight = createMockFlight({ date: "2026-10-15", status: "Departed", seatsLeft: 10 });
+      const departedBookability = getFlightBookability(departedFlight, { now: fixedNow, paxCount: 1 });
+      assert.equal(departedBookability.bookable, false);
+      assert.equal(departedBookability.reason, "departed");
+      assert.equal(unbookableReasonLabelKey(departedBookability.reason), "book.flightDeparted");
+
+      const landedFlight = createMockFlight({ date: "2026-10-15", status: "Landed", seatsLeft: 10 });
+      const landedBookability = getFlightBookability(landedFlight, { now: fixedNow, paxCount: 1 });
+      assert.equal(landedBookability.bookable, false);
+      assert.equal(landedBookability.reason, "landed");
+      assert.equal(unbookableReasonLabelKey(landedBookability.reason), "book.flightLanded");
+    });
+
+    it("blocks booking preloading for past departure dates and exposes localized reason", () => {
+      const pastFlight = createMockFlight({ date: "2026-09-15", departTime: "10:00", status: "Scheduled", seatsLeft: 10 });
+      const bookability = getFlightBookability(pastFlight, { now: fixedNow, paxCount: 1 });
+      assert.equal(bookability.bookable, false);
+      assert.equal(bookability.reason, "past");
+      assert.equal(unbookableReasonLabelKey(bookability.reason), "book.flightPast");
+
+      let draftMutated = false;
+      function simulateBookThisFlight() {
+        if (!isFlightBookable(pastFlight, { now: fixedNow, paxCount: 1 })) return;
+        draftMutated = true;
+      }
+      simulateBookThisFlight();
+      assert.equal(draftMutated, false, "Past flight must not mutate draft");
+    });
+
+    it("blocks booking preloading for sold-out flights (0 seats)", () => {
+      const soldOutFlight = createMockFlight({ date: "2026-10-15", status: "Scheduled", seatsLeft: 0 });
+      const bookability = getFlightBookability(soldOutFlight, { now: fixedNow, paxCount: 1 });
+      assert.equal(bookability.bookable, false);
+      assert.equal(bookability.reason, "sold_out");
+      assert.equal(unbookableReasonLabelKey(bookability.reason), "book.flightSoldOut");
+
+      let draftMutated = false;
+      function simulateBookThisFlight() {
+        if (!isFlightBookable(soldOutFlight, { now: fixedNow, paxCount: 1 })) return;
+        draftMutated = true;
+      }
+      simulateBookThisFlight();
+      assert.equal(draftMutated, false, "Sold-out flight must not mutate draft");
+    });
+  });
+
   describe("Capacity Proof Fixture Durability & Station Policy", () => {
     it("remains strictly future-relative and bookable after 2026-10-15 with injected clocks", () => {
       // Test with injected clocks well beyond 2026-10-15

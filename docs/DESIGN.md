@@ -826,7 +826,7 @@ The administrative workstation embodies an authentic airport Operations Desk: ca
 
 ---
 
-### 22.6 Gaza Surface Grammar (`src/design/surfaces/`) `[Proposed Design Contract]`
+### 22.6 Gaza Surface Grammar (`src/design/surfaces/`) `[Implemented Design Contract]`
 To eliminate visual fatigue and generic white-card SaaS boilerplate across the application, the **Gaza Surface Grammar** defines an authored, semantic structural system replacing default cards with authentic Mediterranean civic and aeronautical surfaces:
 1. **The 6 Semantic Surface Families**:
    - `operational`: Active flight options, schedule boards, turnaround status cards (`limestone` tone, `rail` frame with 4px `--primary` Gaza Rail, `runway-datum` or `connections` motifs).
