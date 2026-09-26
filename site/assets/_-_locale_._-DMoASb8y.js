@@ -1,1 +1,0 @@
-import{T as e}from"./index-BNKPCybJ.js";var t=e;export{t as component};
