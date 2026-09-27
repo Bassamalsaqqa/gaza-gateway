@@ -77,15 +77,19 @@ function ManageContactPage() {
     );
   }
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!/.+@.+\..+/.test(form.email.trim())) {
       setError(t("book.required"));
       return;
     }
     setError(null);
-    updateBooking(booking.ref, { contact: { email: form.email.trim(), phone: form.phone.trim() } });
-    setSaved(true);
+    try {
+      await updateBooking(booking.ref, { contact: { email: form.email.trim(), phone: form.phone.trim() } });
+      setSaved(true);
+    } catch {
+      setError(t("error.saveFailed"));
+    }
   };
 
   return (

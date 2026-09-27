@@ -48,6 +48,7 @@ function ManageExtrasPage() {
       ? extrasForPassengers(booking.extras, booking.passengers.length)
       : { pax: [emptyPaxExtras()] },
   );
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   if (!ready) {
     return (
@@ -103,9 +104,14 @@ function ManageExtrasPage() {
       pax: prev.pax.map((item, i) => (i === index ? { ...item, ...patch } : item)),
     }));
 
-  const save = () => {
-    updateBooking(booking.ref, { extras, total: totals.total });
-    void navigate({ to: "/manage/$ref", params: { ref: booking.ref } });
+  const save = async () => {
+    try {
+      setSaveError(null);
+      await updateBooking(booking.ref, { extras, total: totals.total });
+      void navigate({ to: "/manage/$ref", params: { ref: booking.ref } });
+    } catch {
+      setSaveError(t("error.saveFailed"));
+    }
   };
 
   return (
@@ -245,6 +251,9 @@ function ManageExtrasPage() {
             {t("common.cancel")}
           </AppLink>
         </div>
+          {saveError ? (
+            <p role="alert" className="mt-2 text-sm font-semibold text-destructive">{saveError}</p>
+          ) : null}
       </Panel>
     </Container>
   );

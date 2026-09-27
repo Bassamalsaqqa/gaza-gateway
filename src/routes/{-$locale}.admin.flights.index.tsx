@@ -91,17 +91,21 @@ function AdminFlightsPage() {
 
   const mayEdit = can("ops.edit");
 
-  const handleSaveGate = (flightId: string) => {
+  const handleSaveGate = async (flightId: string) => {
     if (!editingGate) return;
     const trimmed = editingGate.value.trim();
     if (!GATE_IDENTIFIER_PATTERN.test(trimmed)) {
       setEditingGate({ ...editingGate, error: t("adm.flight.gateError") });
       return;
     }
-    applyOverride(flightId, { gate: trimmed });
-    const fl = rows.find((r) => r.id === flightId);
-    toast(t("adm.edit.saved", { flight: fl?.number ?? flightId }));
-    setEditingGate(null);
+    try {
+      await applyOverride(flightId, { gate: trimmed });
+      const fl = rows.find((r) => r.id === flightId);
+      toast(t("adm.edit.saved", { flight: fl?.number ?? flightId }));
+      setEditingGate(null);
+    } catch (err) {
+      setEditingGate({ ...editingGate, error: err instanceof Error ? err.message : String(err) });
+    }
   };
 
   const rows = useMemo(() => {
@@ -373,10 +377,14 @@ function AdminFlightsPage() {
                             <select
                               aria-label={t("adm.flight.inlineStatus", { flight: f.number })}
                               value={f.status}
-                              onChange={(e) => {
+                              onChange={async (e) => {
                                 const newStatus = e.target.value as FlightStatus;
-                                applyOverride(f.id, { status: newStatus });
-                                toast(t("adm.edit.saved", { flight: f.number }));
+                                try {
+                                  await applyOverride(f.id, { status: newStatus });
+                                  toast(t("adm.edit.saved", { flight: f.number }));
+                                } catch (err) {
+                                  toast(err instanceof Error ? err.message : String(err));
+                                }
                               }}
                               className="h-8 rounded-md border border-border bg-card px-2 text-xs font-semibold text-foreground hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                             >

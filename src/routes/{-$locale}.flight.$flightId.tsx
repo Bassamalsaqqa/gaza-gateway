@@ -1,8 +1,10 @@
+import { useMemo } from "react";
 import { AppLink, useAppNavigate } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
 import { ArrowRight, Ban, Plane } from "lucide-react";
 import { StatusBadge } from "@/components/flight-status";
 import { btnClass, Code, Container, EmptyState, Notice, Panel, Pill } from "@/components/kit";
+import { useFlightQuery } from "@/lib/repositories";
 import {
   AIRLINE,
   addDaysISO,
@@ -46,7 +48,9 @@ export const Route = createFileRoute("/{-$locale}/flight/$flightId")({
 function FlightDetailPage() {
   const { flightId } = Route.useParams();
   const { t, lang } = useI18n();
-  const flight = flightById(flightId);
+  const { data: repoFlight } = useFlightQuery(flightId);
+  const fallbackFlight = useMemo(() => flightById(flightId), [flightId]);
+  const flight = repoFlight ?? fallbackFlight;
 
   if (!flight) {
     return (

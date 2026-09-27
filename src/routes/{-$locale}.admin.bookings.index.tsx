@@ -17,6 +17,8 @@ import { useAdmin } from "@/lib/admin-store";
 import { useI18n } from "@/lib/i18n";
 import { money } from "@/lib/format";
 import { mockBookings, type MockBookingStatus } from "@/lib/admin-mock";
+import { bookingToMockBooking, type AdaptedAdminBooking } from "@/lib/domain/booking";
+import { useBookingsQuery } from "@/lib/repositories";
 import { destinations } from "@/lib/data";
 import { pageHead } from "@/lib/head";
 
@@ -48,9 +50,18 @@ function AdminBookingsPage() {
   const [checkin, setCheckin] = useState<"all" | "none" | "partial" | "done">("all");
   const [fare, setFare] = useState("all");
 
+  const { data: repositoryBookings } = useBookingsQuery();
+
+  const allBookings = useMemo<AdaptedAdminBooking[]>(() => {
+    if (repositoryBookings && repositoryBookings.length > 0) {
+      return repositoryBookings.map(bookingToMockBooking);
+    }
+    return mockBookings as unknown as AdaptedAdminBooking[];
+  }, [repositoryBookings]);
+
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return mockBookings.filter((b) => {
+    return allBookings.filter((b) => {
       if (date && b.date !== date) return false;
       if (route !== "all" && b.destination !== route) return false;
       if (status !== "all" && b.status !== status) return false;
@@ -64,11 +75,11 @@ function AdminBookingsPage() {
         .toLowerCase()
         .includes(q);
     });
-  }, [query, date, route, status, checkin, fare]);
+  }, [allBookings, query, date, route, status, checkin, fare]);
 
   if (!can("commercial.view")) return <AdminDenied area={t("a2.bk.title")} permission="commercial.view" />;
 
-  const checkinLabel = (b: (typeof mockBookings)[number]) => {
+  const checkinLabel = (b: { passengers: { checkedOut: boolean; type: string }[] }) => {
     const done = b.passengers.filter((p) => p.checkedOut).length;
     const eligible = b.passengers.filter((p) => p.type !== "infant").length;
     return `${done}/${eligible}`;

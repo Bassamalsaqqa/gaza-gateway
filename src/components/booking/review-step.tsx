@@ -28,6 +28,8 @@ export interface ReviewStepProps {
   onConfirm: () => void;
   headingRef?: React.RefObject<HTMLHeadingElement | null>;
   isTestFixture?: boolean;
+  confirmError?: string | null;
+  isConfirming?: boolean;
 }
 
 export function ReviewStep({
@@ -38,6 +40,8 @@ export function ReviewStep({
   onConfirm,
   headingRef,
   isTestFixture,
+  confirmError,
+  isConfirming,
 }: ReviewStepProps) {
   const { t, lang } = useI18n();
 
@@ -359,6 +363,15 @@ export function ReviewStep({
           </dl>
 
           {/* Disclosure Notice: Test Fixture vs Production Prototype */}
+          {confirmError ? (
+            <div
+              role="alert"
+              className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-xs font-medium text-destructive"
+            >
+              {confirmError}
+            </div>
+          ) : null}
+
           {isFixtureFlight ? (
             <div className="rounded-xl border border-brand/30 bg-brand/5 p-4 text-xs text-foreground">
               <p className="flex items-start gap-2">
@@ -383,6 +396,7 @@ export function ReviewStep({
             <button
               type="button"
               onClick={() => onGoToStep("extras")}
+              disabled={isConfirming}
               className={btnClass("outline", "md")}
             >
               <ArrowLeft aria-hidden="true" className="size-4 rtl:rotate-180" />
@@ -390,14 +404,14 @@ export function ReviewStep({
             </button>
             <button
               type="button"
-              onClick={isFixtureFlight ? undefined : onConfirm}
-              disabled={isFixtureFlight}
+              onClick={isFixtureFlight || isConfirming ? undefined : onConfirm}
+              disabled={isFixtureFlight || isConfirming}
               className={cn(
                 btnClass("primary", "lg", "shadow-[var(--shadow-soft)] hover:shadow-md"),
-                isFixtureFlight && "opacity-60 cursor-not-allowed",
+                (isFixtureFlight || isConfirming) && "opacity-60 cursor-not-allowed",
               )}
             >
-              <span>{isFixtureFlight ? t("book.fixtureNoticeBtn") : t("book.confirm")}</span>
+              <span>{isFixtureFlight ? t("book.fixtureNoticeBtn") : isConfirming ? (t("common.processing") || "Confirming...") : t("book.confirm")}</span>
               <span className="mx-1.5 opacity-60">·</span>
               <span className="tabular-nums">{money(totals.total, lang)}</span>
             </button>

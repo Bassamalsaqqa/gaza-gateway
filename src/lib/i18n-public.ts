@@ -664,6 +664,9 @@ export const en: Dict = {
   "common.cancel": "Cancel",
   "common.saved": "Changes saved.",
 
+  "error.saveFailed": "Changes could not be saved. Please try again.",
+  "error.checkinFailed": "Check-in could not be completed. Please try again.",
+
   "book.child": "Child",
   "book.infant": "Infant",
   "book.adult": "Adult",
@@ -1434,6 +1437,9 @@ export const ar: Dict = {
   "book.passenger": "مسافر",
   "common.cancel": "إلغاء",
   "common.saved": "تم حفظ التغييرات.",
+
+  "error.saveFailed": "تعذّر حفظ التغييرات. يرجى المحاولة مرة أخرى.",
+  "error.checkinFailed": "تعذّر إتمام تسجيل الوصول. يرجى المحاولة مرة أخرى.",
 
   "book.child": "طفل",
   "book.infant": "رضيع",

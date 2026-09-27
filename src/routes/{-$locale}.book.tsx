@@ -115,6 +115,8 @@ function BookPage() {
   const [activePax, setActivePax] = useState(0);
   const [seatLeg, setSeatLeg] = useState<"out" | "in">("out");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [confirmError, setConfirmError] = useState<string | null>(null);
+  const [isConfirming, setIsConfirming] = useState(false);
   const headingRef = useRef<HTMLHeadingElement | null>(null);
   const loadedScenarioRef = useRef(search.scenario);
 
@@ -321,6 +323,7 @@ function BookPage() {
 
   const goToStep = (next: BookingStep, replace = false) => {
     setFieldErrors({});
+    setConfirmError(null);
     void navigate({
       to: "/book",
       search: {
@@ -396,7 +399,9 @@ function BookPage() {
     return true;
   };
 
-  const confirm = () => {
+  const confirm = async () => {
+    if (isConfirming) return;
+    setConfirmError(null);
     const seatableCount = getSeatRequiredPaxCount(paxList);
     if (
       !draft.outbound ||
@@ -436,22 +441,31 @@ function BookPage() {
       return;
     }
     const totals = bookingTotal(draft);
-    const created = addBooking({
-      criteria: draft.criteria,
-      outbound: draft.outbound,
-      inbound: draft.inbound,
-      fareId: draft.fareId,
-      passengers: paxList,
-      seats: draft.seats,
-      extras: draft.extras,
-      contact: draft.contact,
-      total: totals.total,
-    });
-    void navigate({
-      to: "/booking-confirmation/$ref",
-      params: { ref: created.ref },
-      ...(Object.keys(previewParams).length > 0 ? { search: previewParams } : {}),
-    });
+    setIsConfirming(true);
+    try {
+      const created = await addBooking({
+        criteria: draft.criteria,
+        outbound: draft.outbound,
+        inbound: draft.inbound,
+        fareId: draft.fareId,
+        passengers: paxList,
+        seats: draft.seats,
+        extras: draft.extras,
+        contact: draft.contact,
+        total: totals.total,
+      });
+      void navigate({
+        to: "/booking-confirmation/$ref",
+        params: { ref: created.ref },
+        ...(Object.keys(previewParams).length > 0 ? { search: previewParams } : {}),
+      });
+    } catch (err) {
+      console.error("Booking confirmation error:", err);
+      setIsConfirming(false);
+      setConfirmError(
+        err instanceof Error ? err.message : t("book.confirmError") || "Booking could not be confirmed.",
+      );
+    }
   };
 
   const totals = bookingTotal(draft);
@@ -522,6 +536,8 @@ function BookPage() {
               onGoToStep={(step) => goToStep(step)}
               onConfirm={confirm}
               headingRef={headingRef}
+              confirmError={confirmError}
+              isConfirming={isConfirming}
               isTestFixture={
                 isCapacityProof ||
                 Boolean(

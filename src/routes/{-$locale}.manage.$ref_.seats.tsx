@@ -38,6 +38,7 @@ function ManageSeatsPage() {
   const [leg, setLeg] = useState<Leg>("out");
   const [seats, setSeats] = useState<Record<string, string>>(booking?.seats ?? {});
   const [activePax, setActivePax] = useState(0);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   if (!ready) {
     return (
@@ -86,7 +87,7 @@ function ManageSeatsPage() {
     return `${p?.firstName ?? ""} ${p?.lastName ?? ""}`.trim() || `${t("book.passenger")} ${i + 1}`;
   };
 
-  const save = () => {
+  const save = async () => {
     const totals = bookingTotal({
       outbound: booking.outbound,
       inbound: booking.inbound,
@@ -95,8 +96,13 @@ function ManageSeatsPage() {
       seats,
       extras: booking.extras,
     });
-    updateBooking(booking.ref, { seats, total: totals.total });
-    void navigate({ to: "/manage/$ref", params: { ref: booking.ref } });
+    try {
+      setSaveError(null);
+      await updateBooking(booking.ref, { seats, total: totals.total });
+      void navigate({ to: "/manage/$ref", params: { ref: booking.ref } });
+    } catch {
+      setSaveError(t("error.saveFailed"));
+    }
   };
 
   const seatCharges = Object.values(seats).reduce(
@@ -180,6 +186,9 @@ function ManageSeatsPage() {
             {t("common.cancel")}
           </AppLink>
         </div>
+          {saveError ? (
+            <p role="alert" className="mt-2 text-sm font-semibold text-destructive">{saveError}</p>
+          ) : null}
       </Panel>
     </Container>
   );

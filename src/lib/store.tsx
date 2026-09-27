@@ -70,86 +70,29 @@ export {
   validateAndSanitizeDraft,
 };
 
-export type Leg = "out" | "in";
-
-/** Per-leg check-in: the passenger indexes that completed check-in on that leg. */
-export type CheckedIn = { out: number[]; in: number[] };
-
-export type Booking = {
-  ref: string;
-  createdAt: string;
-  criteria: SearchCriteria;
-  outbound: Flight;
-  inbound: Flight | null;
-  fareId: "essential" | "classic" | "flex";
-  passengers: Passenger[];
-  seats: Record<string, string>; // "out-0" | "in-0" -> "12A"
-  extras: Extras;
-  contact: Contact;
-  total: number;
-  status: "confirmed" | "cancelled";
-  checkedIn: CheckedIn;
-  /** Local-only ownership: the account email this booking is linked to. */
-  ownerEmail: string | null;
-};
-
-/** Legs that actually exist on this booking. */
-export function bookingLegs(booking: Booking): Leg[] {
-  return booking.inbound ? ["out", "in"] : ["out"];
-}
-
-/** Passengers who occupy a seat (infants travel on an adult's lap). */
-export function seatedPassengers(booking: Pick<Booking, "passengers">): number[] {
-  return booking.passengers.flatMap((p, i) => (p.type === "infant" ? [] : [i]));
-}
-
-/** Infants travelling on the lap of the given adult. */
-export function infantsWith(booking: Pick<Booking, "passengers">, adultIndex: number): number[] {
-  return booking.passengers.flatMap((p, i) =>
-    p.type === "infant" && (p.withAdult ?? 0) === adultIndex ? [i] : [],
-  );
-}
-
-/** Passenger indexes checked in on this leg. Cancelled bookings have none. */
-export function checkedInPax(booking: Booking, leg: Leg): number[] {
-  if (booking.status !== "confirmed") return [];
-  return booking.checkedIn?.[leg] ?? [];
-}
-
-export function isPaxCheckedIn(booking: Booking, leg: Leg, paxIndex: number): boolean {
-  return checkedInPax(booking, leg).includes(paxIndex);
-}
-
-/** True when at least one passenger is checked in on this leg. */
-export function isCheckedIn(booking: Booking, leg: Leg): boolean {
-  return checkedInPax(booking, leg).length > 0;
-}
-
-/** Eligible passengers on this leg who have not checked in yet. */
-export function openPaxForLeg(booking: Booking, leg: Leg): number[] {
-  if (booking.status !== "confirmed") return [];
-  const done = checkedInPax(booking, leg);
-  return seatedPassengers(booking).filter((i) => !done.includes(i));
-}
-
-export function legFullyCheckedIn(booking: Booking, leg: Leg): boolean {
-  return booking.status === "confirmed" && openPaxForLeg(booking, leg).length === 0;
-}
-
-/** Legs that still have at least one passenger to check in. */
-export function openLegs(booking: Booking): Leg[] {
-  return bookingLegs(booking).filter((leg) => openPaxForLeg(booking, leg).length > 0);
-}
-
-/** True when at least one leg has at least one checked-in passenger. */
-export function anyCheckedIn(booking: Booking): boolean {
-  return bookingLegs(booking).some((leg) => isCheckedIn(booking, leg));
-}
-
-/** How many boarding passes this booking currently has. */
-export function passCount(booking: Booking): number {
-  return bookingLegs(booking).reduce((sum, leg) => sum + checkedInPax(booking, leg).length, 0);
-}
+export type {
+  Booking,
+  BookingPassenger,
+  CheckedIn,
+  Leg,
+} from "./domain/booking";
+export {
+  anyCheckedIn,
+  bookingLegs,
+  checkedInPax,
+  infantsWith,
+  isCheckedIn,
+  isPaxCheckedIn,
+  legFullyCheckedIn,
+  makePassengerId,
+  openLegs,
+  openPaxForLeg,
+  passCount,
+  seatedPassengers,
+} from "./domain/booking";
+import type { Booking, BookingPassenger, CheckedIn, Leg } from "./domain/booking";
+import { makePassengerId } from "./domain/booking";
+import { useRepositories } from "./repositories";
 
 export type Traveler = {
   id: string;
@@ -202,15 +145,17 @@ type StoreValue = {
   resetDraft: (criteria: SearchCriteria) => void;
   bookings: Booking[];
   addBooking: (
-    booking: Omit<Booking, "ref" | "createdAt" | "status" | "checkedIn" | "ownerEmail">,
-  ) => Booking;
+    booking: Omit<Booking, "ref" | "createdAt" | "status" | "checkedIn" | "ownerEmail" | "passengers"> & {
+      passengers: (Passenger | BookingPassenger)[];
+    },
+  ) => Promise<Booking>;
   /** Bookings linked to the signed-in account only. */
   myBookings: Booking[];
   /** Link a booking made as a guest to the signed-in account (local only). */
-  claimBooking: (ref: string) => void;
+  claimBooking: (ref: string) => Promise<void>;
   /** Mark the given passengers of one leg as checked in. */
-  checkInLeg: (ref: string, leg: Leg, paxIndexes: number[]) => void;
-  updateBooking: (ref: string, patch: Partial<Booking>) => void;
+  checkInLeg: (ref: string, leg: Leg, paxIndexes: number[]) => Promise<void>;
+  updateBooking: (ref: string, patch: Partial<Booking>) => Promise<void>;
   findBooking: (ref: string) => Booking | undefined;
   account: Account | null;
   signIn: (email: string, firstName?: string, lastName?: string) => void;
@@ -227,10 +172,10 @@ const StoreContext = createContext<StoreValue | null>(null);
 const KEY = "gza.store.v1";
 
 type Persisted = {
-  bookings: Booking[];
+  bookings?: Booking[] | undefined;
   account: Account | null;
   travelers: Traveler[];
-  draft?: Draft;
+  draft?: Draft | undefined;
 };
 
 
@@ -267,6 +212,7 @@ function migrateBooking(raw: Booking): Booking {
 }
 
 export function StoreProvider({ children }: { children: ReactNode }) {
+  const { booking: bookingRepo } = useRepositories();
   const [ready, setReady] = useState(false);
   const [draft, setDraftState] = useState<Draft>(initialDraft);
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -274,6 +220,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [travelers, setTravelers] = useState<Traveler[]>([]);
   const hasMutatedRef = useRef(false);
   const extraKeysRef = useRef<Record<string, unknown>>({});
+  const initialLegacyBookingsRef = useRef<Booking[]>([]);
+
+  // Synchronize bookings with canonical BookingRepository
+  useEffect(() => {
+    let mounted = true;
+    bookingRepo.list().then((list) => {
+      if (mounted) setBookings(list);
+    });
+
+    const unsubscribe = bookingRepo.subscribe(() => {
+      bookingRepo.list().then((list) => {
+        if (mounted) setBookings(list);
+      });
+    });
+
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
+  }, [bookingRepo]);
 
   useEffect(() => {
     if (isStudioPreviewActive()) {
@@ -283,7 +249,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const sc = getScenarioById(scenarioId);
         if (sc?.getMockDraft) {
           setDraftState(sc.getMockDraft());
-          setBookings([]);
           setAccount(null);
           setTravelers([]);
           setReady(true);
@@ -300,7 +265,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           ? rawStep
           : "results";
       setDraftState(createDeterministicMockDraft(validStep));
-      setBookings([]);
       setAccount(null);
       setTravelers([]);
       setReady(true);
@@ -314,9 +278,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const raw = window.localStorage.getItem(KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as Persisted & Record<string, unknown>;
-        const { bookings: b, account: a, travelers: t, draft: d, ...extra } = parsed;
+        const { account: a, travelers: t, draft: d, bookings: b, ...extra } = parsed;
         extraKeysRef.current = extra;
-        setBookings((b ?? []).map(migrateBooking));
+        if (Array.isArray(b)) {
+          initialLegacyBookingsRef.current = b;
+        }
         setAccount(a ?? null);
         setTravelers((t ?? []).map((tr) => ({ ...tr, dob: tr.dob ?? "" })));
         if (d) {
@@ -339,9 +305,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (draft.outbound?.id.startsWith("CAP-PROOF") || draft.inbound?.id.startsWith("CAP-PROOF")) {
       return;
     }
-    const payload: Persisted = { ...extraKeysRef.current, bookings, account, travelers, draft };
+    // Retain legacy bookings if any were present at boot for rollback safety, but stop writing new shadow bookings
+    const payload: Persisted = {
+      ...extraKeysRef.current,
+      ...(initialLegacyBookingsRef.current.length > 0 ? { bookings: initialLegacyBookingsRef.current } : {}),
+      account,
+      travelers,
+      draft,
+    };
     window.localStorage.setItem(KEY, JSON.stringify(payload));
-  }, [ready, bookings, account, travelers, draft]);
+  }, [ready, account, travelers, draft]);
 
   const setDraft = useCallback((updater: (prev: Draft) => Draft) => {
     hasMutatedRef.current = true;
@@ -370,7 +343,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   );
 
   const addBooking = useCallback(
-    (booking: Omit<Booking, "ref" | "createdAt" | "status" | "checkedIn" | "ownerEmail">) => {
+    async (
+      booking: Omit<Booking, "ref" | "createdAt" | "status" | "checkedIn" | "ownerEmail" | "passengers"> & {
+        passengers: (Passenger | BookingPassenger)[];
+      },
+    ): Promise<Booking> => {
       if (booking.outbound?.id.startsWith("CAP-PROOF") || booking.inbound?.id.startsWith("CAP-PROOF")) {
         throw new Error("Cannot create booking: test fixture flight cannot be booked.");
       }
@@ -382,53 +359,72 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         throw new Error("Cannot create booking: inbound flight is not bookable.");
       }
       hasMutatedRef.current = true;
-      const created: Booking = {
-        ...booking,
-        ref: makePnr(),
-        createdAt: new Date().toISOString(),
-        status: "confirmed",
-        checkedIn: { out: [], in: [] },
+
+      // Authoritative creation in canonical repository (determines PNR, checks bookability, persists)
+      const created = await bookingRepo.create({
+        criteria: booking.criteria,
+        outbound: booking.outbound,
+        inbound: booking.inbound,
+        fareId: booking.fareId,
+        passengers: booking.passengers,
+        seats: booking.seats,
+        extras: booking.extras,
+        contact: booking.contact,
+        total: booking.total,
         ownerEmail: account?.email ?? null,
-      };
-      setBookings((prev) => [created, ...prev]);
+      });
+
+      setBookings((prev) => [created, ...prev.filter((b) => b.ref !== created.ref)]);
       return created;
     },
-    [account],
+    [account, bookingRepo],
   );
 
-  const claimBooking = useCallback((ref: string) => {
-    hasMutatedRef.current = true;
-    setAccount((acc) => {
-      if (acc) {
+  const claimBooking = useCallback(
+    async (ref: string) => {
+      if (!account) return;
+      hasMutatedRef.current = true;
+      const claimed = await bookingRepo.claim(ref, account.email);
+      if (claimed) {
         setBookings((prev) =>
           prev.map((b) =>
-            b.ref.toUpperCase() === ref.trim().toUpperCase() && !b.ownerEmail
-              ? { ...b, ownerEmail: acc.email }
-              : b,
+            b.ref.toUpperCase() === claimed.ref.toUpperCase() ? claimed : b,
           ),
         );
       }
-      return acc;
-    });
-  }, []);
+    },
+    [account, bookingRepo],
+  );
 
-  const checkInLeg = useCallback((ref: string, leg: Leg, paxIndexes: number[]) => {
-    hasMutatedRef.current = true;
-    setBookings((prev) =>
-      prev.map((b) => {
-        if (b.ref.toUpperCase() !== ref.trim().toUpperCase() || b.status !== "confirmed") return b;
-        const merged = Array.from(new Set([...(b.checkedIn?.[leg] ?? []), ...paxIndexes])).sort(
-          (a, z) => a - z,
+  const checkInLeg = useCallback(
+    async (ref: string, leg: Leg, paxIndexes: number[]) => {
+      hasMutatedRef.current = true;
+      const updated = await bookingRepo.checkIn(ref, leg, paxIndexes);
+      if (updated) {
+        setBookings((prev) =>
+          prev.map((b) =>
+            b.ref.toUpperCase() === updated.ref.toUpperCase() ? updated : b,
+          ),
         );
-        return { ...b, checkedIn: { ...b.checkedIn, [leg]: merged } };
-      }),
-    );
-  }, []);
+      }
+    },
+    [bookingRepo],
+  );
 
-  const updateBooking = useCallback((ref: string, patch: Partial<Booking>) => {
-    hasMutatedRef.current = true;
-    setBookings((prev) => prev.map((b) => (b.ref === ref ? { ...b, ...patch } : b)));
-  }, []);
+  const updateBooking = useCallback(
+    async (ref: string, patch: Partial<Booking>) => {
+      hasMutatedRef.current = true;
+      const updated = await bookingRepo.update(ref, patch);
+      if (updated) {
+        setBookings((prev) =>
+          prev.map((b) =>
+            b.ref.toUpperCase() === updated.ref.toUpperCase() ? updated : b,
+          ),
+        );
+      }
+    },
+    [bookingRepo],
+  );
 
   const findBooking = useCallback(
     (ref: string) => bookings.find((b) => b.ref.toUpperCase() === ref.trim().toUpperCase()),

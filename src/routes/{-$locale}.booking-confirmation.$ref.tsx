@@ -6,6 +6,7 @@ import { Code, Container, EmptyState, GazaLoadingState, Notice, Panel, btnClass 
 import { dateLong, money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
 import { extrasFor, totalExtraBags, useStore } from "@/lib/store";
+import { useBookingQuery } from "@/lib/repositories";
 import { passesForBooking } from "@/components/booking/boarding-pass";
 
 export const Route = createFileRoute("/{-$locale}/booking-confirmation/$ref")({
@@ -30,11 +31,12 @@ function ConfirmationPage() {
   const { ref } = Route.useParams();
   const { t, lang } = useI18n();
   const { findBooking, account, claimBooking, ready } = useStore();
-  const booking = findBooking(ref);
+  const { data: canonicalBooking, isLoading: queryLoading } = useBookingQuery(ref);
+  const booking = canonicalBooking ?? findBooking(ref);
   const passes = booking ? passesForBooking(booking) : [];
   const firstPass = passes[0];
 
-  if (!ready) {
+  if (!ready && queryLoading) {
     return (
       <Container className="py-16">
         <GazaLoadingState />
@@ -202,7 +204,7 @@ function ConfirmationPage() {
                 {t("account.trips")}
               </AppLink>
             ) : (
-              <button type="button" onClick={() => claimBooking(booking.ref)} className={btnClass("clay", "md")}>
+              <button type="button" onClick={() => void claimBooking(booking.ref).catch(() => {})} className={btnClass("clay", "md")}>
                 {t("conf.linkAccount")}
               </button>
             )}

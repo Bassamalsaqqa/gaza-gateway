@@ -45,7 +45,7 @@ export function FlightQuickEdit({
     setValidationError(null);
   }
 
-  const save = () => {
+  const save = async () => {
     if (!flight) return;
     setValidationError(null);
 
@@ -63,16 +63,20 @@ export function FlightQuickEdit({
       return;
     }
 
-    applyOverride(flight.id, {
-      status: form.status,
-      gate: form.gate.trim(),
-      terminal: form.terminal.trim(),
-      aircraft: form.aircraft.trim(),
-      revisedDepart: form.revised.trim(),
-      note: form.note.trim(),
-    });
-    toast(t("adm.edit.saved", { flight: flight.number }));
-    onClose();
+    try {
+      await applyOverride(flight.id, {
+        status: form.status,
+        gate: form.gate.trim(),
+        terminal: form.terminal.trim(),
+        aircraft: form.aircraft.trim(),
+        revisedDepart: form.revised.trim(),
+        note: form.note.trim(),
+      });
+      toast(t("adm.edit.saved", { flight: flight.number }));
+      onClose();
+    } catch (err) {
+      setValidationError(err instanceof Error ? err.message : String(err));
+    }
   };
 
   const aircraftNames = ops.aircraft.map((a) => a.name);

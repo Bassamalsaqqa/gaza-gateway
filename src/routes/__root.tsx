@@ -12,6 +12,7 @@ import { lazy, Suspense, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { I18nProvider } from "@/lib/i18n";
+import { RepositoryProvider } from "@/lib/repositories";
 import { StoreProvider } from "@/lib/store";
 import { AdminProvider } from "@/lib/admin-store";
 import { stripLocale } from "@/lib/locale";
@@ -173,13 +174,15 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <I18nProvider>
-        <StoreProvider>
-          <AdminProvider>
-            <SurfaceGrammarProvider>
-              <SiteFrame />
-            </SurfaceGrammarProvider>
-          </AdminProvider>
-        </StoreProvider>
+        <RepositoryProvider>
+          <StoreProvider>
+            <AdminProvider>
+              <SurfaceGrammarProvider>
+                <SiteFrame />
+              </SurfaceGrammarProvider>
+            </AdminProvider>
+          </StoreProvider>
+        </RepositoryProvider>
       </I18nProvider>
     </QueryClientProvider>
   );

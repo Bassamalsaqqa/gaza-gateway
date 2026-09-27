@@ -19,6 +19,8 @@ import { pick, useI18n } from "@/lib/i18n";
 import { useAdmin } from "@/lib/admin-store";
 import { contentItems, type Permission } from "@/lib/admin";
 import { mockBookings, mockCustomers } from "@/lib/admin-mock";
+import { useBookingsQuery } from "@/lib/repositories";
+import { bookingToMockBooking, type AdaptedAdminBooking } from "@/lib/domain/booking";
 import { arrivalsOn, departuresOn, destinations, todayISO } from "@/lib/data";
 import { useAppNavigate } from "@/components/app-link";
 import { cn } from "@/lib/utils";
@@ -192,6 +194,14 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
 
   const today = todayISO();
 
+  const { data: repositoryBookings } = useBookingsQuery();
+  const allBookings = useMemo<AdaptedAdminBooking[]>(() => {
+    if (repositoryBookings && repositoryBookings.length > 0) {
+      return repositoryBookings.map(bookingToMockBooking);
+    }
+    return mockBookings as unknown as AdaptedAdminBooking[];
+  }, [repositoryBookings]);
+
   const suggestions = useMemo(() => {
     const delayedTerm = lang === "ar" ? "متأخرة" : "Delayed";
     const archiveTerm = lang === "ar" ? "الأرشيف" : "Archive";
@@ -268,7 +278,7 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
     // 3. Bookings and customers (requires commercial.view)
     if (canCommercial) {
       const seenEmails = new Set<string>();
-      for (const b of mockBookings) {
+      for (const b of allBookings) {
         const hay = normalizeSearch(`${b.ref} ${b.lead} ${b.email} ${b.route} ${b.flightOut}`);
         if (hay.includes(q)) {
           out.push({
@@ -340,7 +350,7 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
     }
 
     return out.slice(0, 30);
-  }, [query, lang, t, today, canOps, canCommercial, canContent, permittedCommands]);
+  }, [query, lang, t, today, canOps, canCommercial, canContent, permittedCommands, allBookings]);
 
   useEffect(() => setActive(0), [query]);
 

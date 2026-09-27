@@ -27,10 +27,11 @@ export function BookingDetail({
   onCancel,
 }: {
   booking: Booking;
-  onCancel?: () => void;
+  onCancel?: () => Promise<void> | void;
 }) {
   const { t, lang } = useI18n();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
   const fare = fares.find((f) => f.id === booking.fareId);
   const legs = bookingLegs(booking);
   const remainingLegs = openLegs(booking);
@@ -276,12 +277,21 @@ export function BookingDetail({
         title={t("manage.cancelConfirmTitle")}
         body={t("manage.cancelConfirmBody", { ref: booking.ref })}
         confirmLabel={t("manage.cancelConfirmYes")}
-        onConfirm={() => {
-          setConfirmOpen(false);
-          onCancel?.();
+        onConfirm={async () => {
+          try {
+            setCancelError(null);
+            await onCancel?.();
+            setConfirmOpen(false);
+          } catch {
+            setConfirmOpen(false);
+            setCancelError(t("error.saveFailed"));
+          }
         }}
-        onClose={() => setConfirmOpen(false)}
+        onClose={() => { setConfirmOpen(false); setCancelError(null); }}
       />
+      {cancelError ? (
+        <p role="alert" className="mt-2 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{cancelError}</p>
+      ) : null}
     </div>
   );
 }

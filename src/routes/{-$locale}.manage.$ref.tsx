@@ -69,7 +69,7 @@ function ManageDetailPage() {
         <div className="mx-auto max-w-3xl">
           <BookingDetail
             booking={booking}
-            onCancel={() => updateBooking(booking.ref, { status: "cancelled" })}
+            onCancel={async () => { await updateBooking(booking.ref, { status: "cancelled" }); }}
           />
         </div>
       </Container>

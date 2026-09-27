@@ -43,7 +43,7 @@ type Step = "leg" | "pax" | "details" | "seats" | "review" | "done";
 function CheckInPage() {
   const { ref } = Route.useParams();
   const { t, lang } = useI18n();
-  const { ready, findBooking, updateBooking, checkInLeg, account } = useStore();
+  const { ready, findBooking, updateBooking, account } = useStore();
   const booking = findBooking(ref);
 
   const [step, setStep] = useState<Step>("leg");
@@ -141,7 +141,7 @@ function CheckInPage() {
     setStep("pax");
   };
 
-  const complete = () => {
+  const complete = async () => {
     if (!leg) return;
     const nextSeats = { ...booking.seats };
     // Only the passengers being checked in now have their seat and document saved.
@@ -152,9 +152,19 @@ function CheckInPage() {
     const passengers = booking.passengers.map((p, i) =>
       selected.includes(i) && docs[i] !== undefined ? { ...p, document: docs[i] as string } : p,
     );
-    updateBooking(booking.ref, { seats: nextSeats, passengers });
-    checkInLeg(booking.ref, leg, selected);
-    setStep("done");
+    // Merge check-in state for one atomic repository mutation
+    const currentChecked = booking.checkedIn?.[leg] ?? [];
+    const merged = Array.from(new Set([...currentChecked, ...selected])).sort((a, b) => a - b);
+    try {
+      await updateBooking(booking.ref, {
+        seats: nextSeats,
+        passengers,
+        checkedIn: { ...booking.checkedIn, [leg]: merged },
+      });
+      setStep("done");
+    } catch {
+      setError(t("error.checkinFailed"));
+    }
   };
 
   const paxLabel = (i: number) => {

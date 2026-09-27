@@ -1,22 +1,23 @@
 # Data Flow, State Management & Pretend-Action Inventory
 
 > **Document Purpose**: Complete audit of current data sources, state persistence, cross-screen entity splits, and enabled no-op actions across public and admin workspaces.
-> **Status**: **Phase 3.9 & 3.9.1 Complete (System Stabilization, Flight-Detail Bookability & Source-of-Truth Reset)**.
-> **Future Target**: Convergence into a unified Mock Repository Layer in Phases 4–6 before any production backend.
+> **Status**: **Phase 4 Complete (Canonical Mock Domain & Repository Layer)**.
+> **Future Target**: Completion of Phase 4B/4C and Convergence of Public/Admin workflows in Phases 5–6 before any production backend.
 
 ---
 
 ## 1. Current State Stores & Persistence
 
-The application currently operates across five independent data sources and storage singletons:
+Following Phase 4, the application coordinates persistence across canonical repositories and legacy boundary keys:
 
 | Store / Source | Implementation Files | Persistence | Entities & Data Types Managed |
 | :--- | :--- | :--- | :--- |
-| **Public Store** (`useStore`) | `src/lib/store.tsx` | `localStorage["gza.store.v1"]` (persisted) | Public bookings (`Booking[]`), account session (`Account | null`), saved travelers (`Traveler[]`), and active booking draft (`draft: Draft`) are persisted to `localStorage["gza.store.v1"]` upon mutation (`hasMutatedRef.current`). Draft state restores through pure domain validation and sanitization (`validateAndSanitizeDraft` in `src/lib/booking-draft.ts`), preserving traveler names and contact info while safely clearing invalid/stale flight legs and dependent seat allocations. Maximum wizard step progression is enforced via `calculateMaxStep`. |
-| **Admin Store** (`useAdmin`) | `src/lib/admin-store.tsx` | `localStorage["gza.admin.v1"]` | Staff identity (`Staff | null`), active role (`AdminRole`), flight operational overrides stored as `Record<string, FlightOverride>`. |
-| **Admin Operations State** (`useAdmin().ops`) | `src/lib/admin-ops.ts` (models & seeds), `src/lib/admin-store.tsx` (`ops` & `patchOps`) | Session in-memory state in `AdminProvider` (`useState<OpsState>`). Resets to seed on reload. | Schedules (`Schedule[]`), aircraft fleet (`AircraftType[]`), seat maps (`Record<string, SeatMapConfig>`), fare products (`FareConfig[]`), baggage allowance (`BaggageConfig`), meals (`OptionItem[]`), assistance options (`OptionItem[]`), destination parameters (`DestinationConfig[]`). |
-| **Admin Static Mock Data** | `src/lib/admin-mock.ts` | In-memory static constants | Bookings (`mockBookings: MockBooking[]`), customer profiles (`mockCustomers: MockCustomer[]`), check-in desk flights & passengers (`deskFlights: DeskFlight[]`, `deskPassengers: Record<string, DeskPassenger[]>`), staff inbox (`inboxMessages: InboxMessage[]`), staff directory (`staffRows: StaffRow[]`), audit log (`activityEntries: ActivityEntry[]`), operational analytics (`analyticsOverview`, `funnelSteps`, `routeStats`, `contentStats`), CMS & storytelling collections (`homeSections`, `travelSections`, `sitePages`, `timelineEntries`, `presentFacts`, `futureItems`, `archiveItems`, `sourceRecords`, `mediaItems`). |
-| **Appearance / Skin Preview Store** | `src/lib/skin.ts`, `src/design/surfaces/context.tsx` | `localStorage["gza.skin.preview.v1"]` | Authored surface skin, canvas motifs, and per-target recipe overrides (`SkinConfig`). Active **only** when `skinPreview=1` or `studioPreview=1` is present in the query string. Normal visitor sessions on ordinary URLs (`/`, `/book`, etc.) completely ignore this key and render the committed baseline design tokens with zero SSR/hydration mismatch and zero state leakage. |
+| **Canonical Repositories** (`BookingRepository`, `FlightRepository`) | `src/lib/repositories/`, `src/lib/domain/` | `localStorage["gza.repo.v1"]` (schemaVersion: 1) | Canonical bookings (`Booking[]`) and mutable operational flight overrides (`flightOverrides: Record<string, FlightOverride>`). Single source of truth for public and admin views. Synchronized across tabs via `subscribeToStorage()`. |
+| **Public Store Façade** (`useStore`) | `src/lib/store.tsx` | `localStorage["gza.store.v1"]` (draft, account, travelers) | Active booking wizard draft (`draft: Draft`), account session (`Account \| null`), and saved travel companions (`Traveler[]`). Booking mutations delegate directly to `bookingRepo` (single writer). |
+| **Admin Store Façade** (`useAdmin`) | `src/lib/admin-store.tsx` | `localStorage["gza.admin.v1"]` (staffId) | Staff identity (`Staff \| null`), active role (`AdminRole`). Flight operational override mutations delegate directly to `flightRepo` (single writer). |
+| **Admin Operations State** (`useAdmin().ops`) | `src/lib/admin-ops.ts`, `src/lib/admin-store.tsx` | Session in-memory state in `AdminProvider` (`useState<OpsState>`). Resets to seed on reload. | Schedules (`Schedule[]`), aircraft fleet (`AircraftType[]`), seat maps (`Record<string, SeatMapConfig>`), fare products (`FareConfig[]`), baggage allowance (`BaggageConfig`), meals (`OptionItem[]`), assistance options (`OptionItem[]`), destination parameters (`DestinationConfig[]`). |
+| **Admin Static Mock Data** | `src/lib/admin-mock.ts` | In-memory static constants | Customer profiles (`mockCustomers`), check-in desk fixtures, staff inbox messages, staff directory, system audit log, analytics metrics, and CMS/story collections (pending Phase 4B). |
+| **Appearance / Skin Preview Store** | `src/lib/skin.ts`, `src/design/surfaces/context.tsx` | `localStorage["gza.skin.preview.v1"]` | Authored surface skin, canvas motifs, and per-target recipe overrides (`SkinConfig`). Active **only** when `skinPreview=1` or `studioPreview=1` is present in the query string. |
 
 ### 1.1 Admin Flight Overrides Implementation Reality
 
@@ -50,7 +51,7 @@ In `src/lib/skin.ts` and `src/components/admin/appearance-studio/`:
 - **Staff and Passenger Authentication**: Pure client-side simulation. Mock passphrases and email logins set local state tokens (`localStorage["gza.admin.v1"]` and `localStorage["gza.store.v1"]`). There is no session token verification, token rotation, or server-side authorization.
 - **Financial & Commercial Boundary**: The booking wizard concludes at Step 6 (Review & Confirmation) with PNR generation (e.g. `GZA-7K8P`). No real payment gateway, merchant facility, or financial processing exists. Payment card inputs are simulated and discarded.
 - **Secrets & Customer Privacy**: Zero real secrets, database credentials, payment card data, or private customer PII belong in client repositories or bundles. All customer profiles and staff accounts are synthetic fixtures.
-- **React Query Status**: `@tanstack/react-query` is mounted at the root (`QueryClientProvider`), but application query/mutation use is currently minimal (most screens bind directly to `useStore()`, `useAdmin()`, or static mock imports). Phase 4 will introduce formal repository contracts and query/mutation hooks.
+- **React Query Status**: `@tanstack/react-query` is mounted at the root (`QueryClientProvider`). Phase 4 added canonical booking and flight query keys, hooks, and mutation invalidation for representative public and admin views. Other screens still use legacy `useStore()`, `useAdmin()`, or mock data pending Phases 5 and 6.
 
 ### 1.5 Asset & Content Ingestion Protocol and Archival Truth
 
@@ -202,9 +203,9 @@ To eliminate data splits and pretend actions without building a backend prematur
 
 The development program follows this strictly sequenced progression:
 
-1. **Phase 4 — Canonical Mock Domain & Repository Layer**:
-   - Decouple UI components from direct `localStorage` access into domain entities and typed repository interfaces (`IBookingRepository`, `IFlightRepository`, `IOperationsRepository`).
-   - Create a unified mock repository converging public bookings (`gza.store.v1`) and admin manifests (`mockBookings`, `deskPassengers`).
+1. **Phase 4 — Canonical Mock Domain & Repository Layer (complete)**:
+   - Established typed booking and flight domain models, asynchronous repository contracts, and the versioned `gza.repo.v1` mock browser store.
+   - Migrated legacy public bookings and admin flight overrides into canonical records while retaining legacy keys for rollback. Representative public and admin booking/flight views now share repository identity. Admin desk fixtures and broader workflows remain for Phases 5 and 6.
 2. **Phase 4B — Typed Content & CMS Schema**:
    - Formalize typed content models for homepage editorial blocks, travel advisories, airport history chapters, and bilingual metadata.
 3. **Phase 4C — Settings & Appearance Store Convergence**:

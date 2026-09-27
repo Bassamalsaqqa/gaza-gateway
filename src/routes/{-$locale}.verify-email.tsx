@@ -65,7 +65,7 @@ function VerifyEmailPage() {
               <button
                 type="button"
                 onClick={() => {
-                  if (ref) claimBooking(ref);
+                  if (ref) void claimBooking(ref).catch(() => {});
                   setVerified(true);
                 }}
                 className={btnClass("primary", "md", "w-full")}

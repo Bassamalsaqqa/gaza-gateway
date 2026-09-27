@@ -73,7 +73,9 @@ async function runBrowserSmoke() {
   const context = await browser.newContext();
   await context.addInitScript(() => {
     try {
-      localStorage.setItem("gza.admin.v1", JSON.stringify({ staffId: "adm-1", overrides: {} }));
+      if (!localStorage.getItem("gza.admin.v1")) {
+        localStorage.setItem("gza.admin.v1", JSON.stringify({ staffId: "adm-1", overrides: {} }));
+      }
     } catch {
       // ignore
     }
@@ -639,6 +641,452 @@ async function runBrowserSmoke() {
       await arFlightsLink.waitFor({ state: "visible", timeout: 5000 });
     });
 
+    // 9. Real Cross-Public/Admin Booking Journey Proof
+    await checkStep("9. Real cross-public/admin booking journey proof", async () => {
+      function getFutureFlightId(daysAhead = 4) {
+        const d = new Date(Date.now() + daysAhead * 86400000);
+        const iso = d.toISOString().slice(0, 10);
+        const weekday = new Date(`${iso}T12:00:00`).getDay();
+        const num = weekday % 2 === 0 ? "PS100" : "PS101";
+        return `${num}-${iso}-out`;
+      }
+
+      const futureId = getFutureFlightId(4);
+      let createdPnr = null;
+
+      try {
+        // 9a. Navigate to public flight detail and begin booking journey
+        await page.goto(`${baseUrl}/flight/${futureId}`, { waitUntil: "domcontentloaded" });
+        await page.waitForSelector("h1", { timeout: 10000 });
+
+        const bookBtn = page.locator('button:has-text("Book this flight")').first();
+        await bookBtn.waitFor({ state: "visible", timeout: 5000 });
+        await bookBtn.click();
+
+        // 9b. Navigate through booking steps
+        await page.waitForURL((url) => url.pathname.includes("/book"), { timeout: 10000 });
+
+        // Step results -> fare
+        const toFareBtn = page.locator('button:has-text("Continue"), button:has-text("متابعة")').first();
+        await toFareBtn.waitFor({ state: "visible", timeout: 8000 });
+        await toFareBtn.click();
+
+        // Step fare -> passengers
+        const toPaxBtn = page.locator('button:has-text("Continue"), button:has-text("متابعة")').first();
+        await toPaxBtn.waitFor({ state: "visible", timeout: 8000 });
+        await toPaxBtn.click();
+
+        // Step passengers: enter required traveller details
+        await page.waitForSelector("#fn-0", { timeout: 8000 });
+        await page.fill("#fn-0", "Zaid");
+        await page.fill("#ln-0", "Al-Khalidi");
+        await page.locator("#dob-0").click();
+        await page.waitForSelector(".rdp-day:not([disabled])", { timeout: 5000 });
+        await page.locator(".rdp-day:not([disabled])").first().click();
+        await page.fill("#contact-email", "smoke9@example.com");
+        await page.fill("#contact-phone", "+970599000000");
+
+        const toSeatsBtn = page.locator('button:has-text("Continue"), button:has-text("متابعة")').first();
+        await toSeatsBtn.click();
+
+        // Step seats -> extras
+        const toExtrasBtn = page.locator('button:has-text("Continue"), button:has-text("متابعة")').first();
+        await toExtrasBtn.waitFor({ state: "visible", timeout: 8000 });
+        await toExtrasBtn.click();
+
+        // Step extras -> review
+        const toReviewBtn = page.locator('button:has-text("Continue"), button:has-text("متابعة")').first();
+        await toReviewBtn.waitFor({ state: "visible", timeout: 8000 });
+        await toReviewBtn.click();
+
+        // Step review: confirm booking (authoritative repository mutation)
+        await page.waitForSelector('button:has-text("Confirm booking"), button:has-text("Confirm")', { timeout: 8000 });
+        const confirmBtn = page.locator('button:has-text("Confirm booking"), button:has-text("Confirm")').first();
+        await confirmBtn.click();
+
+        // 9c. Verify public confirmation view displays authoritative PNR
+        await page.waitForURL((url) => url.pathname.includes("/booking-confirmation/"), { timeout: 15000 });
+        const confUrl = new URL(page.url());
+        createdPnr = confUrl.pathname.split("/").filter(Boolean).pop();
+        if (!createdPnr || createdPnr.length < 5) {
+          throw new Error(`Failed to extract valid PNR from confirmation URL: ${confUrl.pathname}`);
+        }
+
+        await page.waitForSelector("h1", { timeout: 10000 });
+        const confText = await page.textContent("body");
+        if (!confText.includes(createdPnr)) {
+          throw new Error(`Public confirmation page does not display PNR ${createdPnr}`);
+        }
+        if (!confText.includes("Zaid") || !confText.includes("Al-Khalidi")) {
+          throw new Error(`Public confirmation page does not display passenger name Zaid Al-Khalidi`);
+        }
+
+        // 9d. Navigate to /admin (Dashboard) and verify recent booking appears
+        await page.goto(`${baseUrl}/admin`, { waitUntil: "domcontentloaded" });
+        await page.waitForSelector('[data-testid="operations-summary"], table', { timeout: 10000 });
+        const adminDashText = await page.textContent("body");
+        if (!adminDashText.includes(createdPnr)) {
+          throw new Error(`Admin Dashboard recent bookings list does not contain created PNR ${createdPnr}`);
+        }
+
+        // 9e. Navigate to /admin/bookings and verify row appears in table
+        await page.goto(`${baseUrl}/admin/bookings`, { waitUntil: "domcontentloaded" });
+        await page.waitForSelector("table", { timeout: 10000 });
+
+        const searchInput = page.locator('#filter-search, input[placeholder*="Search"]');
+        if (await searchInput.count() > 0) {
+          await searchInput.first().fill(createdPnr);
+        }
+
+        const bookingRow = page.locator(`tr:has-text("${createdPnr}")`);
+        await bookingRow.waitFor({ state: "visible", timeout: 5000 });
+        const rowText = await bookingRow.textContent();
+        if (!rowText.includes("Zaid") || !rowText.includes("Al-Khalidi")) {
+          throw new Error(`Admin booking table row for ${createdPnr} missing passenger name`);
+        }
+
+        // 9f. Navigate to /admin/bookings/:ref and verify detail view loads with no empty state
+        await page.goto(`${baseUrl}/admin/bookings/${createdPnr}`, { waitUntil: "domcontentloaded" });
+        await page.waitForSelector("header", { timeout: 10000 });
+
+        const emptyCount = await page.locator(':has-text("Booking not found"), :has-text("لم يتم العثور على الحجز")').count();
+        if (emptyCount > 0) {
+          throw new Error(`Admin booking detail for ${createdPnr} incorrectly rendered "Booking not found"`);
+        }
+
+        const detailText = await page.textContent("body");
+        if (!detailText.includes(createdPnr) || !detailText.includes("Zaid") || !detailText.includes("Al-Khalidi")) {
+          throw new Error(`Admin booking detail for ${createdPnr} missing PNR or passenger identity`);
+        }
+      } finally {
+        // Clean up created booking from canonical storage to keep baseline clean
+        if (createdPnr) {
+          await page.evaluate((ref) => {
+            try {
+              const raw = localStorage.getItem("gza.repo.v1");
+              if (raw) {
+                const state = JSON.parse(raw);
+                state.bookings = state.bookings.filter((b) => b.ref !== ref);
+                localStorage.setItem("gza.repo.v1", JSON.stringify(state));
+              }
+            } catch {
+              // ignore
+            }
+          }, createdPnr);
+        }
+      }
+    });
+
+    // 10. Operational Flight Override Reflection Proof via Admin UI
+    await checkStep("10. Operational flight override reflection proof via Admin UI", async () => {
+      function getFutureFlightId(daysAhead = 5) {
+        const d = new Date(Date.now() + daysAhead * 86400000);
+        const iso = d.toISOString().slice(0, 10);
+        const weekday = new Date(`${iso}T12:00:00`).getDay();
+        const num = weekday % 2 === 0 ? "PS100" : "PS101";
+        return `${num}-${iso}-out`;
+      }
+
+      const targetFlightId = getFutureFlightId(5);
+      let flightId = targetFlightId;
+      const overrideGate = "B7";
+
+      try {
+        // 10a. Navigate to Admin Flights board and use existing Quick Edit UI
+        await page.goto(`${baseUrl}/admin/flights`, { waitUntil: "domcontentloaded" });
+        await page.waitForSelector("table", { timeout: 10000 });
+
+        // Set date filter to target flight's date
+        const flightDate = targetFlightId.split("-").slice(1, 4).join("-");
+        const dateInput = page.locator('input[type="date"]').first();
+        if (await dateInput.count() > 0) {
+          await dateInput.fill(flightDate);
+          await page.waitForTimeout(500);
+        }
+
+        // Locate flight row and open Quick Edit
+        const flightPrefix = targetFlightId.slice(0, 5); // "PS100" or "PS101"
+        const row = page.locator(`tr:has-text("${flightPrefix}")`).first();
+        await row.waitFor({ state: "visible", timeout: 8000 });
+        const detailHref = await row.locator('a[href*="/admin/flights/"]').getAttribute("href");
+        const selectedId = detailHref?.split("/").pop();
+        if (!selectedId) throw new Error("Could not resolve the selected Admin flight row ID");
+        flightId = selectedId;
+
+        const quickEditBtn = row.locator('button:has-text("Quick edit")');
+        await quickEditBtn.click();
+
+        // In quick edit sheet, set status to Delayed and gate to B7
+        await page.waitForSelector("#fq-status", { timeout: 5000 });
+        await page.selectOption("#fq-status", "Delayed");
+        await page.fill("#fq-gate", overrideGate);
+
+        const saveBtn = page.locator('button:has-text("Save")').first();
+        await saveBtn.click();
+        await page.waitForFunction(
+          ({ id, gate }) => {
+            const raw = localStorage.getItem("gza.repo.v1");
+            if (!raw) return false;
+            const override = JSON.parse(raw).flightOverrides?.[id];
+            return override?.status === "Delayed" && override?.gate === gate;
+          },
+          { id: flightId, gate: overrideGate },
+          { timeout: 10000 },
+        );
+
+        // 10b. Navigate to public flight detail and verify operational override is reflected
+        await page.goto(`${baseUrl}/flight/${flightId}`, { waitUntil: "domcontentloaded" });
+        await page.waitForFunction(
+          (gate) => document.body?.innerText.includes("Delayed") && document.body?.innerText.includes(gate),
+          overrideGate,
+          { timeout: 10000 },
+        );
+
+        const publicDetailText = await page.textContent("body");
+        if (!publicDetailText.includes("Delayed")) {
+          throw new Error(`Expected public flight detail to reflect overridden status "Delayed"`);
+        }
+        if (!publicDetailText.includes(overrideGate)) {
+          throw new Error(`Expected public flight detail to reflect overridden gate "${overrideGate}"`);
+        }
+
+        // 10c. Navigate to admin flight detail (/admin/flights/:flightId)
+        await page.goto(`${baseUrl}/admin/flights/${flightId}`, { waitUntil: "domcontentloaded" });
+        await page.waitForFunction(
+          () => document.body?.innerText.includes("Delayed"),
+          null,
+          { timeout: 10000 },
+        );
+        const adminDetailText = await page.textContent("body");
+        if (!adminDetailText.includes("Delayed")) {
+          throw new Error(`Expected admin flight detail to reflect overridden status "Delayed"`);
+        }
+      } finally {
+        // Clean up override in storage
+        await page.evaluate((id) => {
+          try {
+            const raw = localStorage.getItem("gza.repo.v1");
+            if (raw) {
+              const state = JSON.parse(raw);
+              delete state.flightOverrides[id];
+              localStorage.setItem("gza.repo.v1", JSON.stringify(state));
+            }
+          } catch {
+            // ignore
+          }
+        }, flightId);
+      }
+    });
+
+    // 11. Studio Repository Isolation Sentinel Proof (gza.repo.v1, gza.store.v1, gza.admin.v1)
+    await checkStep("11. Studio repository isolation sentinel proof for all three keys", async () => {
+      const sentinelRepo = {
+        schemaVersion: 1,
+        bookings: [{
+          ref: "SENTINEL-STUDIO-PROOF",
+          createdAt: "2026-01-01T00:00:00.000Z",
+          status: "confirmed",
+          total: 195,
+          outbound: {
+            id: "PS100-2026-10-15-out",
+            number: "PS 100",
+            originCode: "GZA",
+            destinationCode: "CAI",
+            date: "2026-10-15",
+            departTime: "08:00",
+            arriveTime: "09:15",
+            durationMinutes: 75,
+            aircraft: "Boeing 737-700",
+            status: "Scheduled",
+            gate: "A1",
+            terminal: "1",
+            basePrice: 180,
+            seatsLeft: 42,
+          },
+          inbound: null,
+          fareId: "classic",
+          passengers: [{ id: "pax-SENTINEL-0", type: "adult", firstName: "Sentinel", lastName: "Auditor" }],
+          seats: {},
+          extras: { pax: [] },
+          contact: { email: "sentinel@test.com", phone: "+12345" },
+          checkedIn: { out: [], in: [] },
+          ownerEmail: null,
+        }],
+        flightOverrides: {
+          "PS100-2026-10-15-out": {
+            flightId: "PS100-2026-10-15-out",
+            gate: "SENTINEL-GATE-PROOF",
+            status: "Scheduled",
+            updatedAt: "2026-01-01T00:00:00.000Z",
+          },
+        },
+      };
+
+      const sentinelStore = {
+        account: {
+          email: "sentinel-store@example.com",
+          firstName: "Store",
+          lastName: "Sentinel",
+          phone: "+111222333",
+          seatPreference: "window",
+          mealPreference: "standard",
+          newsletter: false,
+        },
+        travelers: [
+          { id: "t-sentinel-1", firstName: "StoreTraveler", lastName: "Sentinel", dob: "1990-01-01", nationality: "PS", document: "DOC1" },
+        ],
+        legacyStoreToken: "STORE_SENTINEL_TOKEN_ABC",
+      };
+
+      const sentinelAdmin = {
+        staffId: "st-ops-01",
+        overrides: {
+          "LEGACY-SENTINEL-FLIGHT": {
+            flightId: "LEGACY-SENTINEL-FLIGHT",
+            gate: "LEGACY-GATE-SENTINEL",
+            status: "Delayed",
+          },
+        },
+        legacyAdminToken: "ADMIN_SENTINEL_TOKEN_XYZ",
+      };
+
+      const expectedRepoRaw = JSON.stringify(sentinelRepo);
+      const expectedStoreRaw = JSON.stringify(sentinelStore);
+      const expectedAdminRaw = JSON.stringify(sentinelAdmin);
+
+      // 11a. Inject sentinels into localStorage before loading Studio preview
+      await page.goto(`${baseUrl}/`, { waitUntil: "domcontentloaded" });
+      await page.evaluate(({ repo, store, admin }) => {
+        localStorage.setItem("gza.repo.v1", repo);
+        localStorage.setItem("gza.store.v1", store);
+        localStorage.setItem("gza.admin.v1", admin);
+      }, { repo: expectedRepoRaw, store: expectedStoreRaw, admin: expectedAdminRaw });
+
+      try {
+        // 11b. Load regular Studio review scenario with non-CAP-PROOF flights
+        await page.goto(`${baseUrl}/book?step=review&studioPreview=1`, { waitUntil: "domcontentloaded" });
+        await page.waitForSelector("h1#review-title, [data-surface-family='dossier']", { timeout: 10000 });
+
+        // Confirm button is visible
+        const confirmBtn = page.locator('button:has-text("Confirm"), button:has-text("تأكيد")');
+        await confirmBtn.first().waitFor({ state: "visible", timeout: 5000 });
+
+        // 11c. Click confirm button inside the isolated Studio preview
+        await confirmBtn.first().click();
+
+        // 11d. Reload while in Studio preview to verify isolated frame lifecycle
+        await page.reload({ waitUntil: "domcontentloaded" });
+        await page.waitForTimeout(1000);
+
+        // 11e. Exit Studio preview by navigating back to public root
+        await page.goto(`${baseUrl}/`, { waitUntil: "domcontentloaded" });
+        await page.waitForTimeout(500);
+
+        // 11f. VERIFY: ALL THREE keys must remain 100% BYTE-IDENTICAL to their sentinels
+        const actualRepoRaw = await page.evaluate(() => localStorage.getItem("gza.repo.v1"));
+        const actualStoreRaw = await page.evaluate(() => localStorage.getItem("gza.store.v1"));
+        const actualAdminRaw = await page.evaluate(() => localStorage.getItem("gza.admin.v1"));
+
+        if (actualRepoRaw !== expectedRepoRaw) {
+          throw new Error(
+            `Studio action mutated persistent gza.repo.v1!\nExpected: ${expectedRepoRaw}\nActual:   ${actualRepoRaw}`
+          );
+        }
+
+        if (actualStoreRaw !== expectedStoreRaw) {
+          throw new Error(
+            `Studio action mutated persistent gza.store.v1!\nExpected: ${expectedStoreRaw}\nActual:   ${actualStoreRaw}`
+          );
+        }
+
+        if (actualAdminRaw !== expectedAdminRaw) {
+          throw new Error(
+            `Studio action mutated persistent gza.admin.v1!\nExpected: ${expectedAdminRaw}\nActual:   ${actualAdminRaw}`
+          );
+        }
+      } finally {
+        // Clean up sentinels from localStorage
+        await page.evaluate(() => {
+          localStorage.removeItem("gza.repo.v1");
+          localStorage.removeItem("gza.store.v1");
+          localStorage.removeItem("gza.admin.v1");
+        });
+      }
+    });
+
+    // 12. Public mutation failure path: storage.setItem blocked → edit must NOT advance
+    await checkStep("12. Public mutation failure: blocked storage preserves original booking", async () => {
+      // 12a. Navigate to manage page with seed booking GZA4TQ
+      await page.goto(`${baseUrl}/manage/GZA4TQ`, { waitUntil: "domcontentloaded" });
+      await page.waitForTimeout(1000);
+
+      // 12b. Capture original contact email from the page
+      const originalEmail = await page.evaluate(() => {
+        const repoRaw = localStorage.getItem("gza.repo.v1");
+        if (!repoRaw) return null;
+        const repo = JSON.parse(repoRaw);
+        const booking = repo.bookings.find((b) => b.ref === "GZA4TQ");
+        return booking?.contact?.email ?? null;
+      });
+
+      if (!originalEmail) {
+        throw new Error("Could not find seed booking GZA4TQ in repository storage");
+      }
+
+      // 12c. Navigate to contact edit page
+      await page.goto(`${baseUrl}/manage/GZA4TQ/contact`, { waitUntil: "domcontentloaded" });
+      await page.waitForTimeout(800);
+
+      // 12d. Block storage.setItem to simulate storage failure
+      await page.evaluate(() => {
+        const origSetItem = Storage.prototype.setItem;
+        Storage.prototype.setItem = function () {
+          throw new Error("QuotaExceededError: blocked by smoke test");
+        };
+        // Store original for later restore
+        window.__origSetItem = origSetItem;
+      });
+
+      // 12e. Clear email field and type a new email
+      const emailInput = await page.locator('input[type="email"]').first();
+      await emailInput.fill("smoke-failure-test@example.com");
+
+      // 12f. Submit the form
+      const saveBtn = await page.getByRole("button", { name: /save/i }).first();
+      await saveBtn.click();
+      await page.waitForTimeout(1000);
+
+      // 12g. Verify error message appears (role="alert") - should NOT advance to saved state
+      const errorAlert = await page.locator('[role="alert"]');
+      const alertCount = await errorAlert.count();
+
+      // 12h. Restore storage.setItem
+      await page.evaluate(() => {
+        if (window.__origSetItem) {
+          Storage.prototype.setItem = window.__origSetItem;
+          delete window.__origSetItem;
+        }
+      });
+
+      if (alertCount === 0) {
+        throw new Error("Expected error alert when storage.setItem is blocked, but none found");
+      }
+
+      // 12i. Verify original booking data is preserved in repository
+      const preservedEmail = await page.evaluate(() => {
+        const repoRaw = localStorage.getItem("gza.repo.v1");
+        if (!repoRaw) return null;
+        const repo = JSON.parse(repoRaw);
+        const booking = repo.bookings.find((b) => b.ref === "GZA4TQ");
+        return booking?.contact?.email ?? null;
+      });
+
+      if (preservedEmail !== originalEmail) {
+        throw new Error(
+          `Booking contact email was corrupted after failed save! Expected "${originalEmail}", got "${preservedEmail}"`
+        );
+      }
+    });
   } finally {
     await browser.close();
     if (server) {

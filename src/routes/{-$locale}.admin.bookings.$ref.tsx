@@ -20,6 +20,8 @@ import { pick, useI18n } from "@/lib/i18n";
 import { money } from "@/lib/format";
 import { mockBookingByRef, type MockBookingStatus, type MockPassenger } from "@/lib/admin-mock";
 import { pageHead } from "@/lib/head";
+import { useBookingQuery, useUpdateBookingMutation } from "@/lib/repositories";
+import { bookingToMockBooking, type AdaptedAdminBooking, type AdaptedAdminPassenger } from "@/lib/domain/booking";
 
 export const Route = createFileRoute("/{-$locale}/admin/bookings/$ref")({
   head: ({ params }) =>
@@ -49,10 +51,26 @@ function AdminBookingDetailPage() {
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [cancelled, setCancelled] = useState(false);
 
-  const booking = useMemo(() => mockBookingByRef(ref), [ref]);
+  const { data: canonicalBooking, isLoading } = useBookingQuery(ref);
+  const updateBookingMutation = useUpdateBookingMutation();
+  const fallbackBooking = useMemo(() => mockBookingByRef(ref), [ref]);
+
+  const booking = useMemo<AdaptedAdminBooking | undefined>(() => {
+    if (canonicalBooking) return bookingToMockBooking(canonicalBooking);
+    return fallbackBooking as unknown as AdaptedAdminBooking | undefined;
+  }, [canonicalBooking, fallbackBooking]);
+
   const mayEdit = can("commercial.edit");
 
   if (!can("commercial.view")) return <AdminDenied area={t("a2.bk.title")} permission="commercial.view" />;
+
+  if (isLoading && !booking) {
+    return (
+      <AdminPanel>
+        <div className="p-8 text-center text-muted-foreground">{t("a2.loading") || "Loading..."}</div>
+      </AdminPanel>
+    );
+  }
 
   if (!booking) {
     return (
@@ -72,7 +90,7 @@ function AdminBookingDetailPage() {
 
   const status: MockBookingStatus = cancelled ? "cancelled" : booking.status;
   const eligible = booking.passengers.filter((p) => p.type !== "infant");
-  const paxType = (p: MockPassenger) => t(`a2.bd.type.${p.type}`);
+  const paxType = (p: MockPassenger | AdaptedAdminPassenger) => t(`a2.bd.type.${p.type}`);
 
   const actions = (
     <>
@@ -102,6 +120,7 @@ function AdminBookingDetailPage() {
         meta={
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <Ltr className="text-base font-bold">{booking.ref}</Ltr>
+            <span className="font-semibold text-foreground">{booking.lead}</span>
             <AdminChip tone={statusTone(status)}>{t(`a2.bk.st.${status}`)}</AdminChip>
             <Ltr className="text-muted-foreground">{booking.route}</Ltr>
             <Ltr className="text-muted-foreground">{booking.date}</Ltr>
@@ -155,6 +174,10 @@ function AdminBookingDetailPage() {
               <section className="rounded-md border border-border">
                 <h3 className="border-b border-border px-3 py-2 text-sm font-bold">{t("a2.bd.contact")}</h3>
                 <dl className="space-y-2 px-3 py-2.5 text-sm">
+                  <div>
+                    <dt className="text-xs font-semibold text-muted-foreground">{t("a2.bk.lead")}</dt>
+                    <dd className="font-medium text-foreground">{booking.lead}</dd>
+                  </div>
                   <div>
                     <dt className="text-xs font-semibold text-muted-foreground">{t("a2.cu.email")}</dt>
                     <dd>
@@ -340,7 +363,7 @@ function AdminBookingDetailPage() {
                   </div>
                 </li>
               ))}
-              {cancelled ? (
+              {status === "cancelled" ? (
                 <li className="flex gap-3">
                   <span aria-hidden="true" className="mt-1.5 size-2 shrink-0 rounded-full bg-status-cancelled" />
                   <p className="text-sm">{t("a2.bd.cancelled")}</p>
@@ -432,9 +455,20 @@ function AdminBookingDetailPage() {
         body={t("a2.bd.cancelBody")}
         confirmLabel={t("a2.bd.cancelConfirm")}
         onConfirm={() => {
-          setCancelled(true);
           setConfirmCancel(false);
-          toast(t("a2.bd.cancelled"));
+          updateBookingMutation.mutate(
+            { ref: booking.ref, patch: { status: "cancelled" } },
+            {
+              onSuccess: () => {
+                setCancelled(true);
+                toast(t("a2.bd.cancelled"));
+              },
+              onError: (err) => {
+                setCancelled(false);
+                toast(err instanceof Error ? err.message : String(err));
+              },
+            }
+          );
         }}
         onClose={() => setConfirmCancel(false)}
       />

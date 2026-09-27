@@ -125,17 +125,21 @@ function AdminDashboardPage() {
       note: flight.note ?? "",
     });
 
-  const save = () => {
+  const save = async () => {
     if (!edit) return;
-    applyOverride(edit.flight.id, {
-      status: edit.status,
-      gate: edit.gate,
-      terminal: edit.terminal,
-      revisedDepart: edit.revised,
-      note: edit.note,
-    });
-    toast(t("adm.edit.saved", { flight: edit.flight.number }));
-    setEdit(null);
+    try {
+      await applyOverride(edit.flight.id, {
+        status: edit.status,
+        gate: edit.gate,
+        terminal: edit.terminal,
+        revisedDepart: edit.revised,
+        note: edit.note,
+      });
+      toast(t("adm.edit.saved", { flight: edit.flight.number }));
+      setEdit(null);
+    } catch (err) {
+      toast(err instanceof Error ? err.message : String(err));
+    }
   };
 
   const summaryMetrics = useMemo(
