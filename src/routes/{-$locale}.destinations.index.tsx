@@ -4,8 +4,11 @@ import { DestinationCard } from "@/components/destination-card";
 import { Container, Field, Input, PageHeader } from "@/components/kit";
 import { destinations } from "@/lib/data";
 import { pick, useI18n } from "@/lib/i18n";
+import { publishedDestinationsPresentation } from "@/content/published/destinations-presentation";
+import { ContentPreviewNotice, useContentPreview } from "@/content/preview";
+import { getDestinationPhotoByCode, getDestinationPhotoById } from "@/lib/destination-media";
 
-export const Route = createFileRoute("/{-$locale}/destinations")({
+export const Route = createFileRoute("/{-$locale}/destinations/")({
   head: () => ({
     meta: [
       { title: "Destinations — Palestinian Airlines from Gaza (GZA)" },
@@ -25,6 +28,11 @@ function DestinationsPage() {
   const { t, lang } = useI18n();
   const [query, setQuery] = useState("");
 
+  const { content: presentation, previewing } = useContentPreview(
+    "destinations.presentation",
+    publishedDestinationsPresentation,
+  );
+
   const list = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return destinations;
@@ -35,6 +43,7 @@ function DestinationsPage() {
 
   return (
     <>
+      {previewing && <ContentPreviewNotice />}
       <PageHeader title={t("dest.title")} description={t("dest.sub")}>
         <div className="max-w-sm">
           <Field label={t("flights.search")} htmlFor="dest-search">
@@ -53,9 +62,20 @@ function DestinationsPage() {
           <p className="py-16 text-center text-sm text-muted-foreground">{t("gallery.empty")}</p>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {list.map((destination) => (
-              <DestinationCard key={destination.code} destination={destination} />
-            ))}
+            {list.map((destination) => {
+              const assignment = presentation.assignments.find((a) => a.code === destination.code);
+              const photo =
+                (assignment && getDestinationPhotoById(assignment.photoId)) ??
+                getDestinationPhotoByCode(destination.code);
+              return (
+                <DestinationCard
+                  key={destination.code}
+                  destination={destination}
+                  photoOverride={photo}
+                  focalOverride={assignment?.focalPoint}
+                />
+              );
+            })}
           </div>
         )}
       </Container>

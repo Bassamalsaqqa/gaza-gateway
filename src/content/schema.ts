@@ -67,15 +67,55 @@ const past = z.object({
   timeline: z.array(timelineEntry).length(PAST_IDS.length),
 }).strict().refine((doc) => unique(doc.timeline.map((entry) => entry.id)));
 
+const destinationCode = z.enum(["AMM", "CAI", "DOH", "DXB", "IST", "JED", "RUH"]);
+const destinationPhotoId = z.enum([
+  "city-amman",
+  "city-cairo",
+  "city-doha",
+  "city-dubai",
+  "city-istanbul",
+  "city-jeddah",
+  "city-riyadh",
+]);
+const focalPoint = z.object({
+  x: z.number().min(0).max(100),
+  y: z.number().min(0).max(100),
+}).strict();
+const destinationAssignment = z.object({
+  code: destinationCode,
+  photoId: destinationPhotoId,
+  focalPoint: focalPoint.optional(),
+}).strict();
+const destinationsPresentation = z.object({
+  ...envelope,
+  id: z.literal("destinations.presentation"),
+  kind: z.literal("destinations.presentation"),
+  assignments: z.array(destinationAssignment).length(7),
+}).strict().refine(
+  (doc) =>
+    unique(doc.assignments.map((a) => a.code)) &&
+    ["AMM", "CAI", "DOH", "DXB", "IST", "JED", "RUH"].every((code) =>
+      doc.assignments.some((a) => a.code === code)
+    ),
+);
+
 export function isContentKey(value: unknown): value is ContentKey {
-  return value === "home" || value === "travel" || value === "airport.past";
+  return value === "home" || value === "travel" || value === "airport.past" || value === "destinations.presentation";
 }
 export function isValidContent(key: ContentKey, value: unknown): value is ContentDocument {
   if (key === "home") return home.safeParse(value).success;
   if (key === "travel") return travel.safeParse(value).success;
-  return past.safeParse(value).success;
+  if (key === "airport.past") return past.safeParse(value).success;
+  return destinationsPresentation.safeParse(value).success;
 }
 export function contentHealth(value: ContentDocument) {
+  if (value.kind === "destinations.presentation") {
+    return {
+      hasEnglish: true,
+      hasArabic: true,
+      missingSource: false,
+    };
+  }
   const texts: LocalizedText[] = value.kind === "home" ? Object.values(value.copy) :
     value.kind === "travel" ? value.sections.flatMap((section) => [section.title, section.body, ...section.points.map((point) => point.text)]) :
       value.timeline.flatMap((entry) => [entry.title, entry.body]);

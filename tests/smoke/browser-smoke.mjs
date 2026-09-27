@@ -1316,23 +1316,51 @@ async function runBrowserSmoke() {
         if (!src?.endsWith(".webp")) throw new Error(`${asset} is not a WebP URL: ${src}`);
       }
 
-      // ── Destinations page: IST card uses the art, other cards do not ──────
+      // ── Destinations page: 7 cards with WebPs, IST top photo + lower decorated body ──────
       await page.goto(`${baseUrl}/destinations`, { waitUntil: "networkidle" });
 
-      await waitForImgLoad(
-        '[data-decorative-asset="istanbul-ist-card"]',
-        "Istanbul decorative image"
-      );
-      const istanbulSrc = await page.locator('[data-decorative-asset="istanbul-ist-card"]').getAttribute("src");
-      if (!istanbulSrc?.endsWith(".webp")) throw new Error(`Istanbul art is not a WebP URL: ${istanbulSrc}`);
+      // Verify all 7 destination cards have top city photo WebPs (no Picsum)
+      const photoCards = await page.locator('img[data-destination-photo]').all();
+      if (photoCards.length !== 7) {
+        throw new Error(`Expected 7 destination photo cards on /destinations, got ${photoCards.length}`);
+      }
 
-      // Confirm IST art is not applied to non-IST cards
-      const nonIstArt = await page.evaluate(() => {
+      for (const cardImg of photoCards) {
+        const src = await cardImg.getAttribute("src");
+        const srcSet = await cardImg.getAttribute("srcSet");
+        if (src?.includes("picsum.photos") || srcSet?.includes("picsum.photos")) {
+          throw new Error(`Destination card image uses deprecated Picsum source: ${src}`);
+        }
+        if (!src?.includes(".webp") && !srcSet?.includes(".webp")) {
+          throw new Error(`Destination card image is not WebP: ${src}`);
+        }
+      }
+
+      // Check all 7 destination cards load their top city photograph (complete && naturalWidth > 0)
+      const destinationCodes = ["AMM", "CAI", "IST", "DOH", "DXB", "JED", "RUH"];
+      for (const code of destinationCodes) {
+        await waitForImgLoad(`img[data-destination-photo="${code}"]`, `${code} top photograph`);
+      }
+
+      // Check IST lower card body decorative asset loads
+      await waitForImgLoad(
+        '[data-decorative-asset="istanbul-card-body"]',
+        "Istanbul card body decorative image"
+      );
+      const istanbulBodySrc = await page.locator('[data-decorative-asset="istanbul-card-body"]').getAttribute("src");
+      if (!istanbulBodySrc?.includes(".webp")) {
+        throw new Error(`Istanbul card body art is not a WebP URL: ${istanbulBodySrc}`);
+      }
+
+      // Confirm IST card body art is NOT applied to any non-IST card
+      const nonIstHasBodyArt = await page.evaluate(() => {
         const allCards = Array.from(document.querySelectorAll('a[data-surface-target="home.destination-card"]'));
         const nonIst = allCards.filter((a) => !a.href.includes("/IST"));
-        return nonIst.some((a) => a.querySelector('[data-decorative-asset="istanbul-ist-card"]') !== null);
+        return nonIst.some((a) => a.querySelector('[data-decorative-asset="istanbul-card-body"]') !== null);
       });
-      if (nonIstArt) throw new Error("Istanbul decorative art applied to non-IST destination card");
+      if (nonIstHasBodyArt) {
+        throw new Error("Istanbul decorative card body art applied to non-IST destination card");
+      }
 
       // GZA9MK is a deterministic seed with outbound passenger 0 checked in.
       await page.goto(`${baseUrl}/boarding-pass/GZA9MK/out/0`, { waitUntil: "domcontentloaded" });
@@ -1341,7 +1369,153 @@ async function runBrowserSmoke() {
         "Boarding-pass band decorative image"
       );
       const ticketSrc = await page.locator('[data-decorative-asset="boarding-pass-ticket-band"] img').getAttribute("src");
-      if (!ticketSrc?.endsWith(".webp")) throw new Error(`Ticket art is not a WebP URL: ${ticketSrc}`);
+      if (!ticketSrc?.includes(".webp")) throw new Error(`Ticket art is not a WebP URL: ${ticketSrc}`);
+    });
+
+    await checkStep("19. Destination detail route proof: renders hero photograph, facts, schedule, and bilingual content without route occlusion (/destinations/IST, /destinations/DXB, /ar/destinations/IST)", async () => {
+      // 19a. English Istanbul Detail (/destinations/IST)
+      await page.goto(`${baseUrl}/destinations/IST`, { waitUntil: "domcontentloaded" });
+      await page.waitForSelector("h1", { timeout: 10000 });
+      const istH1 = await page.locator("h1").innerText();
+      if (!istH1.includes("Istanbul")) {
+        throw new Error(`Expected Istanbul H1, got: "${istH1}"`);
+      }
+      const istHero = page.locator('img[data-destination-hero-photo="IST"]');
+      await istHero.waitFor({ state: "visible", timeout: 8000 });
+      const istHeroSrc = await istHero.getAttribute("src");
+      if (!istHeroSrc?.includes(".webp")) {
+        throw new Error(`Istanbul detail hero is not a WebP: ${istHeroSrc}`);
+      }
+      const pageText = await page.textContent("body");
+      if (!pageText.includes("GZA") || !pageText.includes("IST")) {
+        throw new Error("Istanbul detail page missing route codes");
+      }
+      if (!pageText.includes("Good to know") && !pageText.includes("Flight schedule") && !pageText.includes("Schedule")) {
+        throw new Error("Istanbul detail page missing schedule or Good to know section");
+      }
+
+      // 19b. English Dubai Detail (/destinations/DXB)
+      await page.goto(`${baseUrl}/destinations/DXB`, { waitUntil: "domcontentloaded" });
+      await page.waitForSelector("h1", { timeout: 10000 });
+      const dxbH1 = await page.locator("h1").innerText();
+      if (!dxbH1.includes("Dubai")) {
+        throw new Error(`Expected Dubai H1, got: "${dxbH1}"`);
+      }
+      const dxbHero = page.locator('img[data-destination-hero-photo="DXB"]');
+      await dxbHero.waitFor({ state: "visible", timeout: 8000 });
+      const dxbHeroSrc = await dxbHero.getAttribute("src");
+      if (!dxbHeroSrc?.includes(".webp")) {
+        throw new Error(`Dubai detail hero is not a WebP: ${dxbHeroSrc}`);
+      }
+
+      // 19c. Arabic Istanbul Detail (/ar/destinations/IST)
+      await page.goto(`${baseUrl}/ar/destinations/IST`, { waitUntil: "domcontentloaded" });
+      await page.waitForSelector("h1", { timeout: 10000 });
+      const arH1 = await page.locator("h1").innerText();
+      if (!arH1.includes("إسطنبول")) {
+        throw new Error(`Expected Arabic Istanbul H1 "إسطنبول", got: "${arH1}"`);
+      }
+      const arHero = page.locator('img[data-destination-hero-photo="IST"]');
+      await arHero.waitFor({ state: "visible", timeout: 8000 });
+      const arHtml = await page.locator("html").getAttribute("lang");
+      if (arHtml !== "ar") {
+        throw new Error(`Expected html lang="ar", got: "${arHtml}"`);
+      }
+    });
+
+    await checkStep("20. Admin Destination media draft workflow: edit approved photo, save draft, verify draft preview vs normal published isolation, and discard", async () => {
+      const adminMediaContext = await browser.newContext();
+      await adminMediaContext.addInitScript(() => {
+        localStorage.setItem("gza.admin.v1", JSON.stringify({ staffId: "adm-1", overrides: {} }));
+      });
+      const adminPage = await adminMediaContext.newPage();
+
+      try {
+        // 20a. Navigate to /admin/destinations/IST and change photo to city-dubai
+        await adminPage.goto(`${baseUrl}/admin/destinations/IST`, { waitUntil: "domcontentloaded" });
+        await adminPage.locator('button:has-text("Public page")').click();
+        await adminPage.waitForSelector("#de-photo", { timeout: 10000 });
+
+        // Select city-dubai
+        await adminPage.selectOption("#de-photo", "city-dubai");
+
+        // Save image draft
+        const saveDraftBtn = adminPage.getByRole("button", { name: "Save image draft" });
+        await saveDraftBtn.waitFor({ state: "visible", timeout: 5000 });
+        await saveDraftBtn.click();
+
+        // Verify draft active message appears
+        await adminPage.getByText("Draft active (stored in this browser, not published)").waitFor({ state: "visible", timeout: 8000 });
+
+        // Verify localStorage contains destinations.presentation draft with photoId === "city-dubai" for IST
+        const storedDraft = await adminPage.evaluate(() => {
+          const raw = localStorage.getItem("gza.content.draft.v1");
+          return raw ? JSON.parse(raw) : null;
+        });
+        const istAssignment = storedDraft?.drafts?.["destinations.presentation"]?.assignments?.find((a) => a.code === "IST");
+        if (istAssignment?.photoId !== "city-dubai") {
+          throw new Error(`Expected stored draft assignment photoId to be city-dubai, got ${istAssignment?.photoId}`);
+        }
+
+        // 20b. Reload /admin/destinations/IST and verify draft persists
+        await adminPage.reload({ waitUntil: "domcontentloaded" });
+        await adminPage.locator('button:has-text("Public page")').click();
+        await adminPage.waitForSelector("#de-photo", { timeout: 10000 });
+        const selectedVal = await adminPage.locator("#de-photo").inputValue();
+        if (selectedVal !== "city-dubai") {
+          throw new Error(`Draft did not survive reload in admin photo picker: ${selectedVal}`);
+        }
+
+        // 20c. Preview draft: /destinations/IST?contentPreview=1 displays Dubai photo and Not published notice
+        await adminPage.goto(`${baseUrl}/destinations/IST?contentPreview=1`, { waitUntil: "domcontentloaded" });
+        await adminPage.waitForSelector('[role="status"]', { timeout: 10000 });
+        const previewHero = adminPage.locator('img[data-destination-hero-photo="IST"]');
+        await previewHero.waitFor({ state: "visible", timeout: 8000 });
+        const previewHeroSrc = await previewHero.getAttribute("src");
+        if (!previewHeroSrc?.includes("dubai")) {
+          throw new Error(`Preview route did not overlay Dubai photo draft: ${previewHeroSrc}`);
+        }
+
+        // 20d. Normal published URL /destinations/IST remains completely isolated (uses Istanbul photo)
+        await adminPage.goto(`${baseUrl}/destinations/IST`, { waitUntil: "domcontentloaded" });
+        await adminPage.waitForSelector("h1", { timeout: 10000 });
+        const publishedHero = adminPage.locator('img[data-destination-hero-photo="IST"]');
+        await publishedHero.waitFor({ state: "visible", timeout: 8000 });
+        const publishedHeroSrc = await publishedHero.getAttribute("src");
+        if (!publishedHeroSrc?.includes("istanbul")) {
+          throw new Error(`Normal published URL was modified by local draft: ${publishedHeroSrc}`);
+        }
+        if (await adminPage.locator('[role="status"]').count() > 0) {
+          throw new Error("Normal published URL displayed preview notice");
+        }
+
+        // 20e. Return to Admin and Discard draft
+        await adminPage.goto(`${baseUrl}/admin/destinations/IST`, { waitUntil: "domcontentloaded" });
+        await adminPage.locator('button:has-text("Public page")').click();
+        await adminPage.waitForSelector("#de-photo", { timeout: 10000 });
+        const discardBtn = adminPage.getByRole("button", { name: "Discard draft" });
+        await discardBtn.waitFor({ state: "visible", timeout: 5000 });
+        await discardBtn.click();
+
+        // Wait until draft is removed from localStorage
+        await adminPage.waitForFunction(() => {
+          const raw = localStorage.getItem("gza.content.draft.v1");
+          if (!raw) return true;
+          const parsed = JSON.parse(raw);
+          return !parsed.drafts?.["destinations.presentation"];
+        });
+
+        // 20f. Verify preview route now falls back to published Istanbul photo
+        await adminPage.goto(`${baseUrl}/destinations/IST?contentPreview=1`, { waitUntil: "domcontentloaded" });
+        await adminPage.waitForSelector("h1", { timeout: 10000 });
+        const postDiscardHero = adminPage.locator('img[data-destination-hero-photo="IST"]');
+        const postDiscardSrc = await postDiscardHero.getAttribute("src");
+        if (!postDiscardSrc?.includes("istanbul")) {
+          throw new Error(`After discard, preview route did not revert to published photo: ${postDiscardSrc}`);
+        }
+      } finally {
+        await adminMediaContext.close();
+      }
     });
 
   } finally {

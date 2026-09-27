@@ -1,7 +1,7 @@
 import type { ApprovedMediaId } from "../lib/media-policy.ts";
 
 export type LocalizedText = { en: string; ar: string };
-export type ContentKey = "home" | "travel" | "airport.past";
+export type ContentKey = "home" | "travel" | "airport.past" | "destinations.presentation";
 export type EvidenceState = "verified" | "provisional" | "placeholder";
 export type MediaReference =
   | { kind: "media"; id: ApprovedMediaId }
@@ -66,10 +66,21 @@ export interface AirportPastContent extends ContentEnvelope<"airport.past"> {
   timeline: HistoricalTimelineEntry[];
 }
 
+export interface DestinationPhotoAssignment {
+  code: "AMM" | "CAI" | "DOH" | "DXB" | "IST" | "JED" | "RUH";
+  photoId: "city-amman" | "city-cairo" | "city-doha" | "city-dubai" | "city-istanbul" | "city-jeddah" | "city-riyadh";
+  focalPoint?: { x: number; y: number };
+}
+
+export interface DestinationsPresentationContent extends ContentEnvelope<"destinations.presentation"> {
+  assignments: DestinationPhotoAssignment[];
+}
+
 export interface ContentMap {
   home: HomeContent;
   travel: TravelContent;
   "airport.past": AirportPastContent;
+  "destinations.presentation": DestinationsPresentationContent;
 }
 export type ContentDocument = ContentMap[ContentKey];
 

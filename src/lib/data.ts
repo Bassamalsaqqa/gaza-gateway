@@ -23,7 +23,6 @@ export type Destination = Airport & {
   priceFrom: number;
   weeklyFlights: number;
   days: number[]; // 0 = Sunday
-  imageSeed: string;
   blurb: Bilingual;
   goodToKnow: Bilingual[];
 };
@@ -96,7 +95,6 @@ export const destinations: Destination[] = [
     priceFrom: 129,
     weeklyFlights: 14,
     days: [0, 1, 2, 3, 4, 5, 6],
-    imageSeed: "amman-city-hills",
     blurb: {
       en: "The closest gateway to Gaza and the busiest link in the opening network — a short hop across the Jordan Valley to a capital of stone terraces, downtown souks and the road to Petra.",
       ar: "أقرب بوابة إلى غزة وأكثر خطوط شبكة الافتتاح حركة — رحلة قصيرة عبر وادي الأردن إلى عاصمة المدرجات الحجرية وأسواق وسط البلد وطريق البتراء.",
@@ -116,7 +114,6 @@ export const destinations: Destination[] = [
     priceFrom: 139,
     weeklyFlights: 12,
     days: [0, 1, 2, 3, 4, 6],
-    imageSeed: "cairo-nile-evening",
     blurb: {
       en: "A dense, layered capital on the Nile and the historic transfer point for travellers from Gaza heading onward across Africa and the Gulf.",
       ar: "عاصمة مزدحمة متعددة الطبقات على النيل، ونقطة العبور التاريخية للمسافرين من غزة إلى أفريقيا والخليج.",
@@ -136,7 +133,6 @@ export const destinations: Destination[] = [
     priceFrom: 189,
     weeklyFlights: 7,
     days: [1, 3, 5, 6],
-    imageSeed: "istanbul-bosphorus-morning",
     blurb: {
       en: "Two continents, one city. Istanbul is the network's main long-haul feeder, with connections to Europe, Central Asia and North America.",
       ar: "قارتان في مدينة واحدة. إسطنبول هي المغذّي الرئيسي للرحلات الطويلة، بربط نحو أوروبا وآسيا الوسطى وأمريكا الشمالية.",
@@ -156,7 +152,6 @@ export const destinations: Destination[] = [
     priceFrom: 229,
     weeklyFlights: 5,
     days: [0, 2, 4, 6],
-    imageSeed: "doha-skyline-dusk",
     blurb: {
       en: "A Gulf hub built around transfer traffic, with a corniche skyline and one of the region's most comfortable terminals for long connections.",
       ar: "محطة خليجية مبنية حول حركة العبور، بأفق كورنيش ومبنى من الأكثر راحة في المنطقة للرحلات المتصلة.",
@@ -176,7 +171,6 @@ export const destinations: Destination[] = [
     priceFrom: 249,
     weeklyFlights: 5,
     days: [1, 3, 5],
-    imageSeed: "dubai-marina-night",
     blurb: {
       en: "The Gulf's commercial centre and a major destination for Palestinian families and businesses working across the region.",
       ar: "المركز التجاري للخليج ومحطة رئيسية للعائلات والأعمال الفلسطينية في المنطقة.",
@@ -196,7 +190,6 @@ export const destinations: Destination[] = [
     priceFrom: 219,
     weeklyFlights: 4,
     days: [0, 2, 5],
-    imageSeed: "jeddah-corniche-red-sea",
     blurb: {
       en: "The Red Sea gateway and the route most used for Umrah and Hajj travel, with a restored historic Al-Balad quarter worth the stopover.",
       ar: "بوابة البحر الأحمر والخط الأكثر استخداماً لسفر العمرة والحج، مع حيّ البلد التاريخي الذي يستحق التوقف.",
@@ -216,7 +209,6 @@ export const destinations: Destination[] = [
     priceFrom: 239,
     weeklyFlights: 3,
     days: [2, 4, 6],
-    imageSeed: "riyadh-desert-skyline",
     blurb: {
       en: "A fast-changing inland capital, and the network's main business route into the central Gulf.",
       ar: "عاصمة داخلية سريعة التحول، والخط الرئيسي لرحلات الأعمال إلى وسط الخليج.",

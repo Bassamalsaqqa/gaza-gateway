@@ -22,6 +22,8 @@ import { pick, useI18n } from "@/lib/i18n";
 import { ResponsiveImage } from "@/components/responsive-image";
 import { MEDIA } from "@/lib/media";
 import { publishedHome } from "@/content/published/home";
+import { publishedDestinationsPresentation } from "@/content/published/destinations-presentation";
+import { getDestinationPhotoByCode, getDestinationPhotoById } from "@/lib/destination-media";
 import { ContentPreviewNotice, useContentPreview } from "@/content/preview";
 import { cn } from "@/lib/utils";
 import alreadyBookedImg from "@/assets/media/decorative/cards/already-booked-routes.webp";
@@ -49,6 +51,7 @@ export const Route = createFileRoute("/{-$locale}/")({
 function Home() {
   const { t, lang } = useI18n();
   const { content, previewing } = useContentPreview("home", publishedHome);
+  const { content: destPresentation } = useContentPreview("destinations.presentation", publishedDestinationsPresentation);
   const today = todayISO();
   const [board, setBoard] = useState<"departures" | "arrivals">("departures");
   const flights = useMemo(
@@ -388,9 +391,18 @@ function Home() {
           }
         />
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {destinations.slice(0, 6).map((destination) => (
-            <DestinationCard key={destination.code} destination={destination} />
-          ))}
+          {destinations.slice(0, 6).map((destination) => {
+            const assignment = destPresentation.assignments.find((a) => a.code === destination.code);
+            const photo = (assignment && getDestinationPhotoById(assignment.photoId)) ?? getDestinationPhotoByCode(destination.code);
+            return (
+              <DestinationCard
+                key={destination.code}
+                destination={destination}
+                photoOverride={photo}
+                focalOverride={assignment?.focalPoint}
+              />
+            );
+          })}
         </div>
       </Container>
 

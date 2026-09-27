@@ -9,6 +9,9 @@ export async function getPublishedContent<K extends ContentKey>(key: K): Promise
   if (key === "home") return (await import("./published/home.ts")).publishedHome as unknown as ContentMap[K];
   if (key === "travel") return (await import("./published/travel.ts")).publishedTravel as unknown as ContentMap[K];
   if (key === "airport.past") return (await import("./published/airport-past.ts")).publishedAirportPast as unknown as ContentMap[K];
+  if (key === "destinations.presentation") {
+    return (await import("./published/destinations-presentation.ts")).publishedDestinationsPresentation as unknown as ContentMap[K];
+  }
   throw new Error("Unknown content document");
 }
 

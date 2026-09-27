@@ -20,7 +20,6 @@ import { Route as Char123LocaleChar125AirportRouteImport } from './routes/{-$loc
 import { Route as Char123LocaleChar125BookRouteImport } from './routes/{-$locale}.book'
 import { Route as Char123LocaleChar125CheckInRouteImport } from './routes/{-$locale}.check-in'
 import { Route as Char123LocaleChar125ContactRouteImport } from './routes/{-$locale}.contact'
-import { Route as Char123LocaleChar125DestinationsRouteImport } from './routes/{-$locale}.destinations'
 import { Route as Char123LocaleChar125FlightsRouteImport } from './routes/{-$locale}.flights'
 import { Route as Char123LocaleChar125ForgotPasswordRouteImport } from './routes/{-$locale}.forgot-password'
 import { Route as Char123LocaleChar125GalleryRouteImport } from './routes/{-$locale}.gallery'
@@ -56,6 +55,7 @@ import { Route as Char123LocaleChar125AirportFutureRouteImport } from './routes/
 import { Route as Char123LocaleChar125AirportPastRouteImport } from './routes/{-$locale}.airport.past'
 import { Route as Char123LocaleChar125AirportPresentRouteImport } from './routes/{-$locale}.airport.present'
 import { Route as Char123LocaleChar125BookingConfirmationRefRouteImport } from './routes/{-$locale}.booking-confirmation.$ref'
+import { Route as Char123LocaleChar125DestinationsIndexRouteImport } from './routes/{-$locale}.destinations.index'
 import { Route as Char123LocaleChar125DestinationsCodeRouteImport } from './routes/{-$locale}.destinations.$code'
 import { Route as Char123LocaleChar125FlightFlightIdRouteImport } from './routes/{-$locale}.flight.$flightId'
 import { Route as Char123LocaleChar125ManageIndexRouteImport } from './routes/{-$locale}.manage.index'
@@ -141,12 +141,6 @@ const Char123LocaleChar125ContactRoute =
   Char123LocaleChar125ContactRouteImport.update({
     id: '/contact',
     path: '/contact',
-    getParentRoute: () => Char123LocaleChar125Route,
-  } as any)
-const Char123LocaleChar125DestinationsRoute =
-  Char123LocaleChar125DestinationsRouteImport.update({
-    id: '/destinations',
-    path: '/destinations',
     getParentRoute: () => Char123LocaleChar125Route,
   } as any)
 const Char123LocaleChar125FlightsRoute =
@@ -359,11 +353,17 @@ const Char123LocaleChar125BookingConfirmationRefRoute =
     path: '/booking-confirmation/$ref',
     getParentRoute: () => Char123LocaleChar125Route,
   } as any)
+const Char123LocaleChar125DestinationsIndexRoute =
+  Char123LocaleChar125DestinationsIndexRouteImport.update({
+    id: '/destinations/',
+    path: '/destinations/',
+    getParentRoute: () => Char123LocaleChar125Route,
+  } as any)
 const Char123LocaleChar125DestinationsCodeRoute =
   Char123LocaleChar125DestinationsCodeRouteImport.update({
-    id: '/$code',
-    path: '/$code',
-    getParentRoute: () => Char123LocaleChar125DestinationsRoute,
+    id: '/destinations/$code',
+    path: '/destinations/$code',
+    getParentRoute: () => Char123LocaleChar125Route,
   } as any)
 const Char123LocaleChar125FlightFlightIdRoute =
   Char123LocaleChar125FlightFlightIdRouteImport.update({
@@ -497,7 +497,6 @@ export interface FileRoutesByFullPath {
   '/{-$locale}/book': typeof Char123LocaleChar125BookRoute
   '/{-$locale}/check-in': typeof Char123LocaleChar125CheckInRoute
   '/{-$locale}/contact': typeof Char123LocaleChar125ContactRoute
-  '/{-$locale}/destinations': typeof Char123LocaleChar125DestinationsRouteWithChildren
   '/{-$locale}/flights': typeof Char123LocaleChar125FlightsRoute
   '/{-$locale}/forgot-password': typeof Char123LocaleChar125ForgotPasswordRoute
   '/{-$locale}/gallery': typeof Char123LocaleChar125GalleryRoute
@@ -537,6 +536,7 @@ export interface FileRoutesByFullPath {
   '/{-$locale}/account/': typeof Char123LocaleChar125AccountIndexRoute
   '/{-$locale}/admin/': typeof Char123LocaleChar125AdminIndexRoute
   '/{-$locale}/airport/': typeof Char123LocaleChar125AirportIndexRoute
+  '/{-$locale}/destinations/': typeof Char123LocaleChar125DestinationsIndexRoute
   '/{-$locale}/manage/': typeof Char123LocaleChar125ManageIndexRoute
   '/{-$locale}/account/trips/$ref': typeof Char123LocaleChar125AccountTripsRefRoute
   '/{-$locale}/admin/bookings/$ref': typeof Char123LocaleChar125AdminBookingsRefRoute
@@ -563,7 +563,6 @@ export interface FileRoutesByTo {
   '/{-$locale}/book': typeof Char123LocaleChar125BookRoute
   '/{-$locale}/check-in': typeof Char123LocaleChar125CheckInRoute
   '/{-$locale}/contact': typeof Char123LocaleChar125ContactRoute
-  '/{-$locale}/destinations': typeof Char123LocaleChar125DestinationsRouteWithChildren
   '/{-$locale}/flights': typeof Char123LocaleChar125FlightsRoute
   '/{-$locale}/forgot-password': typeof Char123LocaleChar125ForgotPasswordRoute
   '/{-$locale}/gallery': typeof Char123LocaleChar125GalleryRoute
@@ -601,6 +600,7 @@ export interface FileRoutesByTo {
   '/{-$locale}/account': typeof Char123LocaleChar125AccountIndexRoute
   '/{-$locale}/admin': typeof Char123LocaleChar125AdminIndexRoute
   '/{-$locale}/airport': typeof Char123LocaleChar125AirportIndexRoute
+  '/{-$locale}/destinations': typeof Char123LocaleChar125DestinationsIndexRoute
   '/{-$locale}/manage': typeof Char123LocaleChar125ManageIndexRoute
   '/{-$locale}/account/trips/$ref': typeof Char123LocaleChar125AccountTripsRefRoute
   '/{-$locale}/admin/bookings/$ref': typeof Char123LocaleChar125AdminBookingsRefRoute
@@ -632,7 +632,6 @@ export interface FileRoutesById {
   '/{-$locale}/book': typeof Char123LocaleChar125BookRoute
   '/{-$locale}/check-in': typeof Char123LocaleChar125CheckInRoute
   '/{-$locale}/contact': typeof Char123LocaleChar125ContactRoute
-  '/{-$locale}/destinations': typeof Char123LocaleChar125DestinationsRouteWithChildren
   '/{-$locale}/flights': typeof Char123LocaleChar125FlightsRoute
   '/{-$locale}/forgot-password': typeof Char123LocaleChar125ForgotPasswordRoute
   '/{-$locale}/gallery': typeof Char123LocaleChar125GalleryRoute
@@ -672,6 +671,7 @@ export interface FileRoutesById {
   '/{-$locale}/account/': typeof Char123LocaleChar125AccountIndexRoute
   '/{-$locale}/admin/': typeof Char123LocaleChar125AdminIndexRoute
   '/{-$locale}/airport/': typeof Char123LocaleChar125AirportIndexRoute
+  '/{-$locale}/destinations/': typeof Char123LocaleChar125DestinationsIndexRoute
   '/{-$locale}/manage/': typeof Char123LocaleChar125ManageIndexRoute
   '/{-$locale}/account/trips/$ref': typeof Char123LocaleChar125AccountTripsRefRoute
   '/{-$locale}/admin/bookings/$ref': typeof Char123LocaleChar125AdminBookingsRefRoute
@@ -704,7 +704,6 @@ export interface FileRouteTypes {
     | '/{-$locale}/book'
     | '/{-$locale}/check-in'
     | '/{-$locale}/contact'
-    | '/{-$locale}/destinations'
     | '/{-$locale}/flights'
     | '/{-$locale}/forgot-password'
     | '/{-$locale}/gallery'
@@ -744,6 +743,7 @@ export interface FileRouteTypes {
     | '/{-$locale}/account/'
     | '/{-$locale}/admin/'
     | '/{-$locale}/airport/'
+    | '/{-$locale}/destinations/'
     | '/{-$locale}/manage/'
     | '/{-$locale}/account/trips/$ref'
     | '/{-$locale}/admin/bookings/$ref'
@@ -770,7 +770,6 @@ export interface FileRouteTypes {
     | '/{-$locale}/book'
     | '/{-$locale}/check-in'
     | '/{-$locale}/contact'
-    | '/{-$locale}/destinations'
     | '/{-$locale}/flights'
     | '/{-$locale}/forgot-password'
     | '/{-$locale}/gallery'
@@ -808,6 +807,7 @@ export interface FileRouteTypes {
     | '/{-$locale}/account'
     | '/{-$locale}/admin'
     | '/{-$locale}/airport'
+    | '/{-$locale}/destinations'
     | '/{-$locale}/manage'
     | '/{-$locale}/account/trips/$ref'
     | '/{-$locale}/admin/bookings/$ref'
@@ -838,7 +838,6 @@ export interface FileRouteTypes {
     | '/{-$locale}/book'
     | '/{-$locale}/check-in'
     | '/{-$locale}/contact'
-    | '/{-$locale}/destinations'
     | '/{-$locale}/flights'
     | '/{-$locale}/forgot-password'
     | '/{-$locale}/gallery'
@@ -878,6 +877,7 @@ export interface FileRouteTypes {
     | '/{-$locale}/account/'
     | '/{-$locale}/admin/'
     | '/{-$locale}/airport/'
+    | '/{-$locale}/destinations/'
     | '/{-$locale}/manage/'
     | '/{-$locale}/account/trips/$ref'
     | '/{-$locale}/admin/bookings/$ref'
@@ -979,13 +979,6 @@ declare module '@tanstack/react-router' {
       path: '/contact'
       fullPath: '/{-$locale}/contact'
       preLoaderRoute: typeof Char123LocaleChar125ContactRouteImport
-      parentRoute: typeof Char123LocaleChar125Route
-    }
-    '/{-$locale}/destinations': {
-      id: '/{-$locale}/destinations'
-      path: '/destinations'
-      fullPath: '/{-$locale}/destinations'
-      preLoaderRoute: typeof Char123LocaleChar125DestinationsRouteImport
       parentRoute: typeof Char123LocaleChar125Route
     }
     '/{-$locale}/flights': {
@@ -1233,12 +1226,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char123LocaleChar125BookingConfirmationRefRouteImport
       parentRoute: typeof Char123LocaleChar125Route
     }
+    '/{-$locale}/destinations/': {
+      id: '/{-$locale}/destinations/'
+      path: '/destinations'
+      fullPath: '/{-$locale}/destinations/'
+      preLoaderRoute: typeof Char123LocaleChar125DestinationsIndexRouteImport
+      parentRoute: typeof Char123LocaleChar125Route
+    }
     '/{-$locale}/destinations/$code': {
       id: '/{-$locale}/destinations/$code'
-      path: '/$code'
+      path: '/destinations/$code'
       fullPath: '/{-$locale}/destinations/$code'
       preLoaderRoute: typeof Char123LocaleChar125DestinationsCodeRouteImport
-      parentRoute: typeof Char123LocaleChar125DestinationsRoute
+      parentRoute: typeof Char123LocaleChar125Route
     }
     '/{-$locale}/flight/$flightId': {
       id: '/{-$locale}/flight/$flightId'
@@ -1529,21 +1529,6 @@ const Char123LocaleChar125AirportRouteWithChildren =
     Char123LocaleChar125AirportRouteChildren,
   )
 
-interface Char123LocaleChar125DestinationsRouteChildren {
-  Char123LocaleChar125DestinationsCodeRoute: typeof Char123LocaleChar125DestinationsCodeRoute
-}
-
-const Char123LocaleChar125DestinationsRouteChildren: Char123LocaleChar125DestinationsRouteChildren =
-  {
-    Char123LocaleChar125DestinationsCodeRoute:
-      Char123LocaleChar125DestinationsCodeRoute,
-  }
-
-const Char123LocaleChar125DestinationsRouteWithChildren =
-  Char123LocaleChar125DestinationsRoute._addFileChildren(
-    Char123LocaleChar125DestinationsRouteChildren,
-  )
-
 interface Char123LocaleChar125ManageRouteChildren {
   Char123LocaleChar125ManageRefRoute: typeof Char123LocaleChar125ManageRefRoute
   Char123LocaleChar125ManageIndexRoute: typeof Char123LocaleChar125ManageIndexRoute
@@ -1582,7 +1567,6 @@ interface Char123LocaleChar125RouteChildren {
   Char123LocaleChar125BookRoute: typeof Char123LocaleChar125BookRoute
   Char123LocaleChar125CheckInRoute: typeof Char123LocaleChar125CheckInRoute
   Char123LocaleChar125ContactRoute: typeof Char123LocaleChar125ContactRoute
-  Char123LocaleChar125DestinationsRoute: typeof Char123LocaleChar125DestinationsRouteWithChildren
   Char123LocaleChar125FlightsRoute: typeof Char123LocaleChar125FlightsRoute
   Char123LocaleChar125ForgotPasswordRoute: typeof Char123LocaleChar125ForgotPasswordRoute
   Char123LocaleChar125GalleryRoute: typeof Char123LocaleChar125GalleryRoute
@@ -1597,7 +1581,9 @@ interface Char123LocaleChar125RouteChildren {
   Char123LocaleChar125IndexRoute: typeof Char123LocaleChar125IndexRoute
   Char123LocaleChar125AdminSigninRoute: typeof Char123LocaleChar125AdminSigninRoute
   Char123LocaleChar125BookingConfirmationRefRoute: typeof Char123LocaleChar125BookingConfirmationRefRoute
+  Char123LocaleChar125DestinationsCodeRoute: typeof Char123LocaleChar125DestinationsCodeRoute
   Char123LocaleChar125FlightFlightIdRoute: typeof Char123LocaleChar125FlightFlightIdRoute
+  Char123LocaleChar125DestinationsIndexRoute: typeof Char123LocaleChar125DestinationsIndexRoute
   Char123LocaleChar125BoardingPassRefLegPaxRoute: typeof Char123LocaleChar125BoardingPassRefLegPaxRoute
 }
 
@@ -1613,8 +1599,6 @@ const Char123LocaleChar125RouteChildren: Char123LocaleChar125RouteChildren = {
   Char123LocaleChar125BookRoute: Char123LocaleChar125BookRoute,
   Char123LocaleChar125CheckInRoute: Char123LocaleChar125CheckInRoute,
   Char123LocaleChar125ContactRoute: Char123LocaleChar125ContactRoute,
-  Char123LocaleChar125DestinationsRoute:
-    Char123LocaleChar125DestinationsRouteWithChildren,
   Char123LocaleChar125FlightsRoute: Char123LocaleChar125FlightsRoute,
   Char123LocaleChar125ForgotPasswordRoute:
     Char123LocaleChar125ForgotPasswordRoute,
@@ -1632,8 +1616,12 @@ const Char123LocaleChar125RouteChildren: Char123LocaleChar125RouteChildren = {
   Char123LocaleChar125AdminSigninRoute: Char123LocaleChar125AdminSigninRoute,
   Char123LocaleChar125BookingConfirmationRefRoute:
     Char123LocaleChar125BookingConfirmationRefRoute,
+  Char123LocaleChar125DestinationsCodeRoute:
+    Char123LocaleChar125DestinationsCodeRoute,
   Char123LocaleChar125FlightFlightIdRoute:
     Char123LocaleChar125FlightFlightIdRoute,
+  Char123LocaleChar125DestinationsIndexRoute:
+    Char123LocaleChar125DestinationsIndexRoute,
   Char123LocaleChar125BoardingPassRefLegPaxRoute:
     Char123LocaleChar125BoardingPassRefLegPaxRoute,
 }

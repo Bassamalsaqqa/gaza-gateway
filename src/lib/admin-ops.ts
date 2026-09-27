@@ -284,7 +284,6 @@ export type DestinationConfig = {
   descEn: string;
   descAr: string;
   goodToKnow: { en: string; ar: string }[];
-  heroSeed: string;
   featured: boolean;
   published: boolean;
   seoTitleEn: string;
@@ -311,7 +310,6 @@ export function seedDestinationConfigs(): DestinationConfig[] {
     descEn: d.blurb.en,
     descAr: i === 6 ? "" : d.blurb.ar,
     goodToKnow: d.goodToKnow.map((g) => ({ en: g.en, ar: g.ar })),
-    heroSeed: d.imageSeed,
     featured: i < 3,
     published: true,
     seoTitleEn: `Flights from Gaza to ${d.city.en} — Palestinian Airlines`,

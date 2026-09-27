@@ -1,6 +1,6 @@
 import { Switch } from "@/components/ui/switch";
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Plus, X } from "lucide-react";
 import { AppLink } from "@/components/app-link";
 import { Field, Input, Select, Textarea, btnClass } from "@/components/kit";
@@ -16,10 +16,20 @@ import {
 } from "@/components/admin/admin-kit";
 import { AdminDenied } from "@/components/admin/admin-denied";
 import { useAdmin } from "@/lib/admin-store";
-import { useI18n } from "@/lib/i18n";
-import { img } from "@/lib/data";
+import { pick, useI18n } from "@/lib/i18n";
 import type { DestinationConfig } from "@/lib/admin-ops";
 import { pageHead } from "@/lib/head";
+import { contentRepository } from "@/content/repository";
+import { publishedDestinationsPresentation } from "@/content/published/destinations-presentation";
+import type { DestinationsPresentationContent, DestinationPhotoAssignment } from "@/content/types";
+import {
+  DESTINATION_PHOTOS,
+  getDestinationPhotoById,
+  smallestDestinationSrc,
+  type DestinationPhotoId,
+  type DestinationCode,
+} from "@/lib/destination-media";
+
 
 export const Route = createFileRoute("/{-$locale}/admin/destinations/$code")({
   head: ({ params }) =>
@@ -52,6 +62,79 @@ function AdminDestinationEditorPage() {
   const [loaded, setLoaded] = useState(code);
   const [tab, setTab] = useState<Tab>("basics");
   const [editing, setEditing] = useState<Editing>(lang === "ar" ? "ar" : "en");
+
+  const [presentationDraft, setPresentationDraft] = useState<DestinationsPresentationContent>(publishedDestinationsPresentation);
+  const [savedPresentation, setSavedPresentation] = useState<DestinationsPresentationContent | null>(null);
+  const [mediaReady, setMediaReady] = useState(false);
+  const [mediaSaving, setMediaSaving] = useState(false);
+  const [mediaError, setMediaError] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    void contentRepository.getDraft("destinations.presentation").then((d) => {
+      if (!alive) return;
+      setSavedPresentation(d);
+      setPresentationDraft(d ?? publishedDestinationsPresentation);
+      setMediaReady(true);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const currentAssignment: DestinationPhotoAssignment = useMemo(() => {
+    return (
+      presentationDraft.assignments.find((a) => a.code === code) ?? {
+        code: code as DestinationCode,
+        photoId: `city-${code.toLowerCase()}` as DestinationPhotoId,
+        focalPoint: { x: 50, y: 50 },
+      }
+    );
+  }, [presentationDraft.assignments, code]);
+
+  const selectedPhoto = getDestinationPhotoById(currentAssignment.photoId) ?? DESTINATION_PHOTOS["city-amman"];
+  const currentFocal = currentAssignment.focalPoint ?? { x: 50, y: 50 };
+
+  const updateAssignment = (patch: Partial<DestinationPhotoAssignment>) => {
+    setPresentationDraft((cur) => ({
+      ...cur,
+      assignments: cur.assignments.map((a) =>
+        a.code === code ? { ...a, ...patch } : a
+      ),
+    }));
+  };
+
+  const presentationDirty =
+    JSON.stringify(presentationDraft) !==
+    JSON.stringify(savedPresentation ?? publishedDestinationsPresentation);
+
+  const mayEditContent = can("content.edit");
+
+  const saveImageDraft = async () => {
+    setMediaSaving(true);
+    setMediaError(false);
+    try {
+      await contentRepository.saveDraft("destinations.presentation", presentationDraft);
+      setSavedPresentation(presentationDraft);
+      toast(t("a2.saved") || "Image draft saved locally");
+    } catch {
+      setMediaError(true);
+    } finally {
+      setMediaSaving(false);
+    }
+  };
+
+  const discardImageDraft = async () => {
+    setMediaError(false);
+    try {
+      await contentRepository.discardDraft("destinations.presentation");
+      setSavedPresentation(null);
+      setPresentationDraft(publishedDestinationsPresentation);
+      toast(pick(lang, { en: "Draft discarded", ar: "تم تجاهل المسودة" }));
+    } catch {
+      setMediaError(true);
+    }
+  };
 
   if (code !== loaded) {
     setLoaded(code);
@@ -223,16 +306,113 @@ function AdminDestinationEditorPage() {
               </div>
 
               <div className="grid gap-3 sm:grid-cols-[14rem_minmax(0,1fr)]">
-                <div>
+                <div className="space-y-3">
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     {t("adm.dest.hero")}
                   </p>
                   <img
-                    src={img(draft.heroSeed, 480, 320)}
+                    data-admin-destination-preview={draft.code}
+                    src={smallestDestinationSrc(selectedPhoto)}
                     alt=""
-                    className="mt-1.5 aspect-[3/2] w-full rounded-md border border-border object-cover"
+                    style={{ objectPosition: `${currentFocal.x}% ${currentFocal.y}%` }}
+                    className="aspect-[3/2] w-full rounded-md border border-border object-cover"
                   />
-                  <p className="mt-1.5 text-xs text-muted-foreground">{t("adm.dest.heroNote")}</p>
+                  <div className="space-y-2">
+                    <Field label={pick(lang, { en: "Approved city photograph", ar: "صورة المدينة المعتمدة" })} htmlFor="de-photo">
+                      <Select
+                        id="de-photo"
+                        dir="ltr"
+                        value={currentAssignment.photoId}
+                        onChange={(e) => updateAssignment({ photoId: e.target.value as DestinationPhotoId })}
+                      >
+                        {Object.values(DESTINATION_PHOTOS).map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.cityNameEn} ({p.cityCode}) — {p.id}
+                          </option>
+                        ))}
+                      </Select>
+                    </Field>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <Field label={pick(lang, { en: "Focal X (%)", ar: "مركز الصورة أفقي (%)" })} htmlFor="de-focal-x">
+                        <Input
+                          id="de-focal-x"
+                          type="number"
+                          min={0}
+                          max={100}
+                          dir="ltr"
+                          value={currentFocal.x}
+                          onChange={(e) => updateAssignment({ focalPoint: { ...currentFocal, x: Math.max(0, Math.min(100, Number(e.target.value) || 0)) } })}
+                        />
+                      </Field>
+                      <Field label={pick(lang, { en: "Focal Y (%)", ar: "مركز الصورة عمودي (%)" })} htmlFor="de-focal-y">
+                        <Input
+                          id="de-focal-y"
+                          type="number"
+                          min={0}
+                          max={100}
+                          dir="ltr"
+                          value={currentFocal.y}
+                          onChange={(e) => updateAssignment({ focalPoint: { ...currentFocal, y: Math.max(0, Math.min(100, Number(e.target.value) || 0)) } })}
+                        />
+                      </Field>
+                    </div>
+
+                    <div className="rounded-md border border-border/80 bg-secondary/50 p-2.5 text-xs text-muted-foreground">
+                      <p className="font-semibold text-foreground">
+                        {savedPresentation
+                          ? pick(lang, { en: "Draft active (stored in this browser, not published)", ar: "مسودة مفعلة (محفوظة في هذا المتصفح فقط ولم تُنشر)" })
+                          : pick(lang, { en: "Using published destination photograph", ar: "تُستخدم صورة الوجهة المنشورة" })}
+                      </p>
+                      <p className="mt-1">
+                        {pick(lang, {
+                          en: "Saving a draft preserves your selection in browser storage for preview. Production deployment requires code release.",
+                          ar: "حفظ المسودة يبقي اختيارك في ذاكرة المتصفح للمعاينة فقط. نشر التغييرات للإنتاج يتطلب إصداراً في الكود.",
+                        })}
+                      </p>
+                    </div>
+
+                    {mediaError && (
+                      <p className="text-xs font-semibold text-destructive">
+                        {pick(lang, { en: "Failed to persist draft to storage.", ar: "فشل حفظ المسودة في الذاكرة المحلية." })}
+                      </p>
+                    )}
+
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      <PermissionButton
+                        allowed={mayEditContent && mediaReady && presentationDirty && !mediaSaving}
+                        reason={t("adm.edit.readOnly")}
+                        onClick={() => { void saveImageDraft(); }}
+                      >
+                        {pick(lang, { en: "Save image draft", ar: "حفظ مسودة الصورة" })}
+                      </PermissionButton>
+
+                      <a
+                        href={`/destinations/${draft.code}?contentPreview=1`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={btnClass("outline", "sm")}
+                      >
+                        {t("adm.common.previewEn")} ({pick(lang, { en: "Draft", ar: "مسودة" })})
+                      </a>
+                      <a
+                        href={`/ar/destinations/${draft.code}?contentPreview=1`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={btnClass("outline", "sm")}
+                      >
+                        {t("adm.common.previewAr")} ({pick(lang, { en: "Draft", ar: "مسودة" })})
+                      </a>
+
+                      <PermissionButton
+                        allowed={mayEditContent && mediaReady && savedPresentation !== null && !mediaSaving}
+                        reason={t("adm.edit.readOnly")}
+                        onClick={() => { void discardImageDraft(); }}
+                      >
+                        {pick(lang, { en: "Discard draft", ar: "تراجع عن المسودة" })}
+                      </PermissionButton>
+                    </div>
+                  </div>
                 </div>
                 <div className="space-y-3">
                   <Field label={t("adm.dest.description")} htmlFor="de-desc">
@@ -438,16 +618,25 @@ function AdminDestinationEditorPage() {
                   onChange={(e) => set(editing === "ar" ? { seoDescAr: e.target.value } : { seoDescEn: e.target.value })}
                 />
               </Field>
-              <Field label={t("adm.dest.socialImage")} htmlFor="de-social">
-                <Select id="de-social" dir="ltr" value={draft.heroSeed} onChange={(e) => set({ heroSeed: e.target.value })}>
-                  {ops.destinations.map((d) => (
-                    <option key={d.heroSeed} value={d.heroSeed}>
-                      {d.heroSeed}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-              <p className="text-xs text-muted-foreground">{t("adm.common.previewNote")}</p>
+              <div>
+                <Field label={t("adm.dest.socialImage")} htmlFor="de-social">
+                  <Input
+                    id="de-social"
+                    dir={dirFor}
+                    readOnly
+                    value={pick(lang, {
+                      en: "Not configured (site default: /social/gaza-airport.jpg)",
+                      ar: "غير مهيأة (افتراضي الموقع: /social/gaza-airport.jpg)",
+                    })}
+                  />
+                </Field>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {pick(lang, {
+                    en: "Per-destination social image metadata is not configured; sharing falls back to the site-wide default image. Local photo drafts do not alter static head tags.",
+                    ar: "بيانات صورة المشاركة لوسائل التواصل غير مهيأة لكل وجهة؛ وتعتمد المشاركة الصورة الافتراضية للموقع. المسودات المحلية للصور لا تغيّر وسوم الميتا الثابتة.",
+                  })}
+                </p>
+              </div>
             </div>
           ) : null}
 

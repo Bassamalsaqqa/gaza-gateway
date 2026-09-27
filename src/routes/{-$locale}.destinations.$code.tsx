@@ -8,12 +8,19 @@ import {
   GZA,
   destinationByCode,
   destinations,
-  img,
   minutesToLabel,
 } from "@/lib/data";
 import { money, weekdayName } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import {
+  buildDestinationSrcSet,
+  getDestinationPhotoByCode,
+  getDestinationPhotoById,
+  smallestDestinationSrc,
+} from "@/lib/destination-media";
+import { publishedDestinationsPresentation } from "@/content/published/destinations-presentation";
+import { ContentPreviewNotice, useContentPreview } from "@/content/preview";
 
 export const Route = createFileRoute("/{-$locale}/destinations/$code")({
   head: ({ params }) => {
@@ -42,6 +49,11 @@ function DestinationPage() {
   const { t, lang } = useI18n();
   const destination = destinationByCode(code);
 
+  const { content: presentation, previewing } = useContentPreview(
+    "destinations.presentation",
+    publishedDestinationsPresentation,
+  );
+
   if (!destination) {
     return (
       <Container className="py-20">
@@ -58,17 +70,34 @@ function DestinationPage() {
     );
   }
 
+  const assignment = presentation.assignments.find((a) => a.code === destination.code);
+  const photo =
+    (assignment && getDestinationPhotoById(assignment.photoId)) ??
+    getDestinationPhotoByCode(destination.code);
+  const focal = assignment?.focalPoint ?? photo?.defaultFocalPoint ?? { x: 50, y: 50 };
+
   const others = destinations.filter((d) => d.code !== destination.code).slice(0, 3);
   const city = pick(lang, destination.city);
 
   return (
     <>
+      {previewing && <ContentPreviewNotice />}
       <section className="relative isolate overflow-hidden bg-ink text-ink-foreground">
-        <img
-          src={img(destination.imageSeed, 1920, 1080)}
-          alt=""
-          className="absolute inset-0 -z-10 size-full object-cover opacity-40"
-        />
+        {photo && (
+          <img
+            data-destination-hero-photo={destination.code}
+            src={smallestDestinationSrc(photo)}
+            srcSet={buildDestinationSrcSet(photo)}
+            sizes="100vw"
+            alt=""
+            loading="eager"
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            fetchPriority={"high" as any}
+            decoding="sync"
+            style={{ objectPosition: `${focal.x}% ${focal.y}%` }}
+            className="absolute inset-0 -z-10 size-full object-cover opacity-40"
+          />
+        )}
         <div className="absolute inset-0 -z-10 bg-gradient-to-t from-ink via-ink/70 to-ink/50" />
         <Container className="py-16 sm:py-24">
           <Eyebrow className="text-clay-soft">
@@ -129,8 +158,8 @@ function DestinationPage() {
           <div className="mt-6">
             <Notice title={t("common.notice")}>
               {pick(lang, {
-                en: "Schedules, fares and imagery on this page are placeholders for design purposes.",
-                ar: "الجداول والأسعار والصور في هذه الصفحة عناصر مؤقتة لأغراض التصميم.",
+                en: "Schedules and fares on this page are illustrative placeholders for design purposes.",
+                ar: "الجداول والأسعار في هذه الصفحة عناصر توضيحية مؤقتة لأغراض التصميم.",
               })}
             </Notice>
           </div>
@@ -173,9 +202,20 @@ function DestinationPage() {
       <Container className="mt-16">
         <h2 className="text-2xl font-bold">{t("dest.other")}</h2>
         <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {others.map((other) => (
-            <DestinationCard key={other.code} destination={other} />
-          ))}
+          {others.map((other) => {
+            const otherAssignment = presentation.assignments.find((a) => a.code === other.code);
+            const otherPhoto =
+              (otherAssignment && getDestinationPhotoById(otherAssignment.photoId)) ??
+              getDestinationPhotoByCode(other.code);
+            return (
+              <DestinationCard
+                key={other.code}
+                destination={other}
+                photoOverride={otherPhoto}
+                focalOverride={otherAssignment?.focalPoint}
+              />
+            );
+          })}
         </div>
       </Container>
     </>
