@@ -1,0 +1,1 @@
+import{T as e}from"./index-C-c4uPtF.js";var t=e;export{t as component};
