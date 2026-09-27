@@ -4,6 +4,7 @@ import { Code } from "./kit";
 import { img, minutesToLabel, type Destination } from "@/lib/data";
 import { money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
+import istanbulWorldMapImg from "@/assets/media/decorative/cards/istanbul-world-map.webp";
 
 export function DestinationCard({ destination, size = "md" }: { destination: Destination; size?: "md" | "lg" }) {
   const { t, lang } = useI18n();
@@ -14,10 +15,12 @@ export function DestinationCard({ destination, size = "md" }: { destination: Des
       data-surface-target="home.destination-card"
       className="group relative flex flex-col overflow-hidden rounded-xl border border-border bg-card transition-shadow hover:shadow-[var(--shadow-lift)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
     >
-      <div className={size === "lg" ? "aspect-[4/3] overflow-hidden" : "aspect-[3/2] overflow-hidden"}>
+      <div className={size === "lg" ? "relative aspect-[4/3] overflow-hidden" : "relative aspect-[3/2] overflow-hidden"}>
         <img
-          src={img(destination.imageSeed, 900, 600)}
+          data-decorative-asset={destination.code === "IST" ? "istanbul-ist-card" : undefined}
+          src={destination.code === "IST" ? istanbulWorldMapImg : img(destination.imageSeed, 900, 600)}
           alt=""
+          aria-hidden="true"
           loading="lazy"
           className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
         />

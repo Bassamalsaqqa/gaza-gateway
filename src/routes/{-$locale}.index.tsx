@@ -24,6 +24,8 @@ import { MEDIA } from "@/lib/media";
 import { publishedHome } from "@/content/published/home";
 import { ContentPreviewNotice, useContentPreview } from "@/content/preview";
 import { cn } from "@/lib/utils";
+import alreadyBookedImg from "@/assets/media/decorative/cards/already-booked-routes.webp";
+import beforeTravelImg from "@/assets/media/decorative/cards/before-travel-palms.webp";
 
 export const Route = createFileRoute("/{-$locale}/")({
   head: ({ params }) => ({
@@ -394,36 +396,56 @@ function Home() {
 
       {/* 7. Manage Booking & Passenger Information */}
       <Container className="mt-16 sm:mt-20 grid gap-4 lg:grid-cols-3">
-        <div className="flex flex-col justify-between rounded-2xl border border-border bg-brand-soft/70 p-6 lg:col-span-2">
-          <div>
-            <div className="flex size-11 items-center justify-center rounded-xl bg-brand text-primary-foreground">
+        <div
+          data-decorative-asset="already-booked-card"
+          className="relative flex flex-col justify-between overflow-hidden rounded-2xl border border-border bg-ink p-6 text-ink-foreground lg:col-span-2"
+        >
+          <img
+            src={alreadyBookedImg}
+            alt=""
+            aria-hidden="true"
+            loading="lazy"
+            className="pointer-events-none absolute inset-0 size-full select-none object-cover object-center"
+          />
+          <div className="relative z-10">
+            <div className="flex size-11 items-center justify-center rounded-xl bg-secondary text-secondary-foreground">
               <Ticket aria-hidden="true" className="size-5" />
             </div>
-            <h2 className="mt-4 text-2xl font-bold text-foreground sm:text-3xl">
+            <h2 className="mt-4 text-2xl font-bold text-ink-foreground sm:text-3xl">
               {pick(lang, content.copy.manageTitle)}
             </h2>
-            <p className="mt-2 max-w-lg text-sm text-muted-foreground leading-relaxed">
+            <p className="mt-2 max-w-lg text-sm leading-relaxed text-ink-muted">
               {pick(lang, content.copy.manageSub)}
             </p>
           </div>
 
-          <div className="mt-6 flex flex-wrap gap-3">
-            <AppLink to="/manage" className={btnClass("primary", "md")}>
+          <div className="relative z-10 mt-6 flex flex-wrap gap-3">
+            <AppLink to="/manage" className={btnClass("secondary", "md", "focus-visible:outline-ink-foreground")}>
               {t("nav.manage")}
             </AppLink>
-            <AppLink to="/signin" className={btnClass("outline", "md")}>
+            <AppLink to="/signin" className={btnClass("outline", "md", "focus-visible:outline-ink-foreground")}>
               {t("nav.signin")}
             </AppLink>
           </div>
         </div>
 
-        <div className="flex flex-col justify-between rounded-2xl border border-border bg-card p-6 shadow-xs">
-          <div>
+        <div
+          data-decorative-asset="before-travel-card"
+          className="relative flex flex-col justify-between overflow-hidden rounded-2xl border border-border bg-ink p-6 text-ink-foreground shadow-xs"
+        >
+          <img
+            src={beforeTravelImg}
+            alt=""
+            aria-hidden="true"
+            loading="lazy"
+            className="pointer-events-none absolute inset-0 size-full select-none object-cover object-center"
+          />
+          <div className="relative z-10">
             <div className="flex size-11 items-center justify-center rounded-xl bg-clay-soft text-clay">
               <Luggage aria-hidden="true" className="size-5" />
             </div>
-            <h2 className="mt-4 text-lg font-bold text-foreground">{pick(lang, content.copy.infoTitle)}</h2>
-            <ul className="mt-4 space-y-3 text-sm divide-y divide-border/60">
+            <h2 className="mt-4 text-lg font-bold text-ink-foreground">{pick(lang, content.copy.infoTitle)}</h2>
+            <ul className="mt-4 space-y-3 divide-y divide-ink-muted/40 text-sm">
               {(
                 [
                   { label: t("book.baggage"), to: "/travel" },
@@ -434,12 +456,12 @@ function Home() {
                 <li key={i} className={i > 0 ? "pt-3" : ""}>
                   <AppLink
                     to={item.to}
-                    className="flex items-center justify-between gap-2 text-foreground font-medium hover:text-primary transition-colors"
+                    className="flex items-center justify-between gap-2 font-medium text-ink-foreground transition-colors hover:text-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-foreground"
                   >
                     <span>{item.label}</span>
                     <ArrowRight
                       aria-hidden="true"
-                      className="size-4 text-muted-foreground rtl:rotate-180"
+                      className="size-4 text-ink-muted rtl:rotate-180"
                     />
                   </AppLink>
                 </li>
@@ -449,7 +471,7 @@ function Home() {
 
           <AppLink
             to="/travel"
-            className={btnClass("ghost", "sm", "mt-6 self-start text-xs font-semibold")}
+            className={btnClass("secondary", "sm", "relative z-10 mt-6 self-start text-xs font-semibold focus-visible:outline-ink-foreground")}
           >
             {t("common.learnMore")} →
           </AppLink>

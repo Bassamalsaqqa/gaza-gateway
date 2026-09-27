@@ -1272,6 +1272,78 @@ async function runBrowserSmoke() {
         await viewerContext.close();
       }
     });
+
+    await checkStep("18. Decorative card assets load at correct placements", async () => {
+      // Helper: scroll element into view then wait for naturalWidth > 0
+      async function waitForImgLoad(selector, label, timeout = 10000) {
+        await page.waitForSelector(selector, { timeout });
+        // Scroll into viewport so lazy loading triggers
+        await page.evaluate((sel) => {
+          const el = document.querySelector(sel);
+          if (el) el.scrollIntoView({ behavior: "instant", block: "center" });
+        }, selector);
+        // Poll until naturalWidth > 0 (image decoded)
+        await page.waitForFunction(
+          (sel) => {
+            const img = document.querySelector(sel);
+            return img && img.complete && img.naturalWidth > 0;
+          },
+          selector,
+          { timeout }
+        );
+        const nw = await page.evaluate((sel) => {
+          const img = document.querySelector(sel);
+          return img ? img.naturalWidth : -1;
+        }, selector);
+        if (nw <= 0) throw new Error(`${label} did not load (naturalWidth=${nw})`);
+        return nw;
+      }
+
+      // ── Home page: already-booked and before-travel cards ─────────────────
+      await page.goto(`${baseUrl}/`, { waitUntil: "networkidle" });
+
+      await waitForImgLoad(
+        '[data-decorative-asset="already-booked-card"] img[aria-hidden="true"]',
+        "Already-booked decorative image"
+      );
+      await waitForImgLoad(
+        '[data-decorative-asset="before-travel-card"] img[aria-hidden="true"]',
+        "Before-travel decorative image"
+      );
+
+      for (const asset of ["already-booked-card", "before-travel-card"]) {
+        const src = await page.locator(`[data-decorative-asset="${asset}"] img`).getAttribute("src");
+        if (!src?.endsWith(".webp")) throw new Error(`${asset} is not a WebP URL: ${src}`);
+      }
+
+      // ── Destinations page: IST card uses the art, other cards do not ──────
+      await page.goto(`${baseUrl}/destinations`, { waitUntil: "networkidle" });
+
+      await waitForImgLoad(
+        '[data-decorative-asset="istanbul-ist-card"]',
+        "Istanbul decorative image"
+      );
+      const istanbulSrc = await page.locator('[data-decorative-asset="istanbul-ist-card"]').getAttribute("src");
+      if (!istanbulSrc?.endsWith(".webp")) throw new Error(`Istanbul art is not a WebP URL: ${istanbulSrc}`);
+
+      // Confirm IST art is not applied to non-IST cards
+      const nonIstArt = await page.evaluate(() => {
+        const allCards = Array.from(document.querySelectorAll('a[data-surface-target="home.destination-card"]'));
+        const nonIst = allCards.filter((a) => !a.href.includes("/IST"));
+        return nonIst.some((a) => a.querySelector('[data-decorative-asset="istanbul-ist-card"]') !== null);
+      });
+      if (nonIstArt) throw new Error("Istanbul decorative art applied to non-IST destination card");
+
+      // GZA9MK is a deterministic seed with outbound passenger 0 checked in.
+      await page.goto(`${baseUrl}/boarding-pass/GZA9MK/out/0`, { waitUntil: "domcontentloaded" });
+      await waitForImgLoad(
+        '[data-decorative-asset="boarding-pass-ticket-band"] img[aria-hidden="true"]',
+        "Boarding-pass band decorative image"
+      );
+      const ticketSrc = await page.locator('[data-decorative-asset="boarding-pass-ticket-band"] img').getAttribute("src");
+      if (!ticketSrc?.endsWith(".webp")) throw new Error(`Ticket art is not a WebP URL: ${ticketSrc}`);
+    });
+
   } finally {
     await browser.close();
     if (server) {

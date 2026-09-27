@@ -1,4 +1,5 @@
 import { Plane } from "lucide-react";
+import ticketWorldMapImg from "@/assets/media/decorative/cards/ticket-world-map.webp";
 import { StatusBadge } from "@/components/flight-status";
 import { Code, Pill } from "@/components/kit";
 import { airportByCode, fares } from "@/lib/data";
@@ -41,12 +42,22 @@ export function BoardingPassCard({ item, compact = false }: { item: BoardingPass
 
   return (
     <article className="overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-soft)] print:shadow-none">
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-ink px-5 py-3 text-ink-foreground">
-        <span className="flex items-center gap-2 text-sm font-semibold">
+      <div
+        data-decorative-asset="boarding-pass-ticket-band"
+        className="relative flex flex-wrap items-center justify-between gap-3 overflow-hidden bg-clay px-5 py-3 text-ink-foreground"
+      >
+        <img
+          src={ticketWorldMapImg}
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 size-full select-none object-cover object-center"
+        />
+
+        <span className="relative z-10 flex items-center gap-2 text-sm font-semibold">
           <Plane aria-hidden="true" className="size-4 rtl:-scale-x-100" />
           {t("brand.airline")}
         </span>
-        <span className="flex items-center gap-3 text-xs text-ink-muted">
+        <span className="relative z-10 flex items-center gap-3 text-xs text-ink-foreground">
           {t(leg === "out" ? "bp.legOut" : "bp.legIn")}
           <Code className="text-sm font-semibold text-ink-foreground">{flight.number}</Code>
         </span>
