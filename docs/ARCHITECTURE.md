@@ -3,7 +3,7 @@
 > **Repository**: `Bassamalsaqqa/gaza-gateway`
 > **Production Domain**: `https://www.gazaairport.com`
 > **Phase 4 starting commits**: `9e36b869274830f84c97cbbefe3b3fb0a98c6d2e` (`main`); `92ad935f8477e1663eefa8282d2770c66b64b8b2` (`hostpapa-deploy`). These are historical starting points, not current branch heads.
-> **Engineering Status**: **Phase 4 Complete (Canonical Mock Domain & Repository Layer)**
+> **Engineering Status**: **Phase 4 Complete; Phase 4.0.1 canonical authority closure applied**
 > **Immediate Next Step**: **Phase 4B — Typed Content & CMS Schema**
 
 ---
@@ -25,7 +25,7 @@
 
 ## 2. Canonical Domain & Repository Architecture (Phase 4 Reality)
 
-Phase 4 resolved pre-existing public/admin state disconnects by introducing two backend-ready, bounded domain aggregates with asynchronous contracts, persistent schema `gza.repo.v1`, and central React Query hooks:
+Phase 4 resolved pre-existing public/admin state disconnects by introducing two backend-ready, bounded domain aggregates with asynchronous contracts, persistent schema `gza.repo.v1`, and central React Query hooks. Phase 4.0.1 confirmed that successful empty and missing booking queries remain authoritative in migrated list, detail, search, and confirmation views:
 
 ### 2.1 The Two Canonical Repositories
 1. **`BookingRepository` (`src/lib/repositories/booking-repository.ts`)**:

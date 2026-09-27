@@ -16,7 +16,7 @@ import { AdminDenied } from "@/components/admin/admin-denied";
 import { useAdmin } from "@/lib/admin-store";
 import { useI18n } from "@/lib/i18n";
 import { money } from "@/lib/format";
-import { mockBookings, type MockBookingStatus } from "@/lib/admin-mock";
+import { type MockBookingStatus } from "@/lib/admin-mock";
 import { bookingToMockBooking, type AdaptedAdminBooking } from "@/lib/domain/booking";
 import { useBookingsQuery } from "@/lib/repositories";
 import { destinations } from "@/lib/data";
@@ -50,13 +50,13 @@ function AdminBookingsPage() {
   const [checkin, setCheckin] = useState<"all" | "none" | "partial" | "done">("all");
   const [fare, setFare] = useState("all");
 
-  const { data: repositoryBookings } = useBookingsQuery();
+  const { data: repositoryBookings, isPending, isError } = useBookingsQuery();
 
   const allBookings = useMemo<AdaptedAdminBooking[]>(() => {
-    if (repositoryBookings && repositoryBookings.length > 0) {
+    if (repositoryBookings) {
       return repositoryBookings.map(bookingToMockBooking);
     }
-    return mockBookings as unknown as AdaptedAdminBooking[];
+    return [];
   }, [repositoryBookings]);
 
   const rows = useMemo(() => {
@@ -159,7 +159,11 @@ function AdminBookingsPage() {
           <span className="ms-auto text-xs text-muted-foreground">{t("a2.results", { n: rows.length })}</span>
         </Toolbar>
 
-        {rows.length === 0 ? (
+        {isPending ? (
+          <div role="status" className="px-6 py-10 text-center text-sm text-muted-foreground">{t("a2.bk.loading")}</div>
+        ) : isError ? (
+          <AdminEmpty title={t("a2.bk.loadError")} body={t("a2.bk.loadErrorBody")} />
+        ) : rows.length === 0 ? (
           <AdminEmpty title={t("a2.bk.empty")} body={t("a2.bk.emptyBody")} />
         ) : (
           <>

@@ -74,19 +74,19 @@ function BoardingPassesPage() {
 
       <ul className="space-y-5">
         {passes.map((item) => (
-          <li key={`${item.booking.ref}-${item.leg}-${item.paxIndex}`} className="space-y-2">
+          <li key={`${item.ref}-${item.leg}-${item.paxIndex}`} className="space-y-2">
             <BoardingPassCard item={item} compact />
             <div className="flex flex-wrap gap-2">
               <AppLink
                 to="/boarding-pass/$ref/$leg/$pax"
-                params={{ ref: item.booking.ref, leg: item.leg, pax: String(item.paxIndex) }}
+                params={{ ref: item.ref, leg: item.leg, pax: String(item.paxIndex) }}
                 className={btnClass("primary", "sm")}
               >
                 {t("bp.view")}
               </AppLink>
               <AppLink
                 to="/account/trips/$ref"
-                params={{ ref: item.booking.ref }}
+                params={{ ref: item.ref }}
                 className={btnClass("outline", "sm")}
               >
                 {t("book.viewBooking")}

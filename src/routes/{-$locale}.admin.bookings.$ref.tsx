@@ -18,7 +18,7 @@ import { AdminDenied } from "@/components/admin/admin-denied";
 import { useAdmin } from "@/lib/admin-store";
 import { pick, useI18n } from "@/lib/i18n";
 import { money } from "@/lib/format";
-import { mockBookingByRef, type MockBookingStatus, type MockPassenger } from "@/lib/admin-mock";
+import { type MockBookingStatus, type MockPassenger } from "@/lib/admin-mock";
 import { pageHead } from "@/lib/head";
 import { useBookingQuery, useUpdateBookingMutation } from "@/lib/repositories";
 import { bookingToMockBooking, type AdaptedAdminBooking, type AdaptedAdminPassenger } from "@/lib/domain/booking";
@@ -51,25 +51,27 @@ function AdminBookingDetailPage() {
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [cancelled, setCancelled] = useState(false);
 
-  const { data: canonicalBooking, isLoading } = useBookingQuery(ref);
+  const { data: canonicalBooking, isPending, isError } = useBookingQuery(ref);
   const updateBookingMutation = useUpdateBookingMutation();
-  const fallbackBooking = useMemo(() => mockBookingByRef(ref), [ref]);
-
   const booking = useMemo<AdaptedAdminBooking | undefined>(() => {
     if (canonicalBooking) return bookingToMockBooking(canonicalBooking);
-    return fallbackBooking as unknown as AdaptedAdminBooking | undefined;
-  }, [canonicalBooking, fallbackBooking]);
+    return undefined;
+  }, [canonicalBooking]);
 
   const mayEdit = can("commercial.edit");
 
   if (!can("commercial.view")) return <AdminDenied area={t("a2.bk.title")} permission="commercial.view" />;
 
-  if (isLoading && !booking) {
+  if (isPending) {
     return (
       <AdminPanel>
-        <div className="p-8 text-center text-muted-foreground">{t("a2.loading") || "Loading..."}</div>
+        <div role="status" className="p-8 text-center text-muted-foreground">{t("a2.bk.loading")}</div>
       </AdminPanel>
     );
+  }
+
+  if (isError) {
+    return <AdminPanel><AdminEmpty title={t("a2.bk.loadError")} body={t("a2.bk.loadErrorBody")} /></AdminPanel>;
   }
 
   if (!booking) {

@@ -30,18 +30,21 @@ export const Route = createFileRoute("/{-$locale}/booking-confirmation/$ref")({
 function ConfirmationPage() {
   const { ref } = Route.useParams();
   const { t, lang } = useI18n();
-  const { findBooking, account, claimBooking, ready } = useStore();
-  const { data: canonicalBooking, isLoading: queryLoading } = useBookingQuery(ref);
-  const booking = canonicalBooking ?? findBooking(ref);
+  const { account, claimBooking } = useStore();
+  const { data: booking, isPending, isError } = useBookingQuery(ref);
   const passes = booking ? passesForBooking(booking) : [];
   const firstPass = passes[0];
 
-  if (!ready && queryLoading) {
+  if (isPending) {
     return (
       <Container className="py-16">
         <GazaLoadingState />
       </Container>
     );
+  }
+
+  if (isError) {
+    return <Container className="py-14"><EmptyState title={t("conf.loadFailed")} description={t("conf.loadFailedSub")} /></Container>;
   }
 
   if (!booking) {

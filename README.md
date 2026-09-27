@@ -2,7 +2,7 @@
 
 > **Product**: Gaza International Airport (`GZA`) & Palestinian Airlines (`PS`)
 > **Production Domain**: [https://www.gazaairport.com](https://www.gazaairport.com)
-> **Engineering Status**: **Phase 1 Active (HostPapa Static/Prerender Implementation Complete, Ready for Codex Review)** (Commit `fe294f4` published Phase 0 baseline; commit `9d1edc5` published Phase 0.1; 68 `.tsx` route files total in `src/routes/`: 23 admin, 44 public feature/layout routes, 1 root shell).
+> **Engineering Status**: **Phase 4 Complete; Phase 4.0.1 canonical authority closure applied.** Phase 4B (Typed Content & CMS Schema) is next. See [roadmap.md](roadmap.md) for the full sequence.
 > **Documentation Index**:
 > - [Master Engineering Roadmap (Phases 0–12)](roadmap.md)
 > - [System Architecture Specification](docs/ARCHITECTURE.md)

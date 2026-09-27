@@ -1,7 +1,7 @@
 # Data Flow, State Management & Pretend-Action Inventory
 
 > **Document Purpose**: Complete audit of current data sources, state persistence, cross-screen entity splits, and enabled no-op actions across public and admin workspaces.
-> **Status**: **Phase 4 Complete (Canonical Mock Domain & Repository Layer)**.
+> **Status**: **Phase 4 Complete; Phase 4.0.1 canonical authority closure applied**.
 > **Future Target**: Completion of Phase 4B/4C and Convergence of Public/Admin workflows in Phases 5–6 before any production backend.
 
 ---
@@ -21,12 +21,12 @@ Following Phase 4, the application coordinates persistence across canonical repo
 
 ### 1.1 Admin Flight Overrides Implementation Reality
 
-In `src/lib/admin-store.tsx`:
-- Overrides are held in a key-value dictionary: `overrides: Record<string, FlightOverride>`.
-- Overrides are applied using `applyOverride(flightId: string, patch: FlightOverride)`.
-- Base flight objects are merged with active overrides using `withOverride(flight: Flight): Flight & { note?: string; revisedDepart?: string }`.
-- Overrides persist to `localStorage["gza.admin.v1"]` and are sanitized on load (`sanitizeOverride()`) to validate flight statuses and trim string fields while allowing intentional clears.
-- **Limitation**: Flight overrides apply exclusively to views consuming `withOverride()` (Admin Dashboard and Flight Operations). They do **not** automatically sync to `gza.store.v1` customer booking records, public flight status views (`/flights`), or public booking search results (`/book`).
+In `src/lib/repositories/flight-repository.ts` and `src/lib/admin-store.tsx`:
+- Canonical flight overrides are stored in `gza.repo.v1` as `flightOverrides: Record<string, FlightOverride>` via `FlightRepository.setOverride(flightId, patch)`.
+- Overrides are applied using the pure `getEffectiveFlight(baseFlight, override?)` helper in `src/lib/domain/flight.ts`, which merges base flight objects with active overrides.
+- Overrides are sanitized on load (`sanitizeFlightOverride()`) to validate flight statuses and trim string fields while allowing intentional clears.
+- Legacy `gza.admin.v1` overrides are migrated into `gza.repo.v1` on first load. A sentinel protection ensures canonical flight operations do not modify `gza.admin.v1`, and staff changes preserve legacy overrides.
+- Migrated admin flight views and public flight board/detail views can access effective flights through repository query hooks. The booking wizard still uses its legacy schedule search pending Phase 5.
 
 ### 1.2 Public Booking Draft & Date Synchronization Reality
 
@@ -75,22 +75,23 @@ Identified SEO debt recorded for Phase 11 resolution without expanding Phase 3.9
 
 ## 2. Public vs. Admin Entity Splits
 
-Because public and admin state are decoupled, mutations performed on one side do not reflect on the other:
+Following Phase 4, bookings and operational flight overrides share canonical repository identity across public and admin views. Remaining splits exist only for features not yet migrated:
 
-1. **Bookings Disconnect**:
-   - A passenger booking completed on `/book` writes to `localStorage["gza.store.v1"]`.
-   - The admin booking manifest (`/admin/bookings`, file `src/routes/{-$locale}.admin.bookings.index.tsx`) reads from static `mockBookings` in `src/lib/admin-mock.ts`. It **cannot see** passenger bookings made in the public interface.
-2. **Check-in Disconnect**:
-   - When a passenger checks in via `/manage/:ref/check-in` (`src/routes/{-$locale}.manage.$ref_.check-in.tsx`), the public store updates `booking.checkedIn` (type `CheckedIn = { out: number[]; in: number[] }`), appending checked-in passenger indices for that leg.
-   - The airport check-in desk monitor (`/admin/check-in`, file `src/routes/{-$locale}.admin.check-in.tsx`) renders static `deskPassengers: Record<string, DeskPassenger[]>` from `src/lib/admin-mock.ts` and does not reflect public passenger check-in progress.
+1. **Bookings — Converged**:
+   - A passenger booking completed on `/book` writes to the canonical `BookingRepository` (`gza.repo.v1`).
+   - The admin booking list (`/admin/bookings`), detail (`/admin/bookings/:ref`), and global search all query the same canonical `BookingRepository`. A public-created PNR appears immediately in the admin booking table and detail view. An empty repository correctly shows an empty list; a missing PNR correctly shows a not-found state.
+   - `mockBookings` in `src/lib/admin-mock.ts` remains for non-migrated customer detail fixture references and migration-era sample data. It is never a fallback for a successfully resolved canonical booking list, detail, or global search.
+2. **Check-in — Partially Converged**:
+   - When a passenger checks in via `/manage/:ref/check-in`, the booking record is updated atomically in `BookingRepository` (seats, passengers, and `checkedIn` fields in a single mutation).
+   - The airport check-in desk monitor (`/admin/check-in`) still renders static `deskPassengers` from `src/lib/admin-mock.ts` and does not reflect public passenger check-in progress. Resolution: Phase 6.
 3. **Contact & Inbox Disconnect**:
-   - Submitting the public contact form (`src/routes/{-$locale}.contact.tsx`) updates local component state (`setSent(true)`) to display an inline prototype panel stating the message was not delivered anywhere; it emits no toast and writes to no store.
-   - The admin staff inbox (`src/routes/{-$locale}.admin.inbox.tsx`) displays static `inboxMessages: InboxMessage[]` and never receives public submissions.
-4. **Flight Operations Overrides**:
-   - When staff edit flight status (e.g. gate change, delay) in `/admin` via `flight-quick-edit.tsx`, the change is saved to `localStorage["gza.admin.v1"]` via `applyOverride()`.
-   - Admin views render this override via `withOverride(flight)`. Public flight status views (`src/routes/{-$locale}.flights.tsx`) do not currently consult the admin override store.
+   - Submitting the public contact form (`src/routes/{-$locale}.contact.tsx`) updates local component state (`setSent(true)`) to display an inline prototype panel; it emits no toast and writes to no store.
+   - The admin staff inbox (`src/routes/{-$locale}.admin.inbox.tsx`) displays static `inboxMessages` and never receives public submissions.
+4. **Flight Operations Overrides — Converged**:
+   - When staff edit flight status (gate change, delay) in `/admin` via `flight-quick-edit.tsx`, the change is saved to the canonical `FlightRepository` (`gza.repo.v1`) via `flightRepo.setOverride()`.
+   - Both admin and public views can access effective flights through repository query hooks with operational overrides merged.
 5. **New Booking at Counter (`src/routes/{-$locale}.admin.bookings.new.tsx`)**:
-   - Staff booking creation sets page-local state (`setDone(true)`) and triggers a toast, rendering a confirmation card with hardcoded reference `GZA-NEW1`. It does not commit the booking to either `mockBookings` or `gza.store.v1`.
+   - Staff booking creation sets page-local state and triggers a toast with a hardcoded reference `GZA-NEW1`. It does not commit to the canonical repository. Resolution: Phase 6.
 
 ---
 
@@ -106,7 +107,6 @@ The following table catalogs user-facing controls that appear functional (button
 | **Admin Check-in Desk** | `src/routes/{-$locale}.admin.check-in.tsx` | "Issue Boarding Pass" | Calls `useAdmin().toast(t("a2.ci.issuedToast"))` (no mutation to `deskPassengers`) | Phase 6 |
 | **Admin Check-in Desk** | `src/routes/{-$locale}.admin.check-in.tsx` | "Check-in" in Sheet Footer | Closes sheet (`setSelected(null)`) and calls `useAdmin().toast(...)` | Phase 6 |
 | **Admin Create Booking** | `src/routes/{-$locale}.admin.bookings.new.tsx` | "Create Booking" (`a2.nb.create`) | Sets page-local `done = true` and `useAdmin().toast()`; displays static `GZA-NEW1` (no record saved) | Phase 6 |
-| **Admin Booking Detail** | `src/routes/{-$locale}.admin.bookings.$ref.tsx` | "Cancel Booking" | Opens bespoke `ConfirmDialog`; onConfirm sets page-local `cancelled = true` and calls `toast` (`mockBookings` untouched) | Phase 6 |
 | **Admin Booking Detail** | `src/routes/{-$locale}.admin.bookings.$ref.tsx` | "Edit Contact" / "Seat" / "Extras" Save | Inside `AdminSheet`, Save button calls `useAdmin().toast(t("a2.saved"))` without mutating booking | Phase 6 |
 | **Admin Booking Detail** | `src/routes/{-$locale}.admin.bookings.$ref.tsx` | "Re-send" / "Print Manifest" / "Boarding Pass" | Calls `useAdmin().toast(t("a2.uiOnly"))` (no action performed) | Phase 6 |
 | **Admin Customer Detail** | `src/routes/{-$locale}.admin.customers.$id.tsx` | "Edit Contact" Save | Inside `AdminSheet`, Save calls `useAdmin().toast(t("a2.saved"))` without updating `mockCustomers` | Phase 6 |
@@ -140,19 +140,21 @@ These controls perform real, functional mutations across shared state within the
 For engineering clarity, the following controls perform authentic data mutations that persist across browser reloads:
 
 1. **Public Cancel Booking (`src/routes/{-$locale}.manage.$ref.tsx`)**:
-   - Opens `ConfirmDialog`; on confirmation, invokes `updateBooking(ref, { status: "cancelled" })` on `useStore()`.
-   - Mutates `bookings: Booking[]` and immediately serializes the updated collection to `localStorage["gza.store.v1"]`.
+   - Opens `ConfirmDialog`; on confirmation, invokes `await updateBooking(ref, { status: "cancelled" })` on `useStore()`.
+   - Delegates to `bookingRepo.update()` which atomically mutates via `RepoStorageCoordinator.mutate()`, serializing to `localStorage["gza.repo.v1"]`. On storage failure, throws `StorageCommitError` and rolls back in-memory state.
 2. **Public Flight Check-in (`src/routes/{-$locale}.manage.$ref_.check-in.tsx`)**:
-   - Invokes `checkInLeg(ref, leg, paxIndexes)` on `useStore()`.
-   - Appends passenger indices to `booking.checkedIn` (`CheckedIn = { out: number[]; in: number[] }`) and serializes to `localStorage["gza.store.v1"]`.
+   - Performs a single atomic `await updateBooking(ref, { seats, passengers, checkedIn })` combining seat assignments, passenger data, and check-in status.
+   - Delegates to `bookingRepo.update()` which persists to `gza.repo.v1`. On failure, error propagates and UI does not advance to success state.
 3. **Public Booking Creation (`src/routes/{-$locale}.book.tsx`)**:
    - Submitting the multi-step booking engine invokes `addBooking(...)` on `useStore()`.
-   - Generates a persistent PNR (e.g. `GZA-7K8P`) and writes the complete booking record to `localStorage["gza.store.v1"]`.
+   - Generates a persistent PNR (e.g. `GZA-7K8P`) via `bookingRepo.create()` and persists to `gza.repo.v1`.
 4. **Public Saved Travelers & Profile (`src/routes/{-$locale}.account.*.tsx`)**:
-   - Adding, editing, or deleting saved passenger profiles (`addTraveler`, `updateTraveler`, `removeTraveler`) persists to `localStorage["gza.store.v1"]`.
+   - Adding, editing, or deleting saved passenger profiles persists to `localStorage["gza.store.v1"]`.
 5. **Admin Flight Operational Overrides (`src/components/admin/flight-quick-edit.tsx`)**:
-   - Editing flight status, gate, terminal, revised departure time, or operational note invokes `applyOverride(flightId, patch)` on `useAdmin()`.
-   - Persists the override dictionary to `localStorage["gza.admin.v1"]` and merges with base flights via `withOverride(flight)`.
+   - Editing flight status, gate, terminal, revised departure time, or operational note invokes `flightRepo.setOverride(flightId, patch)`.
+   - Persists to `gza.repo.v1` via `RepoStorageCoordinator.mutate()` and merges with base flights via effective flight queries.
+6. **Admin Booking Cancellation (`src/routes/{-$locale}.admin.bookings.$ref.tsx`)**:
+   - Confirmation invokes `useUpdateBookingMutation()` with `status: "cancelled"`. The canonical booking record changes in `gza.repo.v1`; the local cancelled flag is only immediate presentation state.
 
 ---
 
@@ -176,27 +178,16 @@ For engineering clarity, the following controls perform authentic data mutations
 
 ---
 
-## 5. Mock Repository Convergence Plan (Phases 4–6) & Approved Roadmap Sequence
+## 5. Mock Repository Convergence Plan (Phase 4 Complete, Phases 4B–6 Next) & Approved Roadmap Sequence
 
-To eliminate data splits and pretend actions without building a backend prematurely, the project will converge into a unified mock repository:
+Phase 4 introduced this path for migrated booking and flight reads and writes. Other domains remain in the legacy stores listed above until their planned phase. Services are added only when a use case requires them.
 
 ```text
-[ UI Components & Screens ]
-           │
-           ▼
-[ TanStack Query Hooks (useFlight, useBookings, useCheckIn) ]
-           │
-           ▼
-[ Domain Services (bookingService, flightService, operationsService) ]
-           │
-           ▼
-[ Repository Interfaces (IBookingRepository, IFlightRepository) ]
-           │
-           ├── Phases 4–12: [ LocalStorage / In-Memory Mock Repository ]
-           │                  (Unifies state across Public & Admin)
-           │
-           └── Phase 13+:   [ Remote API Repository ]
-                              (Connects to production database & auth API)
+UI and compatibility facades
+  -> TanStack Query hooks where migrated
+  -> BookingRepository / FlightRepository contracts
+  -> browser mock repository (gza.repo.v1)
+  -> future API implementation after backend authorization
 ```
 
 ### 5.1 Approved Master Engineering Roadmap Sequence (Phases 4–14+)

@@ -18,7 +18,7 @@ import {
 import { pick, useI18n } from "@/lib/i18n";
 import { useAdmin } from "@/lib/admin-store";
 import { contentItems, type Permission } from "@/lib/admin";
-import { mockBookings, mockCustomers } from "@/lib/admin-mock";
+import { mockCustomers } from "@/lib/admin-mock";
 import { useBookingsQuery } from "@/lib/repositories";
 import { bookingToMockBooking, type AdaptedAdminBooking } from "@/lib/domain/booking";
 import { arrivalsOn, departuresOn, destinations, todayISO } from "@/lib/data";
@@ -194,12 +194,12 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
 
   const today = todayISO();
 
-  const { data: repositoryBookings } = useBookingsQuery();
+  const { data: repositoryBookings, isPending: bookingsPending, isError: bookingsError } = useBookingsQuery();
   const allBookings = useMemo<AdaptedAdminBooking[]>(() => {
-    if (repositoryBookings && repositoryBookings.length > 0) {
+    if (repositoryBookings) {
       return repositoryBookings.map(bookingToMockBooking);
     }
-    return mockBookings as unknown as AdaptedAdminBooking[];
+    return [];
   }, [repositoryBookings]);
 
   const suggestions = useMemo(() => {
@@ -458,6 +458,11 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
         </div>
 
         <div id="admin-search-results" className="flex-1 overflow-y-auto">
+          {canCommercial && bookingsPending ? (
+            <p role="status" className="px-4 py-2 text-xs text-muted-foreground">{t("a2.bk.loading")}</p>
+          ) : canCommercial && bookingsError ? (
+            <p role="alert" className="px-4 py-2 text-xs text-destructive">{t("a2.bk.loadError")}</p>
+          ) : null}
           {query.trim() === "" ? (
             <div className="px-4 py-3">
               <div className="flex flex-wrap items-center gap-2 pb-2">

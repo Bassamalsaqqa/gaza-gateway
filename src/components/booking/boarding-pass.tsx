@@ -1,24 +1,15 @@
 import { Plane } from "lucide-react";
 import { StatusBadge } from "@/components/flight-status";
 import { Code, Pill } from "@/components/kit";
-import { airportByCode, fares, type Flight } from "@/lib/data";
+import { airportByCode, fares } from "@/lib/data";
 import { dateShort } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
-import { checkedInPax, infantsWith, isPaxCheckedIn, type Booking, type Leg } from "@/lib/store";
+import { checkedInPax, isPaxCheckedIn, type Booking, type Leg } from "@/lib/domain/booking";
+import { buildBoardingPassViewModel, type BoardingPassViewModel } from "@/lib/domain/boarding-pass";
 
 export type PassLeg = Leg;
 
-export type BoardingPassItem = {
-  booking: Booking;
-  paxIndex: number;
-  leg: PassLeg;
-  flight: Flight;
-  seat: string | undefined;
-};
-
-export function flightForLeg(booking: Booking, leg: Leg): Flight {
-  return leg === "in" && booking.inbound ? booking.inbound : booking.outbound;
-}
+export type BoardingPassItem = BoardingPassViewModel;
 
 /**
  * A pass exists for one booking, one passenger and one leg — and only when that
@@ -28,13 +19,7 @@ export function passesForBooking(booking: Booking): BoardingPassItem[] {
   if (booking.status !== "confirmed") return [];
   const legs: Leg[] = booking.inbound ? ["out", "in"] : ["out"];
   return legs.flatMap((leg) =>
-    checkedInPax(booking, leg).map((paxIndex) => ({
-      booking,
-      paxIndex,
-      leg,
-      flight: flightForLeg(booking, leg),
-      seat: booking.seats[`${leg}-${paxIndex}`],
-    })),
+    checkedInPax(booking, leg).map((paxIndex) => buildBoardingPassViewModel(booking, leg, paxIndex))
   );
 }
 
@@ -44,35 +29,15 @@ export function passFor(booking: Booking, leg: Leg, paxIndex: number): BoardingP
   if (!passenger || passenger.type === "infant") return null;
   if (!isPaxCheckedIn(booking, leg, paxIndex)) return null;
   if (leg === "in" && !booking.inbound) return null;
-  return {
-    booking,
-    paxIndex,
-    leg,
-    flight: flightForLeg(booking, leg),
-    seat: booking.seats[`${leg}-${paxIndex}`],
-  };
-}
-
-/** Boarding opens 45 minutes before the scheduled departure in this schedule. */
-export function boardingTime(departTime: string): string {
-  const [h, m] = departTime.split(":").map((part) => Number(part));
-  if (h === undefined || m === undefined || Number.isNaN(h) || Number.isNaN(m)) return departTime;
-  const total = (h * 60 + m - 45 + 24 * 60) % (24 * 60);
-  const hh = String(Math.floor(total / 60)).padStart(2, "0");
-  const mm = String(total % 60).padStart(2, "0");
-  return `${hh}:${mm}`;
+  return buildBoardingPassViewModel(booking, leg, paxIndex);
 }
 
 export function BoardingPassCard({ item, compact = false }: { item: BoardingPassItem; compact?: boolean }) {
   const { t, lang } = useI18n();
-  const { booking, paxIndex, leg, flight, seat } = item;
-  const passenger = booking.passengers[paxIndex];
+  const { ref, leg, paxIndex, passengerName, infantNames, flight, seat, sequence, totalCheckedIn, boardingTime, fareId } = item;
   const from = airportByCode(flight.originCode);
   const to = airportByCode(flight.destinationCode);
-  const fare = fares.find((f) => f.id === booking.fareId);
-  const infants = infantsWith(booking, paxIndex);
-  const checkedForLeg = checkedInPax(booking, leg);
-  const sequence = Math.max(1, checkedForLeg.indexOf(paxIndex) + 1);
+  const fare = fares.find((f) => f.id === fareId);
 
   return (
     <article className="overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-soft)] print:shadow-none">
@@ -97,14 +62,12 @@ export function BoardingPassCard({ item, compact = false }: { item: BoardingPass
 
           <p className="eyebrow mt-4 text-muted-foreground">{t("bp.passenger")}</p>
           <p className="mt-1 text-xl font-bold uppercase sm:text-2xl">
-            {passenger ? `${passenger.lastName} / ${passenger.firstName}` : "—"}
+            {passengerName}
           </p>
-          {infants.length > 0 ? (
+          {infantNames.length > 0 ? (
             <p className="mt-1 text-xs text-muted-foreground">
               {t("bp.infantOnPass", {
-                name: infants
-                  .map((i) => `${booking.passengers[i]?.firstName ?? ""} ${booking.passengers[i]?.lastName ?? ""}`.trim())
-                  .join(", "),
+                name: infantNames.join(", "),
               })}
             </p>
           ) : null}
@@ -118,12 +81,12 @@ export function BoardingPassCard({ item, compact = false }: { item: BoardingPass
           <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-4">
             <Cell label={t("flights.date")} value={dateShort(flight.date, lang)} />
             <Cell label={t("flights.scheduled")} value={flight.departTime} mono />
-            <Cell label={t("bp.boardingTime")} value={boardingTime(flight.departTime)} mono />
+            <Cell label={t("bp.boardingTime")} value={boardingTime} mono />
             <Cell label={t("book.seatsLabel")} value={seat ?? "—"} mono />
             <Cell label={t("flights.terminal")} value={flight.terminal} mono />
             <Cell label={t("flights.gate")} value={flight.gate} mono />
-            <Cell label={t("book.reference")} value={booking.ref} mono />
-            <Cell label={t("bp.sequence")} value={`${sequence}/${checkedForLeg.length}`} mono />
+            <Cell label={t("book.reference")} value={ref} mono />
+            <Cell label={t("bp.sequence")} value={`${sequence}/${totalCheckedIn}`} mono />
           </div>
 
           {!compact ? (
@@ -140,7 +103,7 @@ export function BoardingPassCard({ item, compact = false }: { item: BoardingPass
             className="h-28 w-full rounded-lg bg-[repeating-linear-gradient(90deg,var(--color-foreground)_0_3px,transparent_3px_7px)] sm:h-40 sm:w-16 sm:bg-[repeating-linear-gradient(0deg,var(--color-foreground)_0_3px,transparent_3px_7px)]"
           />
           <Code className="text-[0.65rem] text-muted-foreground">
-            {booking.ref}·{flight.number}·{seat ?? "—"}
+            {ref}·{flight.number}·{seat ?? "—"}
           </Code>
         </div>
       </div>

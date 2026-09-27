@@ -650,6 +650,8 @@ export const en: Dict = {
 
   "conf.notFound": "We couldn't find that booking reference",
   "conf.notFoundSub": "The reference may be from another device or browser. Look it up on Manage booking.",
+  "conf.loadFailed": "Booking could not be loaded",
+  "conf.loadFailedSub": "Please try again in a moment.",
   "conf.contactEmail": "Contact email",
   "conf.next": "What next",
   "conf.itinerary": "Your itinerary",
@@ -1424,6 +1426,8 @@ export const ar: Dict = {
 
   "conf.notFound": "لم نتمكن من العثور على رقم الحجز",
   "conf.notFoundSub": "قد يكون الرقم من جهاز أو متصفح آخر. ابحث عنه في صفحة إدارة الحجز.",
+  "conf.loadFailed": "تعذّر تحميل الحجز",
+  "conf.loadFailedSub": "يرجى المحاولة مرة أخرى بعد قليل.",
   "conf.contactEmail": "بريد التواصل",
   "conf.next": "الخطوات التالية",
   "conf.itinerary": "خط سيرك",

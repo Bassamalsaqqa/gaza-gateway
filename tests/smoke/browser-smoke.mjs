@@ -822,7 +822,8 @@ async function runBrowserSmoke() {
         await page.fill("#fq-gate", overrideGate);
 
         const saveBtn = page.locator('button:has-text("Save")').first();
-        await saveBtn.click();
+        await saveBtn.waitFor({ state: "visible" });
+        await saveBtn.click({ force: true });
         await page.waitForFunction(
           ({ id, gate }) => {
             const raw = localStorage.getItem("gza.repo.v1");
@@ -1085,6 +1086,42 @@ async function runBrowserSmoke() {
         throw new Error(
           `Booking contact email was corrupted after failed save! Expected "${originalEmail}", got "${preservedEmail}"`
         );
+      }
+    });
+
+    await checkStep("13. Empty canonical bookings never resurrect static admin records", async () => {
+      const authorityContext = await browser.newContext();
+      await authorityContext.addInitScript(() => {
+        localStorage.setItem("gza.admin.v1", JSON.stringify({ staffId: "adm-1", overrides: {} }));
+        localStorage.setItem("gza.repo.v1", JSON.stringify({ schemaVersion: 1, bookings: [], flightOverrides: {} }));
+      });
+      const authorityPage = await authorityContext.newPage();
+      try {
+        await authorityPage.goto(`${baseUrl}/admin/bookings`, { waitUntil: "domcontentloaded" });
+        await authorityPage.getByText("No bookings match these filters").waitFor({ state: "visible" });
+        if (await authorityPage.getByText("GZA4TQ", { exact: true }).count()) {
+          throw new Error("Static booking reappeared in an empty canonical list");
+        }
+
+        await authorityPage.goto(`${baseUrl}/admin/bookings/GZA4TQ`, { waitUntil: "domcontentloaded" });
+        await authorityPage.getByText("This record is not in the prototype data.").waitFor({ state: "visible" });
+        if (await authorityPage.getByText("Nadia Sabbagh", { exact: true }).count()) {
+          throw new Error("Static booking was resurrected for a canonical missing PNR");
+        }
+
+        await authorityPage.goto(`${baseUrl}/booking-confirmation/GZA4TQ`, { waitUntil: "domcontentloaded" });
+        await authorityPage.getByText("We couldn't find that booking reference").waitFor({ state: "visible" });
+
+        await authorityPage.goto(`${baseUrl}/admin/bookings`, { waitUntil: "domcontentloaded" });
+        await authorityPage.getByText("No bookings match these filters").waitFor({ state: "visible" });
+        await authorityPage.getByRole("button", { name: "Search the workspace" }).click();
+        await authorityPage.getByRole("combobox", { name: "Search the workspace" }).fill("GZA4TQ");
+        await authorityPage.getByText("Nothing matches “GZA4TQ”.").waitFor({ state: "visible" });
+        if (await authorityPage.getByText("Nadia Sabbagh", { exact: true }).count()) {
+          throw new Error("Admin Search resurrected a static booking");
+        }
+      } finally {
+        await authorityContext.close();
       }
     });
   } finally {

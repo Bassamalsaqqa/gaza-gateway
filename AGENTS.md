@@ -21,7 +21,7 @@
 
 5. **Data Layer & Architecture Boundaries**:
    - **No Backend Yet**: The app is currently client-side state / SSR mock state. Do not create backend databases, Express servers, Prisma, or Supabase integrations.
-   - **Mock Repository Transition**: Future phases (4–6) will converge public (`useStore()`) and admin (`admin-ops`, `admin-mock`) data into a unified mock repository layer. Keep UI components bound to query/mutation hooks rather than ad-hoc storage singletons.
+   - **Mock Repository Transition**: Phase 4 made completed bookings and operational flight overrides canonical through the mock repositories. Account state, `admin-ops`, and most `admin-mock` fixtures remain separate for later phases. Keep migrated UI consumers bound to repository query/mutation hooks.
    - Every enabled user-facing action must eventually perform a real mock mutation (no permanent toast-only or pretend actions).
 
 6. **Accessibility & Responsive Standards**:

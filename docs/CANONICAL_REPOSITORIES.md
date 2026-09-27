@@ -47,7 +47,7 @@ export interface Booking {
   status: "confirmed" | "cancelled";       // Lifecycle status
   criteria: SearchCriteria;                // Original search parameters
   outbound: Flight;                        // Primary outbound flight instance
-  inbound?: Flight | null;                 // Optional return flight instance
+  inbound: Flight | null;                  // Optional return flight instance
   fareId: "essential" | "classic" | "flex";// Selected fare category
   passengers: BookingPassenger[];          // Passenger party with stable IDs
   seats: Record<string, string>;           // Map of "out-0", "in-0" to seat codes (e.g. "12A")
@@ -55,7 +55,7 @@ export interface Booking {
   contact: Contact;                        // Passenger contact email and telephone
   total: number;                           // Total price in USD
   checkedIn: CheckedIn;                    // Leg check-in indexes { out: number[], in: number[] }
-  ownerEmail?: string | null;              // Associated account email if claimed
+  ownerEmail: string | null;               // Associated account email if claimed
   account?: boolean;                       // Backward-compatibility flag
 }
 ```
@@ -63,7 +63,7 @@ export interface Booking {
 #### Key Architecture Decisions:
 1. **Stable Passenger IDs**: Every passenger receives a deterministic identifier formatted as `pax-${ref}-${index}` (e.g. `pax-GZA4TQ-0`), preserving pre-existing IDs if already assigned. This guarantees stable React keys, table row rendering, and seamless check-in tracking.
 2. **`outbound` / `inbound` Structure**: The model preserves explicit `outbound` and optional `inbound` flight instances rather than a generic array, directly matching aviation point-to-point and return trip semantics. The helper `bookingLegs(booking)` yields `["out"]` or `["out", "in"]`.
-3. **Lossless Bidirectional Adapter (`bookingToMockBooking`)**: Converts canonical `Booking` entities into `AdaptedAdminBooking` objects expected by legacy admin tables and detail views without data loss, computing derived properties (`lead`, `route`, `paxCount`, `cabin`, `fare`, `channel`, `status`).
+3. **Presentation Adapter (`bookingToMockBooking`)**: Derives an `AdaptedAdminBooking` view for legacy admin tables and detail views, including lead passenger, route, cabin, fare, channel, and display status. Mutations use the canonical booking reference and repository rather than writing this view model.
 
 ### 3.2 Flight Aggregate & Overrides (`src/lib/domain/flight.ts`)
 
@@ -84,20 +84,8 @@ export interface FlightOverride {
 ```
 
 #### Pure Composition Rule (`getEffectiveFlight`):
-```ts
-export function getEffectiveFlight(base: Flight, override?: FlightOverride | null): Flight {
-  if (!override) return base;
-  return {
-    ...base,
-    status: override.status ?? base.status,
-    gate: override.gate !== undefined && override.gate !== "" ? override.gate : base.gate,
-    terminal: override.terminal !== undefined && override.terminal !== "" ? override.terminal : base.terminal,
-    aircraft: override.aircraft !== undefined && override.aircraft !== "" ? override.aircraft : base.aircraft,
-    ...(override.revisedDepart ? { revisedDepart: override.revisedDepart } : {}),
-    ...(override.note ? { note: override.note } : {}),
-  };
-}
-```
+
+`getEffectiveFlight(flight: Flight, override?: FlightOverride | null)` returns the base flight with valid operational status, gate, terminal, aircraft, revised departure, and note overrides applied. It returns `Flight & { note?: string; revisedDepart?: string }`. Empty gate/terminal strings are intentional clears; empty aircraft strings retain the base aircraft. The pure function lives in `src/lib/domain/flight.ts` and is used by `FlightRepository` when materializing effective flights.
 
 - **Synthetic Flight Isolation**: `isSyntheticFlightId(id)` detects Studio scenario IDs (`CAP-PROOF-*`, `SCENARIO-*`, `TEST-*`), strictly forbidding them from persisting into canonical storage or overriding live flights.
 
@@ -109,7 +97,7 @@ export function getEffectiveFlight(base: Flight, override?: FlightOverride | nul
 
 ```ts
 export interface BookingRepository {
-  list(filter?: BookingFilter): Promise<Booking[]>;
+  list(): Promise<Booking[]>;
   getByRef(ref: string): Promise<Booking | null>;
   create(input: BookingCreateInput): Promise<Booking>;
   update(ref: string, patch: Partial<Booking>): Promise<Booking | null>;
@@ -124,7 +112,7 @@ export interface FlightRepository {
   getFlightById(id: string): Promise<Flight | null>;
   getOverrides(): Promise<Record<string, FlightOverride>>;
   getOverride(flightId: string): Promise<FlightOverride | null>;
-  setOverride(flightId: string, patch: FlightOverride): Promise<void>;
+  setOverride(flightId: string, override: FlightOverride): Promise<void>;
   clearOverride(flightId: string): Promise<void>;
   subscribe(listener: () => void): () => void;
 }
@@ -150,21 +138,22 @@ export interface FlightRepository {
 
 ## 5. React Query Hooks & Cache Invalidation
 
-Centralized hierarchical query keys in `src/lib/repositories/queries.ts`:
+Centralized hierarchical query keys in `src/lib/repositories/keys.ts`:
 
 - `bookingKeys.all`: `["bookings"]`
 - `bookingKeys.lists()`: `["bookings", "list"]`
+- `bookingKeys.list(filters?)`: `["bookings", "list", filters]`
 - `bookingKeys.detail(ref)`: `["bookings", "detail", PNR]`
 - `flightKeys.all`: `["flights"]`
 - `flightKeys.lists()`: `["flights", "list"]`
-- `flightKeys.list(date, dir)`: `["flights", "list", { date, dir }]`
+- `flightKeys.list(date, direction)`: `["flights", "list", { date, direction }]`
 - `flightKeys.details()`: `["flights", "detail"]`
 - `flightKeys.detail(id)`: `["flights", "detail", id]`
 - `flightKeys.overrides()`: `["flights", "overrides"]`
 
 ### Cache Invalidation Semantics:
 1. **Repository Subscription Binding**: `useBookingsQuery`, `useBookingQuery`, `useFlightsQuery`, `useFlightQuery`, and `useFlightOverridesQuery` subscribe to their respective repository listeners. Any mutation through the repository automatically triggers `queryClient.invalidateQueries(...)`.
-2. **Targeted Invalidation**: Mutations invalidate only their affected domain hierarchy (`bookingKeys.all` and specific `bookingKeys.detail(ref)`).
+2. **Invalidation Scope**: Repository and mutation subscriptions invalidate the affected booking or flight query hierarchy. Several paths currently overlap; this is a bounded efficiency debt rather than a data-authority split.
 3. **Optimistic Updates**: `useCreateBookingMutation` seeds the detail query cache (`queryClient.setQueryData`) immediately upon creation.
 
 ---
@@ -184,7 +173,7 @@ To prevent dual-write bugs, legacy store providers act as single-writer façades
 3. **Wired Views**:
    - Public Flight Status (`/flights`): Consumes `useFlightsQuery(date, dir)`.
    - Public Flight Detail (`/flight/$flightId`): Consumes `useFlightQuery(flightId)`.
-   - Public Booking Confirmation (`/booking-confirmation/$ref`): Consumes `useBookingQuery(ref)` with fallback.
+   - Public Booking Confirmation (`/booking-confirmation/$ref`): Consumes `useBookingQuery(ref)`; successful `null` remains Not Found, while query failures have a distinct error state.
    - Admin Bookings Table (`/admin/bookings`): Consumes `useBookingsQuery()` adapted via `bookingToMockBooking()`.
    - Admin Booking Detail (`/admin/bookings/$ref`): Consumes `useBookingQuery(ref)` and `useUpdateBookingMutation()`.
    - Admin Global Search (`AdminSearch`): Consumes `useBookingsQuery()` to resolve matching PNRs and passenger names across both public and admin records.
@@ -195,4 +184,12 @@ To prevent dual-write bugs, legacy store providers act as single-writer façades
 
 To guarantee that heavy admin fixtures and editor metadata do not leak into public startup chunks:
 - **`src/lib/domain/booking-seeds.ts`**: Contains clean, deterministic seeds for 6 demo bookings (`GZA4TQ`, `GZA9MK`, `GZA7RD`, `GZA2BX`, `GZA5ZN`, `GZA8LP`). Does not import CMS, analytics, or story collections.
-- **Bundle Measurement**: The public startup bundle excludes `admin-mock.ts`, Appearance Studio scenario registry, and heavy visual motifs. The public root script remains under 415 kB uncompressed (~111 kB gzipped), well within performance budgets.
+- **Bundle Measurement**: The Phase 4 measured public entry script was about 414 kB uncompressed. Verify each later release independently; the public startup graph should exclude `admin-mock.ts`, Appearance Studio scenario registry, and heavy visual motifs.
+
+## 8. Boarding-Pass Data Boundary (Phase 4.0.1)
+
+`getBoardingPassData(booking, leg, passengerIndex, effectiveFlight?)` in `src/lib/domain/boarding-pass.ts` is a pure selector for supported pass facts. It returns a stable passenger ID, PNR, route, flight/date/times, optional current operational gate/terminal/revised departure, assigned seat when present, fare, and cabin. It returns `null` for an invalid passenger or leg, an unchecked passenger, an infant traveling on an adult's lap, or a mismatched effective flight. It does not invent a barcode standard, boarding time, zone, or sequence. The existing pass UI retains prototype presentation fields until the owner's artwork arrives.
+
+The admin booking list, detail, and search use repository results as authority after query resolution. An empty list and a `null` detail result never fall back to static `mockBookings`. The latter remains in non-migrated customer detail fixtures pending Phase 6.
+
+**Current hardening notes:** `RepositoryProvider`, individual query hooks, and mutation success handlers can invalidate overlapping query keys after one write. This has not produced an observed query storm in the local proof flows; consolidation can follow when broader workflows migrate. `BookingRepository.list()` returns a new array and `getByRef()` a shallow object copy, so nested passenger/seat/extras values are not deeply immutable. Current migrated readers do not intentionally mutate those values; future API adapters should formalize readonly data or defensive cloning at the boundary.
