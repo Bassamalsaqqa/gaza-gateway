@@ -1,8 +1,8 @@
 # Data Flow, State Management & Pretend-Action Inventory
 
 > **Document Purpose**: Complete audit of current data sources, state persistence, cross-screen entity splits, and enabled no-op actions across public and admin workspaces.
-> **Status**: **Phase 4 Complete; Phase 4.0.1 canonical authority closure applied**.
-> **Future Target**: Completion of Phase 4B/4C and Convergence of Public/Admin workflows in Phases 5–6 before any production backend.
+> **Status**: **Phase 4B Complete — typed editorial content foundation**.
+> **Future Target**: Phase 4C settings convergence, then Public/Admin workflows in Phases 5–6 before any production backend.
 
 ---
 
@@ -13,10 +13,12 @@ Following Phase 4, the application coordinates persistence across canonical repo
 | Store / Source | Implementation Files | Persistence | Entities & Data Types Managed |
 | :--- | :--- | :--- | :--- |
 | **Canonical Repositories** (`BookingRepository`, `FlightRepository`) | `src/lib/repositories/`, `src/lib/domain/` | `localStorage["gza.repo.v1"]` (schemaVersion: 1) | Canonical bookings (`Booking[]`) and mutable operational flight overrides (`flightOverrides: Record<string, FlightOverride>`). Single source of truth for public and admin views. Synchronized across tabs via `subscribeToStorage()`. |
+| **Published Editorial Content** | `src/content/published/` | Compiled source in prerendered HTML and route chunks | Canonical Home, Travel and Airport Past proof documents. Normal public URLs never read local drafts. |
+| **Local Editorial Drafts** | `src/content/repository.ts` | `localStorage["gza.content.draft.v1"]` (schemaVersion: 1) | Admin Travel draft and explicit `?contentPreview=1` overlay only. Save errors reject; corrupt data falls back to published. |
 | **Public Store Façade** (`useStore`) | `src/lib/store.tsx` | `localStorage["gza.store.v1"]` (draft, account, travelers) | Active booking wizard draft (`draft: Draft`), account session (`Account \| null`), and saved travel companions (`Traveler[]`). Booking mutations delegate directly to `bookingRepo` (single writer). |
 | **Admin Store Façade** (`useAdmin`) | `src/lib/admin-store.tsx` | `localStorage["gza.admin.v1"]` (staffId) | Staff identity (`Staff \| null`), active role (`AdminRole`). Flight operational override mutations delegate directly to `flightRepo` (single writer). |
 | **Admin Operations State** (`useAdmin().ops`) | `src/lib/admin-ops.ts`, `src/lib/admin-store.tsx` | Session in-memory state in `AdminProvider` (`useState<OpsState>`). Resets to seed on reload. | Schedules (`Schedule[]`), aircraft fleet (`AircraftType[]`), seat maps (`Record<string, SeatMapConfig>`), fare products (`FareConfig[]`), baggage allowance (`BaggageConfig`), meals (`OptionItem[]`), assistance options (`OptionItem[]`), destination parameters (`DestinationConfig[]`). |
-| **Admin Static Mock Data** | `src/lib/admin-mock.ts` | In-memory static constants | Customer profiles (`mockCustomers`), check-in desk fixtures, staff inbox messages, staff directory, system audit log, analytics metrics, and CMS/story collections (pending Phase 4B). |
+| **Admin Static Mock Data** | `src/lib/admin-mock.ts` | In-memory static constants | Customer profiles (`mockCustomers`), check-in desk fixtures, staff inbox, staff directory, audit and analytics fixtures, and non-migrated CMS/story collections. Home, Travel and Past proof arrays now derive from `src/content/`. |
 | **Appearance / Skin Preview Store** | `src/lib/skin.ts`, `src/design/surfaces/context.tsx` | `localStorage["gza.skin.preview.v1"]` | Authored surface skin, canvas motifs, and per-target recipe overrides (`SkinConfig`). Active **only** when `skinPreview=1` or `studioPreview=1` is present in the query string. |
 
 ### 1.1 Admin Flight Overrides Implementation Reality
@@ -60,7 +62,7 @@ To maintain strict truth and prevent unverified imagery or text from entering th
 2. **Truth & Rights Classification**: Every asset must be assigned a canonical `TruthClass` (`"future-concept-ai"`, `"brand-mark"`, or `"placeholder"`), historical era, and verifiable provenance record.
 3. **Optimized Variant Generation**: Output WebP/AVIF variants at standardized widths (`640w`, `960w`, `1280w`, `1376w`) with explicit intrinsic aspect ratios.
 4. **Registration in `src/lib/media.ts`**: Declare stable semantic IDs (`future-hero`, `future-aerial-day`, etc.) and bilingual accessible descriptions (`altEn`, `altAr`).
-5. **Content Workflow**: Before Phase 4B, small copy updates proceed directly via source edits. After Phase 4B, content is managed through canonical typed content records.
+5. **Content Workflow**: Home, Travel and Past published copy lives in compiled typed records. The Admin Travel editor saves a browser-local draft only; approved global publication requires a source update and verified HostPapa release.
 6. **Strict Archival Truth**: Never present unlabeled material, mock data, or AI-generated concepts as historical evidence. AI future concepts must always display visible illustrative disclosure badges.
 
 ### 1.6 Known SEO Gaps (Earmarked for Phase 11)
@@ -112,11 +114,9 @@ The following table catalogs user-facing controls that appear functional (button
 | **Admin Customer Detail** | `src/routes/{-$locale}.admin.customers.$id.tsx` | "Edit Contact" Save | Inside `AdminSheet`, Save calls `useAdmin().toast(t("a2.saved"))` without updating `mockCustomers` | Phase 6 |
 | **Admin Customer Detail** | `src/routes/{-$locale}.admin.customers.$id.tsx` | "Attach Booking" / "Reset Password" | Calls `useAdmin().toast(t("a2.uiOnly"))` | Phase 6 |
 | **Admin Customer Detail** | `src/routes/{-$locale}.admin.customers.$id.tsx` | "Disable Account" (`a2.cu.disable`) | Opens bespoke `ConfirmDialog`; onConfirm calls `useAdmin().toast(t("a2.uiOnly"))` | Phase 6 |
-| **Admin Website CMS** | `src/routes/{-$locale}.admin.website.tsx` | "Save Draft" / "Publish" | "Save Draft" calls `toast(t("a2.saved"))`; "Publish" calls `toast(t("a2.uiOnly"))` | Phase 6 |
-| **Admin Website CMS** | `src/routes/{-$locale}.admin.website.tsx` | Move Section Up / Down | Calls `useAdmin().toast(t("a2.saved"))` without reordering `homeSections` | Phase 6 |
-| **Admin Website CMS** | `src/routes/{-$locale}.admin.website.tsx` | Edit Page Content Save | Inside `AdminSheet`, Save calls `useAdmin().toast(t("a2.saved"))` | Phase 6 |
-| **Admin Airport CMS** | `src/routes/{-$locale}.admin.airport.index.tsx` | Edit Timeline Entry Save | Inside `AdminSheet`, Save calls `useAdmin().toast(t("a2.saved"))` | Phase 6 |
-| **Admin Airport CMS** | `src/routes/{-$locale}.admin.airport.index.tsx` | Duplicate / Move / Archive / Attach | Calls `useAdmin().toast(t("a2.uiOnly"))` | Phase 6 |
+| **Admin Website CMS** | `src/routes/{-$locale}.admin.website.tsx` | Travel Save Draft / Preview / Discard | Real `ContentRepository` mutation to `gza.content.draft.v1`; explicit preview only. No global Publish button for this module. | Phase 4B complete |
+| **Admin Website CMS** | `src/routes/{-$locale}.admin.website.tsx` | Home reorder / other page editing | Home controls are read-only; non-migrated page editor Save is disabled as prototype-only. | Phase 7 |
+| **Admin Airport CMS** | `src/routes/{-$locale}.admin.airport.index.tsx` | Past timeline editing / duplicate / reorder / archive / attach | Canonical Past timeline is shown read-only; editing controls are disabled pending a real workflow. | Phase 7 |
 | **Admin Airport CMS** | `src/routes/{-$locale}.admin.airport.index.tsx` | Add Fact / Vision / Record / Media / Source | Calls `useAdmin().toast(t("a2.uiOnly"))` | Phase 6 |
 | **Admin Staff Management** | `src/routes/{-$locale}.admin.staff.tsx` | "Invite Staff" Save | Inside `AdminSheet`, Save calls `useAdmin().toast(t("a2.st.inviteSent"))` (no record added) | Phase 6 |
 | **Admin Staff Management** | `src/routes/{-$locale}.admin.staff.tsx` | "Change Role" Save | Inside `AdminSheet`, Save calls `useAdmin().toast(t("a2.st.roleChanged"))` (no record updated) | Phase 6 |
@@ -174,11 +174,11 @@ For engineering clarity, the following controls perform authentic data mutations
 | **Accordion / Collapsible** | **Bespoke HTML `<details>/<summary>` & `useState`** | `src/components/kit.tsx`, product routes | Radix wrappers `src/components/ui/accordion.tsx` and `collapsible.tsx` are **unmounted templates**. |
 | **Toast Notifications** | **Custom Admin Toast Stack (`AdminToasts`)** | `src/components/admin/admin-kit.tsx`, `src/components/admin/admin-shell.tsx` | Admin-only stacked toast notifications rendered from `useAdmin().toasts`. `sonner` and `src/components/ui/sonner.tsx` are **not imported or mounted** in the application; public routes render no toasts. |
 | **Operational Analytics Charts** | **Custom HTML/CSS Bar Meter (`<Bar />`)** | `src/routes/{-$locale}.admin.analytics.tsx` | Bespoke HTML/CSS percentage bars rendered with styled `<span>` elements. `recharts` and `src/components/ui/chart.tsx` are **unmounted templates** not imported by any product screen. |
-| **Forms & Input Validation** | **Native HTML5 & React `useState`** | `src/components/flight-search-form.tsx`, `src/components/kit.tsx`, product routes | Controlled native inputs, selects, and textareas using React `useState` and native HTML5 validation constraints (`required`, `type`, `min`, `autoComplete`). `react-hook-form`, `@hookform/resolvers`, `zod`, and `src/components/ui/form.tsx` are **unmounted templates or unused dependencies**. |
+| **Forms & Input Validation** | **Native HTML5 & React `useState`** | `src/components/flight-search-form.tsx`, `src/components/kit.tsx`, product routes | Controlled native inputs and native HTML5 constraints remain common. Phase 4B uses the existing `zod` dependency in `src/content/schema.ts` to validate local editorial drafts. Generic form wrappers remain unused. |
 
 ---
 
-## 5. Mock Repository Convergence Plan (Phase 4 Complete, Phases 4B–6 Next) & Approved Roadmap Sequence
+## 5. Repository and Content Convergence (Phases 4 and 4B Complete)
 
 Phase 4 introduced this path for migrated booking and flight reads and writes. Other domains remain in the legacy stores listed above until their planned phase. Services are added only when a use case requires them.
 
@@ -197,8 +197,8 @@ The development program follows this strictly sequenced progression:
 1. **Phase 4 — Canonical Mock Domain & Repository Layer (complete)**:
    - Established typed booking and flight domain models, asynchronous repository contracts, and the versioned `gza.repo.v1` mock browser store.
    - Migrated legacy public bookings and admin flight overrides into canonical records while retaining legacy keys for rollback. Representative public and admin booking/flight views now share repository identity. Admin desk fixtures and broader workflows remain for Phases 5 and 6.
-2. **Phase 4B — Typed Content & CMS Schema**:
-   - Formalize typed content models for homepage editorial blocks, travel advisories, airport history chapters, and bilingual metadata.
+2. **Phase 4B — Typed Content & CMS Schema (complete)**:
+   - Compiled bilingual Home, Travel and Past records, runtime validation, local draft repository and explicit preview. Admin Travel editing is the real draft proof; global publishing and broader CMS work remain future phases.
 3. **Phase 4C — Settings & Appearance Store Convergence**:
    - Migrate Appearance Studio draft state from query-parameter / browser-local storage into the canonical settings repository.
 4. **Phase 5 — Public Workflows Convergence**:

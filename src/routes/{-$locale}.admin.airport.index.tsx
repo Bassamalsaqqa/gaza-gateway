@@ -19,17 +19,16 @@ import {
 import { AdminDenied } from "@/components/admin/admin-denied";
 import { useAdmin } from "@/lib/admin-store";
 import { pick, useI18n } from "@/lib/i18n";
+import { timelineEntries, type AdminPastEntry } from "@/content/admin-adapters";
 import {
   archiveItems,
   futureItems,
   mediaItems,
   presentFacts,
   sourceRecords,
-  timelineEntries,
   type ArchiveItem,
   type MediaItem,
   type SourceRecord,
-  type TimelineEntry,
   type Verification,
 } from "@/lib/admin-mock";
 import { pageHead } from "@/lib/head";
@@ -56,7 +55,7 @@ function AdminAirportPage() {
   const { can, toast } = useAdmin();
   const [tab, setTab] = useState<Tab>("past");
   const [editLang, setEditLang] = useState<Lang>("en");
-  const [entry, setEntry] = useState<TimelineEntry | null>(null);
+  const [entry, setEntry] = useState<AdminPastEntry | null>(null);
   const [item, setItem] = useState<ArchiveItem | null>(null);
   const [source, setSource] = useState<SourceRecord | null>(null);
   const [media, setMedia] = useState<MediaItem | null>(null);
@@ -152,7 +151,7 @@ function AdminAirportPage() {
           {/* ------------------------------- PAST ------------------------------- */}
           {tab === "past" ? (
             <div className="space-y-3">
-              <PermissionButton allowed={mayEdit} reason={t("adm.edit.readOnly")} variant="primary" onClick={() => setEntry(timelineEntries[0] ?? null)}>
+              <PermissionButton allowed={false} reason={t("a2.uiOnly")} variant="primary">
                 {t("a2.ap.past.addEntry")}
               </PermissionButton>
               <ol className="space-y-2">
@@ -168,10 +167,10 @@ function AdminAirportPage() {
                     <p className="mt-1 text-xs text-muted-foreground">{pick(lang, e.narrative)}</p>
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       <button type="button" className={btnClass("outline", "sm")} onClick={() => setEntry(e)}>
-                        {t("a2.edit")}
+                        {t("a2.web.pg.open")}
                       </button>
                       {[t("a2.duplicate"), t("a2.moveUp"), t("a2.moveDown"), t("a2.archiveAction"), t("a2.ap.past.attach")].map((label) => (
-                        <PermissionButton key={label} allowed={mayEdit} reason={t("adm.edit.readOnly")} onClick={() => toast(t("a2.uiOnly"))}>
+                        <PermissionButton key={label} allowed={false} reason={t("a2.uiOnly")}>
                           {label}
                         </PermissionButton>
                       ))}
@@ -451,23 +450,23 @@ function AdminAirportPage() {
       </AdminPanel>
 
       {/* -------------------------------- sheets -------------------------------- */}
-      <GazaSheet open={entry !== null} title={t("a2.ap.past.editor")} description={entry?.period ?? ""} onClose={() => setEntry(null)} footer={sheetFooter(() => setEntry(null))}>
+      <GazaSheet open={entry !== null} title={t("a2.ap.past.editor")} description={entry?.period ?? ""} onClose={() => setEntry(null)}>
         {entry ? (
           <div className="space-y-3">
             <AdminField label={t("a2.ap.past.period")} htmlFor="pa-period">
-              <Input id="pa-period" dir="ltr" defaultValue={entry.period} />
+              <Input id="pa-period" dir="ltr" value={entry.period} readOnly />
             </AdminField>
             <AdminField label={t("a2.title")} htmlFor="pa-title">
-              <Input id="pa-title" dir={editLang === "ar" ? "rtl" : "ltr"} defaultValue={entry.title[editLang]} />
+              <Input id="pa-title" dir={editLang === "ar" ? "rtl" : "ltr"} value={entry.title[editLang]} readOnly />
             </AdminField>
             <AdminField label={t("a2.ap.past.narrative")} htmlFor="pa-narr">
-              <Textarea id="pa-narr" rows={5} dir={editLang === "ar" ? "rtl" : "ltr"} defaultValue={entry.narrative[editLang]} />
+              <Textarea id="pa-narr" rows={5} dir={editLang === "ar" ? "rtl" : "ltr"} value={entry.narrative[editLang]} readOnly />
             </AdminField>
             <AdminField label={t("a2.media")} htmlFor="pa-media">
-              <Input id="pa-media" dir="ltr" defaultValue={entry.media} />
+              <Input id="pa-media" dir="ltr" value={entry.media} readOnly />
             </AdminField>
             <AdminField label={t("a2.status")} htmlFor="pa-state">
-              <Select id="pa-state" defaultValue={entry.state}>
+              <Select id="pa-state" value={entry.state} disabled>
                 {(["draft", "published", "archived"] as const).map((s) => (
                   <option key={s} value={s}>{t(`adm.state.${s}`)}</option>
                 ))}

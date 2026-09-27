@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Input, Select, Textarea, btnClass } from "@/components/kit";
 import {
@@ -17,13 +17,15 @@ import {
 import { AdminDenied } from "@/components/admin/admin-denied";
 import { useAdmin } from "@/lib/admin-store";
 import { pick, useI18n } from "@/lib/i18n";
+import { homeSections } from "@/content/admin-adapters";
+import { publishedTravel } from "@/content/published/travel";
+import { contentRepository } from "@/content/repository";
+import type { TravelContent } from "@/content/types";
 import {
   footerGroupsMock,
   headerNavMock,
-  homeSections,
   legalLinksMock,
   sitePages,
-  travelSections,
   type SitePage,
 } from "@/lib/admin-mock";
 import { pageHead } from "@/lib/head";
@@ -67,37 +69,93 @@ function AdminWebsitePage() {
   const { can, toast } = useAdmin();
   const [tab, setTab] = useState<Tab>("homepage");
   const [editLang, setEditLang] = useState<Lang>("en");
-  const [travelTab, setTravelTab] = useState(travelSections[0]?.id ?? "prepare");
+  const [travelTab, setTravelTab] = useState(publishedTravel.sections[0]?.id ?? "prepare");
+  const [travelDraft, setTravelDraft] = useState<TravelContent>(publishedTravel);
+  const [savedTravel, setSavedTravel] = useState<TravelContent | null>(null);
+  const [draftReady, setDraftReady] = useState(false);
+  const [draftError, setDraftError] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [page, setPage] = useState<SitePage | null>(null);
   const mayEdit = can("content.edit");
+  useEffect(() => {
+    let alive = true;
+    void contentRepository.getDraft("travel").then((draft) => {
+      if (!alive) return;
+      setSavedTravel(draft);
+      setTravelDraft(draft ?? publishedTravel);
+      setDraftReady(true);
+    });
+    return () => { alive = false; };
+  }, []);
+  const dirty = JSON.stringify(travelDraft) !== JSON.stringify(savedTravel ?? publishedTravel);
+  const updateSection = (id: string, field: "title" | "body", value: string) => {
+    setTravelDraft((current) => ({
+      ...current,
+      sections: current.sections.map((section) => section.id === id ?
+        { ...section, [field]: { ...section[field], [editLang]: value } } : section),
+    }));
+  };
+  const updatePoint = (sectionId: string, pointId: string, value: string) => {
+    setTravelDraft((current) => ({
+      ...current,
+      sections: current.sections.map((section) => section.id === sectionId ? {
+        ...section,
+        points: section.points.map((point) => point.id === pointId ?
+          { ...point, text: { ...point.text, [editLang]: value } } : point),
+      } : section),
+    }));
+  };
+  const saveTravelDraft = async () => {
+    setSaving(true);
+    setDraftError(false);
+    try {
+      await contentRepository.saveDraft("travel", travelDraft);
+      setSavedTravel(travelDraft);
+      toast(t("a2.saved"));
+    } catch {
+      setDraftError(true);
+    } finally {
+      setSaving(false);
+    }
+  };
+  const discardTravelDraft = async () => {
+    setDraftError(false);
+    try {
+      await contentRepository.discardDraft("travel");
+      setSavedTravel(null);
+      setTravelDraft(publishedTravel);
+    } catch {
+      setDraftError(true);
+    }
+  };
 
   if (!can("content.view")) return <AdminDenied area={t("a2.web.title")} permission="content.view" />;
 
-  const publishBar = (
+  const publishBar = tab === "travel" ? (
     <>
-      <PermissionButton allowed={mayEdit} reason={t("adm.edit.readOnly")} onClick={() => toast(t("a2.saved"))}>
+      <PermissionButton allowed={mayEdit && draftReady && dirty && !saving} reason={t("adm.edit.readOnly")} onClick={() => { void saveTravelDraft(); }}>
         {t("a2.saveDraft")}
       </PermissionButton>
-      <a href="/" target="_blank" rel="noreferrer" className={btnClass("outline", "sm")}>
+      <a href="/travel?contentPreview=1" target="_blank" rel="noreferrer" className={btnClass("outline", "sm")}>
         {t("a2.previewEn")}
       </a>
-      <a href="/ar" target="_blank" rel="noreferrer" className={btnClass("outline", "sm")}>
+      <a href="/ar/travel?contentPreview=1" target="_blank" rel="noreferrer" className={btnClass("outline", "sm")}>
         {t("a2.previewAr")}
       </a>
-      <PermissionButton allowed={mayEdit} reason={t("adm.edit.readOnly")} variant="primary" onClick={() => toast(t("a2.uiOnly"))}>
-        {t("a2.publish")}
+      <PermissionButton allowed={mayEdit && draftReady && savedTravel !== null && !saving} reason={t("adm.edit.readOnly")} onClick={() => { void discardTravelDraft(); }}>
+        {t("content.discardDraft")}
       </PermissionButton>
     </>
-  );
+  ) : null;
 
-  const activeTravel = travelSections.find((s) => s.id === travelTab) ?? travelSections[0];
+  const activeTravel = travelDraft.sections.find((s) => s.id === travelTab) ?? travelDraft.sections[0];
 
   return (
     <div className="space-y-4">
       <AdminPageHeader
         title={t("a2.web.title")}
         description={t("a2.web.sub")}
-        meta={<p className="text-xs text-muted-foreground">{t("a2.mock")}</p>}
+        meta={<p className="text-xs text-muted-foreground">{tab === "travel" ? t("content.localNotPublished") : t("a2.mock")}</p>}
         action={publishBar}
       />
 
@@ -119,7 +177,7 @@ function AdminWebsitePage() {
 
           {tab === "homepage" ? (
             <ul className="space-y-3">
-              {homeSections.map((s, i) => (
+              {homeSections.map((s) => (
                 <li key={s.id} className="rounded-md border border-border p-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex flex-wrap items-center gap-2">
@@ -128,11 +186,11 @@ function AdminWebsitePage() {
                       <BilingualStatus missingAr={s.heading.ar.length === 0} />
                     </div>
                     <div className="flex gap-1.5">
-                      <PermissionButton allowed={mayEdit && i > 0} reason={t("adm.edit.readOnly")} onClick={() => toast(t("a2.saved"))}>
+                      <PermissionButton allowed={false} reason={t("a2.uiOnly")}>
                         <ChevronUp aria-hidden="true" className="size-3.5" />
                         <span className="sr-only">{t("a2.moveUp")}</span>
                       </PermissionButton>
-                      <PermissionButton allowed={mayEdit && i < homeSections.length - 1} reason={t("adm.edit.readOnly")} onClick={() => toast(t("a2.saved"))}>
+                      <PermissionButton allowed={false} reason={t("a2.uiOnly")}>
                         <ChevronDown aria-hidden="true" className="size-3.5" />
                         <span className="sr-only">{t("a2.moveDown")}</span>
                       </PermissionButton>
@@ -141,23 +199,18 @@ function AdminWebsitePage() {
 
                   <div className="mt-3 grid gap-3 lg:grid-cols-2">
                     <AdminField label={t("a2.heading")} htmlFor={`hp-h-${s.id}`}>
-                      <Input id={`hp-h-${s.id}`} dir={editLang === "ar" ? "rtl" : "ltr"} defaultValue={s.heading[editLang]} />
+                      <Input id={`hp-h-${s.id}`} dir={editLang === "ar" ? "rtl" : "ltr"} value={s.heading[editLang]} readOnly />
                     </AdminField>
                     <AdminField label={t("a2.media")} htmlFor={`hp-m-${s.id}`} hint={t("a2.selectMedia")}>
-                      <Select id={`hp-m-${s.id}`} defaultValue="none">
+                      <Select id={`hp-m-${s.id}`} defaultValue="none" disabled>
                         <option value="none">{t("a2.none")}</option>
                         <option value="terminal-exterior.jpg">terminal-exterior.jpg</option>
                         <option value="site-aerial.jpg">site-aerial.jpg</option>
                       </Select>
                     </AdminField>
                     <AdminField label={t("a2.body")} htmlFor={`hp-b-${s.id}`} className="lg:col-span-2">
-                      <Textarea id={`hp-b-${s.id}`} rows={2} dir={editLang === "ar" ? "rtl" : "ltr"} defaultValue={s.body[editLang]} />
+                      <Textarea id={`hp-b-${s.id}`} rows={2} dir={editLang === "ar" ? "rtl" : "ltr"} value={s.body[editLang]} readOnly />
                     </AdminField>
-                    {s.items ? (
-                      <AdminField label={t("a2.web.hp.items")} htmlFor={`hp-i-${s.id}`} className="lg:col-span-2">
-                        <Input id={`hp-i-${s.id}`} dir="ltr" defaultValue={s.items.join(", ")} />
-                      </AdminField>
-                    ) : null}
                   </div>
                 </li>
               ))}
@@ -166,8 +219,13 @@ function AdminWebsitePage() {
 
           {tab === "travel" ? (
             <div className="space-y-3">
+              <p role="status" className="text-xs text-muted-foreground">
+                {dirty ? t("content.unsavedChanges") : savedTravel ? t("content.localDraft") : t("content.compiledPublished")}
+                {" · "}{t("content.localNotPublished")}
+              </p>
+              {draftError ? <p role="alert" className="text-sm text-destructive">{t("content.saveFailed")}</p> : null}
               <div className="flex flex-wrap gap-1.5">
-                {travelSections.map((s) => (
+                {travelDraft.sections.map((s) => (
                   <button
                     key={s.id}
                     type="button"
@@ -175,7 +233,7 @@ function AdminWebsitePage() {
                     onClick={() => setTravelTab(s.id)}
                     className={btnClass(travelTab === s.id ? "secondary" : "ghost", "sm")}
                   >
-                    {t(s.labelKey)}
+                    {pick(lang, s.title)}
                   </button>
                 ))}
               </div>
@@ -188,25 +246,25 @@ function AdminWebsitePage() {
                   </div>
                   <div className="grid gap-3 lg:grid-cols-2">
                     <AdminField label={t("a2.title")} htmlFor="tr-title">
-                      <Input id="tr-title" dir={editLang === "ar" ? "rtl" : "ltr"} defaultValue={activeTravel.title[editLang]} />
+                      <Input id="tr-title" dir={editLang === "ar" ? "rtl" : "ltr"} value={activeTravel.title[editLang]} readOnly={!mayEdit || !draftReady} onChange={(event) => updateSection(activeTravel.id, "title", event.target.value)} />
                     </AdminField>
                     <AdminField label={t("a2.web.tr.intro")} htmlFor="tr-intro">
-                      <Input id="tr-intro" dir={editLang === "ar" ? "rtl" : "ltr"} defaultValue={activeTravel.intro[editLang]} />
+                      <Input id="tr-intro" dir={editLang === "ar" ? "rtl" : "ltr"} value={activeTravel.body[editLang]} readOnly={!mayEdit || !draftReady} onChange={(event) => updateSection(activeTravel.id, "body", event.target.value)} />
                     </AdminField>
                   </div>
                   <div className="space-y-2">
                     <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("a2.web.tr.items")}</p>
-                    {activeTravel.items.map((item, i) => (
+                    {activeTravel.points.map((item, i) => (
                       <div key={item.id} className="flex flex-wrap items-end gap-2">
                         <AdminField label={`${t("a2.body")} ${i + 1}`} htmlFor={`tr-i-${item.id}`} className="min-w-0 flex-1">
-                          <Input id={`tr-i-${item.id}`} dir={editLang === "ar" ? "rtl" : "ltr"} defaultValue={item.text[editLang]} />
+                          <Input id={`tr-i-${item.id}`} dir={editLang === "ar" ? "rtl" : "ltr"} value={item.text[editLang]} readOnly={!mayEdit || !draftReady} onChange={(event) => updatePoint(activeTravel.id, item.id, event.target.value)} />
                         </AdminField>
-                        <PermissionButton allowed={mayEdit} reason={t("adm.edit.readOnly")} onClick={() => toast(t("a2.uiOnly"))}>
+                        <PermissionButton allowed={false} reason={t("a2.uiOnly")}>
                           {t("a2.delete")}
                         </PermissionButton>
                       </div>
                     ))}
-                    <PermissionButton allowed={mayEdit} reason={t("adm.edit.readOnly")} onClick={() => toast(t("a2.uiOnly"))}>
+                    <PermissionButton allowed={false} reason={t("a2.uiOnly")}>
                       {t("a2.web.tr.addItem")}
                     </PermissionButton>
                   </div>
@@ -254,7 +312,7 @@ function AdminWebsitePage() {
                   {headerNavMock.map((item, i) => (
                     <li key={item.id} className="flex flex-wrap items-end gap-2 p-3">
                       <AdminField label={t("a2.web.nav.label")} htmlFor={`nv-h-${item.id}`} className="min-w-0 flex-1">
-                        <Input id={`nv-h-${item.id}`} dir={editLang === "ar" ? "rtl" : "ltr"} defaultValue={item.label[editLang]} />
+                        <Input id={`nv-h-${item.id}`} dir={editLang === "ar" ? "rtl" : "ltr"} value={item.label[editLang]} readOnly />
                       </AdminField>
                       <AdminChip tone={item.visible ? "brand" : "muted"}>{t(item.visible ? "a2.visible" : "a2.hidden")}</AdminChip>
                       <span className="code-id text-xs text-muted-foreground">{i + 1}</span>
@@ -273,7 +331,7 @@ function AdminWebsitePage() {
                         <ul className="mt-1.5 space-y-1.5">
                           {g.links.map((l) => (
                             <li key={l.id} className="flex items-center gap-2">
-                              <Input aria-label={t("a2.web.nav.label")} dir={editLang === "ar" ? "rtl" : "ltr"} defaultValue={l.label[editLang]} />
+                              <Input aria-label={t("a2.web.nav.label")} dir={editLang === "ar" ? "rtl" : "ltr"} value={l.label[editLang]} readOnly />
                               <AdminChip tone={l.visible ? "brand" : "muted"}>{t(l.visible ? "a2.visible" : "a2.hidden")}</AdminChip>
                             </li>
                           ))}
@@ -312,13 +370,9 @@ function AdminWebsitePage() {
               {t("a2.cancel")}
             </button>
             <PermissionButton
-              allowed={mayEdit}
-              reason={t("adm.edit.readOnly")}
+              allowed={false}
+              reason={t("a2.uiOnly")}
               variant="primary"
-              onClick={() => {
-                setPage(null);
-                toast(t("a2.saved"));
-              }}
             >
               {t("a2.save")}
             </PermissionButton>

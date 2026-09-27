@@ -2,11 +2,12 @@
 
 > **Product**: Gaza International Airport (`GZA`) & Palestinian Airlines (`PS`)
 > **Production Domain**: [https://www.gazaairport.com](https://www.gazaairport.com)
-> **Engineering Status**: **Phase 4 Complete; Phase 4.0.1 canonical authority closure applied.** Phase 4B (Typed Content & CMS Schema) is next. See [roadmap.md](roadmap.md) for the full sequence.
+> **Engineering Status**: **Phase 4B Complete — typed editorial content and local draft preview.** Phase 4C (Settings & Appearance Store Convergence) is next. See [roadmap.md](roadmap.md) for the full sequence.
 > **Documentation Index**:
 > - [Master Engineering Roadmap (Phases 0–12)](roadmap.md)
 > - [System Architecture Specification](docs/ARCHITECTURE.md)
 > - [Data Flow, State Stores & Pretend-Action Inventory](docs/DATA_FLOW.md)
+> - [Typed Editorial Content Model](docs/CONTENT_MODEL.md)
 > - [HostPapa Deployment Architecture Guide](docs/HOSTPAPA_DEPLOYMENT.md)
 > - [Engineering Invariants & Agent Guidelines](AGENTS.md)
 > - [Routes Architecture & Conventions](src/routes/README.md)

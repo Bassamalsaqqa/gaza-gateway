@@ -1,8 +1,8 @@
 # Master Engineering Roadmap — Gaza Airport & Palestinian Airlines
 
 > **Product**: Digital home of Palestinian Airlines operating through Gaza International Airport ([gazaairport.com](https://www.gazaairport.com)), featuring an airport public presence and an administration workspace.
-> **Current Status**: **Phase 4 Complete (Canonical Mock Domain & Repository Layer)**.
-> **Immediate Next Step**: **Phase 4B — Typed Content & CMS Schema** (Formalize typed content entities for homepage editorials, travel guides, airport history chapters, and bilingual media metadata).
+> **Current Status**: **Phase 4B Complete (Typed Content & CMS Schema)**.
+> **Immediate Next Step**: **Phase 4C — Settings & Appearance Store Convergence**.
 > **Historical baseline**: Phase 4 began from source commit `9e36b869274830f84c97cbbefe3b3fb0a98c6d2e` and HostPapa release commit `92ad935f8477e1663eefa8282d2770c66b64b8b2`. These are starting milestones, not current branch heads.
 
 ---
@@ -22,7 +22,7 @@
 | **Phase 3.9.1** | **Flight-Detail Bookability & Documentation Truth** | **Complete** | 1. Flight-detail bookability guard: canonical `getFlightBookability(flight, { paxCount: 1 })` check on `/flight/$flightId`, dynamic replacement of booking CTA with localized unavailable explanation and `/flights` alternative, click-handler guard, and corrected destination guide link.<br>2. Durable unit & browser regression tests for flight-detail bookability, unbookable states, and LTR technical formatting.<br>3. Documentation truth reconciliation across roadmap, architecture, data flow, and design guides. |
 | **Phase 4** | **Canonical Domain & Repository Layer** | **Complete** | Decoupled UI components into typed domain aggregates (`Booking`, `Flight`), asynchronous repository contracts (`BookingRepository`, `FlightRepository`), persistence schema `gza.repo.v1`, idempotent legacy migrations, central query keys (`bookingKeys`, `flightKeys`), React Query hooks with subscription invalidation, single-writer pattern across public and admin, and cross-system browser proofs. |
 | **Phase 4.0.1** | **Canonical Authority Closure** | **Complete** | Successful empty and missing canonical booking queries remain authoritative in admin list, detail, and search; added a pure boarding-pass data selector and reconciled current architecture documentation. |
-| **Phase 4B** | **Typed Content & CMS Schema** | **Next Engineering Phase** | Formalize typed content entities for homepage editorials, travel guides, airport history chapters, and bilingual media metadata. |
+| **Phase 4B** | **Typed Content & CMS Schema** | **Complete** | Compiled bilingual Home, Travel and Airport Past documents; strict schema and provenance validation; versioned browser-local drafts; explicit preview; real Admin Travel draft editing with no global Publish claim. |
 | **Phase 4C** | **Settings & Appearance Store Convergence** | Planned | Migrate Appearance Studio state from preview-only query storage into the canonical settings repository. |
 | **Phase 5** | **Public Workflows Convergence** | Planned | Connect booking, manage trips, check-in, passenger accounts, and contact forms to canonical domain repositories with complete validation. |
 | **Phase 6** | **Admin Workflows Convergence** | Planned | Connect admin flight quick-edit, schedule manager, passenger desk, customer notes, and activity logging to the shared domain repositories. |

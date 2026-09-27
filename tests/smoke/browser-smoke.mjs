@@ -821,9 +821,10 @@ async function runBrowserSmoke() {
         await page.selectOption("#fq-status", "Delayed");
         await page.fill("#fq-gate", overrideGate);
 
-        const saveBtn = page.locator('button:has-text("Save")').first();
+        const saveBtn = page.getByRole("button", { name: "Save changes", exact: true });
         await saveBtn.waitFor({ state: "visible" });
-        await saveBtn.click({ force: true });
+        await saveBtn.scrollIntoViewIfNeeded();
+        await saveBtn.click();
         await page.waitForFunction(
           ({ id, gate }) => {
             const raw = localStorage.getItem("gza.repo.v1");
@@ -1122,6 +1123,153 @@ async function runBrowserSmoke() {
         }
       } finally {
         await authorityContext.close();
+      }
+    });
+
+    await checkStep("14. Travel CMS draft persists, previews bilingually, and leaves published routes unchanged", async () => {
+      const cmsContext = await browser.newContext();
+      await cmsContext.addInitScript(() => {
+        localStorage.setItem("gza.admin.v1", JSON.stringify({ staffId: "adm-1", overrides: {} }));
+      });
+      const cmsPage = await cmsContext.newPage();
+      const enDraft = "Phase 4B English draft proof";
+      const arDraft = "مسودة عربية للاختبار";
+      try {
+        await cmsPage.goto(`${baseUrl}/admin/website`, { waitUntil: "domcontentloaded" });
+        await cmsPage.getByRole("tab", { name: "Travel information" }).click();
+        await cmsPage.locator("#tr-title").waitFor({ state: "visible" });
+        const publishedTitle = await cmsPage.locator("#tr-title").inputValue();
+        await cmsPage.locator("#tr-title").fill(enDraft);
+        await cmsPage.getByRole("button", { name: "Save draft" }).click();
+        await cmsPage.waitForFunction(() => {
+          const raw = localStorage.getItem("gza.content.draft.v1");
+          return raw && JSON.parse(raw).drafts.travel.sections[0].title.en === "Phase 4B English draft proof";
+        });
+        await cmsPage.reload({ waitUntil: "domcontentloaded" });
+        await cmsPage.getByRole("tab", { name: "Travel information" }).click();
+        await cmsPage.locator("#tr-title").waitFor({ state: "visible" });
+        if (await cmsPage.locator("#tr-title").inputValue() !== enDraft) throw new Error("Saved English draft did not survive reload");
+
+        await cmsPage.goto(`${baseUrl}/travel?contentPreview=1`, { waitUntil: "domcontentloaded" });
+        await cmsPage.getByRole("heading", { name: enDraft, exact: true }).waitFor({ state: "visible" });
+        await cmsPage.locator('[role="status"]').filter({ hasText: "Not published" }).first().waitFor({ state: "visible" });
+        await cmsPage.goto(`${baseUrl}/travel`, { waitUntil: "domcontentloaded" });
+        await cmsPage.getByText(publishedTitle, { exact: true }).first().waitFor({ state: "visible" });
+        if (await cmsPage.getByText(enDraft, { exact: true }).count()) throw new Error("Normal Travel route applied local draft");
+
+        await cmsPage.goto(`${baseUrl}/admin/website`, { waitUntil: "domcontentloaded" });
+        await cmsPage.getByRole("tab", { name: "Travel information" }).click();
+        await cmsPage.getByRole("button", { name: "Arabic", exact: true }).click();
+        await cmsPage.locator("#tr-title").fill(arDraft);
+        await cmsPage.getByRole("button", { name: "Save draft" }).click();
+        await cmsPage.waitForFunction(() => {
+          const draft = JSON.parse(localStorage.getItem("gza.content.draft.v1") || "{}").drafts?.travel;
+          return draft?.sections[0]?.title.ar === "مسودة عربية للاختبار";
+        });
+        const saved = await cmsPage.evaluate(() => JSON.parse(localStorage.getItem("gza.content.draft.v1")).drafts.travel);
+        if (saved.sections[0].title.en !== enDraft) throw new Error("Arabic edit erased English draft");
+        await cmsPage.goto(`${baseUrl}/ar/travel?contentPreview=1`, { waitUntil: "domcontentloaded" });
+        await cmsPage.getByRole("heading", { name: arDraft, exact: true }).waitFor({ state: "visible" });
+        await cmsPage.goto(`${baseUrl}/ar/travel`, { waitUntil: "domcontentloaded" });
+        if (await cmsPage.getByText(arDraft, { exact: true }).count()) throw new Error("Normal Arabic route applied local draft");
+
+        await cmsPage.goto(`${baseUrl}/admin/website`, { waitUntil: "domcontentloaded" });
+        await cmsPage.getByRole("tab", { name: "Travel information" }).click();
+        await cmsPage.getByRole("button", { name: "Discard draft" }).click();
+        await cmsPage.waitForFunction(() => !JSON.parse(localStorage.getItem("gza.content.draft.v1") || "{}").drafts?.travel);
+        await cmsPage.goto(`${baseUrl}/travel?contentPreview=1`, { waitUntil: "domcontentloaded" });
+        await cmsPage.getByText(publishedTitle, { exact: true }).first().waitFor({ state: "visible" });
+      } finally {
+        await cmsContext.close();
+      }
+    });
+
+    await checkStep("15. Published Home, Travel, Past and Admin read panels survive corrupt draft storage on desktop and mobile", async () => {
+      const contentContext = await browser.newContext();
+      await contentContext.addInitScript(() => {
+        localStorage.setItem("gza.admin.v1", JSON.stringify({ staffId: "adm-1", overrides: {} }));
+        localStorage.setItem("gza.content.draft.v1", "{malformed");
+      });
+      const contentPage = await contentContext.newPage();
+      const hydrationErrors = [];
+      const consoleErrors = [];
+      contentPage.on("console", (message) => {
+        if (message.type() === "error") {
+          // The isolated smoke environment may deny the site's external Google Fonts request.
+          const deniedExternalFont = message.text().includes("ERR_NETWORK_ACCESS_DENIED") &&
+            message.location().url.startsWith("https://fonts.googleapis.com/");
+          if (!deniedExternalFont) consoleErrors.push(`${message.text()} ${message.location().url}`);
+          if (/hydration|did not match|server rendered html/i.test(message.text())) hydrationErrors.push(message.text());
+        }
+      });
+      try {
+        for (const width of [1280, 390]) {
+          await contentPage.setViewportSize({ width, height: 850 });
+          for (const path of ["/", "/ar", "/travel", "/ar/travel", "/airport/past", "/ar/airport/past",
+            "/admin/website", "/ar/admin/website", "/admin/airport", "/ar/admin/airport"]) {
+            await contentPage.goto(`${baseUrl}${path}`, { waitUntil: "domcontentloaded" });
+            const expectedLang = path.startsWith("/ar") ? "ar" : "en";
+            if (await contentPage.locator("html").getAttribute("lang") !== expectedLang) throw new Error(`Wrong locale at ${path}`);
+            await contentPage.waitForFunction(() => document.body?.innerText.length > 80, null, { timeout: 10000 })
+              .catch(() => { throw new Error(`Empty content at ${path}`); });
+          }
+        }
+        await contentPage.goto(`${baseUrl}/travel?contentPreview=1`, { waitUntil: "domcontentloaded" });
+        await contentPage.getByRole("heading", { name: "Preparing to travel" }).waitFor({ state: "visible" });
+        if (hydrationErrors.length) throw new Error(`Hydration warning: ${hydrationErrors[0]}`);
+        if (consoleErrors.length) throw new Error(`Console error: ${consoleErrors[0]}`);
+      } finally {
+        await contentContext.close();
+      }
+    });
+
+    await checkStep("16. Travel CMS storage failure never reports a successful draft save", async () => {
+      const failContext = await browser.newContext();
+      await failContext.addInitScript(() => {
+        localStorage.setItem("gza.admin.v1", JSON.stringify({ staffId: "adm-1", overrides: {} }));
+      });
+      const failPage = await failContext.newPage();
+      try {
+        await failPage.goto(`${baseUrl}/admin/website`, { waitUntil: "domcontentloaded" });
+        await failPage.getByRole("tab", { name: "Travel information" }).click();
+        await failPage.locator("#tr-title").fill("Storage failure draft");
+        await failPage.evaluate(() => {
+          window.__contentOriginalSetItem = Storage.prototype.setItem;
+          Storage.prototype.setItem = function () { throw new Error("Storage blocked"); };
+        });
+        await failPage.getByRole("button", { name: "Save draft" }).click();
+        await failPage.getByRole("alert").filter({ hasText: "Could not save the draft" }).waitFor({ state: "visible" });
+        const raw = await failPage.evaluate(() => localStorage.getItem("gza.content.draft.v1"));
+        if (raw !== null) throw new Error("Failed save wrote a draft");
+      } finally {
+        await failPage.evaluate(() => {
+          if (window.__contentOriginalSetItem) Storage.prototype.setItem = window.__contentOriginalSetItem;
+        }).catch(() => {});
+        await failContext.close();
+      }
+    });
+
+    await checkStep("17. Content viewer cannot mutate a Travel draft", async () => {
+      const viewerContext = await browser.newContext();
+      await viewerContext.addInitScript(() => {
+        localStorage.setItem("gza.admin.v1", JSON.stringify({ staffId: "adm-3", overrides: {} }));
+      });
+      const viewerPage = await viewerContext.newPage();
+      try {
+        await viewerPage.goto(`${baseUrl}/admin/website`, { waitUntil: "domcontentloaded" });
+        await viewerPage.getByRole("tab", { name: "Travel information" }).click();
+        await viewerPage.locator("#tr-title").waitFor({ state: "visible" });
+        if (!await viewerPage.locator("#tr-title").evaluate((input) => input.readOnly)) {
+          throw new Error("Viewer received an editable Travel field");
+        }
+        if (!await viewerPage.getByRole("button", { name: "Save draft" }).isDisabled()) {
+          throw new Error("Viewer received an enabled Save Draft action");
+        }
+        if (await viewerPage.evaluate(() => localStorage.getItem("gza.content.draft.v1"))) {
+          throw new Error("Viewer created a draft");
+        }
+      } finally {
+        await viewerContext.close();
       }
     });
   } finally {

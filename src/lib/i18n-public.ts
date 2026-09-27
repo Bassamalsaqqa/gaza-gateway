@@ -5,6 +5,9 @@
 export type Dict = Record<string, string>;
 
 export const en: Dict = {
+  "content.previewTitle": "Draft content preview",
+  "content.previewLocal": "Stored in this browser",
+  "content.previewUnpublished": "Not published",
   // brand / chrome
   "brand.airport": "Gaza International Airport",
   "brand.airportShort": "Gaza Intl",
@@ -800,6 +803,9 @@ export const en: Dict = {
 };
 
 export const ar: Dict = {
+  "content.previewTitle": "معاينة مسودة المحتوى",
+  "content.previewLocal": "محفوظة في هذا المتصفح",
+  "content.previewUnpublished": "غير منشورة",
   "brand.airport": "مطار غزة الدولي",
   "brand.airportShort": "مطار غزة",
   "brand.airline": "الخطوط الجوية الفلسطينية",

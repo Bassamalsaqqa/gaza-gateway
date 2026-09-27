@@ -3,9 +3,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Check } from "lucide-react";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
 import { LayoutGroup, motion, useReducedMotion } from "motion/react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { btnClass, Container, PageHeader } from "@/components/kit";
-import { travelSections } from "@/lib/data";
+import { publishedTravel } from "@/content/published/travel";
+import { ContentPreviewNotice, useContentPreview } from "@/content/preview";
 import { pick, useI18n } from "@/lib/i18n";
 import { ResponsiveImage } from "@/components/responsive-image";
 import { cn } from "@/lib/utils";
@@ -40,13 +41,12 @@ export const Route = createFileRoute("/{-$locale}/travel")({
     }
     return out;
   },
-  head: () => ({
+  head: ({ params }) => ({
     meta: [
-      { title: "Travel information — Gaza International Airport (GZA)" },
+      { title: publishedTravel.seo.title[params.locale === "ar" ? "ar" : "en"] },
       {
         name: "description",
-        content:
-          "Prepare for your flight from Gaza International Airport: travel documents, baggage rules, accessibility and what to expect at the airport.",
+        content: publishedTravel.seo.description[params.locale === "ar" ? "ar" : "en"],
       },
       { property: "og:title", content: "Travel information — Gaza International Airport" },
       {
@@ -61,6 +61,8 @@ export const Route = createFileRoute("/{-$locale}/travel")({
 function TravelPage() {
   const search = Route.useSearch();
   const { t, lang } = useI18n();
+  const { content, previewing } = useContentPreview("travel", publishedTravel);
+  const travelSections = useMemo(() => content.sections.filter((section) => section.visible), [content]);
   const first = travelSections[0];
   const initialSection =
     search.section && travelSections.some((s) => s.id === search.section)
@@ -87,13 +89,14 @@ function TravelPage() {
         setActive(hash);
       }
     }
-  }, [search.section]);
+  }, [search.section, travelSections]);
 
   return (
     <>
+      {previewing ? <ContentPreviewNotice /> : null}
       <PageHeader
-        title={t("travel.title")}
-        description={t("travel.sub")}
+        title={pick(lang, content.intro.title)}
+        description={pick(lang, content.intro.description)}
       />
 
       <Container className="py-10">
@@ -104,7 +107,7 @@ function TravelPage() {
         >
           <LayoutGroup id="travel-tabs">
             <TabsPrimitive.List
-              aria-label={t("travel.title")}
+              aria-label={pick(lang, content.intro.title)}
               className="flex overflow-x-auto border-b border-border"
               loop
             >
@@ -155,13 +158,13 @@ function TravelPage() {
 
             const checklistContent = (
               <ul className="divide-y divide-border border-y border-border">
-                {section.points.map((point, index) => (
-                  <li key={index} className="flex gap-3 py-4 text-sm leading-relaxed">
+                {section.points.filter((point) => point.visible).map((point) => (
+                  <li key={point.id} className="flex gap-3 py-4 text-sm leading-relaxed">
                     <Check
                       aria-hidden="true"
                       className="mt-0.5 size-4 shrink-0 text-brand-deep"
                     />
-                    <span>{pick(lang, point)}</span>
+                    <span>{pick(lang, point.text)}</span>
                   </li>
                 ))}
               </ul>

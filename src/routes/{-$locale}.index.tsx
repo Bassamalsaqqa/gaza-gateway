@@ -21,16 +21,17 @@ import {
 import { pick, useI18n } from "@/lib/i18n";
 import { ResponsiveImage } from "@/components/responsive-image";
 import { MEDIA } from "@/lib/media";
+import { publishedHome } from "@/content/published/home";
+import { ContentPreviewNotice, useContentPreview } from "@/content/preview";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/{-$locale}/")({
-  head: () => ({
+  head: ({ params }) => ({
     meta: [
-      { title: "Gaza International Airport (GZA) — Flights & Palestinian Airlines" },
+      { title: publishedHome.seo.title[params.locale === "ar" ? "ar" : "en"] },
       {
         name: "description",
-        content:
-          "Search Palestinian Airlines flights from Gaza International Airport to Amman, Cairo, Istanbul, Doha, Dubai, Jeddah and Riyadh — and explore the airport's past, present and future.",
+        content: publishedHome.seo.description[params.locale === "ar" ? "ar" : "en"],
       },
       { property: "og:title", content: "Gaza International Airport (GZA)" },
       {
@@ -45,6 +46,7 @@ export const Route = createFileRoute("/{-$locale}/")({
 
 function Home() {
   const { t, lang } = useI18n();
+  const { content, previewing } = useContentPreview("home", publishedHome);
   const today = todayISO();
   const [board, setBoard] = useState<"departures" | "arrivals">("departures");
   const flights = useMemo(
@@ -55,6 +57,7 @@ function Home() {
 
   return (
     <>
+      {previewing ? <ContentPreviewNotice /> : null}
       {/* 1. Civic Hero Section with Atmospheric Lighting & Identity */}
       <section className="relative isolate overflow-hidden bg-ink text-ink-foreground">
         {/* Real owner-provided concept hero — eager, high-priority LCP candidate with explicit positive stacking */}
@@ -79,11 +82,11 @@ function Home() {
             </p>
 
             <h1 className="type-title-hero mt-3 max-w-3xl text-ink-foreground">
-              {t("home.h1")}
+              {pick(lang, content.copy.h1)}
             </h1>
 
             <p className="mt-4 max-w-2xl text-base leading-relaxed text-ink-muted sm:text-lg">
-              {t("home.sub")}
+              {pick(lang, content.copy.sub)}
             </p>
 
             <p className="mt-2.5 text-xs text-ink-muted/80 sm:text-sm">
@@ -279,10 +282,10 @@ function Home() {
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-2xl">
               <h2 className="type-title-lg text-foreground">
-                {t("home.heritageSpotlightTitle")}
+                {pick(lang, content.copy.heritageSpotlightTitle)}
               </h2>
               <p className="mt-3 text-sm leading-relaxed text-muted-foreground sm:text-base">
-                {t("home.heritageSpotlightDesc")}
+                {pick(lang, content.copy.heritageSpotlightDesc)}
               </p>
             </div>
 
@@ -301,22 +304,22 @@ function Home() {
               [
                 {
                   to: "/airport/past",
-                  title: "home.past",
-                  sub: "home.pastSub",
+                  title: content.copy.past,
+                  sub: content.copy.pastSub,
                   seed: "archive-terminal-old",
                   isFuture: false,
                 },
                 {
                   to: "/airport/present",
-                  title: "home.present",
-                  sub: "home.presentSub",
+                  title: content.copy.present,
+                  sub: content.copy.presentSub,
                   seed: "empty-runway-today",
                   isFuture: false,
                 },
                 {
                   to: "/airport/future",
-                  title: "home.future",
-                  sub: "home.futureSub",
+                  title: content.copy.future,
+                  sub: content.copy.futureSub,
                   seed: "terminal-concept-render",
                   isFuture: true,
                 },
@@ -353,10 +356,10 @@ function Home() {
                 <div className="flex flex-1 flex-col justify-between p-5">
                   <div>
                     <h3 className="text-xl font-bold text-foreground group-hover:text-primary transition-colors">
-                      {t(chapter.title)}
+                      {pick(lang, chapter.title)}
                     </h3>
                     <p className="mt-2 text-xs leading-relaxed text-muted-foreground sm:text-sm">
-                      {t(chapter.sub)}
+                      {pick(lang, chapter.sub)}
                     </p>
                   </div>
 
@@ -374,8 +377,8 @@ function Home() {
       {/* 6. Opening Regional Route Network */}
       <Container className="mt-16 sm:mt-20">
         <SectionHeader
-          title={t("home.destTitle")}
-          description={t("home.destSub")}
+          title={pick(lang, content.copy.destTitle)}
+          description={pick(lang, content.copy.destSub)}
           action={
             <AppLink to="/destinations" className={btnClass("outline", "sm")}>
               {t("home.allDest")}
@@ -397,10 +400,10 @@ function Home() {
               <Ticket aria-hidden="true" className="size-5" />
             </div>
             <h2 className="mt-4 text-2xl font-bold text-foreground sm:text-3xl">
-              {t("home.manageTitle")}
+              {pick(lang, content.copy.manageTitle)}
             </h2>
             <p className="mt-2 max-w-lg text-sm text-muted-foreground leading-relaxed">
-              {t("home.manageSub")}
+              {pick(lang, content.copy.manageSub)}
             </p>
           </div>
 
@@ -419,7 +422,7 @@ function Home() {
             <div className="flex size-11 items-center justify-center rounded-xl bg-clay-soft text-clay">
               <Luggage aria-hidden="true" className="size-5" />
             </div>
-            <h2 className="mt-4 text-lg font-bold text-foreground">{t("home.infoTitle")}</h2>
+            <h2 className="mt-4 text-lg font-bold text-foreground">{pick(lang, content.copy.infoTitle)}</h2>
             <ul className="mt-4 space-y-3 text-sm divide-y divide-border/60">
               {(
                 [
@@ -456,8 +459,8 @@ function Home() {
       {/* 8. Archival Gallery Preview */}
       <Container className="mt-16 sm:mt-20 mb-12">
         <SectionHeader
-          title={t("home.archiveTitle")}
-          description={t("home.archiveSub")}
+          title={pick(lang, content.copy.archiveTitle)}
+          description={pick(lang, content.copy.archiveSub)}
           action={
             <AppLink to="/gallery" className={btnClass("outline", "sm")}>
               {t("home.openArchive")}

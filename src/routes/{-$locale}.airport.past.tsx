@@ -2,8 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { FileText } from "lucide-react";
 import { ChapterNav, ChapterPagination } from "@/components/airport/chapter-nav";
 import { Container, Panel } from "@/components/kit";
-import { img, timeline } from "@/lib/data";
+import { img } from "@/lib/data";
 import { pick, useI18n } from "@/lib/i18n";
+import { publishedAirportPast } from "@/content/published/airport-past";
+import { ContentPreviewNotice, useContentPreview } from "@/content/preview";
 
 type AirportSearch = {
   skinPreview?: 1;
@@ -28,13 +30,12 @@ export const Route = createFileRoute("/{-$locale}/airport/past")({
     }
     return out;
   },
-  head: () => ({
+  head: ({ params }) => ({
     meta: [
-      { title: "The past — history and archive of Gaza International Airport" },
+      { title: publishedAirportPast.seo.title[params.locale === "ar" ? "ar" : "en"] },
       {
         name: "description",
-        content:
-          "The history of Gaza International Airport told in chapters: construction, the 1998 opening, years of operation, closure, and the record kept since.",
+        content: publishedAirportPast.seo.description[params.locale === "ar" ? "ar" : "en"],
       },
       { property: "og:title", content: "The past — Gaza International Airport" },
       { property: "og:description", content: "Construction, opening, operation, closure and memory." },
@@ -45,9 +46,11 @@ export const Route = createFileRoute("/{-$locale}/airport/past")({
 
 function PastPage() {
   const { t, lang } = useI18n();
+  const { content, previewing } = useContentPreview("airport.past", publishedAirportPast);
 
   return (
     <>
+      {previewing ? <ContentPreviewNotice /> : null}
       {/* Editorial Chapter Hero */}
       <section className="relative isolate overflow-hidden bg-ink text-ink-foreground">
         <img
@@ -58,10 +61,10 @@ function PastPage() {
         <div className="absolute inset-0 -z-10 bg-gradient-to-t from-ink via-ink/80 to-ink/60" />
         <Container className="py-16 sm:py-24">
           <h1 className="type-title-hero max-w-3xl text-ink-foreground">
-            {t("airport.past")}
+            {pick(lang, content.intro.title)}
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-relaxed text-ink-muted sm:text-lg">
-            {t("airport.pastSubtitle")}
+            {pick(lang, content.intro.description)}
           </p>
         </Container>
       </section>
@@ -72,13 +75,13 @@ function PastPage() {
 
         {/* Curatorial Standard Notice */}
         <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
-          {t("airport.pastNotice")}
+          {pick(lang, content.intro.notice)}
         </p>
 
         {/* Chronological Timeline */}
         <section aria-label={t("airport.chapterSequence")} className="mt-12">
           <ol className="relative space-y-12 border-s-2 border-border ps-6 sm:space-y-16 sm:ps-10">
-            {timeline.map((entry) => (
+            {content.timeline.filter((entry) => entry.visible).map((entry) => (
               <li key={entry.id} className="relative">
                 {/* Timeline Marker Dot */}
                 <span
@@ -91,7 +94,7 @@ function PastPage() {
                 {/* Milestone Era Tag */}
                 <div className="flex items-center gap-2">
                   <span className="numeral inline-block font-mono text-sm font-bold text-clay">
-                    {entry.year}
+                    {entry.period}
                   </span>
                   <span className="text-xs text-muted-foreground">·</span>
                   <span className="text-xs text-muted-foreground">
@@ -118,7 +121,7 @@ function PastPage() {
                   <figure className="overflow-hidden rounded-2xl border border-border bg-secondary shadow-xs">
                     <div className="relative aspect-4/3 w-full overflow-hidden bg-ink">
                       <img
-                        src={img(entry.imageSeed, 800, 560)}
+                        src={entry.media.kind === "placeholder-seed" ? img(entry.media.seed, 800, 560) : undefined}
                         alt=""
                         loading="lazy"
                         className="size-full object-cover opacity-80 transition-transform duration-500 hover:scale-105"

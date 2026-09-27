@@ -3,8 +3,8 @@
 > **Repository**: `Bassamalsaqqa/gaza-gateway`
 > **Production Domain**: `https://www.gazaairport.com`
 > **Phase 4 starting commits**: `9e36b869274830f84c97cbbefe3b3fb0a98c6d2e` (`main`); `92ad935f8477e1663eefa8282d2770c66b64b8b2` (`hostpapa-deploy`). These are historical starting points, not current branch heads.
-> **Engineering Status**: **Phase 4 Complete; Phase 4.0.1 canonical authority closure applied**
-> **Immediate Next Step**: **Phase 4B — Typed Content & CMS Schema**
+> **Engineering Status**: **Phase 4B Complete — typed editorial content foundation**
+> **Immediate Next Step**: **Phase 4C — Settings & Appearance Store Convergence**
 
 ---
 
@@ -50,7 +50,9 @@ Phase 4 resolved pre-existing public/admin state disconnects by introducing two 
 | **Account & Travelers** | `src/lib/store.tsx` (`useStore`) | `gza.store.v1` (`account`, `travelers`) | Passenger Account (`/account/*`), Manage Booking | **Preserved Legacy Key** | Phase 5 |
 | **Staff Session** | `src/lib/admin-store.tsx` (`useAdmin`) | `gza.admin.v1` (`staffId`) | Admin Shell, permission guards, role switcher | **Preserved Legacy Key** | Phase 6 |
 | **OpsState (Simulation)**| `src/lib/admin-store.tsx` (`ops`, `patchOps`) | In-memory React state | Operations Dashboard, Turnaround timers | **Preserved Session Simulation** | Phase 6 |
-| **CMS & Stories** | `src/lib/admin-mock.ts` | Static in-memory fixtures | Public homepage, About, History chapters, Travel info | **Preserved Mock Fixtures** | Phase 4B |
+| **Published Home, Travel, Past editorial** | `src/content/published/` | Compiled typed source | Public Home, Travel, Airport Past; selected Admin read panels | **Canonical Published Content** | Phase 7 broader coverage |
+| **Local editorial draft** | `ContentRepository` | `gza.content.draft.v1` | Explicit preview and Admin Travel editor | **Browser-local, not published** | Future backend publication |
+| **Other CMS & stories** | Route/i18n source and `src/lib/admin-mock.ts` | Compiled source and static fixtures | Present, Future, About, Contact, destinations, archive | **Not yet converged** | Phase 7 |
 | **Appearance & Skin** | `src/lib/skin.ts` | `gza.skin.preview.v1` | Appearance Studio (`/admin/settings?tab=appearance`) | **Preserved Preview Key** | Phase 4C |
 
 ### 2.3 Simulation Boundary & Security Declarations
@@ -99,7 +101,7 @@ Future asset and copy drops must adhere to the following protocol:
 2. **Classify Truth & Rights**: Every asset must have an assigned `TruthClass`, historical era, and provenance documentation before code inclusion.
 3. **Generate Optimized Variants**: Build WebP variants at standard widths (`640w`, `960w`, `1280w`, `1376w`) with explicit intrinsic aspect ratios.
 4. **Register in `src/lib/media.ts`**: Declare stable semantic IDs (`future-hero`, `future-aerial-day`, etc.) and bilingual accessible alt text (`altEn`, `altAr`).
-5. **Content Edits**: Small copy edits proceed via source updates; Phase 4B will introduce canonical typed content records.
+5. **Content Edits**: Home, Travel and Past compiled records are typed under `src/content/published/`. Admin Travel drafts are browser-local and never publish globally. Approved publication requires a source update and verified static release.
 
 ---
 
@@ -107,14 +109,14 @@ Future asset and copy drops must adhere to the following protocol:
 
 Phase 3.9 and Phase 4 established a permanent, lightweight local test foundation using Node 24 native capabilities:
 
-- **Unit Test Runner**: `npm test` runs `node --test --experimental-strip-types tests/unit/*.test.ts` (115 tests across 41 suites at Phase 4 acceptance; no additional test runner dependency).
+- **Unit Test Runner**: `npm test` runs `node --test --experimental-strip-types tests/unit/*.test.ts`. Phase 4B adds content validation and draft repository tests. Counts are release measurements, not architecture constants.
   - `repositories.test.ts`: Canonical normalization, deterministic stable passenger IDs, pure flight override composition, synthetic fixture detection, idempotent legacy store migration (`gza.store.v1`, `gza.admin.v1`), corruption recovery, booking repository CRUD and subscriber notifications, flight repository overrides, and central query key factory stability.
   - `booking-rules.test.ts`: Operational status semantics, departure clock checks, inventory limits, localized label mapping, and flight-detail bookability guards.
   - `draft-recovery.test.ts`: Passenger details preservation across search criteria adjustments, stale flight clearance, seat clearance, and step gating.
   - `surface-grammar.test.ts`: Target ID validation, family inheritance vs component overrides, media truth filtering, and config sanitization.
   - `studio-protocol.test.ts`: Message schema parsing, version validation (`1.0.0`), route traversal protection (`isValidStudioRoutePath`).
   - `i18n-parity.test.ts`: 100% key parity between English and Arabic dictionaries across public, admin, and admin2 catalogs.
-- **Browser Smoke Test**: `npm run test:smoke` runs `tests/smoke/browser-smoke.mjs` using Playwright with system Edge/Chrome across 14 automated checks at Phase 4 acceptance:
+- **Browser Smoke Test**: `npm run test:smoke` runs `tests/smoke/browser-smoke.mjs` using Playwright with system Edge/Chrome. Phase 4B adds bilingual Travel draft, preview, published immunity and discard proof to prior checks:
   - English & Arabic public homepages (`/`, `/ar`)
   - Booking wizard & capacity proof (`/book`, `/ar/book`)
   - URL scenario isolation proof (`/book?scenario=...`, `/ar/book?scenario=...`)
@@ -127,10 +129,10 @@ Phase 3.9 and Phase 4 established a permanent, lightweight local test foundation
 
 ---
 
-## 6. Known Technical Gaps & Roadmap Alignment
+## 6. Completed Foundation & Remaining Work
 
-1. **Typed Content & CMS Schema (Phase 4B)**:
-   - Typed entity models for homepage editorial cards, travel advisory notices, airport historical timeline entries, and curated gallery media.
+1. **Typed Content & CMS Schema (Phase 4B complete)**:
+   - Typed bilingual Home, Travel and Airport Past records; compiled published source, validated browser-local drafts and explicit preview. Full media management remains Phase 7B.
 2. **Settings & Appearance Store Convergence (Phase 4C)**:
    - Migration of Appearance Studio preview configurations into a unified settings repository.
 3. **Public Workflows Convergence (Phase 5)**:
