@@ -4,8 +4,7 @@ import { Code } from "./kit";
 import { minutesToLabel, type Destination } from "@/lib/data";
 import { money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
-import istanbulWorldMapImg from "@/assets/media/decorative/cards/istanbul-world-map.webp";
+import destinationWorldMapImg from "@/assets/media/decorative/cards/istanbul-world-map.webp";
 import {
   buildDestinationSrcSet,
   getDestinationPhotoByCode,
@@ -25,7 +24,6 @@ export function DestinationCard({
   focalOverride?: { x: number; y: number } | undefined;
 }) {
   const { t, lang } = useI18n();
-  const isIst = destination.code === "IST";
   const photo = photoOverride ?? getDestinationPhotoByCode(destination.code);
   const focal = focalOverride ?? photo?.defaultFocalPoint ?? { x: 50, y: 50 };
 
@@ -53,41 +51,34 @@ export function DestinationCard({
         )}
       </div>
 
-      {/* Lower Card Body: IST uses decorative world-map on dark ink surface; others use standard card surface */}
-      <div
-        className={cn(
-          "flex flex-1 flex-col gap-1 p-4",
-          isIst && "relative overflow-hidden bg-ink text-ink-foreground",
-        )}
-      >
-        {isIst && (
-          <img
-            data-decorative-asset="istanbul-card-body"
-            src={istanbulWorldMapImg}
-            alt=""
-            aria-hidden="true"
-            loading="lazy"
-            className="pointer-events-none absolute inset-0 size-full select-none object-cover object-center"
-          />
-        )}
+      {/* Lower Card Body: shared approved decorative world-map on dark ink surface */}
+      <div className="relative flex flex-1 flex-col gap-1 overflow-hidden bg-ink p-4 text-ink-foreground">
+        <img
+          data-decorative-asset="destination-card-body"
+          src={destinationWorldMapImg}
+          alt=""
+          aria-hidden="true"
+          loading="lazy"
+          className="pointer-events-none absolute inset-0 size-full select-none object-cover object-center"
+        />
         <div className="relative z-10 flex flex-1 flex-col gap-1">
           <div className="flex items-baseline justify-between gap-2">
-            <h3 className={cn("text-lg font-bold", isIst ? "text-ink-foreground" : "text-foreground")}>
+            <h3 className="text-lg font-bold text-ink-foreground">
               {pick(lang, destination.city)}
             </h3>
-            <Code className={cn("text-xs font-semibold", isIst ? "border-ink-border bg-ink/80 text-ink-foreground" : "text-muted-foreground")}>
+            <Code className="text-xs font-semibold border-ink-border bg-ink/80 text-ink-foreground">
               {destination.code}
             </Code>
           </div>
-          <p className={cn("text-sm", isIst ? "text-ink-muted font-medium" : "text-muted-foreground")}>
+          <p className="text-sm font-medium text-ink-muted">
             {pick(lang, destination.country)}
           </p>
-          <div className={cn("mt-3 flex items-center justify-between border-t pt-3 text-sm", isIst ? "border-ink-border" : "border-border")}>
-            <span className={cn("inline-flex items-center gap-1.5", isIst ? "text-ink-muted font-medium" : "text-muted-foreground")}>
+          <div className="mt-3 flex items-center justify-between border-t border-ink-border pt-3 text-sm">
+            <span className="inline-flex items-center gap-1.5 font-medium text-ink-muted">
               <Clock aria-hidden="true" className="size-3.5" />
               <span className="numeral">{minutesToLabel(destination.flightMinutes, lang)}</span>
             </span>
-            <span className={cn("inline-flex items-center gap-1.5 font-semibold", isIst ? "text-secondary" : "text-brand-deep")}>
+            <span className="inline-flex items-center gap-1.5 font-semibold text-secondary">
               {t("dest.from")} {money(destination.priceFrom, lang)}
               <ArrowRight aria-hidden="true" className="size-4 rtl:rotate-180" />
             </span>

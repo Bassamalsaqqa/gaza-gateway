@@ -1342,24 +1342,48 @@ async function runBrowserSmoke() {
         await waitForImgLoad(`img[data-destination-photo="${code}"]`, `${code} top photograph`);
       }
 
-      // Check IST lower card body decorative asset loads
-      await waitForImgLoad(
-        '[data-decorative-asset="istanbul-card-body"]',
-        "Istanbul card body decorative image"
-      );
-      const istanbulBodySrc = await page.locator('[data-decorative-asset="istanbul-card-body"]').getAttribute("src");
-      if (!istanbulBodySrc?.includes(".webp")) {
-        throw new Error(`Istanbul card body art is not a WebP URL: ${istanbulBodySrc}`);
+      // Check all 7 destination cards have the shared lower card body decorative asset loaded as WebP
+      const bodyArtCards = await page.locator('[data-decorative-asset="destination-card-body"]').all();
+      if (bodyArtCards.length !== 7) {
+        throw new Error(`Expected 7 destination card body decorative images on /destinations, got ${bodyArtCards.length}`);
       }
 
-      // Confirm IST card body art is NOT applied to any non-IST card
-      const nonIstHasBodyArt = await page.evaluate(() => {
+      for (let i = 0; i < bodyArtCards.length; i++) {
+        const bodyImg = bodyArtCards[i];
+        const src = await bodyImg.getAttribute("src");
+        if (!src?.includes(".webp")) {
+          throw new Error(`Destination card body art [${i}] is not a WebP URL: ${src}`);
+        }
+      }
+
+      // Verify all 7 body decorative images load completely (naturalWidth > 0)
+      for (let i = 0; i < 7; i++) {
+        await page.evaluate((idx) => {
+          const imgs = document.querySelectorAll('[data-decorative-asset="destination-card-body"]');
+          if (imgs[idx]) imgs[idx].scrollIntoView({ behavior: "instant", block: "center" });
+        }, i);
+        await page.waitForFunction(
+          (idx) => {
+            const imgs = document.querySelectorAll('[data-decorative-asset="destination-card-body"]');
+            const img = imgs[idx];
+            return img && img.complete && img.naturalWidth > 0;
+          },
+          i,
+          { timeout: 15000 }
+        );
+      }
+
+      // Verify no decorative body art appears in the top image stage of any card
+      const artInTopStage = await page.evaluate(() => {
         const allCards = Array.from(document.querySelectorAll('a[data-surface-target="home.destination-card"]'));
-        const nonIst = allCards.filter((a) => !a.href.includes("/IST"));
-        return nonIst.some((a) => a.querySelector('[data-decorative-asset="istanbul-card-body"]') !== null);
+        return allCards.some((card) => {
+          const photoImg = card.querySelector('img[data-destination-photo]');
+          const topStage = photoImg?.parentElement;
+          return topStage?.querySelector('[data-decorative-asset="destination-card-body"]') !== null;
+        });
       });
-      if (nonIstHasBodyArt) {
-        throw new Error("Istanbul decorative card body art applied to non-IST destination card");
+      if (artInTopStage) {
+        throw new Error("Decorative body art unexpectedly found in top image stage of destination card");
       }
 
       // GZA9MK is a deterministic seed with outbound passenger 0 checked in.
