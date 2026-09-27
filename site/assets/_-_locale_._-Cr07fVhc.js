@@ -1,1 +1,0 @@
-import{T as e}from"./index-CbcEIEcb.js";var t=e;export{t as component};
