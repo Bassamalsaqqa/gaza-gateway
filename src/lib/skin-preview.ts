@@ -10,6 +10,7 @@ import { resolveSurfaceCss } from "@/design/patterns/pattern-presets";
 import {
   DEFAULT_SKIN_CSS_VARS,
   applySkinVarsToDom,
+  clearDomSkinOverrides,
   isDefaultSiteSkin,
   readPreviewSkin,
   type ResolvedSkinVars,
@@ -71,5 +72,9 @@ export function applySkinToDom(config: SiteSkinConfig): void {
 export function applyActivePreviewSkin(): void {
   if (typeof window === "undefined") return;
   const preview = readPreviewSkin();
-  applySkinToDom(preview);
+  if (isDefaultSiteSkin(preview)) {
+    clearDomSkinOverrides();
+  } else {
+    applySkinToDom(preview);
+  }
 }

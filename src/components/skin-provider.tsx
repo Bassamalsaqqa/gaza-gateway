@@ -3,10 +3,14 @@ import { useRouterState } from "@tanstack/react-router";
 import {
   DEFAULT_SITE_SKIN,
   SKIN_PREVIEW_EVENT,
+  SETTINGS_DRAFT_STORAGE_KEY,
   clearDomSkinOverrides,
   generateSkinStyleDeclaration,
+  isDefaultSiteSkin,
   isSkinPreviewActive,
+  type SiteSkinConfig,
 } from "@/lib/skin";
+import type { SettingsDraftEnvelope } from "@/lib/settings/types";
 import { isBaselinePreviewActive } from "@/lib/studio-preview";
 
 const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
@@ -78,11 +82,18 @@ export function SkinPreviewListener() {
         clearDomSkinOverrides();
         return;
       }
-      if (e instanceof CustomEvent && e.detail) {
+
+      // Case 1: Live working skin preview from Studio
+      if (e?.type === SKIN_PREVIEW_EVENT && e instanceof CustomEvent && e.detail) {
+        const config = e.detail as SiteSkinConfig;
+        if (isDefaultSiteSkin(config)) {
+          clearDomSkinOverrides();
+          return;
+        }
         import("@/lib/skin-preview")
           .then(({ applySkinToDom }) => {
             if (active) {
-              applySkinToDom(e.detail);
+              applySkinToDom(config);
             }
           })
           .catch(() => {
@@ -90,6 +101,28 @@ export function SkinPreviewListener() {
           });
         return;
       }
+
+      // Case 2: Canonical settings draft update event
+      if (e?.type === "gza:settings-draft-update") {
+        const envelope = (e instanceof CustomEvent ? e.detail : null) as SettingsDraftEnvelope | null;
+        const appearance = envelope?.site?.appearance;
+        if (!appearance || isDefaultSiteSkin(appearance)) {
+          clearDomSkinOverrides();
+          return;
+        }
+        import("@/lib/skin-preview")
+          .then(({ applySkinToDom }) => {
+            if (active) {
+              applySkinToDom(appearance);
+            }
+          })
+          .catch(() => {
+            if (active) clearDomSkinOverrides();
+          });
+        return;
+      }
+
+      // Case 3: Storage event from another tab or URL parameter change
       import("@/lib/skin-preview")
         .then(({ applyActivePreviewSkin }) => {
           const recheckQuery = typeof window !== "undefined" ? window.location.search : searchStr;
@@ -105,17 +138,19 @@ export function SkinPreviewListener() {
     };
 
     const onStorage = (e: StorageEvent) => {
-      if (e.key === "gza.skin.preview.v1") {
-        onUpdate();
+      if (e.key === SETTINGS_DRAFT_STORAGE_KEY || e.key === "gza.skin.preview.v1") {
+        onUpdate(e);
       }
     };
 
     window.addEventListener("storage", onStorage);
     window.addEventListener(SKIN_PREVIEW_EVENT, onUpdate);
+    window.addEventListener("gza:settings-draft-update", onUpdate);
     return () => {
       active = false;
       window.removeEventListener("storage", onStorage);
       window.removeEventListener(SKIN_PREVIEW_EVENT, onUpdate);
+      window.removeEventListener("gza:settings-draft-update", onUpdate);
     };
   }, [isPreview, searchStr]);
 

@@ -533,6 +533,16 @@ export const admin2En: Record<string, string> = {
   "a2.ac.act.cancelled": "Cancelled",
   "a2.ac.act.created": "Created",
   "a2.ac.act.signin": "Signed in",
+  "a2.se.metaDraft": "Changes are saved locally as a working draft.",
+  "a2.se.discard": "Discard Unsaved",
+  "a2.se.discardSaved": "Reset to Default",
+  "a2.se.discardSavedSuccess": "Draft discarded. Reverted to published default.",
+  "a2.se.saveFailed": "Changes could not be saved. Please try again.",
+  "a2.se.publishedBaseline": "Published baseline",
+  "a2.se.unsaved": "Unsaved changes",
+  "a2.se.previewEn": "Preview English",
+  "a2.se.previewAr": "Preview Arabic",
+  "a2.se.savedDraft": "Draft saved locally",
 };
 
 export const admin2Ar: Record<string, string> = {
@@ -1052,4 +1062,14 @@ export const admin2Ar: Record<string, string> = {
   "a2.ac.act.cancelled": "إلغاء",
   "a2.ac.act.created": "إنشاء",
   "a2.ac.act.signin": "تسجيل دخول",
+  "a2.se.metaDraft": "يتم حفظ التغييرات محلياً كمسودة عمل.",
+  "a2.se.discard": "تجاهل المسودة",
+  "a2.se.discardSaved": "استعادة الافتراضي",
+  "a2.se.discardSavedSuccess": "تم حذف المسودة والعودة إلى الافتراضي المنشور.",
+  "a2.se.saveFailed": "تعذّر حفظ التغييرات. يرجى المحاولة مرة أخرى.",
+  "a2.se.publishedBaseline": "المعتمد المنشور",
+  "a2.se.unsaved": "تغييرات غير محفوظة",
+  "a2.se.previewEn": "معاينة بالإنجليزية",
+  "a2.se.previewAr": "معاينة بالعربية",
+  "a2.se.savedDraft": "تم حفظ المسودة محلياً",
 };

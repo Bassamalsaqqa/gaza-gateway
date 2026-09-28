@@ -2,7 +2,7 @@
 
 > **Product**: Gaza International Airport (`GZA`) & Palestinian Airlines (`PS`)
 > **Production Domain**: [https://www.gazaairport.com](https://www.gazaairport.com)
-> **Engineering Status**: **Phase 4B Complete — typed editorial content and local draft preview.** Phase 4C (Settings & Appearance Store Convergence) is next. See [roadmap.md](roadmap.md) for the full sequence.
+> **Engineering Status**: **Phase 4C Complete — Settings & Appearance Store Convergence**. Accepted decorative/destination asset checkpoint remains accepted. Next is Phase 5 (Public Workflows Convergence, planned and not started; designer asset lane active in parallel). See [roadmap.md](roadmap.md) for the full sequence.
 > **Documentation Index**:
 > - [Master Engineering Roadmap (Phases 0–12)](roadmap.md)
 > - [System Architecture Specification](docs/ARCHITECTURE.md)

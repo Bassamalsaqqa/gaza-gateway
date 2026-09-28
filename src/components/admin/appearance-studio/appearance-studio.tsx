@@ -1,5 +1,5 @@
 /**
- * Gaza Gateway — Appearance Studio Workspace
+ * Gaza Gateway â€” Appearance Studio Workspace
  *
  * Full-featured responsive editor + persistent real-route preview workspace.
  * Features:
@@ -26,6 +26,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
+import { useAdmin } from "@/lib/admin-store";
 import { cn } from "@/lib/utils";
 import {
   clearDomSkinOverrides,
@@ -65,6 +66,7 @@ import {
 } from "./studio-toolbar";
 import { StudioInspector } from "./studio-inspector";
 import { StudioSpecimensTab } from "./studio-specimens-tab";
+import { settingsRepository, type SettingsDraft, PUBLISHED_APPEARANCE_SETTINGS, PUBLISHED_CONTACT_SETTINGS } from "@/lib/settings";
 
 export function AppearanceStudio() {
   const { t, lang } = useI18n();
@@ -77,7 +79,34 @@ export function AppearanceStudio() {
   const [mobileTab, setMobileTab] = useState<"inspector" | "preview">("preview");
 
   // Skin & Surface Grammar Configuration
-  const [skin, setSkin] = useState<SiteSkinConfig>(() => readPreviewSkin());
+  const { toast } = useAdmin();
+  const [savedAppearance, setSavedAppearance] = useState<SiteSkinConfig | null>(null);
+  const [skin, setSkin] = useState<SiteSkinConfig>(DEFAULT_SITE_SKIN);
+  const [isDirty, setIsDirty] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let unmounted = false;
+    const load = async () => {
+      const draft = await settingsRepository.getAppearanceDraft();
+      if (!unmounted) {
+        setSavedAppearance(draft);
+        setSkin(draft ?? PUBLISHED_APPEARANCE_SETTINGS);
+        setIsDirty(false);
+      }
+    };
+    load();
+    const unsub = settingsRepository.subscribe((newEnvelope) => {
+      if (!unmounted) {
+        const newApp = newEnvelope?.site?.appearance ?? null;
+        setSavedAppearance(newApp);
+      }
+    });
+    return () => {
+      unmounted = true;
+      unsub();
+    };
+  }, []);
 
   // Target Selection & Inspect State
   const [selectedTargetId, setSelectedTargetId] = useState<TargetId>(() => {
@@ -168,9 +197,9 @@ export function AppearanceStudio() {
   const basePath = previewLocale === "ar" ? currentScenario.pathAr : currentScenario.pathEn;
   const iframeSrc = basePath;
 
-  // ───────────────────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Handle Parent <-> Frame Message Protocol
-  // ───────────────────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (!isValidStudioOrigin(event)) return;
@@ -224,14 +253,14 @@ export function AppearanceStudio() {
     return () => window.removeEventListener("message", handleMessage);
   }, [skin, inspectMode, baselineMode, selectedTargetId, selectedScenarioId, postToFrame]);
 
-  // ───────────────────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Update Skin and Sync to Iframe
-  // ───────────────────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleUpdateSkin = useCallback(
     (updater: (prev: SiteSkinConfig) => SiteSkinConfig) => {
       setSkin((prev) => {
         const next = updater(prev);
-        writePreviewSkin(next);
+        setIsDirty(true);
         postToFrame({
           type: "GZA_STUDIO_CONFIG_SYNC",
           version: STUDIO_PROTOCOL_VERSION,
@@ -304,11 +333,57 @@ export function AppearanceStudio() {
     [handleUpdateSkin],
   );
 
-  // Reset all to default
+  const handleSaveDraft = useCallback(async () => {
+    setSaveError(null);
+    try {
+      await settingsRepository.saveAppearanceDraft(skin);
+      setSavedAppearance(skin);
+      setIsDirty(false);
+      toast(t("a2.se.savedDraft") || "Draft saved locally");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setSaveError(msg);
+      toast(t("a2.se.saveFailed") || "Changes could not be saved. Please try again.");
+    }
+  }, [skin, t, toast]);
+
+  const handleDiscardUnsaved = useCallback(() => {
+    setSaveError(null);
+    const fallback = savedAppearance ?? PUBLISHED_APPEARANCE_SETTINGS;
+    setSkin(fallback);
+    setIsDirty(false);
+    postToFrame({
+      type: "GZA_STUDIO_CONFIG_SYNC",
+      version: STUDIO_PROTOCOL_VERSION,
+      config: fallback,
+    });
+  }, [savedAppearance, postToFrame]);
+
+  const handleDiscardSavedDraft = useCallback(async () => {
+    setSaveError(null);
+    try {
+      await settingsRepository.discardAppearanceDraft();
+      setSavedAppearance(null);
+      setSkin(PUBLISHED_APPEARANCE_SETTINGS);
+      setIsDirty(false);
+      postToFrame({
+        type: "GZA_STUDIO_CONFIG_SYNC",
+        version: STUDIO_PROTOCOL_VERSION,
+        config: PUBLISHED_APPEARANCE_SETTINGS,
+      });
+      toast(t("a2.se.discardSavedSuccess") || "Draft discarded. Reverted to published default.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setSaveError(msg);
+      toast(t("a2.se.saveFailed") || "Changes could not be saved. Please try again.");
+    }
+  }, [postToFrame, t, toast]);
+
   const handleResetAll = useCallback(() => {
-    clearPreviewSkin();
-    const cleanSkin = { ...DEFAULT_SITE_SKIN };
+    setSaveError(null);
+    const cleanSkin = { ...PUBLISHED_APPEARANCE_SETTINGS };
     setSkin(cleanSkin);
+    setIsDirty(true);
     postToFrame({
       type: "GZA_STUDIO_CONFIG_SYNC",
       version: STUDIO_PROTOCOL_VERSION,
@@ -430,12 +505,8 @@ export function AppearanceStudio() {
             <FlaskConical className="size-3.5" />
             <span>
               {activeView === "specimens"
-                ? isAr
-                  ? "العودة للاستوديو"
-                  : "Back to Studio"
-                : isAr
-                  ? "فحص النماذج (Design QA)"
-                  : "Design QA (Specimens)"}
+                ? isAr ? "العودة للاستوديو" : "Back to Studio"
+                : isAr ? "فحص النماذج (Design QA)" : "Design QA (Specimens)"}
             </span>
           </button>
 
@@ -477,8 +548,8 @@ export function AppearanceStudio() {
           {/* Left Pane: Inspector (~420px sticky) */}
           <aside
             className={cn(
-              "w-full lg:w-[420px] lg:shrink-0 lg:sticky lg:top-4",
-              mobileTab === "preview" && "hidden lg:block",
+              "w-full lg:w-[420px] lg:shrink-0 lg:sticky lg:top-4 flex flex-col gap-4",
+              mobileTab === "preview" && "hidden lg:flex",
             )}
           >
             <StudioInspector
@@ -489,6 +560,54 @@ export function AppearanceStudio() {
               onResetTarget={handleResetTarget}
               onResetAll={handleResetAll}
             />
+
+            <div className="rounded-xl border border-border bg-card p-4 shadow-sm flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">{t("a2.se.metaDraft") || "Working Draft"}</span>
+                {isDirty ? (
+                  <span className="text-xs font-semibold text-amber-600 bg-amber-100 dark:bg-amber-900/40 dark:text-amber-400 px-2 py-0.5 rounded-full">{t("a2.se.unsaved") || "Unsaved"}</span>
+                ) : savedAppearance !== null ? (
+                  <span className="text-xs font-semibold text-green-600 bg-green-100 dark:bg-green-900/40 dark:text-green-400 px-2 py-0.5 rounded-full">{t("a2.se.savedDraft") || "Saved"}</span>
+                ) : (
+                  <span className="text-xs font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{t("a2.se.publishedBaseline") || "Published baseline"}</span>
+                )}
+              </div>
+
+              {saveError && (
+                <div role="alert" className="text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded p-2">
+                  {saveError}
+                </div>
+              )}
+
+              <div className="flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={handleSaveDraft}
+                  disabled={!isDirty}
+                  className="w-full flex items-center justify-center rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-semibold disabled:opacity-50"
+                >
+                  {t("a2.saveDraft") || "Save Draft"}
+                </button>
+                {isDirty && (
+                  <button
+                    type="button"
+                    onClick={handleDiscardUnsaved}
+                    className="w-full flex items-center justify-center rounded-md border border-input bg-background hover:bg-secondary px-4 py-2 text-sm font-medium"
+                  >
+                    {t("a2.se.discard") || "Discard Unsaved"}
+                  </button>
+                )}
+                {!isDirty && savedAppearance !== null && (
+                  <button
+                    type="button"
+                    onClick={handleDiscardSavedDraft}
+                    className="w-full flex items-center justify-center rounded-md border border-destructive/20 text-destructive bg-destructive/5 hover:bg-destructive/10 px-4 py-2 text-sm font-medium"
+                  >
+                    {t("a2.se.discardSaved") || "Reset to Default"}
+                  </button>
+                )}
+              </div>
+            </div>
           </aside>
 
           {/* Right Pane: Persistent Real-Route Iframe Preview */}

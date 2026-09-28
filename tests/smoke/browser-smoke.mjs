@@ -1542,6 +1542,418 @@ async function runBrowserSmoke() {
       }
     });
 
+
+    await checkStep("21. Admin Settings Contact Draft workflow: Save draft, verify preview, discard saved draft", async () => {
+      const adminSettingsContext = await browser.newContext();
+      await adminSettingsContext.addInitScript(() => {
+        try {
+          if (!localStorage.getItem("gza.admin.v1")) {
+            localStorage.setItem("gza.admin.v1", JSON.stringify({ staffId: "adm-1", overrides: {} }));
+          }
+          // Pre-seed an appearance draft in canonical store only on initial load (not on reload)
+          if (!localStorage.getItem("gza.settings.draft.v1")) {
+            localStorage.setItem(
+              "gza.settings.draft.v1",
+              JSON.stringify({
+                schemaVersion: 1,
+                site: {
+                  appearance: {
+                    publicCanvas: { pattern: "rails", intensity: "present", scale: "standard" },
+                    sandSection: { pattern: "topography", intensity: "subtle", scale: "small" },
+                    adminCanvas: { pattern: "pie-factory", intensity: "present", scale: "standard" },
+                  },
+                },
+              }),
+            );
+          }
+        } catch { }
+      });
+      try {
+        const page = await adminSettingsContext.newPage();
+        await page.goto(baseUrl + "/admin/settings?tab=contact", { waitUntil: "domcontentloaded" });
+        await page.waitForSelector("#c-phone", { timeout: 10000 });
+
+        // Change phone to trigger dirty state
+        await page.fill("#c-phone", "+970 8 999 9999");
+        const saveDraftBtn = page.getByRole("button", { name: /Save [Dd]raft/ });
+        await saveDraftBtn.waitFor({ state: "visible", timeout: 5000 });
+        await saveDraftBtn.click();
+
+        // Wait for draft saved toast
+        await page.getByText("Draft saved locally").first().waitFor({ state: "visible", timeout: 8000 });
+
+        // Verify storage: contact is saved AND pre-seeded appearance draft survives!
+        const storedEnvelope = await page.evaluate(() => {
+          try {
+            return JSON.parse(localStorage.getItem("gza.settings.draft.v1") || "null");
+          } catch {
+            return null;
+          }
+        });
+        if (storedEnvelope?.site?.contact?.phone !== "+970 8 999 9999") {
+          throw new Error("Contact draft phone was not persisted in canonical store");
+        }
+        if (storedEnvelope?.site?.appearance?.publicCanvas?.pattern !== "rails") {
+          throw new Error("Appearance draft was stomped by Contact save!");
+        }
+
+        // Reload and verify draft persists in form
+        await page.reload({ waitUntil: "domcontentloaded" });
+        await page.waitForFunction(
+          () => document.querySelector("#c-phone")?.value === "+970 8 999 9999",
+          null,
+          { timeout: 10000 }
+        );
+        const val = await page.inputValue("#c-phone");
+        if (val !== "+970 8 999 9999") throw new Error("Contact draft phone not preserved after reload");
+
+        // Preview explicitly (overlay on public contact)
+        await page.goto(baseUrl + "/contact?settingsPreview=1", { waitUntil: "domcontentloaded" });
+        await page.waitForSelector("h1", { timeout: 10000 });
+        const phoneLocator = page.locator(".code-id").first();
+        await page.waitForFunction(
+          () => document.querySelector(".code-id")?.textContent === "+970 8 999 9999",
+          null,
+          { timeout: 8000 },
+        );
+        const previewPhone = await phoneLocator.textContent();
+        if (previewPhone !== "+970 8 999 9999") throw new Error("Contact preview did not overlay draft phone: " + previewPhone);
+
+        // Preview banner must be present
+        const previewBanner = page.getByText("Stored in this browser • Not published").first();
+        await previewBanner.waitFor({ state: "visible", timeout: 5000 });
+
+        // Normal published URL immunity
+        await page.goto(baseUrl + "/contact", { waitUntil: "domcontentloaded" });
+        await page.waitForSelector("h1", { timeout: 10000 });
+        const pubPhoneLocator = page.locator(".code-id").first();
+        const pubPhone = await pubPhoneLocator.textContent();
+        if (pubPhone === "+970 8 999 9999") throw new Error("Contact normal URL was mutated by draft");
+        const normalBannerCount = await page.getByText("Stored in this browser • Not published").count();
+        if (normalBannerCount > 0) throw new Error("Normal published URL displayed preview notice banner");
+
+        // Admin Discard Saved Draft via UI (Reset to Default button)
+        await page.goto(baseUrl + "/admin/settings?tab=contact", { waitUntil: "domcontentloaded" });
+        await page.waitForSelector("#c-phone", { timeout: 10000 });
+        const resetToDefaultBtn = page.getByRole("button", { name: /Reset to Default|استعادة الافتراضي/ });
+        await resetToDefaultBtn.waitFor({ state: "visible", timeout: 5000 });
+        await resetToDefaultBtn.click();
+
+        // Wait for discard confirmation toast
+        await page.getByText(/Draft discarded|تم حذف المسودة/).waitFor({ state: "visible", timeout: 8000 });
+
+        // Verify storage: contact is removed, but appearance STILL survives!
+        const postDiscardEnvelope = await page.evaluate(() => {
+          try {
+            return JSON.parse(localStorage.getItem("gza.settings.draft.v1") || "null");
+          } catch {
+            return null;
+          }
+        });
+        if (postDiscardEnvelope?.site?.contact) {
+          throw new Error("Contact draft was not discarded from canonical store");
+        }
+        if (postDiscardEnvelope?.site?.appearance?.publicCanvas?.pattern !== "rails") {
+          throw new Error("Appearance draft did not survive Contact discard!");
+        }
+
+        // Verify public preview now reverts to published default phone without banner
+        await page.goto(baseUrl + "/contact?settingsPreview=1", { waitUntil: "domcontentloaded" });
+        await page.waitForSelector("h1", { timeout: 10000 });
+        const postDiscardPhone = await page.locator(".code-id").first().textContent();
+        if (postDiscardPhone === "+970 8 999 9999") throw new Error("Contact preview still shows discarded draft phone");
+        const postDiscardBannerCount = await page.getByText("Stored in this browser • Not published").count();
+        if (postDiscardBannerCount > 0) throw new Error("Preview banner still visible after discard");
+      } finally {
+        await adminSettingsContext.close();
+      }
+    });
+
+    await checkStep("22. Admin Settings Appearance Studio workflow: working edit, storage failure rejection, save, and discard", async () => {
+      // 22a. Storage failure rejection test
+      const failContext = await browser.newContext();
+      await failContext.addInitScript(() => {
+        try {
+          localStorage.setItem("gza.admin.v1", JSON.stringify({ staffId: "adm-1", overrides: {} }));
+          const origSet = Storage.prototype.setItem;
+          Storage.prototype.setItem = function(k, v) {
+            if (k === "gza.settings.draft.v1") throw new Error("QuotaExceededError: Storage quota exceeded");
+            return origSet.call(this, k, v);
+          };
+        } catch { }
+      });
+      try {
+        const failPage = await failContext.newPage();
+        await failPage.goto(baseUrl + "/admin/settings?tab=appearance", { waitUntil: "domcontentloaded" });
+        await failPage.waitForSelector("iframe", { timeout: 10000 });
+
+        // Initial status is Published baseline
+        await failPage.getByText(/Published baseline|المعتمد المنشور/).waitFor({ state: "visible", timeout: 5000 });
+
+        // Select a different pattern to trigger dirty state
+        const patternOption = failPage.locator('[role="radio"][value="rails"], [role="radio"][value="signal"]').first();
+        await patternOption.waitFor({ state: "visible", timeout: 5000 });
+        await patternOption.click();
+
+        // Status must change to Unsaved
+        await failPage.getByText(/Unsaved changes|تغييرات غير محفوظة/).waitFor({ state: "visible", timeout: 5000 });
+
+        // Click Save Draft with failing storage
+        const saveDraftBtn = failPage.getByRole("button", { name: /Save [Dd]raft|حفظ مسوّدة|حفظ المسودة/i });
+        await saveDraftBtn.waitFor({ state: "visible", timeout: 5000 });
+        await saveDraftBtn.click();
+
+        // Must display visible role="alert" error
+        const alertEl = failPage.locator('[role="alert"]');
+        await alertEl.waitFor({ state: "visible", timeout: 5000 });
+        const alertText = await alertEl.textContent();
+        if (!alertText?.includes("Quota") && !alertText?.includes("Failed to save")) {
+          throw new Error(`Expected storage quota error in alert, got: ${alertText}`);
+        }
+
+        // Status must REMAIN Unsaved (never falsely claim Saved!)
+        const unsavedStatus = failPage.getByText(/Unsaved changes|تغييرات غير محفوظة/);
+        await unsavedStatus.waitFor({ state: "visible", timeout: 3000 });
+      } finally {
+        await failContext.close();
+      }
+
+      // 22b. Successful save, public immunity, preview inspection, and discard
+      const successContext = await browser.newContext();
+      await successContext.addInitScript(() => {
+        try {
+          localStorage.setItem("gza.admin.v1", JSON.stringify({ staffId: "adm-1", overrides: {} }));
+        } catch { }
+      });
+      try {
+        const page = await successContext.newPage();
+        await page.goto(baseUrl + "/admin/settings?tab=appearance", { waitUntil: "domcontentloaded" });
+        await page.waitForSelector("iframe", { timeout: 10000 });
+
+        // Initial status
+        await page.getByText(/Published baseline|المعتمد المنشور/).waitFor({ state: "visible", timeout: 5000 });
+
+        // Select a different pattern (e.g. rails)
+        const patternOption = page.locator('[role="radio"][value="rails"]').first();
+        await patternOption.waitFor({ state: "visible", timeout: 5000 });
+        await patternOption.click();
+
+        // Status is Unsaved
+        await page.getByText(/Unsaved changes|تغييرات غير محفوظة/).waitFor({ state: "visible", timeout: 5000 });
+
+        // Click Save Draft
+        const saveBtn = page.getByRole("button", { name: /Save [Dd]raft|حفظ مسوّدة|حفظ المسودة/i });
+        await saveBtn.click();
+
+        // Wait for saved toast and status transition to Saved
+        await page.getByText(/Draft saved locally|تم حفظ المسودة محلياً/).first().waitFor({ state: "visible", timeout: 8000 });
+        await page.getByText(/Draft saved locally|تم حفظ المسودة محلياً/).first().waitFor({ state: "visible", timeout: 5000 });
+
+        // Reload page to verify saved draft persists
+        await page.reload({ waitUntil: "domcontentloaded" });
+        await page.waitForSelector("iframe", { timeout: 10000 });
+        await page.getByText(/Draft saved locally|تم حفظ المسودة محلياً/).first().waitFor({ state: "visible", timeout: 5000 });
+
+        // Normal Home immunity: open homepage without ?skinPreview=1
+        await page.goto(baseUrl + "/", { waitUntil: "domcontentloaded" });
+        await page.waitForSelector("h1", { timeout: 10000 });
+        const homeStyle = await page.evaluate(() => {
+          return document.documentElement.style.getPropertyValue("--skin-public-image");
+        });
+        if (homeStyle) {
+          throw new Error("Normal homepage was unexpectedly styled with preview CSS variables: " + homeStyle);
+        }
+
+        // Return to Appearance Studio and Discard Saved Draft (Reset to Default)
+        await page.goto(baseUrl + "/admin/settings?tab=appearance", { waitUntil: "domcontentloaded" });
+        await page.waitForSelector("iframe", { timeout: 10000 });
+        const resetBtn = page.getByRole("button", { name: /Reset to Default|استعادة الافتراضي/ });
+        await resetBtn.waitFor({ state: "visible", timeout: 5000 });
+        await resetBtn.click();
+
+        // Status reverts to Published baseline
+        await page.getByText(/Published baseline|المعتمد المنشور/).waitFor({ state: "visible", timeout: 5000 });
+
+        // Verify storage: appearance draft is removed
+        const envelope = await page.evaluate(() => {
+          try {
+            return JSON.parse(localStorage.getItem("gza.settings.draft.v1") || "null");
+          } catch {
+            return null;
+          }
+        });
+        if (envelope?.site?.appearance) {
+          throw new Error("Appearance draft was not discarded from canonical store");
+        }
+      } finally {
+        await successContext.close();
+      }
+    });
+
+    await checkStep("23. Phase 4C Correction 2 Proof: Legacy Appearance discard resurrection immunity and cross-tab preview event contract", async () => {
+      const legacyRaw = JSON.stringify({
+        publicCanvas: { pattern: "rails", intensity: "present", scale: "standard" },
+        sandSection: { pattern: "pie-factory", intensity: "present", scale: "standard" },
+        adminCanvas: { pattern: "pie-factory", intensity: "present", scale: "standard" },
+      });
+
+      const testContext = await browser.newContext();
+      await testContext.addInitScript((rawSkin) => {
+        try {
+          localStorage.setItem("gza.admin.v1", JSON.stringify({ staffId: "adm-1", overrides: {} }));
+          localStorage.setItem("gza.skin.preview.v1", rawSkin);
+        } catch { }
+      }, legacyRaw);
+
+      try {
+        // --- Part 1: Migration, UI Discard, Reload, and Public Preview Immunity ---
+        const adminPage = await testContext.newPage();
+        await adminPage.goto(baseUrl + "/admin/settings?tab=appearance", { waitUntil: "domcontentloaded" });
+        await adminPage.waitForSelector("iframe", { timeout: 10000 });
+
+        // Studio migrates legacy skin on load: status shows Saved draft
+        await adminPage.getByText(/Draft saved locally|تم حفظ المسودة محلياً/).first().waitFor({ state: "visible", timeout: 8000 });
+
+        // Verify storage: canonical store holds migrated skin, legacy key remains byte-for-byte untouched
+        const storageState = await adminPage.evaluate(() => ({
+          canonical: localStorage.getItem("gza.settings.draft.v1"),
+          legacy: localStorage.getItem("gza.skin.preview.v1"),
+        }));
+        if (!storageState.canonical?.includes("rails")) {
+          throw new Error("Legacy skin was not migrated into canonical settings envelope");
+        }
+        if (storageState.legacy !== legacyRaw) {
+          throw new Error("Legacy storage key was mutated during migration!");
+        }
+
+        // Discard via UI: Click "Reset to Default"
+        const resetBtn = adminPage.getByRole("button", { name: /Reset to Default|استعادة الافتراضي/ });
+        await resetBtn.waitFor({ state: "visible", timeout: 5000 });
+        await resetBtn.click();
+
+        // Status reverts to Published baseline
+        await adminPage.getByText(/Published baseline|المعتمد المنشور/).waitFor({ state: "visible", timeout: 5000 });
+
+        // Reload Studio: verify published baseline remains (legacy draft does NOT resurrect!)
+        await adminPage.reload({ waitUntil: "domcontentloaded" });
+        await adminPage.waitForSelector("iframe", { timeout: 10000 });
+        await adminPage.getByText(/Published baseline|المعتمد المنشور/).waitFor({ state: "visible", timeout: 5000 });
+
+        // Verify canonical store has appearance removed/tombstoned and legacy key is still untouched
+        const postDiscardStorage = await adminPage.evaluate(() => ({
+          canonical: localStorage.getItem("gza.settings.draft.v1"),
+          legacy: localStorage.getItem("gza.skin.preview.v1"),
+        }));
+        if (postDiscardStorage.legacy !== legacyRaw) {
+          throw new Error("Legacy storage key was mutated during discard!");
+        }
+        const parsedCanonical = JSON.parse(postDiscardStorage.canonical || "{}");
+        if (parsedCanonical?.site?.appearance) {
+          throw new Error("Appearance draft resurrected in canonical store after UI discard!");
+        }
+
+        // Explicit skin preview tab: verify published baseline remains without reapplying legacy skin.
+        //
+        // Install a narrow Playwright route interceptor for Google Fonts CDN requests BEFORE
+        // opening previewPage. In network-isolated environments the OS rejects these external
+        // requests with net::ERR_NETWORK_ACCESS_DENIED. Chromium does NOT include the failing URL
+        // in the console error text (Correction 3's hostname filter could therefore never match).
+        //
+        // We intercept at the Playwright routing layer and satisfy these requests with an empty
+        // 204 response. route.fulfill({status:204}) silently completes the request from the browser's
+        // perspective — no network error, no console error — while recording the actual URL as evidence.
+        // route.abort() was tried in Correction 4's first attempt but produces its own
+        // ERR_BLOCKED_BY_CLIENT console error. route.fulfill() generates nothing.
+        //
+        // ALL same-origin requests, pageerror events, and any non-font console errors remain fatal.
+        const blockedFontUrls = [];
+        const GOOGLE_FONT_ROUTE = /^https?:\/\/fonts\.(googleapis|gstatic)\.com\//;
+        await testContext.route(GOOGLE_FONT_ROUTE, (route) => {
+          blockedFontUrls.push(route.request().url());
+          route.fulfill({ status: 204, body: "" });
+        });
+
+        const previewPage = await testContext.newPage();
+        // Collect all real errors. Font requests fulfilled with 204 do not generate console errors.
+        // pageerror remains fully unfiltered. Any non-font console error is a real application failure.
+        const previewErrors = [];
+        previewPage.on("pageerror", (err) => previewErrors.push(err.message));
+        previewPage.on("console", (msg) => {
+          if (msg.type() !== "error") return;
+          previewErrors.push(msg.text());
+        });
+
+        await previewPage.goto(baseUrl + "/?skinPreview=1", { waitUntil: "domcontentloaded" });
+        await previewPage.waitForSelector("h1", { timeout: 10000 });
+
+
+        const previewSkinStyle = await previewPage.evaluate(() => {
+          return document.documentElement.style.getPropertyValue("--skin-public-image");
+        });
+        if (previewSkinStyle) {
+          throw new Error("Explicit preview unexpectedly reapplied discarded legacy skin: " + previewSkinStyle);
+        }
+
+        // --- Part 2: Cross-Tab Preview Event Contract & Immunity ---
+        // Tab 2 (adminPage): Save Appearance draft
+        const railsRadio = adminPage.locator('[role="radio"][value="rails"]').first();
+        await railsRadio.click();
+        const saveDraftBtn = adminPage.getByRole("button", { name: /Save [Dd]raft|حفظ مسوّدة|حفظ المسودة/i });
+        await saveDraftBtn.click();
+        await adminPage.getByText(/Draft saved locally|تم حفظ المسودة محلياً/).first().waitFor({ state: "visible", timeout: 8000 });
+
+        // Tab 1 (previewPage): Verify preview updates with custom skin overrides without reload or error
+        await previewPage.waitForFunction(
+          () => Boolean(document.documentElement.style.getPropertyValue("--skin-public-image")),
+          null,
+          { timeout: 8000 }
+        );
+        if (previewErrors.length > 0) {
+          throw new Error("Preview page threw error on Appearance update: " + previewErrors.join("; "));
+        }
+
+        // Tab 2 (adminPage): Navigate to Contact tab and save Contact draft
+        await adminPage.goto(baseUrl + "/admin/settings?tab=contact", { waitUntil: "domcontentloaded" });
+        await adminPage.waitForSelector("#c-phone", { timeout: 10000 });
+        await adminPage.fill("#c-phone", "+970 8 777 6666");
+        const saveContactBtn = adminPage.getByRole("button", { name: /Save [Dd]raft|حفظ مسوّدة|حفظ المسودة/i });
+        await saveContactBtn.click();
+        await adminPage.getByText(/Draft saved locally|تم حفظ المسودة محلياً/).first().waitFor({ state: "visible", timeout: 8000 });
+
+        // Tab 1 (previewPage): Verify Contact save does NOT break or clear Appearance preview!
+        await previewPage.waitForTimeout(500);
+        if (previewErrors.length > 0) {
+          throw new Error("Preview page threw error on Contact update: " + previewErrors.join("; "));
+        }
+        const skinAfterContactSave = await previewPage.evaluate(() => {
+          return document.documentElement.style.getPropertyValue("--skin-public-image");
+        });
+        if (!skinAfterContactSave) {
+          throw new Error("Contact draft save corrupted or erased active Appearance skin preview!");
+        }
+
+        // Tab 2 (adminPage): Discard Appearance draft
+        await adminPage.goto(baseUrl + "/admin/settings?tab=appearance", { waitUntil: "domcontentloaded" });
+        await adminPage.waitForSelector("iframe", { timeout: 10000 });
+        const discardAppBtn = adminPage.getByRole("button", { name: /Reset to Default|استعادة الافتراضي/ });
+        await discardAppBtn.waitFor({ state: "visible", timeout: 5000 });
+        await discardAppBtn.click();
+        await adminPage.getByText(/Published baseline|المعتمد المنشور/).waitFor({ state: "visible", timeout: 5000 });
+
+        // Tab 1 (previewPage): Verify preview reverts cleanly to published baseline (overrides cleared)
+        await previewPage.waitForFunction(
+          () => !document.documentElement.style.getPropertyValue("--skin-public-image"),
+          null,
+          { timeout: 8000 }
+        );
+        if (previewErrors.length > 0) {
+          throw new Error("Preview page threw error on Appearance discard: " + previewErrors.join("; "));
+        }
+      } finally {
+        await testContext.close();
+      }
+    });
+
   } finally {
     await browser.close();
     if (server) {

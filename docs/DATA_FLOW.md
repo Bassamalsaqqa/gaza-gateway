@@ -1,8 +1,8 @@
 # Data Flow, State Management & Pretend-Action Inventory
 
 > **Document Purpose**: Complete audit of current data sources, state persistence, cross-screen entity splits, and enabled no-op actions across public and admin workspaces.
-> **Status**: **Phase 4B Complete — typed editorial content foundation**.
-> **Future Target**: Phase 4C settings convergence, then Public/Admin workflows in Phases 5–6 before any production backend.
+> **Status**: **Phase 4C Complete — Settings & Appearance Store Convergence**. Accepted decorative/destination asset checkpoint remains accepted.
+> **Future Target**: Phase 5 (Public Workflows Convergence, planned and not started; designer asset lane active in parallel), then Phase 6 before any production backend.
 
 ---
 
@@ -19,7 +19,8 @@ Following Phase 4, the application coordinates persistence across canonical repo
 | **Admin Store Façade** (`useAdmin`) | `src/lib/admin-store.tsx` | `localStorage["gza.admin.v1"]` (staffId) | Staff identity (`Staff \| null`), active role (`AdminRole`). Flight operational override mutations delegate directly to `flightRepo` (single writer). |
 | **Admin Operations State** (`useAdmin().ops`) | `src/lib/admin-ops.ts`, `src/lib/admin-store.tsx` | Session in-memory state in `AdminProvider` (`useState<OpsState>`). Resets to seed on reload. | Schedules (`Schedule[]`), aircraft fleet (`AircraftType[]`), seat maps (`Record<string, SeatMapConfig>`), fare products (`FareConfig[]`), baggage allowance (`BaggageConfig`), meals (`OptionItem[]`), assistance options (`OptionItem[]`), destination parameters (`DestinationConfig[]`). |
 | **Admin Static Mock Data** | `src/lib/admin-mock.ts` | In-memory static constants | Customer profiles (`mockCustomers`), check-in desk fixtures, staff inbox, staff directory, audit and analytics fixtures, and non-migrated CMS/story collections. Home, Travel and Past proof arrays now derive from `src/content/`. |
-| **Appearance / Skin Preview Store** | `src/lib/skin.ts`, `src/design/surfaces/context.tsx` | `localStorage["gza.skin.preview.v1"]` | Authored surface skin, canvas motifs, and per-target recipe overrides (`SkinConfig`). Active **only** when `skinPreview=1` or `studioPreview=1` is present in the query string. |
+| **Settings Draft Store** (Contact & Appearance) | `src/lib/settings/` | `localStorage["gza.settings.draft.v1"]` (schemaVersion: 1) | Multi-document envelope (`{ schemaVersion: 1, site: { contact?, appearance? } }`). Independent per-document save/discard. Active in Admin Settings and explicit `?settingsPreview=1` / `?skinPreview=1`. |
+| **Appearance Legacy Key** | `src/lib/skin.ts` | `localStorage["gza.skin.preview.v1"]` | Legacy working copy. Migrated deterministically into `gza.settings.draft.v1` on first load; left byte-for-byte untouched. No dual writes. |
 
 ### 1.1 Admin Flight Overrides Implementation Reality
 
@@ -199,9 +200,9 @@ The development program follows this strictly sequenced progression:
    - Migrated legacy public bookings and admin flight overrides into canonical records while retaining legacy keys for rollback. Representative public and admin booking/flight views now share repository identity. Admin desk fixtures and broader workflows remain for Phases 5 and 6.
 2. **Phase 4B — Typed Content & CMS Schema (complete)**:
    - Compiled bilingual Home, Travel and Past records, runtime validation, local draft repository and explicit preview. Admin Travel editing is the real draft proof; global publishing and broader CMS work remain future phases.
-3. **Phase 4C — Settings & Appearance Store Convergence**:
-   - Migrate Appearance Studio draft state from query-parameter / browser-local storage into the canonical settings repository.
-4. **Phase 5 — Public Workflows Convergence**:
+3. **Phase 4C — Settings & Appearance Store Convergence (complete)**:
+   - Unified multi-document settings envelope (gza.settings.draft.v1) with independent Contact and Appearance drafts, one-time legacy migration with untouched legacy key, transactional failure resilience, and explicit preview immunity.
+4. **Phase 5 — Public Workflows Convergence (planned, not started)**:
    - Connect booking engine, trip management, check-in, passenger account hub, and contact forms to canonical domain repositories with comprehensive client-side validation.
 5. **Phase 6 — Admin Workflows Convergence**:
    - Connect admin flight quick-edit, schedule manager, passenger desk, customer notes, and activity logs to the shared domain repositories, eliminating simulated no-ops.

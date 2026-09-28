@@ -70,13 +70,6 @@ export function SurfaceGrammarProvider({
     }
 
     const updateFromEventOrStorage = (event?: Event) => {
-      if (event instanceof CustomEvent && event.detail) {
-        const detailConfig = event.detail as { surfaceGrammar?: SurfaceGrammarConfig };
-        if (detailConfig.surfaceGrammar !== undefined) {
-          setStoredConfig(detailConfig.surfaceGrammar);
-          return;
-        }
-      }
       const isBaseline =
         isBaselinePreviewActive(searchStr) ||
         (typeof window !== "undefined" && isBaselinePreviewActive(window.location.search));
@@ -84,6 +77,24 @@ export function SurfaceGrammarProvider({
         setStoredConfig({ enabled: false, families: {} as Record<SurfaceFamilyId, SurfaceRecipe> });
         return;
       }
+
+      if (event?.type === SKIN_PREVIEW_EVENT && event instanceof CustomEvent && event.detail) {
+        const detailConfig = event.detail as { surfaceGrammar?: SurfaceGrammarConfig };
+        if (detailConfig.surfaceGrammar !== undefined) {
+          setStoredConfig(detailConfig.surfaceGrammar);
+          return;
+        }
+      }
+
+      if (event?.type === "gza:settings-draft-update" && event instanceof CustomEvent && event.detail) {
+        const envelope = event.detail as { site?: { appearance?: { surfaceGrammar?: SurfaceGrammarConfig } } };
+        const grammar = envelope?.site?.appearance?.surfaceGrammar;
+        if (grammar !== undefined) {
+          setStoredConfig(grammar);
+          return;
+        }
+      }
+
       const skin = readPreviewSkin();
       setStoredConfig(skin.surfaceGrammar ?? null);
     };
@@ -92,10 +103,12 @@ export function SurfaceGrammarProvider({
 
     const onUpdate = (e: Event) => updateFromEventOrStorage(e);
     window.addEventListener(SKIN_PREVIEW_EVENT, onUpdate);
+    window.addEventListener("gza:settings-draft-update", onUpdate);
     window.addEventListener("storage", onUpdate);
 
     return () => {
       window.removeEventListener(SKIN_PREVIEW_EVENT, onUpdate);
+      window.removeEventListener("gza:settings-draft-update", onUpdate);
       window.removeEventListener("storage", onUpdate);
     };
   }, [forcedConfig, searchStr]);

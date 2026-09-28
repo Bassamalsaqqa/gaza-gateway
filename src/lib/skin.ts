@@ -28,6 +28,7 @@ import {
 } from "../design/surfaces/presets.ts";
 
 export const SKIN_PREVIEW_STORAGE_KEY = "gza.skin.preview.v1";
+export const SETTINGS_DRAFT_STORAGE_KEY = "gza.settings.draft.v1";
 
 export type SurfaceSkinConfig = {
   pattern: PatternId;
@@ -121,7 +122,7 @@ export function sanitizeSiteSkinConfig(raw: unknown): SiteSkinConfig {
 
 export function isDefaultSiteSkin(config: SiteSkinConfig): boolean {
   if (!config) return true;
-  return (
+  const isCanvasDefault =
     config.publicCanvas.pattern === "pie-factory" &&
     config.publicCanvas.intensity === "present" &&
     config.publicCanvas.scale === "standard" &&
@@ -130,9 +131,16 @@ export function isDefaultSiteSkin(config: SiteSkinConfig): boolean {
     config.sandSection.scale === "standard" &&
     config.adminCanvas.pattern === "pie-factory" &&
     config.adminCanvas.intensity === "present" &&
-    config.adminCanvas.scale === "standard" &&
-    (!config.surfaceGrammar || !config.surfaceGrammar.enabled)
-  );
+    config.adminCanvas.scale === "standard";
+
+  if (!isCanvasDefault) return false;
+
+  // Surface grammar is default if absent, disabled, or enabled with no custom overrides
+  if (!config.surfaceGrammar || !config.surfaceGrammar.enabled) return true;
+  const hasTargetOverrides =
+    Boolean(config.surfaceGrammar.targetOverrides &&
+    Object.keys(config.surfaceGrammar.targetOverrides).length > 0);
+  return !hasTargetOverrides;
 }
 
 export type ResolvedSkinVars = {
@@ -222,10 +230,28 @@ export function isSkinPreviewActive(searchStr?: string): boolean {
   }
 }
 
-export function readPreviewSkin(): SiteSkinConfig {
-  if (typeof window === "undefined") return DEFAULT_SITE_SKIN;
+export function readPreviewSkin(customStorage?: Storage | null): SiteSkinConfig {
+  if (typeof window === "undefined" && !customStorage) return DEFAULT_SITE_SKIN;
   try {
-    const raw = window.localStorage.getItem(SKIN_PREVIEW_STORAGE_KEY);
+    const storage = customStorage !== undefined ? customStorage : (window.localStorage ?? null);
+    if (!storage) return DEFAULT_SITE_SKIN;
+
+    // Prioritize canonical settings draft
+    const rawSettings = storage.getItem(SETTINGS_DRAFT_STORAGE_KEY);
+    if (rawSettings) {
+      try {
+        const parsed = JSON.parse(rawSettings);
+        const app = parsed?.site?.appearance ?? parsed?.appearance;
+        if (app) return sanitizeSiteSkinConfig(app);
+      } catch {
+        // Corrupt canonical envelope: safe fallback
+      }
+      // Canonical store exists (or is tombstoned): appearance is explicitly discarded or not set
+      return DEFAULT_SITE_SKIN;
+    }
+
+    // Legacy fallback only if canonical store was never initialized
+    const raw = storage.getItem(SKIN_PREVIEW_STORAGE_KEY);
     if (!raw) return DEFAULT_SITE_SKIN;
     return sanitizeSiteSkinConfig(JSON.parse(raw));
   } catch {
@@ -262,5 +288,9 @@ export function applySkinVarsToDom(vars: ResolvedSkinVars): void {
 }
 
 export function clearDomSkinOverrides(): void {
-  applySkinVarsToDom(DEFAULT_SKIN_CSS_VARS);
+  if (typeof document === "undefined") return;
+  const root = document.documentElement;
+  for (const key of Object.keys(DEFAULT_SKIN_CSS_VARS)) {
+    root.style.removeProperty(key);
+  }
 }

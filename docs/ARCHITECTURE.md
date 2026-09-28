@@ -3,8 +3,8 @@
 > **Repository**: `Bassamalsaqqa/gaza-gateway`
 > **Production Domain**: `https://www.gazaairport.com`
 > **Phase 4 starting commits**: `9e36b869274830f84c97cbbefe3b3fb0a98c6d2e` (`main`); `92ad935f8477e1663eefa8282d2770c66b64b8b2` (`hostpapa-deploy`). These are historical starting points, not current branch heads.
-> **Engineering Status**: **Phase 4B Complete — typed editorial content foundation**
-> **Immediate Next Step**: **Phase 4C — Settings & Appearance Store Convergence**
+> **Engineering Status**: **Phase 4C Complete — Settings & Appearance Store Convergence**. Accepted decorative/destination asset checkpoint remains accepted.
+> **Immediate Next Step**: **Phase 5 (Public Workflows Convergence, planned and not started; designer asset lane active in parallel)**
 
 ---
 
@@ -53,7 +53,8 @@ Phase 4 resolved pre-existing public/admin state disconnects by introducing two 
 | **Published Home, Travel, Past editorial** | `src/content/published/` | Compiled typed source | Public Home, Travel, Airport Past; selected Admin read panels | **Canonical Published Content** | Phase 7 broader coverage |
 | **Local editorial draft** | `ContentRepository` | `gza.content.draft.v1` | Explicit preview and Admin Travel editor | **Browser-local, not published** | Future backend publication |
 | **Other CMS & stories** | Route/i18n source and `src/lib/admin-mock.ts` | Compiled source and static fixtures | Present, Future, About, Contact, destinations, archive | **Not yet converged** | Phase 7 |
-| **Appearance & Skin** | `src/lib/skin.ts` | `gza.skin.preview.v1` | Appearance Studio (`/admin/settings?tab=appearance`) | **Preserved Preview Key** | Phase 4C |
+| **Settings (Contact & Appearance)** | `SettingsRepository` (`src/lib/settings/`) | `gza.settings.draft.v1` | Public Contact (`?settingsPreview=1`), Appearance Studio (`?skinPreview=1`), Admin Settings | **Authoritative Settings Draft** | Phase 5/6 |
+| **Appearance Legacy Key** | Read once for migration | `gza.skin.preview.v1` | Migrated once to canonical `gza.settings.draft.v1`; untouched; no dual writes | **Dormant Legacy Key** | Deprecated |
 
 ### 2.3 Simulation Boundary & Security Declarations
 
@@ -133,9 +134,9 @@ Phase 3.9 and Phase 4 established a permanent, lightweight local test foundation
 
 1. **Typed Content & CMS Schema (Phase 4B complete)**:
    - Typed bilingual Home, Travel and Airport Past records; compiled published source, validated browser-local drafts and explicit preview. Full media management remains Phase 7B.
-2. **Settings & Appearance Store Convergence (Phase 4C)**:
-   - Migration of Appearance Studio preview configurations into a unified settings repository.
-3. **Public Workflows Convergence (Phase 5)**:
+2. **Settings & Appearance Store Convergence (Phase 4C complete)**:
+   - Unified multi-document settings envelope (`gza.settings.draft.v1`) with independent Contact and Appearance drafts, one-time legacy migration with untouched legacy key, transactional failure resilience, and explicit preview immunity.
+3. **Public Workflows Convergence (Phase 5, planned and not started)**:
    - Direct binding of passenger account management, saved companions, and public booking wizard state into repository queries and mutations.
 4. **Admin Workflows Convergence (Phase 6)**:
    - Direct repository binding for operational flight dispatch, schedule master templates, check-in desk, customer CRM, and activity logs.
