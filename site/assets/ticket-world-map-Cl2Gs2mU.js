@@ -1,0 +1,1 @@
+var e=`/assets/ticket-world-map-BlGIeYHr.webp`;export{e as t};
