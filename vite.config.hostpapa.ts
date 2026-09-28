@@ -63,6 +63,9 @@ export default defineConfig({
   css: {
     transformer: "lightningcss",
   },
+  build: {
+    assetsInlineLimit: 0,
+  },
   plugins: [
     tailwindcss(),
     tanstackStart({

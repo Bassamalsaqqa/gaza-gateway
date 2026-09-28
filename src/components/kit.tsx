@@ -1,4 +1,4 @@
-import type { ReactNode, ButtonHTMLAttributes, InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
+import type { ReactNode, ButtonHTMLAttributes, HTMLAttributes, InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -138,10 +138,13 @@ export function Textarea({ className, ...props }: TextareaHTMLAttributes<HTMLTex
   return <textarea className={cn(fieldBase, "min-h-32 resize-y", className)} {...props} />;
 }
 
-/* --------------------------------- surfaces ------------------------------- */
+export interface PanelProps extends HTMLAttributes<HTMLDivElement> {
+  className?: string;
+  children: ReactNode;
+}
 
-export function Panel({ className, children }: { className?: string; children: ReactNode }) {
-  return <div className={cn("surface p-5 sm:p-6", className)}>{children}</div>;
+export function Panel({ className, children, ...props }: PanelProps) {
+  return <div className={cn("surface p-5 sm:p-6", className)} {...props}>{children}</div>;
 }
 
 export function Pill({

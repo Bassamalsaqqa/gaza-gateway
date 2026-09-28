@@ -7,6 +7,16 @@ import { img } from "@/lib/data";
 import { ResponsiveImage } from "@/components/responsive-image";
 import { useI18n } from "@/lib/i18n";
 import { GazaSurface } from "@/design/surfaces";
+import pastBodyImg from "@/assets/media/decorative/airport/airport-past-body.webp";
+import presentBodyImg from "@/assets/media/decorative/airport/airport-present-body.webp";
+import futureBodyImg from "@/assets/media/decorative/airport/airport-future-body.webp";
+import sourcesMetadataImg from "@/assets/media/decorative/airport/airport-sources-metadata.webp";
+
+const chapterBodyImages = {
+  past: pastBodyImg,
+  present: presentBodyImg,
+  future: futureBodyImg,
+} as const;
 
 type AirportSearch = {
   skinPreview?: 1;
@@ -147,18 +157,33 @@ function AirportPage() {
                   </div>
 
                   {/* Editorial Content */}
-                  <div className="flex flex-1 flex-col p-5 sm:p-6">
-                    <span className="type-label text-xs text-clay">{t(ch.horizonKey)}</span>
-                    <h3 className="mt-1 text-2xl font-bold tracking-tight text-foreground transition-colors group-hover:text-primary">
-                      {t(ch.titleKey)}
-                    </h3>
-                    <p className="mt-3 flex-1 text-sm leading-relaxed text-muted-foreground">
-                      {t(ch.summaryKey)}
-                    </p>
+                  <div
+                    data-decorative-asset={`airport-${ch.id}-body`}
+                    data-testid={`airport-${ch.id}-body`}
+                    className="relative flex flex-1 flex-col overflow-hidden bg-ink p-5 sm:p-6 text-ink-foreground"
+                  >
+                    <img
+                      data-decorative-asset={`airport-${ch.id}-body`}
+                      data-testid={`airport-${ch.id}-body`}
+                      src={chapterBodyImages[ch.id]}
+                      alt=""
+                      aria-hidden="true"
+                      loading="lazy"
+                      className="pointer-events-none absolute inset-0 size-full select-none object-cover object-center"
+                    />
+                    <div className="relative z-10 flex flex-1 flex-col">
+                      <span className="type-label text-xs font-semibold text-clay-soft">{t(ch.horizonKey)}</span>
+                      <h3 className="mt-1 text-2xl font-bold tracking-tight text-ink-foreground transition-colors group-hover:text-sand">
+                        {t(ch.titleKey)}
+                      </h3>
+                      <p className="mt-3 flex-1 text-sm leading-relaxed text-ink-muted">
+                        {t(ch.summaryKey)}
+                      </p>
 
-                    <div className="mt-6 flex items-center gap-2 border-t border-border pt-4 text-sm font-semibold text-primary transition-colors group-hover:text-brand-deep">
-                      <span>{t("airport.readChapter")}</span>
-                      <ArrowRight aria-hidden="true" className="size-4 rtl:rotate-180" />
+                      <div className="mt-6 flex items-center gap-2 border-t border-ink-border pt-4 text-sm font-semibold text-sand transition-colors group-hover:text-sand-deep">
+                        <span>{t("airport.readChapter")}</span>
+                        <ArrowRight aria-hidden="true" className="size-4 rtl:rotate-180" />
+                      </div>
                     </div>
                   </div>
                 </GazaSurface>
@@ -169,14 +194,30 @@ function AirportPage() {
 
         {/* Curatorial Standard & Archival Notice */}
         <div className="mt-12 grid gap-6 lg:grid-cols-[1.5fr_1fr]">
-          <Panel className="border-border bg-card">
-            <div className="flex items-center gap-2.5 text-clay">
-              <ShieldAlert aria-hidden="true" className="size-5 shrink-0" />
-              <h3 className="text-lg font-bold text-foreground">{t("airport.sources")}</h3>
+          <Panel
+            data-decorative-asset="airport-sources-metadata"
+            data-testid="airport-sources-metadata"
+            className="relative overflow-hidden border-border bg-ink p-6 text-ink-foreground"
+          >
+            <img
+              data-decorative-asset="airport-sources-metadata"
+              data-testid="airport-sources-metadata"
+              src={sourcesMetadataImg}
+              alt=""
+              aria-hidden="true"
+              loading="lazy"
+              className="pointer-events-none absolute inset-0 size-full select-none object-cover object-center"
+            />
+            <div className="pointer-events-none absolute inset-0 bg-ink/40" aria-hidden="true" />
+            <div className="relative z-10">
+              <div className="flex items-center gap-2.5 text-clay-soft">
+                <ShieldAlert aria-hidden="true" className="size-5 shrink-0" />
+                <h3 className="text-lg font-bold text-ink-foreground">{t("airport.sources")}</h3>
+              </div>
+              <p className="mt-3 text-sm leading-relaxed text-ink-foreground">
+                {t("airport.sourcesBody")}
+              </p>
             </div>
-            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-              {t("airport.sourcesBody")}
-            </p>
           </Panel>
 
           <div className="flex flex-col justify-between rounded-2xl border border-border bg-sand p-6 shadow-xs">

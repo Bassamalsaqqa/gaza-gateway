@@ -712,7 +712,7 @@ async function runBrowserSmoke() {
           throw new Error(`Failed to extract valid PNR from confirmation URL: ${confUrl.pathname}`);
         }
 
-        await page.waitForSelector(".code-id", { timeout: 10000 });
+        await page.locator(`.code-id:has-text("${createdPnr}")`).first().waitFor({ state: "visible", timeout: 15000 });
         const confText = await page.textContent("body");
         if (!confText.includes(createdPnr)) {
           throw new Error(`Public confirmation page does not display PNR ${createdPnr}`);
@@ -2296,6 +2296,228 @@ async function runBrowserSmoke() {
         await dirtyContact.close();
       } finally {
         await testContext.close();
+      }
+    });
+
+    await checkStep("Check 27: Designer decorative assets verification, WebP loading, and functional immunity", async () => {
+      // Helper to assert an img element exists, is visible, and has naturalWidth > 0 with webp source
+      async function assertWebpImage(p, selector, expectedName) {
+        const locator = p.locator(selector).first();
+        await locator.waitFor({ state: "attached", timeout: 8000 });
+        await locator.scrollIntoViewIfNeeded();
+        await p.waitForFunction(
+          (sel) => {
+            const img = document.querySelector(sel);
+            return img && img.complete && img.naturalWidth > 0;
+          },
+          selector,
+          { timeout: 10000 }
+        );
+        const imgInfo = await locator.evaluate((img) => ({
+          naturalWidth: img.naturalWidth,
+          naturalHeight: img.naturalHeight,
+          currentSrc: img.currentSrc || img.src,
+          alt: img.getAttribute("alt"),
+          ariaHidden: img.getAttribute("aria-hidden"),
+        }));
+        if (imgInfo.naturalWidth <= 0 || imgInfo.naturalHeight <= 0) {
+          throw new Error(`Asset ${expectedName} (${selector}) failed to load: natural dimensions are ${imgInfo.naturalWidth}x${imgInfo.naturalHeight}`);
+        }
+        if (!imgInfo.currentSrc.includes(".webp") || imgInfo.currentSrc.startsWith("data:")) {
+          throw new Error(`Asset ${expectedName} (${selector}) is not served as external WebP: ${imgInfo.currentSrc}`);
+        }
+        if (imgInfo.alt !== "") {
+          throw new Error(`Asset ${expectedName} (${selector}) must have alt="": got "${imgInfo.alt}"`);
+        }
+        if (imgInfo.ariaHidden !== "true") {
+          throw new Error(`Asset ${expectedName} (${selector}) must have aria-hidden="true": got "${imgInfo.ariaHidden}"`);
+        }
+      }
+
+      // 1. Airport Overview (/airport and /ar/airport)
+      await page.goto(baseUrl + "/airport", { waitUntil: "domcontentloaded" });
+      await assertWebpImage(page, 'img[data-decorative-asset="airport-past-body"]', "airport-past-body");
+      await assertWebpImage(page, 'img[data-decorative-asset="airport-present-body"]', "airport-present-body");
+      await assertWebpImage(page, 'img[data-decorative-asset="airport-future-body"]', "airport-future-body");
+      await assertWebpImage(page, 'img[data-decorative-asset="airport-sources-metadata"]', "airport-sources-metadata");
+
+      // Verify Arabic Airport Overview
+      await page.goto(baseUrl + "/ar/airport", { waitUntil: "domcontentloaded" });
+      await assertWebpImage(page, 'img[data-decorative-asset="airport-past-body"]', "ar-airport-past-body");
+      await assertWebpImage(page, 'img[data-decorative-asset="airport-present-body"]', "ar-airport-present-body");
+      await assertWebpImage(page, 'img[data-decorative-asset="airport-future-body"]', "ar-airport-future-body");
+      await assertWebpImage(page, 'img[data-decorative-asset="airport-sources-metadata"]', "ar-airport-sources-metadata");
+
+      // 2. Gallery (/gallery and /ar/gallery)
+      await page.goto(baseUrl + "/gallery", { waitUntil: "domcontentloaded" });
+      await assertWebpImage(page, 'img[data-decorative-asset="gallery-filter-toolbar"]', "gallery-filter-toolbar");
+      await assertWebpImage(page, 'img[data-decorative-asset="gallery-item-body"]', "gallery-item-body");
+
+      // Verify gallery filter interaction & reset
+      const initialCountText = await page.locator(".code-id").first().textContent();
+      await page.selectOption("#filter-category", "photograph");
+      const filteredCountText = await page.locator(".code-id").first().textContent();
+      if (initialCountText === filteredCountText) {
+        throw new Error("Gallery category filter did not change displayed item count");
+      }
+      await page.getByRole("button", { name: /Clear filters|إزالة التصفية|Reset|إعادة الضبط/i }).click();
+      const resetCountText = await page.locator(".code-id").first().textContent();
+      if (resetCountText !== initialCountText) {
+        throw new Error("Gallery reset button did not restore item count");
+      }
+
+      // Verify gallery lightbox open and close via Escape
+      const firstCard = page.locator("li button[aria-haspopup='dialog']").first();
+      await firstCard.click();
+      await page.waitForSelector("[role='dialog']", { timeout: 5000 });
+      await page.keyboard.press("Escape");
+      await page.locator("[role='dialog']").waitFor({ state: "hidden", timeout: 5000 });
+
+      // Verify Arabic Gallery
+      await page.goto(baseUrl + "/ar/gallery", { waitUntil: "domcontentloaded" });
+      await assertWebpImage(page, 'img[data-decorative-asset="gallery-filter-toolbar"]', "ar-gallery-filter-toolbar");
+      await assertWebpImage(page, 'img[data-decorative-asset="gallery-item-body"]', "ar-gallery-item-body");
+
+      // 3. Flights (/flights and /ar/flights)
+      await page.goto(baseUrl + "/flights", { waitUntil: "domcontentloaded" });
+      await assertWebpImage(page, 'img[data-decorative-asset="flights-search-toolbar"]', "flights-search-toolbar");
+
+      // Verify flights operational toolbar controls:
+      // a) Date button changes active date
+      const dateButtons = page.locator('div[data-decorative-asset="flights-search-toolbar"] button[aria-pressed]');
+      const initialPressed = await dateButtons.first().getAttribute("aria-pressed");
+      if (initialPressed !== "true") {
+        throw new Error(`Flights today button should initially have aria-pressed="true", got "${initialPressed}"`);
+      }
+      await dateButtons.nth(1).click();
+      await page.waitForTimeout(200);
+      const secondPressed = await dateButtons.nth(1).getAttribute("aria-pressed");
+      const firstPressedAfter = await dateButtons.first().getAttribute("aria-pressed");
+      if (secondPressed !== "true" || firstPressedAfter !== "false") {
+        throw new Error(`Flights date button click did not toggle active date: second=${secondPressed}, first=${firstPressedAfter}`);
+      }
+      // Restore today
+      await dateButtons.first().click();
+      await page.waitForTimeout(200);
+
+      // b) Query search filter — assert intermediate filtered state
+      const allRowsBeforeQuery = await page.locator("tbody tr").count();
+      await page.fill("#board-search", "Amman");
+      await page.waitForTimeout(300);
+      const filteredRowsByQuery = await page.locator("tbody tr").count();
+      if (filteredRowsByQuery >= allRowsBeforeQuery) {
+        throw new Error(
+          `Query filter "Amman" should reduce visible rows but got ${filteredRowsByQuery} vs original ${allRowsBeforeQuery}`,
+        );
+      }
+      await page.fill("#board-search", "");
+      await page.waitForTimeout(200);
+      const restoredRowsByQuery = await page.locator("tbody tr").count();
+      if (restoredRowsByQuery !== allRowsBeforeQuery) {
+        throw new Error(
+          `Clearing query filter should restore all rows: expected ${allRowsBeforeQuery}, got ${restoredRowsByQuery}`,
+        );
+      }
+
+      // c) Status filter changes visible results — assert intermediate filtered state
+      const allRowsCount = await page.locator("tbody tr").count();
+      await page.selectOption("#board-status", "Cancelled");
+      await page.waitForTimeout(300);
+      const filteredRowsByStatus = await page.locator("tbody tr").count();
+      // Assert the filter was applied: only Cancelled rows should be visible
+      const cancelledCellCount = await page.locator("tbody tr").filter({ hasText: /Cancelled|ملغاة/i }).count();
+      if (filteredRowsByStatus !== cancelledCellCount) {
+        throw new Error(
+          `Status filter "Cancelled" should show only Cancelled rows: got ${filteredRowsByStatus} rows but ${cancelledCellCount} have Cancelled text`,
+        );
+      }
+      // Restore status filter and assert restoration
+      await page.selectOption("#board-status", "all");
+      await page.waitForTimeout(300);
+      const restoredRowsCount = await page.locator("tbody tr").count();
+      if (restoredRowsCount !== allRowsCount) {
+        throw new Error(`Flights status filter did not restore all rows: expected ${allRowsCount}, got ${restoredRowsCount}`);
+      }
+
+      // Verify Arabic Flights
+      await page.goto(baseUrl + "/ar/flights", { waitUntil: "domcontentloaded" });
+      await assertWebpImage(page, 'img[data-decorative-asset="flights-search-toolbar"]', "ar-flights-search-toolbar");
+
+      // 4. Home Flight Search (/ and /ar)
+      await page.goto(baseUrl + "/", { waitUntil: "domcontentloaded" });
+      await assertWebpImage(page, 'img[data-decorative-asset="home-flight-search-ticket"]', "home-flight-search-ticket");
+
+      // a) Deliberately invalid search stays on Home, displays role="alert" banner, readable over ticket art
+      await page.click("#search-to");
+      await page.waitForTimeout(300);
+      await page.click('[data-value="DOH"]');
+      await page.waitForTimeout(200);
+      const searchSubmitBtn = page.locator('form[aria-label] button[type="submit"]').first();
+      await searchSubmitBtn.click();
+      await page.waitForTimeout(400);
+
+      if (!page.url().endsWith("/")) {
+        throw new Error(`Invalid search should stay on Home (/), but navigated to: ${page.url()}`);
+      }
+      const alertBanner = page.locator('form[aria-label] div[role="alert"]').first();
+      if ((await alertBanner.count()) === 0) {
+        throw new Error(`Invalid Home search did not show role="alert" banner`);
+      }
+      const alertText = (await alertBanner.textContent()) || "";
+      if (!alertText.includes("DOH") || !alertText.toLowerCase().includes("no scheduled")) {
+        throw new Error(`Unexpected alert text for DOH invalid search: "${alertText}"`);
+      }
+
+      // b) Valid Home search follows expected navigation flow to /book
+      await page.click("#search-to");
+      await page.waitForTimeout(300);
+      await page.click('[data-value="AMM"]');
+      await page.waitForTimeout(200);
+      await searchSubmitBtn.click();
+      await page.waitForURL((url) => url.pathname.includes("/book"), { timeout: 8000 });
+      if (!page.url().includes("/book")) {
+        throw new Error(`Valid search failed to navigate to /book, URL is: ${page.url()}`);
+      }
+
+      // Verify Arabic Home search: invalid search stays on /ar and shows Arabic role="alert"
+      await page.goto(baseUrl + "/ar", { waitUntil: "domcontentloaded" });
+      await assertWebpImage(page, 'img[data-decorative-asset="home-flight-search-ticket"]', "ar-home-flight-search-ticket");
+      await page.click("#search-to");
+      await page.waitForTimeout(300);
+      await page.click('[data-value="DOH"]');
+      await page.waitForTimeout(200);
+      const searchSubmitBtnAr = page.locator('form[aria-label] button[type="submit"]').first();
+      await searchSubmitBtnAr.click();
+      await page.waitForTimeout(400);
+      if (!page.url().endsWith("/ar")) {
+        throw new Error(`Invalid Arabic search should stay on /ar, but navigated to: ${page.url()}`);
+      }
+      const alertBannerAr = page.locator('form[aria-label] div[role="alert"]').first();
+      if ((await alertBannerAr.count()) === 0) {
+        throw new Error(`Invalid Arabic Home search did not show role="alert" banner`);
+      }
+
+      // 5. Immunity Proofs: Unskinned forms remain unskinned
+      // Check /book
+      await page.goto(baseUrl + "/book", { waitUntil: "domcontentloaded" });
+      const bookTicketCount = await page.locator('[data-decorative-asset="home-flight-search-ticket"]').count();
+      if (bookTicketCount !== 0) {
+        throw new Error(`/book must NOT receive the ticket-map treatment: found ${bookTicketCount}`);
+      }
+
+      // Check /destinations/IST
+      await page.goto(baseUrl + "/destinations/IST", { waitUntil: "domcontentloaded" });
+      const istTicketCount = await page.locator('[data-decorative-asset="home-flight-search-ticket"]').count();
+      if (istTicketCount !== 0) {
+        throw new Error(`/destinations/IST must NOT receive the ticket-map treatment: found ${istTicketCount}`);
+      }
+
+      // Verify asset isolation: Home does not leak airport/gallery assets
+      await page.goto(baseUrl + "/", { waitUntil: "domcontentloaded" });
+      const leakedAirportOnHome = await page.locator('[data-decorative-asset="airport-past-body"]').count();
+      const leakedGalleryOnHome = await page.locator('[data-decorative-asset="gallery-filter-toolbar"]').count();
+      if (leakedAirportOnHome !== 0 || leakedGalleryOnHome !== 0) {
+        throw new Error(`Decorative assets leaked to unassociated surface (home): airport=${leakedAirportOnHome}, gallery=${leakedGalleryOnHome}`);
       }
     });
 

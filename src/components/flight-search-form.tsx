@@ -11,13 +11,16 @@ import { useStore, type SearchCriteria } from "@/lib/store";
 import { isSkinPreviewActive } from "@/lib/skin";
 import { isStudioPreviewActive, getStudioScenarioParam } from "@/lib/studio-preview";
 import { cn } from "@/lib/utils";
+import ticketWorldMapImg from "@/assets/media/decorative/cards/ticket-world-map.webp";
 
 export function FlightSearchForm({
   variant = "panel",
   initial,
+  treatment,
 }: {
   variant?: "panel" | "inline";
   initial?: Partial<SearchCriteria>;
+  treatment?: "ticket-map";
 }) {
   const { t, lang } = useI18n();
   const { draft, resetDraft } = useStore();
@@ -219,6 +222,8 @@ export function FlightSearchForm({
     <form
       onSubmit={submit}
       aria-label={t("search.title")}
+      data-decorative-asset={treatment === "ticket-map" ? "home-flight-search-ticket" : undefined}
+      data-testid={treatment === "ticket-map" ? "home-flight-search-ticket" : undefined}
       className={cn(
         "relative rounded-2xl border border-border bg-card transition-shadow",
         variant === "panel"
@@ -226,6 +231,20 @@ export function FlightSearchForm({
           : "p-3 sm:p-4 shadow-[var(--shadow-soft)]",
       )}
     >
+      {treatment === "ticket-map" && (
+        <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl" aria-hidden="true">
+          <img
+            data-decorative-asset="home-flight-search-ticket"
+            data-testid="home-flight-search-ticket"
+            src={ticketWorldMapImg}
+            alt=""
+            aria-hidden="true"
+            loading="lazy"
+            className="size-full select-none object-cover object-center opacity-15"
+          />
+        </div>
+      )}
+      <div className="relative z-10">
       {/* Accessible Trip Type Fieldset */}
       <fieldset className="border-0 p-0 m-0">
         <legend className="sr-only">{t("search.tripType")}</legend>
@@ -366,11 +385,12 @@ export function FlightSearchForm({
         <div
           role="alert"
           aria-live="polite"
-          className="mt-3 flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3.5 py-2 text-sm font-medium text-destructive"
+          className="mt-3 flex items-center gap-2 rounded-lg border border-destructive/40 bg-card/95 px-3.5 py-2 text-sm font-medium text-destructive shadow-xs"
         >
           <span>{error}</span>
         </div>
       ) : null}
+      </div>
     </form>
   );
 }

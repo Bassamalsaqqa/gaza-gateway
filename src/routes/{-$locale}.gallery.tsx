@@ -14,6 +14,8 @@ import {
 } from "@/lib/data";
 import { pick, useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import galleryFilterToolbarImg from "@/assets/media/decorative/gallery/gallery-filter-toolbar.webp";
+import galleryItemBodyImg from "@/assets/media/decorative/gallery/gallery-item-body.webp";
 
 export const Route = createFileRoute("/{-$locale}/gallery")({
   head: () => ({
@@ -147,71 +149,86 @@ function GalleryPage() {
 
       <Container className="py-8 sm:py-12">
         {/* Compact Standard Filter Toolbar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-3.5 sm:p-4 shadow-xs">
-          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-            {/* Category Dropdown */}
-            <div className="flex items-center gap-2">
-              <label htmlFor="filter-category" className="text-xs font-semibold text-muted-foreground whitespace-nowrap">
-                {t("gallery.filterCategory")}
-              </label>
-              <select
-                id="filter-category"
-                value={category}
-                onChange={(e) => {
-                  setCategory(e.target.value as CategoryFilter);
-                  setOpenIndex(null);
-                }}
-                className="h-9 rounded-lg border border-input bg-card px-3 text-xs font-medium text-foreground transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
-              >
-                <option value="all">{t("gallery.categoryAll")}</option>
-                {(["photograph", "document", "architecture"] as const).map((id) => (
-                  <option key={id} value={id}>
-                    {pick(lang, galleryCategoryLabels[id])}
-                  </option>
-                ))}
-              </select>
+        <div
+          data-decorative-asset="gallery-filter-toolbar"
+          data-testid="gallery-filter-toolbar"
+          className="relative flex flex-wrap items-center justify-between gap-3 overflow-hidden rounded-xl border border-border bg-clay p-3.5 sm:p-4 text-ink-foreground shadow-xs"
+        >
+          <img
+            data-decorative-asset="gallery-filter-toolbar"
+            data-testid="gallery-filter-toolbar"
+            src={galleryFilterToolbarImg}
+            alt=""
+            aria-hidden="true"
+            loading="lazy"
+            className="pointer-events-none absolute inset-0 size-full select-none object-cover object-center"
+          />
+          <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 w-full">
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+              {/* Category Dropdown */}
+              <div className="flex items-center gap-2">
+                <label htmlFor="filter-category" className="text-xs font-semibold text-white whitespace-nowrap">
+                  {t("gallery.filterCategory")}
+                </label>
+                <select
+                  id="filter-category"
+                  value={category}
+                  onChange={(e) => {
+                    setCategory(e.target.value as CategoryFilter);
+                    setOpenIndex(null);
+                  }}
+                  className="h-9 rounded-lg border border-input bg-card px-3 text-xs font-medium text-foreground transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
+                >
+                  <option value="all">{t("gallery.categoryAll")}</option>
+                  {(["photograph", "document", "architecture"] as const).map((id) => (
+                    <option key={id} value={id}>
+                      {pick(lang, galleryCategoryLabels[id])}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Era Dropdown */}
+              <div className="flex items-center gap-2">
+                <label htmlFor="filter-era" className="text-xs font-semibold text-white whitespace-nowrap">
+                  {t("gallery.filterEra")}
+                </label>
+                <select
+                  id="filter-era"
+                  value={era}
+                  onChange={(e) => {
+                    setEra(e.target.value as EraFilter);
+                    setOpenIndex(null);
+                  }}
+                  className="h-9 rounded-lg border border-input bg-card px-3 text-xs font-medium text-foreground transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
+                >
+                  <option value="all">{t("gallery.eraAll")}</option>
+                  {(["past", "present"] as const).map((id) => (
+                    <option key={id} value={id}>
+                      {pick(lang, galleryEraLabels[id])}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
-            {/* Era Dropdown */}
-            <div className="flex items-center gap-2">
-              <label htmlFor="filter-era" className="text-xs font-semibold text-muted-foreground whitespace-nowrap">
-                {t("gallery.filterEra")}
-              </label>
-              <select
-                id="filter-era"
-                value={era}
-                onChange={(e) => {
-                  setEra(e.target.value as EraFilter);
-                  setOpenIndex(null);
-                }}
-                className="h-9 rounded-lg border border-input bg-card px-3 text-xs font-medium text-foreground transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
-              >
-                <option value="all">{t("gallery.eraAll")}</option>
-                {(["past", "present"] as const).map((id) => (
-                  <option key={id} value={id}>
-                    {pick(lang, galleryEraLabels[id])}
-                  </option>
-                ))}
-              </select>
+            <div className="flex items-center gap-3">
+              <p className="code-id text-xs text-white/90 font-medium">
+                {t("gallery.items", { n: items.length })}
+              </p>
+              {(category !== "all" || era !== "all") && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCategory("all");
+                    setEra("all");
+                  }}
+                  className="text-xs font-bold text-sand underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-ring cursor-pointer"
+                >
+                  {t("gallery.reset")}
+                </button>
+              )}
             </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <p className="code-id text-xs text-muted-foreground">
-              {t("gallery.items", { n: items.length })}
-            </p>
-            {(category !== "all" || era !== "all") && (
-              <button
-                type="button"
-                onClick={() => {
-                  setCategory("all");
-                  setEra("all");
-                }}
-                className="text-xs font-semibold text-primary underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-ring"
-              >
-                {t("gallery.reset")}
-              </button>
-            )}
           </div>
         </div>
 
@@ -260,12 +277,27 @@ function GalleryPage() {
                   </span>
 
                   {/* Clean Content: Title + Subtitle */}
-                  <span className="flex flex-1 flex-col p-4">
-                    <span className="text-sm font-bold text-foreground transition-colors group-hover:text-primary">
-                      {pick(lang, item.title)}
-                    </span>
-                    <span className="mt-1 text-xs text-muted-foreground">
-                      {pick(lang, galleryCategoryLabels[item.category])} · {pick(lang, galleryEraLabels[item.era])}
+                  <span
+                    data-decorative-asset="gallery-item-body"
+                    data-testid="gallery-item-body"
+                    className="relative flex flex-1 flex-col overflow-hidden bg-ink p-4 text-ink-foreground"
+                  >
+                    <img
+                      data-decorative-asset="gallery-item-body"
+                      data-testid="gallery-item-body"
+                      src={galleryItemBodyImg}
+                      alt=""
+                      aria-hidden="true"
+                      loading="lazy"
+                      className="pointer-events-none absolute inset-0 size-full select-none object-cover object-center"
+                    />
+                    <span className="relative z-10 flex flex-1 flex-col">
+                      <span className="text-sm font-bold text-ink-foreground transition-colors group-hover:text-sand">
+                        {pick(lang, item.title)}
+                      </span>
+                      <span className="mt-1 text-xs text-ink-muted">
+                        {pick(lang, galleryCategoryLabels[item.category])} · {pick(lang, galleryEraLabels[item.era])}
+                      </span>
                     </span>
                   </span>
                 </button>

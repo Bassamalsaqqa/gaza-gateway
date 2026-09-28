@@ -9,6 +9,7 @@ import { useFlightsQuery } from "@/lib/repositories";
 import { dateShort } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import flightsSearchToolbarImg from "@/assets/media/decorative/flights/flights-search-toolbar.webp";
 
 export const Route = createFileRoute("/{-$locale}/flights")({
   head: () => ({
@@ -126,60 +127,83 @@ function FlightsPage() {
         </div>
 
         {/* Unified Operational Toolbar: Dates + Search & Status */}
-        <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-xs space-y-4">
-          {/* Date Selector Row */}
-          <div>
-            <div className="flex items-center gap-1.5 -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0 pb-1 sm:pb-0 scrollbar-none">
-              {dates.map((iso, index) => {
-                const isSelected = date === iso;
-                return (
-                  <button
-                    key={iso}
-                    type="button"
-                    onClick={() => setDate(iso)}
-                    aria-pressed={isSelected}
-                    className={cn(
-                      "shrink-0 min-h-10 rounded-lg border px-3.5 py-2 text-xs sm:text-sm font-semibold transition-all cursor-pointer select-none",
-                      "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
-                      isSelected
-                        ? "border-primary bg-primary text-primary-foreground shadow-xs font-bold"
-                        : "border-input bg-card text-muted-foreground hover:text-foreground hover:bg-secondary/40",
-                    )}
-                  >
-                    {index === 0 ? t("flights.today") : index === 1 ? t("flights.tomorrow") : dateShort(iso, lang)}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Search & Status Filters */}
-          <div className="grid gap-3 pt-3 border-t border-border/60 sm:grid-cols-[2fr_1fr]">
-            <Field label={t("flights.search")} htmlFor="board-search">
-              <div className="relative">
-                <Search
-                  aria-hidden="true"
-                  className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-                />
-                <Input
-                  id="board-search"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="PS101 · Amman"
-                  className="ps-9"
-                />
+        <div
+          data-decorative-asset="flights-search-toolbar"
+          data-testid="flights-search-toolbar"
+          className="relative overflow-hidden rounded-xl border border-border bg-ink p-4 sm:p-5 text-ink-foreground shadow-xs"
+        >
+          <img
+            data-decorative-asset="flights-search-toolbar"
+            data-testid="flights-search-toolbar"
+            src={flightsSearchToolbarImg}
+            alt=""
+            aria-hidden="true"
+            loading="lazy"
+            className="pointer-events-none absolute inset-0 size-full select-none object-cover object-center"
+          />
+          <div className="relative z-10 space-y-4">
+            {/* Date Selector Row */}
+            <div>
+              <div className="flex items-center gap-1.5 -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0 pb-1 sm:pb-0 scrollbar-none">
+                {dates.map((iso, index) => {
+                  const isSelected = date === iso;
+                  return (
+                    <button
+                      key={iso}
+                      type="button"
+                      onClick={() => setDate(iso)}
+                      aria-pressed={isSelected}
+                      className={cn(
+                        "shrink-0 min-h-10 rounded-lg border px-3.5 py-2 text-xs sm:text-sm font-semibold transition-all cursor-pointer select-none",
+                        "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
+                        isSelected
+                          ? "border-primary bg-primary text-primary-foreground shadow-xs font-bold"
+                          : "border-ink-border bg-card/95 text-foreground hover:bg-card hover:text-foreground",
+                      )}
+                    >
+                      {index === 0 ? t("flights.today") : index === 1 ? t("flights.tomorrow") : dateShort(iso, lang)}
+                    </button>
+                  );
+                })}
               </div>
-            </Field>
-            <Field label={t("flights.status")} htmlFor="board-status">
-              <Select id="board-status" value={status} onChange={(e) => setStatus(e.target.value)}>
-                <option value="all">{t("gallery.all")}</option>
-                {["Scheduled", "OnTime", "Boarding", "Delayed", "Departed", "Landed", "Cancelled"].map((s) => (
-                  <option key={s} value={s}>
-                    {t(`status.${s}`)}
-                  </option>
-                ))}
-              </Select>
-            </Field>
+            </div>
+
+            {/* Search & Status Filters */}
+            <div className="grid gap-3 pt-3 border-t border-ink-border sm:grid-cols-[2fr_1fr]">
+              <Field
+                label={t("flights.search")}
+                htmlFor="board-search"
+                className="[&>label]:text-ink-foreground [&>label]:font-semibold"
+              >
+                <div className="relative">
+                  <Search
+                    aria-hidden="true"
+                    className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                  />
+                  <Input
+                    id="board-search"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="PS101 · Amman"
+                    className="ps-9 bg-card text-foreground"
+                  />
+                </div>
+              </Field>
+              <Field
+                label={t("flights.status")}
+                htmlFor="board-status"
+                className="[&>label]:text-ink-foreground [&>label]:font-semibold"
+              >
+                <Select id="board-status" value={status} onChange={(e) => setStatus(e.target.value)} className="bg-card text-foreground">
+                  <option value="all">{t("gallery.all")}</option>
+                  {["Scheduled", "OnTime", "Boarding", "Delayed", "Departed", "Landed", "Cancelled"].map((s) => (
+                    <option key={s} value={s}>
+                      {t(`status.${s}`)}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            </div>
           </div>
         </div>
 
