@@ -784,7 +784,7 @@ To evoke authentic Palestinian architectural heritage (limestone masonry, arched
   - `.bg-ambient-admin`: Applied to station operations desk (`#FCF9F2` base) with olive `#073724` at **3.5%** opacity (`fill-opacity='0.035'`) using `pie-factory`.
 - **Preview-Only Boundary**:
   - The Admin Appearance Lab (`/admin/settings` Appearance tab) allows live inspection of pattern, intensity, and scale combinations.
-  - Selections are stored locally under `gza.skin.preview.v1` and applied **only** when `?skinPreview=1` is present in the query string.
+  - Selections are stored locally under `gza.settings.draft.v1` (`site.appearance`) via `SettingsRepository` (with `gza.skin.preview.v1` as legacy fallback) and applied **only** when `?skinPreview=1` is present in the query string.
   - Normal URLs always render `DEFAULT_SITE_SKIN` identically during SSR and hydration with zero flash, zero layout shift, and zero client mismatch.
 - **Phase 4 Publication Path**:
   - Current skin preview is browser-local and intentionally uncommitted to shared data layers.
@@ -849,7 +849,7 @@ To eliminate visual fatigue and generic white-card SaaS boilerplate across the a
    - Controlled Placements: `header-band` (top 28-36px), `rail-strip` (vertical 32px inline-start strip), `accent-corner` (64×64px corner vignette), `full` (large editorial cards only), or `none`.
 5. **Preview-Only Boundary & Baseline Invariant**:
    - Production URLs without `?skinPreview=1` retain the exact baseline production appearance with zero visual drift.
-   - Normal visitor sessions ignore `gza.skin.preview.v1`, rendering the committed default skin (`DEFAULT_SITE_SKIN`) and default surface grammar (`DEFAULT_SURFACE_GRAMMAR_CONFIG`).
+   - Normal visitor sessions ignore draft settings (`gza.settings.draft.v1` and legacy `gza.skin.preview.v1`), rendering the committed default skin (`DEFAULT_SITE_SKIN`) and default surface grammar (`DEFAULT_SURFACE_GRAMMAR_CONFIG`).
 6. **Startup Bundle Isolation (`runtime-targets.ts` vs `targets.ts`)**:
    - In Phase 3.9, lightweight runtime resolution was decoupled from authoring metadata:
      - `src/design/surfaces/runtime-targets.ts`: Contains only target identifiers, family mapping, media allowance policies, canonical truth class allowlists, and recipe resolution (`resolveTargetRecipe`). Loaded by ordinary public runtime with **zero imports of `MEDIA`**.

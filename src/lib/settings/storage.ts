@@ -53,21 +53,47 @@ export function loadSettingsEnvelope(customStorage?: Storage | null): SettingsDr
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === "object") {
         if (parsed.schemaVersion === 1 && parsed.site && typeof parsed.site === "object") {
+          let validatedContact: ContactSettings | undefined = undefined;
+          if (parsed.site.contact && typeof parsed.site.contact === "object" && !Array.isArray(parsed.site.contact)) {
+            const validation = validateContactSettings(parsed.site.contact);
+            if (validation.valid) {
+              validatedContact = validation.sanitized;
+            }
+          }
+
+          let validatedAppearance: AppearanceSettings | undefined = undefined;
+          if (parsed.site.appearance && typeof parsed.site.appearance === "object") {
+            validatedAppearance = sanitizeSiteSkinConfig(parsed.site.appearance);
+          }
+
           envelope = {
             schemaVersion: 1,
             site: {
-              ...(parsed.site.contact ? { contact: validateContactSettings(parsed.site.contact).sanitized } : {}),
-              ...(parsed.site.appearance ? { appearance: sanitizeSiteSkinConfig(parsed.site.appearance) } : {}),
+              ...(validatedContact ? { contact: validatedContact } : {}),
+              ...(validatedAppearance ? { appearance: validatedAppearance } : {}),
             },
             ...(parsed.meta && typeof parsed.meta === "object" ? { meta: parsed.meta } : {}),
           };
         } else if (parsed.version === 1) {
           // Compatibility with interim schema
+          let validatedContact: ContactSettings | undefined = undefined;
+          if (parsed.contact && typeof parsed.contact === "object" && !Array.isArray(parsed.contact)) {
+            const validation = validateContactSettings(parsed.contact);
+            if (validation.valid) {
+              validatedContact = validation.sanitized;
+            }
+          }
+
+          let validatedAppearance: AppearanceSettings | undefined = undefined;
+          if (parsed.appearance && typeof parsed.appearance === "object") {
+            validatedAppearance = sanitizeSiteSkinConfig(parsed.appearance);
+          }
+
           envelope = {
             schemaVersion: 1,
             site: {
-              ...(parsed.contact ? { contact: validateContactSettings(parsed.contact).sanitized } : {}),
-              ...(parsed.appearance ? { appearance: sanitizeSiteSkinConfig(parsed.appearance) } : {}),
+              ...(validatedContact ? { contact: validatedContact } : {}),
+              ...(validatedAppearance ? { appearance: validatedAppearance } : {}),
             },
           };
         }

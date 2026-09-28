@@ -11,7 +11,7 @@ import {
   type SiteSkinConfig,
 } from "@/lib/skin";
 import type { SettingsDraftEnvelope } from "@/lib/settings/types";
-import { isBaselinePreviewActive } from "@/lib/studio-preview";
+import { isBaselinePreviewActive, isStudioPreviewActive } from "@/lib/studio-preview";
 
 const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
@@ -138,6 +138,8 @@ export function SkinPreviewListener() {
     };
 
     const onStorage = (e: StorageEvent) => {
+      // In Appearance Studio preview frame, the preview is controlled exclusively by the parent Studio controller
+      if (isStudioPreviewActive(searchStr)) return;
       if (e.key === SETTINGS_DRAFT_STORAGE_KEY || e.key === "gza.skin.preview.v1") {
         onUpdate(e);
       }

@@ -1,13 +1,13 @@
 import { Switch } from "@/components/ui/switch";
 import { createFileRoute } from "@tanstack/react-router";
-import { lazy, Suspense, useEffect, useState, FormEvent } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, FormEvent } from "react";
 import { Input, Select, Button } from "@/components/kit";
 import { AdminField, AdminPageHeader, AdminPanel, AdminStickyActions, AdminTabs, PermissionButton } from "@/components/admin/admin-kit";
 import { AdminDenied } from "@/components/admin/admin-denied";
 import { useAdmin } from "@/lib/admin-store";
 import { useI18n } from "@/lib/i18n";
 import { pageHead } from "@/lib/head";
-import { settingsRepository } from "@/lib/settings";
+import { settingsRepository, computeExternalSettingsSync } from "@/lib/settings";
 import type { ContactSettings } from "@/lib/settings";
 import { PUBLISHED_CONTACT_SETTINGS } from "@/lib/settings/defaults";
 import { validateContactSettings } from "@/lib/settings/validation";
@@ -64,6 +64,14 @@ function AdminSettingsPage() {
   const [isContactDirty, setIsContactDirty] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [contactSaveError, setContactSaveError] = useState<string | null>(null);
+  const [externalNotice, setExternalNotice] = useState(false);
+
+  const isContactDirtyRef = useRef(isContactDirty);
+  isContactDirtyRef.current = isContactDirty;
+  const contactStateRef = useRef(contactState);
+  contactStateRef.current = contactState;
+  const savedContactRef = useRef(savedContact);
+  savedContactRef.current = savedContact;
 
   useEffect(() => {
     if (search.tab && search.tab !== tab) {
@@ -79,13 +87,38 @@ function AdminSettingsPage() {
         setSavedContact(draft);
         setContactState(draft ?? PUBLISHED_CONTACT_SETTINGS);
         setIsContactDirty(false);
+        setExternalNotice(false);
       }
     };
     load();
     const unsub = settingsRepository.subscribe((newEnvelope) => {
       if (!unmounted) {
-        const newContact = newEnvelope?.site?.contact ?? null;
-        setSavedContact(newContact);
+        const sync = computeExternalSettingsSync({
+          currentSaved: savedContactRef.current,
+          currentWorking: contactStateRef.current,
+          isDirty: isContactDirtyRef.current,
+          incomingSaved: newEnvelope?.site?.contact ?? null,
+          publishedDefault: PUBLISHED_CONTACT_SETTINGS,
+        });
+
+        if (!sync.hasSavedChanged) {
+          return;
+        }
+
+        setSavedContact(sync.nextSaved);
+        savedContactRef.current = sync.nextSaved;
+        setIsContactDirty(sync.nextIsDirty);
+        isContactDirtyRef.current = sync.nextIsDirty;
+        setExternalNotice(sync.nextExternalNotice);
+
+        if (sync.shouldAdopt) {
+          setContactState(sync.nextWorking);
+          contactStateRef.current = sync.nextWorking;
+          setValidationErrors([]);
+          setContactSaveError(null);
+        } else if (!sync.nextIsDirty) {
+          setContactSaveError(null);
+        }
       }
     });
     return () => {
@@ -101,8 +134,14 @@ function AdminSettingsPage() {
   const handleContactChange = (field: keyof ContactSettings, value: string) => {
     setContactState((prev) => {
       const next = { ...prev, [field]: value };
-      const base = savedContact ?? PUBLISHED_CONTACT_SETTINGS;
-      setIsContactDirty(JSON.stringify(next) !== JSON.stringify(base));
+      contactStateRef.current = next;
+      const base = savedContactRef.current ?? PUBLISHED_CONTACT_SETTINGS;
+      const dirty = JSON.stringify(next) !== JSON.stringify(base);
+      setIsContactDirty(dirty);
+      isContactDirtyRef.current = dirty;
+      if (!dirty) {
+        setExternalNotice(false);
+      }
       return next;
     });
     setValidationErrors([]);
@@ -125,8 +164,12 @@ function AdminSettingsPage() {
     try {
       await settingsRepository.saveContactDraft(validation.sanitized);
       setSavedContact(validation.sanitized);
+      savedContactRef.current = validation.sanitized;
       setContactState(validation.sanitized);
+      contactStateRef.current = validation.sanitized;
       setIsContactDirty(false);
+      isContactDirtyRef.current = false;
+      setExternalNotice(false);
       toast(t("a2.se.savedDraft") || "Draft saved locally");
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -138,18 +181,26 @@ function AdminSettingsPage() {
   const handleDiscardContact = () => {
     setValidationErrors([]);
     setContactSaveError(null);
-    setContactState(savedContact ?? PUBLISHED_CONTACT_SETTINGS);
+    setExternalNotice(false);
+    const fallback = savedContactRef.current ?? PUBLISHED_CONTACT_SETTINGS;
+    setContactState(fallback);
+    contactStateRef.current = fallback;
     setIsContactDirty(false);
+    isContactDirtyRef.current = false;
   };
 
   const handleDiscardSavedDraft = async () => {
     setValidationErrors([]);
     setContactSaveError(null);
+    setExternalNotice(false);
     try {
       await settingsRepository.discardContactDraft();
       setSavedContact(null);
+      savedContactRef.current = null;
       setContactState(PUBLISHED_CONTACT_SETTINGS);
+      contactStateRef.current = PUBLISHED_CONTACT_SETTINGS;
       setIsContactDirty(false);
+      isContactDirtyRef.current = false;
       toast(t("a2.se.discardSavedSuccess") || "Draft discarded. Reverted to published default.");
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -169,7 +220,17 @@ function AdminSettingsPage() {
       <AdminPageHeader
         title={t("a2.se.title")}
         description={t("a2.se.sub")}
-        meta={<p className="text-xs text-muted-foreground font-medium text-amber-600 dark:text-amber-500">{t("a2.se.metaDraft") || "Changes are saved locally as a working draft."}</p>}
+        meta={
+          tab === "contact" || tab === "appearance" ? (
+            <p className="text-xs text-muted-foreground font-medium text-amber-600 dark:text-amber-500">
+              {t("a2.se.metaDraft") || "Local, unpublished draft. Changes are stored in this browser only."}
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground font-medium">
+              {t("a2.se.metaReadOnly") || "Read-only system, operational policy, and build configuration reference."}
+            </p>
+          )
+        }
       />
 
       <AdminPanel bodyClassName="p-0">
@@ -192,6 +253,11 @@ function AdminSettingsPage() {
             </Suspense>
           ) : tab === "contact" ? (
             <form onSubmit={handleSaveContact}>
+              {externalNotice && (
+                <div role="status" className="mb-4 p-3 text-xs rounded bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
+                  {t("a2.se.externalChangeNotice") || "The saved draft was updated in another tab. Your unsaved changes have been kept."}
+                </div>
+              )}
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 <AdminField label={t("a2.web.pg.phone")} htmlFor="c-phone">
                   <Input id="c-phone" value={contactState.phone} onChange={(e) => handleContactChange("phone", e.target.value)} dir="ltr" required />
@@ -260,7 +326,7 @@ function AdminSettingsPage() {
                 )}
                 {!isContactDirty && savedContact && (
                   <Button type="button" variant="outline" className="text-destructive hover:bg-destructive/10 border-destructive/30" onClick={handleDiscardSavedDraft}>
-                    {t("a2.se.discardSaved") || "Reset to Default"}
+                    {t("a2.se.discardSaved") || "Discard Saved Draft"}
                   </Button>
                 )}
                 {mayEdit ? (

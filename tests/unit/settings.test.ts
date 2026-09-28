@@ -18,6 +18,7 @@ import {
   PUBLISHED_APPEARANCE_SETTINGS,
 } from "../../src/lib/settings/defaults.ts";
 import { LocalSettingsRepository } from "../../src/lib/settings/repository.ts";
+import { computeExternalSettingsSync } from "../../src/lib/settings/sync.ts";
 import {
   DEFAULT_SITE_SKIN,
   SKIN_PREVIEW_STORAGE_KEY,
@@ -468,6 +469,404 @@ describe("Phase 4C Settings Architecture (Correction 1)", () => {
     it("corrupt draft JSON safely returns null falling back to published defaults", () => {
       store.setItem(SETTINGS_DRAFT_KEY, "not{valid:json");
       assert.equal(loadSettingsEnvelope(store), null);
+    });
+  });
+
+  describe("Phase 4C.0.1 Settings Truth & Draft Hardening", () => {
+    describe("Invalid Persisted Contact Child Rejection & Sibling Preservation", () => {
+      it("rejects invalid persisted contact child with invalid phone ('123') and omits contact while preserving valid sibling appearance", () => {
+        const customAppearance: SiteSkinConfig = {
+          ...DEFAULT_SITE_SKIN,
+          publicCanvas: { pattern: "connections", scale: "standard", intensity: "subtle" },
+        };
+        const rawEnvelope = {
+          schemaVersion: 1,
+          updatedAt: new Date().toISOString(),
+          site: {
+            appearance: customAppearance,
+            contact: {
+              ...PUBLISHED_CONTACT_SETTINGS,
+              phone: "123",
+            },
+          },
+        };
+        store.setItem(SETTINGS_DRAFT_KEY, JSON.stringify(rawEnvelope));
+
+        const envelope = loadSettingsEnvelope(store);
+        assert.ok(envelope !== null);
+        assert.equal(envelope?.site?.contact, undefined, "Invalid contact must be completely omitted");
+        assert.equal(envelope?.site?.appearance?.publicCanvas?.pattern, "connections", "Valid sibling appearance must be preserved");
+      });
+
+      it("rejects invalid persisted contact child with invalid email ('notanemail') and omits contact", () => {
+        const rawEnvelope = {
+          schemaVersion: 1,
+          updatedAt: new Date().toISOString(),
+          site: {
+            contact: {
+              ...PUBLISHED_CONTACT_SETTINGS,
+              email: "notanemail",
+            },
+          },
+        };
+        store.setItem(SETTINGS_DRAFT_KEY, JSON.stringify(rawEnvelope));
+
+        const envelope = loadSettingsEnvelope(store);
+        assert.ok(envelope !== null);
+        assert.equal(envelope?.site?.contact, undefined, "Invalid contact must be omitted");
+      });
+
+      it("rejects invalid persisted contact child with empty bilingual address and omits contact", () => {
+        const customAppearance: SiteSkinConfig = {
+          ...DEFAULT_SITE_SKIN,
+          publicCanvas: { pattern: "floor-tile", scale: "small", intensity: "present" },
+        };
+        const rawEnvelope = {
+          schemaVersion: 1,
+          updatedAt: new Date().toISOString(),
+          site: {
+            appearance: customAppearance,
+            contact: {
+              ...PUBLISHED_CONTACT_SETTINGS,
+              addressEn: "   ",
+            },
+          },
+        };
+        store.setItem(SETTINGS_DRAFT_KEY, JSON.stringify(rawEnvelope));
+
+        const envelope = loadSettingsEnvelope(store);
+        assert.ok(envelope !== null);
+        assert.equal(envelope?.site?.contact, undefined);
+        assert.equal(envelope?.site?.appearance?.publicCanvas?.pattern, "floor-tile");
+      });
+
+      it("rejects invalid persisted contact child with insecure HTTP social URL and omits contact", () => {
+        const rawEnvelope = {
+          schemaVersion: 1,
+          updatedAt: new Date().toISOString(),
+          site: {
+            contact: {
+              ...PUBLISHED_CONTACT_SETTINGS,
+              socialInstagram: "http://insecure-http.example.com",
+            },
+          },
+        };
+        store.setItem(SETTINGS_DRAFT_KEY, JSON.stringify(rawEnvelope));
+
+        const envelope = loadSettingsEnvelope(store);
+        assert.ok(envelope !== null);
+        assert.equal(envelope?.site?.contact, undefined, "Insecure URL contact must be omitted");
+      });
+
+      it("rejects malformed contact child (non-object or null) and omits contact", () => {
+        const customAppearance: SiteSkinConfig = {
+          ...DEFAULT_SITE_SKIN,
+          publicCanvas: { pattern: "connections", scale: "standard", intensity: "subtle" },
+        };
+        for (const malformed of ["string-not-object", 12345, true]) {
+          const rawEnvelope = {
+            schemaVersion: 1,
+            updatedAt: new Date().toISOString(),
+            site: {
+              appearance: customAppearance,
+              contact: malformed,
+            },
+          };
+          store.setItem(SETTINGS_DRAFT_KEY, JSON.stringify(rawEnvelope));
+
+          const envelope = loadSettingsEnvelope(store);
+          assert.ok(envelope !== null);
+          assert.equal(envelope?.site?.contact, undefined);
+          assert.equal(envelope?.site?.appearance?.publicCanvas?.pattern, "connections");
+        }
+      });
+
+      it("preserves migration tombstone when persisted contact is invalid", () => {
+        const rawEnvelope = {
+          schemaVersion: 1,
+          updatedAt: new Date().toISOString(),
+          meta: {
+            legacyAppearanceMigrated: true,
+          },
+          site: {
+            contact: {
+              ...PUBLISHED_CONTACT_SETTINGS,
+              phone: "123",
+            },
+          },
+        };
+        store.setItem(SETTINGS_DRAFT_KEY, JSON.stringify(rawEnvelope));
+
+        const envelope = loadSettingsEnvelope(store);
+        assert.ok(envelope !== null);
+        assert.equal(envelope?.meta?.legacyAppearanceMigrated, true);
+        assert.equal(envelope?.site?.contact, undefined);
+      });
+
+      it("unknown-version envelope recovery safely returns null", () => {
+        store.setItem(SETTINGS_DRAFT_KEY, JSON.stringify({ version: 99, site: {} }));
+        assert.equal(loadSettingsEnvelope(store), null);
+      });
+    });
+
+    describe("Clean / Dirty External Subscription & State Adoption Contract", () => {
+      describe("computeExternalSettingsSync pure rules", () => {
+        it("ignores external updates when the target document's saved state has not changed", () => {
+          const result = computeExternalSettingsSync({
+            currentSaved: PUBLISHED_CONTACT_SETTINGS,
+            currentWorking: { ...PUBLISHED_CONTACT_SETTINGS, phone: "+970 8 111 2222" },
+            isDirty: true,
+            incomingSaved: PUBLISHED_CONTACT_SETTINGS, // sibling document changed, contact unchanged
+            publishedDefault: PUBLISHED_CONTACT_SETTINGS,
+          });
+
+          assert.equal(result.hasSavedChanged, false);
+          assert.equal(result.nextExternalNotice, false);
+          assert.equal(result.nextIsDirty, true);
+          assert.equal(result.shouldAdopt, false);
+          assert.equal(result.nextWorking.phone, "+970 8 111 2222");
+        });
+
+        it("clean editor adopts incoming saved draft", () => {
+          const incoming = { ...PUBLISHED_CONTACT_SETTINGS, phone: "+970 8 777 8888" };
+          const result = computeExternalSettingsSync({
+            currentSaved: PUBLISHED_CONTACT_SETTINGS,
+            currentWorking: PUBLISHED_CONTACT_SETTINGS,
+            isDirty: false,
+            incomingSaved: incoming,
+            publishedDefault: PUBLISHED_CONTACT_SETTINGS,
+          });
+
+          assert.equal(result.hasSavedChanged, true);
+          assert.equal(result.shouldAdopt, true);
+          assert.equal(result.nextIsDirty, false);
+          assert.equal(result.nextExternalNotice, false);
+          assert.equal(result.nextWorking.phone, "+970 8 777 8888");
+        });
+
+        it("dirty editor preserves working edits and displays notice when incoming saved draft conflicts", () => {
+          const incoming = { ...PUBLISHED_CONTACT_SETTINGS, phone: "+970 8 777 8888" };
+          const result = computeExternalSettingsSync({
+            currentSaved: PUBLISHED_CONTACT_SETTINGS,
+            currentWorking: { ...PUBLISHED_CONTACT_SETTINGS, phone: "+970 8 999 0000" },
+            isDirty: true,
+            incomingSaved: incoming,
+            publishedDefault: PUBLISHED_CONTACT_SETTINGS,
+          });
+
+          assert.equal(result.hasSavedChanged, true);
+          assert.equal(result.shouldAdopt, false);
+          assert.equal(result.nextIsDirty, true);
+          assert.equal(result.nextExternalNotice, true);
+          assert.equal(result.nextWorking.phone, "+970 8 999 0000");
+        });
+
+        it("dirty editor transitions to clean without notice when external saved draft matches local working edits", () => {
+          const matching = { ...PUBLISHED_CONTACT_SETTINGS, phone: "+970 8 777 8888" };
+          const result = computeExternalSettingsSync({
+            currentSaved: PUBLISHED_CONTACT_SETTINGS,
+            currentWorking: matching,
+            isDirty: true,
+            incomingSaved: matching,
+            publishedDefault: PUBLISHED_CONTACT_SETTINGS,
+          });
+
+          assert.equal(result.hasSavedChanged, true);
+          assert.equal(result.shouldAdopt, false);
+          assert.equal(result.nextIsDirty, false);
+          assert.equal(result.nextExternalNotice, false);
+          assert.equal(result.nextWorking.phone, "+970 8 777 8888");
+        });
+
+        it("clean editor adopts published defaults on external discard", () => {
+          const result = computeExternalSettingsSync({
+            currentSaved: { ...PUBLISHED_CONTACT_SETTINGS, phone: "+970 8 777 8888" },
+            currentWorking: { ...PUBLISHED_CONTACT_SETTINGS, phone: "+970 8 777 8888" },
+            isDirty: false,
+            incomingSaved: null, // discarded
+            publishedDefault: PUBLISHED_CONTACT_SETTINGS,
+          });
+
+          assert.equal(result.hasSavedChanged, true);
+          assert.equal(result.shouldAdopt, true);
+          assert.equal(result.nextIsDirty, false);
+          assert.equal(result.nextExternalNotice, false);
+          assert.equal(result.nextWorking.phone, PUBLISHED_CONTACT_SETTINGS.phone);
+        });
+
+        it("dirty editor preserves working edits and displays notice on external discard", () => {
+          const result = computeExternalSettingsSync({
+            currentSaved: { ...PUBLISHED_CONTACT_SETTINGS, phone: "+970 8 777 8888" },
+            currentWorking: { ...PUBLISHED_CONTACT_SETTINGS, phone: "+970 8 555 4444" },
+            isDirty: true,
+            incomingSaved: null, // discarded
+            publishedDefault: PUBLISHED_CONTACT_SETTINGS,
+          });
+
+          assert.equal(result.hasSavedChanged, true);
+          assert.equal(result.shouldAdopt, false);
+          assert.equal(result.nextIsDirty, true);
+          assert.equal(result.nextExternalNotice, true);
+          assert.equal(result.nextWorking.phone, "+970 8 555 4444");
+        });
+      });
+
+      describe("Per-Document Subscription Isolation in LocalSettingsRepository", () => {
+        it("dirty Contact editor does not trigger external change notice when Appearance draft is saved", async () => {
+          const repo = new LocalSettingsRepository(store);
+
+          let savedContact = null;
+          let workingContact = { ...PUBLISHED_CONTACT_SETTINGS, phone: "+970 8 111 2222" };
+          let isContactDirty = true;
+          let contactNotice = false;
+
+          repo.subscribe((envelope) => {
+            const sync = computeExternalSettingsSync({
+              currentSaved: savedContact,
+              currentWorking: workingContact,
+              isDirty: isContactDirty,
+              incomingSaved: envelope?.site?.contact ?? null,
+              publishedDefault: PUBLISHED_CONTACT_SETTINGS,
+            });
+            if (!sync.hasSavedChanged) return;
+            savedContact = sync.nextSaved;
+            isContactDirty = sync.nextIsDirty;
+            contactNotice = sync.nextExternalNotice;
+            if (sync.shouldAdopt) workingContact = sync.nextWorking;
+          });
+
+          // Appearance is saved externally
+          await repo.saveAppearanceDraft({
+            ...PUBLISHED_APPEARANCE_SETTINGS,
+            publicCanvas: { pattern: "rails", intensity: "present", scale: "standard" },
+          });
+
+          // Contact editor must NOT show notice because Contact draft did not change!
+          assert.equal(contactNotice, false);
+          assert.equal(isContactDirty, true);
+          assert.equal(workingContact.phone, "+970 8 111 2222");
+        });
+
+        it("dirty Appearance editor does not trigger external change notice when Contact draft is saved", async () => {
+          const repo = new LocalSettingsRepository(store);
+
+          let savedApp = null;
+          let workingApp = {
+            ...PUBLISHED_APPEARANCE_SETTINGS,
+            publicCanvas: { pattern: "topography", intensity: "present", scale: "standard" },
+          };
+          let isAppDirty = true;
+          let appNotice = false;
+
+          repo.subscribe((envelope) => {
+            const sync = computeExternalSettingsSync({
+              currentSaved: savedApp,
+              currentWorking: workingApp,
+              isDirty: isAppDirty,
+              incomingSaved: envelope?.site?.appearance ?? null,
+              publishedDefault: PUBLISHED_APPEARANCE_SETTINGS,
+            });
+            if (!sync.hasSavedChanged) return;
+            savedApp = sync.nextSaved;
+            isAppDirty = sync.nextIsDirty;
+            appNotice = sync.nextExternalNotice;
+            if (sync.shouldAdopt) workingApp = sync.nextWorking;
+          });
+
+          // Contact is saved externally
+          await repo.saveContactDraft({
+            ...PUBLISHED_CONTACT_SETTINGS,
+            phone: "+970 8 333 4444",
+          });
+
+          // Appearance editor must NOT show notice because Appearance draft did not change!
+          assert.equal(appNotice, false);
+          assert.equal(isAppDirty, true);
+          assert.equal(workingApp.publicCanvas.pattern, "topography");
+        });
+
+        it("clean Appearance Studio adopts external save and triggers sync, while dirty Studio retains local edits with notice", async () => {
+          const repo = new LocalSettingsRepository(store);
+
+          // Studio A (clean)
+          let studioASaved = null;
+          let studioAWorking = { ...PUBLISHED_APPEARANCE_SETTINGS };
+          let studioADirty = false;
+          let studioANotice = false;
+          let studioAAdopted = false;
+
+          repo.subscribe((envelope) => {
+            const sync = computeExternalSettingsSync({
+              currentSaved: studioASaved,
+              currentWorking: studioAWorking,
+              isDirty: studioADirty,
+              incomingSaved: envelope?.site?.appearance ?? null,
+              publishedDefault: PUBLISHED_APPEARANCE_SETTINGS,
+            });
+            if (!sync.hasSavedChanged) return;
+            studioASaved = sync.nextSaved;
+            studioADirty = sync.nextIsDirty;
+            studioANotice = sync.nextExternalNotice;
+            if (sync.shouldAdopt) {
+              studioAWorking = sync.nextWorking;
+              studioAAdopted = true;
+            }
+          });
+
+          // Studio B (dirty)
+          let studioBSaved = null;
+          let studioBWorking = {
+            ...PUBLISHED_APPEARANCE_SETTINGS,
+            publicCanvas: { pattern: "floor-tile", intensity: "present", scale: "standard" },
+          };
+          let studioBDirty = true;
+          let studioBNotice = false;
+
+          repo.subscribe((envelope) => {
+            const sync = computeExternalSettingsSync({
+              currentSaved: studioBSaved,
+              currentWorking: studioBWorking,
+              isDirty: studioBDirty,
+              incomingSaved: envelope?.site?.appearance ?? null,
+              publishedDefault: PUBLISHED_APPEARANCE_SETTINGS,
+            });
+            if (!sync.hasSavedChanged) return;
+            studioBSaved = sync.nextSaved;
+            studioBDirty = sync.nextIsDirty;
+            studioBNotice = sync.nextExternalNotice;
+            if (sync.shouldAdopt) studioBWorking = sync.nextWorking;
+          });
+
+          // External save of Appearance: rails
+          await repo.saveAppearanceDraft({
+            ...PUBLISHED_APPEARANCE_SETTINGS,
+            publicCanvas: { pattern: "rails", intensity: "present", scale: "standard" },
+          });
+
+          // Studio A adopted
+          assert.equal(studioAWorking.publicCanvas.pattern, "rails");
+          assert.equal(studioADirty, false);
+          assert.equal(studioANotice, false);
+          assert.equal(studioAAdopted, true);
+
+          // Studio B retained local work and received notice
+          assert.equal(studioBWorking.publicCanvas.pattern, "floor-tile");
+          assert.equal(studioBDirty, true);
+          assert.equal(studioBNotice, true);
+
+          // External discard of Appearance
+          await repo.discardAppearanceDraft();
+
+          // Studio A reverted to published
+          assert.equal(studioAWorking.publicCanvas.pattern, PUBLISHED_APPEARANCE_SETTINGS.publicCanvas.pattern);
+          assert.equal(studioADirty, false);
+
+          // Studio B retained floor-tile with notice
+          assert.equal(studioBWorking.publicCanvas.pattern, "floor-tile");
+          assert.equal(studioBDirty, true);
+          assert.equal(studioBNotice, true);
+        });
+      });
     });
   });
 });

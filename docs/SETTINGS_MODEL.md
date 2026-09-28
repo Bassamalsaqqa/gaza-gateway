@@ -100,7 +100,18 @@ Key lifecycle behaviors:
    - `SKIN_PREVIEW_EVENT` (`"gza:skin-preview-update"`) carries active `SiteSkinConfig` detail for live, uncommitted Studio iframe synchronization.
    - `SETTINGS_DRAFT_EVENT` (`"gza:settings-draft-update"`) carries `SettingsDraftEnvelope | null` detail.
    - `SkinPreviewListener` explicitly discriminates between these two event types: on a settings draft event, it extracts `envelope.site.appearance`. If present and non-default, it applies the skin; if absent (Contact-only save or Appearance discard), it clears DOM skin overrides via `clearDomSkinOverrides()`. Contact draft mutations cannot pass envelopes to the skin renderer, stomp appearance state, or throw errors.
-6. **Failure Resilience**:
+6. **Invalid Child Recovery**:
+   - When `loadSettingsEnvelope()` reads `gza.settings.draft.v1`, it strictly verifies contact drafts with `validateContactSettings(contact).valid === true`.
+   - If a stored contact draft is invalid (e.g. invalid phone number, invalid email shape, empty bilingual address, or unsafe social URL), the contact draft is omitted from `site.contact`.
+   - Valid sibling drafts (`site.appearance`) and migration tombstones (`meta.legacyAppearanceMigrated`) are strictly preserved.
+   - Normal `/contact` and explicit `/contact?settingsPreview=1` fall back safely to compiled published settings without false saved-draft banners.
+7. **Clean / Dirty Cross-Tab Synchronization & Document Isolation**:
+   - When external storage changes or `gza:settings-draft-update` events fire, subscriber callbacks execute via pure `computeExternalSettingsSync`:
+     - **Per-Document Isolation**: An editor only reacts if its own target document's saved baseline has actually changed (`hasSavedChanged`). Unrelated sibling document saves (e.g. Appearance save while editing Contact, or Contact save while editing Appearance) do nothing to that editor and never trigger false notices.
+     - **Clean Editors**: If the editor's in-memory working state is clean (matches its previous saved baseline), it immediately adopts the incoming saved (or discarded) draft, and Appearance Studio synchronizes its preview iframe (`shouldAdopt`).
+     - **Dirty Editors & Conflict Notice**: If the user has unsaved local edits in memory, the editor preserves the local working state and updates its saved baseline reference. A restrained bilingual notice (`a2.se.externalChangeNotice`) is displayed ONLY if the incoming saved baseline differs from the local working edits.
+     - **Working Value Convergence**: If an external save happens to match the editor's local working edits, the editor transitions to clean without showing an unsaved/conflict notice.
+8. **Failure Resilience**:
    - Quota or storage security errors throw `StorageCommitError`. In-memory state is preserved, and subscribers are not notified of failed commits.
    - Corrupted JSON or unhandled schema versions safely return `null` (falling back to compiled published defaults) without crashing.
 
@@ -126,7 +137,7 @@ Key lifecycle behaviors:
    - **Unsaved changes**: Working state differs from the saved draft (or published baseline).
 3. **Save Draft**: Persists sanitized config to `settingsRepository.saveAppearanceDraft()`. On success, transitions to "Saved" status and displays a toast. On failure, catches error, displays a visible `role="alert"` in the studio sidebar, displays an error toast, and remains in "Unsaved" state (never claiming success).
 4. **Discard Unsaved**: Reverts in-memory state and preview iframe to the last saved draft (or published defaults if no draft was saved).
-5. **Discard Saved Draft (Reset to Default)**: Calls `settingsRepository.discardAppearanceDraft()`, removes `site.appearance` from storage, resets studio and iframe to `PUBLISHED_APPEARANCE_SETTINGS`, and returns to "Published baseline" status.
+5. **Discard Saved Draft**: Calls `settingsRepository.discardAppearanceDraft()`, removes `site.appearance` from storage, resets studio and iframe to `PUBLISHED_APPEARANCE_SETTINGS`, and returns to "Published baseline" status. Label is "Discard Saved Draft" / "حذف المسودة المحفوظة" (`a2.se.discardSaved`), distinct from "Discard Unsaved".
 6. **Export**: The JSON export feature exports the active sanitized **working** configuration (`gza.appearance.v1`).
 
 ---

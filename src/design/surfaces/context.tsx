@@ -14,7 +14,7 @@ import {
 } from "react";
 import { useRouterState } from "@tanstack/react-router";
 import { isSkinPreviewActive, readPreviewSkin, SKIN_PREVIEW_EVENT } from "@/lib/skin";
-import { isBaselinePreviewActive } from "@/lib/studio-preview";
+import { isBaselinePreviewActive, isStudioPreviewActive } from "@/lib/studio-preview";
 import { DEFAULT_SURFACE_RECIPES } from "./presets";
 import type {
   SurfaceFamilyId,
@@ -101,7 +101,10 @@ export function SurfaceGrammarProvider({
 
     updateFromEventOrStorage();
 
-    const onUpdate = (e: Event) => updateFromEventOrStorage(e);
+    const onUpdate = (e: Event) => {
+      if (e.type === "storage" && isStudioPreviewActive(searchStr)) return;
+      updateFromEventOrStorage(e);
+    };
     window.addEventListener(SKIN_PREVIEW_EVENT, onUpdate);
     window.addEventListener("gza:settings-draft-update", onUpdate);
     window.addEventListener("storage", onUpdate);

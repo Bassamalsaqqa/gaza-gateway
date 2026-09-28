@@ -15,7 +15,7 @@ The **Gaza Surface Grammar** introduces an authored, semantic structural system 
 2. **Aeronautical Precision**: Structural rails (`border-inline-start`), technical index flags (`01 · PS 204`), tabular data ledgers with strict LTR isolation, and route datums (`GZA ──── PS 204 ──── AMM`).
 3. **Strict Archival Truth & Restraint**: Decorative motifs never overwhelm content, never masquerade as authentic historical artifacts, and are strictly distinct from Palestinian tatreez or folkloric embroidery. Visual studies are explicitly disclosed as documentary or illustrative (`Concept Study · Illustrative` / `دراسة تصورية · توضيحي`).
 4. **Logical Directionality**: Universal logical CSS properties (`border-s-[4px]`, `border-s-[5px]`, `start-0`, `end-0`) ensure seamless, automatic physical mirroring between English (LTR) and Arabic (RTL). Technical identifiers (flight codes, dates, times, PNRs) remain strictly LTR.
-5. **Zero Baseline Drift**: Production URLs without `?skinPreview=1` retain the exact baseline production appearance. Preview choices are stored in browser local storage (`gza.skin.preview.v1`) and activated only when `?skinPreview=1` is present or when inside the Appearance Lab.
+5. **Zero Baseline Drift**: Production URLs without `?skinPreview=1` retain the exact baseline production appearance. Preview choices are stored in browser local storage (`gza.settings.draft.v1.site.appearance`, with `gza.skin.preview.v1` as legacy fallback) and activated only when `?skinPreview=1` is present or when inside the Appearance Lab.
 
 ---
 

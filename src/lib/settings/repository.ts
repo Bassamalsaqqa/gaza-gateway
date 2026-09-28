@@ -72,10 +72,16 @@ export class LocalSettingsRepository implements SettingsRepository {
 
   async saveContactDraft(contact: ContactSettings): Promise<void> {
     saveContactDraft(contact, this.customStorage);
+    if (typeof window === "undefined") {
+      this.notify(loadSettingsEnvelope(this.customStorage));
+    }
   }
 
   async discardContactDraft(): Promise<void> {
     discardContactDraft(this.customStorage);
+    if (typeof window === "undefined") {
+      this.notify(loadSettingsEnvelope(this.customStorage));
+    }
   }
 
   getPublishedAppearance(): AppearanceSettings {
@@ -94,10 +100,16 @@ export class LocalSettingsRepository implements SettingsRepository {
 
   async saveAppearanceDraft(appearance: AppearanceSettings): Promise<void> {
     saveAppearanceDraft(appearance, this.customStorage);
+    if (typeof window === "undefined") {
+      this.notify(loadSettingsEnvelope(this.customStorage));
+    }
   }
 
   async discardAppearanceDraft(): Promise<void> {
     discardAppearanceDraft(this.customStorage);
+    if (typeof window === "undefined") {
+      this.notify(loadSettingsEnvelope(this.customStorage));
+    }
   }
 
   async getDraftEnvelope(): Promise<SettingsDraftEnvelope | null> {

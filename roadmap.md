@@ -1,7 +1,7 @@
 # Master Engineering Roadmap — Gaza Airport & Palestinian Airlines
 
 > **Product**: Digital home of Palestinian Airlines operating through Gaza International Airport ([gazaairport.com](https://www.gazaairport.com)), featuring an airport public presence and an administration workspace.
-> **Current Status**: **Phase 4C Complete (Settings & Appearance Store Convergence)**. Accepted decorative/destination asset checkpoint remains accepted.
+> **Current Status**: **Phase 4C.0.1 Complete (Settings Truth & Draft Hardening)**. Phase 4C remains complete; accepted decorative/destination asset checkpoint remains accepted.
 > **Immediate Next Step**: **Phase 5 — Public Workflows Convergence** (planned and not started; designer asset lane active in parallel).
 > **Historical baseline**: Phase 4 began from source commit `9e36b869274830f84c97cbbefe3b3fb0a98c6d2e` and HostPapa release commit `92ad935f8477e1663eefa8282d2770c66b64b8b2`. These are starting milestones, not current branch heads.
 
@@ -25,6 +25,7 @@
 | **Phase 4B** | **Typed Content & CMS Schema** | **Complete** | Compiled bilingual Home, Travel and Airport Past documents; strict schema and provenance validation; versioned browser-local drafts; explicit preview; real Admin Travel draft editing with no global Publish claim. |
 | **Asset checkpoint** | **Decorative Card and Destination Photography Trial** | **Accepted** | Four optimized decorative graphics remain on approved surfaces; all seven destination cards feature the approved world-map graphic in the lower card body with genuine city photographs on top. Seven owner-provided city photos now serve destination cards and detail heroes through compiled media assignments and browser-local Admin drafts. |
 | **Phase 4C** | **Settings & Appearance Store Convergence** | **Complete** | Multi-document envelope (`{ schemaVersion: 1, site: { contact?, appearance? } }`) on `gza.settings.draft.v1`, deterministic legacy skin migration with untouched old key, independent per-document save/discard, transactional failure resilience, controlled bilingual Contact drafts, and explicit preview immunity. |
+| **Phase 4C.0.1** | **Settings Truth & Draft Hardening** | **Complete** | Hardened stored contact validation and invalid child rejection; strict per-document cross-tab synchronization with document isolation; clean adoption and dirty edit preservation; iframe preview controller isolation; durable unit and browser proofs. |
 | **Phase 5** | **Public Workflows Convergence** | Planned (Not Started) | Connect booking, manage trips, check-in, passenger accounts, and contact forms to canonical domain repositories with complete validation. |
 | **Phase 6** | **Admin Workflows Convergence** | Planned | Connect admin flight quick-edit, schedule manager, passenger desk, customer notes, and activity logging to the shared domain repositories. |
 | **Phase 7** | **CMS Admin Workflows** | Planned | Enable full authored CMS editing for destinations, airport historical chapters, and travel guidance. |

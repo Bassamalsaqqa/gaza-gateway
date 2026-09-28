@@ -712,7 +712,7 @@ async function runBrowserSmoke() {
           throw new Error(`Failed to extract valid PNR from confirmation URL: ${confUrl.pathname}`);
         }
 
-        await page.waitForSelector("h1", { timeout: 10000 });
+        await page.waitForSelector(".code-id", { timeout: 10000 });
         const confText = await page.textContent("body");
         if (!confText.includes(createdPnr)) {
           throw new Error(`Public confirmation page does not display PNR ${createdPnr}`);
@@ -1635,7 +1635,7 @@ async function runBrowserSmoke() {
         // Admin Discard Saved Draft via UI (Reset to Default button)
         await page.goto(baseUrl + "/admin/settings?tab=contact", { waitUntil: "domcontentloaded" });
         await page.waitForSelector("#c-phone", { timeout: 10000 });
-        const resetToDefaultBtn = page.getByRole("button", { name: /Reset to Default|استعادة الافتراضي/ });
+        const resetToDefaultBtn = page.getByRole("button", { name: /Discard Saved Draft|Reset to Default|حذف المسودة المحفوظة|استعادة الافتراضي/ });
         await resetToDefaultBtn.waitFor({ state: "visible", timeout: 5000 });
         await resetToDefaultBtn.click();
 
@@ -1767,7 +1767,7 @@ async function runBrowserSmoke() {
         // Return to Appearance Studio and Discard Saved Draft (Reset to Default)
         await page.goto(baseUrl + "/admin/settings?tab=appearance", { waitUntil: "domcontentloaded" });
         await page.waitForSelector("iframe", { timeout: 10000 });
-        const resetBtn = page.getByRole("button", { name: /Reset to Default|استعادة الافتراضي/ });
+        const resetBtn = page.getByRole("button", { name: /Discard Saved Draft|Reset to Default|حذف المسودة المحفوظة|استعادة الافتراضي/ });
         await resetBtn.waitFor({ state: "visible", timeout: 5000 });
         await resetBtn.click();
 
@@ -1827,7 +1827,7 @@ async function runBrowserSmoke() {
         }
 
         // Discard via UI: Click "Reset to Default"
-        const resetBtn = adminPage.getByRole("button", { name: /Reset to Default|استعادة الافتراضي/ });
+        const resetBtn = adminPage.getByRole("button", { name: /Discard Saved Draft|Reset to Default|حذف المسودة المحفوظة|استعادة الافتراضي/ });
         await resetBtn.waitFor({ state: "visible", timeout: 5000 });
         await resetBtn.click();
 
@@ -1935,7 +1935,7 @@ async function runBrowserSmoke() {
         // Tab 2 (adminPage): Discard Appearance draft
         await adminPage.goto(baseUrl + "/admin/settings?tab=appearance", { waitUntil: "domcontentloaded" });
         await adminPage.waitForSelector("iframe", { timeout: 10000 });
-        const discardAppBtn = adminPage.getByRole("button", { name: /Reset to Default|استعادة الافتراضي/ });
+        const discardAppBtn = adminPage.getByRole("button", { name: /Discard Saved Draft|Reset to Default|حذف المسودة المحفوظة|استعادة الافتراضي/ });
         await discardAppBtn.waitFor({ state: "visible", timeout: 5000 });
         await discardAppBtn.click();
         await adminPage.getByText(/Published baseline|المعتمد المنشور/).waitFor({ state: "visible", timeout: 5000 });
@@ -1949,6 +1949,351 @@ async function runBrowserSmoke() {
         if (previewErrors.length > 0) {
           throw new Error("Preview page threw error on Appearance discard: " + previewErrors.join("; "));
         }
+      } finally {
+        await testContext.close();
+      }
+    });
+
+    await checkStep("24. Phase 4C.0.1 Proof: Tab-aware Admin Settings headers, invalid Contact draft fallback, and cross-tab clean/dirty state adoption", async () => {
+      const testContext = await browser.newContext();
+      await testContext.addInitScript(() => {
+        try {
+          localStorage.setItem("gza.admin.v1", JSON.stringify({ staffId: "adm-1", overrides: {} }));
+        } catch { }
+      });
+
+      try {
+        const page1 = await testContext.newPage();
+
+        // --- Part 1: Tab-aware header meta in English and Arabic ---
+        // English: Contact tab shows draft notice
+        await page1.goto(baseUrl + "/admin/settings?tab=contact", { waitUntil: "domcontentloaded" });
+        await page1.waitForSelector("#c-phone", { timeout: 10000 });
+        const enContactMeta = await page1.textContent("header p, [data-slot='page-header'] p, .space-y-4 header");
+        if (!enContactMeta?.includes("Local, unpublished draft") && !enContactMeta?.includes("stored in this browser")) {
+          throw new Error("Contact tab header did not display draft meta: " + enContactMeta);
+        }
+
+        // English: Airport tab shows read-only policy notice
+        await page1.goto(baseUrl + "/admin/settings?tab=airport", { waitUntil: "domcontentloaded" });
+        await page1.waitForSelector("#se-airport", { timeout: 10000 });
+        const enAirportMeta = await page1.textContent("header p, [data-slot='page-header'] p, .space-y-4 header");
+        if (!enAirportMeta?.includes("Read-only system") && !enAirportMeta?.includes("operational policy")) {
+          throw new Error("Airport tab header did not display read-only meta: " + enAirportMeta);
+        }
+
+        // Arabic: Contact tab shows Arabic draft notice
+        await page1.goto(baseUrl + "/ar/admin/settings?tab=contact", { waitUntil: "domcontentloaded" });
+        await page1.waitForSelector("#c-phone", { timeout: 10000 });
+        const arContactMeta = await page1.textContent("header p, [data-slot='page-header'] p, .space-y-4 header");
+        if (!arContactMeta?.includes("مسودة محلية") && !arContactMeta?.includes("تُحفظ التغييرات")) {
+          throw new Error("Arabic Contact tab header did not display Arabic draft meta: " + arContactMeta);
+        }
+
+        // Arabic: Airport tab shows Arabic read-only notice
+        await page1.goto(baseUrl + "/ar/admin/settings?tab=airport", { waitUntil: "domcontentloaded" });
+        await page1.waitForSelector("#se-airport", { timeout: 10000 });
+        const arAirportMeta = await page1.textContent("header p, [data-slot='page-header'] p, .space-y-4 header");
+        if (!arAirportMeta?.includes("مرجع للقراءة فقط") && !arAirportMeta?.includes("لإعدادات النظام")) {
+          throw new Error("Arabic Airport tab header did not display Arabic read-only meta: " + arAirportMeta);
+        }
+
+        // --- Part 2: Invalid persisted Contact draft rejection & published fallback on preview ---
+        // Inject an invalid contact draft (invalid phone '123')
+        await page1.evaluate(() => {
+          localStorage.setItem("gza.settings.draft.v1", JSON.stringify({
+            schemaVersion: 1,
+            updatedAt: new Date().toISOString(),
+            site: {
+              contact: {
+                phone: "123",
+                email: "bad-email",
+                addressEn: "Terminal 1",
+                addressAr: "مبنى الركاب",
+                socialInstagram: "",
+                socialX: "",
+                socialFacebook: "",
+                socialYouTube: "",
+              }
+            }
+          }));
+        });
+
+        // Visit public /contact?settingsPreview=1
+        const publicPage = await testContext.newPage();
+        await publicPage.goto(baseUrl + "/contact?settingsPreview=1", { waitUntil: "domcontentloaded" });
+        await publicPage.waitForSelector(".code-id", { timeout: 10000 });
+        // The phone must be the compiled published default, NOT '123'
+        const phoneText = await publicPage.locator(".code-id").first().textContent();
+        if (phoneText !== "+970 8 000 0000") {
+          throw new Error("Invalid contact draft leaked into preview; expected +970 8 000 0000 but got: " + phoneText);
+        }
+        // There must be no preview draft banner because invalid contact is omitted entirely
+        const bannerCount = await publicPage.getByText(/Stored in this browser|مسودة غير منشورة/).count();
+        if (bannerCount > 0) {
+          throw new Error("Preview banner was shown for an invalid contact draft that should have been rejected");
+        }
+        await publicPage.close();
+
+        // --- Part 3: Cross-tab clean adoption vs dirty work preservation ---
+        // Clear draft storage
+        // --- Part 3: Appearance Studio Cross-tab Truth & Iframe Sync ---
+        await page1.evaluate(() => localStorage.removeItem("gza.settings.draft.v1"));
+
+        // Tab 1 (Clean Appearance Studio)
+        const cleanStudio = await testContext.newPage();
+        await cleanStudio.goto(baseUrl + "/admin/settings?tab=appearance", { waitUntil: "domcontentloaded" });
+        await cleanStudio.waitForSelector("iframe", { timeout: 10000 });
+
+        // Tab 2 (Dirty Appearance Studio)
+        const dirtyStudio = await testContext.newPage();
+        await dirtyStudio.goto(baseUrl + "/admin/settings?tab=appearance", { waitUntil: "domcontentloaded" });
+        await dirtyStudio.waitForSelector("iframe", { timeout: 10000 });
+
+        // In dirtyStudio: select Floor Tile pattern
+        const floorTileRadio = dirtyStudio.locator('[role="radio"][value="floor-tile"]').first();
+        await floorTileRadio.waitFor({ state: "visible", timeout: 5000 });
+        await floorTileRadio.click();
+        await dirtyStudio.getByText(/Unsaved|تعديلات غير محفوظة/).first().waitFor({ state: "visible", timeout: 5000 });
+
+        // Assert dirtyStudio working control is floor-tile and iframe has floor-tile
+        const dirtyRadioChecked = await floorTileRadio.getAttribute("data-state");
+        if (dirtyRadioChecked !== "checked") {
+          throw new Error("Floor Tile radio was not checked in dirty studio");
+        }
+        await dirtyStudio.waitForFunction(() => {
+          const iframe = document.querySelector("iframe");
+          const style = iframe?.contentDocument?.documentElement?.style;
+          const bgSize = style?.getPropertyValue("--skin-public-size");
+          const bg = style?.getPropertyValue("--skin-public-image");
+          return bgSize === "30px 30px" || Boolean(bg && bg.includes("30%2030"));
+        }, null, { timeout: 8000 });
+
+        // SUB-TEST A: Contact-only external save occurs while dirtyStudio is dirty!
+        // dirtyStudio must NOT show external change notice banner because Appearance was not changed!
+        const contactOnlyEnvelope = {
+          schemaVersion: 1,
+          updatedAt: new Date().toISOString(),
+          site: {
+            contact: {
+              phone: "+970 8 777 5555",
+              email: "support@gza-airport.ps",
+              addressEn: "Gaza International Airport, Gaza",
+              addressAr: "مطار غزة الدولي، غزة",
+              socialInstagram: "",
+              socialX: "",
+              socialFacebook: "",
+              socialYouTube: "",
+            }
+          }
+        };
+        await page1.evaluate((env) => {
+          localStorage.setItem("gza.settings.draft.v1", JSON.stringify(env));
+          window.dispatchEvent(new StorageEvent("storage", {
+            key: "gza.settings.draft.v1",
+            newValue: JSON.stringify(env),
+          }));
+        }, contactOnlyEnvelope);
+
+        // Verify dirtyStudio STILL has NO external notice banner!
+        await dirtyStudio.waitForTimeout(400);
+        const noticeOnContactSave = await dirtyStudio.getByText(/updated in another tab|تم تحديث المسودة المحفوظة في علامة تبويب أخرى/).count();
+        if (noticeOnContactSave > 0) {
+          throw new Error("Dirty Appearance Studio falsely showed external change notice when only Contact settings changed!");
+        }
+
+        // SUB-TEST B: External save of Appearance occurs (rails pattern)
+        const appearanceEnvelope = {
+          schemaVersion: 1,
+          updatedAt: new Date().toISOString(),
+          site: {
+            ...contactOnlyEnvelope.site,
+            appearance: {
+              publicCanvas: { pattern: "rails", intensity: "present", scale: "standard" },
+              sandSection: { pattern: "pie-factory", intensity: "present", scale: "standard" },
+              adminCanvas: { pattern: "pie-factory", intensity: "present", scale: "standard" },
+            }
+          }
+        };
+        await page1.evaluate((env) => {
+          localStorage.setItem("gza.settings.draft.v1", JSON.stringify(env));
+          window.dispatchEvent(new StorageEvent("storage", {
+            key: "gza.settings.draft.v1",
+            newValue: JSON.stringify(env),
+          }));
+        }, appearanceEnvelope);
+
+        // 1. Verify cleanStudio automatically adopted 'rails':
+        // Assert working control (radio 'rails') is checked
+        await cleanStudio.getByText(/Saved|مسودة محفوظة/).first().waitFor({ state: "visible", timeout: 6000 });
+        await cleanStudio.waitForFunction(() => {
+          const radio = document.querySelector('[role="radio"][value="rails"]');
+          return radio?.getAttribute("data-state") === "checked";
+        }, null, { timeout: 8000 });
+        // Assert iframe in cleanStudio receives 'rails'
+        await cleanStudio.waitForFunction(() => {
+          const iframe = document.querySelector("iframe");
+          const style = iframe?.contentDocument?.documentElement?.style;
+          const bgSize = style?.getPropertyValue("--skin-public-size");
+          const bg = style?.getPropertyValue("--skin-public-image");
+          return bgSize === "20px 10px" || Boolean(bg && bg.includes("20%2010"));
+        }, null, { timeout: 8000 });
+        // Assert no false external notice on cleanStudio
+        const cleanNoticeCount = await cleanStudio.getByText(/updated in another tab|تم تحديث المسودة المحفوظة في علامة تبويب أخرى/).count();
+        if (cleanNoticeCount > 0) {
+          throw new Error("Clean studio unexpectedly showed dirty external notice banner");
+        }
+
+        // 2. Verify dirtyStudio retained its local 'floor-tile' working control and iframe:
+        await dirtyStudio.getByText(/updated in another tab|تم تحديث المسودة المحفوظة في علامة تبويب أخرى/).first().waitFor({ state: "visible", timeout: 6000 });
+        await dirtyStudio.getByText(/Unsaved|تعديلات غير محفوظة/).first().waitFor({ state: "visible", timeout: 5000 });
+        const dirtyFloorTileState = await floorTileRadio.getAttribute("data-state");
+        if (dirtyFloorTileState !== "checked") {
+          throw new Error("Dirty studio working control was overwritten; expected floor-tile to remain checked");
+        }
+        const dirtyIframeHasFloorTile = await dirtyStudio.evaluate(() => {
+          const iframe = document.querySelector("iframe");
+          const style = iframe?.contentDocument?.documentElement?.style;
+          const bgSize = style?.getPropertyValue("--skin-public-size");
+          const bg = style?.getPropertyValue("--skin-public-image");
+          return bgSize === "30px 30px" || Boolean(bg && bg.includes("30%2030"));
+        });
+        if (!dirtyIframeHasFloorTile) {
+          throw new Error("Dirty studio iframe was overwritten by external save; expected floor-tile to be preserved");
+        }
+
+        // SUB-TEST C: External Appearance Discard occurs
+        // Discard Appearance from storage (omit site.appearance, keeping site.contact)
+        const discardAppEnvelope = {
+          schemaVersion: 1,
+          updatedAt: new Date().toISOString(),
+          site: {
+            contact: contactOnlyEnvelope.site.contact,
+          }
+        };
+        await page1.evaluate((env) => {
+          localStorage.setItem("gza.settings.draft.v1", JSON.stringify(env));
+          window.dispatchEvent(new StorageEvent("storage", {
+            key: "gza.settings.draft.v1",
+            newValue: JSON.stringify(env),
+          }));
+        }, discardAppEnvelope);
+
+        // 4. Verify cleanStudio reverted to published default (pie-factory control checked and default iframe)
+        await cleanStudio.waitForFunction(() => {
+          const radio = document.querySelector('[role="radio"][value="pie-factory"]');
+          return radio?.getAttribute("data-state") === "checked";
+        }, null, { timeout: 8000 });
+        await cleanStudio.waitForFunction(() => {
+          const iframe = document.querySelector("iframe");
+          const style = iframe?.contentDocument?.documentElement?.style;
+          const bgSize = style?.getPropertyValue("--skin-public-size");
+          const bg = style?.getPropertyValue("--skin-public-image");
+          return !bg || bgSize !== "20px 10px";
+        }, null, { timeout: 8000 });
+
+        // 5. Verify dirtyStudio survives that discard (still retains floor-tile and shows notice)
+        const dirtySurvivesDiscard = await floorTileRadio.getAttribute("data-state");
+        if (dirtySurvivesDiscard !== "checked") {
+          throw new Error("Dirty studio working control was overwritten on external discard; expected floor-tile to remain checked");
+        }
+        await dirtyStudio.getByText(/updated in another tab|تم تحديث المسودة المحفوظة في علامة تبويب أخرى/).first().waitFor({ state: "visible", timeout: 6000 });
+
+        // Discard unsaved in dirtyStudio -> now reverts to new baseline and clears notice
+        const discardUnsavedBtn = dirtyStudio.getByRole("button", { name: /Discard Unsaved|تجاهل التعديلات/i });
+        await discardUnsavedBtn.waitFor({ state: "visible", timeout: 5000 });
+        await discardUnsavedBtn.click();
+        await dirtyStudio.getByText(/Published baseline|المعتمد المنشور/).first().waitFor({ state: "visible", timeout: 5000 });
+
+        await cleanStudio.close();
+        await dirtyStudio.close();
+
+        // --- Part 4: Bounded Contact Editor Cross-tab Proof ---
+        const cleanContact = await testContext.newPage();
+        await cleanContact.goto(baseUrl + "/admin/settings?tab=contact", { waitUntil: "domcontentloaded" });
+        await cleanContact.waitForSelector("#c-phone", { timeout: 10000 });
+
+        const dirtyContact = await testContext.newPage();
+        await dirtyContact.goto(baseUrl + "/admin/settings?tab=contact", { waitUntil: "domcontentloaded" });
+        await dirtyContact.waitForSelector("#c-phone", { timeout: 10000 });
+
+        // Make dirtyContact dirty by entering local phone
+        await dirtyContact.fill("#c-phone", "+970 8 444 8888");
+        await dirtyContact.getByText(/Unsaved|تعديلات غير محفوظة/).first().waitFor({ state: "visible", timeout: 5000 });
+
+        // A: Appearance-only external save occurs while dirtyContact is dirty
+        const appOnlyEnv = {
+          schemaVersion: 1,
+          updatedAt: new Date().toISOString(),
+          site: {
+            contact: contactOnlyEnvelope.site.contact,
+            appearance: {
+              publicCanvas: { pattern: "topography", intensity: "present", scale: "standard" },
+              sandSection: { pattern: "pie-factory", intensity: "present", scale: "standard" },
+              adminCanvas: { pattern: "pie-factory", intensity: "present", scale: "standard" },
+            }
+          }
+        };
+        await page1.evaluate((env) => {
+          localStorage.setItem("gza.settings.draft.v1", JSON.stringify(env));
+          window.dispatchEvent(new StorageEvent("storage", {
+            key: "gza.settings.draft.v1",
+            newValue: JSON.stringify(env),
+          }));
+        }, appOnlyEnv);
+
+        // Verify dirtyContact does NOT show external change notice banner on Appearance save!
+        await dirtyContact.waitForTimeout(400);
+        const contactNoticeOnAppSave = await dirtyContact.getByText(/updated in another tab|تم تحديث المسودة المحفوظة في علامة تبويب أخرى/).count();
+        if (contactNoticeOnAppSave > 0) {
+          throw new Error("Dirty Contact editor falsely showed external change notice when only Appearance changed!");
+        }
+        const dirtyPhonePreservedOnAppSave = await dirtyContact.inputValue("#c-phone");
+        if (dirtyPhonePreservedOnAppSave !== "+970 8 444 8888") {
+          throw new Error("Dirty Contact editor phone was lost on Appearance save: " + dirtyPhonePreservedOnAppSave);
+        }
+
+        // B: External Contact save occurs with new phone '+970 8 222 3333'
+        const externalContactEnv = {
+          schemaVersion: 1,
+          updatedAt: new Date().toISOString(),
+          site: {
+            ...appOnlyEnv.site,
+            contact: {
+              phone: "+970 8 222 3333",
+              email: "ops@gza-airport.ps",
+              addressEn: "Gaza International Airport, Gaza",
+              addressAr: "مطار غزة الدولي، غزة",
+              socialInstagram: "",
+              socialX: "",
+              socialFacebook: "",
+              socialYouTube: "",
+            }
+          }
+        };
+        await page1.evaluate((env) => {
+          localStorage.setItem("gza.settings.draft.v1", JSON.stringify(env));
+          window.dispatchEvent(new StorageEvent("storage", {
+            key: "gza.settings.draft.v1",
+            newValue: JSON.stringify(env),
+          }));
+        }, externalContactEnv);
+
+        // Clean Contact editor adopts external phone '+970 8 222 3333'
+        await cleanContact.waitForFunction(() => {
+          const input = document.querySelector("#c-phone");
+          return input?.value === "+970 8 222 3333";
+        }, null, { timeout: 8000 });
+
+        // Dirty Contact editor retains its local '+970 8 444 8888' and now displays external notice banner
+        const dirtyPhonePreserved = await dirtyContact.inputValue("#c-phone");
+        if (dirtyPhonePreserved !== "+970 8 444 8888") {
+          throw new Error("Dirty Contact editor phone was overwritten: " + dirtyPhonePreserved);
+        }
+        await dirtyContact.getByText(/updated in another tab|تم تحديث المسودة المحفوظة في علامة تبويب أخرى/).first().waitFor({ state: "visible", timeout: 6000 });
+
+        await cleanContact.close();
+        await dirtyContact.close();
       } finally {
         await testContext.close();
       }

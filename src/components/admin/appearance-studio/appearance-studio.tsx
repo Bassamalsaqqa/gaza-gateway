@@ -29,11 +29,7 @@ import { useI18n } from "@/lib/i18n";
 import { useAdmin } from "@/lib/admin-store";
 import { cn } from "@/lib/utils";
 import {
-  clearDomSkinOverrides,
-  clearPreviewSkin,
   DEFAULT_SITE_SKIN,
-  readPreviewSkin,
-  writePreviewSkin,
   type SiteSkinConfig,
 } from "@/lib/skin";
 import { applySkinToDom } from "@/lib/skin-preview";
@@ -66,7 +62,7 @@ import {
 } from "./studio-toolbar";
 import { StudioInspector } from "./studio-inspector";
 import { StudioSpecimensTab } from "./studio-specimens-tab";
-import { settingsRepository, type SettingsDraft, PUBLISHED_APPEARANCE_SETTINGS, PUBLISHED_CONTACT_SETTINGS } from "@/lib/settings";
+import { settingsRepository, type SettingsDraft, PUBLISHED_APPEARANCE_SETTINGS, PUBLISHED_CONTACT_SETTINGS, computeExternalSettingsSync } from "@/lib/settings";
 
 export function AppearanceStudio() {
   const { t, lang } = useI18n();
@@ -84,29 +80,15 @@ export function AppearanceStudio() {
   const [skin, setSkin] = useState<SiteSkinConfig>(DEFAULT_SITE_SKIN);
   const [isDirty, setIsDirty] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [externalNotice, setExternalNotice] = useState(false);
 
-  useEffect(() => {
-    let unmounted = false;
-    const load = async () => {
-      const draft = await settingsRepository.getAppearanceDraft();
-      if (!unmounted) {
-        setSavedAppearance(draft);
-        setSkin(draft ?? PUBLISHED_APPEARANCE_SETTINGS);
-        setIsDirty(false);
-      }
-    };
-    load();
-    const unsub = settingsRepository.subscribe((newEnvelope) => {
-      if (!unmounted) {
-        const newApp = newEnvelope?.site?.appearance ?? null;
-        setSavedAppearance(newApp);
-      }
-    });
-    return () => {
-      unmounted = true;
-      unsub();
-    };
-  }, []);
+  const isDirtyRef = useRef(isDirty);
+  isDirtyRef.current = isDirty;
+  const skinRef = useRef(skin);
+  skinRef.current = skin;
+  const savedAppearanceRef = useRef(savedAppearance);
+  savedAppearanceRef.current = savedAppearance;
+  const postToFrameRef = useRef<(msg: ParentToFrameMessage) => void>(() => {});
 
   // Target Selection & Inspect State
   const [selectedTargetId, setSelectedTargetId] = useState<TargetId>(() => {
@@ -191,6 +173,62 @@ export function AppearanceStudio() {
       /* frame detached or cross-origin */
     }
   }, []);
+  postToFrameRef.current = postToFrame;
+
+  useEffect(() => {
+    let unmounted = false;
+    const load = async () => {
+      const draft = await settingsRepository.getAppearanceDraft();
+      if (!unmounted) {
+        setSavedAppearance(draft);
+        savedAppearanceRef.current = draft;
+        setSkin(draft ?? PUBLISHED_APPEARANCE_SETTINGS);
+        skinRef.current = draft ?? PUBLISHED_APPEARANCE_SETTINGS;
+        setIsDirty(false);
+        isDirtyRef.current = false;
+        setExternalNotice(false);
+      }
+    };
+    load();
+    const unsub = settingsRepository.subscribe((newEnvelope) => {
+      if (!unmounted) {
+        const sync = computeExternalSettingsSync({
+          currentSaved: savedAppearanceRef.current,
+          currentWorking: skinRef.current,
+          isDirty: isDirtyRef.current,
+          incomingSaved: newEnvelope?.site?.appearance ?? null,
+          publishedDefault: PUBLISHED_APPEARANCE_SETTINGS,
+        });
+
+        if (!sync.hasSavedChanged) {
+          return;
+        }
+
+        setSavedAppearance(sync.nextSaved);
+        savedAppearanceRef.current = sync.nextSaved;
+        setIsDirty(sync.nextIsDirty);
+        isDirtyRef.current = sync.nextIsDirty;
+        setExternalNotice(sync.nextExternalNotice);
+
+        if (sync.shouldAdopt) {
+          setSkin(sync.nextWorking);
+          skinRef.current = sync.nextWorking;
+          setSaveError(null);
+          postToFrameRef.current({
+            type: "GZA_STUDIO_CONFIG_SYNC",
+            version: STUDIO_PROTOCOL_VERSION,
+            config: sync.nextWorking,
+          });
+        } else if (!sync.nextIsDirty) {
+          setSaveError(null);
+        }
+      }
+    });
+    return () => {
+      unmounted = true;
+      unsub();
+    };
+  }, []);
 
   // Compute active iframe path (stable across baseline/inspect mode toggles)
   const currentScenario = getScenarioById(selectedScenarioId) ?? (STUDIO_SCENARIOS[0] as StudioScenario);
@@ -260,7 +298,14 @@ export function AppearanceStudio() {
     (updater: (prev: SiteSkinConfig) => SiteSkinConfig) => {
       setSkin((prev) => {
         const next = updater(prev);
-        setIsDirty(true);
+        skinRef.current = next;
+        const baseline = savedAppearanceRef.current ?? PUBLISHED_APPEARANCE_SETTINGS;
+        const dirty = JSON.stringify(next) !== JSON.stringify(baseline);
+        setIsDirty(dirty);
+        isDirtyRef.current = dirty;
+        if (!dirty) {
+          setExternalNotice(false);
+        }
         postToFrame({
           type: "GZA_STUDIO_CONFIG_SYNC",
           version: STUDIO_PROTOCOL_VERSION,
@@ -338,7 +383,10 @@ export function AppearanceStudio() {
     try {
       await settingsRepository.saveAppearanceDraft(skin);
       setSavedAppearance(skin);
+      savedAppearanceRef.current = skin;
       setIsDirty(false);
+      isDirtyRef.current = false;
+      setExternalNotice(false);
       toast(t("a2.se.savedDraft") || "Draft saved locally");
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -349,23 +397,30 @@ export function AppearanceStudio() {
 
   const handleDiscardUnsaved = useCallback(() => {
     setSaveError(null);
-    const fallback = savedAppearance ?? PUBLISHED_APPEARANCE_SETTINGS;
+    setExternalNotice(false);
+    const fallback = savedAppearanceRef.current ?? PUBLISHED_APPEARANCE_SETTINGS;
     setSkin(fallback);
+    skinRef.current = fallback;
     setIsDirty(false);
+    isDirtyRef.current = false;
     postToFrame({
       type: "GZA_STUDIO_CONFIG_SYNC",
       version: STUDIO_PROTOCOL_VERSION,
       config: fallback,
     });
-  }, [savedAppearance, postToFrame]);
+  }, [postToFrame]);
 
   const handleDiscardSavedDraft = useCallback(async () => {
     setSaveError(null);
+    setExternalNotice(false);
     try {
       await settingsRepository.discardAppearanceDraft();
       setSavedAppearance(null);
+      savedAppearanceRef.current = null;
       setSkin(PUBLISHED_APPEARANCE_SETTINGS);
+      skinRef.current = PUBLISHED_APPEARANCE_SETTINGS;
       setIsDirty(false);
+      isDirtyRef.current = false;
       postToFrame({
         type: "GZA_STUDIO_CONFIG_SYNC",
         version: STUDIO_PROTOCOL_VERSION,
@@ -573,6 +628,12 @@ export function AppearanceStudio() {
                 )}
               </div>
 
+              {externalNotice && (
+                <div role="status" className="text-xs text-amber-700 dark:text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded p-2">
+                  {t("a2.se.externalChangeNotice") || (isAr ? "تم تحديث المسودة المحفوظة في علامة تبويب أخرى. تم الاحتفاظ بتعديلاتك غير المحفوظة." : "The saved draft was updated in another tab. Your unsaved changes have been kept.")}
+                </div>
+              )}
+
               {saveError && (
                 <div role="alert" className="text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded p-2">
                   {saveError}
@@ -603,7 +664,7 @@ export function AppearanceStudio() {
                     onClick={handleDiscardSavedDraft}
                     className="w-full flex items-center justify-center rounded-md border border-destructive/20 text-destructive bg-destructive/5 hover:bg-destructive/10 px-4 py-2 text-sm font-medium"
                   >
-                    {t("a2.se.discardSaved") || "Reset to Default"}
+                    {t("a2.se.discardSaved") || "Discard Saved Draft"}
                   </button>
                 )}
               </div>

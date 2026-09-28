@@ -12,7 +12,7 @@ Phase 4B establishes three canonical editorial documents. This is a client-side,
 | Book, Cancel, Search, Save, validation, flight/booking status, form and workflow labels | Application UI strings | `src/lib/i18n-public.ts`, `src/lib/i18n-admin2.ts` |
 | Flights, gates, aircraft, fares, seats, booking records and operational destination facts | Domain data | `src/lib/data.ts` and Phase 4 repositories |
 | Approved imagery, truth class and accessible descriptions | Media metadata | `src/lib/media.ts` and `media-policy.ts`; full management is Phase 7B |
-| Site-wide contact, navigation, footer, appearance and service settings | Settings | Existing modules pending Phase 4C |
+| Site-wide contact, appearance settings | Settings | `src/lib/settings/` (`SettingsRepository`, `gza.settings.draft.v1`) |
 | Privacy, terms and critical prototype disclosure | Legal/system safety | Current compiled source; later governance requires stronger permission and revision workflow |
 | Present documentary text, Future concepts, About, Contact, destination editorial text and archive | Editorial content pending migration | Current route/i18n/admin fixtures; Phase 7 and later bounded slices |
 | Admin inbox, check-in desk, analytics, CRM and operational simulation | Simulation fixtures | Existing Admin modules; Phase 6/7 |
@@ -39,4 +39,4 @@ There is no browser-global Publish action for the migrated Travel module. Interi
 
 ## Boundaries
 
-Phase 4B does not migrate appearance preview (`gza.skin.preview.v1`), booking/flight repositories (`gza.repo.v1`), staff simulation (`gza.admin.v1`), booking draft/account/travelers (`gza.store.v1`), or OpsState. Phase 4C addresses settings and appearance. Phase 7 expands CMS authoring/search/dashboards. Phase 7B adds media provenance and asset controls. Backend publication is a later phase.
+Phase 4B established typed editorial content. Phase 4C converged settings and appearance drafts into `SettingsRepository` (`gza.settings.draft.v1`). Staff simulation (`gza.admin.v1`), booking wizard draft/account/travelers (`gza.store.v1`), and OpsState remain for subsequent phases. Phase 5 addresses public workflows. Phase 6 addresses admin workflows. Phase 7 expands CMS authoring/search/dashboards. Phase 7B adds media provenance and asset controls. Backend publication is a later phase.

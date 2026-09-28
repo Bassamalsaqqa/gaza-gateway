@@ -41,13 +41,17 @@ In `src/lib/store.tsx` and `src/lib/booking-draft.ts`:
   - Preserves entered passenger names, dates of birth, and contact information even if flight criteria roll forward.
   - Calculates maximum accessible wizard step (`calculateMaxStep`), clamping wizard progression to Step 1 (flight selection) or Step 3 (passenger details) if prerequisites are missing.
 
-### 1.3 Appearance Studio & Skin Preview Store Reality (`gza.skin.preview.v1`)
+### 1.3 Appearance Studio & Settings Draft Reality (`gza.settings.draft.v1`)
 
-In `src/lib/skin.ts` and `src/components/admin/appearance-studio/`:
-- **Preview Isolation**: Preview changes made in the Appearance Studio write to `localStorage["gza.skin.preview.v1"]` or sync to the preview frame via typed `postMessage` protocol (`STUDIO_PROTOCOL_VERSION = "1.0.0"`).
-- **Public URL Immunity**: Ordinary public visits never read or apply `gza.skin.preview.v1`. The default site skin (`DEFAULT_SITE_SKIN`) and default surface grammar (`DEFAULT_SURFACE_GRAMMAR_CONFIG`) are compiled statically.
+In `src/lib/settings/`, `src/lib/skin.ts`, and `src/components/admin/appearance-studio/`:
+- **In-Memory Working Preview & Preview Isolation**: Working edits made in Appearance Studio do not touch storage on each control change. They update local in-memory React state and synchronize immediately to the embedded preview iframe via the typed `postMessage` protocol (`STUDIO_PROTOCOL_VERSION = "1.0.0"`).
+- **Explicit Save Draft Authority**: The explicit "Save Draft" action commits the sanitized appearance configuration into canonical storage at `localStorage["gza.settings.draft.v1"]` under `site.appearance` via `SettingsRepository`.
+- **Discard Draft**: "Discard Saved Draft" (`a2.se.discardSaved`) removes `site.appearance` from `gza.settings.draft.v1` and reverts the editor and preview frame to compiled published defaults (`PUBLISHED_APPEARANCE_SETTINGS`). "Discard Unsaved" reverts local in-memory edits back to the current saved baseline.
+- **Legacy Migration & Writer Removal**: Legacy writer functions (`writePreviewSkin`, `clearPreviewSkin`) are completely removed from `src/lib/skin.ts`. The legacy storage key `localStorage["gza.skin.preview.v1"]` is strictly read-only and serves as an unmutated migration fallback on first load. Once migrated or discarded, legacy resurrection is prevented by tombstone semantics.
+- **Clean / Dirty Cross-Tab Synchronization**: When an external tab saves or discards a draft, clean editors (local in-memory state matches the previous saved baseline) automatically adopt the external saved state and sync their iframe. Dirty editors preserve uncommitted in-memory edits while learning the updated saved baseline and displaying a restrained bilingual external-change notice.
+- **Public URL Immunity**: Ordinary public visits never read or apply draft settings. Compiled defaults (`DEFAULT_SITE_SKIN` and `DEFAULT_SURFACE_GRAMMAR_CONFIG`) render statically. Only routes with explicit query opt-in (`?skinPreview=1`, `?settingsPreview=1`) apply saved drafts after safe hydration.
 - **Studio Scenario Fixtures**: In `studioPreview=1`, preview routes bypass `localStorage["gza.store.v1"]` mutations, rendering deterministic in-memory fixtures to prevent test booking debris from polluting user storage.
-- **Export Action**: The Appearance Studio provides a bounded "Export appearance configuration" dialog (`gza.appearance.v1`) that serializes sanitized preview configuration for copying or JSON file download without requiring a persistent backend or fake global Publish mutation.
+- **Export Action**: The Appearance Studio provides a bounded "Export appearance configuration" dialog (`gza.appearance.v1`) that serializes sanitized working configuration for copying or JSON file download without requiring a persistent backend or fake global Publish mutation.
 
 ### 1.4 Simulation Boundary & Security Declarations
 

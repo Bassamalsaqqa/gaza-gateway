@@ -5,7 +5,9 @@
  * Designed for lightweight root bundling: ordinary browsing only loads the default skin
  * without the heavy ~100 KB optional pattern catalog.
  *
- * Storage key: `gza.skin.preview.v1` (consumed ONLY when `skinPreview=1` query is present).
+ * Canonical draft key: `gza.settings.draft.v1` (site.appearance).
+ * Legacy key `gza.skin.preview.v1` is an unmutated migration fallback only.
+ * Consumed ONLY when `skinPreview=1` or `studioPreview=1` query is present.
  */
 
 import type {
@@ -259,25 +261,6 @@ export function readPreviewSkin(customStorage?: Storage | null): SiteSkinConfig 
   }
 }
 
-export function writePreviewSkin(config: SiteSkinConfig): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(SKIN_PREVIEW_STORAGE_KEY, JSON.stringify(config));
-    window.dispatchEvent(new CustomEvent(SKIN_PREVIEW_EVENT, { detail: config }));
-  } catch {
-    /* storage restricted */
-  }
-}
-
-export function clearPreviewSkin(): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.removeItem(SKIN_PREVIEW_STORAGE_KEY);
-    window.dispatchEvent(new CustomEvent(SKIN_PREVIEW_EVENT, { detail: DEFAULT_SITE_SKIN }));
-  } catch {
-    /* storage restricted */
-  }
-}
 
 export function applySkinVarsToDom(vars: ResolvedSkinVars): void {
   if (typeof document === "undefined") return;

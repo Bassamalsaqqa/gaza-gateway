@@ -30,7 +30,7 @@ Phase 4 resolves these defects by introducing **two bounded aggregates** with as
 | **Admin Staff Session** | `src/lib/admin-store.tsx` (`useAdmin`) | `gza.admin.v1` (`staffId`) | Admin Shell, permission guards, role switcher | **Preserved** in legacy key for local session simulation | Phase 6 (Staff & RBAC) |
 | **Admin Ops State (Simulation)** | `src/lib/admin-store.tsx` (`ops`, `patchOps`) | In-memory React state (`OpsState`) | Admin Operations Dashboard, Dispatch timers | **Preserved** as ephemeral session simulation | Phase 6 (Operational state) |
 | **CMS & Story Content** | `src/lib/admin-mock.ts` | Static in-memory fixtures | Public homepage, About, Airport history chapters, Travel info, Gallery | **Preserved** in mock fixtures pending Phase 4B | Phase 4B (Typed Content & CMS Schema) |
-| **Appearance & Skin Preview** | `src/lib/skin.ts` | `gza.skin.preview.v1` | Appearance Studio (`/admin/settings?tab=appearance`), Studio frame listener | **Preserved** in isolated preview key pending Phase 4C | Phase 4C (Settings & Appearance) |
+| **Appearance & Settings Draft** | `src/lib/settings/` | `gza.settings.draft.v1` | Admin Settings (`/admin/settings`), Appearance Studio, Public Contact (`?settingsPreview=1`), Skin Preview (`?skinPreview=1`) | **Migrated** to canonical SettingsRepository with multi-document envelope; legacy key is dormant | Complete (Phase 4C) |
 
 ---
 
