@@ -28,6 +28,15 @@ import { ContentPreviewNotice, useContentPreview } from "@/content/preview";
 import { cn } from "@/lib/utils";
 import alreadyBookedImg from "@/assets/media/decorative/cards/already-booked-routes.webp";
 import beforeTravelImg from "@/assets/media/decorative/cards/before-travel-palms.webp";
+import airportPastBodyImg from "@/assets/media/decorative/airport/airport-past-body.webp";
+import airportPresentBodyImg from "@/assets/media/decorative/airport/airport-present-body.webp";
+import airportFutureBodyImg from "@/assets/media/decorative/airport/airport-future-body.webp";
+
+const chapterBodyImages = {
+  past: airportPastBodyImg,
+  present: airportPresentBodyImg,
+  future: airportFutureBodyImg,
+} as const;
 
 export const Route = createFileRoute("/{-$locale}/")({
   head: ({ params }) => ({
@@ -308,6 +317,7 @@ function Home() {
             {(
               [
                 {
+                  id: "past",
                   to: "/airport/past",
                   title: content.copy.past,
                   sub: content.copy.pastSub,
@@ -315,6 +325,7 @@ function Home() {
                   isFuture: false,
                 },
                 {
+                  id: "present",
                   to: "/airport/present",
                   title: content.copy.present,
                   sub: content.copy.presentSub,
@@ -322,6 +333,7 @@ function Home() {
                   isFuture: false,
                 },
                 {
+                  id: "future",
                   to: "/airport/future",
                   title: content.copy.future,
                   sub: content.copy.futureSub,
@@ -358,20 +370,35 @@ function Home() {
                   )}
                 </div>
 
-                <div className="flex flex-1 flex-col justify-between p-5">
-                  <div>
-                    <h3 className="text-xl font-bold text-foreground group-hover:text-primary transition-colors">
+                <div
+                  data-decorative-asset={`home-airport-${chapter.id}-body`}
+                  data-testid={`home-airport-${chapter.id}-body`}
+                  className="relative flex flex-1 flex-col justify-between overflow-hidden bg-ink p-5 text-ink-foreground"
+                >
+                  <img
+                    data-decorative-asset={`home-airport-${chapter.id}-body`}
+                    data-testid={`home-airport-${chapter.id}-body`}
+                    src={chapterBodyImages[chapter.id]}
+                    alt=""
+                    aria-hidden="true"
+                    loading="lazy"
+                    className="pointer-events-none absolute inset-0 size-full select-none object-cover object-center"
+                  />
+                  <div className="relative z-10 flex flex-1 flex-col justify-between">
+                    <div>
+                      <h3 className="text-xl font-bold text-ink-foreground transition-colors group-hover:text-sand">
                       {pick(lang, chapter.title)}
                     </h3>
-                    <p className="mt-2 text-xs leading-relaxed text-muted-foreground sm:text-sm">
+                      <p className="mt-2 text-xs leading-relaxed text-ink-muted sm:text-sm">
                       {pick(lang, chapter.sub)}
                     </p>
                   </div>
 
-                  <span className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-brand-deep group-hover:text-primary">
+                    <span className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-sand transition-colors group-hover:text-sand-deep">
                     <span>{t("airport.readChapter")}</span>
                     <ArrowRight aria-hidden="true" className="size-3.5 rtl:rotate-180" />
                   </span>
+                  </div>
                 </div>
               </AppLink>
             ))}

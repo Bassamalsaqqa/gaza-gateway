@@ -2447,6 +2447,26 @@ async function runBrowserSmoke() {
       await page.goto(baseUrl + "/", { waitUntil: "domcontentloaded" });
       await assertWebpImage(page, 'img[data-decorative-asset="home-flight-search-ticket"]', "home-flight-search-ticket");
 
+      // Verify ticket image is visibly strong (opacity >= 0.85 and not covered by opaque overlay)
+      const ticketOpacity = await page.evaluate(() => {
+        const img = document.querySelector('img[data-decorative-asset="home-flight-search-ticket"]');
+        return img ? parseFloat(window.getComputedStyle(img).opacity) : 0;
+      });
+      if (ticketOpacity < 0.85) {
+        throw new Error(`Home flight search ticket image opacity should be >= 0.85, got ${ticketOpacity}`);
+      }
+
+      // Verify the three Home heritage images load as external WebP with naturalWidth > 0, empty alt, aria-hidden="true"
+      await assertWebpImage(page, 'img[data-decorative-asset="home-airport-past-body"]', "home-airport-past-body");
+      await assertWebpImage(page, 'img[data-decorative-asset="home-airport-present-body"]', "home-airport-present-body");
+      await assertWebpImage(page, 'img[data-decorative-asset="home-airport-future-body"]', "home-airport-future-body");
+
+      // Verify Future upper concept disclosure remains
+      const futureConceptBadge = page.locator('span:has-text("Illustrative future concept"), span:has-text("تصوّر مستقبلي توضيحي")').first();
+      if ((await futureConceptBadge.count()) === 0) {
+        throw new Error("Future upper concept disclosure missing on Home heritage card");
+      }
+
       // a) Deliberately invalid search stays on Home, displays role="alert" banner, readable over ticket art
       await page.click("#search-to");
       await page.waitForTimeout(300);
@@ -2482,6 +2502,23 @@ async function runBrowserSmoke() {
       // Verify Arabic Home search: invalid search stays on /ar and shows Arabic role="alert"
       await page.goto(baseUrl + "/ar", { waitUntil: "domcontentloaded" });
       await assertWebpImage(page, 'img[data-decorative-asset="home-flight-search-ticket"]', "ar-home-flight-search-ticket");
+
+      const ticketOpacityAr = await page.evaluate(() => {
+        const img = document.querySelector('img[data-decorative-asset="home-flight-search-ticket"]');
+        return img ? parseFloat(window.getComputedStyle(img).opacity) : 0;
+      });
+      if (ticketOpacityAr < 0.85) {
+        throw new Error(`Arabic Home flight search ticket image opacity should be >= 0.85, got ${ticketOpacityAr}`);
+      }
+
+      await assertWebpImage(page, 'img[data-decorative-asset="home-airport-past-body"]', "ar-home-airport-past-body");
+      await assertWebpImage(page, 'img[data-decorative-asset="home-airport-present-body"]', "ar-home-airport-present-body");
+      await assertWebpImage(page, 'img[data-decorative-asset="home-airport-future-body"]', "ar-home-airport-future-body");
+
+      const futureConceptBadgeAr = page.locator('span:has-text("تصوّر مستقبلي توضيحي"), span:has-text("Illustrative future concept")').first();
+      if ((await futureConceptBadgeAr.count()) === 0) {
+        throw new Error("Future upper concept disclosure missing on Arabic Home heritage card");
+      }
       await page.click("#search-to");
       await page.waitForTimeout(300);
       await page.click('[data-value="DOH"]');
@@ -2512,12 +2549,23 @@ async function runBrowserSmoke() {
         throw new Error(`/destinations/IST must NOT receive the ticket-map treatment: found ${istTicketCount}`);
       }
 
-      // Verify asset isolation: Home does not leak airport/gallery assets
+      // Verify asset isolation: Home does not leak unrelated Gallery, Flights, or Airport Sources art
       await page.goto(baseUrl + "/", { waitUntil: "domcontentloaded" });
-      const leakedAirportOnHome = await page.locator('[data-decorative-asset="airport-past-body"]').count();
-      const leakedGalleryOnHome = await page.locator('[data-decorative-asset="gallery-filter-toolbar"]').count();
-      if (leakedAirportOnHome !== 0 || leakedGalleryOnHome !== 0) {
-        throw new Error(`Decorative assets leaked to unassociated surface (home): airport=${leakedAirportOnHome}, gallery=${leakedGalleryOnHome}`);
+      const leakedGalleryFilter = await page.locator('[data-decorative-asset="gallery-filter-toolbar"]').count();
+      const leakedGalleryItem = await page.locator('[data-decorative-asset="gallery-item-body"]').count();
+      const leakedFlightsToolbar = await page.locator('[data-decorative-asset="flights-search-toolbar"]').count();
+      const leakedAirportSources = await page.locator('[data-decorative-asset="airport-sources-metadata"]').count();
+      const leakedAirportBody = await page.locator('[data-decorative-asset="airport-past-body"]').count();
+      if (
+        leakedGalleryFilter !== 0 ||
+        leakedGalleryItem !== 0 ||
+        leakedFlightsToolbar !== 0 ||
+        leakedAirportSources !== 0 ||
+        leakedAirportBody !== 0
+      ) {
+        throw new Error(
+          `Unrelated decorative assets leaked to home: galleryFilter=${leakedGalleryFilter}, galleryItem=${leakedGalleryItem}, flightsToolbar=${leakedFlightsToolbar}, airportSources=${leakedAirportSources}, airportPastBody=${leakedAirportBody}`,
+        );
       }
     });
 

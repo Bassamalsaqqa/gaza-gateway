@@ -225,14 +225,17 @@ export function FlightSearchForm({
       data-decorative-asset={treatment === "ticket-map" ? "home-flight-search-ticket" : undefined}
       data-testid={treatment === "ticket-map" ? "home-flight-search-ticket" : undefined}
       className={cn(
-        "relative rounded-2xl border border-border bg-card transition-shadow",
+        "relative rounded-2xl border transition-shadow",
+        treatment === "ticket-map"
+          ? "border-clay/40 bg-clay shadow-[var(--shadow-lift)] [&_label]:text-sand [&_label]:font-semibold [&_[data-slot='return-date-slot'][aria-disabled='true']]:bg-card/75 [&_[data-slot='return-date-slot'][aria-disabled='true']]:border-sand/40 [&_p[role=alert]]:bg-card/95 [&_p[role=alert]]:px-2.5 [&_p[role=alert]]:py-0.5 [&_p[role=alert]]:rounded-md [&_p[role=alert]]:border [&_p[role=alert]]:border-destructive/30 [&_p[role=alert]]:w-fit [&_p[role=alert]]:shadow-xs"
+          : "border-border bg-card shadow-[var(--shadow-soft)]",
         variant === "panel"
-          ? "p-3.5 sm:p-5 lg:p-5 shadow-[var(--shadow-lift)]"
-          : "p-3 sm:p-4 shadow-[var(--shadow-soft)]",
+          ? "p-3.5 sm:p-5 lg:p-5"
+          : "p-3 sm:p-4",
       )}
     >
       {treatment === "ticket-map" && (
-        <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl" aria-hidden="true">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl bg-clay" aria-hidden="true">
           <img
             data-decorative-asset="home-flight-search-ticket"
             data-testid="home-flight-search-ticket"
@@ -240,7 +243,7 @@ export function FlightSearchForm({
             alt=""
             aria-hidden="true"
             loading="lazy"
-            className="size-full select-none object-cover object-center opacity-15"
+            className="size-full select-none object-cover object-center opacity-100"
           />
         </div>
       )}
@@ -248,7 +251,12 @@ export function FlightSearchForm({
       {/* Accessible Trip Type Fieldset */}
       <fieldset className="border-0 p-0 m-0">
         <legend className="sr-only">{t("search.tripType")}</legend>
-        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 border-b border-border/50 pb-2.5">
+        <div
+          className={cn(
+            "flex flex-wrap items-center gap-1.5 sm:gap-2 border-b pb-2.5",
+            treatment === "ticket-map" ? "border-sand/30" : "border-border/50",
+          )}
+        >
           {(["round", "oneway"] as const).map((type) => {
             const isSelected = criteria.tripType === type;
             return (
@@ -263,7 +271,9 @@ export function FlightSearchForm({
                   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                   isSelected
                     ? "bg-primary text-primary-foreground shadow-xs shadow-[var(--shadow-soft)] font-bold"
-                    : "bg-secondary/70 text-muted-foreground hover:text-foreground hover:bg-sand-deep",
+                    : treatment === "ticket-map"
+                      ? "bg-card/90 text-foreground hover:bg-card shadow-xs"
+                      : "bg-secondary/70 text-muted-foreground hover:text-foreground hover:bg-sand-deep",
                 )}
               >
                 {t(type === "round" ? "search.roundTrip" : "search.oneWay")}
