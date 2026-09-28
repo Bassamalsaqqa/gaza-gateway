@@ -1,1 +1,0 @@
-import{E as e}from"./index-BDPKQeL1.js";var t=e;export{t as component};
