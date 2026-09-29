@@ -2787,6 +2787,56 @@ async function runBrowserSmoke() {
         }
       }
 
+      // 10b. Verify Swap button interactive behavior at 767px
+      await page.setViewportSize({ width: 767, height: 844 });
+      await page.goto(baseUrl + "/", { waitUntil: "load" });
+      await page.waitForSelector("#search-from", { timeout: 10000 });
+      const beforeSwap = await page.evaluate(() => {
+        const from = document.getElementById("search-from")?.querySelector('[data-slot="airport-code"]')?.textContent?.trim();
+        const to = document.getElementById("search-to")?.querySelector('[data-slot="airport-code"]')?.textContent?.trim();
+        return { from, to };
+      });
+      await page.locator('[data-slot="route-swap-button"]').click();
+      await page.waitForFunction(({ from, to }) => {
+        const origin = document.querySelector('#search-from [data-slot="airport-code"]')?.textContent?.trim();
+        const destination = document.querySelector('#search-to [data-slot="airport-code"]')?.textContent?.trim();
+        return origin === to && destination === from;
+      }, beforeSwap);
+      const afterSwap = await page.evaluate(() => {
+        const from = document.getElementById("search-from")?.querySelector('[data-slot="airport-code"]')?.textContent?.trim();
+        const to = document.getElementById("search-to")?.querySelector('[data-slot="airport-code"]')?.textContent?.trim();
+        return { from, to };
+      });
+      if (afterSwap.from !== beforeSwap.to || afterSwap.to !== beforeSwap.from) {
+        throw new Error("Swap button failed to swap origin and destination: before=" + JSON.stringify(beforeSwap) + ", after=" + JSON.stringify(afterSwap));
+      }
+      // Click again to swap back
+      await page.locator('[data-slot="route-swap-button"]').click();
+      await page.waitForFunction(({ from, to }) => {
+        const origin = document.querySelector('#search-from [data-slot="airport-code"]')?.textContent?.trim();
+        const destination = document.querySelector('#search-to [data-slot="airport-code"]')?.textContent?.trim();
+        return origin === from && destination === to;
+      }, beforeSwap);
+      const afterSwapBack = await page.evaluate(() => {
+        const from = document.getElementById("search-from")?.querySelector('[data-slot="airport-code"]')?.textContent?.trim();
+        const to = document.getElementById("search-to")?.querySelector('[data-slot="airport-code"]')?.textContent?.trim();
+        return { from, to };
+      });
+      if (afterSwapBack.from !== beforeSwap.from || afterSwapBack.to !== beforeSwap.to) {
+        throw new Error("Swap button failed to restore original route on second click");
+      }
+
+      // 10c. Verify desktop trip-type buttons are compact (not overinflated, height <= 38px)
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto(baseUrl + "/", { waitUntil: "load" });
+      const desktopTripHeight = await page.evaluate(() => {
+        const btn = document.querySelector('[data-slot="trip-type-button"]');
+        return btn ? btn.getBoundingClientRect().height : 0;
+      });
+      if (desktopTripHeight <= 0 || desktopTripHeight > 38) {
+        throw new Error("Desktop trip-type button height outside compact range: " + desktopTripHeight + "px");
+      }
+
       // 11. Viewport 320px: zero clipping of IATA codes and city names in EN and AR
       await page.setViewportSize({ width: 320, height: 568 });
       await page.goto(baseUrl + "/", { waitUntil: "domcontentloaded" });
@@ -2892,6 +2942,7 @@ async function runBrowserSmoke() {
         const cabinWidth = (await cabinGroup.boundingBox())?.width ?? 0;
         if (cabinWidth <= 0 || cabinWidth > 210) throw new Error(`Cabin panel too wide: ${cabinWidth}`);
         await page.keyboard.press("Escape");
+        await cabinGroup.waitFor({ state: "hidden" });
 
         await page.locator("#search-to").click();
         const airportPopup = page.locator('[data-align][data-state="open"]:visible').last();
