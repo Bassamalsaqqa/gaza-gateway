@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { DestinationCard } from "@/components/destination-card";
-import { Container, Field, Input, PageHeader } from "@/components/kit";
+import { Container, Field, Input } from "@/components/kit";
+import { PublicPhotoHero } from "@/components/media/public-photo-hero";
 import { destinations } from "@/lib/data";
 import { pick, useI18n } from "@/lib/i18n";
 import { publishedDestinationsPresentation } from "@/content/published/destinations-presentation";
@@ -44,18 +45,25 @@ function DestinationsPage() {
   return (
     <>
       {previewing && <ContentPreviewNotice />}
-      <PageHeader title={t("dest.title")} description={t("dest.sub")}>
+      <PublicPhotoHero
+        mediaId="destinations-hero"
+        routeKey="destinations"
+        title={t("dest.title")}
+        description={t("dest.sub")}
+        focalPosition="50% 45%"
+      >
         <div className="max-w-sm">
-          <Field label={t("flights.search")} htmlFor="dest-search">
+          <Field label={t("flights.search")} htmlFor="dest-search" className="text-white/90 [&_label]:text-white/90">
             <Input
               id="dest-search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={pick(lang, { en: "Amman, Cairo, DXB…", ar: "عمّان، القاهرة، دبي…" })}
+              className="bg-card/95 text-foreground placeholder:text-muted-foreground border-white/20 focus-visible:ring-white"
             />
           </Field>
         </div>
-      </PageHeader>
+      </PublicPhotoHero>
 
       <Container className="py-10">
         {list.length === 0 ? (

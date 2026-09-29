@@ -20,6 +20,7 @@ import {
   type SurfaceTone,
   type SurfaceGrammarConfig,
   type MediaTreatment,
+  type TruthClass,
 } from "./types";
 import { FAMILY_ALLOWLISTS } from "./allowlists";
 import { DEFAULT_SURFACE_RECIPES } from "./presets";
@@ -67,7 +68,7 @@ export interface TargetMeta {
   scenarioId: string;
   mediaAllowed: boolean;
   /** Restricts media types according to truth policies */
-  allowedTruthClasses?: ("future-concept-ai" | "brand-mark" | "placeholder")[];
+  allowedTruthClasses?: TruthClass[];
   allowedControls: AllowedControls;
 }
 

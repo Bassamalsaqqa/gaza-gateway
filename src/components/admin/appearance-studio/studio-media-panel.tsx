@@ -63,9 +63,12 @@ export function StudioMediaPanel({
     aspect: "auto",
   };
 
-  // Filter approved media by target's truth classification rules
+  // Filter approved media by target's truth classification rules; route-specific photos are not selectable in Appearance Studio
   const availableMedia: MediaEntry[] = Object.values(MEDIA).filter((item) => {
     if (!meta.allowedTruthClasses) return false;
+    if (item.truthClass === "historical-documentary" || item.truthClass === "illustrative-photo") {
+      return false;
+    }
     return meta.allowedTruthClasses.includes(item.truthClass);
   });
 

@@ -2,9 +2,10 @@ import { AppLink } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
 import { ArrowRight, BookOpen, Layers, ShieldAlert } from "lucide-react";
 import { ChapterNav } from "@/components/airport/chapter-nav";
-import { btnClass, Container, PageHeader, Panel } from "@/components/kit";
+import { btnClass, Container, Panel } from "@/components/kit";
 import { img } from "@/lib/data";
 import { ResponsiveImage } from "@/components/responsive-image";
+import { PublicPhotoHero } from "@/components/media/public-photo-hero";
 import { useI18n } from "@/lib/i18n";
 import { GazaSurface } from "@/design/surfaces";
 import pastBodyImg from "@/assets/media/decorative/airport/airport-past-body.webp";
@@ -92,9 +93,12 @@ function AirportPage() {
 
   return (
     <>
-      <PageHeader
+      <PublicPhotoHero
+        mediaId="airport-archive-hero-2000"
+        routeKey="airport"
         title={t("airport.title")}
         description={t("airport.sub")}
+        focalPosition="center 0%"
       />
 
       <Container className="py-8 sm:py-12">

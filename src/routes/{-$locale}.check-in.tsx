@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Luggage, Plane, Search, Ticket } from "lucide-react";
 import { useState } from "react";
 import { AppLink, useAppNavigate } from "@/components/app-link";
-import { btnClass, Container, EmptyState, Field, Input, PageHeader, Panel } from "@/components/kit";
+import { btnClass, Container, EmptyState, Field, Input, Panel } from "@/components/kit";
+import { PublicPhotoHero } from "@/components/media/public-photo-hero";
 import { pageHead } from "@/lib/head";
 import { useI18n } from "@/lib/i18n";
 import { openLegs, useStore } from "@/lib/store";
@@ -62,7 +63,13 @@ function CheckInEntryPage() {
 
   return (
     <>
-      <PageHeader title={t("ci.publicTitle")} description={t("ci.publicSub")} />
+      <PublicPhotoHero
+        mediaId="check-in-hero"
+        routeKey="check-in"
+        title={t("ci.publicTitle")}
+        description={t("ci.publicSub")}
+        focalPosition="50% 50%"
+      />
 
       <Container className="grid gap-8 py-10 lg:grid-cols-[1fr_1.2fr]">
         <form onSubmit={submit} className="surface h-fit p-5" noValidate>

@@ -32,6 +32,7 @@ function SignInPage() {
     <PassengerAuthShell
       title={t("auth.signinTitle")}
       description={t("auth.signinSub")}
+      mediaPanel="signin"
       footer={<>
         <p className="text-sm text-muted-foreground">{t("auth.noAccount")} <AppLink to="/register" className="font-semibold text-brand-deep underline">{t("auth.register")}</AppLink></p>
         <p className="mt-2 text-sm text-muted-foreground">{t("auth.guest")} <AppLink to="/manage" className="font-semibold text-brand-deep underline">{t("manage.title")}</AppLink></p>

@@ -1,8 +1,8 @@
 # Master Engineering Roadmap — Gaza Airport & Palestinian Airlines
 
 > **Product**: Digital home of Palestinian Airlines operating through Gaza International Airport ([gazaairport.com](https://www.gazaairport.com)), featuring an airport public presence and an administration workspace.
-> **Current Status**: **Phase 4C.0.1 Complete (Settings Truth & Draft Hardening)**. Booking Search Console Redesign 0.2 was deployed and its card direction accepted. Refinement 0.2.1 is complete in source and awaits owner visual acceptance.
-> **Immediate Next Step**: **Owner Visual Review of Refinement 0.2.1** after the verified HostPapa release is deployed (Phase 5 next, planned and not started).
+> **Current Status**: **Phase 4C.0.1 Complete (Settings Truth & Draft Hardening)**. Booking Search Console Redesign 0.2 and Refinement 0.2.1 are deployed. Designer Media + Public Surface Integration Checkpoint is implemented in source and awaiting owner visual acceptance.
+> **Immediate Next Step**: **Owner Visual Review of Designer Media Checkpoint** (Phase 5 next, planned and not started).
 > **Historical baseline**: Phase 4 began from source commit `9e36b869274830f84c97cbbefe3b3fb0a98c6d2e` and HostPapa release commit `92ad935f8477e1663eefa8282d2770c66b64b8b2`. These are starting milestones, not current branch heads.
 
 ---
@@ -28,7 +28,8 @@
 | **Phase 4C.0.1** | **Settings Truth & Draft Hardening** | **Complete** | Hardened stored contact validation and invalid child rejection; strict per-document cross-tab synchronization with document isolation; clean adoption and dirty edit preservation; iframe preview controller isolation; durable unit and browser proofs. |
 | **Designer Asset Checkpoint** | **Seven Decorative Assets Drop & Home Visual Parity** | **Awaiting Visual Acceptance** | Integrated seven owner-supplied decorative graphics across Airport, Gallery, Flights, and Home search, plus Home visual parity (prominent red Ticket artwork and reused heritage body WebPs) with stable markers and functional immunity; owner visual acceptance remains pending. |
 | **Design checkpoint** | **Booking Search Console Redesign 0.2** | **Deployed; card direction accepted** | Responsive three-tier console now runs on Home, /book, and destination detail. The owner approved the overall card direction after live review and requested interaction refinements. |
-| **Design checkpoint** | **Booking Search Console Refinement 0.2.1** | **Complete in source; awaiting visual acceptance** | Compact calendar fare presentation and opened panels, improved Arabic direction and alignment, and tighter one-way desktop proportions. Originated on `design/booking-search-console-refinement-021`; Phase 5 remains unstarted. |
+| **Design checkpoint** | **Booking Search Console Refinement 0.2.1** | **Deployed** | Compact calendar fare presentation and opened panels, improved Arabic direction and alignment, and tighter one-way desktop proportions. Released and verified on HostPapa. |
+| **Designer Media Checkpoint** | **Designer Media + Public Surface Integration** | **Awaiting Visual Acceptance** | Integrated 4 utility rail cards and 7 responsive photo heroes across public surfaces (/airport, /gallery, /destinations, /travel, /manage, /check-in, /signin), extended TruthClass with historical-documentary and illustrative-photo, audited /book?step=results. |
 | **Phase 5** | **Public Workflows Convergence** | Planned (Not Started) | Connect booking, manage trips, check-in, passenger accounts, and contact forms to canonical domain repositories with complete validation. |
 | **Phase 6** | **Admin Workflows Convergence** | Planned | Connect admin flight quick-edit, schedule manager, passenger desk, customer notes, and activity logging to the shared domain repositories. |
 | **Phase 7** | **CMS Admin Workflows** | Planned | Enable full authored CMS editing for destinations, airport historical chapters, and travel guidance. |

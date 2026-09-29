@@ -1,10 +1,13 @@
 /**
  * Gaza Gateway — Typed media registry.
- * Owner-provided AI-generated future concept images and brand assets.
+ * Registry of approved visual assets, including owner-provided AI-generated
+ * future concept visualizations, authentic historical documentary archive photos,
+ * and illustrative editorial photographs with strict truth classifications.
  *
- * IMPORTANT: These are illustrative future concept visualizations.
- * Never use them as documentary evidence of the airport's historical
- * or current condition.
+ * IMPORTANT: Truth classes govern usage:
+ * - 'historical-documentary': authentic historical records; never substitute with concept art.
+ * - 'illustrative-future': illustrative future concept visualizations; never use as historical evidence.
+ * - 'illustrative-photo': generic contextual photography; illustrative only.
  *
  * Do NOT use img() from data.ts for these assets — use this registry.
  */
@@ -127,6 +130,43 @@ import markLightFull from "@/assets/media/brand/gaza-mark-light.png";
 import markDark1x from "@/assets/media/brand/gaza-mark-dark-1x.png";
 import markDark2x from "@/assets/media/brand/gaza-mark-dark-2x.png";
 import markDarkFull from "@/assets/media/brand/gaza-mark-dark.png";
+
+// Documentary archive photos (year 2000)
+import airportArchive2000_640 from "@/assets/media/documentary/airport-archive-2000-640.webp";
+import airportArchive2000_960 from "@/assets/media/documentary/airport-archive-2000-960.webp";
+import airportArchive2000_1280 from "@/assets/media/documentary/airport-archive-2000-1280.webp";
+import airportArchive2000_1376 from "@/assets/media/documentary/airport-archive-2000-1376.webp";
+
+import galleryAircraft2000_640 from "@/assets/media/documentary/gallery-aircraft-2000-640.webp";
+import galleryAircraft2000_960 from "@/assets/media/documentary/gallery-aircraft-2000-960.webp";
+import galleryAircraft2000_1280 from "@/assets/media/documentary/gallery-aircraft-2000-1280.webp";
+import galleryAircraft2000_1376 from "@/assets/media/documentary/gallery-aircraft-2000-1376.webp";
+
+// Editorial & service illustrative photos
+import destinationsHero640 from "@/assets/media/editorial/destinations-hero-640.webp";
+import destinationsHero960 from "@/assets/media/editorial/destinations-hero-960.webp";
+import destinationsHero1280 from "@/assets/media/editorial/destinations-hero-1280.webp";
+import destinationsHero1376 from "@/assets/media/editorial/destinations-hero-1376.webp";
+
+import travelInfoHero640 from "@/assets/media/editorial/travel-info-hero-640.webp";
+import travelInfoHero960 from "@/assets/media/editorial/travel-info-hero-960.webp";
+import travelInfoHero1280 from "@/assets/media/editorial/travel-info-hero-1280.webp";
+import travelInfoHero1376 from "@/assets/media/editorial/travel-info-hero-1376.webp";
+
+import manageBookingHero640 from "@/assets/media/editorial/manage-booking-hero-640.webp";
+import manageBookingHero960 from "@/assets/media/editorial/manage-booking-hero-960.webp";
+import manageBookingHero1280 from "@/assets/media/editorial/manage-booking-hero-1280.webp";
+import manageBookingHero1376 from "@/assets/media/editorial/manage-booking-hero-1376.webp";
+
+import checkInHero640 from "@/assets/media/editorial/check-in-hero-640.webp";
+import checkInHero960 from "@/assets/media/editorial/check-in-hero-960.webp";
+import checkInHero1280 from "@/assets/media/editorial/check-in-hero-1280.webp";
+import checkInHero1376 from "@/assets/media/editorial/check-in-hero-1376.webp";
+
+import signinPhoto640 from "@/assets/media/editorial/signin-photo-640.webp";
+import signinPhoto960 from "@/assets/media/editorial/signin-photo-960.webp";
+import signinPhoto1280 from "@/assets/media/editorial/signin-photo-1280.webp";
+import signinPhoto1376 from "@/assets/media/editorial/signin-photo-1376.webp";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Registry
@@ -342,6 +382,111 @@ export const MEDIA: Record<ApprovedMediaId, MediaEntry> = {
     truthClass: "brand-mark",
     altEn: "Official insignia and emblem of Palestinian Airlines.",
     altAr: "الشعار المعتمد للخطوط الجوية الفلسطينية ومطار غزة الدولي.",
+  },
+
+  "airport-archive-hero-2000": {
+    id: "airport-archive-hero-2000",
+    width: 1376,
+    height: 911,
+    variants: [
+      { src: airportArchive2000_640, width: 640, height: 424 },
+      { src: airportArchive2000_960, width: 960, height: 635 },
+      { src: airportArchive2000_1280, width: 1280, height: 847 },
+      { src: airportArchive2000_1376, width: 1376, height: 911 },
+    ],
+    truthClass: "historical-documentary",
+    altEn: "Historical photograph of the Gaza International Airport passenger terminal and control tower in 2000.",
+    altAr: "صورة تاريخية لمبنى المسافرين وبرج المراقبة في مطار غزة الدولي عام 2000.",
+  },
+
+  "gallery-aircraft-archive-2000": {
+    id: "gallery-aircraft-archive-2000",
+    width: 1376,
+    height: 845,
+    variants: [
+      { src: galleryAircraft2000_640, width: 640, height: 393 },
+      { src: galleryAircraft2000_960, width: 960, height: 590 },
+      { src: galleryAircraft2000_1280, width: 1280, height: 786 },
+      { src: galleryAircraft2000_1376, width: 1376, height: 845 },
+    ],
+    truthClass: "historical-documentary",
+    altEn: "Historical photograph of a Palestinian Airlines passenger aircraft on the tarmac at Gaza International Airport in 2000.",
+    altAr: "صورة تاريخية لطائرة ركاب تابعة للخطوط الجوية الفلسطينية على مدرج مطار غزة الدولي عام 2000.",
+  },
+
+  "destinations-hero": {
+    id: "destinations-hero",
+    width: 1376,
+    height: 917,
+    variants: [
+      { src: destinationsHero640, width: 640, height: 427 },
+      { src: destinationsHero960, width: 960, height: 640 },
+      { src: destinationsHero1280, width: 1280, height: 853 },
+      { src: destinationsHero1376, width: 1376, height: 917 },
+    ],
+    truthClass: "illustrative-photo",
+    altEn: "Aerial view of snow-covered mountain ridges and cloud banks beneath a clear sky.",
+    altAr: "مشهد جوي لقمم جبلية مكسوة بالثلوج وتشكيلات سحابية تحت سماء صافية.",
+  },
+
+  "travel-info-hero": {
+    id: "travel-info-hero",
+    width: 1376,
+    height: 1032,
+    variants: [
+      { src: travelInfoHero640, width: 640, height: 480 },
+      { src: travelInfoHero960, width: 960, height: 720 },
+      { src: travelInfoHero1280, width: 1280, height: 960 },
+      { src: travelInfoHero1376, width: 1376, height: 1032 },
+    ],
+    truthClass: "illustrative-photo",
+    altEn: "Outdoor bilingual bus stop sign on a pedestrian walkway beside modern buildings and a roadway.",
+    altAr: "لوحة موقف حافلات ثنائية اللغة على رصيف مشاة بمحاذاة مبانٍ حديثة وطريق للمركبات.",
+  },
+
+  "manage-booking-hero": {
+    id: "manage-booking-hero",
+    width: 1376,
+    height: 916,
+    variants: [
+      { src: manageBookingHero640, width: 640, height: 426 },
+      { src: manageBookingHero960, width: 960, height: 639 },
+      { src: manageBookingHero1280, width: 1280, height: 852 },
+      { src: manageBookingHero1376, width: 1376, height: 916 },
+    ],
+    truthClass: "illustrative-photo",
+    altEn: "Close view of hands using a desktop computer keyboard and mouse at a service workstation.",
+    altAr: "لقطة قريبة ليدي موظف يستخدم لوحة مفاتيح وفأرة حاسوب عند منصة خدمة.",
+  },
+
+  "check-in-hero": {
+    id: "check-in-hero",
+    width: 1376,
+    height: 1032,
+    variants: [
+      { src: checkInHero640, width: 640, height: 480 },
+      { src: checkInHero960, width: 960, height: 720 },
+      { src: checkInHero1280, width: 1280, height: 960 },
+      { src: checkInHero1376, width: 1376, height: 1032 },
+    ],
+    truthClass: "illustrative-photo",
+    altEn: "Empty passenger queuing lane with stanchions and service counters inside a terminal.",
+    altAr: "مسار اصطفاف خالٍ للمسافرين بحواجز شريطية ومكاتب خدمة داخل صالة المطار.",
+  },
+
+  "signin-photo": {
+    id: "signin-photo",
+    width: 1376,
+    height: 1835,
+    variants: [
+      { src: signinPhoto640, width: 640, height: 853 },
+      { src: signinPhoto960, width: 960, height: 1280 },
+      { src: signinPhoto1280, width: 1280, height: 1707 },
+      { src: signinPhoto1376, width: 1376, height: 1835 },
+    ],
+    truthClass: "illustrative-photo",
+    altEn: "Commercial passenger aircraft parked at a terminal jet bridge on an airport apron.",
+    altAr: "طائرة ركاب تجارية متوقفة عند جسر صعود المسافرين في ساحة المطار.",
   },
 };
 

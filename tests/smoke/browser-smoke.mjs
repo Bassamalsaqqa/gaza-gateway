@@ -3231,6 +3231,534 @@ async function runBrowserSmoke() {
       // Reset viewport
       await page.setViewportSize({ width: 1440, height: 900 });
     });
+
+    await checkStep("Check 32: Home utility rail integration (4 cards, WebP loading, LTR mirroring, empty alt, links)", async () => {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto(baseUrl + "/", { waitUntil: "domcontentloaded" });
+
+      // 1. Locate rail
+      const rail = page.locator('[data-home-utility-rail="true"]').first();
+      if ((await rail.count()) === 0) {
+        throw new Error("Home page missing [data-home-utility-rail='true']");
+      }
+
+      // 2. Assert 4 cards
+      const cards = ["flight-status", "check-in", "travel-guidelines", "airport-heritage"];
+      for (const cardKey of cards) {
+        const cardLocator = page.locator(`[data-utility-card="${cardKey}"]`);
+        if ((await cardLocator.count()) === 0) {
+          throw new Error(`Missing utility card: ${cardKey}`);
+        }
+        // Verify image inside card
+        const imgLocator = cardLocator.locator("img").first();
+        if ((await imgLocator.count()) === 0) {
+          throw new Error(`Missing image in utility card: ${cardKey}`);
+        }
+        const imgMeta = await imgLocator.evaluate((img) => ({
+          alt: img.getAttribute("alt"),
+          ariaHidden: img.getAttribute("aria-hidden"),
+          naturalWidth: img.naturalWidth,
+          naturalHeight: img.naturalHeight,
+          hasLtrMirrorClass: img.classList.contains("ltr:scale-x-[-1]"),
+        }));
+        if (imgMeta.alt !== "") {
+          throw new Error(`Utility card ${cardKey} image must have alt="" (got "${imgMeta.alt}")`);
+        }
+        if (imgMeta.ariaHidden !== "true") {
+          throw new Error(`Utility card ${cardKey} image must have aria-hidden="true"`);
+        }
+        if (imgMeta.naturalWidth <= 0 || imgMeta.naturalHeight <= 0) {
+          throw new Error(`Utility card ${cardKey} image failed to load (naturalWidth=${imgMeta.naturalWidth})`);
+        }
+        if (!imgMeta.hasLtrMirrorClass) {
+          throw new Error(`Utility card ${cardKey} image must have ltr:scale-x-[-1] class`);
+        }
+      }
+
+      // 3. Arabic check: images loaded, natural orientation (no scale-x-[-1] mirroring in RTL)
+      await page.goto(baseUrl + "/ar", { waitUntil: "domcontentloaded" });
+      const arRail = page.locator('[data-home-utility-rail="true"]').first();
+      if ((await arRail.count()) === 0) {
+        throw new Error("Arabic Home page missing [data-home-utility-rail='true']");
+      }
+      for (const cardKey of cards) {
+        const cardLocator = page.locator(`[data-utility-card="${cardKey}"]`);
+        if ((await cardLocator.count()) === 0) {
+          throw new Error(`Missing Arabic utility card: ${cardKey}`);
+        }
+        const imgLoaded = await cardLocator.locator("img").first().evaluate((img) => {
+          const style = window.getComputedStyle(img);
+          const isMirrored = style.transform.includes("matrix(-1") || style.transform.includes("scaleX(-1)");
+          return {
+            naturalWidth: img.naturalWidth,
+            isMirrored,
+          };
+        });
+        if (imgLoaded.naturalWidth <= 0) {
+          throw new Error(`Arabic utility card ${cardKey} image failed to load`);
+        }
+        if (imgLoaded.isMirrored) {
+          throw new Error(`Arabic utility card ${cardKey} image must NOT be mirrored in RTL`);
+        }
+      }
+
+      // 4. Responsive checks: 768px (2x2) and 320px (stacked) zero horizontal overflow
+      await page.setViewportSize({ width: 768, height: 1024 });
+      await page.goto(baseUrl + "/", { waitUntil: "domcontentloaded" });
+      let overflow = await page.evaluate(() => document.body.scrollWidth > document.body.clientWidth);
+      if (overflow) throw new Error("Horizontal overflow at 768px with utility rail");
+
+      await page.setViewportSize({ width: 320, height: 568 });
+      await page.goto(baseUrl + "/", { waitUntil: "domcontentloaded" });
+      overflow = await page.evaluate(() => document.body.scrollWidth > document.body.clientWidth);
+      if (overflow) throw new Error("Horizontal overflow at 320px with utility rail");
+
+      await page.setViewportSize({ width: 1440, height: 900 });
+    });
+
+    await checkStep("Check 33: Seven public photo heroes on target routes in EN and AR, truth badges, images loaded, non-mirrored", async () => {
+      await page.setViewportSize({ width: 1440, height: 900 });
+
+      const heroRoutes = [
+        {
+          path: "/airport",
+          arPath: "/ar/airport",
+          key: "airport",
+          expectedBadge: "archive",
+          enText: "Archive",
+          arText: "الأرشيف",
+        },
+        {
+          path: "/gallery",
+          arPath: "/ar/gallery",
+          key: "gallery",
+          expectedBadge: "archive",
+          enText: "Archive",
+          arText: "الأرشيف",
+          extraCheck: async (p, isAr) => {
+            const link = p.locator(isAr ? 'a[href="/ar/airport/future"]' : 'a[href="/airport/future"]');
+            if ((await link.count()) === 0) {
+              throw new Error("Gallery hero must preserve future-link helper");
+            }
+          },
+        },
+        {
+          path: "/destinations",
+          arPath: "/ar/destinations",
+          key: "destinations",
+          expectedBadge: "illustrative",
+          enText: "Illustrative",
+          arText: "توضيحية",
+          extraCheck: async (p) => {
+            const input = p.locator("#dest-search");
+            if ((await input.count()) === 0) {
+              throw new Error("Destinations hero must preserve filter search input");
+            }
+          },
+        },
+        {
+          path: "/travel",
+          arPath: "/ar/travel",
+          key: "travel",
+          expectedBadge: "illustrative",
+          enText: "Illustrative",
+          arText: "توضيحية",
+          extraCheck: async (p) => {
+            const tabs = p.locator('[role="tablist"]');
+            if ((await tabs.count()) === 0) {
+              throw new Error("Travel page must preserve section tabs below hero");
+            }
+          },
+        },
+        {
+          path: "/manage",
+          arPath: "/ar/manage",
+          key: "manage",
+          expectedBadge: "illustrative",
+          enText: "Illustrative",
+          arText: "توضيحية",
+          extraCheck: async (p) => {
+            const pnr = p.locator("#pnr");
+            const idInput = p.locator("#identifier");
+            if ((await pnr.count()) === 0 || (await idInput.count()) === 0) {
+              throw new Error("Manage page must preserve lookup inputs below hero");
+            }
+          },
+        },
+        {
+          path: "/check-in",
+          arPath: "/ar/check-in",
+          key: "check-in",
+          expectedBadge: "illustrative",
+          enText: "Illustrative",
+          arText: "توضيحية",
+          extraCheck: async (p) => {
+            const pnr = p.locator("#ci-pnr");
+            const idInput = p.locator("#ci-identifier");
+            if ((await pnr.count()) === 0 || (await idInput.count()) === 0) {
+              throw new Error("Check-in page must preserve lookup inputs below hero");
+            }
+          },
+        },
+      ];
+
+      for (const route of heroRoutes) {
+        // English
+        await page.goto(baseUrl + route.path, { waitUntil: "domcontentloaded" });
+        const hero = page.locator(`[data-public-hero="${route.key}"]`);
+        if ((await hero.count()) === 0) {
+          throw new Error(`Missing [data-public-hero="${route.key}"] on ${route.path}`);
+        }
+        const badge = hero.locator(`[data-truth-badge="${route.expectedBadge}"]`);
+        if ((await badge.count()) === 0) {
+          throw new Error(`Missing [data-truth-badge="${route.expectedBadge}"] on ${route.path}`);
+        }
+        const badgeText = await badge.innerText();
+        if (!badgeText.includes(route.enText)) {
+          throw new Error(`Badge on ${route.path} expected to contain "${route.enText}", got "${badgeText}"`);
+        }
+        // Image loaded & NOT mirrored
+        const heroImg = await hero.locator("img").first().evaluate((img) => {
+          const style = window.getComputedStyle(img);
+          const isMirrored = style.transform.includes("matrix(-1") || style.transform.includes("scaleX(-1)");
+          return {
+            naturalWidth: img.naturalWidth,
+            isMirrored,
+          };
+        });
+        if (heroImg.naturalWidth <= 0) {
+          throw new Error(`Hero image failed to load on ${route.path}`);
+        }
+        if (heroImg.isMirrored) {
+          throw new Error(`Photographic hero image on ${route.path} must NEVER be mirrored`);
+        }
+        if (route.extraCheck) {
+          await route.extraCheck(page, false);
+        }
+
+        // Arabic
+        await page.goto(baseUrl + route.arPath, { waitUntil: "domcontentloaded" });
+        const arHero = page.locator(`[data-public-hero="${route.key}"]`);
+        if ((await arHero.count()) === 0) {
+          throw new Error(`Missing [data-public-hero="${route.key}"] on ${route.arPath}`);
+        }
+        const arBadge = arHero.locator(`[data-truth-badge="${route.expectedBadge}"]`);
+        if ((await arBadge.count()) === 0) {
+          throw new Error(`Missing [data-truth-badge="${route.expectedBadge}"] on ${route.arPath}`);
+        }
+        const arBadgeText = await arBadge.innerText();
+        if (!arBadgeText.includes(route.arText)) {
+          throw new Error(`Badge on ${route.arPath} expected to contain "${route.arText}", got "${arBadgeText}"`);
+        }
+        const arHeroImg = await arHero.locator("img").first().evaluate((img) => {
+          const style = window.getComputedStyle(img);
+          const isMirrored = style.transform.includes("matrix(-1") || style.transform.includes("scaleX(-1)");
+          return {
+            naturalWidth: img.naturalWidth,
+            isMirrored,
+          };
+        });
+        if (arHeroImg.naturalWidth <= 0) {
+          throw new Error(`Hero image failed to load on ${route.arPath}`);
+        }
+        if (arHeroImg.isMirrored) {
+          throw new Error(`Photographic hero image on ${route.arPath} must NEVER be mirrored`);
+        }
+        if (route.extraCheck) {
+          await route.extraCheck(page, true);
+        }
+      }
+
+      // 7th photo hero: Sign-in panel
+      // English
+      await page.goto(baseUrl + "/signin", { waitUntil: "domcontentloaded" });
+      const signinMedia = page.locator('[data-auth-media="signin"]');
+      if ((await signinMedia.count()) === 0) {
+        throw new Error("Missing [data-auth-media='signin'] on /signin");
+      }
+      const signinBadge = signinMedia.locator('[data-truth-badge="illustrative"]');
+      if ((await signinBadge.count()) === 0) {
+        throw new Error("Missing [data-truth-badge='illustrative'] in sign-in photo panel");
+      }
+      const signinImg = await signinMedia.locator("img").first().evaluate((img) => {
+        const style = window.getComputedStyle(img);
+        const isMirrored = style.transform.includes("matrix(-1") || style.transform.includes("scaleX(-1)");
+        return {
+          naturalWidth: img.naturalWidth,
+          isMirrored,
+        };
+      });
+      if (signinImg.naturalWidth <= 0) {
+        throw new Error("Sign-in photo failed to load");
+      }
+      if (signinImg.isMirrored) {
+        throw new Error("Sign-in photo must NEVER be mirrored");
+      }
+
+      // Arabic signin
+      await page.goto(baseUrl + "/ar/signin", { waitUntil: "domcontentloaded" });
+      const arSigninMedia = page.locator('[data-auth-media="signin"]');
+      if ((await arSigninMedia.count()) === 0) {
+        throw new Error("Missing [data-auth-media='signin'] on /ar/signin");
+      }
+
+      // Verify other auth page fallback (e.g. /register does not have data-auth-media="signin")
+      await page.goto(baseUrl + "/register", { waitUntil: "domcontentloaded" });
+      const registerMedia = await page.locator('[data-auth-media="signin"]').count();
+      if (registerMedia > 0) {
+        throw new Error("/register must retain default decorative brand panel (no data-auth-media='signin')");
+      }
+    });
+
+    await checkStep("Check 34: Booking results step (/book?step=results) audit at 1440px and 320px in EN and AR", async () => {
+      // 1. English desktop: seed both booking criteria and custom appearance draft
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto(baseUrl + "/", { waitUntil: "domcontentloaded" });
+      await page.evaluate(() => {
+        const depart = new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10);
+        const ret = new Date(Date.now() + 8 * 86400000).toISOString().slice(0, 10);
+        const draft = {
+          entry: "results",
+          criteria: {
+            tripType: "round",
+            origin: "GZA",
+            destination: "AMM",
+            departDate: depart,
+            returnDate: ret,
+            adults: 1,
+            children: 0,
+            infants: 0,
+            cabin: "economy",
+          },
+          outbound: null,
+          inbound: null,
+          fareId: "classic",
+          passengers: [{ type: "adult", firstName: "", lastName: "", dob: "", nationality: "PS", document: "" }],
+          seats: {},
+          extras: { pax: [{ baggage: "none", meal: "standard", assistance: "none", lounge: false }] },
+          contact: { email: "", phone: "" },
+        };
+        localStorage.setItem("gza.store.v1", JSON.stringify({ draft, account: null, travelers: [] }));
+
+        // Seed appearance draft with custom recipe for booking.flight-option and booking.trip-summary
+        const appearanceDraft = {
+          schemaVersion: 1,
+          site: {
+            appearance: {
+              publicCanvas: { pattern: "pie-factory", intensity: "present", scale: "standard" },
+              sandSection: { pattern: "pie-factory", intensity: "present", scale: "standard" },
+              adminCanvas: { pattern: "pie-factory", intensity: "present", scale: "standard" },
+              surfaceGrammar: {
+                enabled: true,
+                families: {
+                  operational: {
+                    family: "operational",
+                    frame: "plain",
+                    tone: "paper",
+                    accent: "none",
+                    radius: "soft",
+                    elevation: "flat",
+                    pattern: "none",
+                    patternPlacement: "none",
+                  },
+                  fare: {
+                    family: "fare",
+                    frame: "indexed",
+                    tone: "paper",
+                    accent: "brand",
+                    radius: "compact",
+                    elevation: "soft",
+                    pattern: "none",
+                    patternPlacement: "none",
+                  },
+                  dossier: {
+                    family: "dossier",
+                    frame: "plain",
+                    tone: "paper",
+                    accent: "none",
+                    radius: "soft",
+                    elevation: "flat",
+                    pattern: "none",
+                    patternPlacement: "none",
+                  },
+                  "form-sheet": {
+                    family: "form-sheet",
+                    frame: "plain",
+                    tone: "paper",
+                    accent: "none",
+                    radius: "soft",
+                    elevation: "flat",
+                    pattern: "none",
+                    patternPlacement: "none",
+                  },
+                  guide: {
+                    family: "guide",
+                    frame: "plain",
+                    tone: "paper",
+                    accent: "none",
+                    radius: "soft",
+                    elevation: "flat",
+                    pattern: "none",
+                    patternPlacement: "none",
+                  },
+                  editorial: {
+                    family: "editorial",
+                    frame: "chapter",
+                    tone: "paper",
+                    accent: "none",
+                    radius: "editorial",
+                    elevation: "soft",
+                    pattern: "none",
+                    patternPlacement: "none",
+                  },
+                },
+                targetOverrides: {
+                  "booking.flight-option": {
+                    tone: "olive-soft",
+                    frame: "rail",
+                    accent: "clay",
+                    radius: "compact",
+                  },
+                  "booking.trip-summary": {
+                    tone: "limestone",
+                    frame: "ticket",
+                    accent: "brand",
+                    elevation: "soft",
+                  },
+                },
+              },
+            },
+          },
+        };
+        localStorage.setItem("gza.settings.draft.v1", JSON.stringify(appearanceDraft));
+      });
+
+      // 2. Normal Results immunity: verify normal URL (/book?step=results) ignores saved preview skin
+      await page.goto(baseUrl + "/book?step=results", { waitUntil: "domcontentloaded" });
+      await page.waitForSelector('[data-surface-target="booking.flight-option"]', { timeout: 10000 });
+
+      const baselineFlightOption = page.locator('[data-surface-target="booking.flight-option"]').first();
+      const baselineOptionTone = await baselineFlightOption.getAttribute("data-surface-tone");
+      if (baselineOptionTone === "olive-soft") {
+        throw new Error("Normal Results leaked preview draft tone onto booking.flight-option");
+      }
+
+      const baselineTripSummary = page.locator('[data-surface-target="booking.trip-summary"]');
+      if ((await baselineTripSummary.count()) === 0) {
+        throw new Error("/book?step=results missing [data-surface-target='booking.trip-summary']");
+      }
+      const baselineSummaryTone = await baselineTripSummary.getAttribute("data-surface-tone");
+      if (baselineSummaryTone === "limestone") {
+        throw new Error("Normal Results leaked preview draft tone onto booking.trip-summary");
+      }
+
+      // Assert operational surfaces strictly contain no media (no img, no video)
+      const mediaCountInOperational = await page.locator(
+        '[data-surface-target="booking.flight-option"] img, [data-surface-target="booking.flight-option"] video, [data-surface-target="booking.trip-summary"] img, [data-surface-target="booking.trip-summary"] video'
+      ).count();
+      if (mediaCountInOperational !== 0) {
+        throw new Error(`Operational booking surfaces must contain 0 media elements, found ${mediaCountInOperational}`);
+      }
+
+      // Verify Change Search button is present in baseline
+      const changeSearchBtn = page.getByRole("button", { name: /Change search|تغيير البحث/i });
+      if (!(await changeSearchBtn.isVisible())) {
+        throw new Error("Change Search button is not visible on /book?step=results");
+      }
+
+      // 3. Explicit skin preview response: open /book?step=results&skinPreview=1
+      await page.goto(baseUrl + "/book?step=results&skinPreview=1", { waitUntil: "domcontentloaded" });
+      await page.waitForSelector('[data-surface-target="booking.flight-option"]', { timeout: 10000 });
+
+      const previewFlightOption = page.locator('[data-surface-target="booking.flight-option"]').first();
+      const previewOptionTone = await previewFlightOption.getAttribute("data-surface-tone");
+      const previewOptionFrame = await previewFlightOption.getAttribute("data-surface-frame");
+      if (previewOptionTone !== "olive-soft" || previewOptionFrame !== "rail") {
+        throw new Error(
+          `Explicit preview failed to apply target override to booking.flight-option (tone: ${previewOptionTone}, frame: ${previewOptionFrame})`
+        );
+      }
+
+      const previewTripSummary = page.locator('[data-surface-target="booking.trip-summary"]');
+      const previewSummaryTone = await previewTripSummary.getAttribute("data-surface-tone");
+      const previewSummaryFrame = await previewTripSummary.getAttribute("data-surface-frame");
+      if (previewSummaryTone !== "limestone" || previewSummaryFrame !== "ticket") {
+        throw new Error(
+          `Explicit preview failed to apply target override to booking.trip-summary (tone: ${previewSummaryTone}, frame: ${previewSummaryFrame})`
+        );
+      }
+
+      // Assert operational surfaces still reject media under explicit preview
+      const previewMediaCount = await page.locator(
+        '[data-surface-target="booking.flight-option"] img, [data-surface-target="booking.flight-option"] video, [data-surface-target="booking.trip-summary"] img, [data-surface-target="booking.trip-summary"] video'
+      ).count();
+      if (previewMediaCount !== 0) {
+        throw new Error(`Operational surfaces under preview must contain 0 media, found ${previewMediaCount}`);
+      }
+
+      // 4. Test round-trip flight selection: outbound and inbound
+      const firstOutbound = page.locator('[data-surface-target="booking.flight-option"]:not([disabled])').first();
+      await firstOutbound.click();
+      const isOutboundChecked = await firstOutbound.getAttribute("data-state");
+      if (isOutboundChecked !== "checked") {
+        throw new Error("Outbound flight option did not become checked after click");
+      }
+
+      // Verify inbound section and return options are visible
+      const inboundHeading = page.locator("#inbound-flights-heading");
+      await inboundHeading.waitFor({ state: "visible", timeout: 5000 });
+
+      const inboundOptions = page.locator('#inbound-flights-heading ~ div [data-surface-target="booking.flight-option"]:not([disabled])');
+      if ((await inboundOptions.count()) === 0) {
+        throw new Error("No return flight options found for round trip");
+      }
+      const firstInbound = inboundOptions.first();
+      await firstInbound.click();
+      const isInboundChecked = await firstInbound.getAttribute("data-state");
+      if (isInboundChecked !== "checked") {
+        throw new Error("Inbound flight option did not become checked after click");
+      }
+
+      // 5. Test Change Search button interaction
+      await page.getByRole("button", { name: /Change search|تغيير البحث/i }).click();
+      await page.waitForURL(/step=search/, { timeout: 5000 });
+
+      // 6. 320px English: assert no horizontal overflow
+      await page.setViewportSize({ width: 320, height: 568 });
+      await page.goto(baseUrl + "/book?step=results", { waitUntil: "domcontentloaded" });
+      let overflow = await page.evaluate(() => document.body.scrollWidth > document.body.clientWidth);
+      if (overflow) {
+        throw new Error("Horizontal overflow on English /book?step=results at 320px");
+      }
+
+      // 7. 320px Arabic: assert no horizontal overflow
+      await page.goto(baseUrl + "/ar/book?step=results", { waitUntil: "domcontentloaded" });
+      overflow = await page.evaluate(() => document.body.scrollWidth > document.body.clientWidth);
+      if (overflow) {
+        throw new Error("Horizontal overflow on Arabic /ar/book?step=results at 320px");
+      }
+
+      // 8. Assert technical codes remain LTR in Arabic
+      const ltrCodes = await page.evaluate(() => {
+        const codes = Array.from(document.querySelectorAll('[data-surface-target="booking.flight-option"] .code-id, [data-surface-target="booking.flight-option"] code'));
+        return codes.every((el) => {
+          const dir = el.getAttribute("dir") || window.getComputedStyle(el).direction;
+          return dir === "ltr";
+        });
+      });
+      if (!ltrCodes) {
+        throw new Error("All technical codes in Arabic flight option must render LTR");
+      }
+
+      // Clean up storage
+      await page.evaluate(() => {
+        localStorage.removeItem("gza.settings.draft.v1");
+        localStorage.removeItem("gza.store.v1");
+      });
+
+      // Reset viewport
+      await page.setViewportSize({ width: 1440, height: 900 });
+    });
   } finally {
     await browser.close();
     if (server) {

@@ -2,7 +2,8 @@ import { AppLink, useAppNavigate } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
 import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
-import { btnClass, Container, EmptyState, Field, Input, PageHeader } from "@/components/kit";
+import { btnClass, Container, EmptyState, Field, Input } from "@/components/kit";
+import { PublicPhotoHero } from "@/components/media/public-photo-hero";
 import { useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 
@@ -69,7 +70,13 @@ function ManageLookupPage() {
 
   return (
     <>
-      <PageHeader title={t("manage.title")} description={t("manage.sub")} />
+      <PublicPhotoHero
+        mediaId="manage-booking-hero"
+        routeKey="manage"
+        title={t("manage.title")}
+        description={t("manage.sub")}
+        focalPosition="50% 40%"
+      />
 
       <Container className="grid gap-8 py-10 lg:grid-cols-[1fr_1.4fr]">
         <form onSubmit={submit} className="surface h-fit p-5" noValidate>

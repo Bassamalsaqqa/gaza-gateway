@@ -10,7 +10,12 @@
  * Past/Present chapter cards (e.g. airport.chapter-card).
  */
 
-export type TruthClass = "future-concept-ai" | "brand-mark" | "placeholder";
+export type TruthClass =
+  | "future-concept-ai"
+  | "brand-mark"
+  | "placeholder"
+  | "historical-documentary"
+  | "illustrative-photo";
 
 /**
  * Authoritative mapping of approved stable media IDs to their canonical TruthClass.
@@ -31,6 +36,14 @@ export const APPROVED_MEDIA_CATALOG = {
   "passenger-assistance": "future-concept-ai",
   logo: "brand-mark",
   "brand-mark": "brand-mark",
+  // Public photo heroes (Checkpoint 2026-09-29)
+  "airport-archive-hero-2000": "historical-documentary",
+  "gallery-aircraft-archive-2000": "historical-documentary",
+  "destinations-hero": "illustrative-photo",
+  "travel-info-hero": "illustrative-photo",
+  "manage-booking-hero": "illustrative-photo",
+  "check-in-hero": "illustrative-photo",
+  "signin-photo": "illustrative-photo",
 } as const satisfies Record<string, TruthClass>;
 
 export type ApprovedMediaId = keyof typeof APPROVED_MEDIA_CATALOG;
@@ -46,7 +59,7 @@ export const TARGET_ALLOWED_TRUTH_CLASSES: Readonly<Record<string, readonly Trut
   "family.editorial": ["future-concept-ai", "brand-mark", "placeholder"],
   "travel.guide": ["future-concept-ai", "brand-mark", "placeholder"],
   // Strict truth policy: Never allow AI-generated illustrative imagery on historical past/present chapters
-  "airport.chapter-card": ["brand-mark", "placeholder"],
+  "airport.chapter-card": ["historical-documentary", "brand-mark", "placeholder"],
   "airport.future-editorial": ["future-concept-ai", "brand-mark", "placeholder"],
 };
 

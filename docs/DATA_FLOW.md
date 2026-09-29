@@ -1,7 +1,7 @@
 # Data Flow, State Management & Pretend-Action Inventory
 
 > **Document Purpose**: Complete audit of current data sources, state persistence, cross-screen entity splits, and enabled no-op actions across public and admin workspaces.
-> **Status**: **Phase 4C Complete — Settings & Appearance Store Convergence**. Accepted decorative/destination asset checkpoint remains accepted.
+> **Status**: **Phase 4C Complete — Settings & Appearance Store Convergence**. Booking Search Console Redesign 0.2 and Refinement 0.2.1 are deployed. Designer Media + Public Surface Integration Checkpoint is implemented in source and awaiting owner visual acceptance.
 > **Future Target**: Phase 5 (Public Workflows Convergence, planned and not started; designer asset lane active in parallel), then Phase 6 before any production backend.
 
 ---
@@ -64,11 +64,11 @@ In `src/lib/settings/`, `src/lib/skin.ts`, and `src/components/admin/appearance-
 
 To maintain strict truth and prevent unverified imagery or text from entering the product:
 1. **Master File Preservation**: Preserve uncompressed master files in local source storage prior to web asset generation.
-2. **Truth & Rights Classification**: Every asset must be assigned a canonical `TruthClass` (`"future-concept-ai"`, `"brand-mark"`, or `"placeholder"`), historical era, and verifiable provenance record.
+2. **Truth & Rights Classification**: Every asset must be assigned a canonical `TruthClass` (`"future-concept-ai"`, `"historical-documentary"`, `"illustrative-photo"`, `"brand-mark"`, or `"placeholder"`), historical era, and verifiable provenance record.
 3. **Optimized Variant Generation**: Output WebP/AVIF variants at standardized widths (`640w`, `960w`, `1280w`, `1376w`) with explicit intrinsic aspect ratios.
 4. **Registration in `src/lib/media.ts`**: Declare stable semantic IDs (`future-hero`, `future-aerial-day`, etc.) and bilingual accessible descriptions (`altEn`, `altAr`).
 5. **Content Workflow**: Home, Travel and Past published copy lives in compiled typed records. The Admin Travel editor saves a browser-local draft only; approved global publication requires a source update and verified HostPapa release.
-6. **Strict Archival Truth**: Never present unlabeled material, mock data, or AI-generated concepts as historical evidence. AI future concepts must always display visible illustrative disclosure badges.
+6. **Strict Archival Truth**: Never present unlabeled material, mock data, or AI-generated concepts as historical evidence. Historical documentary photos carry compact `Archive · 2000` / `الأرشيف · 2000` truth badges; illustrative photos carry `Illustrative photograph` / `صورة توضيحية` disclosure badges; AI future concepts must always display visible illustrative disclosure badges. Photographic assets are never mirrored.
 
 ### 1.6 Known SEO Gaps (Earmarked for Phase 11)
 

@@ -4,7 +4,8 @@ import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AppLink } from "@/components/app-link";
-import { btnClass, Container, EmptyState, PageHeader } from "@/components/kit";
+import { btnClass, Container, EmptyState } from "@/components/kit";
+import { PublicPhotoHero } from "@/components/media/public-photo-hero";
 import {
   galleryCategoryLabels,
   galleryEraLabels,
@@ -131,21 +132,24 @@ function GalleryPage() {
 
   return (
     <>
-      <PageHeader
+      <PublicPhotoHero
+        mediaId="gallery-aircraft-archive-2000"
+        routeKey="gallery"
         title={t("gallery.title")}
         description={t("gallery.sub")}
+        focalPosition="50% 50%"
       >
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="mt-1 text-xs sm:text-sm text-white/80">
           {t("gallery.futureIntro")}{" "}
           <AppLink
             to="/airport/future"
-            className="font-semibold text-primary underline underline-offset-4 hover:text-brand-deep"
+            className="font-semibold text-sand-deep underline underline-offset-4 hover:text-white"
           >
             {t("gallery.futureLink")}
           </AppLink>
           .
         </p>
-      </PageHeader>
+      </PublicPhotoHero>
 
       <Container className="py-8 sm:py-12">
         {/* Compact Standard Filter Toolbar */}

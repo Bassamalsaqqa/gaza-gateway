@@ -275,7 +275,7 @@ describe("Surface Grammar & Runtime Targets", () => {
         "All approved media IDs in APPROVED_MEDIA_CATALOG must exactly match MEDIA registry keys",
       );
 
-      assert.equal(policyKeys.length, 14, "Exactly 14 canonical media items are approved");
+      assert.equal(policyKeys.length, 21, "Exactly 21 canonical media items are approved (14 baseline + 7 photo heroes)");
 
       for (const key of policyKeys) {
         const canonicalTruth = APPROVED_MEDIA_CATALOG[key as keyof typeof APPROVED_MEDIA_CATALOG];

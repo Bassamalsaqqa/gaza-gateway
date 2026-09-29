@@ -3,8 +3,8 @@
 > **Repository**: `Bassamalsaqqa/gaza-gateway`
 > **Production Domain**: `https://www.gazaairport.com`
 > **Phase 4 starting commits**: `9e36b869274830f84c97cbbefe3b3fb0a98c6d2e` (`main`); `92ad935f8477e1663eefa8282d2770c66b64b8b2` (`hostpapa-deploy`). These are historical starting points, not current branch heads.
-> **Engineering Status**: **Phase 4C Complete — Settings & Appearance Store Convergence**. Accepted decorative/destination asset checkpoint remains accepted.
-> **Immediate Next Step**: **Phase 5 (Public Workflows Convergence, planned and not started; designer asset lane active in parallel)**
+> **Engineering Status**: **Phase 4C Complete — Settings & Appearance Store Convergence**. Booking Search Console Redesign 0.2 and Refinement 0.2.1 are deployed. Designer Media + Public Surface Integration Checkpoint is implemented in source and awaiting owner visual acceptance.
+> **Immediate Next Step**: **Owner Visual Review of Designer Media Checkpoint** (Phase 5 next, planned and not started).
 
 ---
 
@@ -89,11 +89,13 @@ In Phase 3.9, the surface system was split to eliminate startup bundle bloat:
 
 ### 4.1 Canonical Media Truth Classification
 
-All imagery across the platform is classified under three strict truth types defined in `src/lib/media.ts`:
+All imagery across the platform is classified under five strict truth types defined in `src/lib/media-policy.ts`:
 
 1. **`"future-concept-ai"`**: AI-generated conceptual architectural visualizations provided by the project owner. Must always carry visible illustrative disclosure badges and notices. Never presented as historical or present evidence.
-2. **`"brand-mark"`**: Official insignia, logo, and emblem assets of Palestinian Airlines and Gaza International Airport.
-3. **`"placeholder"`**: Generic visual placeholders for layout testing and development.
+2. **`"historical-documentary"`**: Authentic archival photography documenting Gaza International Airport and Palestinian Airlines operations (e.g. passenger terminal in 2000, Palestinian Airlines aircraft on tarmac in 2000). Never tagged with future concepts; carries visible compact `Archive · 2000` / `الأرشيف · 2000` badge.
+3. **`"illustrative-photo"`**: Genuine illustrative aviation and editorial photography supporting public informational surfaces (e.g. destinations, travel guidelines, manage booking, check-in, passenger sign-in). Carries visible compact `Illustrative photograph` / `صورة توضيحية` badge and strictly rejected from documentary targets like `airport.chapter-card`.
+4. **`"brand-mark"`**: Official insignia, logo, and emblem assets of Palestinian Airlines and Gaza International Airport.
+5. **`"placeholder"`**: Generic visual placeholders for layout testing and development.
 
 ### 4.2 Asset & Content Ingestion Protocol
 
@@ -101,8 +103,14 @@ Future asset and copy drops must adhere to the following protocol:
 1. **Preserve Masters**: Raw master assets must be placed in source storage without destructive lossy overwrites.
 2. **Classify Truth & Rights**: Every asset must have an assigned `TruthClass`, historical era, and provenance documentation before code inclusion.
 3. **Generate Optimized Variants**: Build WebP variants at standard widths (`640w`, `960w`, `1280w`, `1376w`) with explicit intrinsic aspect ratios.
-4. **Register in `src/lib/media.ts`**: Declare stable semantic IDs (`future-hero`, `future-aerial-day`, etc.) and bilingual accessible alt text (`altEn`, `altAr`).
+4. **Register in `src/lib/media.ts`**: Declare stable semantic IDs (`future-hero`, `airport-archive-hero-2000`, etc.) and bilingual accessible alt text (`altEn`, `altAr`).
 5. **Content Edits**: Home, Travel and Past compiled records are typed under `src/content/published/`. Admin Travel drafts are browser-local and never publish globally. Approved publication requires a source update and verified static release.
+
+### 4.3 Public Media Hero & Quick-Action Rail Architecture
+
+- **`PublicPhotoHero` (`src/components/media/public-photo-hero.tsx`)**: Reusable bounded hero rendering responsive photography via `ResponsiveImage` (intrinsic dimensions, standard srcSet/sizes, eager loading), directional dark overlay behind localized text (EN left-to-right gradient, AR right-to-left gradient), route-specific focal positioning, visible compact truth badges, and stable route markers (`data-public-hero="{routeKey}"`). Implemented across `/airport`, `/gallery`, `/destinations`, `/travel`, `/manage`, `/check-in`. Photographs are strictly never mirrored.
+- **Home Utility Rail (`data-home-utility-rail="true"`)**: Single grouped rail with no gaps displaying 4 utility cards (`flight-status`, `check-in`, `travel-guidelines`, `airport-heritage`). Decorative image slices maintain seamless connectivity across all four cards by mirroring only the decorative image layer (`ltr:scale-x-[-1]`) in English LTR, while Arabic RTL keeps natural unmirrored artwork.
+- **Passenger Auth Shell (`PassengerAuthShell`)**: Sign-in route (`/signin`) features an optional photographic panel (`data-auth-media="signin"`) showing `signin-photo` with visible illustrative truth badge, desktop two-column form priority, and compact mobile photo band, preserving fallback for other auth views.
 
 ---
 

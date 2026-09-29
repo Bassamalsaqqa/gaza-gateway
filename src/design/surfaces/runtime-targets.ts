@@ -141,7 +141,7 @@ export const TARGET_ALLOWED_TRUTH_CLASSES: Partial<Record<TargetId, readonly Tru
   "family.guide": ["future-concept-ai", "brand-mark", "placeholder"],
   "family.editorial": ["future-concept-ai", "brand-mark", "placeholder"],
   "travel.guide": ["future-concept-ai", "brand-mark", "placeholder"],
-  "airport.chapter-card": ["brand-mark", "placeholder"],
+  "airport.chapter-card": ["historical-documentary", "brand-mark", "placeholder"],
   "airport.future-editorial": ["future-concept-ai", "placeholder"],
 };
 

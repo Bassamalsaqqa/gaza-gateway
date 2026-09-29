@@ -802,6 +802,8 @@ export const en: Dict = {
   "media.ownerConceptLabel": "Owner-provided future concept visualization",
   "media.ownerConceptNote":
     "Illustrative concept imagery. Not documentary evidence of the airport's historical or current condition.",
+  "media.archive2000Label": "Archive · 2000",
+  "media.illustrativePhotoLabel": "Illustrative photograph",
 
   // error boundary (locale-aware, no i18n provider required — duplicated as static strings in root)
   "error.heading": "Something went wrong",
@@ -1589,6 +1591,8 @@ export const ar: Dict = {
   "media.ownerConceptLabel": "تصوّر مستقبلي مقدّم من مالك المشروع",
   "media.ownerConceptNote":
     "صورة مفاهيمية توضيحية، وليست مادة توثيقية للحالة التاريخية أو الحالية للمطار.",
+  "media.archive2000Label": "الأرشيف · 2000",
+  "media.illustrativePhotoLabel": "صورة توضيحية",
 
   // error boundary (locale-aware)
   "error.heading": "حدث خطأ",

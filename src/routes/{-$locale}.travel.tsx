@@ -4,7 +4,8 @@ import { Check } from "lucide-react";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
 import { LayoutGroup, motion, useReducedMotion } from "motion/react";
 import { useMemo, useState } from "react";
-import { btnClass, Container, PageHeader } from "@/components/kit";
+import { btnClass, Container } from "@/components/kit";
+import { PublicPhotoHero } from "@/components/media/public-photo-hero";
 import { publishedTravel } from "@/content/published/travel";
 import { ContentPreviewNotice, useContentPreview } from "@/content/preview";
 import { pick, useI18n } from "@/lib/i18n";
@@ -94,9 +95,12 @@ function TravelPage() {
   return (
     <>
       {previewing ? <ContentPreviewNotice /> : null}
-      <PageHeader
+      <PublicPhotoHero
+        mediaId="travel-info-hero"
+        routeKey="travel"
         title={pick(lang, content.intro.title)}
         description={pick(lang, content.intro.description)}
+        focalPosition="50% 50%"
       />
 
       <Container className="py-10">

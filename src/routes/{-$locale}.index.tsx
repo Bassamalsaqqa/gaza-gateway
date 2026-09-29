@@ -31,6 +31,10 @@ import beforeTravelImg from "@/assets/media/decorative/cards/before-travel-palms
 import airportPastBodyImg from "@/assets/media/decorative/airport/airport-past-body.webp";
 import airportPresentBodyImg from "@/assets/media/decorative/airport/airport-present-body.webp";
 import airportFutureBodyImg from "@/assets/media/decorative/airport/airport-future-body.webp";
+import utilityStatusImg from "@/assets/media/decorative/home-utility/utility-flight-status.webp";
+import utilityCheckinImg from "@/assets/media/decorative/home-utility/utility-check-in.webp";
+import utilityTravelImg from "@/assets/media/decorative/home-utility/utility-travel-guidelines.webp";
+import utilityHeritageImg from "@/assets/media/decorative/home-utility/utility-airport-heritage.webp";
 
 const chapterBodyImages = {
   past: airportPastBodyImg,
@@ -146,42 +150,75 @@ function Home() {
 
       {/* 3. Integrated passenger utility rail */}
       <Container className="mt-5 sm:mt-6">
-        <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-soft)] sm:grid sm:grid-cols-2 lg:grid-cols-[1.15fr_1.15fr_0.85fr_0.85fr]">
+        <div
+          data-home-utility-rail="true"
+          className="overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-soft)] sm:grid sm:grid-cols-2 lg:grid-cols-[1.15fr_1.15fr_0.85fr_0.85fr]"
+        >
+          {/* 01. Flight Status */}
           <AppLink
             to="/flights"
-            className="group relative flex min-h-16 items-center gap-3.5 border-b border-border bg-brand px-4 py-3.5 text-primary-foreground transition-colors hover:bg-brand-deep focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-ring sm:min-h-18 sm:border-e lg:border-b-0"
+            data-utility-card="flight-status"
+            className="group relative flex min-h-16 items-center gap-3.5 overflow-hidden border-b border-border bg-brand px-4 py-3.5 text-primary-foreground transition-colors hover:bg-brand-deep focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-ring sm:min-h-18 sm:border-e lg:border-b-0"
           >
-            <Plane aria-hidden="true" className="size-5 sm:size-6 shrink-0 opacity-85 rtl:-scale-x-100" />
-            <div className="flex flex-col min-w-0">
-              <span className="text-sm sm:text-base font-bold">{t("home.quickStatusTitle")}</span>
-              <span className="text-xs text-primary-foreground/75 truncate">{t("home.quickStatusSub")}</span>
+            <img
+              src={utilityStatusImg}
+              alt=""
+              aria-hidden="true"
+              loading="lazy"
+              className="pointer-events-none absolute inset-0 size-full select-none object-cover opacity-90 ltr:scale-x-[-1]"
+            />
+            <div className="pointer-events-none absolute inset-0 bg-brand/30 transition-colors duration-200 group-hover:bg-brand/15" aria-hidden="true" />
+            <Plane aria-hidden="true" className="relative z-10 size-5 sm:size-6 shrink-0 opacity-90 rtl:-scale-x-100" />
+            <div className="relative z-10 flex flex-col min-w-0">
+              <span className="text-sm sm:text-base font-bold text-white drop-shadow-xs">{t("home.quickStatusTitle")}</span>
+              <span className="text-xs text-white/85 truncate drop-shadow-xs">{t("home.quickStatusSub")}</span>
             </div>
-            <ArrowRight aria-hidden="true" className="ms-auto size-4 opacity-60 rtl:rotate-180 shrink-0" />
+            <ArrowRight aria-hidden="true" className="relative z-10 ms-auto size-4 text-white/80 opacity-80 rtl:rotate-180 shrink-0" />
           </AppLink>
 
+          {/* 02. Online Check-in */}
           <AppLink
             to="/check-in"
-            className="group relative flex min-h-16 items-center gap-3.5 border-b border-border bg-sand-deep/55 px-4 py-3.5 transition-colors hover:bg-sand-deep focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-ring sm:min-h-18 lg:border-b-0 lg:border-e"
+            data-utility-card="check-in"
+            className="group relative flex min-h-16 items-center gap-3.5 overflow-hidden border-b border-border bg-sand-deep/70 px-4 py-3.5 transition-colors hover:bg-sand-deep focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-ring sm:min-h-18 lg:border-b-0 lg:border-e"
           >
-            <Ticket aria-hidden="true" className="size-5 sm:size-6 shrink-0 text-brand-deep" />
-            <div className="flex flex-col min-w-0">
+            <img
+              src={utilityCheckinImg}
+              alt=""
+              aria-hidden="true"
+              loading="lazy"
+              className="pointer-events-none absolute inset-0 size-full select-none object-cover opacity-90 ltr:scale-x-[-1]"
+            />
+            <div className="pointer-events-none absolute inset-0 bg-sand-deep/35 transition-colors duration-200 group-hover:bg-sand-deep/20" aria-hidden="true" />
+            <Ticket aria-hidden="true" className="relative z-10 size-5 sm:size-6 shrink-0 text-brand-deep" />
+            <div className="relative z-10 flex flex-col min-w-0">
               <span className="text-sm sm:text-base font-bold text-foreground group-hover:text-brand-deep">
                 {t("home.quickCheckinTitle")}
               </span>
-              <span className="text-xs text-muted-foreground truncate">{t("home.quickCheckinSub")}</span>
+              <span className="text-xs text-foreground/80 truncate">{t("home.quickCheckinSub")}</span>
             </div>
             <ArrowRight
               aria-hidden="true"
-              className="ms-auto size-4 text-brand-deep/60 rtl:rotate-180 shrink-0"
+              className="relative z-10 ms-auto size-4 text-brand-deep/80 rtl:rotate-180 shrink-0"
             />
           </AppLink>
 
+          {/* 03. Travel Guidelines */}
           <AppLink
             to="/travel"
-            className="group relative flex min-h-16 items-center gap-3 border-b border-border px-4 py-3.5 transition-colors hover:bg-secondary focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-ring sm:min-h-18 sm:border-b-0 sm:border-e"
+            data-utility-card="travel-guidelines"
+            className="group relative flex min-h-16 items-center gap-3 overflow-hidden border-b border-border bg-card px-4 py-3.5 transition-colors hover:bg-secondary focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-ring sm:min-h-18 sm:border-b-0 sm:border-e"
           >
-            <Luggage aria-hidden="true" className="size-5 shrink-0 text-clay" />
-            <div className="flex flex-col min-w-0">
+            <img
+              src={utilityTravelImg}
+              alt=""
+              aria-hidden="true"
+              loading="lazy"
+              className="pointer-events-none absolute inset-0 size-full select-none object-cover opacity-90 ltr:scale-x-[-1]"
+            />
+            <div className="pointer-events-none absolute inset-0 bg-card/60 transition-colors duration-200 group-hover:bg-card/45" aria-hidden="true" />
+            <Luggage aria-hidden="true" className="relative z-10 size-5 shrink-0 text-clay" />
+            <div className="relative z-10 flex flex-col min-w-0">
               <span className="text-sm font-bold text-foreground group-hover:text-clay">
                 {t("home.quickBaggageTitle")}
               </span>
@@ -189,12 +226,22 @@ function Home() {
             </div>
           </AppLink>
 
+          {/* 04. Airport Heritage */}
           <AppLink
             to="/airport"
-            className="group relative flex min-h-16 items-center gap-3 px-4 py-3.5 transition-colors hover:bg-secondary focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-ring sm:min-h-18"
+            data-utility-card="airport-heritage"
+            className="group relative flex min-h-16 items-center gap-3 overflow-hidden bg-card px-4 py-3.5 transition-colors hover:bg-secondary focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-ring sm:min-h-18"
           >
-            <Building2 aria-hidden="true" className="size-5 shrink-0 text-foreground/75" />
-            <div className="flex flex-col min-w-0">
+            <img
+              src={utilityHeritageImg}
+              alt=""
+              aria-hidden="true"
+              loading="lazy"
+              className="pointer-events-none absolute inset-0 size-full select-none object-cover opacity-90 ltr:scale-x-[-1]"
+            />
+            <div className="pointer-events-none absolute inset-0 bg-card/60 transition-colors duration-200 group-hover:bg-card/45" aria-hidden="true" />
+            <Building2 aria-hidden="true" className="relative z-10 size-5 shrink-0 text-foreground/80" />
+            <div className="relative z-10 flex flex-col min-w-0">
               <span className="text-sm font-bold text-foreground">
                 {t("home.quickHeritageTitle")}
               </span>
