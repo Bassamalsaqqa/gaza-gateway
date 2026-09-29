@@ -69,11 +69,6 @@ export function PassengerAuthShell({
                 </p>
               </div>
             </div>
-
-            {/* Bottom section: contextual demo note on desktop */}
-            <p className="relative z-10 mt-6 hidden text-xs leading-relaxed text-white/60 lg:block">
-              {t("auth.demoNote")}
-            </p>
           </div>
         ) : (
           /* Default decorative brand panel (fallback for other auth routes) */
@@ -106,6 +101,14 @@ export function PassengerAuthShell({
           <h1 className="text-3xl font-bold">{title}</h1>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{description}</p>
           <div className="mt-6">{children}</div>
+          {isSignInMedia ? (
+            <p
+              data-auth-disclosure="signin"
+              className="mt-4 text-xs leading-relaxed text-muted-foreground"
+            >
+              {t("auth.demoNote")}
+            </p>
+          ) : null}
           {footer ? <div className="mt-5 border-t border-border pt-5">{footer}</div> : null}
         </div>
       </section>

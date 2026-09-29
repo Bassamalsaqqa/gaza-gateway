@@ -9,6 +9,7 @@ import {
   sanitizeMediaTreatmentAuthoritative,
   type TruthClass,
 } from "../../src/lib/media-policy.ts";
+import { TARGET_REGISTRY } from "../../src/design/surfaces/targets.ts";
 
 describe("Public Media Registry & Truth Policy (Checkpoint 2026-09-29)", () => {
   const PHOTO_HERO_IDS = [
@@ -208,26 +209,49 @@ describe("Public Media Registry & Truth Policy (Checkpoint 2026-09-29)", () => {
     }
   });
 
-  it("targets.ts airport.chapter-card allowedTruthClasses agrees with media-policy.ts canonical policy", () => {
-    // Regression guard: ensures policy drift fix is durable.
-    // Both sources must agree that historical-documentary is allowed and future-concept-ai is rejected.
+  it("targets.ts TARGET_REGISTRY allowedTruthClasses agrees with media-policy.ts canonical policy", () => {
+    // Regression guard: asserts actual TARGET_REGISTRY metadata against canonical TARGET_ALLOWED_TRUTH_CLASSES.
+    // Order-independent set comparison guarantees zero policy drift across targets.
 
-    // Via canonical policy (media-policy.ts TARGET_ALLOWED_TRUTH_CLASSES):
-    const canonicalAllowed = TARGET_ALLOWED_TRUTH_CLASSES["airport.chapter-card"];
-    assert.ok(
-      canonicalAllowed?.includes("historical-documentary"),
-      "media-policy.ts must allow historical-documentary on airport.chapter-card",
+    // 1. Specific assertion for airport.chapter-card metadata in TARGET_REGISTRY
+    const airportChapterCardDef = TARGET_REGISTRY["airport.chapter-card"];
+    assert.ok(airportChapterCardDef, "TARGET_REGISTRY['airport.chapter-card'] must exist");
+
+    const registrySet = new Set(airportChapterCardDef.allowedTruthClasses ?? []);
+    const canonicalSet = new Set(TARGET_ALLOWED_TRUTH_CLASSES["airport.chapter-card"] ?? []);
+
+    assert.deepEqual(
+      registrySet,
+      canonicalSet,
+      "TARGET_REGISTRY['airport.chapter-card'] allowedTruthClasses must match canonical TARGET_ALLOWED_TRUTH_CLASSES",
     );
     assert.ok(
-      !canonicalAllowed?.includes("future-concept-ai"),
-      "media-policy.ts must reject future-concept-ai on airport.chapter-card",
+      registrySet.has("historical-documentary"),
+      "TARGET_REGISTRY['airport.chapter-card'] must explicitly allow historical-documentary",
     );
     assert.ok(
-      !canonicalAllowed?.includes("illustrative-photo"),
-      "media-policy.ts must reject illustrative-photo on airport.chapter-card",
+      !registrySet.has("future-concept-ai"),
+      "TARGET_REGISTRY['airport.chapter-card'] must strictly reject future-concept-ai",
+    );
+    assert.ok(
+      !registrySet.has("illustrative-photo"),
+      "TARGET_REGISTRY['airport.chapter-card'] must strictly reject illustrative-photo",
     );
 
-    // Via runtime sanitization (should agree with canonical):
+    // 2. Comprehensive check for all targets declared in TARGET_ALLOWED_TRUTH_CLASSES
+    for (const [targetId, expectedClasses] of Object.entries(TARGET_ALLOWED_TRUTH_CLASSES)) {
+      const targetDef = TARGET_REGISTRY[targetId as keyof typeof TARGET_REGISTRY];
+      assert.ok(targetDef, `Target '${targetId}' from TARGET_ALLOWED_TRUTH_CLASSES must exist in TARGET_REGISTRY`);
+      const targetRegistrySet = new Set(targetDef.allowedTruthClasses ?? []);
+      const targetCanonicalSet = new Set(expectedClasses);
+      assert.deepEqual(
+        targetRegistrySet,
+        targetCanonicalSet,
+        `TARGET_REGISTRY['${targetId}'] allowedTruthClasses must match canonical TARGET_ALLOWED_TRUTH_CLASSES`,
+      );
+    }
+
+    // 3. Positive historical and negative future/illustrative runtime sanitization checks
     const historicalOk = sanitizeMediaTreatmentAuthoritative(
       { mediaId: "airport-archive-hero-2000", treatment: "cover" },
       { targetId: "airport.chapter-card" },

@@ -21,13 +21,13 @@ import {
   type SurfaceGrammarConfig,
   type MediaTreatment,
   type TruthClass,
-} from "./types";
-import { FAMILY_ALLOWLISTS } from "./allowlists";
-import { DEFAULT_SURFACE_RECIPES } from "./presets";
-import type { PatternId, IntensityLevel, ScaleLevel } from "@/design/patterns/pattern-types";
-import { canonicalPatternId } from "@/design/patterns/pattern-types";
+} from "./types.ts";
+import { FAMILY_ALLOWLISTS } from "./allowlists.ts";
+import { DEFAULT_SURFACE_RECIPES } from "./presets.ts";
+import type { PatternId, IntensityLevel, ScaleLevel } from "../patterns/pattern-types.ts";
+import { canonicalPatternId } from "../patterns/pattern-types.ts";
 
-export * from "./runtime-targets";
+export * from "./runtime-targets.ts";
 import {
   type CanvasTargetId,
   type ComponentTargetId,
@@ -41,7 +41,7 @@ import {
   getTargetFamily,
   isTargetId,
   resolveTargetRecipe,
-} from "./runtime-targets";
+} from "./runtime-targets.ts";
 
 export interface AllowedControls {
   frame: boolean;

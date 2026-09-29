@@ -3316,16 +3316,16 @@ async function runBrowserSmoke() {
       await page.setViewportSize({ width: 1440, height: 900 });
     });
 
-    await checkStep("Check 33: Eight public photo heroes on target routes in EN and AR — archive badge, absent illustrative badge, images loaded, non-mirrored", async () => {
+    await checkStep("Check 33: Eight public photo heroes on target routes in EN and AR — editorial archive context, absent illustrative badge, mobile auth disclosure, images loaded, non-mirrored", async () => {
       await page.setViewportSize({ width: 1440, height: 900 });
 
-      // Archive heroes show data-truth-badge="archive"; service/illustrative heroes show NO badge
+      // Archive heroes show data-archive-context; service/illustrative heroes show NO badge or archive context
       const heroRoutes = [
         {
           path: "/airport",
           arPath: "/ar/airport",
           key: "airport",
-          expectArchiveBadge: true,
+          expectArchiveContext: true,
           enText: "Archive",
           arText: "الأرشيف",
         },
@@ -3333,7 +3333,7 @@ async function runBrowserSmoke() {
           path: "/gallery",
           arPath: "/ar/gallery",
           key: "gallery",
-          expectArchiveBadge: true,
+          expectArchiveContext: true,
           enText: "Archive",
           arText: "الأرشيف",
           extraCheck: async (p, isAr) => {
@@ -3347,7 +3347,7 @@ async function runBrowserSmoke() {
           path: "/destinations",
           arPath: "/ar/destinations",
           key: "destinations",
-          expectArchiveBadge: false,
+          expectArchiveContext: false,
           extraCheck: async (p) => {
             const input = p.locator("#dest-search");
             if ((await input.count()) === 0) {
@@ -3359,7 +3359,7 @@ async function runBrowserSmoke() {
           path: "/travel",
           arPath: "/ar/travel",
           key: "travel",
-          expectArchiveBadge: false,
+          expectArchiveContext: false,
           extraCheck: async (p) => {
             const tabs = p.locator('[role="tablist"]');
             if ((await tabs.count()) === 0) {
@@ -3371,7 +3371,7 @@ async function runBrowserSmoke() {
           path: "/manage",
           arPath: "/ar/manage",
           key: "manage",
-          expectArchiveBadge: false,
+          expectArchiveContext: false,
           extraCheck: async (p) => {
             const pnr = p.locator("#pnr");
             const idInput = p.locator("#identifier");
@@ -3384,7 +3384,7 @@ async function runBrowserSmoke() {
           path: "/check-in",
           arPath: "/ar/check-in",
           key: "check-in",
-          expectArchiveBadge: false,
+          expectArchiveContext: false,
           extraCheck: async (p) => {
             const pnr = p.locator("#ci-pnr");
             const idInput = p.locator("#ci-identifier");
@@ -3397,7 +3397,7 @@ async function runBrowserSmoke() {
           path: "/flights",
           arPath: "/ar/flights",
           key: "flights",
-          expectArchiveBadge: false,
+          expectArchiveContext: false,
           extraCheck: async (p) => {
             // Switcher board and toolbar must be present below hero
             const switcher = p.locator('[role="group"][aria-label]').first();
@@ -3420,21 +3420,30 @@ async function runBrowserSmoke() {
           throw new Error(`Missing [data-public-hero="${route.key}"] on ${route.path}`);
         }
 
-        if (route.expectArchiveBadge) {
-          // Archive heroes MUST have the archive editorial eyebrow badge
-          const badge = hero.locator('[data-truth-badge="archive"]');
-          if ((await badge.count()) === 0) {
-            throw new Error(`Missing [data-truth-badge="archive"] on ${route.path}`);
+        if (route.expectArchiveContext) {
+          // Archive heroes MUST have editorial eyebrow context (data-archive-context)
+          const eyebrow = hero.locator('[data-archive-context]');
+          if ((await eyebrow.count()) === 0) {
+            throw new Error(`Missing [data-archive-context] on ${route.path}`);
           }
-          const badgeText = await badge.innerText();
-          if (!badgeText.includes(route.enText)) {
-            throw new Error(`Archive badge on ${route.path} expected to contain "${route.enText}", got "${badgeText}"`);
+          const eyebrowText = await eyebrow.innerText();
+          if (!eyebrowText.toLowerCase().includes(route.enText.toLowerCase())) {
+            throw new Error(`Archive eyebrow on ${route.path} expected to contain "${route.enText}", got "${eyebrowText}"`);
+          }
+          // Strictly NO truth badge pill
+          const anyBadge = hero.locator('[data-truth-badge]');
+          if ((await anyBadge.count()) > 0) {
+            throw new Error(`Archive hero on ${route.path} must NOT render a [data-truth-badge] pill`);
           }
         } else {
-          // Service/illustrative heroes MUST NOT show any passenger-visible badge (badge removed)
+          // Service/illustrative heroes MUST NOT show any passenger-visible badge or archive context
           const anyBadge = hero.locator('[data-truth-badge]');
           if ((await anyBadge.count()) > 0) {
             throw new Error(`Service hero on ${route.path} must NOT render a passenger-visible truth badge`);
+          }
+          const archiveContext = hero.locator('[data-archive-context]');
+          if ((await archiveContext.count()) > 0) {
+            throw new Error(`Service hero on ${route.path} must NOT render [data-archive-context]`);
           }
         }
 
@@ -3464,19 +3473,27 @@ async function runBrowserSmoke() {
           throw new Error(`Missing [data-public-hero="${route.key}"] on ${route.arPath}`);
         }
 
-        if (route.expectArchiveBadge) {
-          const arBadge = arHero.locator('[data-truth-badge="archive"]');
-          if ((await arBadge.count()) === 0) {
-            throw new Error(`Missing [data-truth-badge="archive"] on ${route.arPath}`);
+        if (route.expectArchiveContext) {
+          const arEyebrow = arHero.locator('[data-archive-context]');
+          if ((await arEyebrow.count()) === 0) {
+            throw new Error(`Missing [data-archive-context] on ${route.arPath}`);
           }
-          const arBadgeText = await arBadge.innerText();
-          if (!arBadgeText.includes(route.arText)) {
-            throw new Error(`Archive badge on ${route.arPath} expected to contain "${route.arText}", got "${arBadgeText}"`);
+          const arEyebrowText = await arEyebrow.innerText();
+          if (!arEyebrowText.includes(route.arText)) {
+            throw new Error(`Archive eyebrow on ${route.arPath} expected to contain "${route.arText}", got "${arEyebrowText}"`);
+          }
+          const arAnyBadge = arHero.locator('[data-truth-badge]');
+          if ((await arAnyBadge.count()) > 0) {
+            throw new Error(`Archive hero on ${route.arPath} must NOT render a [data-truth-badge] pill`);
           }
         } else {
           const arAnyBadge = arHero.locator('[data-truth-badge]');
           if ((await arAnyBadge.count()) > 0) {
             throw new Error(`Service hero on ${route.arPath} must NOT render a passenger-visible truth badge`);
+          }
+          const arArchiveContext = arHero.locator('[data-archive-context]');
+          if ((await arArchiveContext.count()) > 0) {
+            throw new Error(`Service hero on ${route.arPath} must NOT render [data-archive-context]`);
           }
         }
 
@@ -3499,18 +3516,37 @@ async function runBrowserSmoke() {
         }
       }
 
-      // Sign-in photo panel: photo loads, NOT mirrored, NO passenger-visible badge (removed)
-      // English
+      // Sign-in photo panel: photo loads, NOT mirrored, NO passenger-visible badge, NO disclosure on photo
+      // English desktop (1440px)
+      await page.setViewportSize({ width: 1440, height: 900 });
       await page.goto(baseUrl + "/signin", { waitUntil: "domcontentloaded" });
       const signinMedia = page.locator('[data-auth-media="signin"]');
       if ((await signinMedia.count()) === 0) {
         throw new Error("Missing [data-auth-media='signin'] on /signin");
       }
-      // Confirm illustrative badge has been removed from the DOM
+      // Confirm no truth badge pill and no disclosure text on the photo panel
       const signinBadge = signinMedia.locator('[data-truth-badge]');
       if ((await signinBadge.count()) > 0) {
-        throw new Error("Sign-in photo panel must NOT render a passenger-visible truth badge after cleanup");
+        throw new Error("Sign-in photo panel must NOT render a passenger-visible truth badge");
       }
+      const signinPhotoDisclosure = signinMedia.locator('[data-auth-disclosure]');
+      if ((await signinPhotoDisclosure.count()) > 0) {
+        throw new Error("Sign-in photo panel must NOT contain the simulation disclosure note");
+      }
+
+      // Verify disclosure is in the form panel, visible at desktop (1440px), and nonduplicated
+      const signinFormDisclosure = page.locator('[data-auth-disclosure="signin"]');
+      if ((await signinFormDisclosure.count()) !== 1) {
+        throw new Error("Expected exactly one [data-auth-disclosure='signin'] in the sign-in form panel");
+      }
+      if (!(await signinFormDisclosure.isVisible())) {
+        throw new Error("[data-auth-disclosure='signin'] must be visible on desktop");
+      }
+      const disclosureEnText = await signinFormDisclosure.innerText();
+      if (!disclosureEnText.includes("device only")) {
+        throw new Error(`Sign-in disclosure expected to mention device only, got: "${disclosureEnText}"`);
+      }
+
       const signinImg = await signinMedia.locator("img").first().evaluate((img) => {
         const style = window.getComputedStyle(img);
         const isMirrored = style.transform.includes("matrix(-1") || style.transform.includes("scaleX(-1)");
@@ -3526,12 +3562,58 @@ async function runBrowserSmoke() {
         throw new Error("Sign-in photo must NEVER be mirrored");
       }
 
-      // Arabic signin
+      // Mobile visibility check at 390px
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.goto(baseUrl + "/signin", { waitUntil: "domcontentloaded" });
+      const mobileDisclosure = page.locator('[data-auth-disclosure="signin"]');
+      if ((await mobileDisclosure.count()) !== 1) {
+        throw new Error("Expected exactly one [data-auth-disclosure='signin'] at 390px");
+      }
+      if (!(await mobileDisclosure.isVisible())) {
+        throw new Error("[data-auth-disclosure='signin'] must be visible on mobile (390px)");
+      }
+
+      // Mobile visibility check at 320px
+      await page.setViewportSize({ width: 320, height: 568 });
+      await page.goto(baseUrl + "/signin", { waitUntil: "domcontentloaded" });
+      const smallDisclosure = page.locator('[data-auth-disclosure="signin"]');
+      if (!(await smallDisclosure.isVisible())) {
+        throw new Error("[data-auth-disclosure='signin'] must be visible on small mobile (320px)");
+      }
+
+      // Arabic signin desktop
+      await page.setViewportSize({ width: 1440, height: 900 });
       await page.goto(baseUrl + "/ar/signin", { waitUntil: "domcontentloaded" });
       const arSigninMedia = page.locator('[data-auth-media="signin"]');
       if ((await arSigninMedia.count()) === 0) {
         throw new Error("Missing [data-auth-media='signin'] on /ar/signin");
       }
+      const arSigninPhotoDisclosure = arSigninMedia.locator('[data-auth-disclosure]');
+      if ((await arSigninPhotoDisclosure.count()) > 0) {
+        throw new Error("Arabic sign-in photo panel must NOT contain the simulation disclosure note");
+      }
+      const arSigninFormDisclosure = page.locator('[data-auth-disclosure="signin"]');
+      if ((await arSigninFormDisclosure.count()) !== 1) {
+        throw new Error("Expected exactly one [data-auth-disclosure='signin'] on Arabic sign-in");
+      }
+      if (!(await arSigninFormDisclosure.isVisible())) {
+        throw new Error("[data-auth-disclosure='signin'] must be visible on Arabic desktop");
+      }
+      const arDisclosureText = await arSigninFormDisclosure.innerText();
+      if (!arDisclosureText.includes("الجهاز فقط")) {
+        throw new Error(`Arabic sign-in disclosure expected to mention الجهاز فقط, got: "${arDisclosureText}"`);
+      }
+
+      // Arabic mobile visibility check at 390px
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.goto(baseUrl + "/ar/signin", { waitUntil: "domcontentloaded" });
+      const arMobileDisclosure = page.locator('[data-auth-disclosure="signin"]');
+      if (!(await arMobileDisclosure.isVisible())) {
+        throw new Error("Arabic [data-auth-disclosure='signin'] must be visible on mobile (390px)");
+      }
+
+      // Reset viewport to 1440x900
+      await page.setViewportSize({ width: 1440, height: 900 });
 
       // Verify other auth page fallback (e.g. /register does not have data-auth-media="signin")
       await page.goto(baseUrl + "/register", { waitUntil: "domcontentloaded" });

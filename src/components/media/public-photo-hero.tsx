@@ -65,25 +65,18 @@ export function PublicPhotoHero({
       <Container className="relative z-10 flex min-h-[15rem] sm:min-h-[18rem] lg:min-h-[21rem] xl:min-h-[23rem] flex-col justify-center py-8 sm:py-10 lg:py-12">
         <div className="max-w-2xl">
           {/*
-            Archive editorial eyebrow — shown only for historical-documentary heroes (/airport, /gallery).
-            This is explicit editorial context, not a class-debug badge.
-            Service/illustrative heroes (destinations, travel, manage, check-in, flights)
-            do NOT show a passenger-visible badge. Internal truth classification is still
-            enforced by media policy and sanitization.
+            Archive editorial context — rendered as an authentic editorial eyebrow,
+            separate from technical truth-class UI.
+            Only shown for authentic historical-documentary heroes (/airport, /gallery).
+            Service and illustrative heroes render no passenger-visible badge or pill.
           */}
           {truthClass === "historical-documentary" ? (
-            <div className="mb-2.5 sm:mb-3 flex items-center gap-2">
-              <span
-                data-truth-badge="archive"
-                className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-ink/80 px-2.5 py-0.5 text-[0.6875rem] font-medium text-white/90 backdrop-blur-xs select-none shadow-xs"
-              >
-                <span
-                  className="size-1.5 rounded-full bg-amber-400"
-                  aria-hidden="true"
-                />
-                {archiveLabel}
-              </span>
-            </div>
+            <p
+              data-archive-context
+              className="eyebrow mb-2 text-clay-soft sm:mb-3"
+            >
+              {archiveLabel}
+            </p>
           ) : null}
 
           {/* Heading */}
