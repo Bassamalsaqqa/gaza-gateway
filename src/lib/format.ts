@@ -33,6 +33,35 @@ export function dateShort(iso: string | undefined | null, lang: Lang): string {
   }).format(d);
 }
 
+/**
+ * Splits date into prominent short date (e.g. "12 Oct") and quieter weekday (e.g. "Monday").
+ * Uses Latin digits in Arabic mode ("ar-u-nu-latn") per repository invariant.
+ * Day and month are joined with a non-breaking space so they never wrap across lines.
+ */
+export function dateParts(
+  iso: string | undefined | null,
+  lang: Lang,
+): { day: string; month: string; dayMonth: string; weekday: string } | null {
+  if (!iso) return null;
+  const d = new Date(`${iso}T12:00:00`);
+  if (isNaN(d.getTime())) return null;
+  const day = new Intl.DateTimeFormat(lang === "ar" ? "ar-u-nu-latn" : "en-GB", {
+    day: "numeric",
+  }).format(d);
+  const month = new Intl.DateTimeFormat(lang === "ar" ? "ar-u-nu-latn" : "en-GB", {
+    month: "short",
+  }).format(d);
+  const rawDayMonth = new Intl.DateTimeFormat(lang === "ar" ? "ar-u-nu-latn" : "en-GB", {
+    day: "numeric",
+    month: "short",
+  }).format(d);
+  const dayMonth = rawDayMonth.replace(/\s+/g, "\u00A0");
+  const weekday = new Intl.DateTimeFormat(lang === "ar" ? "ar-u-nu-latn" : "en-GB", {
+    weekday: "long",
+  }).format(d);
+  return { day, month, dayMonth, weekday };
+}
+
 export function weekdayName(index: number, lang: Lang): string {
   const base = new Date(2024, 8, 1 + index); // 2024-09-01 was a Sunday
   return new Intl.DateTimeFormat(lang === "ar" ? "ar" : "en-GB", { weekday: "short" }).format(base);

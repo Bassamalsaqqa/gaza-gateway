@@ -68,7 +68,7 @@ flowchart TD
 - **Primary Objective**: Civic welcome, immediate flight discovery, route connectivity, and historical pride.
 - **Key Characteristics**:
   - Warm limestone background (`--background`, `--sand`) with deep olive brand accents (`--brand`).
-  - Integrated, single-container Flight Search Console positioned prominently above the fold.
+  - Integrated, single-container Flight Search Console positioned prominently above the fold (see technical architecture in [`BOOKING_SEARCH_CONSOLE.md`](BOOKING_SEARCH_CONSOLE.md)).
   - Passenger Quick Services strip (Flight Status, Online Check-in, Baggage Rules, Airport Guide).
   - Curated Daily Flight Matrix preview displaying scheduled regional connectivity.
   - Living Heritage Spotlight bridging contemporary civil aviation to cultural documentary history.

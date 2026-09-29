@@ -1,10 +1,28 @@
+/**
+ * FlightSearchForm — Gaza Gateway (Redesign 0.2)
+ *
+ * Responsive flight-search console matching the three owner design references:
+ *   - PC (≥1280px): Slim single horizontal instrument console.
+ *   - Tablet (768–1279px): Deliberate two-row inner console (route + dates / travellers + cabin + search).
+ *   - Mobile (<768px): Vertical stacked console with route connector, paired dates, travellers, cabin, full-width CTA.
+ *
+ * Visual hierarchy:
+ *   1. Outer journey shell: authentic red Ticket world-map WebP (decorative, unmirrored in RTL).
+ *   2. Compact trip type bar: Round trip / One way pill buttons with aria-pressed.
+ *   3. Inner limestone console: single coherent warm surface with fine dividers.
+ *   4. Route zone: clickable Origin/Destination with large LTR IATA codes, city, airport name, center swap.
+ *   5. Dates zone: prominent short date + quieter weekday (Western digits in Arabic), one-way removes Return.
+ *   6. Split Travellers & Cabin controls with individual triggers and accessible popovers/sheets.
+ *   7. Search CTA: brand olive with icon + label + directional arrow.
+ */
+
 import { useAppNavigate } from "@/components/app-link";
-import { ArrowDownUp, ArrowLeftRight, Search } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { btnClass, Field } from "./kit";
+import { ArrowLeft, ArrowRight, ArrowRightLeft, Plane, Search } from "lucide-react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { AirportCombobox } from "./airport-combobox";
 import { AirlineDatePicker } from "./airline-date-picker";
-import { TravellersCabinPicker } from "./travellers-cabin-picker";
+import { TravellersPicker } from "./travellers-picker";
+import { CabinPicker } from "./cabin-picker";
 import { GZA, addDaysISO, destinations, searchFlights, todayISO } from "@/lib/data";
 import { useI18n } from "@/lib/i18n";
 import { useStore, type SearchCriteria } from "@/lib/store";
@@ -13,26 +31,56 @@ import { isStudioPreviewActive, getStudioScenarioParam } from "@/lib/studio-prev
 import { cn } from "@/lib/utils";
 import ticketWorldMapImg from "@/assets/media/decorative/cards/ticket-world-map.webp";
 
+/* -------------------------------------------------------------------------- */
+/*  Types                                                                       */
+/* -------------------------------------------------------------------------- */
+
+export type FlightSearchConsoleContext = "home" | "standard";
+
+export interface FlightSearchFormProps {
+  /** @deprecated use context="home" instead. */
+  variant?: "panel" | "inline";
+  /** @deprecated use context="home" instead. */
+  treatment?: "ticket-map";
+  /** Explicit console context: "home" | "standard" (default). */
+  context?: FlightSearchConsoleContext;
+  initial?: Partial<SearchCriteria>;
+}
+
+function resolveContext(
+  context: FlightSearchConsoleContext | undefined,
+  treatment: "ticket-map" | undefined,
+): FlightSearchConsoleContext {
+  if (context) return context;
+  if (treatment === "ticket-map") return "home";
+  return "standard";
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Component                                                                   */
+/* -------------------------------------------------------------------------- */
+
 export function FlightSearchForm({
   variant = "panel",
   initial,
   treatment,
-}: {
-  variant?: "panel" | "inline";
-  initial?: Partial<SearchCriteria>;
-  treatment?: "ticket-map";
-}) {
+  context: contextProp,
+}: FlightSearchFormProps) {
   const { t, lang } = useI18n();
   const { draft, resetDraft } = useStore();
   const navigate = useAppNavigate();
+  const ctx = resolveContext(contextProp, treatment);
+  const isHome = ctx === "home";
 
+  /* ── Criteria state ── */
   const [criteria, setCriteria] = useState<SearchCriteria>(() => ({
     ...draft.criteria,
     ...initial,
   }));
 
-  // Preserved draft for return date to prevent accidental erasure when toggling round-trip to one-way
-  const [returnDateDraft, setReturnDateDraft] = useState<string>(() => criteria.returnDate || "");
+  const [returnDateDraft, setReturnDateDraft] = useState<string>(
+    () => criteria.returnDate || "",
+  );
   const [minDate, setMinDate] = useState<string>(() => criteria.departDate || "");
   const [error, setError] = useState<string | null>(null);
 
@@ -45,6 +93,8 @@ export function FlightSearchForm({
       const activeReturn = draft.criteria.returnDate || prev.returnDate;
       const needsDate = !activeDepart;
       const isPast = activeDepart && activeDepart < today;
+      const effectiveOrigin = initial?.origin ?? draft.criteria.origin ?? prev.origin;
+      const effectiveDestination = initial?.destination ?? draft.criteria.destination ?? prev.destination;
       if (needsDate || isPast) {
         const nextReturn =
           prev.tripType === "round"
@@ -55,32 +105,37 @@ export function FlightSearchForm({
         setReturnDateDraft(nextReturn || ret);
         return {
           ...prev,
-          origin: draft.criteria.origin || prev.origin,
-          destination: draft.criteria.destination || prev.destination,
+          origin: effectiveOrigin,
+          destination: effectiveDestination,
           departDate: today,
           returnDate: nextReturn,
         };
       }
       return {
         ...prev,
-        origin: draft.criteria.origin || prev.origin,
-        destination: draft.criteria.destination || prev.destination,
+        origin: effectiveOrigin,
+        destination: effectiveDestination,
         departDate: activeDepart,
         returnDate: activeReturn,
       };
     });
-  }, [draft.criteria]);
+  }, [draft.criteria, initial?.origin, initial?.destination]);
 
+  // Keep route prefill authoritative if initial prop changes (e.g. client route transitions)
+  useEffect(() => {
+    if (initial?.origin || initial?.destination) {
+      setCriteria((prev) => ({
+        ...prev,
+        ...(initial.origin ? { origin: initial.origin } : {}),
+        ...(initial.destination ? { destination: initial.destination } : {}),
+      }));
+    }
+  }, [initial?.origin, initial?.destination]);
 
-  /**
-   * Trip Type State & Draft Preservation (§10.5.2):
-   * Toggling to one-way preserves return date as draft; toggling back restores it.
-   */
+  /* ── Trip type ── */
   const handleTripTypeChange = (type: "round" | "oneway") => {
     if (type === "oneway") {
-      if (criteria.returnDate) {
-        setReturnDateDraft(criteria.returnDate);
-      }
+      if (criteria.returnDate) setReturnDateDraft(criteria.returnDate);
       setCriteria((prev) => ({ ...prev, tripType: "oneway" }));
     } else {
       const restored = returnDateDraft || addDaysISO(criteria.departDate || todayISO(), 6);
@@ -88,28 +143,7 @@ export function FlightSearchForm({
     }
   };
 
-  /**
-   * Departure & Return date relationship (§10.5.3):
-   * Never silently mutate user return date when departure moves forward.
-   */
-  const handleDepartDateChange = (newDepart: string) => {
-    setCriteria((prev) => ({
-      ...prev,
-      departDate: newDepart,
-    }));
-  };
-
-  const handleReturnDateChange = (newReturn: string) => {
-    setReturnDateDraft(newReturn);
-    setCriteria((prev) => ({
-      ...prev,
-      returnDate: newReturn,
-    }));
-  };
-
-  /**
-   * Network constraint: GZA <-> destination.
-   */
+  /* ── Route ── */
   const setEndpoint = (side: "origin" | "destination", code: string) =>
     setCriteria((prev) => {
       const other = side === "origin" ? prev.destination : prev.origin;
@@ -129,13 +163,14 @@ export function FlightSearchForm({
   const swap = () =>
     setCriteria((prev) => ({ ...prev, origin: prev.destination, destination: prev.origin }));
 
-
   const allAirports = useMemo(() => [GZA, ...destinations], []);
 
-  // Field-associated date range check
+  /* ── Validation ── */
   const isDatePairInvalid =
     criteria.tripType === "round" &&
-    Boolean(criteria.departDate && criteria.returnDate && criteria.returnDate < criteria.departDate);
+    Boolean(
+      criteria.departDate && criteria.returnDate && criteria.returnDate < criteria.departDate,
+    );
 
   const isNetworkValid =
     (criteria.origin === GZA.code || criteria.destination === GZA.code) &&
@@ -193,9 +228,7 @@ export function FlightSearchForm({
   );
 
   useEffect(() => {
-    if (error) {
-      setError(validate(criteria));
-    }
+    if (error) setError(validate(criteria));
   }, [error, criteria, validate]);
 
   const submit = (event: React.FormEvent) => {
@@ -218,188 +251,271 @@ export function FlightSearchForm({
     });
   };
 
+  /* ─────────────────────────────────────────────────────────────────────────
+   * Render
+   * ─────────────────────────────────────────────────────────────────────────*/
   return (
     <form
       onSubmit={submit}
       aria-label={t("search.title")}
-      data-decorative-asset={treatment === "ticket-map" ? "home-flight-search-ticket" : undefined}
-      data-testid={treatment === "ticket-map" ? "home-flight-search-ticket" : undefined}
+      data-flight-search-console={ctx}
+      data-decorative-asset={isHome ? "home-flight-search-ticket" : undefined}
+      data-testid={isHome ? "home-flight-search-ticket" : undefined}
       className={cn(
-        "relative rounded-2xl border transition-shadow",
-        treatment === "ticket-map"
-          ? "border-clay/40 bg-clay shadow-[var(--shadow-lift)] [&_label]:text-sand [&_label]:font-semibold [&_[data-slot='return-date-slot'][aria-disabled='true']]:bg-card/75 [&_[data-slot='return-date-slot'][aria-disabled='true']]:border-sand/40 [&_p[role=alert]]:bg-card/95 [&_p[role=alert]]:px-2.5 [&_p[role=alert]]:py-0.5 [&_p[role=alert]]:rounded-md [&_p[role=alert]]:border [&_p[role=alert]]:border-destructive/30 [&_p[role=alert]]:w-fit [&_p[role=alert]]:shadow-xs"
-          : "border-border bg-card shadow-[var(--shadow-soft)]",
-        variant === "panel"
-          ? "p-3.5 sm:p-5 lg:p-5"
-          : "p-3 sm:p-4",
+        "relative overflow-hidden rounded-2xl border transition-shadow",
+        isHome
+          ? "border-clay/40 shadow-[var(--shadow-lift)]"
+          : "border-border shadow-[var(--shadow-soft)]",
       )}
     >
-      {treatment === "ticket-map" && (
-        <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl bg-clay" aria-hidden="true">
-          <img
-            data-decorative-asset="home-flight-search-ticket"
-            data-testid="home-flight-search-ticket"
-            src={ticketWorldMapImg}
-            alt=""
-            aria-hidden="true"
-            loading="lazy"
-            className="size-full select-none object-cover object-center opacity-100"
-          />
-        </div>
-      )}
-      <div className="relative z-10">
-      {/* Accessible Trip Type Fieldset */}
-      <fieldset className="border-0 p-0 m-0">
-        <legend className="sr-only">{t("search.tripType")}</legend>
-        <div
-          className={cn(
-            "flex flex-wrap items-center gap-1.5 sm:gap-2 border-b pb-2.5",
-            treatment === "ticket-map" ? "border-sand/30" : "border-border/50",
-          )}
-        >
-          {(["round", "oneway"] as const).map((type) => {
-            const isSelected = criteria.tripType === type;
-            return (
-              <button
-                key={type}
-                type="button"
-                onClick={() => handleTripTypeChange(type)}
-                aria-pressed={isSelected}
-                className={cn(
-                  "inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-xs font-semibold sm:text-xs tracking-tight whitespace-nowrap select-none cursor-pointer transition-all duration-150",
-                  "active:scale-[0.99] active:transition-none motion-reduce:active:scale-100 motion-reduce:transform-none motion-reduce:transition-none",
-                  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-                  isSelected
-                    ? "bg-primary text-primary-foreground shadow-xs shadow-[var(--shadow-soft)] font-bold"
-                    : treatment === "ticket-map"
-                      ? "bg-card/90 text-foreground hover:bg-card shadow-xs"
-                      : "bg-secondary/70 text-muted-foreground hover:text-foreground hover:bg-sand-deep",
-                )}
-              >
-                {t(type === "round" ? "search.roundTrip" : "search.oneWay")}
-              </button>
-            );
-          })}
-        </div>
-      </fieldset>
-
-      {/* Main Console Inputs Grid — Disciplined Row 1 */}
-      <div className="mt-3 grid grid-cols-1 gap-3 sm:gap-3.5 lg:grid-cols-2">
-        {/* Origin and Destination with Dedicated Swap Column */}
-        <div className="grid grid-cols-1 items-end gap-2 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:gap-2">
-          <Field label={t("search.from")} htmlFor="search-from">
-            <AirportCombobox
-              id="search-from"
-              value={criteria.origin}
-              onChange={(code) => setEndpoint("origin", code)}
-              airports={allAirports}
-              ariaLabel={t("search.from")}
-            />
-          </Field>
-
-          {/* Desktop/Tablet swap button in its own column */}
-          <div className="hidden sm:flex sm:h-11 sm:items-center sm:justify-center">
-            <button
-              type="button"
-              data-slot="route-swap-button"
-              onClick={swap}
-              aria-label={t("search.swap")}
-              title={t("search.swap")}
-              className="inline-flex size-9 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-xs transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring cursor-pointer select-none"
-            >
-              <ArrowLeftRight aria-hidden="true" className="size-4" />
-            </button>
-          </div>
-
-          {/* Mobile centered 44px vertical swap button */}
-          <div className="flex justify-center sm:hidden -my-1">
-            <button
-              type="button"
-              data-slot="route-swap-button"
-              onClick={swap}
-              aria-label={t("search.swap")}
-              title={t("search.swap")}
-              className="inline-flex size-11 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-xs transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring cursor-pointer select-none"
-            >
-              <ArrowDownUp aria-hidden="true" className="size-4" />
-            </button>
-          </div>
-
-          <Field label={t("search.to")} htmlFor="search-to">
-            <AirportCombobox
-              id="search-to"
-              value={criteria.destination}
-              onChange={(code) => setEndpoint("destination", code)}
-              airports={allAirports}
-              ariaLabel={t("search.to")}
-            />
-          </Field>
-        </div>
-
-        {/* Unified Airline Date Picker with Truthful Fares */}
-        <AirlineDatePicker
-          tripType={criteria.tripType}
-          origin={criteria.origin}
-          destination={criteria.destination}
-          departDate={criteria.departDate}
-          returnDate={criteria.returnDate}
-          onDepartChange={handleDepartDateChange}
-          onReturnChange={handleReturnDateChange}
-          minDate={minDate}
-          isDatePairInvalid={isDatePairInvalid}
-          departError={departServiceError}
-          returnError={returnServiceError}
+      {/* ── Red Ticket background (decorative, unmirrored) ── */}
+      <div
+        className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl bg-clay"
+        aria-hidden="true"
+      >
+        <img
+          {...(isHome
+            ? {
+                "data-decorative-asset": "home-flight-search-ticket",
+                "data-testid": "home-flight-search-ticket",
+              }
+            : {})}
+          src={ticketWorldMapImg}
+          alt=""
+          aria-hidden="true"
+          loading="lazy"
+          className="size-full select-none object-cover object-center opacity-100"
         />
       </div>
 
-      {/* Secondary Controls: Travellers & Cabin + Search Action — Disciplined Row 2 */}
-      <div className="mt-3 grid gap-3 sm:gap-3.5 sm:grid-cols-[1fr_auto] items-end">
-        {/* Unified Travellers & Cabin Picker */}
-        <Field label={t("search.travellersAndCabin")} htmlFor="search-travellers">
-          <TravellersCabinPicker
-            adults={criteria.adults}
-            children={criteria.children}
-            infants={criteria.infants}
-            cabin={criteria.cabin}
-            onAdultsChange={(n) =>
-              setCriteria((prev) => {
-                const next = { ...prev, adults: n };
-                if (next.infants > n) next.infants = n;
-                return next;
-              })
-            }
-            onChildrenChange={(n) => setCriteria((prev) => ({ ...prev, children: n }))}
-            onInfantsChange={(n) => setCriteria((prev) => ({ ...prev, infants: n }))}
-            onCabinChange={(id) => setCriteria((prev) => ({ ...prev, cabin: id }))}
-          />
-        </Field>
+      {/* ── Content layer ── */}
+      <div className="relative z-10">
 
-        {/* Action Button */}
-        <div className="flex items-end">
-          <button
-            type="submit"
-            className={btnClass(
-              "primary",
-              "lg",
-              "w-full sm:w-auto min-h-[44px] px-8 shadow-[var(--shadow-soft)] hover:shadow-md",
+        {/* ═══ Trip type header bar ═══ */}
+        <fieldset className="border-0 p-0 m-0">
+          <legend className="sr-only">{t("search.tripType")}</legend>
+          <div className="flex items-center gap-1.5 px-3.5 pt-3.5 pb-2.5 sm:px-5 sm:pt-4">
+            {(["round", "oneway"] as const).map((type) => {
+              const isSelected = criteria.tripType === type;
+              return (
+                <button
+                  key={type}
+                  type="button"
+                  data-slot="trip-type-button"
+                  data-trip-type={type}
+                  onClick={() => handleTripTypeChange(type)}
+                  aria-pressed={isSelected}
+                  className={cn(
+                    "inline-flex items-center justify-center rounded-full px-4 text-sm font-semibold tracking-tight whitespace-nowrap select-none cursor-pointer transition-all duration-150",
+                    "min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 py-2.5 md:py-1.5",
+                    "active:scale-[0.99] active:transition-none motion-reduce:active:scale-100 motion-reduce:transform-none motion-reduce:transition-none",
+                    "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                    isSelected
+                      ? "bg-primary text-primary-foreground shadow-xs"
+                      : "bg-white/20 text-white/95 hover:bg-white/30 backdrop-blur-xs",
+                  )}
+                >
+                  {t(type === "round" ? "search.roundTrip" : "search.oneWay")}
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
+
+        {/* ═══ Inner limestone console ═══ */}
+        <div
+          className={cn(
+            "mx-2 mb-2 rounded-xl bg-card shadow-sm sm:mx-5 sm:mb-5",
+            "border border-border/40 overflow-hidden",
+          )}
+          data-flight-search-console={`${ctx}-inner`}
+        >
+          {/*
+           * 12-column responsive layout:
+           * - Desktop (≥1280px, xl): single horizontal flex row
+           * - Tablet (768-1279px, md): two rows (col-span-7/5 and col-span-4/4/4)
+           * - Mobile (<768px): vertical stack (col-span-12)
+           */}
+          <div
+            className={cn(
+              "grid grid-cols-12",
+              "xl:flex xl:flex-row xl:items-stretch xl:divide-x xl:divide-border/60 rtl:xl:divide-x-reverse",
             )}
           >
-            <Search aria-hidden="true" className="size-4" />
-            <span>{t("search.submit")}</span>
-          </button>
-        </div>
-      </div>
+            {/* 1. Route zone (Origin ↔ Destination) */}
+            <div
+              data-zone="route"
+              className={cn(
+                "col-span-12 md:col-span-7 xl:col-auto xl:flex-[2.6] xl:min-w-0",
+                "border-b border-border/60 md:border-b md:border-e rtl:md:border-e-0 rtl:md:border-s xl:border-b-0 xl:border-e-0",
+                "p-1.5 sm:p-2.5",
+              )}
+            >
+              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1 sm:gap-2 min-w-0">
+                <AirportCombobox
+                  id="search-from"
+                  value={criteria.origin}
+                  onChange={(code) => setEndpoint("origin", code)}
+                  airports={allAirports}
+                  label={t("search.from")}
+                  ariaLabel={t("search.from")}
+                  variant="console"
+                />
 
-      {/* Validation Banner */}
-      {error ? (
-        <div
-          role="alert"
-          aria-live="polite"
-          className="mt-3 flex items-center gap-2 rounded-lg border border-destructive/40 bg-card/95 px-3.5 py-2 text-sm font-medium text-destructive shadow-xs"
-        >
-          <span>{error}</span>
+                {/* Connector with Swap */}
+                <div className="flex flex-col items-center justify-center px-0.5 sm:px-1 shrink-0">
+                  <Plane
+                    aria-hidden="true"
+                    className="size-3 text-clay/70 mb-0.5 rtl:-scale-x-100"
+                  />
+                  <button
+                    type="button"
+                    data-slot="route-swap-button"
+                    onClick={swap}
+                    aria-label={t("search.swap")}
+                    title={t("search.swap")}
+                    className={cn(
+                      "inline-flex size-11 md:size-8 xl:size-9 items-center justify-center rounded-full shrink-0",
+                      "min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0",
+                      "border border-border/60 bg-card shadow-xs",
+                      "text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground",
+                      "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
+                      "cursor-pointer select-none",
+                    )}
+                  >
+                    <ArrowRightLeft aria-hidden="true" className="size-4 md:size-3.5" />
+                  </button>
+                </div>
+
+                <AirportCombobox
+                  id="search-to"
+                  value={criteria.destination}
+                  onChange={(code) => setEndpoint("destination", code)}
+                  airports={allAirports}
+                  label={t("search.to")}
+                  ariaLabel={t("search.to")}
+                  variant="console"
+                />
+              </div>
+            </div>
+
+            {/* 2. Dates zone */}
+            <div
+              data-zone="dates"
+              className={cn(
+                "col-span-12 md:col-span-5 xl:col-auto xl:flex-[2.2] xl:min-w-0",
+                "border-b border-border/60 md:border-b xl:border-b-0",
+                "p-1.5 sm:p-2.5 flex items-center",
+              )}
+            >
+              <AirlineDatePicker
+                tripType={criteria.tripType}
+                origin={criteria.origin}
+                destination={criteria.destination}
+                departDate={criteria.departDate}
+                returnDate={criteria.returnDate}
+                onDepartChange={(d) => setCriteria((prev) => ({ ...prev, departDate: d }))}
+                onReturnChange={(r) => {
+                  setReturnDateDraft(r);
+                  setCriteria((prev) => ({ ...prev, returnDate: r }));
+                }}
+                minDate={minDate}
+                isDatePairInvalid={isDatePairInvalid}
+                departError={departServiceError}
+                returnError={returnServiceError}
+                variant="console"
+                className="w-full"
+              />
+            </div>
+
+            {/* 3. Travellers zone */}
+            <div
+              data-zone="travellers"
+              className={cn(
+                "col-span-12 md:col-span-4 xl:col-auto xl:flex-1 xl:min-w-0",
+                "border-b border-border/60 md:border-b-0 md:border-e rtl:md:border-e-0 rtl:md:border-s xl:border-e-0",
+                "p-1.5 sm:p-2.5 flex items-center",
+              )}
+            >
+              <TravellersPicker
+                adults={criteria.adults}
+                children={criteria.children}
+                infants={criteria.infants}
+                onAdultsChange={(n) =>
+                  setCriteria((prev) => {
+                    const next = { ...prev, adults: n };
+                    if (next.infants > n) next.infants = n;
+                    return next;
+                  })
+                }
+                onChildrenChange={(n) => setCriteria((prev) => ({ ...prev, children: n }))}
+                onInfantsChange={(n) => setCriteria((prev) => ({ ...prev, infants: n }))}
+                variant="console"
+              />
+            </div>
+
+            {/* 4. Cabin zone */}
+            <div
+              data-zone="cabin"
+              className={cn(
+                "col-span-12 md:col-span-4 xl:col-auto xl:flex-1 xl:min-w-0",
+                "border-b border-border/60 md:border-b-0 md:border-e rtl:md:border-e-0 rtl:md:border-s xl:border-e-0",
+                "p-1.5 sm:p-2.5 flex items-center",
+              )}
+            >
+              <CabinPicker
+                cabin={criteria.cabin}
+                onCabinChange={(id) => setCriteria((prev) => ({ ...prev, cabin: id }))}
+                variant="console"
+              />
+            </div>
+
+            {/* 5. Search CTA zone */}
+            <div
+              data-zone="search-action"
+              className={cn(
+                "col-span-12 md:col-span-4 xl:col-auto xl:shrink-0",
+                "p-1.5 sm:p-2.5 flex items-center",
+              )}
+            >
+              <button
+                type="submit"
+                className={cn(
+                  "inline-flex items-center justify-center gap-2",
+                  "h-12 w-full xl:w-auto xl:h-full xl:min-h-[58px] xl:px-6 rounded-xl",
+                  "bg-primary text-primary-foreground font-semibold text-sm",
+                  "shadow-xs hover:bg-primary/90 active:scale-[0.99]",
+                  "transition-all duration-150 motion-reduce:transition-none motion-reduce:active:scale-100",
+                  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                  "cursor-pointer select-none whitespace-nowrap",
+                  "min-h-[44px]",
+                )}
+              >
+                <Search aria-hidden="true" className="size-4 shrink-0" />
+                <span>{t("search.submit")}</span>
+                {lang === "ar" ? (
+                  <ArrowLeft aria-hidden="true" className="size-4 shrink-0" />
+                ) : (
+                  <ArrowRight aria-hidden="true" className="size-4 shrink-0" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* ─── Validation Banner (high contrast over red shell) ─── */}
+          {error ? (
+            <div
+              role="alert"
+              aria-live="polite"
+              className={cn(
+                "mx-2 my-2 sm:mx-5 sm:my-3.5",
+                "flex items-center gap-2 rounded-lg border border-destructive/40 bg-card/95 px-3.5 py-2.5 text-sm font-medium text-destructive shadow-xs",
+              )}
+            >
+              <span>{error}</span>
+            </div>
+          ) : null}
         </div>
-      ) : null}
       </div>
     </form>
   );

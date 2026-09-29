@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Calendar as CalendarIcon } from "lucide-react";
 
 import { searchFlights, todayISO } from "@/lib/data";
-import { dateShort } from "@/lib/format";
+import { dateParts, dateShort } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { Field } from "@/components/kit";
@@ -38,6 +38,7 @@ export interface AirlineDatePickerProps {
   returnError?: string | undefined;
   disabled?: boolean | undefined;
   className?: string | undefined;
+  variant?: "default" | "console" | undefined;
 }
 
 export function AirlineDatePicker({
@@ -54,6 +55,7 @@ export function AirlineDatePicker({
   returnError: returnErrorProp,
   disabled = false,
   className,
+  variant = "default",
 }: AirlineDatePickerProps) {
   const { t, lang } = useI18n();
   const isMobile = useIsMobile();
@@ -249,18 +251,17 @@ export function AirlineDatePicker({
     [activeFrom, activeTo, getRouteFare, lang, t, getMinFareForMonth, effectiveMinDate, departDate, getDepartFare],
   );
 
+  const isConsole = variant === "console";
+  const departParts = useMemo(() => dateParts(departDate, lang), [departDate, lang]);
+  const returnParts = useMemo(() => dateParts(returnDate, lang), [returnDate, lang]);
+
   return (
     <div className={cn("md:col-span-2 lg:col-span-2", className)}>
       <Popover open={!isMobile && open} onOpenChange={(val) => { if (!val) handleClose(); }}>
         <PopoverAnchor asChild>
-          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 sm:gap-4">
-            {/* Departure Field and Trigger */}
-            <Field
-              label={t("search.depart")}
-              htmlFor="search-depart"
-              error={activeDepartError}
-              errorId="search-depart-error"
-            >
+          {isConsole ? (
+            <div className={cn("grid gap-1 sm:gap-2 w-full min-w-0", tripType === "oneway" ? "grid-cols-1" : "grid-cols-2")}>
+              {/* Departure Trigger */}
               <button
                 ref={departTriggerRef}
                 id="search-depart"
@@ -279,41 +280,34 @@ export function AirlineDatePicker({
                 aria-invalid={Boolean(activeDepartError)}
                 aria-describedby={activeDepartError ? "search-depart-error" : undefined}
                 className={cn(
-                  "flex h-11 w-full items-center justify-between rounded-lg border border-input bg-card px-3.5 text-sm font-medium transition-colors hover:bg-secondary/40 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring cursor-pointer select-none",
-                  activeDepartError && "border-destructive focus-visible:outline-destructive",
+                  "group flex flex-col items-start justify-center w-full min-h-[58px] px-1.5 py-1 sm:px-2 sm:py-1.5 text-start transition-colors rounded-lg hover:bg-secondary/40 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring cursor-pointer select-none",
+                  activeDepartError && "border border-destructive focus-visible:outline-destructive",
                 )}
               >
-                <span className="flex items-center gap-2">
-                  <CalendarIcon aria-hidden="true" className="size-4 text-muted-foreground shrink-0" />
-                  <span className="tabular-nums font-mono font-semibold text-foreground">
-                    {departDate ? dateShort(departDate, lang) : t("search.selectDates")}
-                  </span>
+                <span className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-muted-foreground truncate">
+                  <CalendarIcon aria-hidden="true" className="size-3 text-muted-foreground/80 shrink-0" />
+                  <span>{t("search.depart")}</span>
                 </span>
-              </button>
-            </Field>
-
-            {/* Return Field and Trigger */}
-            <Field
-              label={t("search.return")}
-              htmlFor={tripType === "oneway" ? undefined : "search-return"}
-              error={tripType === "round" && isDatePairInvalid ? t("search.errReturn") : activeReturnError}
-              errorId="search-return-error"
-            >
-              {tripType === "oneway" ? (
-                <div
-                  id="search-return"
-                  data-slot="return-date-slot"
-                  aria-disabled="true"
-                  className="flex h-11 w-full items-center justify-between rounded-lg border border-input bg-muted/30 px-3.5 text-sm font-medium text-muted-foreground select-none"
-                >
-                  <span className="flex items-center gap-2">
-                    <CalendarIcon aria-hidden="true" className="size-4 text-muted-foreground/60 shrink-0" />
-                    <span className="font-medium text-muted-foreground">
-                      {t("search.oneWay")}
-                    </span>
+                <div className="flex flex-col items-start min-w-0 mt-0.5">
+                  <span
+                    data-slot="date-day-month"
+                    className="font-mono text-base sm:text-lg xl:text-xl font-bold text-foreground tabular-nums tracking-tight whitespace-nowrap block"
+                  >
+                    {departParts?.dayMonth ?? t("search.selectDates")}
                   </span>
+                  {departParts ? (
+                    <span
+                      data-slot="date-weekday"
+                      className="text-[11px] sm:text-xs text-muted-foreground font-medium truncate max-w-full block"
+                    >
+                      {departParts.weekday}
+                    </span>
+                  ) : null}
                 </div>
-              ) : (
+              </button>
+
+              {/* Return Trigger — omitted from layout when oneway */}
+              {tripType === "round" && (
                 <button
                   ref={returnTriggerRef}
                   id="search-return"
@@ -335,22 +329,133 @@ export function AirlineDatePicker({
                     isDatePairInvalid || activeReturnError ? "search-return-error" : undefined
                   }
                   className={cn(
+                    "group flex flex-col items-start justify-center w-full min-h-[58px] px-1.5 py-1 sm:px-2 sm:py-1.5 text-start transition-colors rounded-lg hover:bg-secondary/40 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring cursor-pointer select-none",
+                    (isDatePairInvalid || activeReturnError) && "border border-destructive focus-visible:outline-destructive",
+                  )}
+                >
+                  <span className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-muted-foreground truncate">
+                    <CalendarIcon aria-hidden="true" className="size-3 text-muted-foreground/80 shrink-0" />
+                    <span>{t("search.return")}</span>
+                  </span>
+                  <div className="flex flex-col items-start min-w-0 mt-0.5">
+                    <span
+                      data-slot="date-day-month"
+                      className="font-mono text-base sm:text-lg xl:text-xl font-bold text-foreground tabular-nums tracking-tight whitespace-nowrap block"
+                    >
+                      {returnParts?.dayMonth ?? t("search.selectDates")}
+                    </span>
+                    {returnParts ? (
+                      <span
+                        data-slot="date-weekday"
+                        className="text-[11px] sm:text-xs text-muted-foreground font-medium truncate max-w-full block"
+                      >
+                        {returnParts.weekday}
+                      </span>
+                    ) : null}
+                  </div>
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 sm:gap-4">
+              {/* Departure Field and Trigger */}
+              <Field
+                label={t("search.depart")}
+                htmlFor="search-depart"
+                error={activeDepartError}
+                errorId="search-depart-error"
+              >
+                <button
+                  ref={departTriggerRef}
+                  id="search-depart"
+                  type="button"
+                  title={departDate || undefined}
+                  onClick={() => handleTriggerClick("depart")}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleTriggerClick("depart");
+                    }
+                  }}
+                  disabled={disabled}
+                  aria-expanded={open && activeTarget === "depart"}
+                  aria-haspopup="dialog"
+                  aria-invalid={Boolean(activeDepartError)}
+                  aria-describedby={activeDepartError ? "search-depart-error" : undefined}
+                  className={cn(
                     "flex h-11 w-full items-center justify-between rounded-lg border border-input bg-card px-3.5 text-sm font-medium transition-colors hover:bg-secondary/40 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring cursor-pointer select-none",
-                    (isDatePairInvalid || activeReturnError) && "border-destructive focus-visible:outline-destructive",
+                    activeDepartError && "border-destructive focus-visible:outline-destructive",
                   )}
                 >
                   <span className="flex items-center gap-2">
                     <CalendarIcon aria-hidden="true" className="size-4 text-muted-foreground shrink-0" />
                     <span className="tabular-nums font-mono font-semibold text-foreground">
-                      {returnDate
-                        ? dateShort(returnDate, lang)
-                        : t("search.selectDates")}
+                      {departDate ? dateShort(departDate, lang) : t("search.selectDates")}
                     </span>
                   </span>
                 </button>
-              )}
-            </Field>
-          </div>
+              </Field>
+
+              {/* Return Field and Trigger */}
+              <Field
+                label={t("search.return")}
+                htmlFor={tripType === "oneway" ? undefined : "search-return"}
+                error={tripType === "round" && isDatePairInvalid ? t("search.errReturn") : activeReturnError}
+                errorId="search-return-error"
+              >
+                {tripType === "oneway" ? (
+                  <div
+                    id="search-return"
+                    data-slot="return-date-slot"
+                    aria-disabled="true"
+                    className="flex h-11 w-full items-center justify-between rounded-lg border border-input bg-muted/30 px-3.5 text-sm font-medium text-muted-foreground select-none"
+                  >
+                    <span className="flex items-center gap-2">
+                      <CalendarIcon aria-hidden="true" className="size-4 text-muted-foreground/60 shrink-0" />
+                      <span className="font-medium text-muted-foreground">
+                        {t("search.oneWay")}
+                      </span>
+                    </span>
+                  </div>
+                ) : (
+                  <button
+                    ref={returnTriggerRef}
+                    id="search-return"
+                    data-slot="return-date-slot"
+                    type="button"
+                    title={returnDate || undefined}
+                    onClick={() => handleTriggerClick("return")}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleTriggerClick("return");
+                      }
+                    }}
+                    disabled={disabled}
+                    aria-expanded={open && activeTarget === "return"}
+                    aria-haspopup="dialog"
+                    aria-invalid={isDatePairInvalid || Boolean(activeReturnError)}
+                    aria-describedby={
+                      isDatePairInvalid || activeReturnError ? "search-return-error" : undefined
+                    }
+                    className={cn(
+                      "flex h-11 w-full items-center justify-between rounded-lg border border-input bg-card px-3.5 text-sm font-medium transition-colors hover:bg-secondary/40 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring cursor-pointer select-none",
+                      (isDatePairInvalid || activeReturnError) && "border-destructive focus-visible:outline-destructive",
+                    )}
+                  >
+                    <span className="flex items-center gap-2">
+                      <CalendarIcon aria-hidden="true" className="size-4 text-muted-foreground shrink-0" />
+                      <span className="tabular-nums font-mono font-semibold text-foreground">
+                        {returnDate
+                          ? dateShort(returnDate, lang)
+                          : t("search.selectDates")}
+                      </span>
+                    </span>
+                  </button>
+                )}
+              </Field>
+            </div>
+          )}
         </PopoverAnchor>
 
         {/* Desktop Popover Surface */}

@@ -90,6 +90,7 @@ export interface AirportComboboxProps {
   emptyText?: string;
   disabled?: boolean;
   className?: string;
+  variant?: "default" | "console";
 }
 
 export function AirportCombobox({
@@ -104,6 +105,7 @@ export function AirportCombobox({
   emptyText,
   disabled = false,
   className,
+  variant = "default",
 }: AirportComboboxProps) {
   const { t, lang } = useI18n();
   const [open, setOpen] = React.useState(false);
@@ -128,52 +130,114 @@ export function AirportCombobox({
     handleOpenChange(false);
   };
 
+  const isConsole = variant === "console";
+
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
-        <button
-          ref={triggerRef}
-          id={id}
-          type="button"
-          role="combobox"
-          aria-expanded={open}
-          aria-haspopup="listbox"
-          aria-label={ariaLabel || label || t("search.selectAirport")}
-          disabled={disabled}
-          onKeyDown={(e) => {
-            if (e.key === "ArrowDown" && !open) {
-              e.preventDefault();
-              handleOpenChange(true);
+        {isConsole ? (
+          <button
+            ref={triggerRef}
+            id={id}
+            type="button"
+            role="combobox"
+            data-slot="airport-combobox-trigger"
+            aria-expanded={open}
+            aria-haspopup="listbox"
+            aria-label={
+              selectedAirport
+                ? `${label || ariaLabel || t("search.selectAirport")}: ${selectedAirport.code} - ${pick(lang, selectedAirport.city)}`
+                : (ariaLabel || label || t("search.selectAirport"))
             }
-          }}
-          className={cn(
-            "flex h-11 min-h-[44px] w-full items-center justify-between rounded-lg border border-input bg-card px-3 text-sm font-medium transition-colors hover:bg-secondary/40 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring cursor-pointer select-none",
-            disabled && "cursor-not-allowed opacity-50 pointer-events-none",
-            className,
-          )}
-        >
-          {selectedAirport ? (
-            <div className="flex items-center gap-2 min-w-0 flex-1 text-start">
-              <span className="font-semibold text-foreground truncate">
-                {pick(lang, selectedAirport.city)}
+            disabled={disabled}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowDown" && !open) {
+                e.preventDefault();
+                handleOpenChange(true);
+              }
+            }}
+            className={cn(
+              "group flex flex-col items-start justify-center w-full min-h-[58px] px-1.5 py-1 sm:px-2 sm:py-1.5 text-start transition-colors rounded-lg hover:bg-secondary/40 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring cursor-pointer select-none",
+              disabled && "cursor-not-allowed opacity-50 pointer-events-none",
+              className,
+            )}
+          >
+            {selectedAirport ? (
+              <div className="flex flex-col min-w-0 w-full text-start">
+                <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-muted-foreground truncate">
+                  {label || ariaLabel}
+                </span>
+                <span
+                  data-slot="airport-code"
+                  dir="ltr"
+                  className="font-mono text-xl sm:text-2xl font-extrabold text-foreground tracking-tight tabular-nums truncate block"
+                >
+                  {selectedAirport.code}
+                </span>
+                <span
+                  data-slot="airport-city"
+                  className="font-semibold text-foreground text-xs sm:text-sm truncate block"
+                >
+                  {pick(lang, selectedAirport.city)}
+                </span>
+                <span
+                  data-slot="airport-name"
+                  className="text-[10px] sm:text-[11px] text-muted-foreground/80 truncate block max-w-full"
+                >
+                  {pick(lang, selectedAirport.name)}
+                </span>
+              </div>
+            ) : (
+              <span className="text-muted-foreground truncate text-sm">
+                {placeholder || t("search.selectAirport")}
               </span>
-              <span
-                dir="ltr"
-                className="font-mono text-xs font-bold text-muted-foreground uppercase px-1.5 py-0.5 rounded bg-muted/80 tracking-wider shrink-0 tabular-nums"
-              >
-                {selectedAirport.code}
+            )}
+          </button>
+        ) : (
+          <button
+            ref={triggerRef}
+            id={id}
+            type="button"
+            role="combobox"
+            aria-expanded={open}
+            aria-haspopup="listbox"
+            aria-label={ariaLabel || label || t("search.selectAirport")}
+            disabled={disabled}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowDown" && !open) {
+                e.preventDefault();
+                handleOpenChange(true);
+              }
+            }}
+            className={cn(
+              "flex h-11 min-h-[44px] w-full items-center justify-between rounded-lg border border-input bg-card px-3 text-sm font-medium transition-colors hover:bg-secondary/40 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring cursor-pointer select-none",
+              disabled && "cursor-not-allowed opacity-50 pointer-events-none",
+              className,
+            )}
+          >
+            {selectedAirport ? (
+              <div className="flex items-center gap-2 min-w-0 flex-1 text-start">
+                <span className="font-semibold text-foreground truncate">
+                  {pick(lang, selectedAirport.city)}
+                </span>
+                <span
+                  dir="ltr"
+                  className="font-mono text-xs font-bold text-muted-foreground uppercase px-1.5 py-0.5 rounded bg-muted/80 tracking-wider shrink-0 tabular-nums"
+                >
+                  {selectedAirport.code}
+                </span>
+              </div>
+            ) : (
+              <span className="text-muted-foreground truncate">
+                {placeholder || t("search.selectAirport")}
               </span>
-            </div>
-          ) : (
-            <span className="text-muted-foreground truncate">
-              {placeholder || t("search.selectAirport")}
-            </span>
-          )}
-          <ChevronsUpDown
-            aria-hidden="true"
-            className="size-4 shrink-0 text-muted-foreground opacity-60 ms-2"
-          />
-        </button>
+            )}
+            <ChevronsUpDown
+              aria-hidden="true"
+              className="size-4 shrink-0 text-muted-foreground opacity-60 ms-2"
+            />
+          </button>
+        )}
       </PopoverTrigger>
 
       <PopoverContent

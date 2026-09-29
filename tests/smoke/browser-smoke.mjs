@@ -2569,6 +2569,518 @@ async function runBrowserSmoke() {
       }
     });
 
+
+    await checkStep("Check 28: Redesigned console shared-family context markers and control structure", async () => {
+      // 1. Home has context="home" marker and inner console marker
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto(baseUrl + "/", { waitUntil: "domcontentloaded" });
+
+      const homeConsole = page.locator('[data-flight-search-console="home"]').first();
+      if ((await homeConsole.count()) === 0) {
+        throw new Error("Home form must have data-flight-search-console=\"home\"");
+      }
+
+      const homeInner = page.locator('[data-flight-search-console="home-inner"]').first();
+      if ((await homeInner.count()) === 0) {
+        throw new Error("Home form must have data-flight-search-console=\"home-inner\" on inner console");
+      }
+
+      // 2. /book has context="standard" marker (not home)
+      await page.goto(baseUrl + "/book", { waitUntil: "domcontentloaded" });
+      const bookConsole = page.locator('[data-flight-search-console="standard"]').first();
+      if ((await bookConsole.count()) === 0) {
+        throw new Error("/book form must have data-flight-search-console=\"standard\"");
+      }
+      const bookHomeMarker = await page.locator('[data-decorative-asset="home-flight-search-ticket"]').count();
+      if (bookHomeMarker !== 0) {
+        throw new Error(`/book must NOT have home-specific ticket marker, found ${bookHomeMarker}`);
+      }
+
+      // 3. /destinations/IST has context="standard" marker
+      await page.goto(baseUrl + "/destinations/IST", { waitUntil: "domcontentloaded" });
+      const destConsole = page.locator('[data-flight-search-console="standard"]').first();
+      if ((await destConsole.count()) === 0) {
+        throw new Error("/destinations/IST form must have data-flight-search-console=\"standard\"");
+      }
+      const destHomeMarker = await page.locator('[data-decorative-asset="home-flight-search-ticket"]').count();
+      if (destHomeMarker !== 0) {
+        throw new Error(`/destinations/IST must NOT have home-specific ticket marker, found ${destHomeMarker}`);
+      }
+
+      // 4. Verify zones exist on Home form: route, dates, travellers, cabin, search-action
+      await page.goto(baseUrl + "/", { waitUntil: "domcontentloaded" });
+      const routeZone = await page.locator('[data-zone="route"]').count();
+      const datesZone = await page.locator('[data-zone="dates"]').count();
+      const travellersZone = await page.locator('[data-zone="travellers"]').count();
+      const cabinZone = await page.locator('[data-zone="cabin"]').count();
+      const searchZone = await page.locator('[data-zone="search-action"]').count();
+      if (routeZone === 0 || datesZone === 0 || travellersZone === 0 || cabinZone === 0 || searchZone === 0) {
+        throw new Error(`Console zones missing: route=${routeZone}, dates=${datesZone}, travellers=${travellersZone}, cabin=${cabinZone}, search=${searchZone}`);
+      }
+
+      // 5. Verify separate #search-travellers and #search-cabin triggers exist (split controls)
+      const travTrigger = await page.locator('#search-travellers').count();
+      const cabinTrigger = await page.locator('#search-cabin').count();
+      if (travTrigger === 0) throw new Error("Missing #search-travellers trigger in redesigned console");
+      if (cabinTrigger === 0) throw new Error("Missing #search-cabin trigger in redesigned console");
+
+      // 6. Verify #search-from, #search-to, route-swap-button are present
+      const fromField = await page.locator('#search-from').count();
+      const toField = await page.locator('#search-to').count();
+      const swapBtn = await page.locator('[data-slot="route-swap-button"]').count();
+      if (fromField === 0) throw new Error("Missing #search-from in redesigned console");
+      if (toField === 0) throw new Error("Missing #search-to in redesigned console");
+      if (swapBtn === 0) throw new Error("Missing [data-slot=\"route-swap-button\"] in redesigned console");
+
+      // 7. Verify trip-type buttons with aria-pressed
+      const tripTypeButtons = page.locator('[aria-pressed]');
+      const tripTypeCount = await tripTypeButtons.count();
+      if (tripTypeCount < 2) {
+        throw new Error(`Expected at least 2 trip-type aria-pressed buttons, found ${tripTypeCount}`);
+      }
+
+      // 8. No horizontal overflow at desktop
+      const bodyOverflow = await page.evaluate(() => {
+        return document.body.scrollWidth > document.body.clientWidth;
+      });
+      if (bodyOverflow) {
+        throw new Error("Horizontal overflow detected at 1440px desktop width");
+      }
+
+      // 9. Destination prefill: /destinations/IST should have GZA → IST prefilled after hydration,
+      // even when a prior booking draft stored in localStorage selected another destination (AMM).
+      await page.goto(baseUrl + "/", { waitUntil: "domcontentloaded" });
+      await page.evaluate(() => {
+        const priorStore = {
+          draft: {
+            criteria: {
+              origin: "GZA",
+              destination: "AMM",
+              departDate: "2026-10-15",
+              returnDate: "2026-10-22",
+              tripType: "round",
+              adults: 1,
+              children: 0,
+              infants: 0,
+              cabin: "economy",
+            },
+          },
+          bookings: [],
+        };
+        localStorage.setItem("gza.store.v1", JSON.stringify(priorStore));
+      });
+
+      // 9a. Test /destinations/IST (English)
+      await page.goto(baseUrl + "/destinations/IST", { waitUntil: "domcontentloaded" });
+      await page.waitForSelector("#search-from", { timeout: 10000 });
+      await page.waitForSelector("#search-to", { timeout: 10000 });
+      await page.waitForTimeout(150);
+
+      const istFromData = await page.evaluate(() => {
+        const btn = document.getElementById("search-from");
+        const code = btn?.querySelector('[data-slot="airport-code"]')?.textContent?.trim() || "";
+        const city = btn?.querySelector('[data-slot="airport-city"]')?.textContent?.trim() || "";
+        return { text: btn?.textContent || "", aria: btn?.getAttribute("aria-label") || "", code, city };
+      });
+      const istToData = await page.evaluate(() => {
+        const btn = document.getElementById("search-to");
+        const code = btn?.querySelector('[data-slot="airport-code"]')?.textContent?.trim() || "";
+        const city = btn?.querySelector('[data-slot="airport-city"]')?.textContent?.trim() || "";
+        return { text: btn?.textContent || "", aria: btn?.getAttribute("aria-label") || "", code, city };
+      });
+
+      if (istFromData.code !== "GZA" && !istFromData.text.includes("GZA")) {
+        throw new Error(`Expected GZA prefilled as origin on /destinations/IST, got code="${istFromData.code}", text="${istFromData.text}"`);
+      }
+      if (istToData.code !== "IST" && !istToData.text.includes("IST")) {
+        throw new Error(`Expected IST prefilled as destination on /destinations/IST (authoritative over stored AMM draft), got code="${istToData.code}", text="${istToData.text}"`);
+      }
+
+      // 9b. Test /ar/destinations/IST (Arabic)
+      await page.goto(baseUrl + "/ar/destinations/IST", { waitUntil: "domcontentloaded" });
+      await page.waitForSelector("#search-from", { timeout: 10000 });
+      await page.waitForSelector("#search-to", { timeout: 10000 });
+      await page.waitForTimeout(150);
+
+      const arIstFromData = await page.evaluate(() => {
+        const btn = document.getElementById("search-from");
+        const code = btn?.querySelector('[data-slot="airport-code"]')?.textContent?.trim() || "";
+        return { text: btn?.textContent || "", code };
+      });
+      const arIstToData = await page.evaluate(() => {
+        const btn = document.getElementById("search-to");
+        const code = btn?.querySelector('[data-slot="airport-code"]')?.textContent?.trim() || "";
+        return { text: btn?.textContent || "", code };
+      });
+
+      if (arIstFromData.code !== "GZA" && !arIstFromData.text.includes("GZA")) {
+        throw new Error(`Expected GZA prefilled as origin on /ar/destinations/IST, got: "${arIstFromData.code}"`);
+      }
+      if (arIstToData.code !== "IST" && !arIstToData.text.includes("IST")) {
+        throw new Error(`Expected IST prefilled as destination on /ar/destinations/IST, got: "${arIstToData.code}"`);
+      }
+
+      // 9c. Verify Home route preserves normal draft behavior
+      await page.goto(baseUrl + "/", { waitUntil: "domcontentloaded" });
+      await page.waitForSelector("#search-to", { timeout: 10000 });
+      const homeToData = await page.evaluate(() => {
+        const btn = document.getElementById("search-to");
+        return btn?.querySelector('[data-slot="airport-code"]')?.textContent?.trim() || "";
+      });
+      if (homeToData !== "AMM") {
+        throw new Error(`Expected Home to preserve stored draft destination (AMM), got "${homeToData}"`);
+      }
+
+      // 10. Verify no horizontal overflow at 390px mobile & Swap target size >= 44x44
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.goto(baseUrl + "/", { waitUntil: "domcontentloaded" });
+      const mobileOverflow = await page.evaluate(() => {
+        return document.body.scrollWidth > document.body.clientWidth;
+      });
+      if (mobileOverflow) {
+        throw new Error("Horizontal overflow detected at 390px mobile width on Home");
+      }
+
+      // Swap button touch target bounding box assertion at mobile width
+      const swapTargetMobile = await page.evaluate(() => {
+        const btn = document.querySelector('[data-slot="route-swap-button"]');
+        if (!btn) return null;
+        const rect = btn.getBoundingClientRect();
+        return { width: rect.width, height: rect.height };
+      });
+      if (!swapTargetMobile) {
+        throw new Error("Swap button [data-slot=\"route-swap-button\"] not found on mobile");
+      }
+      if (swapTargetMobile.width < 44 || swapTargetMobile.height < 44) {
+        throw new Error(`Mobile Swap button touch target must be at least 44x44px, got ${swapTargetMobile.width}x${swapTargetMobile.height}px`);
+      }
+
+      // The mobile layout runs through 767px. Check both trip-type buttons and
+      // Swap across the full range, including the 640px Tailwind breakpoint.
+      for (const localePath of ["/", "/ar"]) {
+        for (const width of [320, 390, 640, 767]) {
+          await page.setViewportSize({ width, height: 844 });
+          await page.goto(baseUrl + localePath, { waitUntil: "domcontentloaded" });
+          await page.waitForSelector('[data-flight-search-console] [data-slot="route-swap-button"]');
+          const targets = await page.evaluate(() => {
+            const form = document.querySelector('form[data-flight-search-console]');
+            const swap = form?.querySelector('[data-slot="route-swap-button"]');
+            const tripTypes = Array.from(form?.querySelectorAll('[data-slot="trip-type-button"]') ?? []);
+            const size = (element) => {
+              const rect = element.getBoundingClientRect();
+              return { width: rect.width, height: rect.height };
+            };
+            return {
+              swap: swap ? size(swap) : null,
+              tripTypes: tripTypes.map(size),
+              overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+            };
+          });
+          if (!targets.swap || targets.tripTypes.length !== 2 || targets.overflow) {
+            throw new Error(`Mobile controls missing or overflowing at ${localePath} ${width}px: ${JSON.stringify(targets)}`);
+          }
+          for (const [name, target] of [["Swap", targets.swap], ...targets.tripTypes.map((target, index) => [`Trip type ${index + 1}`, target])]) {
+            if (target.width < 44 || target.height < 44) {
+              throw new Error(`${name} touch target below 44x44px at ${localePath} ${width}px: ${JSON.stringify(target)}`);
+            }
+          }
+        }
+      }
+
+      // 11. Viewport 320px: zero clipping of IATA codes and city names in EN and AR
+      await page.setViewportSize({ width: 320, height: 568 });
+      await page.goto(baseUrl + "/", { waitUntil: "domcontentloaded" });
+      const smallMobileOverflow = await page.evaluate(() => {
+        return document.body.scrollWidth > document.body.clientWidth;
+      });
+      if (smallMobileOverflow) {
+        throw new Error("Horizontal overflow detected at 320px width on Home");
+      }
+
+      // Check rendered visibility and bounding box of IATA code and city inside trigger at 320px
+      const routeBoundingBoxes320 = await page.evaluate(() => {
+        function checkEndpoint(id) {
+          const trigger = document.getElementById(id);
+          if (!trigger) return { error: `Trigger #${id} not found` };
+          const triggerRect = trigger.getBoundingClientRect();
+          const codeEl = trigger.querySelector('[data-slot="airport-code"]');
+          const cityEl = trigger.querySelector('[data-slot="airport-city"]');
+          if (!codeEl || !cityEl) return { error: `Slots missing in #${id}` };
+          const codeRect = codeEl.getBoundingClientRect();
+          const cityRect = cityEl.getBoundingClientRect();
+
+          // Code and city must have positive dimensions and be inside trigger horizontal bounds
+          const codeFits = codeRect.width > 0 && codeRect.left >= (triggerRect.left - 1) && codeRect.right <= (triggerRect.right + 1);
+          const cityFits = cityRect.width > 0 && cityRect.left >= (triggerRect.left - 1) && cityRect.right <= (triggerRect.right + 1);
+
+          return {
+            triggerWidth: triggerRect.width,
+            codeWidth: codeRect.width,
+            cityWidth: cityRect.width,
+            codeFits,
+            cityFits,
+          };
+        }
+        return {
+          from: checkEndpoint("search-from"),
+          to: checkEndpoint("search-to"),
+        };
+      });
+
+      if (!routeBoundingBoxes320.from.codeFits || !routeBoundingBoxes320.from.cityFits) {
+        throw new Error(`Route Origin clipped at 320px: ${JSON.stringify(routeBoundingBoxes320.from)}`);
+      }
+      if (!routeBoundingBoxes320.to.codeFits || !routeBoundingBoxes320.to.cityFits) {
+        throw new Error(`Route Destination clipped at 320px: ${JSON.stringify(routeBoundingBoxes320.to)}`);
+      }
+
+      // Reset viewport
+      await page.setViewportSize({ width: 1440, height: 900 });
+    });
+
+    await checkStep("Check 29: Console one-way/round-trip toggle, traveller stepper, cabin selection, and /book search flow", async () => {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto(baseUrl + "/", { waitUntil: "domcontentloaded" });
+
+      // 1. Round-trip is default
+      const roundTripBtn = page.locator('[aria-pressed]').first();
+      const isRoundTripSelected = await roundTripBtn.getAttribute("aria-pressed");
+      if (isRoundTripSelected !== "true") {
+        throw new Error(`Expected first trip-type button to be selected (round trip), got aria-pressed="${isRoundTripSelected}"`);
+      }
+
+      // 2. Click "One way" — return date field should be removed from layout (no dead field or gap)
+      const oneWayBtn = page.locator('[aria-pressed]').nth(1);
+      await oneWayBtn.click();
+      await page.waitForTimeout(200);
+      const oneWaySelected = await oneWayBtn.getAttribute("aria-pressed");
+      if (oneWaySelected !== "true") {
+        throw new Error(`Expected One way button to be selected after click, got "${oneWaySelected}"`);
+      }
+      const returnCountAfterOneWay = await page.locator('#search-return').count();
+      if (returnCountAfterOneWay !== 0) {
+        throw new Error(`Return date field should be removed from layout in one-way mode (no dead field or gap), found ${returnCountAfterOneWay}`);
+      }
+
+      // 3. Switch back to round-trip — return date should restore
+      await roundTripBtn.click();
+      await page.waitForTimeout(200);
+      const roundTripRestored = await roundTripBtn.getAttribute("aria-pressed");
+      if (roundTripRestored !== "true") {
+        throw new Error(`Round trip button should be selected after clicking it back, got "${roundTripRestored}"`);
+      }
+      const returnCountAfterRestore = await page.locator('#search-return').count();
+      if (returnCountAfterRestore === 0) {
+        throw new Error("Return date field should be restored when switching back to round-trip");
+      }
+
+      // 4. Open Travellers picker, verify steppers
+      await page.locator('#search-travellers').click();
+      await page.waitForSelector('div[role="group"][aria-labelledby*="adults-label"]', { timeout: 5000 });
+
+      // Verify adults label
+      const adultsGroup = page.locator('div[role="group"][aria-labelledby*="adults-label"]');
+      if ((await adultsGroup.count()) === 0) {
+        throw new Error("Adults stepper group not visible in travellers picker");
+      }
+
+      // Increment children
+      await page.locator('div[role="group"][aria-labelledby*="children-label"] button').last().click();
+      await page.waitForTimeout(150);
+
+      // Verify children count updated
+      const childrenCount = await page.locator('div[role="group"][aria-labelledby*="children-label"] span[aria-live]').textContent();
+      if (childrenCount?.trim() !== "1") {
+        throw new Error(`Expected children count to be 1 after increment, got "${childrenCount}"`);
+      }
+
+      // Close travellers by clicking Done
+      await page.locator('button:has-text("Done"), button:has-text("تم")').first().click();
+      await page.waitForTimeout(200);
+
+      // Verify #search-travellers now shows 2 in label (1 adult + 1 child = 2)
+      const travTriggerLabel = await page.locator('#search-travellers').getAttribute("aria-label");
+      if (!travTriggerLabel?.includes("2")) {
+        throw new Error(`Expected travellers trigger to show 2 passengers, got: "${travTriggerLabel}"`);
+      }
+
+      // 5. Open Cabin picker, verify cabin options
+      await page.locator('#search-cabin').click();
+      await page.waitForSelector('[role="radio"]', { timeout: 5000 });
+      const cabinOptions = await page.locator('[role="radio"]').count();
+      if (cabinOptions < 3) {
+        throw new Error(`Expected at least 3 cabin radio options, found ${cabinOptions}`);
+      }
+
+      // Select Business
+      const businessOption = page.locator('[role="radio"][value="business"]');
+      await businessOption.click();
+      await page.waitForTimeout(200);
+
+      // Cabin trigger label should update to Business
+      const cabinTriggerLabel = await page.locator('#search-cabin').getAttribute("aria-label");
+      if (!cabinTriggerLabel?.toLowerCase().includes("business")) {
+        throw new Error(`Expected cabin trigger to show Business after selection, got: "${cabinTriggerLabel}"`);
+      }
+
+      // 6. Verify /book has its own working search form at 1440
+      await page.goto(baseUrl + "/book?step=search", { waitUntil: "domcontentloaded" });
+      await page.waitForSelector('[data-flight-search-console="standard"]', { timeout: 10000 });
+      await page.waitForSelector('#search-cabin', { timeout: 10000 });
+      const bookSearchForm = page.locator('[data-flight-search-console="standard"]');
+      if ((await bookSearchForm.count()) === 0) {
+        throw new Error("/book must render the standard console");
+      }
+      const bookFromField = await page.locator('#search-from').count();
+      const bookToField = await page.locator('#search-to').count();
+      const bookTravellers = await page.locator('#search-travellers').count();
+      const bookCabin = await page.locator('#search-cabin').count();
+      if (bookFromField === 0 || bookToField === 0 || bookTravellers === 0 || bookCabin === 0) {
+        throw new Error(`/book console missing fields: from=${bookFromField}, to=${bookToField}, travellers=${bookTravellers}, cabin=${bookCabin}`);
+      }
+
+      // 7. No overflow at 1024 (tablet)
+      await page.setViewportSize({ width: 1024, height: 768 });
+      await page.goto(baseUrl + "/", { waitUntil: "domcontentloaded" });
+      const tabletOverflow = await page.evaluate(() => {
+        return document.body.scrollWidth > document.body.clientWidth;
+      });
+      if (tabletOverflow) {
+        throw new Error("Horizontal overflow at 1024px tablet width on Home");
+      }
+
+      // 8. No overflow at 768px
+      await page.setViewportSize({ width: 768, height: 1024 });
+      await page.goto(baseUrl + "/", { waitUntil: "domcontentloaded" });
+      const tabletSmallOverflow = await page.evaluate(() => {
+        return document.body.scrollWidth > document.body.clientWidth;
+      });
+      if (tabletSmallOverflow) {
+        throw new Error("Horizontal overflow at 768px width on Home");
+      }
+
+      // 9. No overflow at 360px
+      await page.setViewportSize({ width: 360, height: 740 });
+      await page.goto(baseUrl + "/", { waitUntil: "domcontentloaded" });
+      const smallOverflow = await page.evaluate(() => {
+        return document.body.scrollWidth > document.body.clientWidth;
+      });
+      if (smallOverflow) {
+        throw new Error("Horizontal overflow at 360px width on Home");
+      }
+
+      // Reset viewport
+      await page.setViewportSize({ width: 1440, height: 900 });
+    });
+
+    await checkStep("Check 30: Arabic console RTL symmetry, no mirroring of ticket art, technical LTR isolation", async () => {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto(baseUrl + "/ar", { waitUntil: "domcontentloaded" });
+
+      // 1. Arabic home form has context="home"
+      const arHomeConsole = page.locator('[data-flight-search-console="home"]').first();
+      if ((await arHomeConsole.count()) === 0) {
+        throw new Error("Arabic Home form must have data-flight-search-console=\"home\"");
+      }
+
+      // 2. Trip type buttons visible and accessible
+      const arTripTypeButtons = page.locator('[aria-pressed]');
+      if ((await arTripTypeButtons.count()) < 2) {
+        throw new Error("Arabic home must have at least 2 trip-type aria-pressed buttons");
+      }
+
+      // 3. Route fields (#search-from, #search-to) exist
+      const arFrom = await page.locator('#search-from').count();
+      const arTo = await page.locator('#search-to').count();
+      if (arFrom === 0 || arTo === 0) {
+        throw new Error(`Arabic console missing route fields: from=${arFrom}, to=${arTo}`);
+      }
+
+      // 4. Ticket art is NOT mirrored in RTL (image has no transform scaleX applied)
+      const ticketMirrored = await page.evaluate(() => {
+        const img = document.querySelector('img[data-decorative-asset="home-flight-search-ticket"]');
+        if (!img) return false;
+        const style = window.getComputedStyle(img);
+        const transform = style.transform;
+        return transform.includes("matrix(-1") || transform.includes("scaleX(-1)");
+      });
+      if (ticketMirrored) {
+        throw new Error("Ticket world-map artwork must NOT be mirrored in Arabic RTL mode");
+      }
+
+      // 5. Arabic /ar/book has standard context
+      await page.goto(baseUrl + "/ar/book", { waitUntil: "domcontentloaded" });
+      const arBookConsole = await page.locator('[data-flight-search-console="standard"]').count();
+      if (arBookConsole === 0) {
+        throw new Error("/ar/book must have data-flight-search-console=\"standard\"");
+      }
+
+      // 6. Arabic /ar/destinations/IST has standard context
+      await page.goto(baseUrl + "/ar/destinations/IST", { waitUntil: "domcontentloaded" });
+      const arDestConsole = await page.locator('[data-flight-search-console="standard"]').count();
+      if (arDestConsole === 0) {
+        throw new Error("/ar/destinations/IST must have data-flight-search-console=\"standard\"");
+      }
+
+      // 7. No horizontal overflow in Arabic at 390px
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.goto(baseUrl + "/ar", { waitUntil: "domcontentloaded" });
+      const arMobileOverflow = await page.evaluate(() => {
+        return document.body.scrollWidth > document.body.clientWidth;
+      });
+      if (arMobileOverflow) {
+        throw new Error("Horizontal overflow on Arabic Home at 390px");
+      }
+
+      // 8. No horizontal overflow in Arabic at 320px
+      await page.setViewportSize({ width: 320, height: 568 });
+      await page.goto(baseUrl + "/ar", { waitUntil: "domcontentloaded" });
+      const arSmallOverflow = await page.evaluate(() => {
+        return document.body.scrollWidth > document.body.clientWidth;
+      });
+      if (arSmallOverflow) {
+        throw new Error("Horizontal overflow on Arabic Home at 320px");
+      }
+
+      // 9. Arabic 320px bounding box check: assert codes and cities fit without horizontal clipping
+      const arBoundingBoxes320 = await page.evaluate(() => {
+        function checkEndpoint(id) {
+          const trigger = document.getElementById(id);
+          if (!trigger) return { error: `Trigger #${id} not found` };
+          const triggerRect = trigger.getBoundingClientRect();
+          const codeEl = trigger.querySelector('[data-slot="airport-code"]');
+          const cityEl = trigger.querySelector('[data-slot="airport-city"]');
+          if (!codeEl || !cityEl) return { error: `Slots missing in #${id}` };
+          const codeRect = codeEl.getBoundingClientRect();
+          const cityRect = cityEl.getBoundingClientRect();
+
+          const codeFits = codeRect.width > 0 && codeRect.left >= (triggerRect.left - 1) && codeRect.right <= (triggerRect.right + 1);
+          const cityFits = cityRect.width > 0 && cityRect.left >= (triggerRect.left - 1) && cityRect.right <= (triggerRect.right + 1);
+
+          return {
+            triggerWidth: triggerRect.width,
+            codeWidth: codeRect.width,
+            cityWidth: cityRect.width,
+            codeFits,
+            cityFits,
+          };
+        }
+        return {
+          from: checkEndpoint("search-from"),
+          to: checkEndpoint("search-to"),
+        };
+      });
+
+      if (!arBoundingBoxes320.from.codeFits || !arBoundingBoxes320.from.cityFits) {
+        throw new Error(`Arabic Route Origin clipped at 320px: ${JSON.stringify(arBoundingBoxes320.from)}`);
+      }
+      if (!arBoundingBoxes320.to.codeFits || !arBoundingBoxes320.to.cityFits) {
+        throw new Error(`Arabic Route Destination clipped at 320px: ${JSON.stringify(arBoundingBoxes320.to)}`);
+      }
+
+      // Reset viewport
+      await page.setViewportSize({ width: 1440, height: 900 });
+    });
   } finally {
     await browser.close();
     if (server) {
