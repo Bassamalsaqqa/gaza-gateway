@@ -3,7 +3,8 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { PlaneLanding, PlaneTakeoff, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { FlightTable } from "@/components/flight-table";
-import { Container, Field, Input, PageHeader, Select } from "@/components/kit";
+import { Container, Field, Input, Select } from "@/components/kit";
+import { PublicPhotoHero } from "@/components/media/public-photo-hero";
 import { addDaysISO, airportByCode, arrivalsOn, departuresOn, todayISO } from "@/lib/data";
 import { useFlightsQuery } from "@/lib/repositories";
 import { dateShort } from "@/lib/format";
@@ -69,7 +70,19 @@ function FlightsPage() {
 
   return (
     <>
-      <PageHeader title={t("flights.title")} description={t("flights.sub")} />
+      {/*
+        Flights hero — reuses the registered `signin-photo` entry (commercial aircraft at jet bridge).
+        Adds zero new image bytes. Eager/high-priority for active-page LCP.
+        NEVER mirrored in RTL per anti-mirroring invariant.
+      */}
+      <PublicPhotoHero
+        mediaId="signin-photo"
+        routeKey="flights"
+        title={t("flights.title")}
+        description={t("flights.sub")}
+        focalPosition="50% 40%"
+        data-public-hero="flights"
+      />
 
       <Container className="py-8 space-y-6">
         {/* Sliding Flight Board Switcher */}

@@ -338,8 +338,10 @@ export const TARGET_REGISTRY: Record<TargetId, TargetMeta> = {
     route: "/airport",
     scenarioId: "airport.overview",
     mediaAllowed: true,
-    // Strict truth policy: Never allow AI-generated illustrative imagery on historical past/present chapters
-    allowedTruthClasses: ["brand-mark", "placeholder"],
+    // Strict truth policy: historical-documentary is the intended truth class for this target.
+    // Never allow AI-generated illustrative imagery on historical past/present chapters.
+    // Aligned with TARGET_ALLOWED_TRUTH_CLASSES in media-policy.ts.
+    allowedTruthClasses: ["historical-documentary", "brand-mark", "placeholder"],
     allowedControls: {
       ...FAMILY_CONTROLS_BASE,
       media: true,

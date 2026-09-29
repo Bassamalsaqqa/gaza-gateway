@@ -6,7 +6,7 @@
  *
  * IMPORTANT: Truth classes govern usage:
  * - 'historical-documentary': authentic historical records; never substitute with concept art.
- * - 'illustrative-future': illustrative future concept visualizations; never use as historical evidence.
+ * - 'future-concept-ai': illustrative future concept visualizations; never use as historical evidence.
  * - 'illustrative-photo': generic contextual photography; illustrative only.
  *
  * Do NOT use img() from data.ts for these assets — use this registry.

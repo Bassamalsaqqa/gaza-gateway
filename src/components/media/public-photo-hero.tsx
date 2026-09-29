@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 export interface PublicPhotoHeroProps {
   mediaId: ApprovedMediaId;
-  routeKey: "airport" | "gallery" | "destinations" | "travel" | "manage" | "check-in";
+  routeKey: "airport" | "gallery" | "destinations" | "travel" | "manage" | "check-in" | "flights";
   title: string;
   description?: string;
   children?: ReactNode;
@@ -26,12 +26,10 @@ export function PublicPhotoHero({
 }: PublicPhotoHeroProps) {
   const { t } = useI18n();
   const entry = MEDIA[mediaId];
+  // Internal truth classification preserved for policy enforcement — not rendered as a passenger-visible pill
   const truthClass = entry?.truthClass ?? "illustrative-photo";
 
-  const truthBadgeLabel =
-    truthClass === "historical-documentary"
-      ? t("media.archive2000Label")
-      : t("media.illustrativePhotoLabel");
+  const archiveLabel = t("media.archive2000Label");
 
   return (
     <section
@@ -66,22 +64,27 @@ export function PublicPhotoHero({
       {/* Hero content container */}
       <Container className="relative z-10 flex min-h-[15rem] sm:min-h-[18rem] lg:min-h-[21rem] xl:min-h-[23rem] flex-col justify-center py-8 sm:py-10 lg:py-12">
         <div className="max-w-2xl">
-          {/* Truth classification badge */}
-          <div className="mb-2.5 sm:mb-3 flex items-center gap-2">
-            <span
-              data-truth-badge={truthClass === "historical-documentary" ? "archive" : "illustrative"}
-              className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-ink/80 px-2.5 py-0.5 text-[0.6875rem] font-medium text-white/90 backdrop-blur-xs select-none shadow-xs"
-            >
+          {/*
+            Archive editorial eyebrow — shown only for historical-documentary heroes (/airport, /gallery).
+            This is explicit editorial context, not a class-debug badge.
+            Service/illustrative heroes (destinations, travel, manage, check-in, flights)
+            do NOT show a passenger-visible badge. Internal truth classification is still
+            enforced by media policy and sanitization.
+          */}
+          {truthClass === "historical-documentary" ? (
+            <div className="mb-2.5 sm:mb-3 flex items-center gap-2">
               <span
-                className={cn(
-                  "size-1.5 rounded-full",
-                  truthClass === "historical-documentary" ? "bg-amber-400" : "bg-primary-foreground/70",
-                )}
-                aria-hidden="true"
-              />
-              {truthBadgeLabel}
-            </span>
-          </div>
+                data-truth-badge="archive"
+                className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-ink/80 px-2.5 py-0.5 text-[0.6875rem] font-medium text-white/90 backdrop-blur-xs select-none shadow-xs"
+              >
+                <span
+                  className="size-1.5 rounded-full bg-amber-400"
+                  aria-hidden="true"
+                />
+                {archiveLabel}
+              </span>
+            </div>
+          ) : null}
 
           {/* Heading */}
           <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-4xl">

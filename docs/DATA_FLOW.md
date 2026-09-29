@@ -1,7 +1,7 @@
 # Data Flow, State Management & Pretend-Action Inventory
 
 > **Document Purpose**: Complete audit of current data sources, state persistence, cross-screen entity splits, and enabled no-op actions across public and admin workspaces.
-> **Status**: **Phase 4C Complete — Settings & Appearance Store Convergence**. Booking Search Console Redesign 0.2 and Refinement 0.2.1 are deployed. Designer Media + Public Surface Integration Checkpoint is implemented in source and awaiting owner visual acceptance.
+> **Status**: **Phase 4C Complete — Settings & Appearance Store Convergence**. Booking Search Console Redesign 0.2 and Refinement 0.2.1 are deployed. Designer Media + Public Surface Integration Checkpoint and Visual Cleanup 0.1 (`design/media-checkpoint-visual-cleanup-01`) are implemented on the design branch and awaiting owner visual acceptance.
 > **Future Target**: Phase 5 (Public Workflows Convergence, planned and not started; designer asset lane active in parallel), then Phase 6 before any production backend.
 
 ---

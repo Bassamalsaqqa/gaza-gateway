@@ -3,8 +3,8 @@
 > **Repository**: `Bassamalsaqqa/gaza-gateway`
 > **Production Domain**: `https://www.gazaairport.com`
 > **Phase 4 starting commits**: `9e36b869274830f84c97cbbefe3b3fb0a98c6d2e` (`main`); `92ad935f8477e1663eefa8282d2770c66b64b8b2` (`hostpapa-deploy`). These are historical starting points, not current branch heads.
-> **Engineering Status**: **Phase 4C Complete — Settings & Appearance Store Convergence**. Booking Search Console Redesign 0.2 and Refinement 0.2.1 are deployed. Designer Media + Public Surface Integration Checkpoint is implemented in source and awaiting owner visual acceptance.
-> **Immediate Next Step**: **Owner Visual Review of Designer Media Checkpoint** (Phase 5 next, planned and not started).
+> **Engineering Status**: **Phase 4C Complete — Settings & Appearance Store Convergence**. Booking Search Console Redesign 0.2 and Refinement 0.2.1 are deployed. Designer Media + Public Surface Integration Checkpoint and Visual Cleanup 0.1 (`design/media-checkpoint-visual-cleanup-01`) are implemented on the design branch and awaiting owner visual acceptance.
+> **Immediate Next Step**: **Owner Visual Review of Designer Media Visual Cleanup 0.1** (Phase 5 next, planned and not started).
 
 ---
 

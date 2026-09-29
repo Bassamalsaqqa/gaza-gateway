@@ -33,7 +33,7 @@ Seven photographic assets converted into responsive WebP sets at widths `640w`, 
 | `travel-info-hero.jpg` | 5164×3873 | 1,193,797 B | `06445c5978f63cd9b70824b2ce40e071bdbd55aa433e854b30ec3c0fe05990aa` | `travel-info-hero` | `illustrative-photo` | 5164×3873 | `/travel` hero | `data-public-hero="travel"` |
 | `manager-booking-hero.jpg` | 5842×3887 | 2,025,030 B | `a31f8bc566b69a489d9c3e3aa10829cb5e1b1eaca71ccd455539056fec46968c` | `manage-booking-hero` | `illustrative-photo` | 5842×3887 | `/manage` hero | `data-public-hero="manage"` |
 | `check-in-hero.jpg` | 4032×3024 | 1,005,658 B | `863a41cdfca7a6cec5dd57c9dcd86a3af88955ad9189790af57bb1763dc93feb` | `check-in-hero` | `illustrative-photo` | 4032×3024 | `/check-in` hero | `data-public-hero="check-in"` |
-| `sign-in-photo.jpg` | 9000×12000 | 7,609,651 B | `0cf8b6303f99192a4911c82ee0460aa5072fcc86a83957c039f75c3f886d1571` | `signin-photo` | `illustrative-photo` | 9000×12000 | `/signin` auth panel | `data-auth-media="signin"` |
+| `sign-in-photo.jpg` | 9000×12000 | 7,609,651 B | `0cf8b6303f99192a4911c82ee0460aa5072fcc86a83957c039f75c3f886d1571` | `signin-photo` | `illustrative-photo` | 9000×12000 | `/signin` auth panel, `/flights` hero (reused � zero new bytes) | `data-auth-media="signin"`, `data-public-hero="flights"` |
 
 ### 1.3 Photo Derivative Inventory (28 WebP Variants)
 
@@ -82,7 +82,7 @@ Seven photographic assets converted into responsive WebP sets at widths `640w`, 
 - Renders responsive hero photographs with `ResponsiveImage` using intrinsic dimensions, standardized srcSet, and `loading="eager"` / `fetchPriority="high"`.
 - Directional gradient overlay: EN left-to-right (`from-ink/95 via-ink/75 to-transparent`), AR right-to-left (`from-ink/95 via-ink/75 to-transparent`), ensuring high text contrast against dark backgrounds.
 - Route-specific focal positioning (`object-position`).
-- Truth classification badge: compact, rounded-full pill displaying `Archive · 2000` for documentary records and `Illustrative photograph` for illustrative scenes.
+- Archive editorial eyebrow: shown only on historical-documentary heroes (`/airport`, `/gallery`) as optional editorial context. Service/illustrative heroes (destinations, travel, manage, check-in, flights) render no passenger-visible badge. Internal truth classification remains enforced by media policy and sanitization.
 - Route functionality preservation:
   - `/destinations`: Search filter input embedded inside hero content area.
   - `/gallery`: Future-concept link helper (`/airport/future`) preserved below heading.

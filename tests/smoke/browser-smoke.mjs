@@ -3316,15 +3316,16 @@ async function runBrowserSmoke() {
       await page.setViewportSize({ width: 1440, height: 900 });
     });
 
-    await checkStep("Check 33: Seven public photo heroes on target routes in EN and AR, truth badges, images loaded, non-mirrored", async () => {
+    await checkStep("Check 33: Eight public photo heroes on target routes in EN and AR — archive badge, absent illustrative badge, images loaded, non-mirrored", async () => {
       await page.setViewportSize({ width: 1440, height: 900 });
 
+      // Archive heroes show data-truth-badge="archive"; service/illustrative heroes show NO badge
       const heroRoutes = [
         {
           path: "/airport",
           arPath: "/ar/airport",
           key: "airport",
-          expectedBadge: "archive",
+          expectArchiveBadge: true,
           enText: "Archive",
           arText: "الأرشيف",
         },
@@ -3332,7 +3333,7 @@ async function runBrowserSmoke() {
           path: "/gallery",
           arPath: "/ar/gallery",
           key: "gallery",
-          expectedBadge: "archive",
+          expectArchiveBadge: true,
           enText: "Archive",
           arText: "الأرشيف",
           extraCheck: async (p, isAr) => {
@@ -3346,9 +3347,7 @@ async function runBrowserSmoke() {
           path: "/destinations",
           arPath: "/ar/destinations",
           key: "destinations",
-          expectedBadge: "illustrative",
-          enText: "Illustrative",
-          arText: "توضيحية",
+          expectArchiveBadge: false,
           extraCheck: async (p) => {
             const input = p.locator("#dest-search");
             if ((await input.count()) === 0) {
@@ -3360,9 +3359,7 @@ async function runBrowserSmoke() {
           path: "/travel",
           arPath: "/ar/travel",
           key: "travel",
-          expectedBadge: "illustrative",
-          enText: "Illustrative",
-          arText: "توضيحية",
+          expectArchiveBadge: false,
           extraCheck: async (p) => {
             const tabs = p.locator('[role="tablist"]');
             if ((await tabs.count()) === 0) {
@@ -3374,9 +3371,7 @@ async function runBrowserSmoke() {
           path: "/manage",
           arPath: "/ar/manage",
           key: "manage",
-          expectedBadge: "illustrative",
-          enText: "Illustrative",
-          arText: "توضيحية",
+          expectArchiveBadge: false,
           extraCheck: async (p) => {
             const pnr = p.locator("#pnr");
             const idInput = p.locator("#identifier");
@@ -3389,14 +3384,29 @@ async function runBrowserSmoke() {
           path: "/check-in",
           arPath: "/ar/check-in",
           key: "check-in",
-          expectedBadge: "illustrative",
-          enText: "Illustrative",
-          arText: "توضيحية",
+          expectArchiveBadge: false,
           extraCheck: async (p) => {
             const pnr = p.locator("#ci-pnr");
             const idInput = p.locator("#ci-identifier");
             if ((await pnr.count()) === 0 || (await idInput.count()) === 0) {
               throw new Error("Check-in page must preserve lookup inputs below hero");
+            }
+          },
+        },
+        {
+          path: "/flights",
+          arPath: "/ar/flights",
+          key: "flights",
+          expectArchiveBadge: false,
+          extraCheck: async (p) => {
+            // Switcher board and toolbar must be present below hero
+            const switcher = p.locator('[role="group"][aria-label]').first();
+            const toolbar = p.locator('[data-testid="flights-search-toolbar"]');
+            if ((await switcher.count()) === 0) {
+              throw new Error("Flights page must preserve Departures/Arrivals switcher below hero");
+            }
+            if ((await toolbar.count()) === 0) {
+              throw new Error("Flights page must preserve search toolbar below hero");
             }
           },
         },
@@ -3409,14 +3419,25 @@ async function runBrowserSmoke() {
         if ((await hero.count()) === 0) {
           throw new Error(`Missing [data-public-hero="${route.key}"] on ${route.path}`);
         }
-        const badge = hero.locator(`[data-truth-badge="${route.expectedBadge}"]`);
-        if ((await badge.count()) === 0) {
-          throw new Error(`Missing [data-truth-badge="${route.expectedBadge}"] on ${route.path}`);
+
+        if (route.expectArchiveBadge) {
+          // Archive heroes MUST have the archive editorial eyebrow badge
+          const badge = hero.locator('[data-truth-badge="archive"]');
+          if ((await badge.count()) === 0) {
+            throw new Error(`Missing [data-truth-badge="archive"] on ${route.path}`);
+          }
+          const badgeText = await badge.innerText();
+          if (!badgeText.includes(route.enText)) {
+            throw new Error(`Archive badge on ${route.path} expected to contain "${route.enText}", got "${badgeText}"`);
+          }
+        } else {
+          // Service/illustrative heroes MUST NOT show any passenger-visible badge (badge removed)
+          const anyBadge = hero.locator('[data-truth-badge]');
+          if ((await anyBadge.count()) > 0) {
+            throw new Error(`Service hero on ${route.path} must NOT render a passenger-visible truth badge`);
+          }
         }
-        const badgeText = await badge.innerText();
-        if (!badgeText.includes(route.enText)) {
-          throw new Error(`Badge on ${route.path} expected to contain "${route.enText}", got "${badgeText}"`);
-        }
+
         // Image loaded & NOT mirrored
         const heroImg = await hero.locator("img").first().evaluate((img) => {
           const style = window.getComputedStyle(img);
@@ -3442,14 +3463,23 @@ async function runBrowserSmoke() {
         if ((await arHero.count()) === 0) {
           throw new Error(`Missing [data-public-hero="${route.key}"] on ${route.arPath}`);
         }
-        const arBadge = arHero.locator(`[data-truth-badge="${route.expectedBadge}"]`);
-        if ((await arBadge.count()) === 0) {
-          throw new Error(`Missing [data-truth-badge="${route.expectedBadge}"] on ${route.arPath}`);
+
+        if (route.expectArchiveBadge) {
+          const arBadge = arHero.locator('[data-truth-badge="archive"]');
+          if ((await arBadge.count()) === 0) {
+            throw new Error(`Missing [data-truth-badge="archive"] on ${route.arPath}`);
+          }
+          const arBadgeText = await arBadge.innerText();
+          if (!arBadgeText.includes(route.arText)) {
+            throw new Error(`Archive badge on ${route.arPath} expected to contain "${route.arText}", got "${arBadgeText}"`);
+          }
+        } else {
+          const arAnyBadge = arHero.locator('[data-truth-badge]');
+          if ((await arAnyBadge.count()) > 0) {
+            throw new Error(`Service hero on ${route.arPath} must NOT render a passenger-visible truth badge`);
+          }
         }
-        const arBadgeText = await arBadge.innerText();
-        if (!arBadgeText.includes(route.arText)) {
-          throw new Error(`Badge on ${route.arPath} expected to contain "${route.arText}", got "${arBadgeText}"`);
-        }
+
         const arHeroImg = await arHero.locator("img").first().evaluate((img) => {
           const style = window.getComputedStyle(img);
           const isMirrored = style.transform.includes("matrix(-1") || style.transform.includes("scaleX(-1)");
@@ -3469,16 +3499,17 @@ async function runBrowserSmoke() {
         }
       }
 
-      // 7th photo hero: Sign-in panel
+      // Sign-in photo panel: photo loads, NOT mirrored, NO passenger-visible badge (removed)
       // English
       await page.goto(baseUrl + "/signin", { waitUntil: "domcontentloaded" });
       const signinMedia = page.locator('[data-auth-media="signin"]');
       if ((await signinMedia.count()) === 0) {
         throw new Error("Missing [data-auth-media='signin'] on /signin");
       }
-      const signinBadge = signinMedia.locator('[data-truth-badge="illustrative"]');
-      if ((await signinBadge.count()) === 0) {
-        throw new Error("Missing [data-truth-badge='illustrative'] in sign-in photo panel");
+      // Confirm illustrative badge has been removed from the DOM
+      const signinBadge = signinMedia.locator('[data-truth-badge]');
+      if ((await signinBadge.count()) > 0) {
+        throw new Error("Sign-in photo panel must NOT render a passenger-visible truth badge after cleanup");
       }
       const signinImg = await signinMedia.locator("img").first().evaluate((img) => {
         const style = window.getComputedStyle(img);

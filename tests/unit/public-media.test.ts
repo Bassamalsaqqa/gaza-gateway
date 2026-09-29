@@ -207,4 +207,48 @@ describe("Public Media Registry & Truth Policy (Checkpoint 2026-09-29)", () => {
       );
     }
   });
+
+  it("targets.ts airport.chapter-card allowedTruthClasses agrees with media-policy.ts canonical policy", () => {
+    // Regression guard: ensures policy drift fix is durable.
+    // Both sources must agree that historical-documentary is allowed and future-concept-ai is rejected.
+
+    // Via canonical policy (media-policy.ts TARGET_ALLOWED_TRUTH_CLASSES):
+    const canonicalAllowed = TARGET_ALLOWED_TRUTH_CLASSES["airport.chapter-card"];
+    assert.ok(
+      canonicalAllowed?.includes("historical-documentary"),
+      "media-policy.ts must allow historical-documentary on airport.chapter-card",
+    );
+    assert.ok(
+      !canonicalAllowed?.includes("future-concept-ai"),
+      "media-policy.ts must reject future-concept-ai on airport.chapter-card",
+    );
+    assert.ok(
+      !canonicalAllowed?.includes("illustrative-photo"),
+      "media-policy.ts must reject illustrative-photo on airport.chapter-card",
+    );
+
+    // Via runtime sanitization (should agree with canonical):
+    const historicalOk = sanitizeMediaTreatmentAuthoritative(
+      { mediaId: "airport-archive-hero-2000", treatment: "cover" },
+      { targetId: "airport.chapter-card" },
+    );
+    assert.ok(historicalOk, "historical-documentary airport-archive-hero-2000 must pass on airport.chapter-card");
+    assert.equal(historicalOk?.truthClass, "historical-documentary");
+
+    const futureRejected = sanitizeMediaTreatmentAuthoritative(
+      { mediaId: "home-hero", treatment: "cover" },
+      { targetId: "airport.chapter-card" },
+    );
+    assert.equal(futureRejected, undefined, "future-concept-ai home-hero must be rejected on airport.chapter-card");
+
+    const illustrativeRejected = sanitizeMediaTreatmentAuthoritative(
+      { mediaId: "destinations-hero", treatment: "cover" },
+      { targetId: "airport.chapter-card" },
+    );
+    assert.equal(
+      illustrativeRejected,
+      undefined,
+      "illustrative-photo destinations-hero must be rejected on airport.chapter-card",
+    );
+  });
 });

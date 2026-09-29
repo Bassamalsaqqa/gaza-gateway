@@ -49,16 +49,8 @@ export function PassengerAuthShell({
               aria-hidden="true"
             />
 
-            {/* Top section: visible compact truth disclosure badge & brand cue */}
+            {/* Top section: brand cue — illustrative badge removed from passenger-visible surface */}
             <div className="relative z-10">
-              <span
-                data-truth-badge="illustrative"
-                className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-ink/80 px-2.5 py-0.5 text-[0.6875rem] font-medium text-white/90 backdrop-blur-xs select-none shadow-xs"
-              >
-                <span className="size-1.5 rounded-full bg-primary-foreground/70" aria-hidden="true" />
-                {t("media.illustrativePhotoLabel")}
-              </span>
-
               <div className="mt-4 hidden lg:block">
                 <span className="grid size-11 place-items-center rounded-full border border-white/20 bg-white/10 backdrop-blur-xs">
                   <Plane aria-hidden="true" className="size-5 text-white" />
@@ -78,7 +70,7 @@ export function PassengerAuthShell({
               </div>
             </div>
 
-            {/* Bottom section: contextual note on desktop */}
+            {/* Bottom section: contextual demo note on desktop */}
             <p className="relative z-10 mt-6 hidden text-xs leading-relaxed text-white/60 lg:block">
               {t("auth.demoNote")}
             </p>
