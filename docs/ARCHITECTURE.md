@@ -23,45 +23,52 @@
 
 ---
 
-## 2. Canonical Domain & Repository Architecture (Phase 4 Reality)
+## 2. Canonical Domain & Repository Architecture (Phase 4 & 5A Reality)
 
-Phase 4 resolved pre-existing public/admin state disconnects by introducing two backend-ready, bounded domain aggregates with asynchronous contracts, persistent schema `gza.repo.v1`, and central React Query hooks. Phase 4.0.1 confirmed that successful empty and missing booking queries remain authoritative in migrated list, detail, search, and confirmation views:
+Phase 4 resolved pre-existing public/admin state disconnects by introducing two backend-ready, bounded domain aggregates with asynchronous contracts, persistent schema `gza.repo.v1`, and central React Query hooks. Phase 4.0.1 confirmed canonical booking authority in admin views. Phase 5A converged passenger identity, account state, and saved travelers into a canonical `gza.passenger.v1` store managed by `PassengerRepository`:
 
-### 2.1 The Two Canonical Repositories
+### 2.1 The Canonical Repositories
 1. **`BookingRepository` (`src/lib/repositories/booking-repository.ts`)**:
    - Single source of truth and single writer for the Booking aggregate.
    - Enforces bookability invariants, deterministic stable passenger IDs (`pax-${ref}-${index}`), and fixture isolation.
    - Backed by `gza.repo.v1` with idempotent migration from legacy `gza.store.v1`.
    - Losslessly adapted for legacy admin table/detail views via `bookingToMockBooking()`.
+   - Hardened `claim(ref, accountEmail)` with explicit `ClaimResult` statuses (`"claimed"`, `"already-owned-by-user"`, `"not-found"`, `"owned-by-another"`, `"contact-mismatch"`); writes normalized `ownerEmail` while preserving booking contact email.
 2. **`FlightRepository` (`src/lib/repositories/flight-repository.ts`)**:
    - Manages deterministic flight schedules composed with mutable operational flight overrides via pure `getEffectiveFlight()`.
    - Stores overrides in `gza.repo.v1` (`flightOverrides`).
    - Reflects operational gate and status revisions (e.g. Delayed, B7) across public flight boards, flight detail, and admin dispatch views.
    - Prevents synthetic scenario flights (`CAP-PROOF-*`) from leaking into live repositories.
+3. **`PassengerRepository` (`src/lib/passenger/repository.ts`)**:
+   - Single source of truth and single writer for passenger identity, account profile/preferences, and saved companions (`Traveler[]`).
+   - Backed by `gza.passenger.v1` (`{ schemaVersion: 1, account: PassengerAccount | null, travelers: Traveler[] }`) with one-time migration from `gza.store.v1` only when the canonical passenger key is absent.
+   - Present empty/cleared passenger state is authoritative and never resurrects legacy store records.
+   - Enforces normalized lowercase email identity, profile email immutability, and deterministic stable traveler IDs (`crypto.randomUUID()` with fallback).
+   - Storage coordinator (`PassengerStorageCoordinator`): transactional writes with rollback on `StorageCommitError`, cross-tab synchronization via `storage` events, and isolated in-memory preview repository for Appearance Studio.
 
-### 2.2 Post-Phase-4 Ownership Matrix
+### 2.2 Post-Phase-5A Ownership Matrix
 
-| Aggregate / Entity | Primary Writer | Primary Storage Key | Consumers (Public & Admin) | Phase 4 Boundary | Future Target |
+| Aggregate / Entity | Primary Writer | Primary Storage Key | Consumers (Public & Admin) | Phase 5A Boundary | Future Target |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Booking** | `BookingRepository` | `gza.repo.v1` (`bookings[]`) | Public confirmation, Manage Booking, Admin Bookings table/detail/search | **Canonical Repository** | Phase 5/6 |
+| **Passenger State (Account & Travelers)** | `PassengerRepository` (`src/lib/passenger/`) | `gza.passenger.v1` (`account`, `travelers`) | Site Header, `/account/*`, `/book` (saved traveler pickers), `/signin`, `/register`, `/verify-email`, `/account/security` | **Canonical Repository** | Phase 13 (Backend Auth & DB) |
+| **Booking** | `BookingRepository` | `gza.repo.v1` (`bookings[]`) | Public confirmation, Manage Booking, Admin Bookings table/detail/search, Account Trips (filtered by normalized owner email) | **Canonical Repository** | Phase 5B / 5C / 6 |
 | **Flight Overrides** | `FlightRepository` | `gza.repo.v1` (`flightOverrides{}`) | Public flight board/detail, Admin flights/dashboard | **Canonical Repository** | Phase 6 |
 | **Flight Schedules** | `src/lib/data.ts` (deterministic generator) | In-memory reference | `FlightRepository`, flight search, route generation | **Preserved Baseline** | Phase 6 |
-| **Booking Draft** | `src/lib/store.tsx` (`useStore`) | `gza.store.v1` (`draft`) | Public Booking Wizard (`/book`) | **Preserved Legacy Key** | Phase 5 |
-| **Account & Travelers** | `src/lib/store.tsx` (`useStore`) | `gza.store.v1` (`account`, `travelers`) | Passenger Account (`/account/*`), Manage Booking | **Preserved Legacy Key** | Phase 5 |
+| **Booking Draft** | `src/lib/store.tsx` (`useStore`) | `gza.store.v1` (`draft` ONLY) | Public Booking Wizard (`/book`) | **Preserved Draft Key** (No dual passenger writes) | Phase 5B (`gza.booking.draft.v1`) |
 | **Staff Session** | `src/lib/admin-store.tsx` (`useAdmin`) | `gza.admin.v1` (`staffId`) | Admin Shell, permission guards, role switcher | **Preserved Legacy Key** | Phase 6 |
 | **OpsState (Simulation)**| `src/lib/admin-store.tsx` (`ops`, `patchOps`) | In-memory React state | Operations Dashboard, Turnaround timers | **Preserved Session Simulation** | Phase 6 |
 | **Published Home, Travel, Past editorial** | `src/content/published/` | Compiled typed source | Public Home, Travel, Airport Past; selected Admin read panels | **Canonical Published Content** | Phase 7 broader coverage |
 | **Local editorial draft** | `ContentRepository` | `gza.content.draft.v1` | Explicit preview and Admin Travel editor | **Browser-local, not published** | Future backend publication |
 | **Other CMS & stories** | Route/i18n source and `src/lib/admin-mock.ts` | Compiled source and static fixtures | Present, Future, About, Contact, destinations, archive | **Not yet converged** | Phase 7 |
-| **Settings (Contact & Appearance)** | `SettingsRepository` (`src/lib/settings/`) | `gza.settings.draft.v1` | Public Contact (`?settingsPreview=1`), Appearance Studio (`?skinPreview=1`), Admin Settings | **Authoritative Settings Draft** | Phase 5/6 |
+| **Settings (Contact & Appearance)** | `SettingsRepository` (`src/lib/settings/`) | `gza.settings.draft.v1` | Public Contact (`?settingsPreview=1`), Appearance Studio (`?skinPreview=1`), Admin Settings | **Authoritative Settings Draft** | Phase 5D / 6 |
 | **Appearance Legacy Key** | Read once for migration | `gza.skin.preview.v1` | Migrated once to canonical `gza.settings.draft.v1`; untouched; no dual writes | **Dormant Legacy Key** | Deprecated |
 
 ### 2.3 Simulation Boundary & Security Declarations
 
-- **Staff and Passenger Authentication**: Pure client-side simulation. Mock passphrases and email logins set local state tokens.
+- **Staff and Passenger Authentication**: Pure client-side simulation. No live backend, database, authentication SDK, mail service, or payment gateway exists. Passenger accounts and saved companions persist locally in `gza.passenger.v1`. Password inputs are never compared, persisted, hashed, logged, or placed in URLs.
 - **Financial & Booking Mutations**: No real payment gateway, payment card processor, or banking API is integrated. Payment card inputs are simulated and discarded.
 - **Privacy & Secrets**: Zero real secrets, API keys, private customer PII, or mutation endpoints belong in client bundles or repositories.
-- **React Query Status**: Centralized query keys (`bookingKeys`, `flightKeys`) and reactive subscription invalidation ensure public and admin views stay synchronized without full-page reloads.
+- **React Query Status**: Centralized query keys (`bookingKeys`, `flightKeys`, `passengerKeys`) and reactive subscription invalidation ensure public, account, and admin views stay synchronized without full-page reloads.
 
 ---
 

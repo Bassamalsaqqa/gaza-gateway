@@ -5,7 +5,12 @@ import { Pencil, Trash2, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { btnClass, EmptyState, Field, Input, Panel } from "@/components/kit";
 import { useI18n } from "@/lib/i18n";
-import { useStore } from "@/lib/store";
+import {
+  usePassengerTravelers,
+  useAddTravelerMutation,
+  useUpdateTravelerMutation,
+  useRemoveTravelerMutation,
+} from "@/lib/passenger";
 
 export const Route = createFileRoute("/{-$locale}/account/travelers")({
   head: () => ({
@@ -23,29 +28,66 @@ const blank = { firstName: "", lastName: "", dob: "", nationality: "", document:
 
 function TravelersPage() {
   const { t } = useI18n();
-  const { travelers, addTraveler, updateTraveler, removeTraveler } = useStore();
+  const { data: travelers = [] } = usePassengerTravelers();
+  const addMutation = useAddTravelerMutation();
+  const updateMutation = useUpdateTravelerMutation();
+  const removeMutation = useRemoveTravelerMutation();
+
   const [form, setForm] = useState(blank);
+  const [formError, setFormError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [edit, setEdit] = useState(blank);
+  const [editError, setEditError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const handleAddSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError(null);
+    try {
+      await addMutation.mutateAsync(form);
+      setForm(blank);
+    } catch {
+      setFormError(t("error.saveFailed"));
+    }
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent, travelerId: string) => {
+    e.preventDefault();
+    setEditError(null);
+    try {
+      await updateMutation.mutateAsync({ id: travelerId, patch: edit });
+      setEditingId(null);
+    } catch {
+      setEditError(t("error.saveFailed"));
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingId) return;
+    setDeleteError(null);
+    try {
+      await removeMutation.mutateAsync(deletingId);
+      setDeletingId(null);
+    } catch {
+      setDeleteError(t("error.saveFailed"));
+      setDeletingId(null);
+    }
+  };
 
   return (
     <div className="space-y-4">
       <Panel>
         <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">{t("account.addTraveler")}</h2>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            addTraveler(form);
-            setForm(blank);
-          }}
-          className="mt-4 grid gap-3 sm:grid-cols-2"
-        >
+        <form onSubmit={handleAddSubmit} className="mt-4 grid gap-3 sm:grid-cols-2">
           <Field label={t("book.firstName")} htmlFor="tv-first">
             <Input
               id="tv-first"
               value={form.firstName}
-              onChange={(e) => setForm((prev) => ({ ...prev, firstName: e.target.value }))}
+              onChange={(e) => {
+                setFormError(null);
+                setForm((prev) => ({ ...prev, firstName: e.target.value }));
+              }}
               required
             />
           </Field>
@@ -53,7 +95,10 @@ function TravelersPage() {
             <Input
               id="tv-last"
               value={form.lastName}
-              onChange={(e) => setForm((prev) => ({ ...prev, lastName: e.target.value }))}
+              onChange={(e) => {
+                setFormError(null);
+                setForm((prev) => ({ ...prev, lastName: e.target.value }));
+              }}
               required
             />
           </Field>
@@ -61,31 +106,55 @@ function TravelersPage() {
             <PassengerDobPicker
               id="tv-dob"
               value={form.dob}
-              onChange={(dob) => setForm((prev) => ({ ...prev, dob }))}
+              onChange={(dob) => {
+                setFormError(null);
+                setForm((prev) => ({ ...prev, dob }));
+              }}
             />
           </Field>
           <Field label={t("book.nationality")} htmlFor="tv-nat">
             <Input
               id="tv-nat"
               value={form.nationality}
-              onChange={(e) => setForm((prev) => ({ ...prev, nationality: e.target.value }))}
+              onChange={(e) => {
+                setFormError(null);
+                setForm((prev) => ({ ...prev, nationality: e.target.value }));
+              }}
             />
           </Field>
           <Field label={t("book.docNumber")} htmlFor="tv-doc" hint={t("common.optional")}>
             <Input
               id="tv-doc"
               value={form.document}
-              onChange={(e) => setForm((prev) => ({ ...prev, document: e.target.value }))}
+              onChange={(e) => {
+                setFormError(null);
+                setForm((prev) => ({ ...prev, document: e.target.value }));
+              }}
             />
           </Field>
           <div className="sm:col-span-2">
-            <button type="submit" className={btnClass("primary", "md")}>
+            <button
+              type="submit"
+              disabled={addMutation.isPending}
+              className={btnClass("primary", "md")}
+            >
               <UserPlus aria-hidden="true" className="size-4" />
-              {t("account.addTraveler")}
+              {addMutation.isPending ? t("common.loading") : t("account.addTraveler")}
             </button>
+            {formError ? (
+              <p role="alert" className="mt-3 text-sm font-medium text-destructive">
+                {formError}
+              </p>
+            ) : null}
           </div>
         </form>
       </Panel>
+
+      {deleteError ? (
+        <p role="alert" className="text-sm font-medium text-destructive">
+          {deleteError}
+        </p>
+      ) : null}
 
       {travelers.length === 0 ? (
         <EmptyState title={t("account.noTravelers")} description={t("account.noTravelersSub")} />
@@ -95,19 +164,15 @@ function TravelersPage() {
             {travelers.map((traveler) => (
               <li key={traveler.id} className="py-3">
                 {editingId === traveler.id ? (
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      updateTraveler(traveler.id, edit);
-                      setEditingId(null);
-                    }}
-                    className="grid gap-3 sm:grid-cols-2"
-                  >
+                  <form onSubmit={(e) => handleEditSubmit(e, traveler.id)} className="grid gap-3 sm:grid-cols-2">
                     <Field label={t("book.firstName")} htmlFor={`ed-first-${traveler.id}`}>
                       <Input
                         id={`ed-first-${traveler.id}`}
                         value={edit.firstName}
-                        onChange={(e) => setEdit((prev) => ({ ...prev, firstName: e.target.value }))}
+                        onChange={(e) => {
+                          setEditError(null);
+                          setEdit((prev) => ({ ...prev, firstName: e.target.value }));
+                        }}
                         required
                       />
                     </Field>
@@ -115,7 +180,10 @@ function TravelersPage() {
                       <Input
                         id={`ed-last-${traveler.id}`}
                         value={edit.lastName}
-                        onChange={(e) => setEdit((prev) => ({ ...prev, lastName: e.target.value }))}
+                        onChange={(e) => {
+                          setEditError(null);
+                          setEdit((prev) => ({ ...prev, lastName: e.target.value }));
+                        }}
                         required
                       />
                     </Field>
@@ -123,31 +191,56 @@ function TravelersPage() {
                       <PassengerDobPicker
                         id={`ed-dob-${traveler.id}`}
                         value={edit.dob}
-                        onChange={(dob) => setEdit((prev) => ({ ...prev, dob }))}
+                        onChange={(dob) => {
+                          setEditError(null);
+                          setEdit((prev) => ({ ...prev, dob }));
+                        }}
                       />
                     </Field>
                     <Field label={t("book.nationality")} htmlFor={`ed-nat-${traveler.id}`}>
                       <Input
                         id={`ed-nat-${traveler.id}`}
                         value={edit.nationality}
-                        onChange={(e) => setEdit((prev) => ({ ...prev, nationality: e.target.value }))}
+                        onChange={(e) => {
+                          setEditError(null);
+                          setEdit((prev) => ({ ...prev, nationality: e.target.value }));
+                        }}
                       />
                     </Field>
                     <Field label={t("book.docNumber")} htmlFor={`ed-doc-${traveler.id}`}>
                       <Input
                         id={`ed-doc-${traveler.id}`}
                         value={edit.document}
-                        onChange={(e) => setEdit((prev) => ({ ...prev, document: e.target.value }))}
+                        onChange={(e) => {
+                          setEditError(null);
+                          setEdit((prev) => ({ ...prev, document: e.target.value }));
+                        }}
                       />
                     </Field>
                     <div className="flex flex-wrap gap-2 sm:col-span-2">
-                      <button type="submit" className={btnClass("primary", "sm")}>
-                        {t("common.save")}
+                      <button
+                        type="submit"
+                        disabled={updateMutation.isPending}
+                        className={btnClass("primary", "sm")}
+                      >
+                        {updateMutation.isPending ? t("common.loading") : t("common.save")}
                       </button>
-                      <button type="button" onClick={() => setEditingId(null)} className={btnClass("ghost", "sm")}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingId(null);
+                          setEditError(null);
+                        }}
+                        className={btnClass("ghost", "sm")}
+                      >
                         {t("common.cancel")}
                       </button>
                     </div>
+                    {editError ? (
+                      <p role="alert" className="sm:col-span-2 text-sm font-medium text-destructive">
+                        {editError}
+                      </p>
+                    ) : null}
                   </form>
                 ) : (
                   <div className="flex flex-wrap items-center justify-between gap-3">
@@ -165,6 +258,7 @@ function TravelersPage() {
                         type="button"
                         onClick={() => {
                           setEditingId(traveler.id);
+                          setEditError(null);
                           setEdit({
                             firstName: traveler.firstName,
                             lastName: traveler.lastName,
@@ -181,7 +275,10 @@ function TravelersPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => setDeletingId(traveler.id)}
+                        onClick={() => {
+                          setDeleteError(null);
+                          setDeletingId(traveler.id);
+                        }}
                         className={btnClass("ghost", "sm")}
                         aria-label={`${t("account.remove")} ${traveler.firstName} ${traveler.lastName}`}
                       >
@@ -201,12 +298,7 @@ function TravelersPage() {
         title={t("account.remove")}
         body={t("account.removeConfirm")}
         confirmLabel={t("common.delete")}
-        onConfirm={() => {
-          if (deletingId) {
-            removeTraveler(deletingId);
-            setDeletingId(null);
-          }
-        }}
+        onConfirm={handleDeleteConfirm}
         onClose={() => setDeletingId(null)}
       />
     </div>

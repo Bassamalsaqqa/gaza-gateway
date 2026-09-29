@@ -7,7 +7,9 @@ import { airportByCode, seatFee } from "@/lib/data";
 import { dateLong, money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
 import { bookingLegs, bookingTotal, isCheckedIn, type Leg, useStore } from "@/lib/store";
+import { usePassengerAccount } from "@/lib/passenger";
 import { cn } from "@/lib/utils";
+
 
 export const Route = createFileRoute("/{-$locale}/manage/$ref_/seats")({
   head: ({ params }) => ({
@@ -31,8 +33,11 @@ function ManageSeatsPage() {
   const { ref } = Route.useParams();
   const { t, lang } = useI18n();
   const navigate = useAppNavigate();
-  const { ready, findBooking, updateBooking, account } = useStore();
+  const { ready, findBooking, updateBooking } = useStore();
+
+  const { data: account } = usePassengerAccount();
   const booking = findBooking(ref);
+
 
   const legs = useMemo(() => (booking ? bookingLegs(booking) : []), [booking]);
   const [leg, setLeg] = useState<Leg>("out");

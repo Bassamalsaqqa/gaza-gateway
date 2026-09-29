@@ -1,12 +1,14 @@
 import { AppLink } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
 import { Check, Ticket, UserPlus } from "lucide-react";
+import { useState } from "react";
 import { EXTRA_BAG_PRICE, airportByCode, fares, mealOptions } from "@/lib/data";
 import { Code, Container, EmptyState, GazaLoadingState, Notice, Panel, btnClass } from "@/components/kit";
 import { dateLong, money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
-import { extrasFor, totalExtraBags, useStore } from "@/lib/store";
+import { extrasFor, totalExtraBags } from "@/lib/booking-draft";
 import { useBookingQuery } from "@/lib/repositories";
+import { bookingBelongsToAccount, usePassengerAccount, useClaimBookingMutation } from "@/lib/passenger";
 import { passesForBooking } from "@/components/booking/boarding-pass";
 
 export const Route = createFileRoute("/{-$locale}/booking-confirmation/$ref")({
@@ -30,7 +32,9 @@ export const Route = createFileRoute("/{-$locale}/booking-confirmation/$ref")({
 function ConfirmationPage() {
   const { ref } = Route.useParams();
   const { t, lang } = useI18n();
-  const { account, claimBooking } = useStore();
+  const { data: account } = usePassengerAccount();
+  const claimMutation = useClaimBookingMutation();
+  const [claimError, setClaimError] = useState<string | null>(null);
   const { data: booking, isPending, isError } = useBookingQuery(ref);
   const passes = booking ? passesForBooking(booking) : [];
   const firstPass = passes[0];
@@ -202,16 +206,36 @@ function ConfirmationPage() {
                 <UserPlus aria-hidden="true" className="size-4" />
                 {t("book.createAccount")}
               </AppLink>
-            ) : booking.ownerEmail === account.email ? (
+            ) : bookingBelongsToAccount(booking, account.email) ? (
               <AppLink to="/account/trips" className={btnClass("outline", "md")}>
                 {t("account.trips")}
               </AppLink>
             ) : (
-              <button type="button" onClick={() => void claimBooking(booking.ref).catch(() => {})} className={btnClass("clay", "md")}>
-                {t("conf.linkAccount")}
+              <button
+                type="button"
+                disabled={claimMutation.isPending}
+                onClick={async () => {
+                  setClaimError(null);
+                  try {
+                    const res = await claimMutation.mutateAsync({ ref: booking.ref, accountEmail: account.email });
+                    if (res.status !== "claimed" && res.status !== "already-owned-by-user") {
+                      setClaimError(t("auth.claimFailed", { ref: booking.ref }));
+                    }
+                  } catch {
+                    setClaimError(t("error.saveFailed"));
+                  }
+                }}
+                className={btnClass("clay", "md")}
+              >
+                {claimMutation.isPending ? t("common.loading") : t("conf.linkAccount")}
               </button>
             )}
           </div>
+          {claimError ? (
+            <p role="alert" className="mt-2 text-sm text-destructive font-medium">
+              {claimError}
+            </p>
+          ) : null}
           <div className="mt-4">
             <Notice>{t("conf.guestNote")}</Notice>
           </div>

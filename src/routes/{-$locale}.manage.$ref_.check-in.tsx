@@ -18,7 +18,9 @@ import {
   type Leg,
   useStore,
 } from "@/lib/store";
+import { usePassengerAccount } from "@/lib/passenger";
 import { cn } from "@/lib/utils";
+
 
 export const Route = createFileRoute("/{-$locale}/manage/$ref_/check-in")({
   head: ({ params }) => ({
@@ -43,8 +45,11 @@ type Step = "leg" | "pax" | "details" | "seats" | "review" | "done";
 function CheckInPage() {
   const { ref } = Route.useParams();
   const { t, lang } = useI18n();
-  const { ready, findBooking, updateBooking, account } = useStore();
+  const { ready, findBooking, updateBooking } = useStore();
+
+  const { data: account } = usePassengerAccount();
   const booking = findBooking(ref);
+
 
   const [step, setStep] = useState<Step>("leg");
   const [leg, setLeg] = useState<Leg | null>(null);

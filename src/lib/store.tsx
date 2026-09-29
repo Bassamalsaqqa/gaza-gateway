@@ -93,27 +93,14 @@ export {
 import type { Booking, BookingPassenger, CheckedIn, Leg } from "./domain/booking";
 import { makePassengerId } from "./domain/booking";
 import { useRepositories } from "./repositories";
+import {
+  normalizeEmailIdentity,
+  type PassengerAccount,
+  type Traveler,
+} from "./passenger/domain.ts";
+import { usePassengerAccount } from "./passenger/queries.ts";
 
-export type Traveler = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  dob: string;
-  nationality: string;
-  document: string;
-};
-
-export type Account = {
-  email: string;
-  firstName: string;
-  lastName: string;
-  phone: string;
-  seatPreference: string;
-  mealPreference: string;
-  newsletter: boolean;
-};
-
-
+export type { PassengerAccount as Account, Traveler } from "./passenger/domain.ts";
 
 export function bookingTotal(draft: {
   outbound: Flight | null;
@@ -149,22 +136,9 @@ type StoreValue = {
       passengers: (Passenger | BookingPassenger)[];
     },
   ) => Promise<Booking>;
-  /** Bookings linked to the signed-in account only. */
-  myBookings: Booking[];
-  /** Link a booking made as a guest to the signed-in account (local only). */
-  claimBooking: (ref: string) => Promise<void>;
-  /** Mark the given passengers of one leg as checked in. */
   checkInLeg: (ref: string, leg: Leg, paxIndexes: number[]) => Promise<void>;
   updateBooking: (ref: string, patch: Partial<Booking>) => Promise<void>;
   findBooking: (ref: string) => Booking | undefined;
-  account: Account | null;
-  signIn: (email: string, firstName?: string, lastName?: string) => void;
-  signOut: () => void;
-  updateAccount: (patch: Partial<Account>) => void;
-  travelers: Traveler[];
-  addTraveler: (traveler: Omit<Traveler, "id">) => void;
-  updateTraveler: (id: string, patch: Partial<Omit<Traveler, "id">>) => void;
-  removeTraveler: (id: string) => void;
 };
 
 const StoreContext = createContext<StoreValue | null>(null);
@@ -173,12 +147,10 @@ const KEY = "gza.store.v1";
 
 type Persisted = {
   bookings?: Booking[] | undefined;
-  account: Account | null;
-  travelers: Traveler[];
+  account?: PassengerAccount | null | undefined;
+  travelers?: Traveler[] | undefined;
   draft?: Draft | undefined;
 };
-
-
 
 type LegacyExtras = { extraBags?: number; meal?: string; assistance?: string[] };
 
@@ -213,14 +185,15 @@ function migrateBooking(raw: Booking): Booking {
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const { booking: bookingRepo } = useRepositories();
+  const { data: canonicalAccount } = usePassengerAccount();
   const [ready, setReady] = useState(false);
   const [draft, setDraftState] = useState<Draft>(initialDraft);
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [account, setAccount] = useState<Account | null>(null);
-  const [travelers, setTravelers] = useState<Traveler[]>([]);
   const hasMutatedRef = useRef(false);
   const extraKeysRef = useRef<Record<string, unknown>>({});
   const initialLegacyBookingsRef = useRef<Booking[]>([]);
+  const initialLegacyAccountRef = useRef<PassengerAccount | null>(null);
+  const initialLegacyTravelersRef = useRef<Traveler[]>([]);
 
   // Synchronize bookings with canonical BookingRepository
   useEffect(() => {
@@ -249,8 +222,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const sc = getScenarioById(scenarioId);
         if (sc?.getMockDraft) {
           setDraftState(sc.getMockDraft());
-          setAccount(null);
-          setTravelers([]);
           setReady(true);
           return;
         }
@@ -265,8 +236,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           ? rawStep
           : "results";
       setDraftState(createDeterministicMockDraft(validStep));
-      setAccount(null);
-      setTravelers([]);
       setReady(true);
       return;
     }
@@ -280,11 +249,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const parsed = JSON.parse(raw) as Persisted & Record<string, unknown>;
         const { account: a, travelers: t, draft: d, bookings: b, ...extra } = parsed;
         extraKeysRef.current = extra;
+        initialLegacyAccountRef.current = (a as PassengerAccount) ?? null;
+        initialLegacyTravelersRef.current = (t ?? []).map((tr) => ({ ...tr, dob: tr.dob ?? "" }));
         if (Array.isArray(b)) {
           initialLegacyBookingsRef.current = b;
         }
-        setAccount(a ?? null);
-        setTravelers((t ?? []).map((tr) => ({ ...tr, dob: tr.dob ?? "" })));
         if (d) {
           currentDraft = validateAndSanitizeDraft(d, clientToday, clientReturn);
         }
@@ -305,16 +274,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (draft.outbound?.id.startsWith("CAP-PROOF") || draft.inbound?.id.startsWith("CAP-PROOF")) {
       return;
     }
-    // Retain legacy bookings if any were present at boot for rollback safety, but stop writing new shadow bookings
+    // Preserves legacy account/traveler snapshots byte-equivalently in meaning without writing new canonical passenger mutations back
     const payload: Persisted = {
       ...extraKeysRef.current,
       ...(initialLegacyBookingsRef.current.length > 0 ? { bookings: initialLegacyBookingsRef.current } : {}),
-      account,
-      travelers,
+      account: initialLegacyAccountRef.current,
+      travelers: initialLegacyTravelersRef.current,
       draft,
     };
     window.localStorage.setItem(KEY, JSON.stringify(payload));
-  }, [ready, account, travelers, draft]);
+  }, [ready, draft]);
 
   const setDraft = useCallback((updater: (prev: Draft) => Draft) => {
     hasMutatedRef.current = true;
@@ -326,7 +295,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       hasMutatedRef.current = true;
       const passengers = passengersFor(criteria);
       // A signed-in traveller's saved meal preference becomes the booking default.
-      const meal = account?.mealPreference ?? "standard";
+      const meal = canonicalAccount?.mealPreference ?? "standard";
       setDraftState({
         entry: "results",
         criteria,
@@ -336,10 +305,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         passengers,
         seats: {},
         extras: { pax: passengers.map(() => emptyPaxExtras(meal)) },
-        contact: { email: account?.email ?? "", phone: account?.phone ?? "" },
+        contact: { email: canonicalAccount?.email ?? "", phone: canonicalAccount?.phone ?? "" },
       });
     },
-    [account],
+    [canonicalAccount],
   );
 
   const addBooking = useCallback(
@@ -360,6 +329,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
       hasMutatedRef.current = true;
 
+      const ownerEmail = canonicalAccount?.email
+        ? normalizeEmailIdentity(canonicalAccount.email)
+        : null;
+
       // Authoritative creation in canonical repository (determines PNR, checks bookability, persists)
       const created = await bookingRepo.create({
         criteria: booking.criteria,
@@ -371,29 +344,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         extras: booking.extras,
         contact: booking.contact,
         total: booking.total,
-        ownerEmail: account?.email ?? null,
+        ownerEmail,
       });
 
       setBookings((prev) => [created, ...prev.filter((b) => b.ref !== created.ref)]);
       return created;
     },
-    [account, bookingRepo],
-  );
-
-  const claimBooking = useCallback(
-    async (ref: string) => {
-      if (!account) return;
-      hasMutatedRef.current = true;
-      const claimed = await bookingRepo.claim(ref, account.email);
-      if (claimed) {
-        setBookings((prev) =>
-          prev.map((b) =>
-            b.ref.toUpperCase() === claimed.ref.toUpperCase() ? claimed : b,
-          ),
-        );
-      }
-    },
-    [account, bookingRepo],
+    [canonicalAccount, bookingRepo],
   );
 
   const checkInLeg = useCallback(
@@ -431,49 +388,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [bookings],
   );
 
-  const signIn = useCallback((email: string, firstName?: string, lastName?: string) => {
-    hasMutatedRef.current = true;
-    setAccount((prev) => ({
-      email,
-      firstName: firstName ?? prev?.firstName ?? email.split("@")[0] ?? "Traveller",
-      lastName: lastName ?? prev?.lastName ?? "",
-      phone: prev?.phone ?? "",
-      seatPreference: prev?.seatPreference ?? "window",
-      mealPreference: prev?.mealPreference ?? "standard",
-      newsletter: prev?.newsletter ?? false,
-    }));
-  }, []);
-
-  const signOut = useCallback(() => {
-    hasMutatedRef.current = true;
-    setAccount(null);
-  }, []);
-
-  const updateAccount = useCallback((patch: Partial<Account>) => {
-    hasMutatedRef.current = true;
-    setAccount((prev) => (prev ? { ...prev, ...patch } : prev));
-  }, []);
-
-  const addTraveler = useCallback((traveler: Omit<Traveler, "id">) => {
-    hasMutatedRef.current = true;
-    setTravelers((prev) => [...prev, { ...traveler, id: `t-${Date.now()}` }]);
-  }, []);
-
-  const updateTraveler = useCallback((id: string, patch: Partial<Omit<Traveler, "id">>) => {
-    hasMutatedRef.current = true;
-    setTravelers((prev) => prev.map((tr) => (tr.id === id ? { ...tr, ...patch } : tr)));
-  }, []);
-
-  const removeTraveler = useCallback((id: string) => {
-    hasMutatedRef.current = true;
-    setTravelers((prev) => prev.filter((t) => t.id !== id));
-  }, []);
-
-  const myBookings = useMemo(
-    () => (account ? bookings.filter((b) => b.ownerEmail === account.email) : []),
-    [account, bookings],
-  );
-
   const value = useMemo<StoreValue>(
     () => ({
       ready,
@@ -481,20 +395,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setDraft,
       resetDraft,
       bookings,
-      myBookings,
       addBooking,
       updateBooking,
-      claimBooking,
       checkInLeg,
       findBooking,
-      account,
-      signIn,
-      signOut,
-      updateAccount,
-      travelers,
-      addTraveler,
-      updateTraveler,
-      removeTraveler,
     }),
     [
       ready,
@@ -502,20 +406,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setDraft,
       resetDraft,
       bookings,
-      myBookings,
       addBooking,
       updateBooking,
-      claimBooking,
       checkInLeg,
       findBooking,
-      account,
-      signIn,
-      signOut,
-      updateAccount,
-      travelers,
-      addTraveler,
-      updateTraveler,
-      removeTraveler,
     ],
   );
 

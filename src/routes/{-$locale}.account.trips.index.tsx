@@ -2,11 +2,12 @@ import { AppLink } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
 import { StatusBadge } from "@/components/flight-status";
 import { btnClass, Code, EmptyState, Panel, Pill } from "@/components/kit";
-import { airportByCode } from "@/lib/data";
+import { airportByCode, todayISO } from "@/lib/data";
 import { dateLong, money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
 import { useState } from "react";
-import { passCount, useStore } from "@/lib/store";
+import { passCount } from "@/lib/domain/booking";
+import { useMyBookings } from "@/lib/passenger";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/{-$locale}/account/trips/")({
@@ -25,10 +26,10 @@ type Group = "upcoming" | "past" | "cancelled";
 
 function TripsPage() {
   const { t, lang } = useI18n();
-  const { myBookings: bookings } = useStore();
+  const { data: bookings } = useMyBookings();
   const [group, setGroup] = useState<Group>("upcoming");
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayISO();
   const grouped: Record<Group, typeof bookings> = {
     cancelled: bookings.filter((b) => b.status === "cancelled"),
     upcoming: bookings.filter((b) => b.status !== "cancelled" && b.outbound.date >= today),
@@ -137,4 +138,3 @@ function TripsPage() {
     </Tabs>
   );
 }
-

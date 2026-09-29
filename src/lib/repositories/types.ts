@@ -25,8 +25,15 @@ export interface BookingRepository {
   /** Marks specific passenger indices as checked in on the given leg. */
   checkIn(ref: string, leg: Leg, paxIndexes: number[]): Promise<Booking | null>;
 
-  /** Links a booking to an account email. */
-  claim(ref: string, accountEmail: string): Promise<Booking | null>;
+  /**
+   * Links a booking to an account email with explicit status:
+   * - "claimed": unowned booking with matching contact email was claimed
+   * - "already-owned-by-user": already owned by this normalized account (idempotent)
+   * - "not-found": booking does not exist
+   * - "owned-by-another": booking is already owned by a different account
+   * - "contact-mismatch": unowned booking whose contact email does not match
+   */
+  claim(ref: string, accountEmail: string): Promise<ClaimResult>;
 
   /** Removes a booking by reference (used for smoke test isolation / cleanup). */
   delete(ref: string): Promise<boolean>;
@@ -34,6 +41,20 @@ export interface BookingRepository {
   /** Subscribes to changes in the booking repository. */
   subscribe(listener: () => void): () => void;
 }
+
+export type ClaimStatus =
+  | "claimed"
+  | "already-owned-by-user"
+  | "not-found"
+  | "owned-by-another"
+  | "contact-mismatch";
+
+export type ClaimResult =
+  | { status: "claimed"; booking: Booking }
+  | { status: "already-owned-by-user"; booking: Booking }
+  | { status: "not-found" }
+  | { status: "owned-by-another" }
+  | { status: "contact-mismatch" };
 
 export interface FlightRepository {
   /** Retrieves scheduled flights for a given date with operational overrides applied. */
@@ -61,4 +82,5 @@ export interface FlightRepository {
 export interface RepositoryRegistry {
   booking: BookingRepository;
   flight: FlightRepository;
+  passenger: import("../passenger/repository.ts").PassengerRepository;
 }

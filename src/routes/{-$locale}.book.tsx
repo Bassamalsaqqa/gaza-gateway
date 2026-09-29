@@ -55,7 +55,9 @@ import {
   type Draft,
   useStore,
 } from "@/lib/store";
+import { usePassengerAccount, usePassengerTravelers } from "@/lib/passenger";
 import { cn } from "@/lib/utils";
+
 
 type BookSearch = {
   step?: BookingStep;
@@ -110,7 +112,11 @@ function BookPage() {
   const { t, lang } = useI18n();
   const navigate = useAppNavigate();
   const search = Route.useSearch();
-  const { ready, draft, setDraft, addBooking, account, travelers } = useStore();
+  const { ready, draft, setDraft, addBooking } = useStore();
+
+  const { data: account } = usePassengerAccount();
+  const { data: travelers = [] } = usePassengerTravelers();
+
 
   const [activePax, setActivePax] = useState(0);
   const [seatLeg, setSeatLeg] = useState<"out" | "in">("out");

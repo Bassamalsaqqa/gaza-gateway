@@ -18,19 +18,19 @@ Phase 4 resolves these defects by introducing **two bounded aggregates** with as
 
 ---
 
-## 2. Post-Phase-4 Ownership Matrix
+## 2. Post-Phase-5A Ownership Matrix
 
-| Aggregate / Entity | Primary Writer | Primary Storage Key | Consumers (Public & Admin) | Phase 4 State | Future Migration Target |
+| Aggregate / Entity | Primary Writer | Primary Storage Key | Consumers (Public & Admin) | Current State | Future Migration Target |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Booking** | `BookingRepository` (`LocalBookingRepository`) | `gza.repo.v1` (`bookings[]`) | Public Confirmation (`/booking-confirmation/$ref`), Manage Booking (`/manage`), Admin Dashboard, Admin Bookings (`/admin/bookings`), Admin Booking Detail (`/admin/bookings/$ref`), Admin Global Search (`AdminSearch`) | **Migrated** to canonical repository with single-writer pattern and React Query invalidation | Phase 5 (Public workflows), Phase 6 (Admin workflows) |
-| **Flight Operations (Overrides)** | `FlightRepository` (`LocalFlightRepository`) | `gza.repo.v1` (`flightOverrides{}`) | Public Flights Board (`/flights`), Public Flight Detail (`/flight/$flightId`), Admin Dashboard, Admin Flights (`/admin/flights`), Flight Operations Quick-Edit | **Migrated** to canonical repository with pure `getEffectiveFlight()` composition | Phase 6 (Admin dispatch & schedules) |
+| **Passenger State (Account & Travelers)** | `PassengerRepository` (`src/lib/passenger/`) | `gza.passenger.v1` (`account`, `travelers`) | Site Header, `/account/*`, `/book` (saved traveler pickers), `/signin`, `/register`, `/verify-email`, `/account/security` | **Migrated (Phase 5A)** to canonical `PassengerRepository` with transactional coordinator and zero password persistence | Phase 13 (Backend Auth & Database) |
+| **Booking** | `BookingRepository` (`LocalBookingRepository`) | `gza.repo.v1` (`bookings[]`) | Public Confirmation (`/booking-confirmation/$ref`), Manage Booking (`/manage`), Admin Dashboard, Admin Bookings (`/admin/bookings`), Admin Booking Detail (`/admin/bookings/$ref`), Admin Global Search (`AdminSearch`), Account Trips (`/account/trips`) | **Migrated (Phase 4)** with single-writer pattern, React Query invalidation, and hardened `claim()` returning `ClaimResult` | Phase 5B / 5C / 6 |
+| **Flight Operations (Overrides)** | `FlightRepository` (`LocalFlightRepository`) | `gza.repo.v1` (`flightOverrides{}`) | Public Flights Board (`/flights`), Public Flight Detail (`/flight/$flightId`), Admin Dashboard, Admin Flights (`/admin/flights`), Flight Operations Quick-Edit | **Migrated (Phase 4)** with pure `getEffectiveFlight()` composition | Phase 6 (Admin dispatch & schedules) |
 | **Flight Schedules & Reference** | `src/lib/data.ts` (deterministic generator) | Static / In-memory | `FlightRepository`, flight search, route generation | **Preserved** as immutable baseline timetable and schedule generator | Phase 6 (Mutable schedules) |
-| **Booking Draft** | `src/lib/store.tsx` (`useStore`) | `gza.store.v1` (`draft`) | Public Booking Wizard (`/book`) | **Preserved** in legacy key with bookability sanitization and step gating | Phase 5 (Wizard convergence) |
-| **Customer Account & Travelers** | `src/lib/store.tsx` (`useStore`) | `gza.store.v1` (`account`, `travelers`) | Passenger Account (`/account/*`), Manage Booking | **Preserved** in legacy key pending Phase 5 | Phase 5 (Account & travelers) |
+| **Booking Draft** | `src/lib/store.tsx` (`useStore`) | `gza.store.v1` (`draft` ONLY) | Public Booking Wizard (`/book`) | **Preserved Draft Key** (No dual passenger writes; legacy snapshots preserved byte-equivalently) | Phase 5B (`gza.booking.draft.v1`) |
 | **Admin Staff Session** | `src/lib/admin-store.tsx` (`useAdmin`) | `gza.admin.v1` (`staffId`) | Admin Shell, permission guards, role switcher | **Preserved** in legacy key for local session simulation | Phase 6 (Staff & RBAC) |
 | **Admin Ops State (Simulation)** | `src/lib/admin-store.tsx` (`ops`, `patchOps`) | In-memory React state (`OpsState`) | Admin Operations Dashboard, Dispatch timers | **Preserved** as ephemeral session simulation | Phase 6 (Operational state) |
-| **CMS & Story Content** | `src/lib/admin-mock.ts` | Static in-memory fixtures | Public homepage, About, Airport history chapters, Travel info, Gallery | **Preserved** in mock fixtures pending Phase 4B | Phase 4B (Typed Content & CMS Schema) |
-| **Appearance & Settings Draft** | `src/lib/settings/` | `gza.settings.draft.v1` | Admin Settings (`/admin/settings`), Appearance Studio, Public Contact (`?settingsPreview=1`), Skin Preview (`?skinPreview=1`) | **Migrated** to canonical SettingsRepository with multi-document envelope; legacy key is dormant | Complete (Phase 4C) |
+| **CMS & Story Content** | `src/content/` & `src/lib/admin-mock.ts` | Compiled published source & draft store | Public homepage, About, Airport history chapters, Travel info, Gallery | **Partially Migrated (Phase 4B)** for Home, Travel, Past | Phase 7 (Complete CMS Admin) |
+| **Appearance & Settings Draft** | `src/lib/settings/` | `gza.settings.draft.v1` | Admin Settings (`/admin/settings`), Appearance Studio, Public Contact (`?settingsPreview=1`), Skin Preview (`?skinPreview=1`) | **Migrated (Phase 4C)** to multi-document SettingsRepository; legacy key is dormant | Complete (Phase 4C) |
 
 ---
 
@@ -102,7 +102,7 @@ export interface BookingRepository {
   create(input: BookingCreateInput): Promise<Booking>;
   update(ref: string, patch: Partial<Booking>): Promise<Booking | null>;
   checkIn(ref: string, leg: Leg, paxIndexes: number[]): Promise<Booking | null>;
-  claim(ref: string, accountEmail: string): Promise<Booking | null>;
+  claim(ref: string, accountEmail: string): Promise<ClaimResult>;
   delete(ref: string): Promise<boolean>;
   subscribe(listener: () => void): () => void;
 }
@@ -114,6 +114,18 @@ export interface FlightRepository {
   getOverride(flightId: string): Promise<FlightOverride | null>;
   setOverride(flightId: string, override: FlightOverride): Promise<void>;
   clearOverride(flightId: string): Promise<void>;
+  subscribe(listener: () => void): () => void;
+}
+
+export interface PassengerRepository {
+  getAccount(): Promise<PassengerAccount | null>;
+  listTravelers(): Promise<Traveler[]>;
+  signIn(email: string, firstName?: string, lastName?: string): Promise<PassengerAccount>;
+  signOut(): Promise<void>;
+  updateAccount(patch: Partial<Omit<PassengerAccount, "email">>): Promise<PassengerAccount>;
+  addTraveler(traveler: Omit<Traveler, "id">): Promise<Traveler>;
+  updateTraveler(id: string, patch: Partial<Omit<Traveler, "id">>): Promise<Traveler>;
+  removeTraveler(id: string): Promise<void>;
   subscribe(listener: () => void): () => void;
 }
 ```

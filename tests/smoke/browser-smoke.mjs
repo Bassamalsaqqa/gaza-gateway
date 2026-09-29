@@ -3872,6 +3872,211 @@ async function runBrowserSmoke() {
       // Reset viewport
       await page.setViewportSize({ width: 1440, height: 900 });
     });
+
+    await checkStep("Phase 5A Passenger Aggregate, Account Truth & Invariants Smoke", async () => {
+      // 1. Setup clean slate with legacy data
+      await page.evaluate(() => {
+        localStorage.clear();
+        localStorage.setItem(
+          "gza.store.v1",
+          JSON.stringify({
+            account: {
+              email: "smoke@gza.ps",
+              firstName: "LegacySmoke",
+              lastName: "Pilot",
+              phone: "+970 8 000 0000",
+              seatPreference: "window",
+              mealPreference: "halal",
+              newsletter: true,
+            },
+            travelers: [
+              {
+                id: "trv-smoke-1",
+                firstName: "ChildSmoke",
+                lastName: "Pilot",
+                dob: "2018-03-03",
+                nationality: "Palestinian",
+                document: "P12345",
+              },
+            ],
+            draft: { entry: "results" },
+          })
+        );
+      });
+
+      // 2. Navigate to /account -> verify migration happened
+      await page.goto(baseUrl + "/account", { waitUntil: "domcontentloaded" });
+      await page.waitForSelector("h1", { timeout: 8000 });
+      const welcomeText = await page.locator("h1").innerText();
+      if (!welcomeText.includes("LegacySmoke")) {
+        throw new Error(`Expected account header to include 'LegacySmoke', got '${welcomeText}'`);
+      }
+
+      // Verify canonical passenger storage was created
+      const passengerRaw = await page.evaluate(() => localStorage.getItem("gza.passenger.v1"));
+      if (!passengerRaw) {
+        throw new Error("gza.passenger.v1 was not created upon boot/migration");
+      }
+      const parsedPassenger = JSON.parse(passengerRaw);
+      if (parsedPassenger.account?.email !== "smoke@gza.ps" || parsedPassenger.travelers?.length !== 1) {
+        throw new Error("Migrated passenger state mismatch in gza.passenger.v1");
+      }
+
+      // 3. Test profile edit & verify no dual writing to legacy store
+      await page.goto(baseUrl + "/account/profile", { waitUntil: "domcontentloaded" });
+      await page.waitForSelector("#p-first", { timeout: 8000 });
+      // Verify email input is read-only
+      const isEmailReadOnly = await page.locator("#p-email").getAttribute("readonly");
+      if (isEmailReadOnly === null) {
+        throw new Error("Profile email input must be read-only");
+      }
+
+      // Edit first name and save
+      await page.fill("#p-first", "UpdatedSmoke");
+      await page.click('button[type="submit"]');
+      await page.waitForSelector('p[role="status"]', { timeout: 5000 });
+
+      // Verify gza.passenger.v1 has updated name
+      const updatedPassenger = await page.evaluate(() => JSON.parse(localStorage.getItem("gza.passenger.v1") || "{}"));
+      if (updatedPassenger.account?.firstName !== "UpdatedSmoke") {
+        throw new Error(`Expected gza.passenger.v1 firstName to be 'UpdatedSmoke', got '${updatedPassenger.account?.firstName}'`);
+      }
+
+      // Invariant: gza.store.v1 must NOT be updated with new canonical passenger changes (no dual writing)
+      const legacyStore = await page.evaluate(() => JSON.parse(localStorage.getItem("gza.store.v1") || "{}"));
+      if (legacyStore.account?.firstName !== "LegacySmoke") {
+        throw new Error(`gza.store.v1 was dual-written! Expected 'LegacySmoke', got '${legacyStore.account?.firstName}'`);
+      }
+
+      // 4. Test traveler CRUD & reload persistence
+      await page.goto(baseUrl + "/account/travelers", { waitUntil: "domcontentloaded" });
+      await page.waitForSelector("#tv-first", { timeout: 8000 });
+
+      // Add a traveler
+      await page.fill("#tv-first", "Salma");
+      await page.fill("#tv-last", "Smoke");
+      await page.fill("#tv-nat", "Palestinian");
+      await page.fill("#tv-doc", "PS-998877");
+      await page.click('button[type="submit"]');
+
+      // Wait for Salma Smoke to appear in list
+      await page.waitForSelector("text=Salma Smoke", { timeout: 5000 });
+
+      // Reload and assert persistence
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await page.waitForSelector("text=Salma Smoke", { timeout: 5000 });
+
+      // 5. Test sign out and ensure saved travelers survive
+      await page.goto(baseUrl + "/account/security", { waitUntil: "domcontentloaded" });
+      const signoutBtn = page.locator('button:has-text("Sign out"), button:has-text("خروج")').first();
+      await signoutBtn.waitFor({ state: "visible", timeout: 8000 });
+      await signoutBtn.click();
+
+      // Verify sign out state
+      await page.waitForSelector('a:has-text("Sign in"), a:has-text("تسجيل الدخول")', { timeout: 8000 });
+      const afterSignOut = await page.evaluate(() => JSON.parse(localStorage.getItem("gza.passenger.v1") || "{}"));
+      if (afterSignOut.account !== null) {
+        throw new Error("Account was not cleared in gza.passenger.v1 on sign out");
+      }
+      if (!afterSignOut.travelers || afterSignOut.travelers.length < 2) {
+        throw new Error("Saved travelers were lost on sign out!");
+      }
+
+      // 6. Test Auth truth and zero password persistence
+      await page.goto(baseUrl + "/signin", { waitUntil: "domcontentloaded" });
+      await page.waitForSelector("#email", { timeout: 8000 });
+      const testSecret = "SuperSecretPassword123!@#";
+      await page.fill("#email", "pilot.truth@gza.ps");
+      await page.fill("#password", testSecret);
+      await page.click('button[type="submit"]');
+
+      // Wait for navigation to /account
+      await page.waitForURL(/\/account/, { timeout: 5000 });
+
+      // Invariant: testSecret must NEVER appear anywhere in localStorage
+      const allStorageKeys = await page.evaluate(() => {
+        const out = {};
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          out[k] = localStorage.getItem(k);
+        }
+        return out;
+      });
+
+      for (const [key, val] of Object.entries(allStorageKeys)) {
+        if (typeof val === "string" && val.includes(testSecret)) {
+          throw new Error(`CRITICAL AUTH DEFECT: Password leaked into localStorage key '${key}'!`);
+        }
+      }
+
+      // 7. Verify /account/trips/$ref ownership rejection
+      // Seed a booking owned by another account
+      await page.evaluate(() => {
+        const repo = JSON.parse(localStorage.getItem("gza.repo.v1") || '{"schemaVersion":1,"bookings":[],"flights":{}}');
+        repo.bookings = [
+          {
+            ref: "OTHER99",
+            status: "confirmed",
+            ownerEmail: "otherperson@gza.ps",
+            criteria: { tripType: "one-way", originCode: "GZA", destinationCode: "AMM", departDate: "2026-10-10", adults: 1, children: 0, infants: 0, cabin: "economy" },
+            outbound: { id: "PS-99", number: "PS 99", originCode: "GZA", destinationCode: "AMM", date: "2026-10-10", departTime: "08:00", arriveTime: "09:00", aircraft: "B737", terminal: "1", basePrice: 100, status: "scheduled" },
+            inbound: null,
+            fareId: "classic",
+            passengers: [{ id: "p1", firstName: "Other", lastName: "Person", type: "adult" }],
+            seats: {},
+            extras: { pax: [{ extraBags: 0, meal: "standard", assistance: [] }] },
+            contact: { email: "otherperson@gza.ps", phone: "" },
+            total: 114,
+            createdAt: new Date().toISOString(),
+            checkedIn: { out: [], in: [] },
+          },
+          {
+            ref: "UNOWNED88",
+            status: "confirmed",
+            ownerEmail: null,
+            criteria: { tripType: "one-way", originCode: "GZA", destinationCode: "AMM", departDate: "2026-10-10", adults: 1, children: 0, infants: 0, cabin: "economy" },
+            outbound: { id: "PS-88", number: "PS 88", originCode: "GZA", destinationCode: "AMM", date: "2026-10-10", departTime: "08:00", arriveTime: "09:00", aircraft: "B737", terminal: "1", basePrice: 100, status: "scheduled" },
+            inbound: null,
+            fareId: "classic",
+            passengers: [{ id: "p2", firstName: "Guest", lastName: "Person", type: "adult" }],
+            seats: {},
+            extras: { pax: [{ extraBags: 0, meal: "standard", assistance: [] }] },
+            contact: { email: "guest@gza.ps", phone: "" },
+            total: 114,
+            createdAt: new Date().toISOString(),
+            checkedIn: { out: [], in: [] },
+          },
+        ];
+        localStorage.setItem("gza.repo.v1", JSON.stringify(repo));
+      });
+
+      // Navigating to /account/trips/OTHER99 as pilot.truth@gza.ps must reject
+      await page.goto(baseUrl + "/account/trips/OTHER99", { waitUntil: "domcontentloaded" });
+      await page.waitForSelector("text=find that booking", { timeout: 5000 });
+
+      // Navigating to /account/trips/UNOWNED88 must also reject (unowned guest booking)
+      await page.goto(baseUrl + "/account/trips/UNOWNED88", { waitUntil: "domcontentloaded" });
+      await page.waitForSelector("text=find that booking", { timeout: 5000 });
+
+      // 8. Responsive & LTR formatting at 390px and 320px
+      for (const width of [390, 320]) {
+        await page.setViewportSize({ width, height: 667 });
+        for (const path of ["/signin", "/ar/signin", "/account/security", "/ar/account/security"]) {
+          await page.goto(baseUrl + path, { waitUntil: "domcontentloaded" });
+          const overflow = await page.evaluate(() => document.body.scrollWidth > document.body.clientWidth);
+          if (overflow) {
+            throw new Error(`Horizontal overflow on ${path} at ${width}px`);
+          }
+        }
+      }
+
+      // Reset viewport and cleanup
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.evaluate(() => {
+        localStorage.clear();
+      });
+    });
+
   } finally {
     await browser.close();
     if (server) {

@@ -3,10 +3,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Luggage, Ticket, Users } from "lucide-react";
 import { StatusBadge } from "@/components/flight-status";
 import { btnClass, Code, EmptyState, Panel } from "@/components/kit";
-import { airportByCode } from "@/lib/data";
+import { airportByCode, todayISO } from "@/lib/data";
 import { dateLong } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
-import { useStore, passCount } from "@/lib/store";
+import { passCount } from "@/lib/domain/booking";
+import { useMyBookings, usePassengerTravelers } from "@/lib/passenger";
 
 export const Route = createFileRoute("/{-$locale}/account/")({
   head: () => ({
@@ -22,13 +23,15 @@ export const Route = createFileRoute("/{-$locale}/account/")({
 
 function AccountOverview() {
   const { t, lang } = useI18n();
-  const { myBookings: bookings, travelers } = useStore();
-  const today = new Date().toISOString().slice(0, 10);
+  const { data: bookings } = useMyBookings();
+  const { data: travelers = [] } = usePassengerTravelers();
+  const today = todayISO();
   // Nearest upcoming confirmed departure, not simply the first stored booking.
   const next = bookings
     .filter((b) => b.status === "confirmed" && b.outbound.date >= today)
     .sort((a, b) => a.outbound.date.localeCompare(b.outbound.date))[0];
   const passes = bookings.reduce((sum, b) => sum + (b.status === "cancelled" ? 0 : passCount(b)), 0);
+
 
   return (
     <div className="space-y-4">

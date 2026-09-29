@@ -13,9 +13,10 @@ Following Phase 4, the application coordinates persistence across canonical repo
 | Store / Source | Implementation Files | Persistence | Entities & Data Types Managed |
 | :--- | :--- | :--- | :--- |
 | **Canonical Repositories** (`BookingRepository`, `FlightRepository`) | `src/lib/repositories/`, `src/lib/domain/` | `localStorage["gza.repo.v1"]` (schemaVersion: 1) | Canonical bookings (`Booking[]`) and mutable operational flight overrides (`flightOverrides: Record<string, FlightOverride>`). Single source of truth for public and admin views. Synchronized across tabs via `subscribeToStorage()`. |
+| **Canonical Passenger State** (`PassengerRepository`) | `src/lib/passenger/` | `localStorage["gza.passenger.v1"]` (schemaVersion: 1) | Canonical passenger account (`PassengerAccount | null`), profile preferences, and saved companions (`Traveler[]`). Migrated once from `gza.store.v1` only if absent; present empty state is authoritative. Synchronized across tabs via `subscribe()`. |
 | **Published Editorial Content** | `src/content/published/` | Compiled source in prerendered HTML and route chunks | Canonical Home, Travel and Airport Past proof documents. Normal public URLs never read local drafts. |
 | **Local Editorial Drafts** | `src/content/repository.ts` | `localStorage["gza.content.draft.v1"]` (schemaVersion: 1) | Admin Travel draft and explicit `?contentPreview=1` overlay only. Save errors reject; corrupt data falls back to published. |
-| **Public Store Façade** (`useStore`) | `src/lib/store.tsx` | `localStorage["gza.store.v1"]` (draft, account, travelers) | Active booking wizard draft (`draft: Draft`), account session (`Account \| null`), and saved travel companions (`Traveler[]`). Booking mutations delegate directly to `bookingRepo` (single writer). |
+| **Public Store Façade** (`useStore`) | `src/lib/store.tsx` | `localStorage["gza.store.v1"]` (`draft` ONLY) | Active booking wizard draft (`draft: Draft`). Legacy account and travelers are preserved byte-equivalently on draft write without writing canonical passenger changes back (no dual writer). |
 | **Admin Store Façade** (`useAdmin`) | `src/lib/admin-store.tsx` | `localStorage["gza.admin.v1"]` (staffId) | Staff identity (`Staff \| null`), active role (`AdminRole`). Flight operational override mutations delegate directly to `flightRepo` (single writer). |
 | **Admin Operations State** (`useAdmin().ops`) | `src/lib/admin-ops.ts`, `src/lib/admin-store.tsx` | Session in-memory state in `AdminProvider` (`useState<OpsState>`). Resets to seed on reload. | Schedules (`Schedule[]`), aircraft fleet (`AircraftType[]`), seat maps (`Record<string, SeatMapConfig>`), fare products (`FareConfig[]`), baggage allowance (`BaggageConfig`), meals (`OptionItem[]`), assistance options (`OptionItem[]`), destination parameters (`DestinationConfig[]`). |
 | **Admin Static Mock Data** | `src/lib/admin-mock.ts` | In-memory static constants | Customer profiles (`mockCustomers`), check-in desk fixtures, staff inbox, staff directory, audit and analytics fixtures, and non-migrated CMS/story collections. Home, Travel and Past proof arrays now derive from `src/content/`. |
@@ -41,7 +42,18 @@ In `src/lib/store.tsx` and `src/lib/booking-draft.ts`:
   - Preserves entered passenger names, dates of birth, and contact information even if flight criteria roll forward.
   - Calculates maximum accessible wizard step (`calculateMaxStep`), clamping wizard progression to Step 1 (flight selection) or Step 3 (passenger details) if prerequisites are missing.
 
-### 1.3 Appearance Studio & Settings Draft Reality (`gza.settings.draft.v1`)
+### 1.3 Canonical Passenger State & Auth-Truth Reality (`gza.passenger.v1`)
+
+In `src/lib/passenger/`:
+- **Single Source of Truth**: `PassengerRepository` manages canonical passenger identity (`PassengerAccount | null`) and saved companions (`Traveler[]`) stored under `localStorage["gza.passenger.v1"]`.
+- **Anti-Resurrection Rule**: Migration from `gza.store.v1` occurs **only** when `gza.passenger.v1` is completely absent (`null`). If `gza.passenger.v1` is present (even with a null account or empty travelers), legacy values are never resurrected.
+- **No Dual Writer**: `StoreProvider` in `src/lib/store.tsx` retains legacy account/traveler snapshots in memory solely to re-serialize `gza.store.v1` byte-equivalently on draft edits. It never writes canonical passenger mutations back to legacy storage.
+- **Identity Normalization & Email Immutability**: All email inputs are trimmed and lowercased (`normalizeEmailIdentity`). Updating profile preferences preserves the original identity email; email cannot be changed through profile save.
+- **Transactional Persistence**: `PassengerStorageCoordinator` builds state candidates, writes to storage, and only adopts and notifies subscribers if storage succeeds. Quota errors reject with `StorageCommitError` and roll back memory.
+- **Auth Truth & Privacy**: There is no live backend, database, or authentication API. Sign-in and register adopt local identity on this device. Password fields are never compared, persisted, hashed, logged, or placed in URLs. Near-form disclosure states that password authentication is not connected.
+- **Hardened Booking Claims**: Unowned bookings matching the passenger's contact email can be claimed. Rejects if owned by another account (`"owned-by-another"`) or contact email mismatches (`"contact-mismatch"`). Idempotent if already owned (`"already-owned-by-user"`). Contact email on the booking remains unmodified.
+
+### 1.4 Appearance Studio & Settings Draft Reality (`gza.settings.draft.v1`)
 
 In `src/lib/settings/`, `src/lib/skin.ts`, and `src/components/admin/appearance-studio/`:
 - **In-Memory Working Preview & Preview Isolation**: Working edits made in Appearance Studio do not touch storage on each control change. They update local in-memory React state and synchronize immediately to the embedded preview iframe via the typed `postMessage` protocol (`STUDIO_PROTOCOL_VERSION = "1.0.0"`).
@@ -53,12 +65,12 @@ In `src/lib/settings/`, `src/lib/skin.ts`, and `src/components/admin/appearance-
 - **Studio Scenario Fixtures**: In `studioPreview=1`, preview routes bypass `localStorage["gza.store.v1"]` mutations, rendering deterministic in-memory fixtures to prevent test booking debris from polluting user storage.
 - **Export Action**: The Appearance Studio provides a bounded "Export appearance configuration" dialog (`gza.appearance.v1`) that serializes sanitized working configuration for copying or JSON file download without requiring a persistent backend or fake global Publish mutation.
 
-### 1.4 Simulation Boundary & Security Declarations
+### 1.5 Simulation Boundary & Security Declarations
 
-- **Staff and Passenger Authentication**: Pure client-side simulation. Mock passphrases and email logins set local state tokens (`localStorage["gza.admin.v1"]` and `localStorage["gza.store.v1"]`). There is no session token verification, token rotation, or server-side authorization.
+- **Staff and Passenger Authentication**: Pure client-side simulation. Mock passphrases and email logins set local state tokens (`localStorage["gza.admin.v1"]` and `localStorage["gza.passenger.v1"]`). There is no session token verification, token rotation, or server-side authorization. Passwords are never stored, verified, or hashed.
 - **Financial & Commercial Boundary**: The booking wizard concludes at Step 6 (Review & Confirmation) with PNR generation (e.g. `GZA-7K8P`). No real payment gateway, merchant facility, or financial processing exists. Payment card inputs are simulated and discarded.
 - **Secrets & Customer Privacy**: Zero real secrets, database credentials, payment card data, or private customer PII belong in client repositories or bundles. All customer profiles and staff accounts are synthetic fixtures.
-- **React Query Status**: `@tanstack/react-query` is mounted at the root (`QueryClientProvider`). Phase 4 added canonical booking and flight query keys, hooks, and mutation invalidation for representative public and admin views. Other screens still use legacy `useStore()`, `useAdmin()`, or mock data pending Phases 5 and 6.
+- **React Query Status**: `@tanstack/react-query` is mounted at the root (`QueryClientProvider`). Phase 4 added canonical booking and flight query keys, and Phase 5A added `passengerKeys`. Subscription invalidation keeps public, account, and admin views synchronized without full-page reloads.
 
 ### 1.5 Asset & Content Ingestion Protocol and Archival Truth
 

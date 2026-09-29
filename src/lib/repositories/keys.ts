@@ -22,3 +22,5 @@ export const flightKeys = {
   detail: (id: string) => [...flightKeys.details(), id] as const,
   overrides: () => [...flightKeys.all, "overrides"] as const,
 };
+
+export { passengerKeys } from "../passenger/keys.ts";

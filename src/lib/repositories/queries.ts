@@ -17,9 +17,11 @@ import {
 } from "@tanstack/react-query";
 import type { Booking, BookingCreateInput } from "../domain/booking.ts";
 import type { Flight, FlightOverride } from "../domain/flight.ts";
+import type { ClaimResult } from "./types.ts";
 import { bookingKeys, flightKeys } from "./keys.ts";
 export { bookingKeys, flightKeys } from "./keys.ts";
 import { useRepositories } from "./registry.ts";
+
 
 /**
  * Retrieves all bookings from the canonical repository.
@@ -187,6 +189,30 @@ export function useUpdateFlightOverrideMutation(): UseMutationResult<
       flightRepo.setOverride(flightId, patch),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: flightKeys.all });
+    },
+  });
+}
+
+/**
+ * Canonical mutation hook for claiming a booking to an account.
+ * Updates the booking with normalized owner email and invalidates booking queries.
+ */
+export function useClaimBookingMutation(): UseMutationResult<
+  ClaimResult,
+  Error,
+  { ref: string; accountEmail: string }
+> {
+  const { booking: bookingRepo } = useRepositories();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ ref, accountEmail }: { ref: string; accountEmail: string }) =>
+      bookingRepo.claim(ref, accountEmail),
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({ queryKey: bookingKeys.all });
+      if (variables.ref) {
+        queryClient.invalidateQueries({ queryKey: bookingKeys.detail(variables.ref) });
+      }
     },
   });
 }

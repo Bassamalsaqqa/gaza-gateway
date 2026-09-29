@@ -11,7 +11,8 @@ import { makePassengerId } from "../domain/booking.ts";
 import { isSyntheticFlightId } from "../domain/flight.ts";
 import { isFlightBookable } from "../booking-rules.ts";
 import { makePnr } from "../format.ts";
-import type { BookingRepository } from "./types.ts";
+import type { BookingRepository, ClaimResult } from "./types.ts";
+import { normalizeEmailIdentity } from "../passenger/domain.ts";
 import {
   RepoStorageCoordinator,
   type RepoStorageV1,
@@ -131,7 +132,7 @@ export class LocalBookingRepository implements BookingRepository {
         total: data.total,
         status: data.status ?? "confirmed",
         checkedIn: data.checkedIn ?? { out: [], in: [] },
-        ownerEmail: data.ownerEmail ?? null,
+        ownerEmail: data.ownerEmail ? normalizeEmailIdentity(data.ownerEmail) : null,
       };
 
       state.bookings = [created, ...state.bookings];
@@ -188,30 +189,53 @@ export class LocalBookingRepository implements BookingRepository {
     });
   }
 
-  public async claim(ref: string, accountEmail: string): Promise<Booking | null> {
-    if (!ref || typeof ref !== "string" || !accountEmail) return null;
+  public async claim(ref: string, accountEmail: string): Promise<ClaimResult> {
+    if (!ref || typeof ref !== "string" || !accountEmail) {
+      return { status: "not-found" };
+    }
     const clean = ref.trim().toUpperCase();
+    const normalizedClaimEmail = normalizeEmailIdentity(accountEmail);
+    if (!normalizedClaimEmail) {
+      return { status: "not-found" };
+    }
 
     return this.coordinator.mutate((state) => {
       const index = state.bookings.findIndex((b) => b.ref.toUpperCase() === clean);
-      if (index === -1) return null;
-
-      const existing = state.bookings[index];
-      if (!existing) return null;
-
-      if (existing.ownerEmail) {
-        // Already owned
-        return { ...existing };
+      if (index === -1) {
+        return { status: "not-found" };
       }
 
+      const existing = state.bookings[index];
+      if (!existing) {
+        return { status: "not-found" };
+      }
+
+      if (existing.ownerEmail) {
+        const normalizedOwner = normalizeEmailIdentity(existing.ownerEmail);
+        if (normalizedOwner === normalizedClaimEmail) {
+          // Already owned by the same normalized email: idempotent success
+          return { status: "already-owned-by-user", booking: { ...existing } };
+        }
+        // Owned by another account: reject
+        return { status: "owned-by-another" };
+      }
+
+      // Booking is unowned: check if contact email matches claiming email
+      const normalizedContact = normalizeEmailIdentity(existing.contact?.email);
+      if (normalizedContact !== normalizedClaimEmail) {
+        // Unowned, but contact email mismatch: reject
+        return { status: "contact-mismatch" };
+      }
+
+      // Valid claim: set ownerEmail to normalized claim email; keep contact.email untouched
       const updated: Booking = {
         ...existing,
         account: true,
-        ownerEmail: accountEmail.trim(),
+        ownerEmail: normalizedClaimEmail,
       };
 
       state.bookings[index] = updated;
-      return { ...updated };
+      return { status: "claimed", booking: { ...updated } };
     });
   }
 

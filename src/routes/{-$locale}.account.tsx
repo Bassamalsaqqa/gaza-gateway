@@ -2,7 +2,7 @@ import { AppLink } from "@/components/app-link";
 import { Outlet, createFileRoute } from "@tanstack/react-router";
 import { Container, EmptyState, GazaLoadingState, PageHeader, btnClass } from "@/components/kit";
 import { useI18n } from "@/lib/i18n";
-import { useStore } from "@/lib/store";
+import { usePassengerAccount, useSignOutMutation } from "@/lib/passenger";
 
 export const Route = createFileRoute("/{-$locale}/account")({
   component: AccountLayout,
@@ -20,9 +20,10 @@ const links = [
 
 function AccountLayout() {
   const { t } = useI18n();
-  const { account, signOut, ready } = useStore();
+  const { data: account, isLoading } = usePassengerAccount();
+  const signOutMutation = useSignOutMutation();
 
-  if (!ready) {
+  if (isLoading) {
     return (
       <Container className="py-16">
         <GazaLoadingState />
@@ -58,10 +59,16 @@ function AccountLayout() {
         title={t("account.welcome", { name: account.firstName || account.email })}
         description={t("account.title")}
       >
-        <button type="button" onClick={signOut} className={btnClass("outline", "sm")}>
-          {t("auth.signout")}
+        <button
+          type="button"
+          onClick={() => signOutMutation.mutate()}
+          disabled={signOutMutation.isPending}
+          className={btnClass("outline", "sm")}
+        >
+          {signOutMutation.isPending ? t("common.loading") : t("auth.signout")}
         </button>
       </PageHeader>
+
 
       <Container className="grid gap-8 py-10 lg:grid-cols-[15rem_1fr]">
         <nav aria-label={t("account.title")}>

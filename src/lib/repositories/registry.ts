@@ -12,19 +12,25 @@ import type { RepositoryRegistry } from "./types.ts";
 import { LocalBookingRepository } from "./booking-repository.ts";
 import { LocalFlightRepository } from "./flight-repository.ts";
 import { RepoStorageCoordinator, type RepoStorageV1 } from "./storage.ts";
+import { LocalPassengerRepository } from "../passenger/repository.ts";
+import { PassengerStorageCoordinator, type PassengerStorageV1 } from "../passenger/storage.ts";
 import { isStudioPreviewActive } from "../studio-preview.ts";
 import { bookingKeys, flightKeys } from "./keys.ts";
+import { passengerKeys } from "../passenger/keys.ts";
 
 export interface CreateRepositoriesOptions {
   inMemoryOnly?: boolean | undefined;
   initialData?: RepoStorageV1 | undefined;
+  initialPassengerData?: PassengerStorageV1 | undefined;
   coordinator?: RepoStorageCoordinator | undefined;
+  passengerCoordinator?: PassengerStorageCoordinator | undefined;
   storage?: Storage | null | undefined;
 }
 
 /**
  * Creates a fresh repository registry instance.
- * Both BookingRepository and FlightRepository share the single RepoStorageCoordinator.
+ * BookingRepository and FlightRepository share RepoStorageCoordinator.
+ * PassengerRepository uses an independent PassengerStorageCoordinator.
  */
 export function createRepositories(options?: CreateRepositoriesOptions): RepositoryRegistry {
   const coordinator =
@@ -35,14 +41,25 @@ export function createRepositories(options?: CreateRepositoriesOptions): Reposit
       storage: options?.storage,
     });
 
+  const passengerCoordinator =
+    options?.passengerCoordinator ??
+    new PassengerStorageCoordinator({
+      inMemoryOnly: options?.inMemoryOnly,
+      initialData: options?.initialPassengerData,
+      storage: options?.storage,
+    });
+
   const booking = new LocalBookingRepository(coordinator);
   const flight = new LocalFlightRepository(coordinator);
+  const passenger = new LocalPassengerRepository(passengerCoordinator);
 
   return {
     booking,
     flight,
+    passenger,
   };
 }
+
 
 let browserRepositories: RepositoryRegistry | null = null;
 let studioRepositories: RepositoryRegistry | null = null;
@@ -107,11 +124,16 @@ export function RepositoryProvider({
     const unsubFlight = value.flight.subscribe(() => {
       queryClient.invalidateQueries({ queryKey: flightKeys.all });
     });
+    const unsubPassenger = value.passenger.subscribe(() => {
+      queryClient.invalidateQueries({ queryKey: passengerKeys.all });
+    });
     return () => {
       unsubBooking();
       unsubFlight();
+      unsubPassenger();
     };
   }, [value, queryClient]);
+
 
   return createElement(RepositoryContext.Provider, { value }, children);
 }

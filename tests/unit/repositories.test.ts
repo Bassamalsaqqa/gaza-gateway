@@ -472,12 +472,18 @@ describe("Canonical Repositories & Domain Layer", () => {
       const cannotCheckInCancelled = await repo.checkIn("GZANEW01", "out", [0]);
       assert.equal(cannotCheckInCancelled, null);
 
-      // Claim booking
-      const claimed = await repo.claim("GZANEW01", "sami@example.com");
-      assert.ok(claimed);
-      assert.equal(claimed.account, true);
-      assert.equal(claimed.ownerEmail, "sami@example.com");
-      assert.equal(claimed.contact.email, "new@example.com");
+      // Claim booking with mismatching contact email
+      const mismatch = await repo.claim("GZANEW01", "other@example.com");
+      assert.equal(mismatch.status, "contact-mismatch");
+
+      // Claim booking with matching contact email
+      const claimed = await repo.claim("GZANEW01", "new@example.com");
+      assert.equal(claimed.status, "claimed");
+      if (claimed.status === "claimed") {
+        assert.equal(claimed.booking.ownerEmail, "new@example.com");
+        assert.equal(claimed.booking.contact.email, "new@example.com");
+      }
+
 
       // Delete booking
       const deleted = await repo.delete("GZANEW01");

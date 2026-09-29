@@ -22,7 +22,7 @@ Four contiguous horizontal slices extracted from a unified horizontal panoramic 
 ### 1.2 Photographic Masters (`Other Photos/`)
 Seven photographic assets converted into responsive WebP sets at widths `640w`, `960w`, `1280w`, `1376w` (~80–85 quality):
 - **Caption Strip Cropping**: Master images under `Other Photos/` remain untouched outside the build graph. For derivatives, bottom white borders containing printed captions were cleanly cropped (Airport Terminal at row y=3336; Palestinian Airlines aircraft at row y=892) to eliminate printed watermark text and retain 100% authentic photographic pixels.
-- **Focal Positioning**: Route-specific focal position is configured per view. For `/airport`, `focalPosition="center 15%"` ensures both the control tower cab/antenna and terminal arched arcade remain prominently visible and recognizable across desktop (1440px) and mobile (390px/320px).
+- **Focal Positioning**: Route-specific focal position is configured per view. For `/airport`, `focalPosition="center 0%"` ensures both the control tower cab/antenna and terminal arched arcade remain prominently visible and recognizable across desktop (1440px) and mobile (390px/320px).
 - **Anti-Mirroring Guarantee**: Photographs and cartographic graphics are **strictly never mirrored** in either LTR or RTL mode.
 
 | Master File | Master Dim | Master Bytes | Master SHA-256 | Media ID | Truth Class | Crop Dim | Route / Surface | Stable Marker |

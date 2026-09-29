@@ -4,7 +4,7 @@ import { useState } from "react";
 import { btnClass, Field, Input } from "@/components/kit";
 import { PassengerAuthShell } from "@/components/passenger-auth-shell";
 import { useI18n } from "@/lib/i18n";
-import { useStore } from "@/lib/store";
+import { useSignInMutation } from "@/lib/passenger";
 
 export const Route = createFileRoute("/{-$locale}/signin")({
   head: () => ({
@@ -24,58 +24,87 @@ export const Route = createFileRoute("/{-$locale}/signin")({
 function SignInPage() {
   const { t } = useI18n();
   const navigate = useAppNavigate();
-  const { signIn } = useStore();
+  const signInMutation = useSignInMutation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    try {
+      await signInMutation.mutateAsync({ email });
+      void navigate({ to: "/account" });
+    } catch {
+      setError(t("error.saveFailed"));
+    }
+  };
 
   return (
     <PassengerAuthShell
       title={t("auth.signinTitle")}
       description={t("auth.signinSub")}
       mediaPanel="signin"
-      footer={<>
-        <p className="text-sm text-muted-foreground">{t("auth.noAccount")} <AppLink to="/register" className="font-semibold text-brand-deep underline">{t("auth.register")}</AppLink></p>
-        <p className="mt-2 text-sm text-muted-foreground">{t("auth.guest")} <AppLink to="/manage" className="font-semibold text-brand-deep underline">{t("manage.title")}</AppLink></p>
-      </>}
-    >
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            signIn(email);
-            void navigate({ to: "/account" });
-          }}
-          className="space-y-4"
-        >
-          <Field label={t("book.email")} htmlFor="email">
-            <Input
-              id="email"
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </Field>
-          <Field label={t("auth.password")} htmlFor="password">
-            <Input
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </Field>
-          <p className="text-sm">
-            <AppLink to="/forgot-password" className="font-semibold text-brand-deep underline">
-              {t("auth.forgotLink")}
+      footer={
+        <>
+          <p className="text-sm text-muted-foreground">
+            {t("auth.noAccount")}{" "}
+            <AppLink to="/register" className="font-semibold text-brand-deep underline">
+              {t("auth.register")}
             </AppLink>
           </p>
-          <button type="submit" className={btnClass("primary", "md", "w-full")}>
-            {t("auth.signin")}
-          </button>
-        </form>
-
+          <p className="mt-2 text-sm text-muted-foreground">
+            {t("auth.guest")}{" "}
+            <AppLink to="/manage" className="font-semibold text-brand-deep underline">
+              {t("manage.title")}
+            </AppLink>
+          </p>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Field label={t("book.email")} htmlFor="email">
+          <Input
+            id="email"
+            type="email"
+            dir="ltr"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => {
+              setError(null);
+              setEmail(e.target.value);
+            }}
+            required
+          />
+        </Field>
+        <Field label={t("auth.password")} htmlFor="password">
+          <Input
+            id="password"
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </Field>
+        <p className="text-sm">
+          <AppLink to="/forgot-password" className="font-semibold text-brand-deep underline">
+            {t("auth.forgotLink")}
+          </AppLink>
+        </p>
+        <button
+          type="submit"
+          disabled={signInMutation.isPending}
+          className={btnClass("primary", "md", "w-full")}
+        >
+          {signInMutation.isPending ? t("common.loading") : t("auth.signin")}
+        </button>
+        {error ? (
+          <p role="alert" className="text-sm font-medium text-destructive">
+            {error}
+          </p>
+        ) : null}
+      </form>
     </PassengerAuthShell>
   );
 }

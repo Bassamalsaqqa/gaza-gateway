@@ -1,8 +1,8 @@
 # Master Engineering Roadmap — Gaza Airport & Palestinian Airlines
 
 > **Product**: Digital home of Palestinian Airlines operating through Gaza International Airport ([gazaairport.com](https://www.gazaairport.com)), featuring an airport public presence and an administration workspace.
-> **Current Status**: **Phase 4C.0.1 Complete (Settings Truth & Draft Hardening)**. Booking Search Console Redesign 0.2 and Refinement 0.2.1 are deployed. Designer Media + Public Surface Integration Checkpoint and Visual Cleanup 0.1 (`design/media-checkpoint-visual-cleanup-01`) are implemented and awaiting owner visual acceptance.
-> **Immediate Next Step**: **Owner Visual Review of Designer Media Visual Cleanup 0.1** (Phase 5 next, planned and not started).
+> **Current Status**: **Phase 5 in Progress — Phase 5A Implemented (Passenger State, Account & Auth-Truth Convergence)**. Designer Media + Public Surface Integration Checkpoint and Visual Cleanup 0.1 is accepted by owner on baseline. Phase 5A implemented on branch awaiting engineering acceptance.
+> **Immediate Next Step**: **Phase 5B: Booking Draft & Search Convergence** (Phase 5A completed awaiting review; no backend, auth, mail, or payment).
 > **Historical baseline**: Phase 4 began from source commit `9e36b869274830f84c97cbbefe3b3fb0a98c6d2e` and HostPapa release commit `92ad935f8477e1663eefa8282d2770c66b64b8b2`. These are starting milestones, not current branch heads.
 
 ---
@@ -26,26 +26,37 @@
 | **Asset checkpoint** | **Decorative Card and Destination Photography Trial** | **Accepted** | Four optimized decorative graphics remain on approved surfaces; all seven destination cards feature the approved world-map graphic in the lower card body with genuine city photographs on top. Seven owner-provided city photos now serve destination cards and detail heroes through compiled media assignments and browser-local Admin drafts. |
 | **Phase 4C** | **Settings & Appearance Store Convergence** | **Complete** | Multi-document envelope (`{ schemaVersion: 1, site: { contact?, appearance? } }`) on `gza.settings.draft.v1`, deterministic legacy skin migration with untouched old key, independent per-document save/discard, transactional failure resilience, controlled bilingual Contact drafts, and explicit preview immunity. |
 | **Phase 4C.0.1** | **Settings Truth & Draft Hardening** | **Complete** | Hardened stored contact validation and invalid child rejection; strict per-document cross-tab synchronization with document isolation; clean adoption and dirty edit preservation; iframe preview controller isolation; durable unit and browser proofs. |
-| **Designer Asset Checkpoint** | **Seven Decorative Assets Drop & Home Visual Parity** | **Awaiting Visual Acceptance** | Integrated seven owner-supplied decorative graphics across Airport, Gallery, Flights, and Home search, plus Home visual parity (prominent red Ticket artwork and reused heritage body WebPs) with stable markers and functional immunity; owner visual acceptance remains pending. |
+| **Designer Asset Checkpoint** | **Seven Decorative Assets Drop & Home Visual Parity** | **Accepted** | Integrated seven owner-supplied decorative graphics across Airport, Gallery, Flights, and Home search, plus Home visual parity (prominent red Ticket artwork and reused heritage body WebPs) with stable markers and functional immunity; accepted by owner on baseline. |
 | **Design checkpoint** | **Booking Search Console Redesign 0.2** | **Deployed; card direction accepted** | Responsive three-tier console now runs on Home, /book, and destination detail. The owner approved the overall card direction after live review and requested interaction refinements. |
 | **Design checkpoint** | **Booking Search Console Refinement 0.2.1** | **Deployed** | Compact calendar fare presentation and opened panels, improved Arabic direction and alignment, and tighter one-way desktop proportions. Released and verified on HostPapa. |
-| **Designer Media Checkpoint** | **Designer Media + Public Surface Integration & Visual Cleanup 0.1** | **Implemented on design branch; Awaiting Visual Acceptance** | Integrated 4 utility rail cards and 8 responsive photo heroes across public surfaces (/airport, /gallery, /destinations, /travel, /manage, /check-in, /signin, /flights); removed passenger-visible illustrative badges while strictly preserving internal truth policies; resolved airport.chapter-card policy drift and documentation focal alignment; audited /book?step=results. |
-| **Phase 5** | **Public Workflows Convergence** | Planned (Not Started) | Connect booking, manage trips, check-in, passenger accounts, and contact forms to canonical domain repositories with complete validation. |
-| **Phase 6** | **Admin Workflows Convergence** | Planned | Connect admin flight quick-edit, schedule manager, passenger desk, customer notes, and activity logging to the shared domain repositories. |
-| **Phase 7** | **CMS Admin Workflows** | Planned | Enable full authored CMS editing for destinations, airport historical chapters, and travel guidance. |
-| **Phase 7B** | **Media & Provenance Admin** | Planned | Structured media catalog management with strict truth classification, provenance tagging, and multi-resolution variant inspection. |
-| **Phase 8** | **Visual System & Assets Finalization** | Planned | Complete asset delivery optimization, icon audits, and surface grammar token refinements. |
-| **Phase 9** | **Arabic, RTL, Accessibility & Responsive Certification** | Planned | Comprehensive multi-breakpoint audit (320px–1920px), keyboard navigation, focus management, and screen-reader semantics. |
-| **Phase 10** | **Comprehensive Durable Regressions Program** | Planned | Expand test coverage with automated mock-state mutation tests, end-to-end user journeys, and regression baselines. |
-| **Phase 11** | **SEO, Performance & HostPapa Production Certification** | Planned | Address known SEO gaps (Arabic homepage metadata, route head parity, sitemap, structured data), core web vitals, and HostPapa production deployment. |
-| **Phase 12** | **Backend Readiness & API Contracts Design** | Planned | Design REST/RPC API contracts, payload schemas, and backend migration readiness blueprints. |
-| **Phase 13** | **Production Backend, Auth & Database Integration** | Planned | Implement persistent server infrastructure, database, secure authentication, and payment processing. |
-| **Phase 14+** | **Optional Ecosystem Integrations** | Planned | GDS flight data feeds, external loyalty programs, cargo logistics, and external partner APIs. |
+| **Designer Media Checkpoint** | **Designer Media + Public Surface Integration & Visual Cleanup 0.1** | **Accepted by Owner** | Integrated 4 utility rail cards and 8 responsive photo heroes across public surfaces (/airport, /gallery, /destinations, /travel, /manage, /check-in, /signin, /flights); removed passenger-visible illustrative badges while strictly preserving internal truth policies; resolved airport.chapter-card policy drift and documentation focal alignment; audited /book?step=results. |
+| **Phase 5A** | **Passenger State, Account & Auth-Truth Convergence** | **Implemented (Awaiting Acceptance)** | Canonical passenger state on `gza.passenger.v1` (`PassengerRepository`), email normalization, profile identity email immutability, transactional CRUD and sign-out, anti-resurrection migration with no dual-write back to `gza.store.v1`, hardened booking claims with explicit result status (`ClaimResult`), station `todayISO()` trip grouping, truthful local auth disclosure (no fake password comparison/storage), and responsive EN/AR certification. |
+| **Phase 5B** | **Booking Draft & Search Convergence** | **Planned (Next)** | Connect booking wizard search and draft to canonical flight repository and dedicated `gza.booking.draft.v1` store. |
+| **Phase 5C** | **Manage, Check-in & Boarding Pass Convergence** | **Planned** | Operational flight status convergence in Manage, boarding pass generation, and check-in workflows. |
+| **Phase 5D** | **Public Contact Workflow Convergence** | **Planned** | Public contact messaging, feedback form, and draft convergence. |
+| **Phase 6** | **Admin Workflows Convergence** | **Planned** | Connect admin flight quick-edit, schedule manager, passenger desk, customer notes, and activity logging to the shared domain repositories. |
+| **Phase 7** | **CMS Admin Workflows** | **Planned** | Enable full authored CMS editing for destinations, airport historical chapters, and travel guidance. |
+| **Phase 7B** | **Media & Provenance Admin** | **Planned** | Structured media catalog management with strict truth classification, provenance tagging, and multi-resolution variant inspection. |
+| **Phase 8** | **Visual System & Assets Finalization** | **Planned** | Complete asset delivery optimization, icon audits, and surface grammar token refinements. |
+| **Phase 9** | **Arabic, RTL, Accessibility & Responsive Certification** | **Planned** | Comprehensive multi-breakpoint audit (320px–1920px), keyboard navigation, focus management, and screen-reader semantics. |
+| **Phase 10** | **Comprehensive Durable Regressions Program** | **Planned** | Expand test coverage with automated mock-state mutation tests, end-to-end user journeys, and regression baselines. |
+| **Phase 11** | **SEO, Performance & HostPapa Production Certification** | **Planned** | Address known SEO gaps (Arabic homepage metadata, route head parity, sitemap, structured data), core web vitals, and HostPapa production deployment. |
+| **Phase 12** | **Backend Readiness & API Contracts Design** | **Planned** | Design REST/RPC API contracts, payload schemas, and backend migration readiness blueprints. |
+| **Phase 13** | **Production Backend, Auth & Database Integration** | **Planned** | Implement persistent server infrastructure, database, secure authentication, and payment processing. |
+| **Phase 14+** | **Optional Ecosystem Integrations** | **Planned** | GDS flight data feeds, external loyalty programs, cargo logistics, and external partner APIs. |
 
 ---
 
 ## Architectural & Hosting Constraints
 
-1. **Client Simulation Boundary**: Completed booking records and flight overrides use the local `gza.repo.v1` mock repository. Passenger authentication, staff sign-in, draft/account state, and remaining operations use client-side simulation (`gza.store.v1`, `gza.admin.v1`, `OpsState`). No real secrets, credit cards, or customer data belong on current client auth.
-2. **Static Deployment Target**: Prebuilt static HTML and assets deployed to HostPapa shared hosting (`public_html/`) via `build:hostpapa`, `hostpapa:prepare`, and `hostpapa:verify`.
-3. **Repository Convergence**: Phase 4 introduced canonical booking and flight repositories with query/mutation hooks for representative public and admin flows. Broader workflow migration remains in Phases 5 and 6.
+1. **Exact Storage Authorities**:
+   - `gza.passenger.v1`: Canonical passenger state `{ schemaVersion: 1, account: PassengerAccount | null, travelers: Traveler[] }` managed by `PassengerRepository`.
+   - `gza.repo.v1`: Canonical bookings (`Booking[]`) and flight overrides (`flightOverrides`) managed by `BookingRepository` and `FlightRepository`.
+   - `gza.settings.draft.v1`: Multi-document contact and appearance drafts managed by `SettingsRepository`.
+   - `gza.content.draft.v1`: Editorial CMS drafts managed by `ContentRepository`.
+   - `gza.store.v1`: Booking draft ONLY (`draft`) until Phase 5B. Legacy account and traveler snapshots are preserved byte-equivalently on draft write without writing canonical passenger changes back (no dual writer).
+   - `gza.admin.v1`: Staff session (`staffId`).
+   - `gza.skin.preview.v1`: Read-only legacy migration fallback.
+2. **Client Simulation Boundary**: No live backend, database, authentication SDK, mail service, or payment processor exists. Passenger account state is stored locally on device; password fields are never compared, persisted, hashed, or transmitted.
+3. **Static Deployment Target**: Prebuilt static HTML and assets deployed to HostPapa shared hosting (`public_html/`) via `build:hostpapa`, `hostpapa:prepare`, and `hostpapa:verify`.
+4. **Repository Convergence**: Phase 4 introduced canonical booking and flight repositories; Phase 5A converged canonical passenger identity and account state. Wizard draft convergence follows in Phase 5B.

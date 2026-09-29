@@ -5,8 +5,9 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Brand } from "./brand";
 import { btnClass } from "./kit";
 import { useI18n } from "@/lib/i18n";
-import { useStore } from "@/lib/store";
+import { usePassengerAccount } from "@/lib/passenger";
 import { cn } from "@/lib/utils";
+
 
 const primaryNav = [
   { to: "/flights", key: "nav.flights" },
@@ -53,8 +54,9 @@ function DirectLanguageButton({ className }: { className?: string }) {
 
 export function SiteHeader() {
   const { t } = useI18n();
-  const { account } = useStore();
+  const { data: account } = usePassengerAccount();
   const [open, setOpen] = useState(false);
+
 
   // Automatically close open mobile dialog when viewport crosses into desktop (>= 1280px)
   // so Radix safely cleans up its modal focus trap and body scroll lock.
