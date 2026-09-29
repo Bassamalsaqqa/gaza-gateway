@@ -1,0 +1,1 @@
+import{r as e}from"./utils-YbXf2b_n.js";var t=e(`circle`,[[`circle`,{cx:`12`,cy:`12`,r:`10`,key:`1mglay`}]]);export{t};
