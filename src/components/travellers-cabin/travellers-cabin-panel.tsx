@@ -49,6 +49,7 @@ export interface StepperRowProps {
   onIncrement: () => void;
   decrementLabel: string;
   incrementLabel: string;
+  compact?: boolean;
 }
 
 export function StepperRow({
@@ -63,9 +64,10 @@ export function StepperRow({
   onIncrement,
   decrementLabel,
   incrementLabel,
+  compact = false,
 }: StepperRowProps) {
   return (
-    <div className="flex items-center justify-between gap-3 py-2">
+    <div className={cn("flex items-center justify-between gap-2", compact ? "py-1.5" : "py-2")}>
       <div className="flex-1 min-w-0">
         <div id={labelId} className="text-sm font-semibold leading-tight">
           {label}
@@ -92,7 +94,7 @@ export function StepperRow({
             "disabled:opacity-40 disabled:hover:bg-card disabled:cursor-not-allowed",
             "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
             /* ≥ 44×44 CSS-px touch target */
-            "size-11",
+            compact ? "size-11 md:size-9" : "size-11",
           )}
         >
           −
@@ -116,7 +118,7 @@ export function StepperRow({
             "transition-colors hover:bg-secondary",
             "disabled:opacity-40 disabled:hover:bg-card disabled:cursor-not-allowed",
             "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
-            "size-11",
+            compact ? "size-11 md:size-9" : "size-11",
           )}
         >
           +
@@ -135,9 +137,10 @@ export interface CabinListProps {
   onCabinChange: (id: string) => void;
   t: (key: string) => string;
   legendId: string;
+  dir?: "ltr" | "rtl";
 }
 
-export function CabinList({ cabin, onCabinChange, t, legendId }: CabinListProps) {
+export function CabinList({ cabin, onCabinChange, t, legendId, dir }: CabinListProps) {
   return (
     <div>
       <div
@@ -147,6 +150,7 @@ export function CabinList({ cabin, onCabinChange, t, legendId }: CabinListProps)
         {t("search.cabin")}
       </div>
       <RadioGroupPrimitive.Root
+        dir={dir}
         value={cabin}
         onValueChange={onCabinChange}
         aria-labelledby={legendId}
@@ -158,7 +162,7 @@ export function CabinList({ cabin, onCabinChange, t, legendId }: CabinListProps)
             value={c.id}
             id={`pax-cabin-${c.id}`}
             className={cn(
-              "group flex w-full items-center gap-3 px-3.5 py-3",
+              "group flex w-full items-center gap-2.5 px-2.5 py-2",
               "text-sm font-medium text-start cursor-pointer",
               "transition-colors duration-100",
               "hover:bg-secondary/60",

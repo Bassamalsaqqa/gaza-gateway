@@ -1,5 +1,4 @@
 import React from "react";
-import { dateShort } from "@/lib/format";
 import type { Lang } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { btnClass } from "@/components/kit";
@@ -10,6 +9,7 @@ import {
   type AirlineCalendarContextValue,
 } from "./airline-day-button";
 import { formatISOLocal, parseISOLocal } from "./date-utils";
+import { DatePartsLabel } from "./date-parts-label";
 
 export interface AirlineCalendarSurfaceProps {
   activeTarget: "depart" | "return";
@@ -64,14 +64,14 @@ export function AirlineCalendarSurface({
     <AirlineCalendarContext.Provider value={contextValue}>
       <div className="flex flex-col">
         {/* Top Summary Tabs */}
-        <div className="flex items-center gap-2 border-b border-border/60 pb-3 mb-3">
+        <div className="flex items-center gap-1.5 border-b border-border/60 pb-2 mb-2">
           <button
             type="button"
             data-tab="depart"
             onClick={() => setActiveTarget("depart")}
             aria-pressed={activeTarget === "depart"}
             className={cn(
-              "flex-1 rounded-lg px-3 py-2 text-start transition-all border cursor-pointer select-none",
+              "flex-1 rounded-md px-2 py-1 text-start transition-colors border cursor-pointer select-none",
               "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
               activeTarget === "depart"
                 ? "border-primary bg-primary/5 text-foreground ring-1 ring-primary"
@@ -81,8 +81,8 @@ export function AirlineCalendarSurface({
             <div className="text-[11px] font-semibold uppercase tracking-wider">
               {t("search.depart")}
             </div>
-            <div className="font-mono text-sm font-semibold tabular-nums text-foreground">
-              {departDate ? dateShort(departDate, lang) : t("search.selectDates")}
+            <div className="text-sm font-semibold text-foreground">
+              {departDate ? <DatePartsLabel iso={departDate} lang={lang} /> : t("search.selectDates")}
             </div>
           </button>
 
@@ -93,7 +93,7 @@ export function AirlineCalendarSurface({
               onClick={() => setActiveTarget("return")}
               aria-pressed={activeTarget === "return"}
               className={cn(
-                "flex-1 rounded-lg px-3 py-2 text-start transition-all border cursor-pointer select-none",
+                "flex-1 rounded-md px-2 py-1 text-start transition-colors border cursor-pointer select-none",
                 "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
                 activeTarget === "return"
                   ? "border-primary bg-primary/5 text-foreground ring-1 ring-primary"
@@ -104,14 +104,14 @@ export function AirlineCalendarSurface({
               <div className="text-[11px] font-semibold uppercase tracking-wider">
                 {t("search.return")}
               </div>
-              <div className="font-mono text-sm font-semibold tabular-nums text-foreground">
-                {returnDate ? dateShort(returnDate, lang) : t("search.selectDates")}
+              <div className="text-sm font-semibold text-foreground">
+                {returnDate ? <DatePartsLabel iso={returnDate} lang={lang} /> : t("search.selectDates")}
               </div>
             </button>
           )}
         </div>
 
-        <div className="mb-3 flex items-center justify-between gap-3 text-xs text-muted-foreground">
+        <div className="mb-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
           <span>{activeTarget === "depart" ? t("search.depart") : t("search.return")}</span>
           <span dir="ltr" className="font-mono font-semibold text-foreground">
             {activeFrom} → {activeTo}
@@ -145,7 +145,7 @@ export function AirlineCalendarSurface({
         )}
 
         {/* Calendar Picker */}
-        <div className="overflow-x-auto flex justify-center">
+        <div className="flex justify-center">
           {tripType === "round" ? (
             <DayPickerCalendar
               mode="range"
@@ -186,7 +186,8 @@ export function AirlineCalendarSurface({
               components={{
                 DayButton: AirlineDayButton,
               }}
-              className="p-0 select-none"
+              className="p-0 select-none [--cell-size:2rem]"
+              classNames={{ months: "relative flex flex-col gap-2 md:flex-row", month: "calendar-month flex w-full flex-col gap-2", week: "mt-1 flex w-full" }}
             />
           ) : (
             <DayPickerCalendar
@@ -222,18 +223,22 @@ export function AirlineCalendarSurface({
               components={{
                 DayButton: AirlineDayButton,
               }}
-              className="p-0 select-none"
+              className="p-0 select-none [--cell-size:2rem]"
+              classNames={{ months: "relative flex flex-col gap-2 md:flex-row", month: "calendar-month flex w-full flex-col gap-2", week: "mt-1 flex w-full" }}
             />
           )}
         </div>
 
         {/* Footer Summary & Confirm Action */}
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2.5 border-t border-border/60 pt-3">
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-2">
           <div className="flex flex-col gap-0.5">
-            <span className="text-xs text-muted-foreground font-mono tabular-nums">
+            <span dir="ltr" className="text-xs text-muted-foreground font-mono tabular-nums">
               {departDate && tripType === "round" && returnDate
                 ? `${departDate} → ${returnDate}`
                 : departDate || ""}
+            </span>
+            <span className="text-[11px] text-muted-foreground" data-slot="calendar-currency-legend">
+              {t("search.lowestFares")} · <bdi dir="ltr">USD</bdi>
             </span>
             <span className="text-[11px] text-muted-foreground/80">
               * {t("search.fareDisclaimer")}

@@ -141,7 +141,7 @@ function Home() {
 
       {/* 2. Integrated Flight Search Console (Overlapping Hero Boundary) */}
       <Container className="-mt-20 sm:-mt-28 lg:-mt-32">
-        <FlightSearchForm variant="panel" treatment="ticket-map" />
+        <FlightSearchForm context="home" />
       </Container>
 
       {/* 3. Integrated passenger utility rail */}

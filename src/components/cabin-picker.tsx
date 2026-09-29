@@ -133,6 +133,7 @@ export function CabinPicker({
     <div id={panelId} className="w-full">
       <CabinList
         cabin={cabin}
+        dir={lang === "ar" ? "rtl" : "ltr"}
         onCabinChange={(id) => {
           onCabinChange(id);
           handleClose();
@@ -202,7 +203,7 @@ export function CabinPicker({
           align={lang === "ar" ? "end" : "start"}
           sideOffset={6}
           className={cn(
-            "z-50 w-56 rounded-xl border border-border bg-popover p-2",
+            "z-50 w-52 rounded-xl border border-border bg-popover p-1.5",
             "shadow-[var(--shadow-lift)]",
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",

@@ -1,6 +1,14 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { dateParts } from "../../src/lib/format.ts";
+import { calendarFareAmount, dateParts } from "../../src/lib/format.ts";
+
+describe("Calendar fare amount", () => {
+  it("renders numeric fares without repeating currency in day cells", () => {
+    assert.equal(calendarFareAmount(145), "145");
+    assert.equal(calendarFareAmount(1240), "1,240");
+    assert.doesNotMatch(calendarFareAmount(145), /USD|US\$|\$/);
+  });
+});
 
 describe("Format Helpers — dateParts()", () => {
   it("formats English date with contiguous non-breaking day/month and full weekday", () => {

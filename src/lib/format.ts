@@ -10,6 +10,11 @@ export function money(amount: number, lang: Lang): string {
   return formatted;
 }
 
+/** Calendar cells share one USD legend, so only the numeric fare belongs in each cell. */
+export function calendarFareAmount(amount: number): string {
+  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(amount);
+}
+
 export function dateLong(iso: string | undefined | null, lang: Lang): string {
   if (!iso) return "";
   const d = new Date(`${iso}T12:00:00`);

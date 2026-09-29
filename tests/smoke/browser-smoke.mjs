@@ -2838,6 +2838,105 @@ async function runBrowserSmoke() {
       await page.setViewportSize({ width: 1440, height: 900 });
     });
 
+    await checkStep("Check 31: Compact fares and popovers with RTL interaction geometry", async () => {
+      for (const [path, rtl] of [["/", false], ["/ar", true]]) {
+        await page.setViewportSize({ width: 1440, height: 900 });
+        await page.goto(baseUrl + path, { waitUntil: "load" });
+        await page.locator("#search-depart").waitFor({ state: "visible" });
+        const positions = await page.evaluate(() => {
+          const rect = (selector) => document.querySelector(selector)?.getBoundingClientRect();
+          return {
+            from: rect("#search-from")?.x,
+            to: rect("#search-to")?.x,
+            depart: rect("#search-depart")?.x,
+            ret: rect("#search-return")?.x,
+            codeDir: document.querySelector('#search-from [data-slot="airport-code"]')?.getAttribute("dir"),
+          };
+        });
+        if (rtl ? !(positions.from > positions.to && positions.depart > positions.ret) : !(positions.from < positions.to && positions.depart < positions.ret)) {
+          throw new Error(`Route/date visual order wrong for ${path}: ${JSON.stringify(positions)}`);
+        }
+        if (positions.codeDir !== "ltr") throw new Error(`IATA code lost LTR isolation on ${path}`);
+
+        await page.locator("#search-depart").click();
+        const calendarPopup = page.locator('[data-align][data-state="open"]:visible').last();
+        await calendarPopup.waitFor();
+        const calendarWidth = (await calendarPopup.boundingBox())?.width ?? 0;
+        if (calendarWidth <= 0 || calendarWidth > 850) throw new Error(`Calendar too wide on ${path}: ${calendarWidth}`);
+        const monthPositions = await calendarPopup.locator('.calendar-month').evaluateAll((months) => months.map((month) => month.getBoundingClientRect().x));
+        if (monthPositions.length !== 2 || (rtl ? !(monthPositions[0] > monthPositions[1]) : !(monthPositions[0] < monthPositions[1]))) {
+          throw new Error(`Calendar month order wrong on ${path}: ${JSON.stringify(monthPositions)}`);
+        }
+        if (await calendarPopup.getAttribute("data-align") !== (rtl ? "end" : "start")) throw new Error(`Calendar alignment wrong on ${path}`);
+        if ((await calendarPopup.locator('[data-slot="calendar-currency-legend"] bdi[dir="ltr"]').innerText()) !== "USD") throw new Error("Missing single USD legend");
+        const fareCells = calendarPopup.locator('button[data-fare]');
+        if (await fareCells.count() < 1) throw new Error("Calendar has no fare cells");
+        const fareText = await fareCells.first().innerText();
+        if (/USD|US\$|\$/.test(fareText)) throw new Error(`Currency repeated in day cell: ${fareText}`);
+        if (!/\d/.test(fareText)) throw new Error(`Fare amount missing in day cell: ${fareText}`);
+        const disabledText = await calendarPopup.locator('button[data-day][disabled]').first().innerText();
+        if (/[-—$]|USD|US\$/.test(disabledText)) throw new Error(`Disabled day has second-line fare/dash: ${disabledText}`);
+        const isoRange = calendarPopup.locator('span[dir="ltr"]').filter({ hasText: /\d{4}-\d{2}-\d{2}/ });
+        if (await isoRange.count() < 1) throw new Error("ISO date summary is not LTR isolated");
+        await page.keyboard.press("Escape");
+
+        await page.locator("#search-travellers").click();
+        const travellersPopup = page.locator('[data-radix-popper-content-wrapper] [role="dialog"]:visible').last();
+        const travellersWidth = (await travellersPopup.boundingBox())?.width ?? 0;
+        if (travellersWidth <= 0 || travellersWidth > 280) throw new Error(`Travellers panel too wide: ${travellersWidth}`);
+        await page.keyboard.press("Escape");
+
+        await page.locator("#search-cabin").click();
+        const cabinGroup = page.locator('[role="radiogroup"]:visible').last();
+        if (await cabinGroup.getAttribute("dir") !== (rtl ? "rtl" : "ltr")) throw new Error(`Cabin radio direction wrong on ${path}`);
+        const cabinWidth = (await cabinGroup.boundingBox())?.width ?? 0;
+        if (cabinWidth <= 0 || cabinWidth > 210) throw new Error(`Cabin panel too wide: ${cabinWidth}`);
+        await page.keyboard.press("Escape");
+
+        await page.locator("#search-to").click();
+        const airportPopup = page.locator('[data-align][data-state="open"]:visible').last();
+        if (await airportPopup.getAttribute("data-align") !== (rtl ? "end" : "start")) throw new Error(`Airport alignment wrong on ${path}`);
+        const airportWidth = (await airportPopup.boundingBox())?.width ?? 0;
+        if (airportWidth <= 0 || airportWidth > 350) throw new Error(`Airport panel too wide: ${airportWidth}`);
+        await page.keyboard.press("Escape");
+        const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 2);
+        if (overflow) throw new Error(`Popup caused document overflow on ${path}`);
+
+        const routeWidthRound = (await page.locator('[data-zone="route"]').boundingBox())?.width ?? 0;
+        await page.locator('[data-trip-type="oneway"]').click();
+        const routeWidthOneWay = (await page.locator('[data-zone="route"]').boundingBox())?.width ?? 0;
+        if (routeWidthOneWay <= routeWidthRound) throw new Error(`One-way route did not reclaim width on ${path}`);
+        await page.locator('[data-trip-type="round"]').click();
+      }
+
+      await page.setViewportSize({ width: 1024, height: 768 });
+      await page.goto(baseUrl + "/", { waitUntil: "load" });
+      await page.locator("#search-depart").click();
+      if (await page.locator('[data-slot="calendar"] .calendar-month').count() !== 1) throw new Error("Tablet calendar must show one month");
+      await page.keyboard.press("Escape");
+
+      for (const width of [390, 320]) {
+        await page.setViewportSize({ width, height: 800 });
+        await page.goto(baseUrl + "/ar", { waitUntil: "load" });
+        await page.locator("#search-depart").click();
+        const bounds = await page.locator('[role="dialog"]:visible').evaluate((dialog) => {
+          const calendar = dialog.querySelector('[data-slot="calendar"]');
+          const firstDay = dialog.querySelector('button[data-day]');
+          const d = dialog.getBoundingClientRect();
+          const c = calendar?.getBoundingClientRect();
+          const day = firstDay?.getBoundingClientRect();
+          return { dialogLeft: d.left, dialogRight: d.right, calendarLeft: c?.left, calendarRight: c?.right, dayWidth: day?.width, dayHeight: day?.height, viewport: innerWidth };
+        });
+        if (bounds.dialogLeft < -2 || bounds.dialogRight > width + 2 || (bounds.calendarLeft ?? -1) < -2 || (bounds.calendarRight ?? width + 1) > width + 2) {
+          throw new Error(`Arabic mobile calendar clipped at ${width}px: ${JSON.stringify(bounds)}`);
+        }
+        if ((bounds.dayWidth ?? 0) < 43.5 || (bounds.dayHeight ?? 0) < 43.5) {
+          throw new Error(`Arabic mobile calendar day target below 44px at ${width}px: ${JSON.stringify(bounds)}`);
+        }
+        await page.keyboard.press("Escape");
+      }
+    });
+
     await checkStep("Check 29: Console one-way/round-trip toggle, traveller stepper, cabin selection, and /book search flow", async () => {
       await page.setViewportSize({ width: 1440, height: 900 });
       await page.goto(baseUrl + "/", { waitUntil: "domcontentloaded" });

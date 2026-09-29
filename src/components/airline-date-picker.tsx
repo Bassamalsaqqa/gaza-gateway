@@ -18,6 +18,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { parseISOLocal } from "./airline-date-picker/date-utils";
 import type { AirlineCalendarContextValue } from "./airline-date-picker/airline-day-button";
 import { AirlineCalendarSurface } from "./airline-date-picker/airline-calendar-surface";
+import { DatePartsLabel } from "./airline-date-picker/date-parts-label";
 
 export { parseISOLocal, formatISOLocal } from "./airline-date-picker/date-utils";
 export { AirlineDayButton, AirlineCalendarContext } from "./airline-date-picker/airline-day-button";
@@ -73,7 +74,7 @@ export function AirlineDatePicker({
   useEffect(() => {
     const updateMonths = () => {
       if (typeof window !== "undefined") {
-        setNumberOfMonths(window.innerWidth >= 1024 && tripType === "round" ? 2 : 1);
+        setNumberOfMonths(window.innerWidth >= 1280 && tripType === "round" ? 2 : 1);
       }
     };
     updateMonths();
@@ -289,11 +290,8 @@ export function AirlineDatePicker({
                   <span>{t("search.depart")}</span>
                 </span>
                 <div className="flex flex-col items-start min-w-0 mt-0.5">
-                  <span
-                    data-slot="date-day-month"
-                    className="font-mono text-base sm:text-lg xl:text-xl font-bold text-foreground tabular-nums tracking-tight whitespace-nowrap block"
-                  >
-                    {departParts?.dayMonth ?? t("search.selectDates")}
+                  <span className="text-base sm:text-lg xl:text-xl font-bold text-foreground tracking-tight">
+                    {departParts ? <DatePartsLabel iso={departDate} lang={lang} /> : t("search.selectDates")}
                   </span>
                   {departParts ? (
                     <span
@@ -338,11 +336,8 @@ export function AirlineDatePicker({
                     <span>{t("search.return")}</span>
                   </span>
                   <div className="flex flex-col items-start min-w-0 mt-0.5">
-                    <span
-                      data-slot="date-day-month"
-                      className="font-mono text-base sm:text-lg xl:text-xl font-bold text-foreground tabular-nums tracking-tight whitespace-nowrap block"
-                    >
-                      {returnParts?.dayMonth ?? t("search.selectDates")}
+                    <span className="text-base sm:text-lg xl:text-xl font-bold text-foreground tracking-tight">
+                      {returnParts ? <DatePartsLabel iso={returnDate} lang={lang} /> : t("search.selectDates")}
                     </span>
                     {returnParts ? (
                       <span
@@ -461,13 +456,13 @@ export function AirlineDatePicker({
         {/* Desktop Popover Surface */}
         {!isMobile && (
           <PopoverContent
-            align="start"
+            align={lang === "ar" ? "end" : "start"}
             sideOffset={8}
             onCloseAutoFocus={(e) => {
               e.preventDefault();
               lastDateTriggerRef.current?.focus();
             }}
-            className="w-auto p-4 sm:p-5 max-w-[calc(100vw-2rem)] shadow-[var(--shadow-lift)] rounded-2xl border-border bg-card z-50"
+            className="w-auto p-2.5 max-w-[calc(100vw-2rem)] shadow-[var(--shadow-lift)] rounded-xl border-border bg-card z-50"
           >
             <AirlineCalendarSurface
               activeTarget={activeTarget}
@@ -506,7 +501,8 @@ export function AirlineDatePicker({
               e.preventDefault();
               lastDateTriggerRef.current?.focus();
             }}
-            className="fixed inset-x-0 bottom-0 top-auto sm:top-[50%] sm:bottom-auto sm:left-[50%] sm:-translate-x-1/2 sm:-translate-y-1/2 w-full max-w-md max-h-[92vh] flex flex-col p-4 rounded-t-2xl sm:rounded-2xl border-border bg-card shadow-2xl overflow-y-auto z-50 duration-200"
+            className="fixed inset-x-0 bottom-0 top-auto w-full max-h-[92dvh] flex flex-col p-1.5 sm:p-3 rounded-t-2xl rounded-b-none border-border bg-card shadow-2xl overflow-y-auto z-50 duration-200"
+            style={{ maxWidth: "100%", translate: "none", animation: "none" }}
           >
             <DialogTitle className="sr-only">{t("search.dates")}</DialogTitle>
             <DialogDescription className="sr-only">{t("search.fareDisclaimer")}</DialogDescription>

@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useRef } from "react";
 import { DayButton } from "react-day-picker";
 
 import { todayISO } from "@/lib/data";
-import { dateLong, money } from "@/lib/format";
+import { calendarFareAmount, dateLong, money } from "@/lib/format";
 import type { Lang } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -110,7 +110,7 @@ export function AirlineDayButton({
       aria-label={accessibleDayName}
       className={cn(
         "relative flex flex-col items-center justify-center p-0 font-normal select-none transition-colors cursor-pointer",
-        "h-11 sm:h-12 w-full min-w-[34px] sm:min-w-[38px] rounded-lg",
+        "h-11 md:h-10 w-full min-w-11 md:min-w-[38px] rounded-lg",
         // Selected / Range styles
         isSelectedSingle && "bg-primary text-primary-foreground font-semibold shadow-xs",
         isRangeStart && "bg-primary text-primary-foreground font-semibold rounded-e-none shadow-xs",
@@ -121,8 +121,6 @@ export function AirlineDayButton({
           hasService && !isDisabled && "hover:bg-secondary/60 hover:text-foreground text-foreground",
           (!hasService || isDisabled) && "text-muted-foreground/35 cursor-not-allowed opacity-40 hover:bg-transparent",
         ],
-        // Lowest fare subtle border indicator
-        isLowestInMonth && !isSelected && !isRangeStart && !isRangeEnd && "ring-1 ring-primary/40",
         // Focus state
         "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
         className,
@@ -131,25 +129,17 @@ export function AirlineDayButton({
       <span className="font-mono text-xs sm:text-sm font-semibold tabular-nums leading-none">
         {dayNumber}
       </span>
-      {!isOutside && hasService && lowestFare !== null && (
+      {!isOutside && !isDisabled && hasService && lowestFare !== null && (
         <span
           dir="ltr"
           className={cn(
             "mt-0.5 font-mono text-[10px] sm:text-[11px] font-medium leading-none tabular-nums",
             (isSelectedSingle || isRangeStart || isRangeEnd)
               ? "text-primary-foreground/90 font-semibold"
-              : "text-muted-foreground/80",
+              : isLowestInMonth ? "text-primary font-bold" : "text-muted-foreground/80",
           )}
         >
-          {money(lowestFare, lang)}
-        </span>
-      )}
-      {!isOutside && (!hasService || isDisabled) && (
-        <span
-          className="mt-0.5 text-[9px] sm:text-[10px] text-muted-foreground/35 leading-none font-mono"
-          aria-hidden="true"
-        >
-          —
+          {calendarFareAmount(lowestFare)}
         </span>
       )}
     </Button>

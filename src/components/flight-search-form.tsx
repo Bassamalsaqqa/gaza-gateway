@@ -38,22 +38,9 @@ import ticketWorldMapImg from "@/assets/media/decorative/cards/ticket-world-map.
 export type FlightSearchConsoleContext = "home" | "standard";
 
 export interface FlightSearchFormProps {
-  /** @deprecated use context="home" instead. */
-  variant?: "panel" | "inline";
-  /** @deprecated use context="home" instead. */
-  treatment?: "ticket-map";
   /** Explicit console context: "home" | "standard" (default). */
   context?: FlightSearchConsoleContext;
   initial?: Partial<SearchCriteria>;
-}
-
-function resolveContext(
-  context: FlightSearchConsoleContext | undefined,
-  treatment: "ticket-map" | undefined,
-): FlightSearchConsoleContext {
-  if (context) return context;
-  if (treatment === "ticket-map") return "home";
-  return "standard";
 }
 
 /* -------------------------------------------------------------------------- */
@@ -61,15 +48,13 @@ function resolveContext(
 /* -------------------------------------------------------------------------- */
 
 export function FlightSearchForm({
-  variant = "panel",
   initial,
-  treatment,
-  context: contextProp,
+  context = "standard",
 }: FlightSearchFormProps) {
   const { t, lang } = useI18n();
   const { draft, resetDraft } = useStore();
   const navigate = useAppNavigate();
-  const ctx = resolveContext(contextProp, treatment);
+  const ctx = context;
   const isHome = ctx === "home";
 
   /* ── Criteria state ── */
@@ -346,7 +331,8 @@ export function FlightSearchForm({
             <div
               data-zone="route"
               className={cn(
-                "col-span-12 md:col-span-7 xl:col-auto xl:flex-[2.6] xl:min-w-0",
+                "col-span-12 md:col-span-7 xl:col-auto xl:min-w-0",
+                criteria.tripType === "oneway" ? "xl:flex-[3]" : "xl:flex-[2.6]",
                 "border-b border-border/60 md:border-b md:border-e rtl:md:border-e-0 rtl:md:border-s xl:border-b-0 xl:border-e-0",
                 "p-1.5 sm:p-2.5",
               )}
@@ -403,7 +389,8 @@ export function FlightSearchForm({
             <div
               data-zone="dates"
               className={cn(
-                "col-span-12 md:col-span-5 xl:col-auto xl:flex-[2.2] xl:min-w-0",
+                "col-span-12 md:col-span-5 xl:col-auto xl:min-w-0",
+                criteria.tripType === "oneway" ? "xl:flex-[1.4]" : "xl:flex-[2.2]",
                 "border-b border-border/60 md:border-b xl:border-b-0",
                 "p-1.5 sm:p-2.5 flex items-center",
               )}

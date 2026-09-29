@@ -241,7 +241,7 @@ export function AirportCombobox({
       </PopoverTrigger>
 
       <PopoverContent
-        align="start"
+        align={lang === "ar" ? "end" : "start"}
         sideOffset={4}
         collisionPadding={12}
         onOpenAutoFocus={(e) => {
@@ -254,7 +254,7 @@ export function AirportCombobox({
             triggerRef.current.focus();
           }
         }}
-        className="w-[calc(100vw-2rem)] sm:w-[var(--radix-popover-trigger-width,340px)] sm:min-w-[300px] max-w-[420px] p-0 shadow-[var(--shadow-lift)] rounded-xl border border-border bg-popover z-50 overflow-hidden"
+        className="w-[calc(100vw-2rem)] sm:w-[320px] max-w-[340px] p-0 shadow-[var(--shadow-lift)] rounded-xl border border-border bg-popover z-50 overflow-hidden"
       >
         <Command
           filter={airportFilter}
@@ -276,7 +276,7 @@ export function AirportCombobox({
               autoFocus
             />
           </div>
-          <CommandList className="max-h-[260px] overflow-y-auto p-1.5 focus:outline-none">
+          <CommandList className="max-h-[220px] overflow-y-auto p-1 focus:outline-none">
             <CommandEmpty className="py-6 text-center text-xs text-muted-foreground">
               {emptyText || t("search.noAirportsFound")}
             </CommandEmpty>

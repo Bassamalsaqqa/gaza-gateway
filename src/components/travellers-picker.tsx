@@ -16,7 +16,7 @@
 
 import React, { useId, useRef } from "react";
 import * as PopoverPrimitive from "@radix-ui/react-popover";
-import { Users } from "lucide-react";
+import { ChevronDown, Users } from "lucide-react";
 
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -30,7 +30,6 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import {
   PAX_ROWS,
   StepperRow,
-  type TravellersCabinPanelProps,
 } from "@/components/travellers-cabin/travellers-cabin-panel";
 import { btnClass } from "@/components/kit";
 
@@ -56,22 +55,6 @@ export interface TravellersPickerProps {
 /* -------------------------------------------------------------------------- */
 /*  Passenger summary helper                                                    */
 /* -------------------------------------------------------------------------- */
-
-function paxSummary(
-  t: (key: string, vars?: Record<string, string | number>) => string,
-  adults: number,
-  children: number,
-  infants: number,
-): string {
-  const total = adults + children + infants;
-  const paxLabel = total === 1 ? t("search.passengerCountOne") : t("search.passengerCount", { n: total });
-  const detail = [
-    `${adults} ${t("search.adults").toLowerCase()}`,
-    `${children} ${t("search.children").toLowerCase()}`,
-    `${infants} ${t("search.infants").toLowerCase()}`,
-  ].join(" · ");
-  return `${paxLabel}\n${detail}`;
-}
 
 /* -------------------------------------------------------------------------- */
 /*  Main component                                                              */
@@ -103,11 +86,22 @@ export function TravellersPicker({
       ? t("search.passengerCountOne")
       : t("search.passengerCount", { n: total });
 
-  const paxDetail = [
-    `${adults} ${t("search.adults").toLowerCase()}`,
-    `${children} ${t("search.children").toLowerCase()}`,
-    `${infants} ${t("search.infants").toLowerCase()}`,
-  ].join(" · ");
+  const detailItems = ([
+    [adults, adults === 1 ? "search.adultOne" : "search.adults"],
+    [children, children === 1 ? "search.childOne" : "search.children"],
+    [infants, infants === 1 ? "search.infantOne" : "search.infants"],
+  ] as const).map(([count, key]) => ({ count, label: t(key).toLowerCase() }));
+  const paxDetail = detailItems.map(({ count, label }) => `${count} ${label}`).join(" · ");
+  const detailLine = (
+    <span className="flex items-center gap-1 overflow-hidden whitespace-nowrap" data-slot="traveller-detail">
+      {detailItems.map(({ count, label }, index) => (
+        <React.Fragment key={index}>
+          {index > 0 && <span aria-hidden="true">·</span>}
+          <span className="shrink-0"><bdi dir="ltr" className="numeral">{count}</bdi> {label}</span>
+        </React.Fragment>
+      ))}
+    </span>
+  );
 
   const handleClose = React.useCallback(() => {
     setOpen(false);
@@ -168,14 +162,15 @@ export function TravellersPicker({
               onIncrement={() => onChangeFns[key](Math.min(effMax, val + 1))}
               decrementLabel={`${t(labelKey)} −`}
               incrementLabel={`${t(labelKey)} +`}
+              compact
             />
           );
         })}
       </div>
-      <p className="mt-2 px-1 text-xs text-muted-foreground leading-snug">
+      <p className="mt-1.5 px-1 text-xs text-muted-foreground leading-snug">
         {t("search.infantNote")}
       </p>
-      <div className="mt-4 px-1">
+      <div className="mt-2 px-1">
         <button
           type="button"
           onClick={handleClose}
@@ -213,13 +208,14 @@ export function TravellersPicker({
             <Users aria-hidden="true" className="size-3 text-muted-foreground/80 shrink-0" />
             <span>{t("search.travellers")}</span>
           </span>
-          <div className="flex items-baseline gap-1.5 min-w-0 mt-0.5">
+          <div className="flex items-baseline justify-between gap-1.5 min-w-0 mt-0.5">
             <span className="font-bold text-foreground text-sm sm:text-base truncate">
               {paxLabel}
             </span>
+            <ChevronDown aria-hidden="true" className={cn("size-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-180")} />
           </div>
           <span className="text-[11px] text-muted-foreground/80 truncate max-w-full">
-            {paxDetail}
+            {detailLine}
           </span>
         </div>
       ) : (
@@ -227,7 +223,7 @@ export function TravellersPicker({
           <Users aria-hidden="true" className="size-4 text-muted-foreground shrink-0" />
           <span className="flex flex-col min-w-0 text-start">
             <span className="font-semibold truncate leading-tight">{paxLabel}</span>
-            <span className="text-xs text-muted-foreground truncate leading-tight">{paxDetail}</span>
+            <span className="text-xs text-muted-foreground truncate leading-tight">{detailLine}</span>
           </span>
         </span>
       )}
@@ -293,7 +289,7 @@ export function TravellersPicker({
           align={lang === "ar" ? "end" : "start"}
           sideOffset={6}
           className={cn(
-            "z-50 w-72 rounded-xl border border-border bg-popover p-4",
+            "z-50 w-64 rounded-xl border border-border bg-popover p-2.5",
             "shadow-[var(--shadow-lift)]",
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",

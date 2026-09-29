@@ -39,7 +39,7 @@ flowchart TD
 - Renders as a **slim, single horizontal instrument console**.
 - Proportions:
   - **Route group** (`flex-[2.6]`): Dominant visual anchor with prominent IATA codes, cities, airport names, and centralized interactive Swap button (`size-9` on desktop).
-  - **Dates** (`flex-[2.2]`): Paired departure and return date triggers with calendar icon, contiguous non-breaking short date (`dayMonth` with `\u00A0` and `whitespace-nowrap`), and quiet weekday underneath.
+  - **Dates** (`flex-[2.2]` for round trips): Paired departure and return date triggers with a structured short date (isolated Western digits beside a naturally directed month name) and quiet weekday underneath. One-way journeys give more room back to the route.
   - **Travellers** (`flex-1`): Dedicated trigger displaying localized passenger count and breakdown.
   - **Cabin** (`flex-1`): Dedicated trigger displaying selected cabin class with chevron.
   - **Search CTA** (`shrink-0`): Deep brand-olive button with search icon, localized label, directional arrow, and full-height alignment.
@@ -78,7 +78,7 @@ The redesigned console decomposes flight search into clean, single-responsibilit
 ### 3.1 Split Travellers & Cabin Controls
 In previous versions, passenger count and cabin class shared a single composite dropdown trigger. The redesign splits them into two independent, accessible controls:
 1. **`TravellersPicker` (`#search-travellers`)**:
-   - Displays label, total passenger count, and concise breakdown (e.g. `1 passenger · 1 adults · 0 children · 0 infants`).
+   - Displays label, total passenger count, and a structured localized breakdown (e.g. `1 passenger · 1 adult · 0 children · 0 infants`).
    - Opens a desktop Popover or mobile bottom sheet Dialog containing stepper controls.
    - Preserves business rules: infants cannot exceed adults; decrementing adults automatically clamps infants.
 2. **`CabinPicker` (`#search-cabin`)**:
@@ -102,10 +102,6 @@ The redesigned console is shared across all flight search touchpoints via the `F
 export type FlightSearchConsoleContext = "home" | "standard";
 
 export interface FlightSearchFormProps {
-  /** @deprecated use context="home" instead. */
-  variant?: "panel" | "inline";
-  /** @deprecated use context="home" instead. */
-  treatment?: "ticket-map";
   /** Explicit console context: "home" | "standard" (default). */
   context?: FlightSearchConsoleContext;
   initial?: Partial<SearchCriteria>;
@@ -113,7 +109,7 @@ export interface FlightSearchFormProps {
 ```
 
 The three call sites across the application integrate the console cleanly:
-- **Home Route (`src/routes/{-$locale}.index.tsx`)**: Calls `<FlightSearchForm variant="panel" treatment="ticket-map" />` (retained deprecated props resolve internally to `context="home"`). Renders `data-flight-search-console="home"` and the owner-specified ticket marker `data-decorative-asset="home-flight-search-ticket"`.
+- **Home Route (`src/routes/{-$locale}.index.tsx`)**: Calls `<FlightSearchForm context="home" />`. Renders `data-flight-search-console="home"` and the owner-specified ticket marker `data-decorative-asset="home-flight-search-ticket"`.
 - **Booking Wizard (`src/routes/{-$locale}.book.tsx`)**: Calls `<FlightSearchForm />` (defaults to `context="standard"`). Renders the exact same redesigned family without home-specific markers (`data-flight-search-console="standard"`).
 - **Destination Detail (`src/routes/{-$locale}.destinations.$code.tsx`)**: Calls `<FlightSearchForm initial={{ origin: GZA.code, destination: destination.code }} />` (defaults to `context="standard"` with authoritative route prefill `GZA → destination` that takes precedence over any stored booking draft).
 
@@ -134,7 +130,13 @@ Full parity between English (`/`) and Arabic (`/ar`) is maintained:
 
 ---
 
-## 6. Accessibility & Compliance
+## 6. Refinement 0.2.1 — live review
+
+The owner deployed redesign 0.2 and accepted the search card direction. This bounded refinement keeps its red ticket shell and route-first composition. Calendar cells show numeric illustrative fares with one localized **Lowest fares · USD** legend; accessible date labels retain the full currency amount. Unavailable days have no second-line dash, and tied lowest fares use stronger fare text rather than a cell outline. Round trips show two months only from 1280px, with one month below that width and in one-way mode. Desktop day cells are compact while mobile targets remain at least 44px.
+
+Opened airport, date, traveller, and cabin panels are narrower. Arabic panels use locale-aware alignment, Cabin radios declare RTL direction, and date labels separate LTR Western digits from naturally directed month names. Clean one-way desktop layout gives more width back to the route and passenger controls. The Home route now uses `context="home"` directly. The owner reference PNGs remain design references and are not production assets. Owner visual acceptance of this refinement is pending; Phase 5 remains unstarted.
+
+## 7. Accessibility & Compliance
 
 - **WCAG 2.2 AA Contrast**: High-contrast text on warm limestone surfaces (`--foreground` over `--card`).
 - **Touch Targets**: All interactive elements maintain touch targets ≥44px on mobile viewports (<768px), including the central route Swap button (`size-11 md:size-8 xl:size-9`) and trip-type toggle buttons (`min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0`), verified across 320–767px.
