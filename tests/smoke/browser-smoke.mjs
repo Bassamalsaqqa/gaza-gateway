@@ -4617,127 +4617,136 @@ async function runBrowserSmoke() {
           throw new Error(`Hero eyebrow must not claim 2008 photo is today`);
         }
 
-        // 2. Four Fact Cards with Decorative Skins
-        const factKeys = ["fact-location", "fact-aero-codes", "fact-operating-period", "fact-facility-status"];
-        for (const fKey of factKeys) {
-          const card = page.locator(`[data-fact-card="${fKey}"]`);
-          if ((await card.count()) === 0) {
-            throw new Error(`Missing [data-fact-card="${fKey}"] on ${routePath}`);
-          }
-          await card.scrollIntoViewIfNeeded();
-          const skinImg = card.locator("img").first();
-          if ((await skinImg.count()) === 0) {
-            throw new Error(`Missing decorative skin img in ${fKey} on ${routePath}`);
-          }
-          await skinImg.scrollIntoViewIfNeeded();
-          await page.waitForFunction(
-            (sel) => {
-              const img = document.querySelector(sel);
-              return img && img.complete && img.naturalWidth > 0;
-            },
-            `[data-fact-card="${fKey}"] img`,
-            { timeout: 8000 }
-          );
-          const skinLoaded = await skinImg.evaluate((img) => img.complete && img.naturalWidth > 0);
-          if (!skinLoaded) {
-            throw new Error(`Skin image in ${fKey} failed to load on ${routePath}`);
-          }
-          const skinSrc = await skinImg.getAttribute("src");
-          if (!skinSrc || !skinSrc.includes(fKey) || !skinSrc.includes(".webp")) {
-            throw new Error(`Skin in ${fKey} did not load expected ${fKey} WebP: ${skinSrc}`);
-          }
-          const ariaHidden = await skinImg.getAttribute("aria-hidden");
-          const altAttr = await skinImg.getAttribute("alt");
-          if (ariaHidden !== "true" || altAttr !== "") {
-            throw new Error(`Skin in ${fKey} must have alt="" and aria-hidden="true"`);
-          }
-        }
+        // 2. Comprehensive Full-Card Background Artwork Verification for All Nine Cards
+        const allNinePresentCards = [
+          { sel: '[data-fact-card="fact-location"]', key: "fact-location", name: "Fact Location" },
+          { sel: '[data-fact-card="fact-aero-codes"]', key: "fact-aero-codes", name: "Fact Aero Codes" },
+          { sel: '[data-fact-card="fact-operating-period"]', key: "fact-operating-period", name: "Fact Operating Period" },
+          { sel: '[data-fact-card="fact-facility-status"]', key: "fact-facility-status", name: "Fact Facility Status" },
+          { sel: '[data-dossier-panel="dossier-boundaries"]', key: "dossier-boundaries", name: "Dossier Boundaries" },
+          { sel: '[data-dossier-panel="dossier-runway"]', key: "dossier-runway", name: "Dossier Runway" },
+          { sel: '[data-dossier-panel="dossier-verification"]', key: "dossier-verification", name: "Dossier Verification" },
+          { sel: '[data-spatial-aside]', key: "spatial-geometry", name: "Spatial Aside" },
+          { sel: '[data-transition-panel]', key: "global-network", name: "Global Horizons Transition Panel" },
+        ];
 
-        // 3. Three Dossier Panels with Decorative Skins
-        const dossierKeys = ["dossier-boundaries", "dossier-runway", "dossier-verification"];
-        for (const dKey of dossierKeys) {
-          const panel = page.locator(`[data-dossier-panel="${dKey}"]`);
-          if ((await panel.count()) === 0) {
-            throw new Error(`Missing [data-dossier-panel="${dKey}"] on ${routePath}`);
+        for (const c of allNinePresentCards) {
+          const cardEl = page.locator(c.sel);
+          if ((await cardEl.count()) === 0) {
+            throw new Error(`Missing ${c.name} (${c.sel}) on ${routePath}`);
           }
-          await panel.scrollIntoViewIfNeeded();
-          const skinImg = panel.locator("img").first();
-          if ((await skinImg.count()) === 0) {
-            throw new Error(`Missing decorative skin img in ${dKey} on ${routePath}`);
-          }
-          await skinImg.scrollIntoViewIfNeeded();
-          await page.waitForFunction(
-            (sel) => {
-              const img = document.querySelector(sel);
-              return img && img.complete && img.naturalWidth > 0;
-            },
-            `[data-dossier-panel="${dKey}"] img`,
-            { timeout: 8000 }
-          );
-          const skinLoaded = await skinImg.evaluate((img) => img.complete && img.naturalWidth > 0);
-          if (!skinLoaded) {
-            throw new Error(`Skin image in ${dKey} failed to load on ${routePath}`);
-          }
-          const skinSrc = await skinImg.getAttribute("src");
-          if (!skinSrc || !skinSrc.includes(dKey) || !skinSrc.includes(".webp")) {
-            throw new Error(`Skin in ${dKey} did not load expected ${dKey} WebP: ${skinSrc}`);
-          }
-        }
+          await cardEl.scrollIntoViewIfNeeded();
 
-        // 4. Spatial Aside with Spatial Geometry Skin
-        const spatialAside = page.locator("[data-spatial-aside]");
-        if ((await spatialAside.count()) === 0) {
-          throw new Error(`Missing [data-spatial-aside] on ${routePath}`);
-        }
-        await spatialAside.scrollIntoViewIfNeeded();
-        const spatialImg = spatialAside.locator("img").first();
-        await spatialImg.scrollIntoViewIfNeeded();
-        await page.waitForFunction(
-          (sel) => {
-            const img = document.querySelector(sel);
-            return img && img.complete && img.naturalWidth > 0;
-          },
-          "[data-spatial-aside] img",
-          { timeout: 8000 }
-        );
-        const spatialLoaded = await spatialImg.evaluate((img) => img.complete && img.naturalWidth > 0);
-        if (!spatialLoaded) {
-          throw new Error(`Spatial geometry skin failed to load on ${routePath}`);
-        }
-        const spatialSrc = await spatialImg.getAttribute("src");
-        if (!spatialSrc || !spatialSrc.includes("spatial-geometry") || !spatialSrc.includes(".webp")) {
-          throw new Error(`Spatial aside did not load spatial-geometry WebP: ${spatialSrc}`);
+          // Contract 1: expected artwork mapped to correct card, loaded external WebP, decorative alt/ARIA
+          const bgImg = cardEl.locator('[data-present-art-background]').first();
+          if ((await bgImg.count()) === 0) {
+            throw new Error(`Missing [data-present-art-background] in ${c.name} on ${routePath}`);
+          }
+          const bgSrc = await bgImg.getAttribute("src");
+          if (!bgSrc || !bgSrc.includes(c.key) || !bgSrc.includes(".webp")) {
+            throw new Error(`${c.name} did not load expected WebP containing '${c.key}': ${bgSrc}`);
+          }
+          const altAttr = await bgImg.getAttribute("alt");
+          const ariaHidden = await bgImg.getAttribute("aria-hidden");
+          if (altAttr !== "" || ariaHidden !== "true") {
+            throw new Error(`${c.name} background image must have alt="" and aria-hidden="true"`);
+          }
+          const isLoaded = await bgImg.evaluate((img) => img.complete && img.naturalWidth > 0);
+          if (!isLoaded) {
+            throw new Error(`${c.name} background image failed to load on ${routePath}`);
+          }
+
+          // Contracts 2, 3, 4, 5, 6: Geometry, layer ordering, text bounds, no residual banner, no mirroring
+          const geom = await cardEl.evaluate((card) => {
+            const cardR = card.getBoundingClientRect();
+            const img = card.querySelector('[data-present-art-background]');
+            const layer = card.querySelector('[data-present-legibility-layer]');
+            const content = card.querySelector('[data-present-card-content]');
+
+            if (!img || !layer || !content) {
+              return { error: "Missing required card DOM layers (background, legibility-layer, or content)" };
+            }
+
+            const imgR = img.getBoundingClientRect();
+            const imgStyle = window.getComputedStyle(img);
+            const layerStyle = window.getComputedStyle(layer);
+
+            // Bounding span checks (within 4px subpixel/border tolerance)
+            const widthDiff = Math.abs(imgR.width - cardR.width);
+            const heightDiff = Math.abs(imgR.height - cardR.height);
+            const isSpanning = widthDiff <= 4 && heightDiff <= 4;
+
+            // Positioning checks
+            const isAbsolute = imgStyle.position === "absolute" && layerStyle.position === "absolute";
+
+            // Layer ordering: img precedes layer, layer precedes content
+            const imgOrder = img.compareDocumentPosition(layer);
+            const layerOrder = layer.compareDocumentPosition(content);
+            const correctOrder = Boolean(
+              (imgOrder & Node.DOCUMENT_POSITION_FOLLOWING) && (layerOrder & Node.DOCUMENT_POSITION_FOLLOWING)
+            );
+
+            // Content bounds inside card
+            const contentR = content.getBoundingClientRect();
+            const contentInside =
+              contentR.top >= cardR.top - 3 &&
+              contentR.bottom <= cardR.bottom + 3 &&
+              contentR.left >= cardR.left - 3 &&
+              contentR.right <= cardR.right + 3;
+
+            // No residual separate banner / body container layout
+            const hasResidualBanner =
+              card.querySelector(
+                '.aspect-799\\/253, .aspect-1890\\/276, .aspect-1350\\/440, .aspect-1678\\/913'
+              ) !== null;
+
+            // Mirroring check
+            const isMirrored =
+              imgStyle.transform.includes("matrix(-1") ||
+              imgStyle.transform.includes("-1,") ||
+              img.classList.contains("scale-x-[-1]");
+
+            return {
+              isSpanning,
+              widthDiff,
+              heightDiff,
+              isAbsolute,
+              correctOrder,
+              contentInside,
+              hasResidualBanner,
+              isMirrored,
+            };
+          });
+
+          if (geom.error) {
+            throw new Error(`${c.name} on ${routePath}: ${geom.error}`);
+          }
+          if (!geom.isAbsolute) {
+            throw new Error(`${c.name} background and legibility layer must have position: absolute`);
+          }
+          if (!geom.isSpanning) {
+            throw new Error(
+              `${c.name} background artwork does not span card bounds (widthDiff: ${geom.widthDiff}px, heightDiff: ${geom.heightDiff}px)`
+            );
+          }
+          if (!geom.correctOrder) {
+            throw new Error(`${c.name} layer ordering invalid: expected background -> legibility layer -> card content`);
+          }
+          if (!geom.contentInside) {
+            throw new Error(`${c.name} foreground content bounds spill outside the card bounds`);
+          }
+          if (geom.hasResidualBanner) {
+            throw new Error(`${c.name} contains residual separate image banner class`);
+          }
+          if (geom.isMirrored) {
+            throw new Error(`${c.name} artwork image was mirrored in RTL`);
+          }
         }
 
         // Ensure old seeded map is NOT present anywhere on the page
         const allImgs = await page.locator("img").evaluateAll((imgs) => imgs.map((i) => i.src));
         if (allImgs.some((src) => src.includes("map-outline-neutral"))) {
           throw new Error(`map-outline-neutral must be removed from ${routePath}`);
-        }
-
-        // 5. International Corridors Transition Panel (Ninth Master Skin)
-        const transitionPanel = page.locator("[data-transition-panel]");
-        if ((await transitionPanel.count()) === 0) {
-          throw new Error(`Missing [data-transition-panel] on ${routePath}`);
-        }
-        await transitionPanel.scrollIntoViewIfNeeded();
-        const transitionImg = transitionPanel.locator("img").first();
-        await transitionImg.scrollIntoViewIfNeeded();
-        await page.waitForFunction(
-          (sel) => {
-            const img = document.querySelector(sel);
-            return img && img.complete && img.naturalWidth > 0;
-          },
-          "[data-transition-panel] img",
-          { timeout: 8000 }
-        );
-        const transitionLoaded = await transitionImg.evaluate((img) => img.complete && img.naturalWidth > 0);
-        if (!transitionLoaded) {
-          throw new Error(`Ninth skin (global-network) failed to load on ${routePath}`);
-        }
-        const transitionSrc = await transitionImg.getAttribute("src");
-        if (!transitionSrc || !transitionSrc.includes("global-network") || !transitionSrc.includes(".webp")) {
-          throw new Error(`Transition panel did not load global-network WebP: ${transitionSrc}`);
         }
 
         // 6. Check discoverable attribution links & localized credit

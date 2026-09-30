@@ -77,6 +77,72 @@ const DOSSIER_ICONS = {
   "dossier-verification": FileCheck2,
 } as const;
 
+interface PresentArtworkCardProps extends React.HTMLAttributes<HTMLDivElement> {
+  as?: "div" | "article" | "section" | "aside";
+  imageSrc?: string | undefined;
+  imageClassName?: string;
+  legibilityClassName?: string;
+  contentClassName?: string;
+  cardId?: string;
+  children: React.ReactNode;
+}
+
+function PresentArtworkCard({
+  as: Component = "div",
+  imageSrc,
+  imageClassName,
+  legibilityClassName,
+  contentClassName,
+  cardId,
+  className,
+  children,
+  ...props
+}: PresentArtworkCardProps) {
+  return (
+    <Component
+      data-present-art-card={cardId}
+      className={cn(
+        "relative isolate overflow-hidden rounded-2xl border border-border/70 bg-card shadow-xs transition-shadow hover:shadow-sm",
+        className
+      )}
+      {...props}
+    >
+      {/* Decorative artwork fills complete card bounds */}
+      {imageSrc ? (
+        <img
+          data-present-art-background
+          src={imageSrc}
+          alt=""
+          aria-hidden="true"
+          loading="lazy"
+          className={cn(
+            "pointer-events-none absolute inset-0 size-full object-cover select-none",
+            imageClassName
+          )}
+        />
+      ) : null}
+
+      {/* Restrained legibility layer above art */}
+      <div
+        data-present-legibility-layer
+        aria-hidden="true"
+        className={cn(
+          "pointer-events-none absolute inset-0",
+          legibilityClassName
+        )}
+      />
+
+      {/* Real selectable semantic HTML text overlaying art */}
+      <div
+        data-present-card-content
+        className={cn("relative z-10", contentClassName)}
+      >
+        {children}
+      </div>
+    </Component>
+  );
+}
+
 function renderFactDetail(detailText: string) {
   // Isolate technical tokens like runway 01/19 while preserving natural Arabic text direction
   const parts = detailText.split(/(01\/19)/g);
@@ -86,7 +152,7 @@ function renderFactDetail(detailText: string) {
   return parts.map((part, index) => {
     if (part === "01/19") {
       return (
-        <span key={index} dir="ltr" className="inline-block font-mono text-xs">
+        <span key={index} dir="ltr" className="inline-block font-mono font-semibold text-white">
           {part}
         </span>
       );
@@ -119,170 +185,145 @@ function PresentPage() {
           {isArabic ? content.intro.notice.ar : content.intro.notice.en}
         </p>
 
-        {/* Key Site Facts Strip with Decorative Designer Artwork Skins */}
+        {/* Key Site Facts Strip with Decorative Designer Artwork Backgrounds */}
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {content.facts.map((fact) => {
             const skin = FACT_SKINS[fact.id];
             return (
-              <div
+              <PresentArtworkCard
                 key={fact.id}
+                as="article"
+                cardId={fact.id}
                 data-fact-card={fact.id}
-                className="flex flex-col justify-between overflow-hidden rounded-2xl border border-border bg-card shadow-xs transition-shadow hover:shadow-sm"
+                imageSrc={skin}
+                imageClassName="object-center"
+                legibilityClassName="bg-gradient-to-t from-black/85 via-black/55 to-black/35"
+                contentClassName="flex flex-1 flex-col justify-between p-5 min-h-[230px] sm:min-h-[250px]"
               >
-                {skin ? (
-                  <div className="relative aspect-799/253 w-full overflow-hidden bg-sand-subtle/50">
-                    <img
-                      src={skin}
-                      alt=""
-                      aria-hidden="true"
-                      loading="lazy"
-                      className="size-full object-cover"
-                    />
-                  </div>
-                ) : null}
-                <div className="flex flex-1 flex-col justify-between p-5">
-                  <div>
-                    <span className="type-label text-xs text-muted-foreground">
-                      {isArabic ? fact.label.ar : fact.label.en}
-                    </span>
-                    <p className="mt-2 text-base font-bold text-foreground">
-                      {fact.id === "fact-aero-codes" ? (
-                        <span dir="ltr" className="inline-block font-mono">
-                          {isArabic ? fact.value.ar : fact.value.en}
-                        </span>
-                      ) : (
-                        isArabic ? fact.value.ar : fact.value.en
-                      )}
-                    </p>
-                  </div>
-                  <p className="mt-4 text-xs text-muted-foreground">
-                    {renderFactDetail(isArabic ? fact.detail.ar : fact.detail.en)}
+                <div>
+                  <span className="type-label text-xs font-semibold tracking-wider text-sand/90">
+                    {isArabic ? fact.label.ar : fact.label.en}
+                  </span>
+                  <p className="mt-2 text-base font-bold text-white drop-shadow-xs">
+                    {fact.id === "fact-aero-codes" ? (
+                      <span dir="ltr" className="inline-block font-mono">
+                        {isArabic ? fact.value.ar : fact.value.en}
+                      </span>
+                    ) : (
+                      isArabic ? fact.value.ar : fact.value.en
+                    )}
                   </p>
                 </div>
-              </div>
+                <p className="mt-4 text-xs leading-relaxed text-sand/85">
+                  {renderFactDetail(isArabic ? fact.detail.ar : fact.detail.en)}
+                </p>
+              </PresentArtworkCard>
             );
           })}
         </div>
 
         {/* Documentary Dossier: Physical Site Condition & Spatial Analysis */}
-        <div className="mt-12 grid gap-8 lg:grid-cols-[1.4fr_1fr]">
+        <div className="mt-12 grid gap-8 items-start lg:grid-cols-[1.4fr_1fr]">
           <div className="space-y-6">
             {content.dossiers.map((dossier) => {
               const skin = DOSSIER_SKINS[dossier.id];
               const Icon = DOSSIER_ICONS[dossier.id as keyof typeof DOSSIER_ICONS] ?? FileCheck2;
 
               return (
-                <div
+                <PresentArtworkCard
                   key={dossier.id}
+                  as="article"
+                  cardId={dossier.id}
                   data-dossier-panel={dossier.id}
-                  className="overflow-hidden rounded-2xl border border-border bg-card shadow-xs"
+                  imageSrc={skin}
+                  imageClassName="object-cover object-center"
+                  legibilityClassName="bg-gradient-to-t from-black/90 via-black/65 to-black/45"
+                  contentClassName="p-6 sm:p-7"
                 >
-                  {skin ? (
-                    <div className="relative aspect-1890/276 w-full max-h-36 overflow-hidden bg-sand-subtle/40">
-                      <img
-                        src={skin}
-                        alt=""
-                        aria-hidden="true"
-                        loading="lazy"
-                        className="size-full object-cover"
-                      />
-                    </div>
-                  ) : null}
-                  <div className="p-6">
-                    <div className="flex items-center gap-2.5 text-foreground">
-                      <Icon aria-hidden="true" className="size-5 shrink-0 text-clay" />
-                      <h2 className="text-xl font-bold">
-                        {isArabic ? dossier.title.ar : dossier.title.en}
-                      </h2>
-                    </div>
-                    <div className="mt-3.5 space-y-3">
-                      {dossier.paragraphs.map((p, idx) => (
-                        <p
-                          key={idx}
-                          className={cn(
-                            "leading-relaxed text-muted-foreground",
-                            idx === 0 ? "text-base" : "text-sm",
-                          )}
-                        >
-                          {isArabic ? p.ar : p.en}
-                        </p>
-                      ))}
-                    </div>
+                  <div className="flex items-center gap-2.5 text-white">
+                    <Icon aria-hidden="true" className="size-5 shrink-0 text-clay-soft" />
+                    <h2 className="text-xl font-bold tracking-tight">
+                      {isArabic ? dossier.title.ar : dossier.title.en}
+                    </h2>
                   </div>
-                </div>
+                  <div className="mt-4 space-y-3 max-w-3xl">
+                    {dossier.paragraphs.map((p, idx) => (
+                      <p
+                        key={idx}
+                        className={cn(
+                          "leading-relaxed text-sand/90",
+                          idx === 0 ? "text-base font-normal" : "text-sm text-sand/80"
+                        )}
+                      >
+                        {isArabic ? p.ar : p.en}
+                      </p>
+                    ))}
+                  </div>
+                </PresentArtworkCard>
               );
             })}
           </div>
 
           {/* Spatial Map & Global Reach Panel */}
-          <aside
+          <PresentArtworkCard
+            as="aside"
+            cardId="spatial-geometry"
             data-spatial-aside
-            className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-xs"
+            imageSrc={spatialGeometrySkin}
+            imageClassName="object-cover object-center"
+            legibilityClassName="bg-gradient-to-b from-black/75 via-black/60 to-black/85"
+            contentClassName="flex flex-col justify-between p-6 sm:p-7 min-h-[380px]"
           >
-            <div className="relative aspect-1350/440 w-full overflow-hidden bg-sand-subtle/50">
-              <img
-                src={spatialGeometrySkin}
-                alt=""
-                aria-hidden="true"
-                loading="lazy"
-                className="size-full object-cover"
-              />
+            <div>
+              <h3 className="text-lg font-bold text-white">
+                {isArabic ? content.spatial.title.ar : content.spatial.title.en}
+              </h3>
+              <p className="mt-2.5 text-sm leading-relaxed text-sand/90">
+                {isArabic ? content.spatial.description.ar : content.spatial.description.en}
+              </p>
             </div>
-            <div className="flex flex-1 flex-col justify-between p-5 sm:p-6">
-              <div>
-                <h3 className="text-lg font-bold text-foreground">
-                  {isArabic ? content.spatial.title.ar : content.spatial.title.en}
-                </h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                  {isArabic ? content.spatial.description.ar : content.spatial.description.en}
-                </p>
-              </div>
 
-              <div className="mt-6 rounded-xl border border-border bg-secondary/50 p-3.5 text-xs text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck aria-hidden="true" className="size-4 shrink-0 text-primary" />
-                  <span className="font-semibold text-foreground">
-                    {isArabic
-                      ? content.spatial.evidentiaryRuleTitle.ar
-                      : content.spatial.evidentiaryRuleTitle.en}
-                  </span>
-                </div>
-                <p className="mt-1">
+            <div className="mt-6 rounded-xl border border-white/15 bg-black/40 p-4 text-xs text-sand/85 backdrop-blur-xs">
+              <div className="flex items-center gap-2">
+                <ShieldCheck aria-hidden="true" className="size-4 shrink-0 text-brand-soft" />
+                <span className="font-semibold text-white">
                   {isArabic
-                    ? content.spatial.evidentiaryRuleBody.ar
-                    : content.spatial.evidentiaryRuleBody.en}
-                </p>
+                    ? content.spatial.evidentiaryRuleTitle.ar
+                    : content.spatial.evidentiaryRuleTitle.en}
+                </span>
               </div>
+              <p className="mt-1.5 leading-relaxed text-sand/80">
+                {isArabic
+                  ? content.spatial.evidentiaryRuleBody.ar
+                  : content.spatial.evidentiaryRuleBody.en}
+              </p>
             </div>
-          </aside>
+          </PresentArtworkCard>
         </div>
 
         {/* International Corridors & Global Horizons (Ninth Master Skin) */}
-        <section
+        <PresentArtworkCard
+          as="section"
+          cardId="global-network"
           data-transition-panel
-          className="mt-12 overflow-hidden rounded-2xl border border-border bg-card shadow-xs"
+          imageSrc={globalNetworkSkin}
+          imageClassName="object-cover object-center"
+          legibilityClassName="bg-gradient-to-t from-black/85 via-black/60 to-black/40"
+          contentClassName="p-6 sm:p-8 md:p-10 min-h-[260px] sm:min-h-[300px] flex flex-col justify-end"
+          className="mt-12"
         >
-          <div className="relative aspect-1678/913 w-full max-h-72 overflow-hidden bg-ink/5">
-            <img
-              src={globalNetworkSkin}
-              alt=""
-              aria-hidden="true"
-              loading="lazy"
-              className="size-full object-cover"
-            />
-          </div>
-          <div className="p-6 sm:p-8">
-            <div className="eyebrow mb-2 text-clay">
+          <div className="max-w-3xl">
+            <div className="eyebrow mb-2 font-mono text-xs tracking-wider uppercase text-clay-soft">
               {isArabic ? content.globalHorizons.eyebrow.ar : content.globalHorizons.eyebrow.en}
             </div>
-            <h2 className="text-xl font-bold text-foreground sm:text-2xl">
+            <h2 className="text-xl font-bold text-white sm:text-2xl">
               {isArabic ? content.globalHorizons.title.ar : content.globalHorizons.title.en}
             </h2>
-            <p className="mt-3 text-sm leading-relaxed text-muted-foreground sm:text-base">
+            <p className="mt-3 text-sm leading-relaxed text-sand/90 sm:text-base">
               {isArabic ? content.globalHorizons.description.ar : content.globalHorizons.description.en}
             </p>
           </div>
-        </section>
+        </PresentArtworkCard>
 
         {/* Public Credit & Documentary Attribution Strip */}
         <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-6 text-xs text-muted-foreground">
