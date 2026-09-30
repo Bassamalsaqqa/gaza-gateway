@@ -85,12 +85,12 @@ export const publishedAirportPresent: AirportPresentContent = {
         ar: "حالة المنشأة الحالية",
       },
       value: {
-        en: "Completely non-operational (ruins)",
-        ar: "خارج الخدمة كلياً (أطلال)",
+        en: "Not operating as a civil airport",
+        ar: "غير عامل كمطار مدني",
       },
       detail: {
-        en: "Physical facility non-operational · Documented in June 2008 photographic record",
-        ar: "المنشأة المادية خارج الخدمة · موثقة في التسجيل الفوتوغرافي لشهر يونيو 2008",
+        en: "Ruins documented in June 2008 · current physical condition requires new verified field evidence",
+        ar: "الأطلال موثقة في يونيو/حزيران 2008 · والحالة المادية الحالية تتطلب توثيقاً ميدانياً حديثاً",
       },
       sourceRefs: ["src-icao-council-2002", "src-gisha-2008"],
     },

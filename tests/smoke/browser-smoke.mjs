@@ -4821,6 +4821,103 @@ async function runBrowserSmoke() {
       await page.setViewportSize({ width: 1440, height: 900 });
     });
 
+    await checkStep("Check 37: EN/AR Airport Overview, Past, and Future Live Localization & Raw Key Leak Regression", async () => {
+      for (const locale of ["", "/ar"]) {
+        const isAr = locale === "/ar";
+
+        // 1. Airport Overview (/airport, /ar/airport)
+        const overviewPath = `${locale}/airport`;
+        await page.goto(baseUrl + overviewPath, { waitUntil: "domcontentloaded" });
+        const overviewText = await page.locator("body").innerText();
+
+        // Must not contain raw key identifiers
+        if (overviewText.includes("airport.sourcesBody")) {
+          throw new Error(`Raw key 'airport.sourcesBody' rendered on ${overviewPath}`);
+        }
+        if (overviewText.includes("airport.futureSummary")) {
+          throw new Error(`Raw key 'airport.futureSummary' rendered on ${overviewPath}`);
+        }
+        const overviewLeaks = overviewText.match(/\bairport\.[a-zA-Z0-9_.-]+/g);
+        if (overviewLeaks) {
+          throw new Error(`Raw translation key(s) leaked on ${overviewPath}: ${overviewLeaks.join(", ")}`);
+        }
+
+        // Intended text must resolve
+        if (isAr) {
+          if (!overviewText.includes("وفقاً للمعايير التوثيقية المؤسسية")) {
+            throw new Error(`Expected Arabic sourcesBody text missing on ${overviewPath}`);
+          }
+          if (!overviewText.includes("مقترحات معمارية، وفلسفة خدمة المسافرين")) {
+            throw new Error(`Expected Arabic futureSummary text missing on ${overviewPath}`);
+          }
+        } else {
+          if (!overviewText.includes("In accordance with institutional evidentiary standards")) {
+            throw new Error(`Expected English sourcesBody text missing on ${overviewPath}`);
+          }
+          if (!overviewText.includes("Architectural proposals, passenger service philosophy")) {
+            throw new Error(`Expected English futureSummary text missing on ${overviewPath}`);
+          }
+        }
+
+        // 2. Airport Past (/airport/past, /ar/airport/past)
+        const pastPath = `${locale}/airport/past`;
+        await page.goto(baseUrl + pastPath, { waitUntil: "domcontentloaded" });
+        const pastText = await page.locator("body").innerText();
+
+        if (pastText.includes("airport.awaitingReferences")) {
+          throw new Error(`Raw key 'airport.awaitingReferences' rendered on ${pastPath}`);
+        }
+        if (pastText.includes("airport.methodologyBody")) {
+          throw new Error(`Raw key 'airport.methodologyBody' rendered on ${pastPath}`);
+        }
+        const pastLeaks = pastText.match(/\bairport\.[a-zA-Z0-9_.-]+/g);
+        if (pastLeaks) {
+          throw new Error(`Raw translation key(s) leaked on ${pastPath}: ${pastLeaks.join(", ")}`);
+        }
+
+        if (isAr) {
+          if (!pastText.includes("بانتظار المراجع الأرشيفية الأولية والسجلات الموثقة")) {
+            throw new Error(`Expected Arabic awaitingReferences text missing on ${pastPath}`);
+          }
+          if (!pastText.includes("صُمم هذا الفصل التاريخي ليدعم التوثيق الأرشيفي المعتمد")) {
+            throw new Error(`Expected Arabic methodologyBody text missing on ${pastPath}`);
+          }
+        } else {
+          if (!pastText.includes("Awaiting primary archival references and verified records")) {
+            throw new Error(`Expected English awaitingReferences text missing on ${pastPath}`);
+          }
+          if (!pastText.includes("This historical chapter is structured to support verified archival documentation")) {
+            throw new Error(`Expected English methodologyBody text missing on ${pastPath}`);
+          }
+        }
+
+        // 3. Airport Future (/airport/future, /ar/airport/future)
+        const futurePath = `${locale}/airport/future`;
+        await page.goto(baseUrl + futurePath, { waitUntil: "domcontentloaded" });
+        const futureText = await page.locator("body").innerText();
+
+        if (futureText.includes("airport.futureSubtitle")) {
+          throw new Error(`Raw key 'airport.futureSubtitle' rendered on ${futurePath}`);
+        }
+        const futureLeaks = futureText.match(/\bairport\.[a-zA-Z0-9_.-]+/g);
+        if (futureLeaks) {
+          throw new Error(`Raw translation key(s) leaked on ${futurePath}: ${futureLeaks.join(", ")}`);
+        }
+
+        if (isAr) {
+          if (!futureText.includes("مقترحات معمارية، ومبادئ المخطط العام، وتصميم تجربة المسافرين")) {
+            throw new Error(`Expected Arabic futureSubtitle text missing on ${futurePath}`);
+          }
+        } else {
+          if (!futureText.includes("Architectural proposals, masterplanning principles, and passenger experience design")) {
+            throw new Error(`Expected English futureSubtitle text missing on ${futurePath}`);
+          }
+        }
+      }
+
+      await page.setViewportSize({ width: 1440, height: 900 });
+    });
+
   } finally {
     await browser.close();
     if (server) {

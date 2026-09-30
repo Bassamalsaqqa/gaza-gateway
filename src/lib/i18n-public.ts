@@ -384,7 +384,7 @@ export const en: Dict = {
   "airport.pastSummary":
     "From early planning and the 1998 inauguration to commercial flight operations and preserved civil aviation memories.",
   "airport.presentSummary":
-    "A factual account of the airport grounds today: terminal structures, runway condition, documented records, and ongoing survey requirements.",
+    "A factual account of the airport grounds: terminal structures, runway condition, documented records, and ongoing survey requirements.",
   "airport.futureSummary":
     "Architectural proposals, passenger service philosophy, phased masterplanning, and route connectivity for a restored Mediterranean civil gateway.",
   "airport.sourcesBody":
@@ -397,35 +397,6 @@ export const en: Dict = {
     "Awaiting primary archival references and verified records.",
   "airport.methodologyBody":
     "This historical chapter is structured to support verified archival documentation. If primary records are provided and authenticated, milestones may link to verified references.",
-  "airport.presentSubtitle":
-    "A factual, disciplined account of Gaza International Airport's physical site today: surveyed structures, verifiable records, and ongoing documentation standards.",
-  "airport.presentNotice":
-    "This chapter strictly maintains documentary restraint. No synthetic photography or ungrounded estimates are shown as evidence. Physical condition reports require dated satellite surveys, on-the-ground engineering assessments, and verified provenance.",
-  "airport.siteLocationLabel": "Geographic Location",
-  "airport.siteLocationValue": "Southern Gaza Strip, near Rafah",
-  "airport.siteAeroCodesLabel": "Aeronautical Codes",
-  "airport.siteOperatingPeriodLabel": "Operational Period",
-  "airport.siteOperatingPeriodValue": "November 1998 – December 2001",
-  "airport.siteStatusLabel": "Current Facility Status",
-  "airport.siteStatusValue": "Closed / Non-operational",
-  "airport.siteBoundariesTitle": "The Airfield Site & Boundaries",
-  "airport.siteBoundariesBody1":
-    "The airport site is situated in the southernmost area of the Gaza Strip, east of Rafah and adjacent to the border. The original installation occupied approximately 235 hectares, designed for independent civil passenger and cargo throughput.",
-  "airport.siteBoundariesBody2":
-    "Current ground documentation indicates substantial structural destruction across the terminal building, control tower, and support hangars resulting from military operations in 2001–2002 and subsequent decades.",
-  "airport.runwayTitle": "Runway & Airfield Infrastructure",
-  "airport.runwayBody":
-    "The operational runway (designated 01/19) measured 3,080 metres in length and 60 metres in width, constructed with high-grade asphalt capable of accommodating widebody aircraft. Satellite documentation confirms multiple runway cuts and asphalt disruption.",
-  "airport.verificationTitle": "Verification Standard & Missing Evidence",
-  "airport.verificationBody":
-    "To maintain historical and technical integrity, assertions regarding the site's condition require primary records. A dedicated engineering survey panel may integrate verified multispectral satellite records, physical soil assessments, and structural concrete core reports when conditions permit.",
-  "airport.spatialEyebrow": "Spatial Documentation",
-  "airport.spatialTitle": "Cadastral & Airfield Geometry",
-  "airport.spatialBody":
-    "Provisional diagram representing the 1998 master layout: passenger terminal, VIP pavilion, cargo terminal, control tower, and access boulevard. Sourced geo-referenced vector maps may replace this provisional graphic.",
-  "airport.evidentiaryRuleTitle": "Evidentiary Rule",
-  "airport.evidentiaryRuleBody":
-    "No unverified claims regarding equipment salvage or current perimeter security are asserted.",
   "airport.futureSubtitle":
     "Architectural proposals, masterplanning principles, and passenger experience design for a restored civil gateway connecting Gaza to the world.",
   "airport.futurePlainDisclosure": "Illustrative future concepts; not current or historical photographs.",
@@ -1210,7 +1181,7 @@ export const ar: Dict = {
   "airport.pastSummary":
     "من التخطيط المبكر والافتتاح عام 1998 إلى تشغيل الرحلات التجارية والذكريات المحفوظة للطيران المدني.",
   "airport.presentSummary":
-    "تقرير واقعي عن موقع المطار اليوم: منشآت مبنى الركاب، حالة المدرج، السجلات الموثقة، ومتطلبات المسح الميداني المستمرة.",
+    "تقرير واقعي عن موقع المطار: منشآت مبنى الركاب، حالة المدرج، السجلات الموثقة، ومتطلبات المسح الميداني المستمرة.",
   "airport.futureSummary":
     "مقترحات معمارية، وفلسفة خدمة المسافرين، ومخطط عام مرحلي، وشبكة ربط جوي لبوابة مدنية متوسطية مستعادة.",
   "airport.sourcesBody":
@@ -1223,35 +1194,6 @@ export const ar: Dict = {
     "بانتظار المراجع الأرشيفية الأولية والسجلات الموثقة.",
   "airport.methodologyBody":
     "صُمم هذا الفصل التاريخي ليدعم التوثيق الأرشيفي المعتمد. وإذا قُدمت سجلات أولية وتم التحقق منها، يمكن ربط المحطات بمراجع موثقة.",
-  "airport.presentSubtitle":
-    "توثيق واقعي منضبط للموقع الميداني لمطار غزة الدولي اليوم: المنشآت التي شملها المسح، والسجلات القابلة للتحقق، ومعايير التوثيق المستمرة.",
-  "airport.presentNotice":
-    "يلتزم هذا الفصل التزاماً صارماً بالانضباط التوثيقي. ولا تُعرض صور مركبة أو تقديرات غير مثبتة كأدلة. تتطلب تقارير الحالة المادية مسوحات فضائية مؤرخة، وتقييمات هندسية ميدانية، وتوثيقاً معتمداً لمصادر البيانات.",
-  "airport.siteLocationLabel": "الموقع الجغرافي",
-  "airport.siteLocationValue": "جنوب قطاع غزة، قرب رفح",
-  "airport.siteAeroCodesLabel": "رموز الطيران الدولية",
-  "airport.siteOperatingPeriodLabel": "فترة التشغيل",
-  "airport.siteOperatingPeriodValue": "نوفمبر 1998 – ديسمبر 2001",
-  "airport.siteStatusLabel": "حالة المنشأة الحالية",
-  "airport.siteStatusValue": "مغلق / غير عامل",
-  "airport.siteBoundariesTitle": "موقع المطار وحدوده",
-  "airport.siteBoundariesBody1":
-    "يقع موقع المطار في أقصى جنوب قطاع غزة، شرق رفح وبمحاذاة الحدود. شغلت المنشأة الأصلية نحو 235 هكتاراً، وصُممت لحركة مدنية مستقلة للمسافرين والشحن الجوي.",
-  "airport.siteBoundariesBody2":
-    "تشير الوثائق الميدانية الحالية إلى دمار إنشائي واسع في مبنى الركاب وبرج المراقبة وهناجر الدعم ناتج عن العمليات العسكرية في 2001–2002 والعقود اللاحقة.",
-  "airport.runwayTitle": "المدرج والبنية التحتية للمطار",
-  "airport.runwayBody":
-    "بلغ طول المدرج التشغيلي (المسمى 01/19) 3,080 متراً وعرضه 60 متراً، وشُيّد بإسفلت عالي المواصفات قادر على استيعاب الطائرات العريضة البدن. وتؤكد صور الأقمار الصناعية وجود قطوع متعددة وأضرار في الإسفلت.",
-  "airport.verificationTitle": "معيار التحقق والأدلة الناقصة",
-  "airport.verificationBody":
-    "حفاظاً على النزاهة التاريخية والفنية، تتطلب المعطيات حول حالة الموقع سجلات أولية. قد يدمج فريق المسح الهندسي سجلات فضائية متعددة الأطياف موثقة، وتقييمات فيزيائية للتربة، وتقارير فحص الخرسانة الإنشائية متى سمحت الظروف.",
-  "airport.spatialEyebrow": "التوثيق المكاني",
-  "airport.spatialTitle": "المخطط المساحي وهندسة المطار",
-  "airport.spatialBody":
-    "مخطط توضيحي مؤقت يمثل التخطيط العام لعام 1998: مبنى المسافرين، وصالة كبار الشخصيات، ومبنى الشحن، وبرج المراقبة، وشارع الوصول. قد تحل خرائط موجهة جغرافياً وموثقة المصدر محل هذا الرسم المؤقت.",
-  "airport.evidentiaryRuleTitle": "القاعدة التوثيقية",
-  "airport.evidentiaryRuleBody":
-    "لا تُطرح أي ادعاءات غير موثقة بشأن استرداد المعدات أو أمن المحيط الحالي.",
   "airport.futureSubtitle":
     "مقترحات معمارية، ومبادئ المخطط العام، وتصميم تجربة المسافرين لبوابة مدنية مستعادة تصل غزة بالعالم.",
   "airport.futurePlainDisclosure": "تصورات معمارية مستقبلية توضيحية وليست صوراً واقعية أو تاريخية.",

@@ -79,7 +79,7 @@ Success means travelers and observers encounter an intuitive, authentic, and coh
 - **Tone & Voice**: Dignified, calm, professional, clear, and hospitable. Avoid generic corporate travel hype, aggressive artificial urgency, or polemical rhetoric.
 - **Factual & Archive Provenance**:
   - Historical dates, milestones, and documentation must be grounded in verified archival evidence.
-  - Official vector brand marks and authentic historical imagery will be provided by the owner in dedicated asset phases; no fabricated provenance or synthetic identities should be introduced.
+  - A small verified documentary photograph set has been committed: `airport-archive-hero-2000`, `gallery-aircraft-archive-2000`, and `airport-present-ruins-2008`. The broader 58-record Past intake is staged, rights/provenance gated, and NOT automatically published or fully cleared. Official vector brand marks have not yet been provided by the owner; no fabricated provenance or synthetic identities should be introduced.
   - **Canonical Truth Classification**: All media is strictly classified under `TruthClass`: `"future-concept-ai"`, `"historical-documentary"`, `"illustrative-photo"`, `"brand-mark"`, or `"placeholder"`. AI future concepts must always display visible illustrative disclosure badges and must never substitute for historical or present evidence.
   - **Asset & Content Ingestion Protocol**: Future asset drops must preserve masters, classify truth/era/rights, generate optimized multi-breakpoint WebP variants, declare stable semantic IDs in `src/lib/media.ts`, provide bilingual accessible metadata (`altEn`/`altAr`), and verify in-browser. Home, Travel, Past, and Present editorial updates now use canonical typed records; local drafts require engineering promotion and a verified release to become globally published.
 - **Visual Design Independence**: The incumbent color palette, typography hierarchy, and component styling documented in `docs/DESIGN_SYSTEM.md` represent the current baseline implementation and do not restrict future UI, typography, or visual redesign.
@@ -95,7 +95,7 @@ Success means travelers and observers encounter an intuitive, authentic, and coh
   - Authored Appearance Studio skin and surface grammar (`src/lib/skin.ts`, `src/design/surfaces/`).
 - **Confirmed Absences (Must Not Fabricate)**:
   - No live commercial ticketing, payment processing, or airline merchant facilities.
-  - No verified historical photo archives or official vector logo files currently committed in the repository. Placeholder imagery and AI concepts must never masquerade as historical evidence.
+  - Official vector logo files remain unsupplied. A small verified documentary photo set is committed (`airport-archive-hero-2000`, `gallery-aircraft-archive-2000`, `airport-present-ruins-2008`), while the broader 58-record Past intake remains staged, rights/provenance gated, and unpublished. Placeholder imagery and AI concepts must never masquerade as historical evidence.
 
 ## Product Principles
 

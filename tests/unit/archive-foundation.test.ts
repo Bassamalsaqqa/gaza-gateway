@@ -704,5 +704,129 @@ describe("HC-0 / HC-1 Archive & Present Foundation Invariants", () => {
       "src-saleh-hegab-airport must point to the verified engineering portfolio URL",
     );
   });
-});
 
+  // Test 15: Acceptance Truth Correction 0.1 invariants
+  it("15. Enforces institutional status separation, absence of settled 235ha/60m claims, retired legacy key removal, and attribution persistence", () => {
+    // 15a. Facility institutional status is distinct from dated 2008 physical record
+    const facilityFact = publishedAirportPresent.facts.find((f) => f.id === "fact-facility-status");
+    assert.ok(facilityFact, "fact-facility-status must exist");
+    assert.equal(facilityFact.value.en, "Not operating as a civil airport");
+    assert.equal(facilityFact.value.ar, "غير عامل كمطار مدني");
+    assert.match(
+      facilityFact.detail.en,
+      /Ruins documented in June 2008 · current physical condition requires new verified field evidence/,
+    );
+    assert.match(facilityFact.detail.ar, /2008/);
+    assert.match(facilityFact.detail.ar, /تتطلب توثيقاً ميدانياً حديثاً/);
+
+    // 15b. No settled 235ha or 60m width claim in canonical Present copy or remaining fallback keys
+    const canonicalPresentStr = JSON.stringify(publishedAirportPresent);
+    assert.ok(!canonicalPresentStr.includes("235 hectare"), "No 235 hectares in Present copy");
+    assert.ok(!canonicalPresentStr.includes("235 هكتار"), "No 235 hectares in Arabic Present copy");
+    assert.ok(!canonicalPresentStr.includes("60 metres in width"), "No 60 metres in Present copy");
+    assert.ok(!canonicalPresentStr.includes("60 متراً"), "No 60 metres in Arabic Present copy");
+
+    // 15c. Zero-consumer legacy Present factual keys are retired from both EN and AR dictionaries
+    const retiredKeys = [
+      "airport.presentSubtitle",
+      "airport.presentNotice",
+      "airport.siteLocationLabel",
+      "airport.siteLocationValue",
+      "airport.siteAeroCodesLabel",
+      "airport.siteOperatingPeriodLabel",
+      "airport.siteOperatingPeriodValue",
+      "airport.siteStatusLabel",
+      "airport.siteStatusValue",
+      "airport.siteBoundariesTitle",
+      "airport.siteBoundariesBody1",
+      "airport.siteBoundariesBody2",
+      "airport.runwayTitle",
+      "airport.runwayBody",
+      "airport.verificationTitle",
+      "airport.verificationBody",
+      "airport.spatialEyebrow",
+      "airport.spatialTitle",
+      "airport.spatialBody",
+      "airport.evidentiaryRuleTitle",
+      "airport.evidentiaryRuleBody",
+    ];
+    for (const key of retiredKeys) {
+      assert.ok(!(key in en), `Retired key ${key} must not exist in en dictionary`);
+      assert.ok(!(key in ar), `Retired key ${key} must not exist in ar dictionary`);
+    }
+
+    // 15d. airport.presentSummary reconciled (does not claim 'today')
+    assert.ok(!en["airport.presentSummary"].includes("today"), "airport.presentSummary EN must not claim today");
+    assert.ok(!ar["airport.presentSummary"].includes("اليوم"), "airport.presentSummary AR must not claim today");
+
+    // 15e. Ruins record remains historical-documentary/published/licensed/source-backed/dated 2008
+    const ruinsRecord = getArchiveRecordById("rec-present-ruins-2008");
+    assert.ok(ruinsRecord, "rec-present-ruins-2008 must exist");
+    assert.equal(ruinsRecord.mediaId, "airport-present-ruins-2008");
+    assert.equal(ruinsRecord.publicationState, "published");
+    assert.equal(ruinsRecord.rights?.license, "CC BY-SA 2.0 Generic");
+    assert.ok(ruinsRecord.rights?.licenseUrl, "Ruins record must have licenseUrl");
+    assert.ok(ruinsRecord.sourceRefs.includes("src-gisha-2008"), "Ruins record must cite src-gisha-2008");
+    assert.equal(ruinsRecord.date, "2008-06-13");
+
+    // 15f. All nine decorative skins remain outside approved semantic MEDIA
+    const decorativeSkinIds = [
+      "dossier-boundaries",
+      "dossier-runway",
+      "dossier-verification",
+      "fact-aero-codes",
+      "fact-facility-status",
+      "fact-location",
+      "fact-operating-period",
+      "global-network",
+      "spatial-geometry",
+    ];
+    for (const id of decorativeSkinIds) {
+      assert.ok(
+        !(id in APPROVED_MEDIA_CATALOG),
+        `Decorative skin ${id} must not be in APPROVED_MEDIA_CATALOG`,
+      );
+    }
+
+    // 15g. Staged/held archive records remain absent from public selectors
+    const published = getPublishedArchiveRecords();
+    const intake = getIntakeArchiveRecords();
+    for (const item of intake) {
+      if (item.publicationState !== "published") {
+        assert.ok(
+          !published.some((p) => p.id === item.id),
+          `Non-published intake record ${item.id} must be absent from published selector`,
+        );
+      }
+    }
+
+    // 15h. Public attribution persists on both EN and AR Present
+    assert.ok(en["present.credit.label"], "EN attribution label must exist");
+    assert.ok(ar["present.credit.label"], "AR attribution label must exist");
+    assert.ok(en["present.credit.licenseLabel"], "EN license label must exist");
+    assert.ok(ar["present.credit.licenseLabel"], "AR license label must exist");
+    assert.ok(en["present.credit.photoBy"], "EN photo credit must exist");
+    assert.ok(ar["present.credit.photoBy"], "AR photo credit must exist");
+
+    // 15i. Live keys for Overview, Past, and Future resolve to non-empty EN and AR strings
+    const liveKeys = [
+      "airport.sourcesBody",
+      "airport.awaitingReferences",
+      "airport.methodologyBody",
+      "airport.futureSubtitle",
+      "airport.pastSubtitle",
+      "airport.pastNotice",
+      "airport.futureSummary",
+    ];
+    for (const key of liveKeys) {
+      assert.ok(
+        typeof (en as Record<string, string>)[key] === "string" && (en as Record<string, string>)[key].trim().length > 0,
+        `Live key ${key} must resolve to non-empty string in en`,
+      );
+      assert.ok(
+        typeof (ar as Record<string, string>)[key] === "string" && (ar as Record<string, string>)[key].trim().length > 0,
+        `Live key ${key} must resolve to non-empty string in ar`,
+      );
+    }
+  });
+});
