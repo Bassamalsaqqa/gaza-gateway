@@ -1,8 +1,8 @@
 # Data Flow, State Management & Pretend-Action Inventory
 
 > **Document Purpose**: Complete audit of current data sources, state persistence, cross-screen entity splits, and enabled no-op actions across public and admin workspaces.
-> **Status**: **Phase 4C Complete — Settings & Appearance Store Convergence**. Booking Search Console Redesign 0.2 and Refinement 0.2.1 are deployed. Designer Media + Public Surface Integration Checkpoint and Visual Cleanup 0.1 (`design/media-checkpoint-visual-cleanup-01`) are implemented on the design branch and awaiting owner visual acceptance.
-> **Future Target**: Phase 5 (Public Workflows Convergence, planned and not started; designer asset lane active in parallel), then Phase 6 before any production backend.
+> **Status**: **Phase 5 in Progress — Phase 5A Implemented (Passenger State, Account & Auth-Truth Convergence)**. Owner-accepted visual baseline (`design/media-checkpoint-visual-cleanup-01`) is accepted on main. Phase 5A is implemented on branch awaiting engineering acceptance.
+> **Future Target**: Phase 5B (Booking Draft & Search Convergence, next), Phase 5C (Manage, Check-in & Boarding Pass Convergence), Phase 5D (Public Contact Workflow Convergence), then Phase 6 before any production backend.
 
 ---
 
@@ -16,7 +16,7 @@ Following Phase 4, the application coordinates persistence across canonical repo
 | **Canonical Passenger State** (`PassengerRepository`) | `src/lib/passenger/` | `localStorage["gza.passenger.v1"]` (schemaVersion: 1) | Canonical passenger account (`PassengerAccount | null`), profile preferences, and saved companions (`Traveler[]`). Migrated once from `gza.store.v1` only if absent; present empty state is authoritative. Synchronized across tabs via `subscribe()`. |
 | **Published Editorial Content** | `src/content/published/` | Compiled source in prerendered HTML and route chunks | Canonical Home, Travel and Airport Past proof documents. Normal public URLs never read local drafts. |
 | **Local Editorial Drafts** | `src/content/repository.ts` | `localStorage["gza.content.draft.v1"]` (schemaVersion: 1) | Admin Travel draft and explicit `?contentPreview=1` overlay only. Save errors reject; corrupt data falls back to published. |
-| **Public Store Façade** (`useStore`) | `src/lib/store.tsx` | `localStorage["gza.store.v1"]` (`draft` ONLY) | Active booking wizard draft (`draft: Draft`). Legacy account and travelers are preserved byte-equivalently on draft write without writing canonical passenger changes back (no dual writer). |
+| **Public Store Façade** (`useStore`) | `src/lib/store.tsx` | `localStorage["gza.store.v1"]` (`draft` ONLY) | Active booking wizard draft (`draft: Draft`). Legacy account, travelers, bookings and unknown envelope keys are semantically preserved/inert with absent fields remaining absent, without writing canonical passenger changes back (no dual writer). |
 | **Admin Store Façade** (`useAdmin`) | `src/lib/admin-store.tsx` | `localStorage["gza.admin.v1"]` (staffId) | Staff identity (`Staff \| null`), active role (`AdminRole`). Flight operational override mutations delegate directly to `flightRepo` (single writer). |
 | **Admin Operations State** (`useAdmin().ops`) | `src/lib/admin-ops.ts`, `src/lib/admin-store.tsx` | Session in-memory state in `AdminProvider` (`useState<OpsState>`). Resets to seed on reload. | Schedules (`Schedule[]`), aircraft fleet (`AircraftType[]`), seat maps (`Record<string, SeatMapConfig>`), fare products (`FareConfig[]`), baggage allowance (`BaggageConfig`), meals (`OptionItem[]`), assistance options (`OptionItem[]`), destination parameters (`DestinationConfig[]`). |
 | **Admin Static Mock Data** | `src/lib/admin-mock.ts` | In-memory static constants | Customer profiles (`mockCustomers`), check-in desk fixtures, staff inbox, staff directory, audit and analytics fixtures, and non-migrated CMS/story collections. Home, Travel and Past proof arrays now derive from `src/content/`. |
@@ -47,7 +47,7 @@ In `src/lib/store.tsx` and `src/lib/booking-draft.ts`:
 In `src/lib/passenger/`:
 - **Single Source of Truth**: `PassengerRepository` manages canonical passenger identity (`PassengerAccount | null`) and saved companions (`Traveler[]`) stored under `localStorage["gza.passenger.v1"]`.
 - **Anti-Resurrection Rule**: Migration from `gza.store.v1` occurs **only** when `gza.passenger.v1` is completely absent (`null`). If `gza.passenger.v1` is present (even with a null account or empty travelers), legacy values are never resurrected.
-- **No Dual Writer**: `StoreProvider` in `src/lib/store.tsx` retains legacy account/traveler snapshots in memory solely to re-serialize `gza.store.v1` byte-equivalently on draft edits. It never writes canonical passenger mutations back to legacy storage.
+- **No Dual Writer**: `StoreProvider` in `src/lib/store.tsx` retains the legacy envelope in memory solely to re-serialize `gza.store.v1` semantically on draft edits, keeping absent fields absent. It never writes canonical passenger mutations back to legacy storage.
 - **Identity Normalization & Email Immutability**: All email inputs are trimmed and lowercased (`normalizeEmailIdentity`). Updating profile preferences preserves the original identity email; email cannot be changed through profile save.
 - **Transactional Persistence**: `PassengerStorageCoordinator` builds state candidates, writes to storage, and only adopts and notifies subscribers if storage succeeds. Quota errors reject with `StorageCommitError` and roll back memory.
 - **Auth Truth & Privacy**: There is no live backend, database, or authentication API. Sign-in and register adopt local identity on this device. Password fields are never compared, persisted, hashed, logged, or placed in URLs. Near-form disclosure states that password authentication is not connected.
@@ -218,8 +218,8 @@ The development program follows this strictly sequenced progression:
    - Compiled bilingual Home, Travel and Past records, runtime validation, local draft repository and explicit preview. Admin Travel editing is the real draft proof; global publishing and broader CMS work remain future phases.
 3. **Phase 4C — Settings & Appearance Store Convergence (complete)**:
    - Unified multi-document settings envelope (gza.settings.draft.v1) with independent Contact and Appearance drafts, one-time legacy migration with untouched legacy key, transactional failure resilience, and explicit preview immunity.
-4. **Phase 5 — Public Workflows Convergence (planned, not started)**:
-   - Connect booking engine, trip management, check-in, passenger account hub, and contact forms to canonical domain repositories with comprehensive client-side validation.
+4. **Phase 5 — Public Workflows Convergence (in progress: Phase 5A implemented on branch awaiting engineering acceptance; Phase 5B next/unstarted)**:
+   - Connect booking engine, trip management, check-in, passenger account hub, and contact forms to canonical domain repositories with comprehensive client-side validation. Phase 5A converged passenger identity, account state, and saved travelers on `PassengerRepository` (`gza.passenger.v1`). Phase 5B will converge booking wizard draft and search.
 5. **Phase 6 — Admin Workflows Convergence**:
    - Connect admin flight quick-edit, schedule manager, passenger desk, customer notes, and activity logs to the shared domain repositories, eliminating simulated no-ops.
 6. **Phase 7 — CMS Admin Workflows**:

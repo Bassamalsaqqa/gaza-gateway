@@ -54,7 +54,7 @@
    - `gza.repo.v1`: Canonical bookings (`Booking[]`) and flight overrides (`flightOverrides`) managed by `BookingRepository` and `FlightRepository`.
    - `gza.settings.draft.v1`: Multi-document contact and appearance drafts managed by `SettingsRepository`.
    - `gza.content.draft.v1`: Editorial CMS drafts managed by `ContentRepository`.
-   - `gza.store.v1`: Booking draft ONLY (`draft`) until Phase 5B. Legacy account and traveler snapshots are preserved byte-equivalently on draft write without writing canonical passenger changes back (no dual writer).
+   - `gza.store.v1`: Booking draft ONLY (`draft`) until Phase 5B. Legacy envelope keys are semantically preserved/inert, absent keys remaining absent, without writing canonical passenger changes back (no dual writer).
    - `gza.admin.v1`: Staff session (`staffId`).
    - `gza.skin.preview.v1`: Read-only legacy migration fallback.
 2. **Client Simulation Boundary**: No live backend, database, authentication SDK, mail service, or payment processor exists. Passenger account state is stored locally on device; password fields are never compared, persisted, hashed, or transmitted.

@@ -1,14 +1,14 @@
 import { AppLink } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
 import { Check, Ticket, UserPlus } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { EXTRA_BAG_PRICE, airportByCode, fares, mealOptions } from "@/lib/data";
 import { Code, Container, EmptyState, GazaLoadingState, Notice, Panel, btnClass } from "@/components/kit";
 import { dateLong, money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
 import { extrasFor, totalExtraBags } from "@/lib/booking-draft";
-import { useBookingQuery } from "@/lib/repositories";
-import { bookingBelongsToAccount, usePassengerAccount, useClaimBookingMutation } from "@/lib/passenger";
+import { useBookingQuery, useClaimBookingMutation, type ClaimResult } from "@/lib/repositories";
+import { bookingBelongsToAccount, normalizeEmailIdentity, usePassengerAccount } from "@/lib/passenger";
 import { passesForBooking } from "@/components/booking/boarding-pass";
 
 export const Route = createFileRoute("/{-$locale}/booking-confirmation/$ref")({
@@ -31,13 +31,43 @@ export const Route = createFileRoute("/{-$locale}/booking-confirmation/$ref")({
 
 function ConfirmationPage() {
   const { ref } = Route.useParams();
+  const normalizedRef = (ref || "").trim().toUpperCase();
   const { t, lang } = useI18n();
   const { data: account } = usePassengerAccount();
+  const normalizedAccountEmail = account?.email ? normalizeEmailIdentity(account.email) : null;
   const claimMutation = useClaimBookingMutation();
-  const [claimError, setClaimError] = useState<string | null>(null);
-  const { data: booking, isPending, isError } = useBookingQuery(ref);
+  const [scopedClaim, setScopedClaim] = useState<{
+    ref: string;
+    accountEmail: string;
+    status: ClaimResult["status"];
+    error: string | null;
+  } | null>(null);
+
+  useEffect(() => {
+    setScopedClaim(null);
+  }, [normalizedRef, normalizedAccountEmail]);
+
+  const { data: booking, isPending, isError } = useBookingQuery(normalizedRef);
   const passes = booking ? passesForBooking(booking) : [];
   const firstPass = passes[0];
+
+  const activeClaim =
+    scopedClaim &&
+    scopedClaim.ref === normalizedRef &&
+    scopedClaim.accountEmail === normalizedAccountEmail
+      ? scopedClaim
+      : null;
+
+  const isConfirmedOwner = Boolean(
+    account &&
+    booking &&
+    bookingBelongsToAccount(booking, account.email)
+  );
+
+  const isClaimedOrOwned =
+    isConfirmedOwner ||
+    activeClaim?.status === "claimed" ||
+    activeClaim?.status === "already-owned-by-user";
 
   if (isPending) {
     return (
@@ -206,7 +236,7 @@ function ConfirmationPage() {
                 <UserPlus aria-hidden="true" className="size-4" />
                 {t("book.createAccount")}
               </AppLink>
-            ) : bookingBelongsToAccount(booking, account.email) ? (
+            ) : isClaimedOrOwned ? (
               <AppLink to="/account/trips" className={btnClass("outline", "md")}>
                 {t("account.trips")}
               </AppLink>
@@ -215,14 +245,29 @@ function ConfirmationPage() {
                 type="button"
                 disabled={claimMutation.isPending}
                 onClick={async () => {
-                  setClaimError(null);
                   try {
                     const res = await claimMutation.mutateAsync({ ref: booking.ref, accountEmail: account.email });
-                    if (res.status !== "claimed" && res.status !== "already-owned-by-user") {
-                      setClaimError(t("auth.claimFailed", { ref: booking.ref }));
+                    let err: string | null = null;
+                    if (res.status === "contact-mismatch") {
+                      err = t("auth.claimContactMismatch");
+                    } else if (res.status === "owned-by-another") {
+                      err = t("auth.claimOwnedByAnother");
+                    } else if (res.status === "not-found") {
+                      err = t("auth.claimNotFound");
                     }
+                    setScopedClaim({
+                      ref: normalizedRef,
+                      accountEmail: normalizedAccountEmail!,
+                      status: res.status,
+                      error: err,
+                    });
                   } catch {
-                    setClaimError(t("error.saveFailed"));
+                    setScopedClaim({
+                      ref: normalizedRef,
+                      accountEmail: normalizedAccountEmail!,
+                      status: "not-found",
+                      error: t("error.saveFailed"),
+                    });
                   }
                 }}
                 className={btnClass("clay", "md")}
@@ -231,9 +276,17 @@ function ConfirmationPage() {
               </button>
             )}
           </div>
-          {claimError ? (
+          {activeClaim?.status === "claimed" ? (
+            <p role="status" className="mt-2 text-sm text-brand-deep font-medium">
+              {t("auth.claimSuccess", { ref: booking.ref })}
+            </p>
+          ) : activeClaim?.status === "already-owned-by-user" ? (
+            <p role="status" className="mt-2 text-sm text-brand-deep font-medium">
+              {t("auth.claimAlreadyOwned", { ref: booking.ref })}
+            </p>
+          ) : activeClaim?.error ? (
             <p role="alert" className="mt-2 text-sm text-destructive font-medium">
-              {claimError}
+              {activeClaim.error}
             </p>
           ) : null}
           <div className="mt-4">

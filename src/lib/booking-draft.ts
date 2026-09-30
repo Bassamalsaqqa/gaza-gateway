@@ -486,4 +486,23 @@ export function calculateMaxStep(
   return "review";
 }
 
+/**
+ * Merges updated draft into existing legacy envelope while preserving
+ * existing keys (account, travelers, bookings, unknown keys) semantically
+ * and keeping absent keys absent.
+ */
+export function buildLegacyStoreEnvelope(
+  originalEnvelope: Record<string, unknown> | null,
+  draft: Draft,
+): Record<string, unknown> {
+  const base =
+    originalEnvelope && typeof originalEnvelope === "object" && !Array.isArray(originalEnvelope)
+      ? originalEnvelope
+      : {};
+  return {
+    ...base,
+    draft,
+  };
+}
+
 export { getSeatRequiredPaxCount };

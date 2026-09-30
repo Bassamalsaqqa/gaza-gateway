@@ -1260,5 +1260,108 @@ describe("Canonical Repositories & Domain Layer", () => {
       assert.deepEqual(afterBookings, initialBookings, "Bookings must remain unchanged after failed mutation");
       assert.ok(!afterBookings.includes("GZANOPERSIST"), "Failed mutation must NOT appear in memory");
     });
+
+    it("in-memory conditional mutation leaves canonical state and subscribers untouched when rejected (commit: false)", () => {
+      const coordinator = new RepoStorageCoordinator({
+        inMemoryOnly: true,
+        initialData: {
+          schemaVersion: 1,
+          bookings: [
+            {
+              ref: "GZAINMEM01",
+              account: false,
+              contact: { email: "original@gza.ps", phone: "+970 8 000 0000" },
+              fareFamily: "essential",
+              cabin: "economy",
+              total: 100,
+              currency: "USD",
+              status: "confirmed",
+              bookedAt: "2026-01-01T00:00:00Z",
+              createdAt: "2026-01-01T00:00:00Z",
+              outbound: createMockFlight(),
+              inbound: null,
+              checkedIn: { out: [], in: [] },
+              seats: {},
+              passengers: [{ id: "pax-0", firstName: "Original", lastName: "User", type: "adult" }],
+              extras: { pax: [] },
+              ownerEmail: null,
+            } as unknown as import("../../src/lib/domain/booking.ts").Booking,
+          ],
+          flightOverrides: {},
+        },
+      });
+
+      let notifications = 0;
+      coordinator.subscribe(() => {
+        notifications++;
+      });
+
+      // Mutate a nested booking field, push a new booking, and add a flight override in candidate
+      const result = coordinator.conditionalMutate((candidate) => {
+        candidate.flightOverrides.PROBE = { status: "cancelled" };
+        candidate.bookings[0].contact = { email: "tampered@gza.ps", phone: "+999" };
+        candidate.bookings.push({
+          ref: "GZAEXTRA",
+          account: false,
+          contact: { email: "extra@gza.ps", phone: "" },
+          fareFamily: "essential",
+          cabin: "economy",
+          total: 50,
+          currency: "USD",
+          status: "confirmed",
+          bookedAt: "2026-01-01T00:00:00Z",
+          createdAt: "2026-01-01T00:00:00Z",
+          outbound: createMockFlight(),
+          inbound: null,
+          checkedIn: { out: [], in: [] },
+          seats: {},
+          passengers: [],
+          extras: { pax: [] },
+          ownerEmail: null,
+        } as unknown as import("../../src/lib/domain/booking.ts").Booking);
+
+        return { commit: false, result: "rejected-probe" };
+      });
+
+      assert.equal(result, "rejected-probe", "Should return callback result");
+      assert.equal(notifications, 0, "Zero notifications must be emitted on rejected in-memory mutation");
+
+      const current = coordinator.getState();
+      assert.deepEqual(current.flightOverrides, {}, "flightOverrides must remain empty");
+      assert.equal(current.bookings.length, 1, "bookings length must remain 1");
+      assert.equal(current.bookings[0].ref, "GZAINMEM01", "booking ref must remain original");
+      assert.equal(current.bookings[0].contact.email, "original@gza.ps", "nested contact email must not be mutated");
+    });
+
+    it("in-memory conditional mutation adopts state and notifies subscribers once when committed (commit: true)", () => {
+      const coordinator = new RepoStorageCoordinator({
+        inMemoryOnly: true,
+        initialData: {
+          schemaVersion: 1,
+          bookings: [],
+          flightOverrides: {},
+        },
+      });
+
+      let notifications = 0;
+      coordinator.subscribe(() => {
+        notifications++;
+      });
+
+      const result = coordinator.conditionalMutate((candidate) => {
+        candidate.flightOverrides.COMMITTED = { status: "delayed" };
+        return { commit: true, result: "committed-ok" };
+      });
+
+      assert.equal(result, "committed-ok", "Should return callback result");
+      assert.equal(notifications, 1, "Exactly 1 notification must be emitted on committed in-memory mutation");
+
+      const current = coordinator.getState();
+      assert.deepEqual(
+        current.flightOverrides.COMMITTED,
+        { status: "delayed" },
+        "Committed override must be adopted into canonical memory",
+      );
+    });
   });
 });

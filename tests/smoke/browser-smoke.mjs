@@ -3948,53 +3948,375 @@ async function runBrowserSmoke() {
         throw new Error(`gza.store.v1 was dual-written! Expected 'LegacySmoke', got '${legacyStore.account?.firstName}'`);
       }
 
-      // 4. Test traveler CRUD & reload persistence
+      // 4. Forced Storage.prototype.setItem failure ONLY for gza.passenger.v1
+      // Test A: Profile save failure under blocked storage
+      await page.evaluate(() => {
+        window.__origSetItem = Storage.prototype.setItem;
+        Storage.prototype.setItem = function(key, val) {
+          if (key === "gza.passenger.v1") {
+            throw new DOMException("Simulated quota exceeded", "QuotaExceededError");
+          }
+          return window.__origSetItem.apply(this, arguments);
+        };
+      });
+
+      await page.fill("#p-first", "BlockedSmokeName");
+      await page.click('button[type="submit"]');
+      await page.waitForSelector('p[role="alert"]', { timeout: 5000 });
+      const profileAlertText = await page.locator('p[role="alert"]').innerText();
+      if (!profileAlertText.includes("could not be saved") && !profileAlertText.includes("تعذّر حفظ التغييرات")) {
+        throw new Error(`Expected accessible save failure alert, got '${profileAlertText}'`);
+      }
+      const hasFalseStatus = await page.locator('p[role="status"]').count();
+      if (hasFalseStatus > 0) {
+        throw new Error("False positive role='status' displayed on profile storage failure");
+      }
+      // Assert persisted state in gza.passenger.v1 is unchanged
+      const blockedProfileState = await page.evaluate(() => JSON.parse(localStorage.getItem("gza.passenger.v1") || "{}"));
+      if (blockedProfileState.account?.firstName !== "UpdatedSmoke") {
+        throw new Error(`Persisted state mutated despite storage failure! Got '${blockedProfileState.account?.firstName}'`);
+      }
+
+      // Restore clean context from profile test
+      await page.evaluate(() => {
+        if (window.__origSetItem) {
+          Storage.prototype.setItem = window.__origSetItem;
+          delete window.__origSetItem;
+        }
+      });
+
+      // Test B: Traveler mutation failure under blocked storage
       await page.goto(baseUrl + "/account/travelers", { waitUntil: "domcontentloaded" });
       await page.waitForSelector("#tv-first", { timeout: 8000 });
 
-      // Add a traveler
+      // Block storage for gza.passenger.v1 in the travelers page context
+      await page.evaluate(() => {
+        window.__origSetItem = Storage.prototype.setItem;
+        Storage.prototype.setItem = function(key, val) {
+          if (key === "gza.passenger.v1") {
+            throw new DOMException("Simulated quota exceeded", "QuotaExceededError");
+          }
+          return window.__origSetItem.apply(this, arguments);
+        };
+      });
+
+      await page.fill("#tv-first", "BlockedTraveler");
+      await page.fill("#tv-last", "Smoke");
+      await page.fill("#tv-nat", "Palestinian");
+      await page.fill("#tv-doc", "FAIL-DOC");
+      await page.click('button[type="submit"]');
+      await page.waitForSelector('p[role="alert"]', { timeout: 5000 });
+      const travelerAlertText = await page.locator('p[role="alert"]').innerText();
+      if (!travelerAlertText.includes("could not be saved") && !travelerAlertText.includes("تعذّر حفظ التغييرات")) {
+        throw new Error(`Expected accessible traveler save failure alert, got '${travelerAlertText}'`);
+      }
+      const hasBlockedTravelerInList = await page.locator("text=BlockedTraveler Smoke").count();
+      if (hasBlockedTravelerInList > 0) {
+        throw new Error("False visual success: BlockedTraveler Smoke appeared in UI despite storage failure");
+      }
+      const blockedTravelerState = await page.evaluate(() => JSON.parse(localStorage.getItem("gza.passenger.v1") || "{}"));
+      if (blockedTravelerState.travelers?.length !== 1) {
+        throw new Error(`Persisted travelers count mutated despite storage failure! Length: ${blockedTravelerState.travelers?.length}`);
+      }
+
+      // Restore clean context
+      await page.evaluate(() => {
+        if (window.__origSetItem) {
+          Storage.prototype.setItem = window.__origSetItem;
+          delete window.__origSetItem;
+        }
+      });
+
+      // 5. Test traveler CRUD & reload persistence with clean context
       await page.fill("#tv-first", "Salma");
       await page.fill("#tv-last", "Smoke");
       await page.fill("#tv-nat", "Palestinian");
       await page.fill("#tv-doc", "PS-998877");
       await page.click('button[type="submit"]');
-
-      // Wait for Salma Smoke to appear in list
       await page.waitForSelector("text=Salma Smoke", { timeout: 5000 });
 
       // Reload and assert persistence
       await page.reload({ waitUntil: "domcontentloaded" });
       await page.waitForSelector("text=Salma Smoke", { timeout: 5000 });
 
-      // 5. Test sign out and ensure saved travelers survive
-      await page.goto(baseUrl + "/account/security", { waitUntil: "domcontentloaded" });
-      const signoutBtn = page.locator('button:has-text("Sign out"), button:has-text("خروج")').first();
-      await signoutBtn.waitFor({ state: "visible", timeout: 8000 });
-      await signoutBtn.click();
+      // 6. Booking Claim Status Invariants & Trip Access Control
+      // Seed repo with eligible, contact-mismatch, and owned-by-another bookings
+      await page.evaluate(() => {
+        const repo = JSON.parse(localStorage.getItem("gza.repo.v1") || '{"schemaVersion":1,"bookings":[],"flights":{}}');
+        const makeBooking = (ref, ownerEmail, contactEmail) => ({
+          ref,
+          status: "confirmed",
+          ownerEmail,
+          criteria: { tripType: "one-way", originCode: "GZA", destinationCode: "AMM", departDate: "2026-10-10", adults: 1, children: 0, infants: 0, cabin: "economy" },
+          outbound: { id: `PS-${ref}`, number: `PS ${ref}`, originCode: "GZA", destinationCode: "AMM", date: "2026-10-10", departTime: "08:00", arriveTime: "09:00", aircraft: "B737", terminal: "1", basePrice: 100, status: "scheduled" },
+          inbound: null,
+          fareId: "classic",
+          passengers: [{ id: `p-${ref}`, firstName: "Passenger", lastName: "Smoke", type: "adult" }],
+          seats: {},
+          extras: { pax: [{ extraBags: 0, meal: "standard", assistance: [] }] },
+          contact: { email: contactEmail, phone: "+970 8 000 0000" },
+          total: 114,
+          createdAt: new Date().toISOString(),
+          checkedIn: { out: [], in: [] },
+        });
 
-      // Verify sign out state
-      await page.waitForSelector('a:has-text("Sign in"), a:has-text("تسجيل الدخول")', { timeout: 8000 });
-      const afterSignOut = await page.evaluate(() => JSON.parse(localStorage.getItem("gza.passenger.v1") || "{}"));
-      if (afterSignOut.account !== null) {
-        throw new Error("Account was not cleared in gza.passenger.v1 on sign out");
+        repo.bookings = [
+          makeBooking("CLAIM-ELIGIBLE-1", null, "smoke@gza.ps"),
+          makeBooking("CLAIM-MISMATCH-1", null, "otherpax@gza.ps"),
+          makeBooking("CLAIM-OTHER-1", "stranger@gza.ps", "smoke@gza.ps"),
+          makeBooking("OTHER99", "otherperson@gza.ps", "otherperson@gza.ps"),
+          makeBooking("UNOWNED88", null, "guest@gza.ps"),
+        ];
+        localStorage.setItem("gza.repo.v1", JSON.stringify(repo));
+      });
+
+      // 6a. Booking confirmation: Eligible claim succeeds, unlocks account trip, preserves contact email
+      await page.goto(baseUrl + "/booking-confirmation/CLAIM-ELIGIBLE-1", { waitUntil: "domcontentloaded" });
+      const linkAccountBtn = page.locator('button:has-text("Save this booking"), button:has-text("حفظ هذا الحجز"), button:has-text("Link"), button:has-text("ربط")').first();
+      await linkAccountBtn.waitFor({ state: "visible", timeout: 5000 });
+      await linkAccountBtn.click();
+      await page.waitForSelector('p[role="status"]', { timeout: 5000 });
+      const claimSuccessText = await page.locator('p[role="status"]').innerText();
+      if (!claimSuccessText.includes("CLAIM-ELIGIBLE-1")) {
+        throw new Error(`Expected claim success status for CLAIM-ELIGIBLE-1, got '${claimSuccessText}'`);
       }
-      if (!afterSignOut.travelers || afterSignOut.travelers.length < 2) {
-        throw new Error("Saved travelers were lost on sign out!");
+      // Assert account trips link is visible
+      const tripsLink = page.locator('a:has-text("Trips"), a:has-text("الرحلات")');
+      if ((await tripsLink.count()) === 0) {
+        throw new Error("Expected Trips link to be displayed after successful claim");
+      }
+      // Assert storage state: ownerEmail set, contact email preserved
+      const repoAfterEligible = await page.evaluate(() => JSON.parse(localStorage.getItem("gza.repo.v1") || "{}"));
+      const claimedBkg = repoAfterEligible.bookings?.find((b) => b.ref === "CLAIM-ELIGIBLE-1");
+      if (claimedBkg?.ownerEmail !== "smoke@gza.ps" || claimedBkg?.contact?.email !== "smoke@gza.ps") {
+        throw new Error(`Claimed booking storage invariant violated! owner: '${claimedBkg?.ownerEmail}', contact: '${claimedBkg?.contact?.email}'`);
+      }
+      // Account trip is now unlocked!
+      await page.goto(baseUrl + "/account/trips/CLAIM-ELIGIBLE-1", { waitUntil: "domcontentloaded" });
+      await page.waitForSelector("text=CLAIM-ELIGIBLE-1", { timeout: 5000 });
+
+      // 6b. Booking confirmation: Mismatched contact shows distinct error, preserves ownerEmail null, never offers account trip
+      await page.goto(baseUrl + "/booking-confirmation/CLAIM-MISMATCH-1", { waitUntil: "domcontentloaded" });
+      const linkMismatchBtn = page.locator('button:has-text("Save this booking"), button:has-text("حفظ هذا الحجز"), button:has-text("Link"), button:has-text("ربط")').first();
+      await linkMismatchBtn.waitFor({ state: "visible", timeout: 5000 });
+      await linkMismatchBtn.click();
+      await page.waitForSelector('p[role="alert"]', { timeout: 5000 });
+      const mismatchAlertText = await page.locator('p[role="alert"]').innerText();
+      if (!mismatchAlertText.includes("does not match this account") && !mismatchAlertText.includes("لا يتطابق")) {
+        throw new Error(`Expected contact mismatch error, got '${mismatchAlertText}'`);
+      }
+      // Assert ownerEmail remains null in storage
+      const repoAfterMismatch = await page.evaluate(() => JSON.parse(localStorage.getItem("gza.repo.v1") || "{}"));
+      const mismatchBkg = repoAfterMismatch.bookings?.find((b) => b.ref === "CLAIM-MISMATCH-1");
+      if (mismatchBkg?.ownerEmail !== null) {
+        throw new Error(`Expected ownerEmail null for mismatched booking, got '${mismatchBkg?.ownerEmail}'`);
+      }
+      // Assert no account trips CTA offered
+      const accountTripCtaAfterMismatch = await page.locator('a[href*="/account/trips"]').count();
+      if (accountTripCtaAfterMismatch > 0) {
+        throw new Error("Offered account trips CTA after mismatched claim!");
+      }
+      // Guest manage link is still available
+      const guestManageLink = page.locator('a[href*="/manage/CLAIM-MISMATCH-1"]');
+      if ((await guestManageLink.count()) === 0) {
+        throw new Error("Guest manage booking link missing on mismatched claim");
       }
 
-      // 6. Test Auth truth and zero password persistence
-      await page.goto(baseUrl + "/signin", { waitUntil: "domcontentloaded" });
-      await page.waitForSelector("#email", { timeout: 8000 });
-      const testSecret = "SuperSecretPassword123!@#";
-      await page.fill("#email", "pilot.truth@gza.ps");
-      await page.fill("#password", testSecret);
+      // 6c. Booking confirmation: Owned by another shows distinct error, preserves owner state, never offers account trip
+      await page.goto(baseUrl + "/booking-confirmation/CLAIM-OTHER-1", { waitUntil: "domcontentloaded" });
+      const linkOtherBtn = page.locator('button:has-text("Save this booking"), button:has-text("حفظ هذا الحجز"), button:has-text("Link"), button:has-text("ربط")').first();
+      await linkOtherBtn.waitFor({ state: "visible", timeout: 5000 });
+      await linkOtherBtn.click();
+      await page.waitForSelector('p[role="alert"]', { timeout: 5000 });
+      const otherAlertText = await page.locator('p[role="alert"]').innerText();
+      if (!otherAlertText.includes("already linked to another") && !otherAlertText.includes("مرتبط بحساب مسافر آخر")) {
+        throw new Error(`Expected owned-by-another error, got '${otherAlertText}'`);
+      }
+      const repoAfterOther = await page.evaluate(() => JSON.parse(localStorage.getItem("gza.repo.v1") || "{}"));
+      const otherBkg = repoAfterOther.bookings?.find((b) => b.ref === "CLAIM-OTHER-1");
+      if (otherBkg?.ownerEmail !== "stranger@gza.ps") {
+        throw new Error(`Expected ownerEmail stranger@gza.ps preserved, got '${otherBkg?.ownerEmail}'`);
+      }
+      const accountTripCtaAfterOther = await page.locator('a[href*="/account/trips"]').count();
+      if (accountTripCtaAfterOther > 0) {
+        throw new Error("Offered account trips CTA after owned-by-another claim!");
+      }
+
+      // 6d. Verify-email route: Truthful setup-required state when unauthenticated
+      await page.evaluate(() => {
+        localStorage.setItem("gza.passenger.v1", JSON.stringify({ schemaVersion: 1, account: null, travelers: [] }));
+        localStorage.removeItem("gza.store.v1");
+      });
+      await page.goto(baseUrl + "/verify-email?ref=CLAIM-ELIGIBLE-1", { waitUntil: "domcontentloaded" });
+      await page.waitForSelector("h1", { timeout: 5000 });
+      const setupRequiredTitle = await page.locator("h1").innerText();
+      if (!setupRequiredTitle.includes("Account setup required") && !setupRequiredTitle.includes("إعداد الحساب مطلوب")) {
+        throw new Error(`Expected truthful setup-required title, got '${setupRequiredTitle}'`);
+      }
+      // Assert links to register and signin are offered
+      const regLink = page.locator('a[href*="/register"]');
+      const signinLink = page.locator('a[href*="/signin"]');
+      if ((await regLink.count()) === 0 || (await signinLink.count()) === 0) {
+        throw new Error("Missing register or signin link on unauthenticated /verify-email");
+      }
+      // Assert no "setup complete" badge
+      const setupCompleteBadge = await page.locator("text=Setup complete, text=اكتمل الإعداد").count();
+      if (setupCompleteBadge > 0) {
+        throw new Error("False positive 'Setup complete' badge on unauthenticated /verify-email");
+      }
+
+      // 6e. Verify-email route: Authenticated claim interactions
+      // Sign in again as smoke@gza.ps
+      await page.evaluate(() => {
+        localStorage.setItem("gza.passenger.v1", JSON.stringify({
+          schemaVersion: 1,
+          account: {
+            email: "smoke@gza.ps",
+            firstName: "UpdatedSmoke",
+            lastName: "Pilot",
+            phone: "+970 8 000 0000",
+            seatPreference: "window",
+            mealPreference: "halal",
+            newsletter: true,
+          },
+          travelers: [
+            { id: "trv-smoke-1", firstName: "ChildSmoke", lastName: "Pilot", dob: "2018-03-03", nationality: "Palestinian", document: "P12345" },
+            { id: "trv-smoke-2", firstName: "Salma", lastName: "Smoke", dob: "", nationality: "Palestinian", document: "PS-998877" }
+          ]
+        }));
+      });
+
+      // Mismatch claim on /verify-email shows retry and no account-trip CTA
+      await page.goto(baseUrl + "/verify-email?ref=CLAIM-MISMATCH-1", { waitUntil: "domcontentloaded" });
+      const verifyClaimBtn = page.locator('button:has-text("Link"), button:has-text("ربط")').first();
+      await verifyClaimBtn.waitFor({ state: "visible", timeout: 5000 });
+      await verifyClaimBtn.click();
+      await page.waitForSelector('p[role="alert"]', { timeout: 5000 });
+      const verifyRetryBtn = page.locator('button:has-text("Try linking again"), button:has-text("Retry"), button:has-text("إعادة محاولة"), button:has-text("إعادة")');
+      if ((await verifyRetryBtn.count()) === 0) {
+        throw new Error("Expected Retry button on failed claim in /verify-email");
+      }
+      const verifyAccountTripCta = await page.locator('a[href*="/account/trips/CLAIM-MISMATCH-1"]').count();
+      if (verifyAccountTripCta > 0) {
+        throw new Error("Offered account trip CTA on mismatched /verify-email");
+      }
+
+      // Already owned booking on /verify-email offers /account/trips/$ref CTA via derived canonical query
+      await page.goto(baseUrl + "/verify-email?ref=CLAIM-ELIGIBLE-1", { waitUntil: "domcontentloaded" });
+      await page.waitForSelector('p[role="status"]', { timeout: 8000 });
+      const alreadyOwnedText = await page.locator('p[role="status"]').innerText();
+      if (!alreadyOwnedText.includes("already linked") && !alreadyOwnedText.includes("مرتبط بالفعل")) {
+        throw new Error(`Expected already linked status on /verify-email, got '${alreadyOwnedText}'`);
+      }
+      const viewTripInAccountCta = page.locator('a[href*="/account/trips/CLAIM-ELIGIBLE-1"]');
+      if ((await viewTripInAccountCta.count()) === 0) {
+        throw new Error("Missing /account/trips/$ref CTA on already claimed /verify-email");
+      }
+
+      // 6f. Correction 0.2 Finding 2 Proof: In-app SPA transitions across booking references clear claim state without reload
+      // (1) /verify-email: SPA navigate from claimed CLAIM-ELIGIBLE-1 to unowned CLAIM-MISMATCH-1
+      await page.evaluate(() => {
+        window.__noReloadSentinel = "alive";
+      });
+      await page.evaluate(() => {
+        window.history.pushState({}, "", "/verify-email?ref=CLAIM-MISMATCH-1");
+        window.dispatchEvent(new PopStateEvent("popstate"));
+      });
+      const sentinelVal = await page.evaluate(() => window.__noReloadSentinel);
+      if (sentinelVal !== "alive") {
+        throw new Error("Full page reload occurred during SPA transition on /verify-email!");
+      }
+      await page.waitForFunction(
+        () => document.querySelector(".code-id")?.textContent?.includes("CLAIM-MISMATCH-1"),
+        null,
+        { timeout: 8000 }
+      );
+      // Assert CLAIM-MISMATCH-1 does not leak CLAIM-ELIGIBLE-1's claim success or account-trip CTA
+      const leakedTripCta = await page.locator('a[href*="/account/trips"]').count();
+      if (leakedTripCta > 0) {
+        throw new Error("Account trip CTA leaked to CLAIM-MISMATCH-1 on /verify-email during SPA transition!");
+      }
+      const leakedSuccessStatus = await page.locator('p[role="status"]').count();
+      if (leakedSuccessStatus > 0) {
+        throw new Error("Claim success status leaked to CLAIM-MISMATCH-1 on /verify-email during SPA transition!");
+      }
+      // Assert guest manage action is available
+      const guestManageOnB = page.locator('a[href*="/manage/CLAIM-MISMATCH-1"]');
+      if ((await guestManageOnB.count()) === 0) {
+        throw new Error("Missing guest manage booking link on CLAIM-MISMATCH-1 after SPA transition");
+      }
+      // Click claim on B and verify independent status-specific contact mismatch rejection
+      const claimBtnB = page.locator('button:has-text("Link"), button:has-text("ربط")').first();
+      await claimBtnB.waitFor({ state: "visible", timeout: 5000 });
+      await claimBtnB.click();
+      await page.waitForSelector('p[role="alert"]', { timeout: 5000 });
+      const alertOnB = await page.locator('p[role="alert"]').innerText();
+      if (!alertOnB.includes("does not match") && !alertOnB.includes("لا يتطابق")) {
+        throw new Error(`Expected contact mismatch error on B, got '${alertOnB}'`);
+      }
+      const tripCtaAfterRejection = await page.locator('a[href*="/account/trips"]').count();
+      if (tripCtaAfterRejection > 0) {
+        throw new Error("Account trip CTA appeared after contact-mismatch rejection on /verify-email!");
+      }
+
+      // (2) /booking-confirmation: SPA navigate from claimed CLAIM-ELIGIBLE-1 to unowned CLAIM-MISMATCH-1
+      await page.goto(baseUrl + "/booking-confirmation/CLAIM-ELIGIBLE-1", { waitUntil: "domcontentloaded" });
+      const eligibleTripCta = page.locator('a[href*="/account/trips"]');
+      await eligibleTripCta.waitFor({ state: "visible", timeout: 8000 });
+      await page.evaluate(() => {
+        window.__noReloadSentinelConf = "alive";
+      });
+      await page.evaluate(() => {
+        window.history.pushState({}, "", "/booking-confirmation/CLAIM-MISMATCH-1");
+        window.dispatchEvent(new PopStateEvent("popstate"));
+      });
+      const sentinelValConf = await page.evaluate(() => window.__noReloadSentinelConf);
+      if (sentinelValConf !== "alive") {
+        throw new Error("Full page reload occurred during SPA transition on /booking-confirmation!");
+      }
+      await page.waitForFunction(
+        () => document.querySelector(".code-id")?.textContent?.includes("CLAIM-MISMATCH-1"),
+        null,
+        { timeout: 8000 }
+      );
+      // Assert CLAIM-MISMATCH-1 does not leak CLAIM-ELIGIBLE-1's account trips CTA
+      const leakedConfTripCta = await page.locator('a[href*="/account/trips"]').count();
+      if (leakedConfTripCta > 0) {
+        throw new Error("Account trips CTA leaked to CLAIM-MISMATCH-1 on /booking-confirmation during SPA transition!");
+      }
+      // Assert guest manage action is available
+      const guestManageConfB = page.locator('a[href*="/manage/CLAIM-MISMATCH-1"]');
+      if ((await guestManageConfB.count()) === 0) {
+        throw new Error("Missing guest manage booking link on /booking-confirmation/CLAIM-MISMATCH-1");
+      }
+      // Click link account button on B and verify contact mismatch rejection
+      const linkAccountBtnB = page.locator('button:has-text("Save this booking"), button:has-text("احفظ هذا الحجز"), button:has-text("Link"), button:has-text("ربط")').first();
+      await linkAccountBtnB.waitFor({ state: "visible", timeout: 5000 });
+      await linkAccountBtnB.click();
+      await page.waitForSelector('p[role="alert"]', { timeout: 5000 });
+      const confAlertOnB = await page.locator('p[role="alert"]').innerText();
+      if (!confAlertOnB.includes("does not match") && !confAlertOnB.includes("لا يتطابق")) {
+        throw new Error(`Expected contact mismatch error on confirmation B, got '${confAlertOnB}'`);
+      }
+      const confTripCtaAfterRejection = await page.locator('a[href*="/account/trips"]').count();
+      if (confTripCtaAfterRejection > 0) {
+        throw new Error("Account trips CTA appeared after contact-mismatch rejection on /booking-confirmation!");
+      }
+
+      // 7. Password Sentinel Absence Across All LocalStorage Keys and Values
+      // Test registration with sentinel password
+      await page.goto(baseUrl + "/register", { waitUntil: "domcontentloaded" });
+      await page.waitForSelector("#r-first", { timeout: 8000 });
+      const regSecret = "SentinelRegisterSecret999!#";
+      await page.fill("#r-first", "SentinelFirst");
+      await page.fill("#r-last", "SentinelLast");
+      await page.fill("#r-email", "sentinel@gza.ps");
+      await page.fill("#r-password", regSecret);
       await page.click('button[type="submit"]');
+      await page.waitForURL(/\/verify-email/, { timeout: 8000 });
 
-      // Wait for navigation to /account
-      await page.waitForURL(/\/account/, { timeout: 5000 });
-
-      // Invariant: testSecret must NEVER appear anywhere in localStorage
-      const allStorageKeys = await page.evaluate(() => {
+      // Assert regSecret is absent from ALL localStorage keys and values
+      let allStorage = await page.evaluate(() => {
         const out = {};
         for (let i = 0; i < localStorage.length; i++) {
           const k = localStorage.key(i);
@@ -4002,55 +4324,191 @@ async function runBrowserSmoke() {
         }
         return out;
       });
-
-      for (const [key, val] of Object.entries(allStorageKeys)) {
-        if (typeof val === "string" && val.includes(testSecret)) {
-          throw new Error(`CRITICAL AUTH DEFECT: Password leaked into localStorage key '${key}'!`);
+      for (const [key, val] of Object.entries(allStorage)) {
+        if (typeof val === "string" && val.includes(regSecret)) {
+          throw new Error(`CRITICAL AUTH DEFECT: Registration password leaked into localStorage key '${key}'!`);
         }
       }
 
-      // 7. Verify /account/trips/$ref ownership rejection
-      // Seed a booking owned by another account
+      // Test forgot-password guidance route creates NO secrets
+      await page.goto(baseUrl + "/forgot-password", { waitUntil: "domcontentloaded" });
+      await page.waitForSelector("h1", { timeout: 8000 });
+      // Test reset-password guidance route creates NO secrets
+      await page.goto(baseUrl + "/reset-password", { waitUntil: "domcontentloaded" });
+      await page.waitForSelector("h1", { timeout: 8000 });
+      // Test account security route creates NO secrets
+      await page.goto(baseUrl + "/account/security", { waitUntil: "domcontentloaded" });
+      await page.waitForSelector("h1, h2", { timeout: 8000 });
+
+      // Verify no password or secret leaks in localStorage
+      allStorage = await page.evaluate(() => {
+        const out = {};
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          out[k] = localStorage.getItem(k);
+        }
+        return out;
+      });
+      for (const [key, val] of Object.entries(allStorage)) {
+        if (typeof val === "string" && (val.includes(regSecret) || val.includes("passwordHash"))) {
+          throw new Error(`Unexpected secret detected in localStorage key '${key}'`);
+        }
+      }
+      const passengerState = await page.evaluate(() => JSON.parse(localStorage.getItem("gza.passenger.v1") || "{}"));
+      if (passengerState.account && ("password" in passengerState.account || "passwordHash" in passengerState.account)) {
+        throw new Error("Password field detected in canonical passenger account!");
+      }
+
+      // Sign in test secret verification (preserved proof)
+      await page.goto(baseUrl + "/signin", { waitUntil: "domcontentloaded" });
+      await page.waitForSelector("#email", { timeout: 8000 });
+      const signinSecret = "SuperSecretPassword123!@#";
+      await page.fill("#email", "pilot.truth@gza.ps");
+      await page.fill("#password", signinSecret);
+      await page.click('button[type="submit"]');
+      await page.waitForURL(/\/account/, { timeout: 5000 });
+
+      allStorage = await page.evaluate(() => {
+        const out = {};
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          out[k] = localStorage.getItem(k);
+        }
+        return out;
+      });
+      for (const [key, val] of Object.entries(allStorage)) {
+        if (typeof val === "string" && val.includes(signinSecret)) {
+          throw new Error(`CRITICAL AUTH DEFECT: Sign-in password leaked into localStorage key '${key}'!`);
+        }
+      }
+
+      // 8. Multi-Tab Real-Time Reactive Synchronization (Two Pages, One Context)
+      // Seed account using existing active page
       await page.evaluate(() => {
-        const repo = JSON.parse(localStorage.getItem("gza.repo.v1") || '{"schemaVersion":1,"bookings":[],"flights":{}}');
-        repo.bookings = [
-          {
-            ref: "OTHER99",
-            status: "confirmed",
-            ownerEmail: "otherperson@gza.ps",
-            criteria: { tripType: "one-way", originCode: "GZA", destinationCode: "AMM", departDate: "2026-10-10", adults: 1, children: 0, infants: 0, cabin: "economy" },
-            outbound: { id: "PS-99", number: "PS 99", originCode: "GZA", destinationCode: "AMM", date: "2026-10-10", departTime: "08:00", arriveTime: "09:00", aircraft: "B737", terminal: "1", basePrice: 100, status: "scheduled" },
-            inbound: null,
-            fareId: "classic",
-            passengers: [{ id: "p1", firstName: "Other", lastName: "Person", type: "adult" }],
-            seats: {},
-            extras: { pax: [{ extraBags: 0, meal: "standard", assistance: [] }] },
-            contact: { email: "otherperson@gza.ps", phone: "" },
-            total: 114,
-            createdAt: new Date().toISOString(),
-            checkedIn: { out: [], in: [] },
+        localStorage.setItem("gza.passenger.v1", JSON.stringify({
+          schemaVersion: 1,
+          account: {
+            email: "tabs@gza.ps",
+            firstName: "TabAlpha",
+            lastName: "Pilot",
+            phone: "+970 8 000 0000",
+            seatPreference: "none",
+            mealPreference: "standard",
+            newsletter: false,
           },
-          {
-            ref: "UNOWNED88",
-            status: "confirmed",
-            ownerEmail: null,
-            criteria: { tripType: "one-way", originCode: "GZA", destinationCode: "AMM", departDate: "2026-10-10", adults: 1, children: 0, infants: 0, cabin: "economy" },
-            outbound: { id: "PS-88", number: "PS 88", originCode: "GZA", destinationCode: "AMM", date: "2026-10-10", departTime: "08:00", arriveTime: "09:00", aircraft: "B737", terminal: "1", basePrice: 100, status: "scheduled" },
-            inbound: null,
-            fareId: "classic",
-            passengers: [{ id: "p2", firstName: "Guest", lastName: "Person", type: "adult" }],
-            seats: {},
-            extras: { pax: [{ extraBags: 0, meal: "standard", assistance: [] }] },
-            contact: { email: "guest@gza.ps", phone: "" },
-            total: 114,
-            createdAt: new Date().toISOString(),
-            checkedIn: { out: [], in: [] },
-          },
-        ];
-        localStorage.setItem("gza.repo.v1", JSON.stringify(repo));
+          travelers: []
+        }));
       });
 
-      // Navigating to /account/trips/OTHER99 as pilot.truth@gza.ps must reject
+      const tabA = await context.newPage();
+      const tabB = await context.newPage();
+
+      // Tab A opens Profile, Tab B opens Account Overview
+      await tabA.goto(baseUrl + "/account/profile", { waitUntil: "domcontentloaded" });
+      await tabB.goto(baseUrl + "/account", { waitUntil: "domcontentloaded" });
+      await tabA.waitForSelector("#p-first", { timeout: 8000 });
+      await tabB.waitForSelector("h1", { timeout: 8000 });
+
+      // Tab A updates name to TabBeta
+      await tabA.fill("#p-first", "TabBeta");
+      await tabA.click('button[type="submit"]');
+      await tabA.waitForSelector('p[role="status"]', { timeout: 5000 });
+
+      // Tab B updates WITHOUT page reload via storage event and query invalidation!
+      await tabB.waitForSelector("text=TabBeta", { timeout: 8000 });
+
+      // Tab A adds traveler, Tab B observes without reload
+      await tabA.goto(baseUrl + "/account/travelers", { waitUntil: "domcontentloaded" });
+      await tabB.goto(baseUrl + "/account/travelers", { waitUntil: "domcontentloaded" });
+      await tabA.waitForSelector("#tv-first", { timeout: 8000 });
+      await tabB.waitForSelector("h1, h2", { timeout: 8000 });
+
+      await tabA.fill("#tv-first", "Farah");
+      await tabA.fill("#tv-last", "SyncTab");
+      await tabA.fill("#tv-nat", "Palestinian");
+      await tabA.fill("#tv-doc", "DOC-SYNC-88");
+      await tabA.click('button[type="submit"]');
+      await tabA.waitForSelector("text=Farah SyncTab", { timeout: 5000 });
+
+      // Tab B updates without reload!
+      await tabB.waitForSelector("text=Farah SyncTab", { timeout: 8000 });
+
+      // Tab A signs out, Tab B transitions to sign-in required without reload
+      await tabA.goto(baseUrl + "/account/security", { waitUntil: "domcontentloaded" });
+      const tabASignout = tabA.locator('button:has-text("Sign out"), button:has-text("خروج")').first();
+      await tabASignout.waitFor({ state: "visible", timeout: 8000 });
+      await tabASignout.click();
+
+      // Tab B receives storage event and transitions to sign-in required empty state
+      await tabB.locator(':has-text("Sign-in required"), :has-text("تسجيل الدخول مطلوب"), a:has-text("Sign in")').first().waitFor({ state: "visible", timeout: 8000 });
+
+      await tabA.close();
+      await tabB.close();
+
+      // 9. Sign-Out Storage Error Resilience (Retain Account, Show Role="Alert", No False Navigation)
+      await page.evaluate(() => {
+        localStorage.setItem("gza.passenger.v1", JSON.stringify({
+          schemaVersion: 1,
+          account: {
+            email: "errorout@gza.ps",
+            firstName: "ErrorOutPilot",
+            lastName: "Tester",
+            phone: "+970 8 000 0000",
+            seatPreference: "none",
+            mealPreference: "standard",
+            newsletter: false,
+          },
+          travelers: []
+        }));
+      });
+
+      await page.goto(baseUrl + "/account", { waitUntil: "domcontentloaded" });
+      await page.waitForSelector("h1", { timeout: 8000 });
+      const beforeErrTitle = await page.locator("h1").innerText();
+      if (!beforeErrTitle.includes("ErrorOutPilot")) {
+        throw new Error(`Expected ErrorOutPilot account header, got '${beforeErrTitle}'`);
+      }
+
+      // Inject storage failure on gza.passenger.v1
+      await page.evaluate(() => {
+        window.__origSetItem = Storage.prototype.setItem;
+        Storage.prototype.setItem = function(key, val) {
+          if (key === "gza.passenger.v1") {
+            throw new DOMException("Simulated quota exceeded", "QuotaExceededError");
+          }
+          return window.__origSetItem.apply(this, arguments);
+        };
+      });
+
+      // Click sign out
+      const signoutWithErrBtn = page.locator('button:has-text("Sign out"), button:has-text("خروج")').first();
+      await signoutWithErrBtn.click();
+      await page.waitForSelector('p[role="alert"]', { timeout: 5000 });
+      const signoutAlertText = await page.locator('p[role="alert"]').innerText();
+      if (!signoutAlertText.includes("could not be saved") && !signoutAlertText.includes("تعذّر حفظ التغييرات")) {
+        throw new Error(`Expected sign-out error alert, got '${signoutAlertText}'`);
+      }
+
+      // Assert account is retained and welcome header remains
+      const afterErrTitle = await page.locator("h1").innerText();
+      if (!afterErrTitle.includes("ErrorOutPilot")) {
+        throw new Error("Account was cleared despite sign-out storage error!");
+      }
+
+      // Assert user was NOT navigated to sign in
+      if (page.url().includes("/signin")) {
+        throw new Error("Navigated to /signin despite sign-out storage failure!");
+      }
+
+      // Restore clean context
+      await page.evaluate(() => {
+        if (window.__origSetItem) {
+          Storage.prototype.setItem = window.__origSetItem;
+          delete window.__origSetItem;
+        }
+      });
+
+      // 10. Navigating to /account/trips/OTHER99 as errorout@gza.ps must reject
       await page.goto(baseUrl + "/account/trips/OTHER99", { waitUntil: "domcontentloaded" });
       await page.waitForSelector("text=find that booking", { timeout: 5000 });
 
@@ -4058,16 +4516,34 @@ async function runBrowserSmoke() {
       await page.goto(baseUrl + "/account/trips/UNOWNED88", { waitUntil: "domcontentloaded" });
       await page.waitForSelector("text=find that booking", { timeout: 5000 });
 
-      // 8. Responsive & LTR formatting at 390px and 320px
-      for (const width of [390, 320]) {
-        await page.setViewportSize({ width, height: 667 });
-        for (const path of ["/signin", "/ar/signin", "/account/security", "/ar/account/security"]) {
+      // 11. Responsive, RTL, and LTR Technical Formatting at 1440px, 390px, and 320px
+      for (const width of [1440, 390, 320]) {
+        await page.setViewportSize({ width, height: 750 });
+        for (const path of [
+          "/verify-email?ref=CLAIM-ELIGIBLE-1",
+          "/ar/verify-email?ref=CLAIM-ELIGIBLE-1",
+          "/signin",
+          "/ar/signin",
+          "/account/security",
+          "/ar/account/security",
+        ]) {
           await page.goto(baseUrl + path, { waitUntil: "domcontentloaded" });
           const overflow = await page.evaluate(() => document.body.scrollWidth > document.body.clientWidth);
           if (overflow) {
             throw new Error(`Horizontal overflow on ${path} at ${width}px`);
           }
         }
+      }
+
+      // Verify technical identifiers remain LTR in Arabic verify-email
+      await page.goto(baseUrl + "/ar/verify-email?ref=CLAIM-ELIGIBLE-1", { waitUntil: "domcontentloaded" });
+      const isRefLtr = await page.evaluate(() => {
+        const el = document.querySelector(".code-id");
+        if (!el) return false;
+        return el.getAttribute("dir") === "ltr" || window.getComputedStyle(el).direction === "ltr";
+      });
+      if (!isRefLtr) {
+        throw new Error("Booking reference technical identifier was not rendered LTR in Arabic /ar/verify-email");
       }
 
       // Reset viewport and cleanup

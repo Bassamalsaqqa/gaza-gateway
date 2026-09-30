@@ -22,7 +22,6 @@ import {
   type Traveler,
 } from "./domain.ts";
 import type { Booking } from "../domain/booking.ts";
-import type { ClaimResult } from "../repositories/types.ts";
 import { useBookingsQuery } from "../repositories/queries.ts";
 
 export { passengerKeys } from "./keys.ts";
@@ -216,27 +215,4 @@ export function useMyBookings(): {
     isError: accountQuery.isError || bookingsQuery.isError,
     error: accountQuery.error || bookingsQuery.error || null,
   };
-}
-
-/**
- * Canonical mutation hook for claiming a booking to an account.
- * Returns explicit ClaimResult and invalidates booking queries.
- */
-export function useClaimBookingMutation(): UseMutationResult<
-  ClaimResult,
-  Error,
-  { ref: string; accountEmail: string }
-> {
-  const { booking: bookingRepo } = useRepositories();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ ref, accountEmail }) => bookingRepo.claim(ref, accountEmail),
-    onSuccess: (_result, variables) => {
-      queryClient.invalidateQueries({ queryKey: bookingKeys.all });
-      if (variables.ref) {
-        queryClient.invalidateQueries({ queryKey: bookingKeys.detail(variables.ref) });
-      }
-    },
-  });
 }

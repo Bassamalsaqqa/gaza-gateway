@@ -254,6 +254,32 @@ export interface StorageCoordinatorOptions {
 }
 
 /**
+ * Deep clones RepoStorageV1 to isolate candidate state during transactional mutations.
+ */
+function cloneRepoStorage(source: RepoStorageV1): RepoStorageV1 {
+  if (typeof structuredClone === "function") {
+    return structuredClone(source);
+  }
+  return {
+    schemaVersion: 1,
+    bookings: source.bookings.map((b) => ({
+      ...b,
+      passengers: b.passengers.map((p) => ({ ...p })),
+      seats: { ...b.seats },
+      extras: { ...b.extras, pax: b.extras?.pax?.map((px) => ({ ...px })) ?? [] },
+      contact: { ...b.contact },
+      checkedIn: {
+        out: [...(b.checkedIn?.out ?? [])],
+        in: [...(b.checkedIn?.in ?? [])],
+      },
+    })),
+    flightOverrides: Object.fromEntries(
+      Object.entries(source.flightOverrides).map(([k, v]) => [k, { ...v }]),
+    ),
+  };
+}
+
+/**
  * Coherent shared state coordinator and transactional boundary.
  *
  * Ensures BookingRepository and FlightRepository operate over a single,
@@ -314,33 +340,49 @@ export class RepoStorageCoordinator {
    *       - Returns mutator result.
    */
   public mutate<T>(mutator: (state: RepoStorageV1) => T): T {
+    return this.conditionalMutate((state) => ({
+      commit: true,
+      result: mutator(state),
+    }));
+  }
+
+  /**
+   * Performs a bounded conditional transactional mutation against the freshest storage snapshot.
+   *
+   * When `commit` is false:
+   * - Zero storage writes are performed.
+   * - Zero subscriber notifications are dispatched.
+   * - `this.state` remains untouched in memory.
+   * - The mutator's `result` is returned directly.
+   *
+   * When `commit` is true:
+   * - Commits the tentative state to storage (in persistent mode).
+   * - Adopts `this.state = tentative`.
+   * - Dispatches subscriber notifications.
+   * - Transactional rollback on storage failure is preserved.
+   */
+  public conditionalMutate<T>(
+    mutator: (state: RepoStorageV1) => { commit: boolean; result: T },
+  ): T {
     if (this.isInMemory()) {
-      const result = mutator(this.state);
+      const tentative = cloneRepoStorage(this.state);
+      const { commit, result } = mutator(tentative);
+      if (!commit) {
+        return result;
+      }
+      this.state = tentative;
       this.notifyListeners();
       return result;
     }
 
     const fresh = loadRepoStorage(this.customStorage);
-    // Clone fresh state to isolate tentative changes from this.state
-    const tentative: RepoStorageV1 = {
-      schemaVersion: 1,
-      bookings: fresh.bookings.map((b) => ({
-        ...b,
-        passengers: b.passengers.map((p) => ({ ...p })),
-        seats: { ...b.seats },
-        extras: { ...b.extras, pax: b.extras?.pax?.map((px) => ({ ...px })) ?? [] },
-        contact: { ...b.contact },
-        checkedIn: {
-          out: [...(b.checkedIn?.out ?? [])],
-          in: [...(b.checkedIn?.in ?? [])],
-        },
-      })),
-      flightOverrides: Object.fromEntries(
-        Object.entries(fresh.flightOverrides).map(([k, v]) => [k, { ...v }]),
-      ),
-    };
+    const tentative = cloneRepoStorage(fresh);
 
-    const result = mutator(tentative);
+    const { commit, result } = mutator(tentative);
+
+    if (!commit) {
+      return result;
+    }
 
     // Commit to persistent storage BEFORE adopting in-memory state or notifying
     saveRepoStorage(tentative, this.customStorage);

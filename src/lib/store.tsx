@@ -32,6 +32,7 @@ import type {
   SearchCriteria,
 } from "./booking-draft.ts";
 import {
+  buildLegacyStoreEnvelope,
   calculateMaxStep,
   createFreshDraft,
   defaultCriteria,
@@ -56,6 +57,7 @@ export type {
   SearchCriteria,
 };
 export {
+  buildLegacyStoreEnvelope,
   calculateMaxStep,
   createFreshDraft,
   defaultCriteria,
@@ -93,14 +95,8 @@ export {
 import type { Booking, BookingPassenger, CheckedIn, Leg } from "./domain/booking";
 import { makePassengerId } from "./domain/booking";
 import { useRepositories } from "./repositories";
-import {
-  normalizeEmailIdentity,
-  type PassengerAccount,
-  type Traveler,
-} from "./passenger/domain.ts";
+import { normalizeEmailIdentity } from "./passenger/domain.ts";
 import { usePassengerAccount } from "./passenger/queries.ts";
-
-export type { PassengerAccount as Account, Traveler } from "./passenger/domain.ts";
 
 export function bookingTotal(draft: {
   outbound: Flight | null;
@@ -145,13 +141,6 @@ const StoreContext = createContext<StoreValue | null>(null);
 
 const KEY = "gza.store.v1";
 
-type Persisted = {
-  bookings?: Booking[] | undefined;
-  account?: PassengerAccount | null | undefined;
-  travelers?: Traveler[] | undefined;
-  draft?: Draft | undefined;
-};
-
 type LegacyExtras = { extraBags?: number; meal?: string; assistance?: string[] };
 
 /** Bring older locally stored bookings up to the current shape. */
@@ -190,10 +179,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [draft, setDraftState] = useState<Draft>(initialDraft);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const hasMutatedRef = useRef(false);
-  const extraKeysRef = useRef<Record<string, unknown>>({});
-  const initialLegacyBookingsRef = useRef<Booking[]>([]);
-  const initialLegacyAccountRef = useRef<PassengerAccount | null>(null);
-  const initialLegacyTravelersRef = useRef<Traveler[]>([]);
+  const initialLegacyEnvelopeRef = useRef<Record<string, unknown> | null>(null);
 
   // Synchronize bookings with canonical BookingRepository
   useEffect(() => {
@@ -246,16 +232,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     try {
       const raw = window.localStorage.getItem(KEY);
       if (raw) {
-        const parsed = JSON.parse(raw) as Persisted & Record<string, unknown>;
-        const { account: a, travelers: t, draft: d, bookings: b, ...extra } = parsed;
-        extraKeysRef.current = extra;
-        initialLegacyAccountRef.current = (a as PassengerAccount) ?? null;
-        initialLegacyTravelersRef.current = (t ?? []).map((tr) => ({ ...tr, dob: tr.dob ?? "" }));
-        if (Array.isArray(b)) {
-          initialLegacyBookingsRef.current = b;
-        }
-        if (d) {
-          currentDraft = validateAndSanitizeDraft(d, clientToday, clientReturn);
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          initialLegacyEnvelopeRef.current = parsed as Record<string, unknown>;
+          const d = (parsed as { draft?: Draft }).draft;
+          if (d) {
+            currentDraft = validateAndSanitizeDraft(d, clientToday, clientReturn);
+          }
         }
       }
     } catch {
@@ -274,14 +257,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (draft.outbound?.id.startsWith("CAP-PROOF") || draft.inbound?.id.startsWith("CAP-PROOF")) {
       return;
     }
-    // Preserves legacy account/traveler snapshots byte-equivalently in meaning without writing new canonical passenger mutations back
-    const payload: Persisted = {
-      ...extraKeysRef.current,
-      ...(initialLegacyBookingsRef.current.length > 0 ? { bookings: initialLegacyBookingsRef.current } : {}),
-      account: initialLegacyAccountRef.current,
-      travelers: initialLegacyTravelersRef.current,
-      draft,
-    };
+    // Preserves existing legacy envelope keys (account, travelers, bookings, unknown keys) semantically without writing canonical passenger changes back, keeping absent keys absent.
+    const payload = buildLegacyStoreEnvelope(initialLegacyEnvelopeRef.current, draft);
     window.localStorage.setItem(KEY, JSON.stringify(payload));
   }, [ready, draft]);
 

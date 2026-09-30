@@ -199,43 +199,39 @@ export class LocalBookingRepository implements BookingRepository {
       return { status: "not-found" };
     }
 
-    return this.coordinator.mutate((state) => {
+    // Evaluate against the freshest transactional snapshot: all no-op outcomes commit=false (0 writes, 0 notifications)
+    return this.coordinator.conditionalMutate<ClaimResult>((state) => {
       const index = state.bookings.findIndex((b) => b.ref.toUpperCase() === clean);
       if (index === -1) {
-        return { status: "not-found" };
+        return { commit: false, result: { status: "not-found" } };
       }
 
-      const existing = state.bookings[index];
-      if (!existing) {
-        return { status: "not-found" };
+      const candidate = state.bookings[index];
+      if (!candidate) {
+        return { commit: false, result: { status: "not-found" } };
       }
 
-      if (existing.ownerEmail) {
-        const normalizedOwner = normalizeEmailIdentity(existing.ownerEmail);
+      if (candidate.ownerEmail) {
+        const normalizedOwner = normalizeEmailIdentity(candidate.ownerEmail);
         if (normalizedOwner === normalizedClaimEmail) {
-          // Already owned by the same normalized email: idempotent success
-          return { status: "already-owned-by-user", booking: { ...existing } };
+          return { commit: false, result: { status: "already-owned-by-user", booking: { ...candidate } } };
         }
-        // Owned by another account: reject
-        return { status: "owned-by-another" };
+        return { commit: false, result: { status: "owned-by-another" } };
       }
 
-      // Booking is unowned: check if contact email matches claiming email
-      const normalizedContact = normalizeEmailIdentity(existing.contact?.email);
-      if (normalizedContact !== normalizedClaimEmail) {
-        // Unowned, but contact email mismatch: reject
-        return { status: "contact-mismatch" };
+      const candidateContact = normalizeEmailIdentity(candidate.contact?.email);
+      if (candidateContact !== normalizedClaimEmail) {
+        return { commit: false, result: { status: "contact-mismatch" } };
       }
 
-      // Valid claim: set ownerEmail to normalized claim email; keep contact.email untouched
       const updated: Booking = {
-        ...existing,
+        ...candidate,
         account: true,
         ownerEmail: normalizedClaimEmail,
       };
 
       state.bookings[index] = updated;
-      return { status: "claimed", booking: { ...updated } };
+      return { commit: true, result: { status: "claimed", booking: { ...updated } } };
     });
   }
 

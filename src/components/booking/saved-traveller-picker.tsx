@@ -10,7 +10,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import type { Traveler } from "@/lib/store";
+import type { Traveler } from "@/lib/passenger";
 import { useI18n } from "@/lib/i18n";
 import { btnClass } from "@/components/kit";
 import { cn } from "@/lib/utils";

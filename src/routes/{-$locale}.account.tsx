@@ -4,6 +4,8 @@ import { Container, EmptyState, GazaLoadingState, PageHeader, btnClass } from "@
 import { useI18n } from "@/lib/i18n";
 import { usePassengerAccount, useSignOutMutation } from "@/lib/passenger";
 
+import { useState } from "react";
+
 export const Route = createFileRoute("/{-$locale}/account")({
   component: AccountLayout,
 });
@@ -22,6 +24,16 @@ function AccountLayout() {
   const { t } = useI18n();
   const { data: account, isLoading } = usePassengerAccount();
   const signOutMutation = useSignOutMutation();
+  const [signOutError, setSignOutError] = useState<string | null>(null);
+
+  const handleSignOut = async () => {
+    setSignOutError(null);
+    try {
+      await signOutMutation.mutateAsync();
+    } catch {
+      setSignOutError(t("error.saveFailed"));
+    }
+  };
 
   if (isLoading) {
     return (
@@ -35,7 +47,7 @@ function AccountLayout() {
     return (
       <Container className="py-16">
         <EmptyState
-          title={t("account.notFound")}
+          title={t("account.signinRequired")}
           description={t("auth.signinSub")}
           action={
             <div className="flex flex-wrap justify-center gap-2">
@@ -59,14 +71,21 @@ function AccountLayout() {
         title={t("account.welcome", { name: account.firstName || account.email })}
         description={t("account.title")}
       >
-        <button
-          type="button"
-          onClick={() => signOutMutation.mutate()}
-          disabled={signOutMutation.isPending}
-          className={btnClass("outline", "sm")}
-        >
-          {signOutMutation.isPending ? t("common.loading") : t("auth.signout")}
-        </button>
+        <div className="flex flex-col items-end gap-1">
+          <button
+            type="button"
+            onClick={handleSignOut}
+            disabled={signOutMutation.isPending}
+            className={btnClass("outline", "sm")}
+          >
+            {signOutMutation.isPending ? t("common.loading") : t("auth.signout")}
+          </button>
+          {signOutError ? (
+            <p role="alert" className="text-xs font-medium text-destructive">
+              {signOutError}
+            </p>
+          ) : null}
+        </div>
       </PageHeader>
 
 
