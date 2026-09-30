@@ -3,8 +3,8 @@
 > **Repository**: `Bassamalsaqqa/gaza-gateway`
 > **Production Domain**: `https://www.gazaairport.com`
 > **Phase 4 starting commits**: `9e36b869274830f84c97cbbefe3b3fb0a98c6d2e` (`main`); `92ad935f8477e1663eefa8282d2770c66b64b8b2` (`hostpapa-deploy`). These are historical starting points, not current branch heads.
-> **Engineering Status**: **HC-0 / HC-1 Present Dossier & Archive Foundation (Engineering Accepted; Awaiting Owner Visual Acceptance)**. Phase 5A complete; Phase 5B paused; HC-2/HC-3 not started.
-> **Immediate Next Step**: **Owner Visual Acceptance of HC-0 / HC-1** (Phase 5B strictly paused; no backend, auth, mail, or payment).
+> **Engineering Status**: **HC-0 / HC-1 Present Dossier & Archive Foundation Accepted (Owner Authorized Publication)**. Phase 5A complete (Phase 5 overall in progress); Phase 5B paused throughout this run; HC-2/HC-3 not started.
+> **Immediate Next Step**: **Phase 5B: Booking Draft & Search Convergence** (paused throughout this run; no backend, auth, mail, or payment).
 
 ---
 

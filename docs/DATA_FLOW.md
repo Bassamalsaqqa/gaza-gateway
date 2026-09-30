@@ -1,8 +1,8 @@
 # Data Flow, State Management & Pretend-Action Inventory
 
 > **Document Purpose**: Complete audit of current data sources, state persistence, cross-screen entity splits, and enabled no-op actions across public and admin workspaces.
-> **Status**: **HC-0 / HC-1 Present Dossier & Archive Foundation (Engineering Accepted; Awaiting Owner Visual Acceptance)**. Phase 5A complete; Phase 5B paused; HC-2/HC-3 not started.
-> **Future Target**: Owner visual acceptance of HC-0 / HC-1, then Phase 5B (Booking Draft & Search Convergence, paused), Phase 5C (Manage, Check-in & Boarding Pass Convergence), Phase 5D (Public Contact Workflow Convergence), then Phase 6 before any production backend.
+> **Status**: **HC-0 / HC-1 Present Dossier & Archive Foundation Accepted (Owner Authorized Publication)**. Phase 5A complete (Phase 5 overall in progress); Phase 5B paused throughout this run; HC-2/HC-3 not started.
+> **Future Target**: Phase 5B (Booking Draft & Search Convergence, paused throughout this run), Phase 5C (Manage, Check-in & Boarding Pass Convergence), Phase 5D (Public Contact Workflow Convergence), then Phase 6 before any production backend.
 
 ---
 
