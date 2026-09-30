@@ -142,6 +142,12 @@ import galleryAircraft2000_960 from "@/assets/media/documentary/gallery-aircraft
 import galleryAircraft2000_1280 from "@/assets/media/documentary/gallery-aircraft-2000-1280.webp";
 import galleryAircraft2000_1376 from "@/assets/media/documentary/gallery-aircraft-2000-1376.webp";
 
+// Documentary archive photos (year 2008 ruins)
+import airportPresentRuins2008_480 from "@/assets/media/documentary/airport-present-ruins-2008-480.webp";
+import airportPresentRuins2008_768 from "@/assets/media/documentary/airport-present-ruins-2008-768.webp";
+import airportPresentRuins2008_960 from "@/assets/media/documentary/airport-present-ruins-2008-960.webp";
+import airportPresentRuins2008_1109 from "@/assets/media/documentary/airport-present-ruins-2008-1109.webp";
+
 // Editorial & service illustrative photos
 import destinationsHero640 from "@/assets/media/editorial/destinations-hero-640.webp";
 import destinationsHero960 from "@/assets/media/editorial/destinations-hero-960.webp";
@@ -412,6 +418,21 @@ export const MEDIA: Record<ApprovedMediaId, MediaEntry> = {
     truthClass: "historical-documentary",
     altEn: "Historical photograph of a Palestinian Airlines passenger aircraft on the tarmac at Gaza International Airport in 2000.",
     altAr: "صورة تاريخية لطائرة ركاب تابعة للخطوط الجوية الفلسطينية على مدرج مطار غزة الدولي عام 2000.",
+  },
+
+  "airport-present-ruins-2008": {
+    id: "airport-present-ruins-2008",
+    width: 1109,
+    height: 411,
+    variants: [
+      { src: airportPresentRuins2008_480, width: 480, height: 178 },
+      { src: airportPresentRuins2008_768, width: 768, height: 285 },
+      { src: airportPresentRuins2008_960, width: 960, height: 356 },
+      { src: airportPresentRuins2008_1109, width: 1109, height: 411 },
+    ],
+    truthClass: "historical-documentary",
+    altEn: "Documentary photograph of the destroyed passenger terminal and architectural dome at Gaza International Airport, captured in June 2008.",
+    altAr: "صورة وثائقية لمبنى المسافرين المدمر والقبة المعمارية في مطار غزة الدولي، وُثِّقت في يونيو/حزيران 2008.",
   },
 
   "destinations-hero": {

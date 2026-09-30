@@ -4,26 +4,27 @@ Phase 4B establishes three canonical editorial documents. This is a client-side,
 
 ## Content inventory and ownership
 
-| Current material | Classification | Owner after Phase 4B |
+| Current material | Classification | Owner after Phase 4B / HC-0 |
 | --- | --- | --- |
 | Home hero, heritage, chapter summaries, destination/travel/archive introductions | Editorial content | `src/content/published/home.ts` |
 | Travel introduction, five guide sections and checklist points | Editorial content | `src/content/published/travel.ts` |
 | Airport Past introduction, five timeline records and placeholder media seeds | Historical editorial content | `src/content/published/airport-past.ts` |
+| Airport Present introduction, four fact cards, three dossiers, spatial & forward outlook | Documentary editorial content | `src/content/published/airport-present.ts` |
 | Book, Cancel, Search, Save, validation, flight/booking status, form and workflow labels | Application UI strings | `src/lib/i18n-public.ts`, `src/lib/i18n-admin2.ts` |
 | Flights, gates, aircraft, fares, seats, booking records and operational destination facts | Domain data | `src/lib/data.ts` and Phase 4 repositories |
 | Approved imagery, truth class and accessible descriptions | Media metadata | `src/lib/media.ts` and `media-policy.ts`; full management is Phase 7B |
 | Site-wide contact, appearance settings | Settings | `src/lib/settings/` (`SettingsRepository`, `gza.settings.draft.v1`) |
 | Privacy, terms and critical prototype disclosure | Legal/system safety | Current compiled source; later governance requires stronger permission and revision workflow |
-| Present documentary text, Future concepts, About, Contact, destination editorial text and archive | Editorial content pending migration | Current route/i18n/admin fixtures; Phase 7 and later bounded slices |
+| Future concepts, About, Contact, destination editorial text and archive | Editorial content pending migration | Current route/i18n/admin fixtures; Phase 7 and later bounded slices |
 | Admin inbox, check-in desk, analytics, CRM and operational simulation | Simulation fixtures | Existing Admin modules; Phase 6/7 |
 
-Some legacy editorial keys remain in i18n while other routes still reference them. The three migrated public routes read the canonical documents. `data.ts` no longer maintains separate Travel and Past arrays; `admin-mock.ts` no longer maintains separate Home, Travel and Past proof arrays.
+Some legacy editorial keys remain in i18n while other routes still reference them. The four migrated public routes read the canonical documents. `data.ts` no longer maintains separate Travel and Past arrays; `admin-mock.ts` no longer maintains separate Home, Travel and Past proof arrays.
 
 ## Domain and publishing
 
-`src/content/types.ts` owns `LocalizedText` with explicit `en` and `ar`, `HomeContent`, `TravelContent`, `AirportPastContent`, page SEO, stable section/item IDs, `EvidenceState` and `MediaReference`. Ordered arrays are the single ordering convention; IDs survive reordering and copy changes. Home's hero, search and board positions are required and locked. Other Home section policies declare whether later editors may hide/reorder them; Phase 4B does not provide a Home editor.
+`src/content/types.ts` owns `LocalizedText` with explicit `en` and `ar`, `HomeContent`, `TravelContent`, `AirportPastContent`, `AirportPresentContent`, page SEO, stable section/item IDs, `EvidenceState` and `MediaReference`. Ordered arrays are the single ordering convention; IDs survive reordering and copy changes. Home's hero, search and board positions are required and locked. Other Home section policies declare whether later editors may hide/reorder them; Phase 4B does not provide a Home editor.
 
-`src/content/schema.ts` validates document identity and schema version, known fields, bilingual text, unique IDs, visibility, provenance and media references. No HTML blobs, executable URLs or arbitrary media paths are accepted. Past currently has only approved placeholder seeds. The approved media catalog has no documentary historical assets, so Past media references to current brand or Future concept assets are rejected. The one `verified` timeline classification already present in the source remains as it was; the page's overall provisional prototype disclosure remains visible. Empty `sourceRefs` do not become invented evidence.
+`src/content/schema.ts` validates document identity and schema version, known fields, bilingual text, unique IDs, visibility, provenance and media references. No HTML blobs, executable URLs or arbitrary media paths are accepted. While approved historical-documentary photo heroes (`airport-archive-hero-2000`, `gallery-aircraft-archive-2000`, `airport-present-ruins-2008`) are registered in `APPROVED_MEDIA_CATALOG`, Past timeline chapters currently remain bound to placeholder seeds until collection migration (HC-2). Past media references to current brand or Future concept assets remain strictly rejected. The one `verified` timeline classification already present in the source remains as it was; the page's overall provisional prototype disclosure remains visible. Empty `sourceRefs` do not become invented evidence.
 
 The published records are plain serializable TypeScript data imported by their respective routes at build/prerender time. Normal public URLs always use them, even if that browser has a draft. SEO editorial fields are typed and available for later route-head convergence; route identity and canonical URLs remain code-owned.
 
@@ -39,4 +40,4 @@ There is no browser-global Publish action for the migrated Travel module. Interi
 
 ## Boundaries
 
-Phase 4B established typed editorial content. Phase 4C converged settings and appearance drafts into `SettingsRepository` (`gza.settings.draft.v1`). Staff simulation (`gza.admin.v1`), booking wizard draft/account/travelers (`gza.store.v1`), and OpsState remain for subsequent phases. Phase 5 addresses public workflows. Phase 6 addresses admin workflows. Phase 7 expands CMS authoring/search/dashboards. Phase 7B adds media provenance and asset controls. Backend publication is a later phase.
+Phase 4B established typed editorial content. Phase 4C converged settings and appearance drafts into `SettingsRepository` (`gza.settings.draft.v1`). Phase 5A converged passenger accounts and saved companions into `PassengerRepository` (`gza.passenger.v1`), establishing that passenger state never stores passwords or security credentials. HC-0 and HC-1 established the Present documentary dossier (`airport.present`) and the archive/source/rights foundation (`src/lib/archive/`). Staff simulation (`gza.admin.v1`), booking wizard draft (`gza.store.v1` draft only), and OpsState remain for subsequent phases. Phase 5B will address booking draft and search convergence once unpaused. Phase 6 addresses admin workflows. Phase 7 expands CMS authoring/search/dashboards. Phase 7B adds media provenance and asset controls. Backend publication is a later phase.

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { isApprovedMediaId } from "../lib/media-policy.ts";
+import { SOURCE_REGISTRY } from "../lib/archive/sources.ts";
 import { HOME_SECTION_POLICY, type ContentDocument, type ContentKey, type HomeCopyKey, type LocalizedText } from "./types.ts";
 
 const HOME_COPY_KEYS: HomeCopyKey[] = [
@@ -51,8 +52,8 @@ const travel = z.object({
   unique(doc.sections.flatMap((s) => s.points.map((p) => p.id))));
 const media = z.union([
   z.object({ kind: z.literal("placeholder-seed"), seed: z.enum(PLACEHOLDER_SEEDS as [string, ...string[]]) }).strict(),
-  // The current approved catalog has only brand marks and future concepts.
-  // Documentary historical assets require a later owner-approved catalog entry.
+  // Approved historical-documentary hero assets are registered in APPROVED_MEDIA_CATALOG.
+  // Past timeline chapters currently remain bound to placeholder seeds until collection migration.
   z.object({ kind: z.literal("media"), id: approvedMedia }).strict().refine(() => false),
 ]);
 const timelineEntry = z.object({
@@ -66,6 +67,70 @@ const past = z.object({
   intro: z.object({ title: localized, description: localized, notice: localized }).strict(),
   timeline: z.array(timelineEntry).length(PAST_IDS.length),
 }).strict().refine((doc) => unique(doc.timeline.map((entry) => entry.id)));
+
+const presentFact = z.object({
+  id: z.string(),
+  label: localized,
+  value: localized,
+  detail: localized,
+  sourceRefs: z.array(slug).min(1),
+}).strict();
+
+const presentDossier = z.object({
+  id: z.string(),
+  title: localized,
+  paragraphs: z.array(localized).min(1),
+  sourceRefs: z.array(slug).min(1),
+}).strict();
+
+const presentSpatial = z.object({
+  title: localized,
+  description: localized,
+  evidentiaryRuleTitle: localized,
+  evidentiaryRuleBody: localized,
+  sourceRefs: z.array(slug).min(1),
+}).strict();
+
+const presentGlobalHorizons = z.object({
+  eyebrow: localized,
+  title: localized,
+  description: localized,
+}).strict();
+
+const present = z.object({
+  ...envelope,
+  id: z.literal("airport.present"),
+  kind: z.literal("airport.present"),
+  intro: z.object({
+    title: localized,
+    subtitle: localized,
+    notice: localized,
+  }).strict(),
+  facts: z.array(presentFact).length(4),
+  dossiers: z.array(presentDossier).length(3),
+  spatial: presentSpatial,
+  globalHorizons: presentGlobalHorizons,
+}).strict().superRefine((doc, ctx) => {
+  if (!unique(doc.facts.map((f) => f.id))) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Duplicate fact ID" });
+  }
+  if (!unique(doc.dossiers.map((d) => d.id))) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Duplicate dossier ID" });
+  }
+  const allRefs = [
+    ...doc.facts.flatMap((f) => f.sourceRefs),
+    ...doc.dossiers.flatMap((d) => d.sourceRefs),
+    ...doc.spatial.sourceRefs,
+  ];
+  for (const ref of allRefs) {
+    if (!SOURCE_REGISTRY[ref]) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Unresolved sourceRef: ${ref}`,
+      });
+    }
+  }
+});
 
 const destinationCode = z.enum(["AMM", "CAI", "DOH", "DXB", "IST", "JED", "RUH"]);
 const destinationPhotoId = z.enum([
@@ -100,12 +165,19 @@ const destinationsPresentation = z.object({
 );
 
 export function isContentKey(value: unknown): value is ContentKey {
-  return value === "home" || value === "travel" || value === "airport.past" || value === "destinations.presentation";
+  return (
+    value === "home" ||
+    value === "travel" ||
+    value === "airport.past" ||
+    value === "airport.present" ||
+    value === "destinations.presentation"
+  );
 }
 export function isValidContent(key: ContentKey, value: unknown): value is ContentDocument {
   if (key === "home") return home.safeParse(value).success;
   if (key === "travel") return travel.safeParse(value).success;
   if (key === "airport.past") return past.safeParse(value).success;
+  if (key === "airport.present") return present.safeParse(value).success;
   return destinationsPresentation.safeParse(value).success;
 }
 export function contentHealth(value: ContentDocument) {
@@ -114,6 +186,30 @@ export function contentHealth(value: ContentDocument) {
       hasEnglish: true,
       hasArabic: true,
       missingSource: false,
+    };
+  }
+  if (value.kind === "airport.present") {
+    const texts: LocalizedText[] = [
+      value.intro.title,
+      value.intro.subtitle,
+      value.intro.notice,
+      ...value.facts.flatMap((f) => [f.label, f.value, f.detail]),
+      ...value.dossiers.flatMap((d) => [d.title, ...d.paragraphs]),
+      value.spatial.title,
+      value.spatial.description,
+      value.spatial.evidentiaryRuleTitle,
+      value.spatial.evidentiaryRuleBody,
+      value.globalHorizons.eyebrow,
+      value.globalHorizons.title,
+      value.globalHorizons.description,
+    ];
+    return {
+      hasEnglish: texts.every((item) => item.en.trim().length > 0),
+      hasArabic: texts.every((item) => item.ar.trim().length > 0),
+      missingSource:
+        value.facts.some((f) => f.sourceRefs.length === 0) ||
+        value.dossiers.some((d) => d.sourceRefs.length === 0) ||
+        value.spatial.sourceRefs.length === 0,
     };
   }
   const texts: LocalizedText[] = value.kind === "home" ? Object.values(value.copy) :

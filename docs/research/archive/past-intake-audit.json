@@ -1,0 +1,1127 @@
+{
+  "version": "1.0.0",
+  "generatedAt": "2026-09-30",
+  "runId": "20260930-hc-0-hc-1-present-archive-foundation-manual",
+  "scope": "All 58 historical intake items audited. Zero intake JPEGs shipped to public production.",
+  "summary": {
+    "totalRecords": 58,
+    "uniqueVisualHashes": 57,
+    "exactDuplicates": [
+      "past-052"
+    ],
+    "shippedToPublicAssets": 0
+  },
+  "records": [
+    {
+      "id": "past-001",
+      "originalFilename": "3909996027.jpg",
+      "bytes": 71816,
+      "sha256": "8b473ae99b88527a364b09450fa94cbbc9ffaf0fafdfd6f7d1082e1fdc03935f",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "official-visits"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "hold-provenance-or-rights",
+      "platformPublicationStatus": "hold-provenance",
+      "sourceRefs": [],
+      "curatorNotes": "Visually useful only after provenance is established; there is no visible airport identifier.",
+      "recommendedFuturePlacement": "Held: provenance and rights unresolved in intake manifest; requires independent archival and rights verification before documentary staging."
+    },
+    {
+      "id": "past-002",
+      "originalFilename": "Gaza-Airport-Past-Airplane.jpg",
+      "bytes": 51867,
+      "sha256": "c76576de1e362d6b15367606c74e87a6c2c4823fa97b9fcff8cfcd40da8ba950",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "aircraft-fleet"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "hold-rights-visible-third-party-credit",
+      "curatorPublicationStatus": "hold-rights",
+      "platformPublicationStatus": "hold-rights",
+      "sourceRefs": [],
+      "curatorNotes": "Strong fleet-history image; visible aircraft identity can be cross-checked, but location is not proven.",
+      "recommendedFuturePlacement": "Hold rights clearance: commercial news agency / Getty / Reuters attribution required"
+    },
+    {
+      "id": "past-003",
+      "originalFilename": "Gaza-Airport-Past-Airplane-1.jpg",
+      "bytes": 40511,
+      "sha256": "bd1b6f1abe96da8a2e4fb4e3613052271b69c5c29e1e3a9d2043c1292a083b15",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "aircraft-fleet"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "staging-rights-review",
+      "platformPublicationStatus": "staging",
+      "sourceRefs": [],
+      "curatorNotes": "Useful for the fleet story, not reliable evidence of the airport site itself.",
+      "recommendedFuturePlacement": "Stage for HC-2 Historical Gallery intake upon rights verification"
+    },
+    {
+      "id": "past-004",
+      "originalFilename": "Gaza-Airport-Past-Airplane-2.jpg",
+      "bytes": 40105,
+      "sha256": "2bd8c554504c0caab73070c7d67f54a7b3354d86e218566967aa63c76daf19cf",
+      "duplicateOf": null,
+      "medium": "illustration",
+      "phase": "illustrative",
+      "subjects": [
+        "illustrations"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "exclude-from-documentary-stream",
+      "platformPublicationStatus": "excluded",
+      "sourceRefs": [],
+      "curatorNotes": "Exclude from the default historical-photo gallery; optionally place in a clearly labeled illustrations section.",
+      "recommendedFuturePlacement": "Excluded from documentary stream; non-photographic illustrative render."
+    },
+    {
+      "id": "past-005",
+      "originalFilename": "Gaza-Airport-Past-Airplane-3.jpg",
+      "bytes": 58448,
+      "sha256": "03bc5e536940cbc9c58ac8b2f8787aa9b8dab45d0cc126acd5c917e376650138",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "airport-architecture"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "staging-rights-review",
+      "platformPublicationStatus": "staging",
+      "sourceRefs": [],
+      "curatorNotes": "One of the strongest site-establishing images in the batch and a good gallery cover candidate.",
+      "recommendedFuturePlacement": "Stage for HC-2 Historical Gallery intake upon rights verification"
+    },
+    {
+      "id": "past-006",
+      "originalFilename": "Gaza-Airport-Past-Airplane-Flight-Attendant-Female-Working.jpg",
+      "bytes": 89190,
+      "sha256": "c5f4b978995fe6f199c694c9aa0918ffd0779558f173ef966b2ef28f76d715db",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "crew-staff"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "staging-rights-review",
+      "platformPublicationStatus": "staging",
+      "sourceRefs": [],
+      "curatorNotes": "Humanizes the airline story; use a restrained caption that does not overclaim the flight or date.",
+      "recommendedFuturePlacement": "Stage for HC-2 Historical Gallery intake upon rights verification"
+    },
+    {
+      "id": "past-007",
+      "originalFilename": "Gaza-Airport-Past-Airplane-Flight-Crew-Members.jpg",
+      "bytes": 77354,
+      "sha256": "dccfd08f393cb8058bafcaa8d8a8001dec8e0681f81448a2fd7506c5a520902b",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "crew-staff"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "staging-rights-review",
+      "platformPublicationStatus": "staging",
+      "sourceRefs": [],
+      "curatorNotes": "Excellent representative staff image; good for a 'People who made it fly' subsection.",
+      "recommendedFuturePlacement": "Stage for HC-2 Historical Gallery intake upon rights verification"
+    },
+    {
+      "id": "past-008",
+      "originalFilename": "Gaza-Airport-Past-Airplane-Flight-Crew-Members-Cabin-Captain-In-Flight.jpg",
+      "bytes": 88008,
+      "sha256": "e06e87f94122d47096dc118c0d74933ff958c70acd9ffc05a976a38217038ddf",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "crew-staff"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "staging-rights-review",
+      "platformPublicationStatus": "staging",
+      "sourceRefs": [],
+      "curatorNotes": "Strong operational-detail image; pair with crew-group and cabin-service photographs.",
+      "recommendedFuturePlacement": "Stage for HC-2 Historical Gallery intake upon rights verification"
+    },
+    {
+      "id": "past-009",
+      "originalFilename": "Gaza-Airport-Past-Airplane-Flight-Four-Pilots-Photo.jpg",
+      "bytes": 51420,
+      "sha256": "88cd3baf67ed9ee223c3c8561612cf17c91032080b46c46a3f5f7852db6ca948",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "crew-staff"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "staging-rights-review",
+      "platformPublicationStatus": "staging",
+      "sourceRefs": [],
+      "curatorNotes": "Useful crew portrait, but lower visual priority than the larger mixed-crew group.",
+      "recommendedFuturePlacement": "Stage for HC-2 Historical Gallery intake upon rights verification"
+    },
+    {
+      "id": "past-010",
+      "originalFilename": "Gaza-Airport-Past-Airplane-Loading-People-Working.jpg",
+      "bytes": 65910,
+      "sha256": "f8a230845c81022c4a7792da81616bf7bed3f4664ae461ec8f3ac95f59021acc",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "operations-services"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "staging-rights-review",
+      "platformPublicationStatus": "staging",
+      "sourceRefs": [],
+      "curatorNotes": "One of the best operational images because the airport name is visibly present in the photograph.",
+      "recommendedFuturePlacement": "Stage for HC-2 Historical Gallery intake upon rights verification"
+    },
+    {
+      "id": "past-011",
+      "originalFilename": "Gaza-Airport-Past-Airplane-Passengers-Returning-Home.jpg",
+      "bytes": 55218,
+      "sha256": "d5785fd90b6ac0f7c0f959ac919a34f1dab13aa1560a1b5298d38ac1d4fff08d",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "passengers-pilgrimage"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "staging-rights-review",
+      "platformPublicationStatus": "staging",
+      "sourceRefs": [],
+      "curatorNotes": "Use as passenger-life context; do not label it 'returning home' unless the source proves that direction of travel.",
+      "recommendedFuturePlacement": "Stage for HC-2 Historical Gallery intake upon rights verification"
+    },
+    {
+      "id": "past-012",
+      "originalFilename": "Gaza-Airport-Past-Airplane-Passengers-Returning-Home-1.jpg",
+      "bytes": 59164,
+      "sha256": "81f6775eb951f6ce76856781dfdeb182fffc58ba7790a87b49440d873993e50e",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "passengers-pilgrimage"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "staging-rights-review",
+      "platformPublicationStatus": "staging",
+      "sourceRefs": [],
+      "curatorNotes": "Good companion to the adjacent passenger image; avoid duplicate presentation if gallery density becomes high.",
+      "recommendedFuturePlacement": "Stage for HC-2 Historical Gallery intake upon rights verification"
+    },
+    {
+      "id": "past-013",
+      "originalFilename": "Gaza-Airport-Past-Airplane-Pilgrims-People-Heading-To-Makkah-Palestinian-Airplines.jpg",
+      "bytes": 71503,
+      "sha256": "aa2e0f8d79ccc3ea9354ee541a5bdd4c4923d5f4c04bfe2522f8366d35c6323b",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "passengers-pilgrimage"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "hold-rights-visible-third-party-credit",
+      "curatorPublicationStatus": "hold-rights",
+      "platformPublicationStatus": "hold-rights",
+      "sourceRefs": [],
+      "curatorNotes": "Historically valuable, but the visible Reuters credit means rights clearance is especially important.",
+      "recommendedFuturePlacement": "Hold rights clearance: commercial news agency / Getty / Reuters attribution required"
+    },
+    {
+      "id": "past-014",
+      "originalFilename": "Gaza-Airport-Past-Airplane-Pilgrim-Woman-Looking-Back-Heading-To-Makkah-Palestinian-Airplines.jpg",
+      "bytes": 58479,
+      "sha256": "8372735a1867d57ba3fea17ff71c67245926224a63f26ff9c59a2718ba4a5fe2",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "passengers-pilgrimage"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "staging-rights-review",
+      "platformPublicationStatus": "staging",
+      "sourceRefs": [],
+      "curatorNotes": "Strong close human detail; works well inside the pilgrimage sequence.",
+      "recommendedFuturePlacement": "Stage for HC-2 Historical Gallery intake upon rights verification"
+    },
+    {
+      "id": "past-015",
+      "originalFilename": "Gaza-Airport-Past-Airplane-Pilgrim-Women-Returning-Home.jpg",
+      "bytes": 49864,
+      "sha256": "9ba06e632d1a69d53ad81884a1d81a12a4e944c0f61340e92dc23bbc11c5caec",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "passengers-pilgrimage"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "staging-rights-review",
+      "platformPublicationStatus": "staging",
+      "sourceRefs": [],
+      "curatorNotes": "Part of a coherent multi-image pilgrimage story.",
+      "recommendedFuturePlacement": "Stage for HC-2 Historical Gallery intake upon rights verification"
+    },
+    {
+      "id": "past-016",
+      "originalFilename": "Gaza-Airport-Past-Airplane-Pilgrim-Women-Returning-Home-1.jpg",
+      "bytes": 63659,
+      "sha256": "aeba11fb4b22fb19adf3ee6a8729f68f09dfce3b56d8588a08a439f454b8076c",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "passengers-pilgrimage"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "staging-rights-review",
+      "platformPublicationStatus": "staging",
+      "sourceRefs": [],
+      "curatorNotes": "Visually distinct from the other pilgrimage photographs and useful for a sequence.",
+      "recommendedFuturePlacement": "Stage for HC-2 Historical Gallery intake upon rights verification"
+    },
+    {
+      "id": "past-017",
+      "originalFilename": "Gaza-Airport-Past-Airplane-President-Yasser-Arafat-Boarding.jpg",
+      "bytes": 43772,
+      "sha256": "6b5be99ea8495488a7b4e322ff2fbddec8e8dc5073d552d26b3cdcdefa986639",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "official-visits"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "hold-provenance-or-rights",
+      "platformPublicationStatus": "hold-provenance",
+      "sourceRefs": [],
+      "curatorNotes": "Potentially important historical image, but it needs provenance before being presented as a specific official event.",
+      "recommendedFuturePlacement": "Held: provenance and rights unresolved in intake manifest; requires independent archival and rights verification before documentary staging."
+    },
+    {
+      "id": "past-018",
+      "originalFilename": "Gaza-Airport-Past-Airplane-RoyalJordanian-Security-Guards-And-Visitor-From-Jordan.jpg",
+      "bytes": 232931,
+      "sha256": "702491be3f4c798595f953e40407ab7fda7acf72d6a4026901128df744f99680",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "official-visits"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "hold-provenance-or-rights",
+      "platformPublicationStatus": "hold-provenance",
+      "sourceRefs": [],
+      "curatorNotes": "Striking image, but too easy to miscaption. Keep out of the public default gallery until provenance is found.",
+      "recommendedFuturePlacement": "Held: provenance and rights unresolved in intake manifest; requires independent archival and rights verification before documentary staging."
+    },
+    {
+      "id": "past-019",
+      "originalFilename": "Gaza-Airport-Past-Airplane-Taking-Off-While-Another-Fueling.jpg",
+      "bytes": 141254,
+      "sha256": "2fe440574690bcd206f30406e50a1aa23383764a4a24e86d99dcb94b8561fb18",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "aircraft-fleet"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "hold-rights-visible-third-party-credit",
+      "curatorPublicationStatus": "hold-rights",
+      "platformPublicationStatus": "hold-rights",
+      "sourceRefs": [],
+      "curatorNotes": "Excellent operations image, but a visible AP credit requires rights clearance before public use.",
+      "recommendedFuturePlacement": "Hold rights clearance: commercial news agency / Getty / Reuters attribution required"
+    },
+    {
+      "id": "past-020",
+      "originalFilename": "Gaza-Airport-Past-Airplane-Yasser-Arafat-Opening-Ceremony.jpg",
+      "bytes": 99546,
+      "sha256": "6c863d07ee5ce9368cdb2d3e1559e2f429fb1127c00d011653c776e2a8f9564e",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "official-visits"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "hold-provenance-or-rights",
+      "platformPublicationStatus": "hold-provenance",
+      "sourceRefs": [],
+      "curatorNotes": "Historically promising but highly vulnerable to the 24 Nov 1998 vs 14 Dec 1998 ceremony mix-up.",
+      "recommendedFuturePlacement": "Held: provenance and rights unresolved in intake manifest; requires independent archival and rights verification before documentary staging."
+    },
+    {
+      "id": "past-021",
+      "originalFilename": "Gaza-Airport-Past-Exterior-Air-Cargo-Management.jpg",
+      "bytes": 18952,
+      "sha256": "1ee5cac38b882fbeaeeb3e6747b92e8d1fa6925ab6617d410a4ba2a71d9487da",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "operations-services"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "staging-rights-review",
+      "platformPublicationStatus": "staging",
+      "sourceRefs": [],
+      "curatorNotes": "Visible signage supports the cargo-service interpretation; preserve the original because text detail is low resolution.",
+      "recommendedFuturePlacement": "Stage for HC-2 Historical Gallery intake upon rights verification"
+    },
+    {
+      "id": "past-022",
+      "originalFilename": "Gaza-Airport-Past-Exterior-Air-Cargo-Management-2.jpg",
+      "bytes": 16239,
+      "sha256": "3583729493b9ab029b8ec2544f7f3e3b01e09824dff3fc4c07c151154bb6bb44",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "operations-services"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "staging-rights-review",
+      "platformPublicationStatus": "staging",
+      "sourceRefs": [],
+      "curatorNotes": "Do not promote 'air cargo management' from filename to verified public caption until provenance is found.",
+      "recommendedFuturePlacement": "Stage for HC-2 Historical Gallery intake upon rights verification"
+    },
+    {
+      "id": "past-023",
+      "originalFilename": "Gaza-Airport-Past-Exterior-Ambulance-Vehicle.jpg",
+      "bytes": 16465,
+      "sha256": "6305db07d8eee7a6d4c62165c74222204e3b63c639db5900726cdd99ccd7ba6e",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "operations-services"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "staging-rights-review",
+      "platformPublicationStatus": "staging",
+      "sourceRefs": [],
+      "curatorNotes": "",
+      "recommendedFuturePlacement": "Stage for HC-2 Historical Gallery intake upon rights verification"
+    },
+    {
+      "id": "past-024",
+      "originalFilename": "Gaza-Airport-Past-Exterior-And-Garden.jpg",
+      "bytes": 356058,
+      "sha256": "53dccdfdce30b4eb1ce9900400cd1920688bb5c4b21316222c3196959283096a",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "airport-architecture"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "staging-rights-review",
+      "platformPublicationStatus": "staging",
+      "sourceRefs": [],
+      "curatorNotes": "Best hero candidate in this batch only after provenance and reuse rights are documented. Do not replace the current production hero solely on visual quality while rights remain unknown.",
+      "recommendedFuturePlacement": "Stage for HC-2 Historical Gallery intake upon rights verification"
+    },
+    {
+      "id": "past-025",
+      "originalFilename": "Gaza-Airport-Past-Exterior-Bombed-1.jpg",
+      "bytes": 96997,
+      "sha256": "b1a312151ead8f353a4ac1b1849e6f51a8cc40714fcc5598e87fb52db3b37708",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "damage-aftermath",
+      "subjects": [
+        "damage-ruins"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "visible-photographer-watermark",
+      "curatorPublicationStatus": "hold-rights",
+      "platformPublicationStatus": "hold-rights",
+      "sourceRefs": [],
+      "curatorNotes": "Visible watermark reads 'Ahmed Qarra Photographer'. Do not remove or crop it. Exact original source and reuse permission were not established in this review.",
+      "recommendedFuturePlacement": "Hold rights clearance: commercial news agency / Getty / Reuters attribution required"
+    },
+    {
+      "id": "past-026",
+      "originalFilename": "Gaza-Airport-Past-Exterior-Bombed-Partially.jpg",
+      "bytes": 67807,
+      "sha256": "daaa2f04223bf32af0760d2432de7966a369b778c8a32e8d7eb733ba29a29310",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "damage-aftermath",
+      "subjects": [
+        "damage-ruins"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "staging-rights-review",
+      "platformPublicationStatus": "staging",
+      "sourceRefs": [],
+      "curatorNotes": "Strong before/after pairing with past-024 or past-032, but do not invent a destruction date.",
+      "recommendedFuturePlacement": "Stage for HC-2 Historical Gallery intake upon rights verification"
+    },
+    {
+      "id": "past-027",
+      "originalFilename": "Gaza-Airport-Past-Exterior-Bombed-Partially-1.jpg",
+      "bytes": 54812,
+      "sha256": "7cba70aca3e64f9de8e343d3241d4731f5bceeb2118d9f974e78510d63e5ee78",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "damage-aftermath",
+      "subjects": [
+        "damage-ruins"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "visible-photographer-watermark",
+      "curatorPublicationStatus": "hold-rights",
+      "platformPublicationStatus": "hold-rights",
+      "sourceRefs": [],
+      "curatorNotes": "Visible watermark reads 'Ahmed Qarra Photographer'. Do not crop or remove it. Hold until source/licensing is established.",
+      "recommendedFuturePlacement": "Hold rights clearance: commercial news agency / Getty / Reuters attribution required"
+    },
+    {
+      "id": "past-028",
+      "originalFilename": "Gaza-Airport-Past-Exterior-Empty-Parking.jpg",
+      "bytes": 52362,
+      "sha256": "434399fbbf7218d489b9ae64d1715facb7801b86902a170816e16f4a40820bc2",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "airport-architecture"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "staging-rights-review",
+      "platformPublicationStatus": "staging",
+      "sourceRefs": [],
+      "curatorNotes": "",
+      "recommendedFuturePlacement": "Stage for HC-2 Historical Gallery intake upon rights verification"
+    },
+    {
+      "id": "past-029",
+      "originalFilename": "Gaza-Airport-Past-Exterior-Feul-Tanks.jpg",
+      "bytes": 19904,
+      "sha256": "d4cf6c2d881f497996f1277697d9c8a0cf9682d9a40e561470a96cde05442b26",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "operations-services"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "staging-rights-review",
+      "platformPublicationStatus": "staging",
+      "sourceRefs": [],
+      "curatorNotes": "Public title intentionally says storage tanks rather than fuel tanks until verified.",
+      "recommendedFuturePlacement": "Stage for HC-2 Historical Gallery intake upon rights verification"
+    },
+    {
+      "id": "past-030",
+      "originalFilename": "Gaza-Airport-Past-Exterior-Fire-Fighter-Vehicle.jpg",
+      "bytes": 29538,
+      "sha256": "84002dc1b2d911559cd9d5255955d1c8408422b7418a3851d1401516261bb8c0",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "operations-services"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "staging-rights-review",
+      "platformPublicationStatus": "staging",
+      "sourceRefs": [],
+      "curatorNotes": "",
+      "recommendedFuturePlacement": "Stage for HC-2 Historical Gallery intake upon rights verification"
+    },
+    {
+      "id": "past-031",
+      "originalFilename": "Gaza-Airport-Past-Exterior-Intact.jpg",
+      "bytes": 25397,
+      "sha256": "34f80810040eae0a079b36227aaef911364ec7edc9ec031186de9820fc8bc018",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "airport-architecture"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "staging-rights-review",
+      "platformPublicationStatus": "staging",
+      "sourceRefs": [],
+      "curatorNotes": "",
+      "recommendedFuturePlacement": "Stage for HC-2 Historical Gallery intake upon rights verification"
+    },
+    {
+      "id": "past-032",
+      "originalFilename": "Gaza-Airport-Past-Exterior-Intact-1.jpg",
+      "bytes": 34159,
+      "sha256": "589f7d01bfa76b0f8823898bc355e50991237dfe414635f186b047516ba9091d",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "airport-architecture"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "staging-rights-review",
+      "platformPublicationStatus": "staging",
+      "sourceRefs": [],
+      "curatorNotes": "Strong architecture image; useful after past-024 or as a terminal-detail card.",
+      "recommendedFuturePlacement": "Stage for HC-2 Historical Gallery intake upon rights verification"
+    },
+    {
+      "id": "past-033",
+      "originalFilename": "Gaza-Airport-Past-Exterior-Intact-2.jpg",
+      "bytes": 26528,
+      "sha256": "66df0929cbdf15d85875cc35e1a10b8b87d8baddea4a4cb24030cd7bc44e97bc",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "airport-architecture"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "staging-rights-review",
+      "platformPublicationStatus": "staging",
+      "sourceRefs": [],
+      "curatorNotes": "",
+      "recommendedFuturePlacement": "Stage for HC-2 Historical Gallery intake upon rights verification"
+    },
+    {
+      "id": "past-034",
+      "originalFilename": "Gaza-Airport-Past-Exterior-Opening-Yasser-Arafat-Bill-Clinton.jpg",
+      "bytes": 57498,
+      "sha256": "cf3bd3f30e02fe97df0d4f3da7d0f4ba4aa3202dcf0002b00681efb53d2c54a2",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "official-visits"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "hold-provenance-or-rights",
+      "platformPublicationStatus": "hold-provenance",
+      "sourceRefs": [],
+      "curatorNotes": "Do not infer identities from appearance. Independent historical evidence confirms a ribbon-cutting airport event on 14 Dec 1998, but this exact supplied scan has not been matched. Safer production alternative: the Barbara Kinney White House image on Wikimedia Commons is explicitly dated 14 Dec 1998 and public domain in the U.S.",
+      "recommendedFuturePlacement": "Held: provenance and rights unresolved in intake manifest; requires independent archival and rights verification before documentary staging."
+    },
+    {
+      "id": "past-035",
+      "originalFilename": "Gaza-Airport-Past-Exterior-Opening-Yasser-Arafat-Bill-Clinton-1.jpg",
+      "bytes": 79708,
+      "sha256": "708fce86ef8f65ff199fee7c5b81f86d5f1bbd06f74f91cf25ddf04092c436b7",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "official-visits"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "hold-provenance-or-rights",
+      "platformPublicationStatus": "hold-provenance",
+      "sourceRefs": [],
+      "curatorNotes": "Do not use personal names in the public caption until exact-source metadata establishes them.",
+      "recommendedFuturePlacement": "Held: provenance and rights unresolved in intake manifest; requires independent archival and rights verification before documentary staging."
+    },
+    {
+      "id": "past-036",
+      "originalFilename": "Gaza-Airport-Past-Exterior-Opening-Yasser-Arafat-King-Abdullah-Second-Of-Jordan-2.jpg",
+      "bytes": 58803,
+      "sha256": "8721e6d500438f29aee63efca716835c9330ab9377fd190ba94180846f8e7e56",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "official-visits"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "hold-provenance-or-rights",
+      "platformPublicationStatus": "hold-provenance",
+      "sourceRefs": [],
+      "curatorNotes": "The historical visit is externally documented; the image-event match remains unverified. Do not identify individuals from appearance.",
+      "recommendedFuturePlacement": "Held: provenance and rights unresolved in intake manifest; requires independent archival and rights verification before documentary staging."
+    },
+    {
+      "id": "past-037",
+      "originalFilename": "Gaza-Airport-Past-Exterior-Plane-4.jpg",
+      "bytes": 22087,
+      "sha256": "3d0040f5853996a21bd5214a3460e5ccbe44410e3a2bf8a2fdcc300f39c53a8b",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "aircraft-fleet"
+      ],
+      "evidenceStatus": "verified",
+      "rightsStatus": "cleared-external-license-gfdl-1.2",
+      "curatorPublicationStatus": "ready-if-license-conditions-followed",
+      "platformPublicationStatus": "staging",
+      "sourceRefs": [
+        "https://commons.wikimedia.org/wiki/File:Palestinian_Airlines_Boeing_727-230-Adv_Hoppe.jpg"
+      ],
+      "curatorNotes": "Photographer: Perry Hoppe. Captured at Dubai (DXB). Commons records GFDL 1.2 only and VRT permission confirmed. Must comply with GFDL 1.2 conditions and never be labeled as a Gaza airport photograph.",
+      "recommendedFuturePlacement": "Stage for historical fleet context only with explicit GFDL 1.2 license and Dubai location attribution; must not be labeled as Gaza airport.",
+      "location": "Dubai, United Arab Emirates (not Gaza airport)"
+    },
+    {
+      "id": "past-038",
+      "originalFilename": "Gaza-Airport-Past-Exterior-Security-Guards-Praying-Garden.jpg",
+      "bytes": 218745,
+      "sha256": "bcd81429235605d5694b896f8f70a8ed027ccb5fa98f4210e590ad3ab87d733c",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "airport-architecture"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "staging-rights-review",
+      "platformPublicationStatus": "staging",
+      "sourceRefs": [],
+      "curatorNotes": "Avoid stating 'security guards praying' unless source provenance confirms both role and activity.",
+      "recommendedFuturePlacement": "Stage for HC-2 Historical Gallery intake upon rights verification"
+    },
+    {
+      "id": "past-039",
+      "originalFilename": "Gaza-Airport-Past-Exterior-Tower.jpg",
+      "bytes": 64838,
+      "sha256": "1c31290e2a97f65ec614cff185fd89a363268504a3ff66bfcce4ebdf5e35a44f",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "damage-aftermath",
+      "subjects": [
+        "damage-ruins"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "visible-logo-or-watermark",
+      "curatorPublicationStatus": "hold-rights",
+      "platformPublicationStatus": "hold-rights",
+      "sourceRefs": [],
+      "curatorNotes": "Small visible logo/watermark at upper-left; preserve it and trace the source before publication. Do not assign the image specifically to December 2001, January 2002, 2006 or another event without source metadata.",
+      "recommendedFuturePlacement": "Hold rights clearance: commercial news agency / Getty / Reuters attribution required"
+    },
+    {
+      "id": "past-040",
+      "originalFilename": "Gaza-Airport-Past-Exterior-Tower-Intact-2.jpg",
+      "bytes": 56681,
+      "sha256": "fb4e3e10634f82aad62a20640468c7291173895481491f47b38fa35830fb2882",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "airport-architecture"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "staging-rights-review",
+      "platformPublicationStatus": "staging",
+      "sourceRefs": [],
+      "curatorNotes": "Strong architecture detail and potential cover/section card after rights clearance.",
+      "recommendedFuturePlacement": "Stage for HC-2 Historical Gallery intake upon rights verification"
+    },
+    {
+      "id": "past-041",
+      "originalFilename": "Gaza-Airport-Past-Exterior-two-Workers-Working.jpg",
+      "bytes": 199058,
+      "sha256": "1d2c9d85ac3d643f4a4002f4f4a38a34396a04d769716e0cbf348008a9a9c175",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "pre-opening-construction",
+      "subjects": [
+        "operations-services"
+      ],
+      "evidenceStatus": "verified",
+      "rightsStatus": "rights-managed-afp-getty",
+      "curatorPublicationStatus": "hold-rights",
+      "platformPublicationStatus": "hold-rights",
+      "sourceRefs": [
+        "https://www.gettyimages.be/detail/nieuwsfoto%27s/palestinians-workers-asphalt-a-road-at-gaza-international-nieuwsfotos/1223641884"
+      ],
+      "curatorNotes": "Exact archive match found. Do not publish the supplied copy without AFP/Getty licensing or another legitimate licence/source. Useful historical anchor for the final construction/pre-opening phase.",
+      "recommendedFuturePlacement": "Hold rights clearance: commercial news agency / Getty / Reuters attribution required"
+    },
+    {
+      "id": "past-042",
+      "originalFilename": "Gaza-Airport-Past-Interior-Baggage-Claim.jpg",
+      "bytes": 105454,
+      "sha256": "ec9d86d80198b6374e726b0c9720db82e435f774cbdb7be6d332c72e8fa89cd1",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "interior-passenger-spaces"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "staging-rights-review",
+      "platformPublicationStatus": "staging",
+      "sourceRefs": [],
+      "curatorNotes": "High-value interior establishing image. Do not infer a specific year from the architecture alone.",
+      "recommendedFuturePlacement": "Stage for HC-2 Historical Gallery intake upon rights verification"
+    },
+    {
+      "id": "past-043",
+      "originalFilename": "Gaza-Airport-Past-Interior-Baggage-Claim-1.jpg",
+      "bytes": 23874,
+      "sha256": "e44324b7d41857fee3dbf2aaa7c836e40c2b470727905a76a11686ee88d69cbf",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "interior-passenger-spaces"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "staging-rights-review",
+      "platformPublicationStatus": "staging",
+      "sourceRefs": [],
+      "curatorNotes": "Keep as a supporting angle rather than a featured image because past-042 is much stronger.",
+      "recommendedFuturePlacement": "Stage for HC-2 Historical Gallery intake upon rights verification"
+    },
+    {
+      "id": "past-044",
+      "originalFilename": "Gaza-Airport-Past-Interior-Bank-1.jpg",
+      "bytes": 40143,
+      "sha256": "aef4a46d713ae85ab08000e88caa932f81a2cfb259106eb2e573a9f310b935ed",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "operations-services"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "staging-rights-review",
+      "platformPublicationStatus": "staging",
+      "sourceRefs": [],
+      "curatorNotes": "Visible text is useful primary visual evidence of an in-terminal service.",
+      "recommendedFuturePlacement": "Stage for HC-2 Historical Gallery intake upon rights verification"
+    },
+    {
+      "id": "past-045",
+      "originalFilename": "Gaza-Airport-Past-Interior-Boarding-Area-1.jpg",
+      "bytes": 24600,
+      "sha256": "9d20d5b7313211ece6e07f8f794d39029a4c5ffe21b4bf9fd4a9eaee526318db",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "interior-passenger-spaces"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "staging-rights-review",
+      "platformPublicationStatus": "staging",
+      "sourceRefs": [],
+      "curatorNotes": "Do not hard-code 'boarding gates' or 'check-in desks' unless provenance identifies the function.",
+      "recommendedFuturePlacement": "Stage for HC-2 Historical Gallery intake upon rights verification"
+    },
+    {
+      "id": "past-046",
+      "originalFilename": "Gaza-Airport-Past-Interior-Hall-1.jpg",
+      "bytes": 27798,
+      "sha256": "c5a39eae1e69865b65d2368e849578844e22cbe56e8c4218d6a596d3f4489248",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "interior-passenger-spaces"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "staging-rights-review",
+      "platformPublicationStatus": "staging",
+      "sourceRefs": [],
+      "curatorNotes": "",
+      "recommendedFuturePlacement": "Stage for HC-2 Historical Gallery intake upon rights verification"
+    },
+    {
+      "id": "past-047",
+      "originalFilename": "Gaza-Airport-Past-Interior-Opening-Yasser-Arafat-King-Abdullah-Second-Of-Jordan.jpg",
+      "bytes": 63828,
+      "sha256": "ca5a99788b21d840a5300e1353038449b0f5937c23b6307bd1e0373f13545619",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "official-visits"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "hold-provenance-or-rights",
+      "platformPublicationStatus": "hold-provenance",
+      "sourceRefs": [],
+      "curatorNotes": "Contemporary reporting confirms King Abdullah II's first visit to the Palestinian autonomous areas in Gaza on 26 May 1999, arriving via Gaza International Airport; this exact scan has not been source-matched. Do not identify people from appearance.",
+      "recommendedFuturePlacement": "Held: provenance and rights unresolved in intake manifest; requires independent archival and rights verification before documentary staging."
+    },
+    {
+      "id": "past-048",
+      "originalFilename": "Gaza-Airport-Past-Interior-Opening-Yasser-Arafat-King-Abdullah-Second-Of-Jordan-1.jpg",
+      "bytes": 97414,
+      "sha256": "1ef7faf3620c55ce9276339b352a43f34fcc612181a59b9f920aaf8adcff3897",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "official-visits"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "hold-provenance-or-rights",
+      "platformPublicationStatus": "hold-provenance",
+      "sourceRefs": [],
+      "curatorNotes": "Do not identify the visible individuals until an exact source caption is attached. Keep separate from the 24 Nov 1998 opening and 14 Dec 1998 U.S. presidential visit.",
+      "recommendedFuturePlacement": "Held: provenance and rights unresolved in intake manifest; requires independent archival and rights verification before documentary staging."
+    },
+    {
+      "id": "past-049",
+      "originalFilename": "Gaza-Airport-Past-Interior-People-In-The-Hall.jpg",
+      "bytes": 64781,
+      "sha256": "87bab4b40fc65f75774b9bad5bcb3b7a0978e2f8d3e2528d99feb9d893e35027",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "passengers-pilgrimage"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "staging-rights-review",
+      "platformPublicationStatus": "staging",
+      "sourceRefs": [],
+      "curatorNotes": "One of the strongest human-use images because it documents the terminal in active use.",
+      "recommendedFuturePlacement": "Stage for HC-2 Historical Gallery intake upon rights verification"
+    },
+    {
+      "id": "past-050",
+      "originalFilename": "Gaza-Airport-Past-Interior-Real-Photo.jpg",
+      "bytes": 465869,
+      "sha256": "845fea904f291db18a9e62582bd33ffe352026d3cd6a2da3133c4c3f586e45e7",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "interior-passenger-spaces"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "staging-rights-review",
+      "platformPublicationStatus": "staging",
+      "sourceRefs": [],
+      "curatorNotes": "Canonical copy for the byte-identical duplicate past-052.",
+      "recommendedFuturePlacement": "Stage for HC-2 Historical Gallery intake upon rights verification"
+    },
+    {
+      "id": "past-051",
+      "originalFilename": "Gaza-Airport-Past-Interior-Security-Check-Area-1.jpg",
+      "bytes": 28106,
+      "sha256": "3aa3b4ac58b2885de5572cb49495980a2536d6d0649ccafd5f1e05d69df4b2ab",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "operations-services"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "staging-rights-review",
+      "platformPublicationStatus": "staging",
+      "sourceRefs": [],
+      "curatorNotes": "Useful operational detail and good companion to the research article about the airport's security arrangements.",
+      "recommendedFuturePlacement": "Stage for HC-2 Historical Gallery intake upon rights verification"
+    },
+    {
+      "id": "past-052",
+      "originalFilename": "Gaza-Airport-Past-Interior-Waiting-Area-Hall.jpg",
+      "bytes": 465869,
+      "sha256": "845fea904f291db18a9e62582bd33ffe352026d3cd6a2da3133c4c3f586e45e7",
+      "duplicateOf": "past-050",
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "interior-passenger-spaces"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "same-as-canonical",
+      "curatorPublicationStatus": "exclude-duplicate",
+      "platformPublicationStatus": "excluded",
+      "sourceRefs": [],
+      "curatorNotes": "SHA-256 is identical to past-050. Keep only as an alias/provenance record; do not ship both files to production.",
+      "recommendedFuturePlacement": "Exclude from documentary stream: byte-identical duplicate of past-050"
+    },
+    {
+      "id": "past-053",
+      "originalFilename": "Gaza-Airport-Past-Interior-Waiting-Area-Hall-1.jpg",
+      "bytes": 33407,
+      "sha256": "074306cc6d43339e114d6d96dd3c633a0c7a08fc229e690cef8f6f90b9ea3557",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "interior-passenger-spaces"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "staging-rights-review",
+      "platformPublicationStatus": "staging",
+      "sourceRefs": [],
+      "curatorNotes": "",
+      "recommendedFuturePlacement": "Stage for HC-2 Historical Gallery intake upon rights verification"
+    },
+    {
+      "id": "past-054",
+      "originalFilename": "Gaza-Airport-Past-Palestinian-Authority-Stamp-08.04.200-Passport-Control-Going-Out.jpg",
+      "bytes": 21840,
+      "sha256": "5e289a155aea2339e10bad0f4049ab3d55521265e6708c641b6640944637a314",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "documents-ephemera"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown-source-artifact-photo",
+      "curatorPublicationStatus": "staging-rights-review",
+      "platformPublicationStatus": "staging",
+      "sourceRefs": [],
+      "curatorNotes": "Do not infer entry versus exit direction from the filename unless the stamp symbol is authoritatively decoded or provenance confirms it. This belongs under Documents/Ephemera, not ordinary photography.",
+      "recommendedFuturePlacement": "Stage for HC-2 Historical Gallery intake upon rights verification"
+    },
+    {
+      "id": "past-055",
+      "originalFilename": "Gaza-Airport-Past-People-Flying-Hospital-Airpline.jpg",
+      "bytes": 164611,
+      "sha256": "6995140ca109f122b653ac1d6c6ff68ad3c54aa84e4558340b2379e98fac8f74",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "humanitarian-aviation"
+      ],
+      "evidenceStatus": "partially-verified",
+      "rightsStatus": "hold-reuters-credit-visible",
+      "curatorPublicationStatus": "hold-rights",
+      "platformPublicationStatus": "hold-rights",
+      "sourceRefs": [
+        "https://www.pua-gaza.org/gaza-international-airport"
+      ],
+      "curatorNotes": "Operation Smile documents the 1999 World Journey of Hope using an L-1011 flying hospital. Reuters archive material from the Gaza mission is dated March 1999; one matched Reuters frame by Ahmed Jadallah was shot 18 Mar 1999, but the supplied frame is not claimed to be that exact asset. Never crop the Reuters credit.",
+      "recommendedFuturePlacement": "Hold rights clearance: commercial news agency / Getty / Reuters attribution required"
+    },
+    {
+      "id": "past-056",
+      "originalFilename": "Gaza-Airport-Past-Tower-Control-People-Working.jpg",
+      "bytes": 125710,
+      "sha256": "8c55b7344b3928887bf7dba146e109e8b1c3c22d5ece63c0f95287a42c30499b",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "operations-services"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "staging-rights-review",
+      "platformPublicationStatus": "staging",
+      "sourceRefs": [],
+      "curatorNotes": "Strong evidence of operational staffing and equipment; no personal identities are needed for the public caption.",
+      "recommendedFuturePlacement": "Stage for HC-2 Historical Gallery intake upon rights verification"
+    },
+    {
+      "id": "past-057",
+      "originalFilename": "Yasser-Arafat-Nelson-Mandella.jpg",
+      "bytes": 202974,
+      "sha256": "a4fff011853d2adbe8d04e6a124eb0875624ae69cb602c78ab54f07aba7eb06b",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "official-visits"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "hold-agency-rights-afp-or-reuters",
+      "curatorPublicationStatus": "hold-rights",
+      "platformPublicationStatus": "hold-rights",
+      "sourceRefs": [
+        "https://www.thenationalnews.com/2021/06/16/in-pictures-the-former-glory-of-gazas-international-airport/"
+      ],
+      "curatorNotes": "The National's AFP archive gallery describes an image of Arafat and Mandela waving at Gaza International Airport on 19 Oct 1999. Reuters records independently confirm Mandela's arrival at Gaza International Airport on 19 Oct 1999. Treat this as rights-managed agency material unless a different legitimate source for the exact file is established.",
+      "recommendedFuturePlacement": "Hold rights clearance: commercial news agency / Getty / Reuters attribution required"
+    },
+    {
+      "id": "past-058",
+      "originalFilename": "مطار-غزة-الدولي-768x484.jpg",
+      "bytes": 63699,
+      "sha256": "dc1704e3044229b08bed266986a4e00a8a0056eee54d1012e5254c6b1053b312",
+      "duplicateOf": null,
+      "medium": "photograph",
+      "phase": "operational-era",
+      "subjects": [
+        "airport-architecture"
+      ],
+      "evidenceStatus": "unverified",
+      "rightsStatus": "unknown",
+      "curatorPublicationStatus": "staging-rights-review",
+      "platformPublicationStatus": "staging",
+      "sourceRefs": [],
+      "curatorNotes": "The 768x484-style filename suggests this may be a web-derived copy; trace its original source before production publication.",
+      "recommendedFuturePlacement": "Stage for HC-2 Historical Gallery intake upon rights verification"
+    }
+  ]
+}

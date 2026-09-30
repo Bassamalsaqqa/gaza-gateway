@@ -7,9 +7,10 @@ import { cn } from "@/lib/utils";
 
 export interface PublicPhotoHeroProps {
   mediaId: ApprovedMediaId;
-  routeKey: "airport" | "gallery" | "destinations" | "travel" | "manage" | "check-in" | "flights";
+  routeKey: "airport" | "present" | "gallery" | "destinations" | "travel" | "manage" | "check-in" | "flights";
   title: string;
   description?: string;
+  archiveContext?: string;
   children?: ReactNode;
   focalPosition?: string;
   className?: string;
@@ -20,6 +21,7 @@ export function PublicPhotoHero({
   routeKey,
   title,
   description,
+  archiveContext,
   children,
   focalPosition = "50% 50%",
   className,
@@ -29,7 +31,11 @@ export function PublicPhotoHero({
   // Internal truth classification preserved for policy enforcement — not rendered as a passenger-visible pill
   const truthClass = entry?.truthClass ?? "illustrative-photo";
 
-  const archiveLabel = t("media.archive2000Label");
+  const defaultArchiveLabel =
+    mediaId === "airport-present-ruins-2008"
+      ? t("media.archive2008Label")
+      : t("media.archive2000Label");
+  const resolvedArchiveLabel = archiveContext ?? defaultArchiveLabel;
 
   return (
     <section
@@ -75,7 +81,7 @@ export function PublicPhotoHero({
               data-archive-context
               className="eyebrow mb-2 text-clay-soft sm:mb-3"
             >
-              {archiveLabel}
+              {resolvedArchiveLabel}
             </p>
           ) : null}
 

@@ -3330,6 +3330,14 @@ async function runBrowserSmoke() {
           arText: "الأرشيف",
         },
         {
+          path: "/airport/present",
+          arPath: "/ar/airport/present",
+          key: "present",
+          expectArchiveContext: true,
+          enText: "June 2008",
+          arText: "2008",
+        },
+        {
           path: "/gallery",
           arPath: "/ar/gallery",
           key: "gallery",
@@ -4551,6 +4559,266 @@ async function runBrowserSmoke() {
       await page.evaluate(() => {
         localStorage.clear();
       });
+    });
+
+    await checkStep("Check 36: HC-0 / HC-1 Present Documentary Dossier, Hero & Nine Designer Artwork Skins Smoke", async () => {
+      for (const locale of ["", "/ar"]) {
+        const isAr = locale === "/ar";
+        const routePath = `${locale}/airport/present`;
+
+        await page.setViewportSize({ width: 1440, height: 900 });
+        await page.goto(baseUrl + routePath, { waitUntil: "domcontentloaded" });
+
+        // 1. Hero verification
+        const hero = page.locator('[data-public-hero="present"]');
+        if ((await hero.count()) === 0) {
+          throw new Error(`Missing [data-public-hero="present"] on ${routePath}`);
+        }
+
+        const heroImg = hero.locator("img").first();
+        const heroLoaded = await heroImg.evaluate((img) => img.complete && img.naturalWidth > 0);
+        if (!heroLoaded) {
+          throw new Error(`Hero image failed to load on ${routePath}`);
+        }
+
+        const heroSrc = await heroImg.getAttribute("src");
+        if (!heroSrc || !heroSrc.includes("airport-present-ruins-2008") || !heroSrc.includes(".webp")) {
+          throw new Error(`Hero image src does not use airport-present-ruins-2008 WebP on ${routePath}: ${heroSrc}`);
+        }
+
+        // Hero strictly never mirrored
+        const heroMirrored = await heroImg.evaluate((img) => {
+          const style = window.getComputedStyle(img);
+          return style.transform.includes("matrix(-1") || img.classList.contains("scale-x-[-1]");
+        });
+        if (heroMirrored) {
+          throw new Error(`Hero image was mirrored on ${routePath}`);
+        }
+
+        // Hero archive context eyebrow
+        const eyebrow = hero.locator("[data-archive-context]");
+        if ((await eyebrow.count()) === 0) {
+          throw new Error(`Missing [data-archive-context] eyebrow on ${routePath}`);
+        }
+        const eyebrowText = await eyebrow.innerText();
+        if (isAr) {
+          if (!eyebrowText.includes("2008") || !eyebrowText.includes("يونيو/حزيران")) {
+            throw new Error(`Arabic eyebrow expected 'موقع المطار · موثق في يونيو/حزيران 2008', got '${eyebrowText}'`);
+          }
+        } else {
+          const lower = eyebrowText.toLowerCase();
+          if (!lower.includes("june 2008") || !lower.includes("airport site")) {
+            throw new Error(`English eyebrow expected 'Airport site · documented June 2008', got '${eyebrowText}'`);
+          }
+        }
+
+        // No "today" label in hero or title claiming photo depicts current condition
+        if (!isAr && eyebrowText.toLowerCase().includes("today")) {
+          throw new Error(`Hero eyebrow must not claim 2008 photo is today`);
+        }
+
+        // 2. Four Fact Cards with Decorative Skins
+        const factKeys = ["fact-location", "fact-aero-codes", "fact-operating-period", "fact-facility-status"];
+        for (const fKey of factKeys) {
+          const card = page.locator(`[data-fact-card="${fKey}"]`);
+          if ((await card.count()) === 0) {
+            throw new Error(`Missing [data-fact-card="${fKey}"] on ${routePath}`);
+          }
+          await card.scrollIntoViewIfNeeded();
+          const skinImg = card.locator("img").first();
+          if ((await skinImg.count()) === 0) {
+            throw new Error(`Missing decorative skin img in ${fKey} on ${routePath}`);
+          }
+          await skinImg.scrollIntoViewIfNeeded();
+          await page.waitForFunction(
+            (sel) => {
+              const img = document.querySelector(sel);
+              return img && img.complete && img.naturalWidth > 0;
+            },
+            `[data-fact-card="${fKey}"] img`,
+            { timeout: 8000 }
+          );
+          const skinLoaded = await skinImg.evaluate((img) => img.complete && img.naturalWidth > 0);
+          if (!skinLoaded) {
+            throw new Error(`Skin image in ${fKey} failed to load on ${routePath}`);
+          }
+          const skinSrc = await skinImg.getAttribute("src");
+          if (!skinSrc || !skinSrc.includes(fKey) || !skinSrc.includes(".webp")) {
+            throw new Error(`Skin in ${fKey} did not load expected ${fKey} WebP: ${skinSrc}`);
+          }
+          const ariaHidden = await skinImg.getAttribute("aria-hidden");
+          const altAttr = await skinImg.getAttribute("alt");
+          if (ariaHidden !== "true" || altAttr !== "") {
+            throw new Error(`Skin in ${fKey} must have alt="" and aria-hidden="true"`);
+          }
+        }
+
+        // 3. Three Dossier Panels with Decorative Skins
+        const dossierKeys = ["dossier-boundaries", "dossier-runway", "dossier-verification"];
+        for (const dKey of dossierKeys) {
+          const panel = page.locator(`[data-dossier-panel="${dKey}"]`);
+          if ((await panel.count()) === 0) {
+            throw new Error(`Missing [data-dossier-panel="${dKey}"] on ${routePath}`);
+          }
+          await panel.scrollIntoViewIfNeeded();
+          const skinImg = panel.locator("img").first();
+          if ((await skinImg.count()) === 0) {
+            throw new Error(`Missing decorative skin img in ${dKey} on ${routePath}`);
+          }
+          await skinImg.scrollIntoViewIfNeeded();
+          await page.waitForFunction(
+            (sel) => {
+              const img = document.querySelector(sel);
+              return img && img.complete && img.naturalWidth > 0;
+            },
+            `[data-dossier-panel="${dKey}"] img`,
+            { timeout: 8000 }
+          );
+          const skinLoaded = await skinImg.evaluate((img) => img.complete && img.naturalWidth > 0);
+          if (!skinLoaded) {
+            throw new Error(`Skin image in ${dKey} failed to load on ${routePath}`);
+          }
+          const skinSrc = await skinImg.getAttribute("src");
+          if (!skinSrc || !skinSrc.includes(dKey) || !skinSrc.includes(".webp")) {
+            throw new Error(`Skin in ${dKey} did not load expected ${dKey} WebP: ${skinSrc}`);
+          }
+        }
+
+        // 4. Spatial Aside with Spatial Geometry Skin
+        const spatialAside = page.locator("[data-spatial-aside]");
+        if ((await spatialAside.count()) === 0) {
+          throw new Error(`Missing [data-spatial-aside] on ${routePath}`);
+        }
+        await spatialAside.scrollIntoViewIfNeeded();
+        const spatialImg = spatialAside.locator("img").first();
+        await spatialImg.scrollIntoViewIfNeeded();
+        await page.waitForFunction(
+          (sel) => {
+            const img = document.querySelector(sel);
+            return img && img.complete && img.naturalWidth > 0;
+          },
+          "[data-spatial-aside] img",
+          { timeout: 8000 }
+        );
+        const spatialLoaded = await spatialImg.evaluate((img) => img.complete && img.naturalWidth > 0);
+        if (!spatialLoaded) {
+          throw new Error(`Spatial geometry skin failed to load on ${routePath}`);
+        }
+        const spatialSrc = await spatialImg.getAttribute("src");
+        if (!spatialSrc || !spatialSrc.includes("spatial-geometry") || !spatialSrc.includes(".webp")) {
+          throw new Error(`Spatial aside did not load spatial-geometry WebP: ${spatialSrc}`);
+        }
+
+        // Ensure old seeded map is NOT present anywhere on the page
+        const allImgs = await page.locator("img").evaluateAll((imgs) => imgs.map((i) => i.src));
+        if (allImgs.some((src) => src.includes("map-outline-neutral"))) {
+          throw new Error(`map-outline-neutral must be removed from ${routePath}`);
+        }
+
+        // 5. International Corridors Transition Panel (Ninth Master Skin)
+        const transitionPanel = page.locator("[data-transition-panel]");
+        if ((await transitionPanel.count()) === 0) {
+          throw new Error(`Missing [data-transition-panel] on ${routePath}`);
+        }
+        await transitionPanel.scrollIntoViewIfNeeded();
+        const transitionImg = transitionPanel.locator("img").first();
+        await transitionImg.scrollIntoViewIfNeeded();
+        await page.waitForFunction(
+          (sel) => {
+            const img = document.querySelector(sel);
+            return img && img.complete && img.naturalWidth > 0;
+          },
+          "[data-transition-panel] img",
+          { timeout: 8000 }
+        );
+        const transitionLoaded = await transitionImg.evaluate((img) => img.complete && img.naturalWidth > 0);
+        if (!transitionLoaded) {
+          throw new Error(`Ninth skin (global-network) failed to load on ${routePath}`);
+        }
+        const transitionSrc = await transitionImg.getAttribute("src");
+        if (!transitionSrc || !transitionSrc.includes("global-network") || !transitionSrc.includes(".webp")) {
+          throw new Error(`Transition panel did not load global-network WebP: ${transitionSrc}`);
+        }
+
+        // 6. Check discoverable attribution links & localized credit
+        const commonsLink = page.locator('a[href*="commons.wikimedia.org/wiki/File:Gaza_AirPort"]');
+        if ((await commonsLink.count()) === 0) {
+          throw new Error(`Missing Commons attribution link on ${routePath}`);
+        }
+        const licenseLink = page.locator('a[href*="creativecommons.org/licenses/by-sa/2.0"]');
+        if ((await licenseLink.count()) === 0) {
+          throw new Error(`Missing CC BY-SA 2.0 license link on ${routePath}`);
+        }
+        const attributionEl = page.locator("div.border-t p").first();
+        const attributionText = await attributionEl.innerText();
+        if (!attributionText.includes("Gisha Access")) {
+          throw new Error(`Attribution text must credit 'Gisha Access' on ${routePath}`);
+        }
+        if (attributionText.includes("Mohammed Yousif Azaiza")) {
+          throw new Error(`Attribution text must NOT invent photographer name on ${routePath}`);
+        }
+
+        // 7. Check localized fact card details and explicit LTR technical isolation
+        const factDetails = await page.locator("[data-fact-card] div > p.text-xs").allInnerTexts();
+        if (isAr) {
+          if (!factDetails.some((d) => d.includes("المدرج") || d.includes("مصر") || d.includes("الرحلات"))) {
+            throw new Error(`Arabic fact card details must be rendered in Arabic on ${routePath}`);
+          }
+        } else {
+          if (!factDetails.some((d) => d.includes("Runway") || d.includes("Adjacent") || d.includes("Commercial"))) {
+            throw new Error(`English fact card details must be rendered in English on ${routePath}`);
+          }
+        }
+
+        // Verify explicit LTR isolation for codes and runway 01/19 in fact-aero-codes card
+        const aeroCard = page.locator('[data-fact-card="fact-aero-codes"]');
+        const aeroLtr = aeroCard.locator('[dir="ltr"]');
+        if ((await aeroLtr.count()) < 2) {
+          throw new Error(`fact-aero-codes card must have at least 2 LTR spans (codes and runway) on ${routePath}`);
+        }
+        const aeroTexts = (await aeroLtr.allInnerTexts()).map((t) => t.trim());
+        if (!aeroTexts.some((t) => t.includes("IATA: GZA · ICAO: LVGZ"))) {
+          throw new Error(`Missing LTR aero codes on ${routePath}`);
+        }
+        if (!aeroTexts.some((t) => t.includes("01/19"))) {
+          throw new Error(`Missing LTR runway 01/19 on ${routePath}`);
+        }
+
+        // 8. Ensure NO raw intake Arabic PNG names leak into page image sources
+        if (allImgs.some((src) => /[\u0600-\u06FF]/.test(src) || src.includes(".png") && src.includes("images_assets"))) {
+          throw new Error(`Raw Arabic PNG or uncompressed intake image leaked into ${routePath}`);
+        }
+
+        // 9. Verify technical codes remain LTR
+        const ltrCodes = await page.locator(".code-id").evaluateAll((els) =>
+          els.map((el) => el.getAttribute("dir") === "ltr" || window.getComputedStyle(el).direction === "ltr")
+        );
+        if (ltrCodes.some((isLtr) => !isLtr)) {
+          throw new Error(`Technical codes must be rendered LTR on ${routePath}`);
+        }
+
+        // 10. Responsive overflow checks & mobile fact card visibility
+        for (const w of [1440, 1024, 768, 390, 320]) {
+          await page.setViewportSize({ width: w, height: 800 });
+          const overflow = await page.evaluate(() => document.body.scrollWidth > document.body.clientWidth);
+          if (overflow) {
+            throw new Error(`Horizontal scroll overflow on ${routePath} at ${w}px`);
+          }
+
+          if (w <= 390) {
+            const runwayVisible = await aeroCard.locator('[dir="ltr"]').filter({ hasText: "01/19" }).first().isVisible();
+            if (!runwayVisible) {
+              throw new Error(`Runway 01/19 not visible on ${routePath} at ${w}px`);
+            }
+            const codesVisible = await aeroCard.locator('[dir="ltr"]').filter({ hasText: "IATA: GZA · ICAO: LVGZ" }).first().isVisible();
+            if (!codesVisible) {
+              throw new Error(`Aero codes not visible on ${routePath} at ${w}px`);
+            }
+          }
+        }
+      }
+
+      await page.setViewportSize({ width: 1440, height: 900 });
     });
 
   } finally {

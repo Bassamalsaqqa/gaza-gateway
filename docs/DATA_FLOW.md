@@ -1,8 +1,8 @@
 # Data Flow, State Management & Pretend-Action Inventory
 
 > **Document Purpose**: Complete audit of current data sources, state persistence, cross-screen entity splits, and enabled no-op actions across public and admin workspaces.
-> **Status**: **Phase 5 in Progress — Phase 5A Complete (Passenger State, Account & Auth-Truth Convergence)**. Owner-accepted visual baseline (`design/media-checkpoint-visual-cleanup-01`) is accepted on main. Phase 5A is accepted and complete; Phase 5B is next/unstarted.
-> **Future Target**: Phase 5B (Booking Draft & Search Convergence, next), Phase 5C (Manage, Check-in & Boarding Pass Convergence), Phase 5D (Public Contact Workflow Convergence), then Phase 6 before any production backend.
+> **Status**: **HC-0 / HC-1 Present Dossier & Archive Foundation (Engineering Accepted; Awaiting Owner Visual Acceptance)**. Phase 5A complete; Phase 5B paused; HC-2/HC-3 not started.
+> **Future Target**: Owner visual acceptance of HC-0 / HC-1, then Phase 5B (Booking Draft & Search Convergence, paused), Phase 5C (Manage, Check-in & Boarding Pass Convergence), Phase 5D (Public Contact Workflow Convergence), then Phase 6 before any production backend.
 
 ---
 
@@ -80,7 +80,7 @@ To maintain strict truth and prevent unverified imagery or text from entering th
 3. **Optimized Variant Generation**: Output WebP/AVIF variants at standardized widths (`640w`, `960w`, `1280w`, `1376w`) with explicit intrinsic aspect ratios.
 4. **Registration in `src/lib/media.ts`**: Declare stable semantic IDs (`future-hero`, `future-aerial-day`, etc.) and bilingual accessible descriptions (`altEn`, `altAr`).
 5. **Content Workflow**: Home, Travel and Past published copy lives in compiled typed records. The Admin Travel editor saves a browser-local draft only; approved global publication requires a source update and verified HostPapa release.
-6. **Strict Archival Truth**: Never present unlabeled material, mock data, or AI-generated concepts as historical evidence. Historical documentary photos carry compact `Archive · 2000` / `الأرشيف · 2000` truth badges; illustrative photos carry `Illustrative photograph` / `صورة توضيحية` disclosure badges; AI future concepts must always display visible illustrative disclosure badges. Photographic assets are never mirrored.
+6. **Strict Archival Truth**: Never present unlabeled material, mock data, or AI-generated concepts as historical evidence. Authentic documentary photos are presented without artificial truth badges over hero imagery; authentic archive provenance is provided via restrained editorial context and accessible attribution links; illustrative photos remain unbadged; AI future concepts must always display visible illustrative disclosure badges. Photographic assets are never mirrored.
 
 ### 1.6 Known SEO Gaps (Earmarked for Phase 11)
 

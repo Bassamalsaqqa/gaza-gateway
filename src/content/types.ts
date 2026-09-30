@@ -1,7 +1,7 @@
 import type { ApprovedMediaId } from "../lib/media-policy.ts";
 
 export type LocalizedText = { en: string; ar: string };
-export type ContentKey = "home" | "travel" | "airport.past" | "destinations.presentation";
+export type ContentKey = "home" | "travel" | "airport.past" | "airport.present" | "destinations.presentation";
 export type EvidenceState = "verified" | "provisional" | "placeholder";
 export type MediaReference =
   | { kind: "media"; id: ApprovedMediaId }
@@ -66,6 +66,47 @@ export interface AirportPastContent extends ContentEnvelope<"airport.past"> {
   timeline: HistoricalTimelineEntry[];
 }
 
+export interface AirportPresentFact {
+  id: string;
+  label: LocalizedText;
+  value: LocalizedText;
+  detail: LocalizedText;
+  sourceRefs: string[];
+}
+
+export interface AirportPresentDossier {
+  id: string;
+  title: LocalizedText;
+  paragraphs: LocalizedText[];
+  sourceRefs: string[];
+}
+
+export interface AirportPresentSpatial {
+  title: LocalizedText;
+  description: LocalizedText;
+  evidentiaryRuleTitle: LocalizedText;
+  evidentiaryRuleBody: LocalizedText;
+  sourceRefs: string[];
+}
+
+export interface AirportPresentGlobalHorizons {
+  eyebrow: LocalizedText;
+  title: LocalizedText;
+  description: LocalizedText;
+}
+
+export interface AirportPresentContent extends ContentEnvelope<"airport.present"> {
+  intro: {
+    title: LocalizedText;
+    subtitle: LocalizedText;
+    notice: LocalizedText;
+  };
+  facts: AirportPresentFact[];
+  dossiers: AirportPresentDossier[];
+  spatial: AirportPresentSpatial;
+  globalHorizons: AirportPresentGlobalHorizons;
+}
+
 export interface DestinationPhotoAssignment {
   code: "AMM" | "CAI" | "DOH" | "DXB" | "IST" | "JED" | "RUH";
   photoId: "city-amman" | "city-cairo" | "city-doha" | "city-dubai" | "city-istanbul" | "city-jeddah" | "city-riyadh";
@@ -80,6 +121,7 @@ export interface ContentMap {
   home: HomeContent;
   travel: TravelContent;
   "airport.past": AirportPastContent;
+  "airport.present": AirportPresentContent;
   "destinations.presentation": DestinationsPresentationContent;
 }
 export type ContentDocument = ContentMap[ContentKey];

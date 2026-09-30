@@ -824,7 +824,15 @@ export const en: Dict = {
   "media.ownerConceptNote":
     "Illustrative concept imagery. Not documentary evidence of the airport's historical or current condition.",
   "media.archive2000Label": "Archive · 2000",
+  "media.archive2008Label": "Airport site · documented June 2008",
   "media.illustrativePhotoLabel": "Illustrative photograph",
+
+  // present dossier photo credit
+  "present.credit.label": "Ruins documentary photograph: ",
+  "present.credit.sourceLabel": "Wikimedia Commons",
+  "present.credit.photoBy": "Photo: Gisha Access (June 13, 2008)",
+  "present.credit.licenseLabel": "Licensed under CC BY-SA 2.0",
+  "present.credit.modification": "Resized to responsive WebP derivatives (480w, 768w, 960w, 1109w); original panoramic framing preserved.",
 
   // error boundary (locale-aware, no i18n provider required — duplicated as static strings in root)
   "error.heading": "Something went wrong",
@@ -1634,7 +1642,15 @@ export const ar: Dict = {
   "media.ownerConceptNote":
     "صورة مفاهيمية توضيحية، وليست مادة توثيقية للحالة التاريخية أو الحالية للمطار.",
   "media.archive2000Label": "الأرشيف · 2000",
+  "media.archive2008Label": "موقع المطار · موثق في يونيو/حزيران 2008",
   "media.illustrativePhotoLabel": "صورة توضيحية",
+
+  // present dossier photo credit (AR)
+  "present.credit.label": "التوثيق الفوتوغرافي للأطلال: ",
+  "present.credit.sourceLabel": "ويكيميديا كومنز",
+  "present.credit.photoBy": "تصوير: Gisha Access (13 يونيو/حزيران 2008)",
+  "present.credit.licenseLabel": "ترخيص المشاع الإبداعي (CC BY-SA 2.0)",
+  "present.credit.modification": "تم تغيير الحجم إلى نسخ WebP متجاوبة (480، 768، 960، 1109 بكسل) مع الحفاظ على التأطير البانورامي الأصلي.",
 
   // error boundary (locale-aware)
   "error.heading": "حدث خطأ",

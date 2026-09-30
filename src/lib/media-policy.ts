@@ -39,6 +39,7 @@ export const APPROVED_MEDIA_CATALOG = {
   // Public photo heroes (Checkpoint 2026-09-29)
   "airport-archive-hero-2000": "historical-documentary",
   "gallery-aircraft-archive-2000": "historical-documentary",
+  "airport-present-ruins-2008": "historical-documentary",
   "destinations-hero": "illustrative-photo",
   "travel-info-hero": "illustrative-photo",
   "manage-booking-hero": "illustrative-photo",
