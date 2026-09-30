@@ -116,8 +116,8 @@ function PresentArtworkCard({
           aria-hidden="true"
           loading="lazy"
           className={cn(
-            "pointer-events-none absolute inset-0 size-full object-cover select-none",
-            imageClassName
+            "pointer-events-none absolute inset-0 size-full select-none",
+            imageClassName ?? "object-cover object-center"
           )}
         />
       ) : null}
@@ -196,8 +196,8 @@ function PresentPage() {
                 cardId={fact.id}
                 data-fact-card={fact.id}
                 imageSrc={skin}
-                imageClassName="object-center"
-                legibilityClassName="bg-gradient-to-t from-black/85 via-black/55 to-black/35"
+                imageClassName="object-fill"
+                legibilityClassName="bg-gradient-to-t from-ink/65 via-ink/25 to-transparent"
                 contentClassName="flex flex-1 flex-col justify-between p-5 min-h-[230px] sm:min-h-[250px]"
               >
                 <div>
@@ -236,8 +236,8 @@ function PresentPage() {
                   cardId={dossier.id}
                   data-dossier-panel={dossier.id}
                   imageSrc={skin}
-                  imageClassName="object-cover object-center"
-                  legibilityClassName="bg-gradient-to-t from-black/90 via-black/65 to-black/45"
+                  imageClassName="object-fill"
+                  legibilityClassName="bg-gradient-to-b sm:bg-gradient-to-r rtl:sm:bg-gradient-to-l from-ink/75 via-ink/55 to-ink/20"
                   contentClassName="p-6 sm:p-7"
                 >
                   <div className="flex items-center gap-2.5 text-white">
@@ -246,13 +246,13 @@ function PresentPage() {
                       {isArabic ? dossier.title.ar : dossier.title.en}
                     </h2>
                   </div>
-                  <div className="mt-4 space-y-3 max-w-3xl">
+                  <div className="mt-4 space-y-3 max-w-xl lg:max-w-2xl">
                     {dossier.paragraphs.map((p, idx) => (
                       <p
                         key={idx}
                         className={cn(
-                          "leading-relaxed text-sand/90",
-                          idx === 0 ? "text-base font-normal" : "text-sm text-sand/80"
+                          "leading-relaxed",
+                          idx === 0 ? "text-base font-normal text-white" : "text-sm text-sand"
                         )}
                       >
                         {isArabic ? p.ar : p.en}
@@ -270,8 +270,8 @@ function PresentPage() {
             cardId="spatial-geometry"
             data-spatial-aside
             imageSrc={spatialGeometrySkin}
-            imageClassName="object-cover object-center"
-            legibilityClassName="bg-gradient-to-b from-black/75 via-black/60 to-black/85"
+            imageClassName="object-fill"
+            legibilityClassName="bg-gradient-to-b from-ink/35 via-ink/10 to-transparent"
             contentClassName="flex flex-col justify-between p-6 sm:p-7 min-h-[380px]"
           >
             <div>
@@ -283,7 +283,7 @@ function PresentPage() {
               </p>
             </div>
 
-            <div className="mt-6 rounded-xl border border-white/15 bg-black/40 p-4 text-xs text-sand/85 backdrop-blur-xs">
+            <div className="mt-6 rounded-xl border border-ink-border/30 bg-ink/75 p-4 text-xs text-sand/90 backdrop-blur-xs">
               <div className="flex items-center gap-2">
                 <ShieldCheck aria-hidden="true" className="size-4 shrink-0 text-brand-soft" />
                 <span className="font-semibold text-white">
@@ -307,8 +307,8 @@ function PresentPage() {
           cardId="global-network"
           data-transition-panel
           imageSrc={globalNetworkSkin}
-          imageClassName="object-cover object-center"
-          legibilityClassName="bg-gradient-to-t from-black/85 via-black/60 to-black/40"
+          imageClassName="object-fill"
+          legibilityClassName="bg-gradient-to-t from-ink/60 via-ink/20 to-transparent"
           contentClassName="p-6 sm:p-8 md:p-10 min-h-[260px] sm:min-h-[300px] flex flex-col justify-end"
           className="mt-12"
         >
