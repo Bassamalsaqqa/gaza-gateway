@@ -1,6 +1,6 @@
 # Canonical Mock Domain & Repository Architecture
 
-> **Document Status**: Active Reference (Phase 4 — Canonical Mock Domain & Repository Layer)
+> **Document Status**: Active Reference (Phase 5 in progress — Phase 5A Complete / Canonical Passenger & Mock Domain Layer)
 > **Product**: Gaza Airport & Palestinian Airlines ([gazaairport.com](https://www.gazaairport.com))
 > **Phase 4 starting commits**: `9e36b869274830f84c97cbbefe3b3fb0a98c6d2e` (`main`); `92ad935f8477e1663eefa8282d2770c66b64b8b2` (`hostpapa-deploy`)
 > **Pre-operational Prototype Notice**: Gaza Gateway is an authentic, browser-local client-side prototype. It does not connect to a live backend database, payment gateway, GDS, or external server.

@@ -2,7 +2,7 @@
 
 > **Product**: Gaza International Airport (`GZA`) & Palestinian Airlines (`PS`)
 > **Production Domain**: [https://www.gazaairport.com](https://www.gazaairport.com)
-> **Engineering Status**: **Phase 5 in Progress — Phase 5A Implemented (Passenger State, Account & Auth-Truth Convergence)**. Owner-accepted visual baseline (`design/media-checkpoint-visual-cleanup-01`) is accepted on main. Next is Phase 5B (Booking Draft & Search Convergence). See [roadmap.md](roadmap.md) for the full sequence.
+> **Engineering Status**: **Phase 5 in Progress — Phase 5A Complete (Passenger State, Account & Auth-Truth Convergence)**. Owner-accepted visual baseline (`design/media-checkpoint-visual-cleanup-01`) is accepted on main. Next is Phase 5B (Booking Draft & Search Convergence, unstarted). See [roadmap.md](roadmap.md) for the full sequence.
 > **Documentation Index**:
 > - [Master Engineering Roadmap (Phases 0–12)](roadmap.md)
 > - [System Architecture Specification](docs/ARCHITECTURE.md)

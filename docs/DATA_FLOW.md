@@ -1,7 +1,7 @@
 # Data Flow, State Management & Pretend-Action Inventory
 
 > **Document Purpose**: Complete audit of current data sources, state persistence, cross-screen entity splits, and enabled no-op actions across public and admin workspaces.
-> **Status**: **Phase 5 in Progress — Phase 5A Implemented (Passenger State, Account & Auth-Truth Convergence)**. Owner-accepted visual baseline (`design/media-checkpoint-visual-cleanup-01`) is accepted on main. Phase 5A is implemented on branch awaiting engineering acceptance.
+> **Status**: **Phase 5 in Progress — Phase 5A Complete (Passenger State, Account & Auth-Truth Convergence)**. Owner-accepted visual baseline (`design/media-checkpoint-visual-cleanup-01`) is accepted on main. Phase 5A is accepted and complete; Phase 5B is next/unstarted.
 > **Future Target**: Phase 5B (Booking Draft & Search Convergence, next), Phase 5C (Manage, Check-in & Boarding Pass Convergence), Phase 5D (Public Contact Workflow Convergence), then Phase 6 before any production backend.
 
 ---
@@ -218,7 +218,7 @@ The development program follows this strictly sequenced progression:
    - Compiled bilingual Home, Travel and Past records, runtime validation, local draft repository and explicit preview. Admin Travel editing is the real draft proof; global publishing and broader CMS work remain future phases.
 3. **Phase 4C — Settings & Appearance Store Convergence (complete)**:
    - Unified multi-document settings envelope (gza.settings.draft.v1) with independent Contact and Appearance drafts, one-time legacy migration with untouched legacy key, transactional failure resilience, and explicit preview immunity.
-4. **Phase 5 — Public Workflows Convergence (in progress: Phase 5A implemented on branch awaiting engineering acceptance; Phase 5B next/unstarted)**:
+4. **Phase 5 — Public Workflows Convergence (in progress: Phase 5A complete; Phase 5B next/unstarted)**:
    - Connect booking engine, trip management, check-in, passenger account hub, and contact forms to canonical domain repositories with comprehensive client-side validation. Phase 5A converged passenger identity, account state, and saved travelers on `PassengerRepository` (`gza.passenger.v1`). Phase 5B will converge booking wizard draft and search.
 5. **Phase 6 — Admin Workflows Convergence**:
    - Connect admin flight quick-edit, schedule manager, passenger desk, customer notes, and activity logs to the shared domain repositories, eliminating simulated no-ops.
