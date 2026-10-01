@@ -23,9 +23,15 @@ import { AirportCombobox } from "./airport-combobox";
 import { AirlineDatePicker } from "./airline-date-picker";
 import { TravellersPicker } from "./travellers-picker";
 import { CabinPicker } from "./cabin-picker";
-import { GZA, addDaysISO, destinations, searchFlights, todayISO } from "@/lib/data";
+import { GZA, addDaysISO, destinations, isFlightBookable, todayISO } from "@/lib/data";
 import { useI18n } from "@/lib/i18n";
-import { useStore, type SearchCriteria } from "@/lib/store";
+import { type SearchCriteria } from "@/lib/booking-draft";
+import {
+  useBookingDraftQuery,
+  useResetBookingDraftMutation,
+  useFlightSearchQuery,
+  useRepositories,
+} from "@/lib/repositories";
 import { isSkinPreviewActive } from "@/lib/skin";
 import { isStudioPreviewActive, getStudioScenarioParam } from "@/lib/studio-preview";
 import { cn } from "@/lib/utils";
@@ -52,14 +58,18 @@ export function FlightSearchForm({
   context = "standard",
 }: FlightSearchFormProps) {
   const { t, lang } = useI18n();
-  const { draft, resetDraft } = useStore();
+  const { bookingDraft: draftRepo } = useRepositories();
+  const { data: draftState } = useBookingDraftQuery();
+  const resetDraftMutation = useResetBookingDraftMutation();
+  const activeDraft = draftState?.draft ?? draftRepo.getDraft();
+
   const navigate = useAppNavigate();
   const ctx = context;
   const isHome = ctx === "home";
 
   /* ── Criteria state ── */
   const [criteria, setCriteria] = useState<SearchCriteria>(() => ({
-    ...draft.criteria,
+    ...activeDraft.criteria,
     ...initial,
   }));
 
@@ -71,19 +81,20 @@ export function FlightSearchForm({
 
   useEffect(() => {
     const today = todayISO();
-    const ret = addDaysISO(today, 6);
+    const defaultDepart = addDaysISO(today, 1);
+    const ret = addDaysISO(defaultDepart, 7);
     setMinDate(today);
     setCriteria((prev) => {
-      const activeDepart = draft.criteria.departDate || prev.departDate;
-      const activeReturn = draft.criteria.returnDate || prev.returnDate;
+      const activeDepart = activeDraft.criteria.departDate || prev.departDate;
+      const activeReturn = activeDraft.criteria.returnDate || prev.returnDate;
       const needsDate = !activeDepart;
       const isPast = activeDepart && activeDepart < today;
-      const effectiveOrigin = initial?.origin ?? draft.criteria.origin ?? prev.origin;
-      const effectiveDestination = initial?.destination ?? draft.criteria.destination ?? prev.destination;
+      const effectiveOrigin = initial?.origin ?? activeDraft.criteria.origin ?? prev.origin;
+      const effectiveDestination = initial?.destination ?? activeDraft.criteria.destination ?? prev.destination;
       if (needsDate || isPast) {
         const nextReturn =
           prev.tripType === "round"
-            ? activeReturn && activeReturn >= today
+            ? activeReturn && activeReturn >= defaultDepart
               ? activeReturn
               : ret
             : activeReturn;
@@ -92,7 +103,7 @@ export function FlightSearchForm({
           ...prev,
           origin: effectiveOrigin,
           destination: effectiveDestination,
-          departDate: today,
+          departDate: defaultDepart,
           returnDate: nextReturn,
         };
       }
@@ -104,7 +115,7 @@ export function FlightSearchForm({
         returnDate: activeReturn,
       };
     });
-  }, [draft.criteria, initial?.origin, initial?.destination]);
+  }, [activeDraft.criteria, initial?.origin, initial?.destination]);
 
   // Keep route prefill authoritative if initial prop changes (e.g. client route transitions)
   useEffect(() => {
@@ -161,16 +172,49 @@ export function FlightSearchForm({
     (criteria.origin === GZA.code || criteria.destination === GZA.code) &&
     criteria.origin !== criteria.destination;
 
+  /* ── Effective flight queries for operational availability & service ── */
+  const seatPax = criteria.adults + criteria.children;
+  const { data: departFlights, isLoading: isDepartLoading } = useFlightSearchQuery(
+    criteria.origin,
+    criteria.destination,
+    criteria.departDate,
+    { paxCount: seatPax },
+    { enabled: Boolean(criteria.departDate && isNetworkValid) },
+  );
+  const { data: returnFlights, isLoading: isReturnLoading } = useFlightSearchQuery(
+    criteria.destination,
+    criteria.origin,
+    criteria.returnDate,
+    { paxCount: seatPax },
+    { enabled: Boolean(criteria.tripType === "round" && criteria.returnDate && isNetworkValid) },
+  );
+
+  const bookableDepartFlights = useMemo(
+    () => (departFlights ? departFlights.filter((f) => isFlightBookable(f, { paxCount: seatPax })) : null),
+    [departFlights, seatPax],
+  );
+  const bookableReturnFlights = useMemo(
+    () => (returnFlights ? returnFlights.filter((f) => isFlightBookable(f, { paxCount: seatPax })) : null),
+    [returnFlights, seatPax],
+  );
+
+  const isDepartResolving = Boolean(criteria.departDate && isNetworkValid && isDepartLoading);
+  const isReturnResolving =
+    criteria.tripType === "round" && Boolean(criteria.returnDate && isNetworkValid && isReturnLoading);
+  const isResolving = isDepartResolving || isReturnResolving;
+
   const hasDepartService =
     !criteria.departDate ||
     !isNetworkValid ||
-    searchFlights(criteria.origin, criteria.destination, criteria.departDate).length > 0;
+    isDepartLoading ||
+    (departFlights ? departFlights.length > 0 : true);
 
   const hasReturnService =
     criteria.tripType !== "round" ||
     !criteria.returnDate ||
     !isNetworkValid ||
-    searchFlights(criteria.destination, criteria.origin, criteria.returnDate).length > 0;
+    isReturnLoading ||
+    (returnFlights ? returnFlights.length > 0 : true);
 
   const departRoute =
     lang === "ar"
@@ -201,27 +245,37 @@ export function FlightSearchForm({
       if (c.origin !== GZA.code && c.destination !== GZA.code) return t("search.errNetwork");
       if (!c.departDate) return t("search.errDepart");
       if (c.departDate < todayISO()) return t("search.errPast");
+      if (isDepartResolving) return null; // Pending is not no-service
       if (!hasDepartService) return departServiceError ?? null;
       if (c.tripType === "round") {
         if (!c.returnDate || c.returnDate < c.departDate) return t("search.errReturn");
+        if (isReturnResolving) return null;
         if (!hasReturnService) return returnServiceError ?? null;
       }
       if (c.infants > c.adults) return t("search.errInfants");
       return null;
     },
-    [t, hasDepartService, departServiceError, hasReturnService, returnServiceError],
+    [
+      t,
+      isDepartResolving,
+      isReturnResolving,
+      hasDepartService,
+      departServiceError,
+      hasReturnService,
+      returnServiceError,
+    ],
   );
 
   useEffect(() => {
     if (error) setError(validate(criteria));
   }, [error, criteria, validate]);
 
-  const submit = (event: React.FormEvent) => {
+  const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     const problem = validate(criteria);
     setError(problem);
     if (problem) return;
-    resetDraft(criteria);
+    await resetDraftMutation.mutateAsync({ criteria });
     const isPreview = isSkinPreviewActive();
     const isStudio = isStudioPreviewActive();
     const scenario = getStudioScenarioParam();
@@ -412,6 +466,7 @@ export function FlightSearchForm({
                 returnError={returnServiceError}
                 variant="console"
                 className="w-full"
+                paxCount={seatPax}
               />
             </div>
 
@@ -467,6 +522,8 @@ export function FlightSearchForm({
             >
               <button
                 type="submit"
+                disabled={isResolving}
+                aria-disabled={isResolving}
                 className={cn(
                   "inline-flex items-center justify-center gap-2",
                   "h-12 w-full xl:w-auto xl:h-full xl:min-h-[58px] xl:px-6 rounded-xl",
@@ -476,6 +533,7 @@ export function FlightSearchForm({
                   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                   "cursor-pointer select-none whitespace-nowrap",
                   "min-h-[44px]",
+                  "disabled:opacity-60 disabled:cursor-not-allowed disabled:pointer-events-none",
                 )}
               >
                 <Search aria-hidden="true" className="size-4 shrink-0" />

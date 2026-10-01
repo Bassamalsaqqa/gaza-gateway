@@ -16,7 +16,8 @@ import {
   sanitizeFlightOverride,
   type FlightOverride,
 } from "../domain/flight.ts";
-import type { FlightRepository } from "./types.ts";
+import type { FlightRepository, MonthlyServiceMap } from "./types.ts";
+import { isFlightBookable } from "../booking-rules.ts";
 import {
   RepoStorageCoordinator,
   type RepoStorageV1,
@@ -85,6 +86,83 @@ export class LocalFlightRepository implements FlightRepository {
       const override = overrides[flight.id];
       return getEffectiveFlight(flight, override);
     });
+  }
+
+  public async searchFlights(origin: string, destination: string, date: string): Promise<Flight[]> {
+    if (!origin || !destination || !date) return [];
+    const cleanOrigin = origin.trim().toUpperCase();
+    const cleanDest = destination.trim().toUpperCase();
+
+    // Inbound discovery: if origin is GZA, direction is Gaza departure; if destination is GZA, direction is arrival
+    const direction = cleanOrigin === "GZA" ? "dep" : cleanDest === "GZA" ? "arr" : undefined;
+    const flights = await this.getFlights(date, direction);
+
+    return flights.filter(
+      (f) =>
+        f.originCode.toUpperCase() === cleanOrigin &&
+        f.destinationCode.toUpperCase() === cleanDest &&
+        f.date === date,
+    );
+  }
+
+  public async getMonthlyServiceMap(
+    year: number,
+    month: number,
+    origin: string,
+    destination: string,
+    options?: { paxCount?: number; now?: Date | string | number },
+  ): Promise<MonthlyServiceMap> {
+    if (!origin || !destination || !year || !month) return {};
+    const cleanOrigin = origin.trim().toUpperCase();
+    const cleanDest = destination.trim().toUpperCase();
+
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const result: MonthlyServiceMap = {};
+    const overrides = this.coordinator.getState().flightOverrides;
+
+    for (let day = 1; day <= daysInMonth; day += 1) {
+      const dayStr = String(day).padStart(2, "0");
+      const monthStr = String(month).padStart(2, "0");
+      const date = `${year}-${monthStr}-${dayStr}`;
+
+      const pool =
+        cleanOrigin === "GZA"
+          ? departuresOn(date)
+          : cleanDest === "GZA"
+            ? arrivalsOn(date)
+            : [...departuresOn(date), ...arrivalsOn(date)];
+
+      const effectiveFlights = pool
+        .filter(
+          (f) =>
+            f.originCode.toUpperCase() === cleanOrigin &&
+            f.destinationCode.toUpperCase() === cleanDest &&
+            f.date === date,
+        )
+        .map((f) => getEffectiveFlight(f, overrides[f.id]));
+
+      // Only bookable flights qualify as sellable service and lowest fare calculation
+      const bookableFlights = effectiveFlights.filter((f) => isFlightBookable(f, options));
+
+      if (bookableFlights.length > 0) {
+        const lowestFare = Math.min(...bookableFlights.map((f) => f.basePrice));
+        result[date] = {
+          date,
+          hasService: true,
+          lowestFare,
+          flightCount: bookableFlights.length,
+        };
+      } else {
+        result[date] = {
+          date,
+          hasService: false,
+          lowestFare: null,
+          flightCount: 0,
+        };
+      }
+    }
+
+    return result;
   }
 
   public async getFlightById(id: string): Promise<Flight | null> {

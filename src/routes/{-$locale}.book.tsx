@@ -1,7 +1,7 @@
 import { useAppNavigate } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FlightSearchForm } from "@/components/flight-search-form";
 import { FlightOption } from "@/components/booking/flight-option";
 import { FareStep } from "@/components/booking/fare-step";
@@ -41,7 +41,6 @@ import { isStudioPreviewActive } from "@/lib/studio-preview";
 import {
   getSeatRequiredPaxCount,
   isFlightBookable,
-  searchFlights,
   type Flight,
 } from "@/lib/data";
 import { dateLong, money } from "@/lib/format";
@@ -51,10 +50,17 @@ import {
   emptyPassenger,
   passengersFor,
   paxCount,
+  reconcileDraft,
   type Passenger,
   type Draft,
-  useStore,
-} from "@/lib/store";
+} from "@/lib/booking-draft";
+import { BookingCreationError } from "@/lib/domain/booking";
+import {
+  useRepositories,
+  useBookingDraftQuery,
+  useUpdateBookingDraftMutation,
+  useFlightSearchQuery,
+} from "@/lib/repositories";
 import { usePassengerAccount, usePassengerTravelers } from "@/lib/passenger";
 import { cn } from "@/lib/utils";
 
@@ -112,7 +118,18 @@ function BookPage() {
   const { t, lang } = useI18n();
   const navigate = useAppNavigate();
   const search = Route.useSearch();
-  const { ready, draft, setDraft, addBooking } = useStore();
+  const { bookingDraft: draftRepo, booking: bookingRepo } = useRepositories();
+  const { data: draftStorageState, isLoading: isDraftLoading } = useBookingDraftQuery();
+  const updateDraftMutation = useUpdateBookingDraftMutation();
+  const draft = draftStorageState?.draft ?? draftRepo.getDraft();
+  const isReady = !isDraftLoading && Boolean(draftStorageState);
+
+  const setDraft = useCallback(
+    (updater: (prev: Draft) => Draft) => {
+      updateDraftMutation.mutate(updater);
+    },
+    [updateDraftMutation],
+  );
 
   const { data: account } = usePassengerAccount();
   const { data: travelers = [] } = usePassengerTravelers();
@@ -123,24 +140,26 @@ function BookPage() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [isConfirming, setIsConfirming] = useState(false);
+  const confirmedRef = useRef(false);
   const headingRef = useRef<HTMLHeadingElement | null>(null);
-  const loadedScenarioRef = useRef(search.scenario);
+  const loadedScenarioRef = useRef<string | undefined>(undefined);
 
+  const isStudio = Boolean(search.studioPreview) && isStudioPreviewActive();
   const isCapacityProof =
-    Boolean(search.studioPreview) &&
-    isStudioPreviewActive() &&
+    isStudio &&
     search.scenario === "booking.capacity-proof";
 
   useEffect(() => {
-    if (!ready || !search.studioPreview || !search.scenario || !isStudioPreviewActive()) return;
-    if (loadedScenarioRef.current !== search.scenario) {
-      loadedScenarioRef.current = search.scenario;
-      const sc = getScenarioById(search.scenario);
+    if (!isReady || !search.studioPreview || !isStudioPreviewActive()) return;
+    const targetScenario = search.scenario ?? (search.step ? `booking.${search.step}` : undefined);
+    if (targetScenario && loadedScenarioRef.current !== targetScenario) {
+      loadedScenarioRef.current = targetScenario;
+      const sc = getScenarioById(targetScenario);
       if (sc?.getMockDraft) {
         setDraft(() => sc.getMockDraft!());
       }
     }
-  }, [ready, search.studioPreview, search.scenario, setDraft]);
+  }, [isReady, search.studioPreview, search.scenario, search.step, setDraft]);
 
   const paxList = draft.passengers.length
     ? draft.passengers
@@ -157,38 +176,56 @@ function BookPage() {
       : `${t("book.passenger")} ${i + 1}`;
   };
 
-  const outboundOptions = useMemo(
-    () => {
-      if (isCapacityProof) {
-        const fixtureDate = draft.criteria.departDate || getCapacityProofDate();
-        return getCapacityProofFlights(fixtureDate);
-      }
-      return searchFlights(draft.criteria.origin, draft.criteria.destination, draft.criteria.departDate);
-    },
-    [draft.criteria, isCapacityProof],
-  );
-  const inboundOptions = useMemo(
-    () =>
-      draft.criteria.tripType === "round"
-        ? searchFlights(draft.criteria.destination, draft.criteria.origin, draft.criteria.returnDate)
-        : [],
-    [draft.criteria],
+  const { data: searchedOutbound, isLoading: isOutboundLoading } = useFlightSearchQuery(
+    draft.criteria.origin,
+    draft.criteria.destination,
+    draft.criteria.departDate,
+    { paxCount: seatRequiredCount },
+    { enabled: !isCapacityProof && Boolean(draft.criteria.departDate) },
   );
 
+  const { data: searchedInbound, isLoading: isInboundLoading } = useFlightSearchQuery(
+    draft.criteria.destination,
+    draft.criteria.origin,
+    draft.criteria.returnDate,
+    { paxCount: seatRequiredCount },
+    {
+      enabled:
+        !isCapacityProof &&
+        draft.criteria.tripType === "round" &&
+        Boolean(draft.criteria.returnDate),
+    },
+  );
+
+  const outboundOptions = useMemo(() => {
+    if (isCapacityProof) {
+      const fixtureDate = draft.criteria.departDate || getCapacityProofDate();
+      return getCapacityProofFlights(fixtureDate);
+    }
+    return searchedOutbound ?? [];
+  }, [draft.criteria.departDate, isCapacityProof, searchedOutbound]);
+
+  const inboundOptions = useMemo(() => {
+    if (draft.criteria.tripType !== "round") return [];
+    if (isCapacityProof) return [];
+    return searchedInbound ?? [];
+  }, [draft.criteria.tripType, isCapacityProof, searchedInbound]);
+
   const isOutboundSelected = Boolean(
-    ready &&
+    isReady &&
       draft.outbound &&
-      isFlightValidForCriteria(
-        draft.outbound,
-        draft.criteria.origin,
-        draft.criteria.destination,
-        draft.criteria.departDate,
-        { paxCount: seatRequiredCount },
-      ) &&
-      outboundOptions.some((f) => f.id === draft.outbound?.id),
+      (isCapacityProof
+        ? outboundOptions.some((f) => f.id === draft.outbound?.id)
+        : isFlightValidForCriteria(
+            draft.outbound,
+            draft.criteria.origin,
+            draft.criteria.destination,
+            draft.criteria.departDate,
+            { paxCount: seatRequiredCount },
+          ) && outboundOptions.some((f) => f.id === draft.outbound?.id)),
   );
   const isInboundSelected =
-    Boolean(ready) &&
+    Boolean(isReady) &&
     (draft.criteria.tripType !== "round" ||
       Boolean(
         draft.inbound &&
@@ -202,76 +239,82 @@ function BookPage() {
           inboundOptions.some((f) => f.id === draft.inbound?.id),
       ));
 
-  // Defensive guard: clear stale flight selections that do not match effective criteria or are not bookable
+  const [reconciliationNotice, setReconciliationNotice] = useState<string | null>(null);
+
+  // Authoritative selection reconciliation against effective flight queries
   useEffect(() => {
-    if (!ready) return;
-    const staleOut =
-      draft.outbound &&
-      (!isFlightValidForCriteria(
-        draft.outbound,
-        draft.criteria.origin,
-        draft.criteria.destination,
-        draft.criteria.departDate,
-        { paxCount: seatRequiredCount },
-      ) ||
-        !outboundOptions.some((f) => f.id === draft.outbound?.id));
+    if (!isReady || isCapacityProof) return;
+    if (isOutboundLoading || (draft.criteria.tripType === "round" && isInboundLoading)) return;
+    if (!draft.outbound && !draft.inbound) return;
 
-    const staleIn =
-      draft.inbound &&
-      (draft.criteria.tripType !== "round" ||
-        !isFlightValidForCriteria(
-          draft.inbound,
-          draft.criteria.destination,
-          draft.criteria.origin,
-          draft.criteria.returnDate,
-          { paxCount: seatRequiredCount },
-        ) ||
-        !inboundOptions.some((f) => f.id === draft.inbound?.id));
+    const effectiveOut = draft.outbound
+      ? outboundOptions.find((f) => f.id === draft.outbound?.id)
+      : null;
+    const effectiveIn = draft.inbound
+      ? inboundOptions.find((f) => f.id === draft.inbound?.id)
+      : null;
 
-    if (staleOut || staleIn) {
-      setDraft((prev) => {
-        const seats = { ...prev.seats };
-        if (staleOut) {
-          Object.keys(seats).forEach((k) => {
-            if (k.startsWith("out-")) delete seats[k];
-          });
-        }
-        if (staleIn) {
-          Object.keys(seats).forEach((k) => {
-            if (k.startsWith("in-")) delete seats[k];
-          });
-        }
-        return {
-          ...prev,
-          outbound: staleOut ? null : prev.outbound,
-          inbound: staleIn ? null : prev.inbound,
-          seats,
-        };
-      });
+    const res = reconcileDraft(draft, effectiveOut, effectiveIn);
+    if (res.changed) {
+      setDraft((current) => ({
+        ...current,
+        outbound: res.reconciledDraft.outbound,
+        inbound: res.reconciledDraft.inbound,
+        seats: res.reconciledDraft.seats,
+      }));
+      if (res.invalidatedLegs.length > 0) {
+        const firstInvalidLeg = res.invalidatedLegs[0];
+        const legResult = firstInvalidLeg === "out" ? res.outbound : res.inbound;
+        const rawReason = legResult?.reason;
+        const localizedReason =
+          rawReason === "cancelled"
+            ? t("book.flightCancelled")
+            : rawReason === "departed"
+              ? t("book.flightDeparted")
+              : rawReason === "landed"
+                ? t("book.flightLanded")
+                : rawReason === "boarding"
+                  ? t("book.flightBoarding")
+                  : rawReason === "past"
+                    ? t("book.flightPast")
+                    : rawReason === "sold_out"
+                      ? t("book.flightSoldOut")
+                      : rawReason === "insufficient_seats"
+                        ? t("book.flightInsufficientSeats")
+                        : t("book.flightUnavailable");
+
+        setReconciliationNotice(t("book.reconcileAlert", { reason: localizedReason }));
+      }
     }
   }, [
-    ready,
-    draft.outbound,
-    draft.inbound,
-    draft.criteria.origin,
-    draft.criteria.destination,
-    draft.criteria.departDate,
-    draft.criteria.returnDate,
-    draft.criteria.tripType,
+    isReady,
+    isCapacityProof,
+    isOutboundLoading,
+    isInboundLoading,
+    draft,
     outboundOptions,
     inboundOptions,
-    seatRequiredCount,
     setDraft,
+    t,
   ]);
 
-  const maxStep = useMemo(() => calculateMaxStep(draft, paxList), [draft, paxList]);
+  const requestedStep = search.step;
+
+  const maxStep = useMemo(() => {
+    const calculated = calculateMaxStep(draft, paxList);
+    if (isStudio && requestedStep && stepRanks[requestedStep] > stepRanks[calculated]) {
+      return requestedStep;
+    }
+    return calculated;
+  }, [draft, paxList, isStudio, requestedStep]);
 
   // Determine current active milestone: URL param takes precedence if within maxStep
-  const requestedStep = search.step;
   let currentStep: BookingStep;
 
   if (requestedStep) {
-    if (!ready) {
+    if (isStudio) {
+      currentStep = requestedStep;
+    } else if (!isReady) {
       // Prior to hydration readiness, permit requested step up to results only
       // Later steps (fare/seats/review) await validated draft state
       currentStep = stepRanks[requestedStep] <= stepRanks["results"] ? requestedStep : "results";
@@ -286,7 +329,6 @@ function BookPage() {
   }
 
   const isPreview = search.skinPreview === "1" || search.skinPreview === 1;
-  const isStudio = search.studioPreview === "1" || search.studioPreview === 1;
 
   const previewParams = useMemo(
     () => ({
@@ -300,7 +342,9 @@ function BookPage() {
 
   // Repair/clamp URL search parameter without trapping the user
   useEffect(() => {
-    if (!ready) return;
+    if (!isReady) return;
+    if (isStudio) return; // Do not clamp steps in Appearance Studio preview
+    if (isConfirming || confirmedRef.current) return;
     if (requestedStep && stepRanks[requestedStep] > stepRanks[maxStep]) {
       void navigate({
         to: "/book",
@@ -320,7 +364,7 @@ function BookPage() {
         replace: true,
       });
     }
-  }, [ready, requestedStep, maxStep, draft.entry, previewParams, navigate]);
+  }, [isReady, isStudio, isConfirming, requestedStep, maxStep, draft.entry, previewParams, navigate]);
 
   // Manage focus on step transition
   useEffect(() => {
@@ -449,7 +493,8 @@ function BookPage() {
     const totals = bookingTotal(draft);
     setIsConfirming(true);
     try {
-      const created = await addBooking({
+      const submissionId = draftRepo.getSubmissionId();
+      const created = await bookingRepo.create({
         criteria: draft.criteria,
         outbound: draft.outbound,
         inbound: draft.inbound,
@@ -459,18 +504,51 @@ function BookPage() {
         extras: draft.extras,
         contact: draft.contact,
         total: totals.total,
+        submissionId,
       });
+
+      confirmedRef.current = true;
+
       void navigate({
         to: "/booking-confirmation/$ref",
         params: { ref: created.ref },
         ...(Object.keys(previewParams).length > 0 ? { search: previewParams } : {}),
       });
-    } catch (err) {
+
+      // Decoupled clear: attempt clearDraft. If it fails, PNR is still confirmed!
+      try {
+        await draftRepo.clearDraft();
+      } catch (clearErr) {
+        console.warn("Failed to clear draft after successful booking creation:", clearErr);
+      }
+    } catch (err: unknown) {
       console.error("Booking confirmation error:", err);
       setIsConfirming(false);
-      setConfirmError(
-        err instanceof Error ? err.message : t("book.confirmError") || "Booking could not be confirmed.",
-      );
+
+      if (err instanceof BookingCreationError) {
+        const reason = err.reason;
+        const localizedReason =
+          reason === "cancelled"
+            ? t("book.flightCancelled")
+            : reason === "departed"
+              ? t("book.flightDeparted")
+              : reason === "landed"
+                ? t("book.flightLanded")
+                : reason === "boarding"
+                  ? t("book.flightBoarding")
+                  : reason === "past"
+                    ? t("book.flightPast")
+                    : reason === "sold_out"
+                      ? t("book.flightSoldOut")
+                      : reason === "insufficient_seats"
+                        ? t("book.flightInsufficientSeats")
+                        : t("book.flightUnavailable");
+
+        setReconciliationNotice(t("book.reconcileAlert", { reason: localizedReason }));
+        goToStep("results");
+      } else {
+        setConfirmError(t("book.confirmError"));
+      }
     }
   };
 
@@ -591,6 +669,12 @@ function BookPage() {
                     </button>
                   </div>
 
+                  {reconciliationNotice ? (
+                    <Notice role="alert" className="mt-4 border-destructive/40 bg-destructive/10 text-destructive">
+                      {reconciliationNotice}
+                    </Notice>
+                  ) : null}
+
                   <h2
                     id="outbound-flights-heading"
                     className="mt-8 text-sm font-bold uppercase tracking-wider text-muted-foreground"
@@ -598,7 +682,11 @@ function BookPage() {
                     {t("book.outbound")}
                   </h2>
                   <div className="mt-3">
-                    {outboundOptions.length === 0 ? (
+                    {isOutboundLoading ? (
+                      <div className="py-8 text-center text-sm text-muted-foreground animate-pulse">
+                        {t("search.searching") || "Searching flights..."}
+                      </div>
+                    ) : outboundOptions.length === 0 ? (
                       <EmptyState
                         title={t("book.noResults")}
                         description={t("book.noResultsSub")}
@@ -618,10 +706,11 @@ function BookPage() {
                         value={isOutboundSelected ? (draft.outbound?.id ?? "") : ""}
                         onValueChange={(flightId) => {
                           const flight = outboundOptions.find((f) => f.id === flightId);
-                          if (flight && isFlightBookable(flight, { paxCount: seatRequiredCount })) {
+                          if (flight && (isCapacityProof || isFlightBookable(flight, { paxCount: seatRequiredCount }))) {
                             if (flight.id.startsWith("CAP-PROOF") && (!isStudio || !isStudioPreviewActive())) {
                               return;
                             }
+                            setReconciliationNotice(null);
                             setDraft((prev) => ({ ...prev, outbound: flight }));
                           }
                         }}
@@ -649,7 +738,11 @@ function BookPage() {
                         {t("book.inbound")} · {dateLong(draft.criteria.returnDate, lang)}
                       </h2>
                       <div className="mt-3">
-                        {inboundOptions.length === 0 ? (
+                        {isInboundLoading ? (
+                          <div className="py-8 text-center text-sm text-muted-foreground animate-pulse">
+                            {t("search.searching") || "Searching flights..."}
+                          </div>
+                        ) : inboundOptions.length === 0 ? (
                           <EmptyState
                             title={t("book.noResults")}
                             description={t("book.noResultsSub")}
@@ -670,6 +763,7 @@ function BookPage() {
                             onValueChange={(flightId) => {
                               const flight = inboundOptions.find((f) => f.id === flightId);
                               if (flight && isFlightBookable(flight, { paxCount: seatRequiredCount })) {
+                                setReconciliationNotice(null);
                                 setDraft((prev) => ({ ...prev, inbound: flight }));
                               }
                             }}
@@ -943,9 +1037,10 @@ function BookPage() {
                             aria-invalid={Boolean(fieldErrors["contact-email"])}
                             aria-describedby={fieldErrors["contact-email"] ? "contact-email-error" : undefined}
                             onChange={(e) => {
+                              const emailVal = e.target.value;
                               setDraft((prev) => ({
                                 ...prev,
-                                contact: { ...prev.contact, email: e.target.value },
+                                contact: { ...prev.contact, email: emailVal },
                               }));
                               if (fieldErrors["contact-email"]) {
                                 setFieldErrors((prev) => {
@@ -966,12 +1061,13 @@ function BookPage() {
                             dir="ltr"
                             className="code-id"
                             value={draft.contact.phone}
-                            onChange={(e) =>
+                            onChange={(e) => {
+                              const phoneVal = e.target.value;
                               setDraft((prev) => ({
                                 ...prev,
-                                contact: { ...prev.contact, phone: e.target.value },
-                              }))
-                            }
+                                contact: { ...prev.contact, phone: phoneVal },
+                              }));
+                            }}
                           />
                         </Field>
                       </div>

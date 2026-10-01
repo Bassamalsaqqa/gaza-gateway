@@ -21,6 +21,19 @@ export const flightKeys = {
   details: () => [...flightKeys.all, "detail"] as const,
   detail: (id: string) => [...flightKeys.details(), id] as const,
   overrides: () => [...flightKeys.all, "overrides"] as const,
+  searches: () => [...flightKeys.all, "search"] as const,
+  search: (origin: string, destination: string, date: string, paxCount?: number) =>
+    [...flightKeys.searches(), { origin, destination, date, paxCount }] as const,
+  monthlyServices: () => [...flightKeys.all, "monthlyService"] as const,
+  monthlyService: (origin: string, destination: string, year: number, month: number, paxCount?: number) =>
+    [...flightKeys.monthlyServices(), { origin, destination, year, month, paxCount }] as const,
+};
+
+/** Hierarchical Query Keys for the Booking Draft domain */
+export const bookingDraftKeys = {
+  all: ["bookingDraft"] as const,
+  state: () => [...bookingDraftKeys.all, "state"] as const,
+  current: () => [...bookingDraftKeys.all, "current"] as const,
 };
 
 export { passengerKeys } from "../passenger/keys.ts";

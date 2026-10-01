@@ -260,9 +260,25 @@ export function EmptyState({
   );
 }
 
-export function Notice({ children, title }: { children: ReactNode; title?: string }) {
+export function Notice({
+  children,
+  title,
+  className,
+  role,
+}: {
+  children: ReactNode;
+  title?: string;
+  className?: string;
+  role?: string;
+}) {
   return (
-    <div className="rounded-lg border border-clay/30 bg-clay-soft/70 px-4 py-3 text-sm text-accent-foreground">
+    <div
+      role={role}
+      className={cn(
+        "rounded-lg border border-clay/30 bg-clay-soft/70 px-4 py-3 text-sm text-accent-foreground",
+        className,
+      )}
+    >
       {title ? <p className="font-semibold">{title}</p> : null}
       <div className={title ? "mt-1" : undefined}>{children}</div>
     </div>

@@ -4,24 +4,18 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useRef,
   useState,
   type ReactNode,
 } from "react";
 import type { Flight } from "./data";
 import {
   EXTRA_BAG_PRICE,
-  addDaysISO,
   destinationByCode,
   farePrice,
   isFlightBookable,
-  searchFlights,
   seatFee,
-  todayISO,
 } from "./data";
 import { makePnr } from "./format";
-import { isStudioPreviewActive } from "./studio-preview";
-import { createDeterministicMockDraft, getScenarioById } from "./studio-scenarios";
 import type {
   Contact,
   Draft,
@@ -123,9 +117,6 @@ export function bookingTotal(draft: {
 
 type StoreValue = {
   ready: boolean;
-  draft: Draft;
-  setDraft: (updater: (prev: Draft) => Draft) => void;
-  resetDraft: (criteria: SearchCriteria) => void;
   bookings: Booking[];
   addBooking: (
     booking: Omit<Booking, "ref" | "createdAt" | "status" | "checkedIn" | "ownerEmail" | "passengers"> & {
@@ -138,8 +129,6 @@ type StoreValue = {
 };
 
 const StoreContext = createContext<StoreValue | null>(null);
-
-const KEY = "gza.store.v1";
 
 type LegacyExtras = { extraBags?: number; meal?: string; assistance?: string[] };
 
@@ -176,16 +165,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const { booking: bookingRepo } = useRepositories();
   const { data: canonicalAccount } = usePassengerAccount();
   const [ready, setReady] = useState(false);
-  const [draft, setDraftState] = useState<Draft>(initialDraft);
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const hasMutatedRef = useRef(false);
-  const initialLegacyEnvelopeRef = useRef<Record<string, unknown> | null>(null);
 
   // Synchronize bookings with canonical BookingRepository
   useEffect(() => {
     let mounted = true;
     bookingRepo.list().then((list) => {
-      if (mounted) setBookings(list);
+      if (mounted) {
+        setBookings(list);
+        setReady(true);
+      }
     });
 
     const unsubscribe = bookingRepo.subscribe(() => {
@@ -199,94 +188,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       unsubscribe();
     };
   }, [bookingRepo]);
-
-  useEffect(() => {
-    if (isStudioPreviewActive()) {
-      const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
-      const scenarioId = params?.get("scenario");
-      if (scenarioId) {
-        const sc = getScenarioById(scenarioId);
-        if (sc?.getMockDraft) {
-          setDraftState(sc.getMockDraft());
-          setReady(true);
-          return;
-        }
-      }
-      const rawStep = params?.get("step");
-      const validStep =
-        rawStep === "fare" ||
-        rawStep === "passengers" ||
-        rawStep === "seats" ||
-        rawStep === "extras" ||
-        rawStep === "review"
-          ? rawStep
-          : "results";
-      setDraftState(createDeterministicMockDraft(validStep));
-      setReady(true);
-      return;
-    }
-
-    const clientToday = todayISO();
-    const clientReturn = addDaysISO(clientToday, 6);
-    let currentDraft: Draft | undefined;
-    try {
-      const raw = window.localStorage.getItem(KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-          initialLegacyEnvelopeRef.current = parsed as Record<string, unknown>;
-          const d = (parsed as { draft?: Draft }).draft;
-          if (d) {
-            currentDraft = validateAndSanitizeDraft(d, clientToday, clientReturn);
-          }
-        }
-      }
-    } catch {
-      /* ignore corrupted state */
-    }
-
-    if (!currentDraft) {
-      currentDraft = createFreshDraft(clientToday, clientReturn);
-    }
-    setDraftState(currentDraft);
-    setReady(true);
-  }, []);
-
-  useEffect(() => {
-    if (!ready || !hasMutatedRef.current || isStudioPreviewActive()) return;
-    if (draft.outbound?.id.startsWith("CAP-PROOF") || draft.inbound?.id.startsWith("CAP-PROOF")) {
-      return;
-    }
-    // Preserves existing legacy envelope keys (account, travelers, bookings, unknown keys) semantically without writing canonical passenger changes back, keeping absent keys absent.
-    const payload = buildLegacyStoreEnvelope(initialLegacyEnvelopeRef.current, draft);
-    window.localStorage.setItem(KEY, JSON.stringify(payload));
-  }, [ready, draft]);
-
-  const setDraft = useCallback((updater: (prev: Draft) => Draft) => {
-    hasMutatedRef.current = true;
-    setDraftState((prev) => updater(prev));
-  }, []);
-
-  const resetDraft = useCallback(
-    (criteria: SearchCriteria) => {
-      hasMutatedRef.current = true;
-      const passengers = passengersFor(criteria);
-      // A signed-in traveller's saved meal preference becomes the booking default.
-      const meal = canonicalAccount?.mealPreference ?? "standard";
-      setDraftState({
-        entry: "results",
-        criteria,
-        outbound: null,
-        inbound: null,
-        fareId: "classic",
-        passengers,
-        seats: {},
-        extras: { pax: passengers.map(() => emptyPaxExtras(meal)) },
-        contact: { email: canonicalAccount?.email ?? "", phone: canonicalAccount?.phone ?? "" },
-      });
-    },
-    [canonicalAccount],
-  );
 
   const addBooking = useCallback(
     async (
@@ -304,7 +205,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (booking.inbound && !isFlightBookable(booking.inbound, { paxCount })) {
         throw new Error("Cannot create booking: inbound flight is not bookable.");
       }
-      hasMutatedRef.current = true;
 
       const ownerEmail = canonicalAccount?.email
         ? normalizeEmailIdentity(canonicalAccount.email)
@@ -332,7 +232,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const checkInLeg = useCallback(
     async (ref: string, leg: Leg, paxIndexes: number[]) => {
-      hasMutatedRef.current = true;
       const updated = await bookingRepo.checkIn(ref, leg, paxIndexes);
       if (updated) {
         setBookings((prev) =>
@@ -347,7 +246,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const updateBooking = useCallback(
     async (ref: string, patch: Partial<Booking>) => {
-      hasMutatedRef.current = true;
       const updated = await bookingRepo.update(ref, patch);
       if (updated) {
         setBookings((prev) =>
@@ -368,9 +266,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const value = useMemo<StoreValue>(
     () => ({
       ready,
-      draft,
-      setDraft,
-      resetDraft,
       bookings,
       addBooking,
       updateBooking,
@@ -379,9 +274,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }),
     [
       ready,
-      draft,
-      setDraft,
-      resetDraft,
       bookings,
       addBooking,
       updateBooking,

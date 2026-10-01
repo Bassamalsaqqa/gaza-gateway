@@ -1,6 +1,6 @@
 # Canonical Mock Domain & Repository Architecture
 
-> **Document Status**: Active Reference (Phase 5 in progress — Phase 5A Complete / Canonical Passenger & Mock Domain Layer)
+> **Document Status**: Active Reference (Phase 5 in progress — Phase 5B Complete on Feature Branch / Booking Draft & Effective Flight Discovery Convergence)
 > **Product**: Gaza Airport & Palestinian Airlines ([gazaairport.com](https://www.gazaairport.com))
 > **Phase 4 starting commits**: `9e36b869274830f84c97cbbefe3b3fb0a98c6d2e` (`main`); `92ad935f8477e1663eefa8282d2770c66b64b8b2` (`hostpapa-deploy`)
 > **Pre-operational Prototype Notice**: Gaza Gateway is an authentic, browser-local client-side prototype. It does not connect to a live backend database, payment gateway, GDS, or external server.
@@ -14,19 +14,26 @@ Prior to Phase 4, Gaza Gateway had a fragmented data architecture with two criti
 2. **Flight Operations Disconnect**: The public flight board and booking wizard read raw deterministic flight schedules from `src/lib/data.ts`. Meanwhile, the Admin workspace allowed operational flight overrides (status, gate, revised departure) saved in `localStorage["gza.admin.v1"]`, but those overrides were only applied to admin components using `withOverride()`. Public visitors never saw operational delays, cancellations, or gate changes.
 3. **Absence of Query Layer**: Although `@tanstack/react-query` was mounted at the application root, the app possessed zero application `useQuery` or `useMutation` hooks, relying entirely on ad-hoc storage singletons and React Context state.
 
-Phase 4 resolves these defects by introducing **two bounded aggregates** with asynchronous, backend-ready contracts: `BookingRepository` and `FlightRepository`, backed by a versioned persistence schema (`gza.repo.v1`), centralized TanStack React Query keys and hooks, and strict single-writer mutation boundaries.
+Phase 4 resolved these defects by introducing **two bounded aggregates** with asynchronous, backend-ready contracts: `BookingRepository` and `FlightRepository`, backed by a versioned persistence schema (`gza.repo.v1`), centralized TanStack React Query keys and hooks, and strict single-writer mutation boundaries.
+
+Phase 5B extends this architecture to the public booking funnel:
+- Canonical **`BookingDraftRepository`** (`src/lib/booking-draft/`) backed by `gza.booking.draft.v1` (`schemaVersion: 1`), removing booking draft ownership from `StoreProvider` and establishing 5 distinct storage states with tombstone anti-resurrection.
+- Canonical **Effective Flight Discovery & Calendar Availability** through `FlightRepository.searchFlights` and `FlightRepository.getMonthlyServiceMap`, resolving operational overrides and capacity across both Gaza departures and arrivals.
+- **Dynamic Selection Reconciliation** in `/book` that refreshes operational snapshots, invalidates cancelled or unbookable legs, evicts affected seats via prefix deletion (`out-*` / `in-*`), clamps wizard progression back to Results, and provides localized alerts.
+- **Fresh Transactional Booking Authority** in `BookingRepository.create` that re-resolves effective flights against shared coordinator overrides inside the transaction and enforces idempotency via `submissionId`.
 
 ---
 
-## 2. Post-Phase-5A Ownership Matrix
+## 2. Post-Phase-5B Ownership Matrix
 
 | Aggregate / Entity | Primary Writer | Primary Storage Key | Consumers (Public & Admin) | Current State | Future Migration Target |
 | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Booking Draft** | `BookingDraftRepository` (`src/lib/booking-draft/`) | `gza.booking.draft.v1` (`schemaVersion: 1`) | Public Booking Wizard (`/book`), Flight Detail CTA (`/flight/$flightId`), Flight Search Form (`FlightSearchForm`) | **Migrated (Phase 5B)** with 5 storage states, serialized mutation queue, tombstone anti-resurrection, and multi-tab synchronization | Phase 13 (Backend Cart/Session) |
 | **Passenger State (Account & Travelers)** | `PassengerRepository` (`src/lib/passenger/`) | `gza.passenger.v1` (`account`, `travelers`) | Site Header, `/account/*`, `/book` (saved traveler pickers), `/signin`, `/register`, `/verify-email`, `/account/security` | **Migrated (Phase 5A)** to canonical `PassengerRepository` with transactional coordinator and zero password persistence | Phase 13 (Backend Auth & Database) |
-| **Booking** | `BookingRepository` (`LocalBookingRepository`) | `gza.repo.v1` (`bookings[]`) | Public Confirmation (`/booking-confirmation/$ref`), Manage Booking (`/manage`), Admin Dashboard, Admin Bookings (`/admin/bookings`), Admin Booking Detail (`/admin/bookings/$ref`), Admin Global Search (`AdminSearch`), Account Trips (`/account/trips`) | **Migrated (Phase 4)** with single-writer pattern, React Query invalidation, and hardened `claim()` returning `ClaimResult` | Phase 5B / 5C / 6 |
-| **Flight Operations (Overrides)** | `FlightRepository` (`LocalFlightRepository`) | `gza.repo.v1` (`flightOverrides{}`) | Public Flights Board (`/flights`), Public Flight Detail (`/flight/$flightId`), Admin Dashboard, Admin Flights (`/admin/flights`), Flight Operations Quick-Edit | **Migrated (Phase 4)** with pure `getEffectiveFlight()` composition | Phase 6 (Admin dispatch & schedules) |
+| **Booking** | `BookingRepository` (`LocalBookingRepository`) | `gza.repo.v1` (`bookings[]`) | Public Confirmation (`/booking-confirmation/$ref`), Manage Booking (`/manage`), Admin Dashboard, Admin Bookings (`/admin/bookings`), Admin Booking Detail (`/admin/bookings/$ref`), Admin Global Search (`AdminSearch`), Account Trips (`/account/trips`) | **Migrated (Phase 4 & 5B)** with single-writer pattern, React Query invalidation, hardened `claim()`, and fresh transaction re-resolution with `submissionId` idempotency | Phase 5C / 6 |
+| **Flight Operations (Overrides)** | `FlightRepository` (`LocalFlightRepository`) | `gza.repo.v1` (`flightOverrides{}`) | Public Flights Board (`/flights`), Public Flight Detail (`/flight/$flightId`), Public Booking Discovery (`/book`), Calendar Date Picker (`AirlineDatePicker`), Admin Dashboard, Admin Flights (`/admin/flights`), Flight Operations Quick-Edit | **Migrated (Phase 4 & 5B)** with pure `getEffectiveFlight()` composition, bidirectional search, and batched monthly service map | Phase 6 (Admin dispatch & schedules) |
 | **Flight Schedules & Reference** | `src/lib/data.ts` (deterministic generator) | Static / In-memory | `FlightRepository`, flight search, route generation | **Preserved** as immutable baseline timetable and schedule generator | Phase 6 (Mutable schedules) |
-| **Booking Draft** | `src/lib/store.tsx` (`useStore`) | `gza.store.v1` (`draft` ONLY) | Public Booking Wizard (`/book`) | **Preserved Draft Key** (No dual passenger writes; legacy envelope keys preserved semantically, absent keys stay absent) | Phase 5B (`gza.booking.draft.v1`) |
+| **Legacy Store Key** | Preserved read-only migration source | `gza.store.v1` | One-time migration to `gza.booking.draft.v1` when draft key is missing | **Closed Legacy Key**: ZERO active draft writers; original string preserved byte-for-byte; never resurrected once cleared | Fully Deprecated |
 | **Admin Staff Session** | `src/lib/admin-store.tsx` (`useAdmin`) | `gza.admin.v1` (`staffId`) | Admin Shell, permission guards, role switcher | **Preserved** in legacy key for local session simulation | Phase 6 (Staff & RBAC) |
 | **Admin Ops State (Simulation)** | `src/lib/admin-store.tsx` (`ops`, `patchOps`) | In-memory React state (`OpsState`) | Admin Operations Dashboard, Dispatch timers | **Preserved** as ephemeral session simulation | Phase 6 (Operational state) |
 | **CMS & Story Content** | `src/content/` & `src/lib/admin-mock.ts` | Compiled published source & draft store | Public homepage, About, Airport history chapters, Travel info, Gallery | **Partially Migrated (Phase 4B)** for Home, Travel, Past | Phase 7 (Complete CMS Admin) |
@@ -128,6 +135,17 @@ export interface PassengerRepository {
   removeTraveler(id: string): Promise<void>;
   subscribe(listener: () => void): () => void;
 }
+
+export interface BookingDraftRepository {
+  getDraft(): BookingDraft;
+  getState(): BookingDraftStorageState;
+  updateDraft(updater: Partial<BookingDraft> | ((prev: BookingDraft) => BookingDraft)): Promise<BookingDraft>;
+  resetDraft(criteria?: SearchCriteria): Promise<BookingDraft>;
+  clearDraft(reason?: "completed" | "discarded" | "reset"): Promise<void>;
+  reconcile(effectiveOutbound: Flight | null, effectiveInbound: Flight | null): Promise<DraftReconciliationResult>;
+  subscribe(listener: (draft: BookingDraft) => void): () => void;
+  handleExternalStorageEvent(event: StorageEvent): void;
+}
 ```
 
 ### 4.2 Storage Schema (`gza.repo.v1`) & Idempotent Migrations
@@ -145,6 +163,53 @@ export interface PassengerRepository {
 - **SSR & Hydration Safety**: Safe against Node/SSR environments via `getStorage()`; zero `window` or `localStorage` reads occur at module import time.
 - **Idempotent Migration**: On first boot or corrupted storage recovery, `migrateFromLegacyStores()` reads legacy bookings from `gza.store.v1` and flight overrides from `gza.admin.v1`, seeds deterministic demo bookings (`INITIAL_BOOKING_SEEDS`), and writes the consolidated state to `gza.repo.v1` while leaving the legacy keys completely intact.
 - **Cross-Tab Synchronization**: `subscribeToStorage()` listens for browser `StorageEvent` on `gza.repo.v1`, synchronizing repository in-memory cache across separate browser tabs.
+
+### 4.3 Booking Draft Storage Schema (`gza.booking.draft.v1`) & 5 Storage States
+
+- **Storage Key**: `localStorage["gza.booking.draft.v1"]`
+- **Schema Version**: `1`
+- **Shape**:
+  ```json
+  {
+    "schemaVersion": 1,
+    "status": "active",
+    "revision": 1,
+    "updatedAt": "2026-10-01T12:00:00.000Z",
+    "source": "direct",
+    "draft": {
+      "criteria": { /* SearchCriteria */ },
+      "outbound": /* Flight snapshot or null */,
+      "inbound": /* Flight snapshot or null */,
+      "fareId": "essential",
+      "passengers": [ /* BookingPassenger[] */ ],
+      "seats": { /* Record<"out-0" | "in-0", seatCode> */ },
+      "extras": { /* Extras */ },
+      "contact": { /* Contact */ },
+      "entry": "search",
+      "submissionId": "sub-1727784000000-abc123xyz"
+    }
+  }
+  ```
+- **Five Distinct Storage States**:
+  1. **`missing` (`getItem === null`)**: The ONLY state that triggers a one-time migration from `gza.store.v1.draft`. The raw legacy store is preserved byte-for-byte.
+  2. **`active`**: Authoritative canonical draft (including valid empty draft). Legacy store is ignored.
+  3. **`cleared` (Tombstone)**: Written on successful booking creation or user discard (`{ status: "cleared", draft: null, clearedReason: "completed" | "discarded" | "reset" }`). Authoritative tombstone prevents legacy resurrection.
+  4. **`malformed`**: Corrupted JSON or invalid schema is sanitized and recovered into fresh runtime state; legacy store is never re-imported.
+  5. **`unavailable`**: Browser storage error (e.g. `SecurityError` in private browsing or partitioned iframe); falls back to in-memory mode without overwriting unread storage data.
+- **Mutation Queue & Isolation**: All asynchronous updates are serialized through an atomic promise queue (`mutationQueue`), ensuring mutations always evaluate against the latest committed state without lost updates.
+- **Tombstone Anti-Resurrection**: Once a draft is cleared or completed, any legacy draft in `gza.store.v1` remains permanently ignored.
+
+### 4.4 Effective Discovery & Dynamic Selection Reconciliation
+
+- **Discovery Contracts**:
+  - `FlightRepository.searchFlights(origin, destination, date, options)` queries base schedules in both directions, merges active operational overrides (`flightOverrides`), checks departure clock cutoff in origin station timezone (`Asia/Gaza`), and enforces party seat requirements against `Flight.seatsLeft`.
+  - `FlightRepository.getMonthlyServiceMap(origin, destination, yearMonth, paxCount)` batches monthly dates into a dictionary of day service indicators and lowest fares, excluding unbookable and cancelled flights.
+- **Reconciliation Engine (`src/lib/booking-draft/reconciliation.ts`)**:
+  - Reconciles selected outbound and inbound flights against real effective flight instances by ID.
+  - Refreshes operational snapshot changes (status, gate, terminal, aircraft, revised departure time) without invalidating valid bookings.
+  - Invalidates legs if cancelled, departed, landed, boarding, past departure cutoff, sold out, or lacking sufficient seats for the passenger party.
+  - **Prefix-Based Seat Eviction**: When a leg is invalidated, all seats for that leg (`out-*` or `in-*`) are evicted via key iteration, while surviving legs, passenger records, documents, contact details, and surviving seats are preserved intact.
+  - Clamps wizard navigation back to the `results` milestone and displays localized bilingual alert notices.
 
 ---
 

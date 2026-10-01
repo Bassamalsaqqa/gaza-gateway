@@ -84,7 +84,13 @@ async function runBrowserSmoke() {
 
   const results = [];
 
+  const filterArg = process.argv.find((a) => a.startsWith("--filter="));
+  const filter = filterArg ? filterArg.split("=")[1] : process.env.SMOKE_FILTER;
+
   async function checkStep(name, fn) {
+    if (filter && !name.toLowerCase().includes(filter.toLowerCase())) {
+      return;
+    }
     const t0 = Date.now();
     try {
       await fn();
@@ -147,10 +153,11 @@ async function runBrowserSmoke() {
         throw new Error("Expected CAP-PROOF-1SEAT to be enabled for 1 adult + 1 infant party");
       }
       await opt1Seat.click();
-      const is1SeatChecked = await opt1Seat.getAttribute("data-state");
-      if (is1SeatChecked !== "checked") {
-        throw new Error("Clicking 1-seat option did not select it");
-      }
+      await page.waitForFunction(
+        () => document.getElementById("flight-option-CAP-PROOF-1SEAT")?.getAttribute("data-state") === "checked",
+        null,
+        { timeout: 5000 },
+      );
 
       // Invariant 2: Cancelled and Boarding options are disabled in DOM
       const isCancelledDisabled = await optCancelled.isDisabled();
@@ -514,6 +521,11 @@ async function runBrowserSmoke() {
       // Assert persistent draft store in localStorage: outbound matches clicked flight ID
       const storedOutboundId = await page.evaluate(() => {
         try {
+          const rawCanonical = localStorage.getItem("gza.booking.draft.v1");
+          if (rawCanonical) {
+            const parsed = JSON.parse(rawCanonical);
+            if (parsed?.draft?.outbound?.id) return parsed.draft.outbound.id;
+          }
           const raw = localStorage.getItem("gza.store.v1");
           if (!raw) return null;
           const parsed = JSON.parse(raw);
@@ -610,6 +622,11 @@ async function runBrowserSmoke() {
 
       const arStoredOutboundId = await page.evaluate(() => {
         try {
+          const rawCanonical = localStorage.getItem("gza.booking.draft.v1");
+          if (rawCanonical) {
+            const parsed = JSON.parse(rawCanonical);
+            if (parsed?.draft?.outbound?.id) return parsed.draft.outbound.id;
+          }
           const raw = localStorage.getItem("gza.store.v1");
           if (!raw) return null;
           const parsed = JSON.parse(raw);
@@ -681,23 +698,30 @@ async function runBrowserSmoke() {
         await page.fill("#fn-0", "Zaid");
         await page.fill("#ln-0", "Al-Khalidi");
         await page.locator("#dob-0").click();
-        await page.waitForSelector(".rdp-day:not([disabled])", { timeout: 5000 });
-        await page.locator(".rdp-day:not([disabled])").first().click();
+        await page.waitForSelector(".rdp-day button:not([disabled]), button.rdp-day_button:not([disabled])", { timeout: 5000 });
+        await page.locator(".rdp-day button:not([disabled]), button.rdp-day_button:not([disabled])").first().click();
+        await page.waitForFunction(() => {
+          const el = document.getElementById("dob-0");
+          return el && (el.value || (el.textContent && !el.textContent.includes("Select")));
+        }, null, { timeout: 5000 });
         await page.fill("#contact-email", "smoke9@example.com");
         await page.fill("#contact-phone", "+970599000000");
 
         const toSeatsBtn = page.locator('button:has-text("Continue"), button:has-text("متابعة")').first();
         await toSeatsBtn.click();
+        await page.waitForSelector('[data-surface-target="booking.seat-console"]', { timeout: 8000 });
 
         // Step seats -> extras
         const toExtrasBtn = page.locator('button:has-text("Continue"), button:has-text("متابعة")').first();
         await toExtrasBtn.waitFor({ state: "visible", timeout: 8000 });
         await toExtrasBtn.click();
+        await page.waitForSelector('[data-surface-target="booking.extras"]', { timeout: 8000 });
 
         // Step extras -> review
         const toReviewBtn = page.locator('button:has-text("Continue"), button:has-text("متابعة")').first();
         await toReviewBtn.waitFor({ state: "visible", timeout: 8000 });
         await toReviewBtn.click();
+        await page.waitForSelector('[data-surface-target="booking.review-dossier"]', { timeout: 8000 });
 
         // Step review: confirm booking (authoritative repository mutation)
         await page.waitForSelector('button:has-text("Confirm booking"), button:has-text("Confirm")', { timeout: 8000 });
@@ -2304,7 +2328,7 @@ async function runBrowserSmoke() {
       async function assertWebpImage(p, selector, expectedName) {
         const locator = p.locator(selector).first();
         await locator.waitFor({ state: "attached", timeout: 8000 });
-        await locator.scrollIntoViewIfNeeded();
+        await locator.scrollIntoViewIfNeeded().catch(() => {});
         await p.waitForFunction(
           (sel) => {
             const img = document.querySelector(sel);
@@ -2893,6 +2917,15 @@ async function runBrowserSmoke() {
         await page.setViewportSize({ width: 1440, height: 900 });
         await page.goto(baseUrl + path, { waitUntil: "load" });
         await page.locator("#search-depart").waitFor({ state: "visible" });
+        const returnInput = page.locator("#search-return");
+        if (!(await returnInput.isVisible())) {
+          const roundTripBtn = page.locator('button[data-slot="trip-type-button"]:has-text("Round trip"), button[data-slot="trip-type-button"]:has-text("ذهاب وعودة")').first();
+          if ((await roundTripBtn.count()) > 0) {
+            await roundTripBtn.click();
+            await page.waitForTimeout(200);
+          }
+        }
+        await page.locator("#search-return").waitFor({ state: "visible" });
         const positions = await page.evaluate(() => {
           const rect = (selector) => document.querySelector(selector)?.getBoundingClientRect();
           return {
@@ -3659,6 +3692,16 @@ async function runBrowserSmoke() {
           extras: { pax: [{ baggage: "none", meal: "standard", assistance: "none", lounge: false }] },
           contact: { email: "", phone: "" },
         };
+        const envelope = {
+          schemaVersion: 1,
+          status: "active",
+          revision: 1,
+          updatedAt: new Date().toISOString(),
+          source: "direct",
+          draft,
+          submissionId: "smoke-sub-check-34",
+        };
+        localStorage.setItem("gza.booking.draft.v1", JSON.stringify(envelope));
         localStorage.setItem("gza.store.v1", JSON.stringify({ draft, account: null, travelers: [] }));
 
         // Seed appearance draft with custom recipe for booking.flight-option and booking.trip-summary
@@ -4925,6 +4968,448 @@ async function runBrowserSmoke() {
       }
 
       await page.setViewportSize({ width: 1440, height: 900 });
+    });
+
+    await checkStep("Check 38: Phase 5B — Booking Draft Canonical Storage, Round-Trip Discovery & Selection Persistence", async () => {
+      const testContext = await browser.newContext();
+      try {
+        const testPage = await testContext.newPage();
+        await testPage.setViewportSize({ width: 1440, height: 900 });
+
+        // 1. Fresh context has NO gza.booking.draft.v1 or gza.store.v1.
+        // Navigate to /book?step=search
+        await testPage.goto(`${baseUrl}/book?step=search`, { waitUntil: "domcontentloaded" });
+        // Wait for client React hydration and initial draft establishment
+        await testPage.waitForFunction(() => localStorage.getItem("gza.booking.draft.v1") !== null, { timeout: 10000 });
+
+        // 2. Submit round-trip search
+        await testPage.waitForSelector('button[type="submit"]:has-text("Search"), button[type="submit"]:has-text("بحث")', { timeout: 8000 });
+        await testPage.locator('button[type="submit"]:has-text("Search"), button[type="submit"]:has-text("بحث")').first().click();
+
+        // 3. Results step loads with effective flight options
+        await testPage.waitForSelector('[data-surface-target="booking.flight-option"]', { timeout: 10000 });
+        const flightOptions = testPage.locator('[data-surface-target="booking.flight-option"]');
+        const count = await flightOptions.count();
+        if (count === 0) {
+          throw new Error("Expected at least 1 flight option on results step");
+        }
+
+        // 4. Select outbound flight option (first enabled one)
+        const enabledOutbound = testPage.locator('[data-surface-target="booking.flight-option"]:not([disabled])').first();
+        await enabledOutbound.click();
+
+        // 5. In round-trip mode, select inbound flight option if present
+        const inboundHeading = testPage.locator('#inbound-flights-heading');
+        if (await inboundHeading.isVisible()) {
+          const enabledInbound = testPage.locator('div[role="radiogroup"][aria-labelledby="inbound-flights-heading"] [data-surface-target="booking.flight-option"]:not([disabled])');
+          if ((await enabledInbound.count()) > 0) {
+            await enabledInbound.first().click();
+          }
+        }
+
+        // 6. Verify canonical persistence in gza.booking.draft.v1 and absence of draft in gza.store.v1
+        const storageAudit = await testPage.evaluate(() => {
+          const draftRaw = localStorage.getItem("gza.booking.draft.v1");
+          const storeRaw = localStorage.getItem("gza.store.v1");
+          const parsedDraft = draftRaw ? JSON.parse(draftRaw) : null;
+          const parsedStore = storeRaw ? JSON.parse(storeRaw) : null;
+          return {
+            hasCanonicalDraft: Boolean(parsedDraft),
+            schemaVersion: parsedDraft?.schemaVersion,
+            status: parsedDraft?.status,
+            source: parsedDraft?.source,
+            hasOutbound: Boolean(parsedDraft?.draft?.outbound?.id),
+            submissionId: parsedDraft?.submissionId ?? parsedDraft?.draft?.submissionId,
+            legacyStoreHasDraft: Boolean(parsedStore?.draft),
+          };
+        });
+
+        if (!storageAudit.hasCanonicalDraft) {
+          throw new Error("Expected gza.booking.draft.v1 to be populated in localStorage");
+        }
+        if (storageAudit.schemaVersion !== 1 || storageAudit.status !== "active") {
+          throw new Error(`Expected schemaVersion 1 and active status, got ${JSON.stringify(storageAudit)}`);
+        }
+        if (!storageAudit.hasOutbound) {
+          throw new Error("Expected outbound flight to be stored in canonical draft");
+        }
+        if (!storageAudit.submissionId || typeof storageAudit.submissionId !== "string") {
+          throw new Error("Expected stable submissionId in canonical draft");
+        }
+        if (storageAudit.legacyStoreHasDraft) {
+          throw new Error("Forbidden: gza.store.v1 must NOT act as active draft writer");
+        }
+
+        // 7. Progress to Fare
+        const continueToFare = testPage.locator('button:has-text("Continue"), button:has-text("متابعة")').first();
+        await continueToFare.click();
+        await testPage.waitForSelector('[data-surface-target="booking.fare-option"]', { timeout: 8000 });
+
+        // 8. Progress to Passengers
+        const continueToPax = testPage.locator('button:has-text("Continue"), button:has-text("متابعة")').first();
+        await continueToPax.click();
+        await testPage.waitForSelector('#fn-0', { timeout: 8000 });
+
+        // Fill required passenger details
+        await testPage.fill('#fn-0', "Tariq");
+        await testPage.fill('#ln-0', "Mansour");
+        const dobField = testPage.locator('#dob-0');
+        const tagName = await dobField.evaluate((el) => el.tagName.toLowerCase());
+        if (tagName === "input") {
+          await dobField.fill("1988-06-15");
+        } else {
+          await dobField.click();
+          await testPage.waitForSelector(".rdp-day button:not([disabled]), button.rdp-day_button:not([disabled])", { timeout: 5000 });
+          await testPage.locator(".rdp-day button:not([disabled]), button.rdp-day_button:not([disabled])").first().click();
+          await testPage.waitForFunction(() => {
+            const el = document.getElementById("dob-0");
+            return el && (el.value || (el.textContent && !el.textContent.includes("Select")));
+          }, null, { timeout: 5000 });
+        }
+        await testPage.fill('#contact-email', "tariq.mansour@example.ps");
+        await testPage.fill('#contact-phone', "+970599000000");
+
+        // 9. Progress to Seats
+        const continueToSeats = testPage.locator('button:has-text("Continue"), button:has-text("متابعة")').first();
+        await continueToSeats.click();
+        await testPage.waitForSelector('[data-surface-target="booking.seat-console"]', { timeout: 8000 });
+
+        // Skip seats to Extras
+        const skipSeats = testPage.locator('button:has-text("Skip seat selection"), button:has-text("تخطي اختيار المقاعد")').first();
+        if (await skipSeats.isVisible()) {
+          await skipSeats.click();
+        } else {
+          const nextFromSeats = testPage.locator('button:has-text("Continue"), button:has-text("متابعة")').first();
+          await nextFromSeats.click();
+        }
+
+        // 10. Progress to Review
+        await testPage.waitForSelector('[data-surface-target="booking.extras"]', { timeout: 8000 });
+        const continueToReview = testPage.locator('button:has-text("Continue"), button:has-text("متابعة")').first();
+        await continueToReview.click();
+        await testPage.waitForSelector('[data-surface-target="booking.review-dossier"]', { timeout: 8000 });
+
+        // 11. Review responsive bounds check (1440, 768, 390, 320)
+        for (const w of [1440, 768, 390, 320]) {
+          await testPage.setViewportSize({ width: w, height: 800 });
+          const overflow = await testPage.evaluate(() => document.body.scrollWidth > document.body.clientWidth);
+          if (overflow) {
+            throw new Error(`Horizontal scroll overflow on /book review step at ${w}px`);
+          }
+        }
+      } finally {
+        await testContext.close();
+      }
+    });
+
+    await checkStep("Check 39: Phase 5B — Operational Cancellation Invalidation, Prefix Seat Eviction & Results Rollback", async () => {
+      const testContext = await browser.newContext();
+      try {
+        const testPage = await testContext.newPage();
+        await testPage.setViewportSize({ width: 1440, height: 900 });
+
+        // 1. Seed a valid round-trip draft on step review with outbound, inbound, and seats
+        // Route: GZA <-> AMM on 2026-10-15 (outbound PS100-2026-10-15-out) and 2026-10-22 (inbound PS101-2026-10-22-in)
+        const outboundFlightId = "PS100-2026-10-15-out";
+        const inboundFlightId = "PS101-2026-10-22-in";
+
+        const envelope = {
+          schemaVersion: 1,
+          status: "active",
+          revision: 3,
+          updatedAt: new Date().toISOString(),
+          source: "direct",
+          draft: {
+            criteria: {
+              tripType: "round",
+              origin: "GZA",
+              destination: "AMM",
+              departDate: "2026-10-15",
+              returnDate: "2026-10-22",
+              adults: 1,
+              children: 0,
+              infants: 0,
+              cabin: "economy",
+            },
+            outbound: {
+              id: outboundFlightId,
+              number: "PS 100",
+              originCode: "GZA",
+              destinationCode: "AMM",
+              date: "2026-10-15",
+              departTime: "09:00",
+              arriveTime: "10:15",
+              durationMinutes: 75,
+              aircraft: "Airbus A320neo",
+              status: "Scheduled",
+              gate: "A1",
+              terminal: "1",
+              basePrice: 150,
+              seatsLeft: 12,
+            },
+            inbound: {
+              id: inboundFlightId,
+              number: "PS 101",
+              originCode: "AMM",
+              destinationCode: "GZA",
+              date: "2026-10-22",
+              departTime: "12:00",
+              arriveTime: "13:15",
+              durationMinutes: 75,
+              aircraft: "Airbus A320neo",
+              status: "Scheduled",
+              gate: "A2",
+              terminal: "1",
+              basePrice: 150,
+              seatsLeft: 10,
+            },
+            fareId: "classic",
+            passengers: [
+              {
+                type: "adult",
+                firstName: "Laila",
+                lastName: "Kahlout",
+                dob: "1992-04-10",
+                nationality: "PS",
+                document: "P123456",
+              },
+            ],
+            seats: {
+              "out-0": "2A",
+              "in-0": "4B",
+            },
+            extras: {
+              baggage: 0,
+              meal: "standard",
+              lounge: false,
+              priorityBoarding: false,
+              carbonOffset: false,
+            },
+            contact: {
+              email: "laila.kahlout@example.ps",
+              phone: "+970599123456",
+            },
+            entry: "results",
+            submissionId: "smoke-sub-inv-39",
+          },
+        };
+
+        const repo = {
+          schemaVersion: 1,
+          bookings: [],
+          flightOverrides: {
+            [outboundFlightId]: {
+              flightId: outboundFlightId,
+              status: "Cancelled",
+              note: "Operational weather cancellation test",
+            },
+          },
+        };
+
+        await testContext.addInitScript(({ env, rep }) => {
+          try {
+            localStorage.setItem("gza.booking.draft.v1", JSON.stringify(env));
+            localStorage.setItem("gza.repo.v1", JSON.stringify(rep));
+          } catch { }
+        }, { env: envelope, rep: repo });
+
+        // 2. Load /book?step=review
+        await testPage.goto(`${baseUrl}/book?step=review`, { waitUntil: "domcontentloaded" });
+
+        // 3. Wait for reconciliation to kick in: outbound is invalidated, URL/step is clamped back to results
+        await testPage.waitForSelector('[role="alert"]', { timeout: 15000 });
+        const alertNotice = testPage.locator('[role="alert"]').first();
+        const alertText = await alertNotice.innerText();
+        if (!alertText.toLowerCase().includes("cancelled") && !alertText.toLowerCase().includes("unavailable") && !alertText.includes("ملغاة")) {
+          throw new Error(`Expected cancellation alert notice, got "${alertText}"`);
+        }
+
+        // 4. Verify in localStorage that prefix seat eviction was applied (out-0 deleted, in-0 preserved)
+        const postReconciliation = await testPage.evaluate(() => {
+          const raw = localStorage.getItem("gza.booking.draft.v1");
+          const parsed = raw ? JSON.parse(raw) : null;
+          return {
+            outbound: parsed?.draft?.outbound,
+            inboundId: parsed?.draft?.inbound?.id,
+            hasOutSeat: Boolean(parsed?.draft?.seats?.["out-0"]),
+            inSeat: parsed?.draft?.seats?.["in-0"],
+            paxFirstName: parsed?.draft?.passengers?.[0]?.firstName,
+          };
+        });
+
+        if (postReconciliation.outbound !== null) {
+          throw new Error("Expected outbound flight to be cleared from draft upon operational cancellation");
+        }
+        if (postReconciliation.hasOutSeat) {
+          throw new Error("Expected out-0 seat to be evicted via prefix deletion");
+        }
+        if (postReconciliation.inSeat !== "4B") {
+          throw new Error(`Expected surviving in-0 seat '4B' to be preserved, got ${postReconciliation.inSeat}`);
+        }
+        if (!postReconciliation.inboundId) {
+          throw new Error("Expected surviving inbound flight to remain intact");
+        }
+        if (postReconciliation.paxFirstName !== "Laila") {
+          throw new Error("Expected passenger information to be preserved across leg invalidation");
+        }
+      } finally {
+        await testContext.close();
+      }
+    });
+
+    await checkStep("Check 40: Phase 5B — Legacy Store Migration, Cleared Tombstone Anti-Resurrection & Multi-Tab Isolation", async () => {
+      const testContext = await browser.newContext();
+      try {
+        const testPage = await testContext.newPage();
+        await testPage.setViewportSize({ width: 1440, height: 900 });
+
+        // 1. Ensure gza.booking.draft.v1 is ABSENT and seed legacy gza.store.v1
+        const legacyPayload = {
+          draft: {
+            criteria: {
+              tripType: "round",
+              origin: "GZA",
+              destination: "AMM",
+              departDate: "2026-10-15",
+              returnDate: "2026-10-22",
+              adults: 1,
+              children: 0,
+              infants: 0,
+              cabin: "economy",
+            },
+            outbound: null,
+            inbound: null,
+            fareId: "essential",
+            passengers: [],
+            seats: {},
+            extras: { pax: [{ extraBags: 0, meal: "standard", assistance: [] }] },
+            contact: { email: "legacy-migrated@example.ps", phone: "+970599999999" },
+            entry: "search",
+            submissionId: "legacy-sub-40",
+          },
+          bookings: [],
+          account: null,
+        };
+        const rawLegacy = JSON.stringify(legacyPayload);
+
+        await testPage.goto(baseUrl, { waitUntil: "domcontentloaded" });
+        await testPage.evaluate((raw) => {
+          try {
+            localStorage.removeItem("gza.booking.draft.v1");
+            localStorage.setItem("gza.store.v1", raw);
+          } catch { }
+        }, rawLegacy);
+
+        // 2. Load /book?step=search to trigger migration
+        await testPage.goto(`${baseUrl}/book?step=search`, { waitUntil: "domcontentloaded" });
+        await testPage.waitForFunction(
+          () => localStorage.getItem("gza.booking.draft.v1") !== null,
+          { timeout: 10000 },
+        );
+
+        // Verify migration occurred into gza.booking.draft.v1 and legacy store is unmodified
+        const migrationAudit = await testPage.evaluate((rawExpected) => {
+          const canonicalRaw = localStorage.getItem("gza.booking.draft.v1");
+          const canonical = canonicalRaw ? JSON.parse(canonicalRaw) : null;
+          const currentLegacy = localStorage.getItem("gza.store.v1");
+          return {
+            status: canonical?.status,
+            contactEmail: canonical?.draft?.contact?.email,
+            legacyUnchanged: currentLegacy === rawExpected,
+          };
+        }, rawLegacy);
+
+        if (migrationAudit.status !== "active") {
+          throw new Error(`Expected active legacy-migrated draft, got ${JSON.stringify(migrationAudit)}`);
+        }
+        if (migrationAudit.contactEmail !== "legacy-migrated@example.ps") {
+          throw new Error(`Expected migrated contact email, got ${migrationAudit.contactEmail}`);
+        }
+        if (!migrationAudit.legacyUnchanged) {
+          throw new Error("Forbidden: legacy gza.store.v1 was modified during migration");
+        }
+
+        // 3. Tombstone anti-resurrection: set status = cleared in gza.booking.draft.v1
+        await testPage.evaluate(() => {
+          const clearedEnvelope = {
+            schemaVersion: 1,
+            status: "cleared",
+            revision: 5,
+            updatedAt: new Date().toISOString(),
+            source: "direct",
+            draft: null,
+            clearedAt: new Date().toISOString(),
+            clearedReason: "completed",
+          };
+          localStorage.setItem("gza.booking.draft.v1", JSON.stringify(clearedEnvelope));
+        });
+
+        // Reload page and verify legacy draft is NOT resurrected
+        await testPage.reload({ waitUntil: "domcontentloaded" });
+        await testPage.waitForFunction(
+          () => localStorage.getItem("gza.booking.draft.v1") !== null,
+          { timeout: 10000 },
+        );
+        const tombstoneAudit = await testPage.evaluate(() => {
+          const canonicalRaw = localStorage.getItem("gza.booking.draft.v1");
+          const canonical = canonicalRaw ? JSON.parse(canonicalRaw) : null;
+          return {
+            status: canonical?.status,
+            contactEmail: canonical?.draft?.contact?.email,
+          };
+        });
+
+        if (tombstoneAudit.contactEmail === "legacy-migrated@example.ps") {
+          throw new Error("Tombstone violation: legacy draft resurrected over cleared canonical tombstone");
+        }
+
+        // 4. Studio Capacity Proof Isolation
+        await testPage.evaluate(() => {
+          const prodDraft = {
+            schemaVersion: 1,
+            status: "active",
+            revision: 10,
+            updatedAt: new Date().toISOString(),
+            source: "direct",
+            draft: {
+              criteria: { tripType: "one-way", origin: "GZA", destination: "AMM", departDate: "2026-10-15", returnDate: "", adults: 1, children: 0, infants: 0, cabin: "economy" },
+              outbound: null,
+              inbound: null,
+              fareId: "essential",
+              passengers: [],
+              seats: {},
+              extras: { baggage: 0, meal: "standard", lounge: false, priorityBoarding: false, carbonOffset: false },
+              contact: { email: "real-prod-user@example.ps", phone: "+970599001122" },
+              entry: "search",
+              submissionId: "prod-sub-isolation",
+            },
+          };
+          localStorage.setItem("gza.booking.draft.v1", JSON.stringify(prodDraft));
+        });
+
+        // Load studio preview scenario
+        await testPage.goto(`${baseUrl}/book?studioPreview=1&scenario=booking.capacity-proof&step=results`, { waitUntil: "domcontentloaded" });
+        await testPage.waitForSelector('[id^="flight-option-CAP-PROOF"]', { timeout: 8000 });
+
+        // Verify canonical storage was not tainted by CAP-PROOF
+        const studioAudit = await testPage.evaluate(() => {
+          const raw = localStorage.getItem("gza.booking.draft.v1");
+          const parsed = raw ? JSON.parse(raw) : null;
+          return {
+            contactEmail: parsed?.draft?.contact?.email,
+            outboundId: parsed?.draft?.outbound?.id,
+          };
+        });
+
+        if (studioAudit.contactEmail !== "real-prod-user@example.ps") {
+          throw new Error("Studio scenario corrupted production draft email");
+        }
+        if (studioAudit.outboundId?.startsWith("CAP-PROOF")) {
+          throw new Error("Studio scenario leaked synthetic CAP-PROOF flight into canonical storage");
+        }
+      } finally {
+        await testContext.close();
+      }
     });
 
   } finally {

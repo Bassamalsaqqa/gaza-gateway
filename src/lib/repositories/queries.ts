@@ -17,9 +17,11 @@ import {
 } from "@tanstack/react-query";
 import type { Booking, BookingCreateInput } from "../domain/booking.ts";
 import type { Flight, FlightOverride } from "../domain/flight.ts";
-import type { ClaimResult } from "./types.ts";
-import { bookingKeys, flightKeys } from "./keys.ts";
-export { bookingKeys, flightKeys } from "./keys.ts";
+import type { ClaimResult, MonthlyServiceMap } from "./types.ts";
+import type { BookingDraftState, Draft, SearchCriteria } from "../booking-draft/types.ts";
+import { emptyPaxExtras, passengersFor } from "../booking-draft/factories.ts";
+import { bookingDraftKeys, bookingKeys, flightKeys } from "./keys.ts";
+export { bookingDraftKeys, bookingKeys, flightKeys } from "./keys.ts";
 import { useRepositories } from "./registry.ts";
 
 
@@ -214,5 +216,193 @@ export function useClaimBookingMutation(): UseMutationResult<
         queryClient.invalidateQueries({ queryKey: bookingKeys.detail(variables.ref) });
       }
     },
+  });
+}
+
+/**
+ * Retrieves the canonical booking draft state.
+ * Subscribes to repository notifications for instant cross-tab and in-memory synchronization.
+ */
+export function useBookingDraftQuery(): UseQueryResult<BookingDraftState, Error> {
+  const { bookingDraft: draftRepo } = useRepositories();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    return draftRepo.subscribe(() => {
+      queryClient.invalidateQueries({ queryKey: bookingDraftKeys.all });
+    });
+  }, [draftRepo, queryClient]);
+
+  return useQuery({
+    queryKey: bookingDraftKeys.state(),
+    queryFn: () => Promise.resolve(draftRepo.getState()),
+    initialData: () => draftRepo.getState(),
+  });
+}
+
+/**
+ * Mutation hook for updating the booking draft.
+ */
+export function useUpdateBookingDraftMutation(): UseMutationResult<
+  Draft,
+  Error,
+  Partial<Draft> | ((prev: Draft) => Draft),
+  { previousState?: BookingDraftState | undefined }
+> {
+  const { bookingDraft: draftRepo } = useRepositories();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (updater: Partial<Draft> | ((prev: Draft) => Draft)) => draftRepo.updateDraft(updater),
+    onMutate: (updater) => {
+      void queryClient.cancelQueries({ queryKey: bookingDraftKeys.all });
+      const previousState = queryClient.getQueryData<BookingDraftState>(bookingDraftKeys.state());
+      if (previousState) {
+        const nextDraft =
+          typeof updater === "function" ? updater(previousState.draft) : { ...previousState.draft, ...updater };
+        queryClient.setQueryData<BookingDraftState>(bookingDraftKeys.state(), {
+          ...previousState,
+          draft: nextDraft,
+        });
+      }
+      return { previousState };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousState) {
+        queryClient.setQueryData(bookingDraftKeys.state(), context.previousState);
+      }
+    },
+    onSettled: () => {
+      queryClient.setQueryData<BookingDraftState>(bookingDraftKeys.state(), draftRepo.getState());
+      queryClient.invalidateQueries({ queryKey: bookingDraftKeys.all });
+    },
+  });
+}
+
+/**
+ * Mutation hook for resetting the draft from fresh search criteria.
+ */
+export function useResetBookingDraftMutation(): UseMutationResult<
+  Draft,
+  Error,
+  { criteria: SearchCriteria; options?: { meal?: string; email?: string; phone?: string } },
+  { previousState?: BookingDraftState | undefined }
+> {
+  const { bookingDraft: draftRepo } = useRepositories();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ criteria, options }) => draftRepo.resetDraft(criteria, options),
+    onMutate: async ({ criteria, options }) => {
+      await queryClient.cancelQueries({ queryKey: bookingDraftKeys.all });
+      const previousState = queryClient.getQueryData<BookingDraftState>(bookingDraftKeys.state());
+      if (previousState) {
+        const passengers = passengersFor(criteria);
+        const meal = options?.meal ?? "standard";
+        const resetDraftData: Draft = {
+          entry: "results",
+          criteria,
+          outbound: null,
+          inbound: null,
+          fareId: "classic",
+          passengers,
+          seats: {},
+          extras: { pax: passengers.map(() => emptyPaxExtras(meal)) },
+          contact: {
+            email: options?.email ?? "",
+            phone: options?.phone ?? "",
+          },
+        };
+        queryClient.setQueryData<BookingDraftState>(bookingDraftKeys.state(), {
+          ...previousState,
+          draft: resetDraftData,
+        });
+      }
+      return { previousState };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousState) {
+        queryClient.setQueryData(bookingDraftKeys.state(), context.previousState);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: bookingDraftKeys.all });
+    },
+  });
+}
+
+/**
+ * Mutation hook for clearing the draft (writes tombstone).
+ */
+export function useClearBookingDraftMutation(): UseMutationResult<void, Error, void> {
+  const { bookingDraft: draftRepo } = useRepositories();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => draftRepo.clearDraft(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: bookingDraftKeys.all });
+    },
+  });
+}
+
+/**
+ * Searches effective flights for a route on a specific date with operational overrides composed.
+ */
+export function useFlightSearchQuery(
+  origin: string,
+  destination: string,
+  date: string,
+  options?: { paxCount?: number; now?: Date | string | number },
+  queryOptions?: { enabled?: boolean },
+): UseQueryResult<Flight[], Error> {
+  const { flight: flightRepo } = useRepositories();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    return flightRepo.subscribe(() => {
+      queryClient.invalidateQueries({ queryKey: flightKeys.all });
+    });
+  }, [flightRepo, queryClient]);
+
+  const enabled =
+    Boolean(origin && destination && date) &&
+    (queryOptions?.enabled !== undefined ? queryOptions.enabled : true);
+
+  return useQuery({
+    queryKey: flightKeys.search(origin, destination, date, options?.paxCount),
+    queryFn: () => flightRepo.searchFlights(origin, destination, date),
+    enabled,
+  });
+}
+
+/**
+ * Retrieves the monthly service and lowest fare map for calendar date picking.
+ */
+export function useMonthlyFlightServiceQuery(
+  origin: string,
+  destination: string,
+  year: number,
+  month: number,
+  options?: { paxCount?: number; now?: Date | string | number },
+  queryOptions?: { enabled?: boolean },
+): UseQueryResult<MonthlyServiceMap, Error> {
+  const { flight: flightRepo } = useRepositories();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    return flightRepo.subscribe(() => {
+      queryClient.invalidateQueries({ queryKey: flightKeys.all });
+    });
+  }, [flightRepo, queryClient]);
+
+  const enabled =
+    Boolean(origin && destination && year && month) &&
+    (queryOptions?.enabled !== undefined ? queryOptions.enabled : true);
+
+  return useQuery({
+    queryKey: flightKeys.monthlyService(origin, destination, year, month, options?.paxCount),
+    queryFn: () => flightRepo.getMonthlyServiceMap(year, month, origin, destination, options),
+    enabled,
   });
 }

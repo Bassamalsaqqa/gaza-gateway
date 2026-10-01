@@ -1,9 +1,11 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Calendar as CalendarIcon } from "lucide-react";
 
-import { searchFlights, todayISO } from "@/lib/data";
+import { isFlightBookable, todayISO } from "@/lib/data";
 import { dateParts, dateShort } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
+import { useFlightSearchQuery, useMonthlyFlightServiceQuery } from "@/lib/repositories";
+import type { MonthlyDayService } from "@/lib/repositories/types";
 import { cn } from "@/lib/utils";
 import { Field } from "@/components/kit";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
@@ -40,6 +42,7 @@ export interface AirlineDatePickerProps {
   disabled?: boolean | undefined;
   className?: string | undefined;
   variant?: "default" | "console" | undefined;
+  paxCount?: number | undefined;
 }
 
 export function AirlineDatePicker({
@@ -57,6 +60,7 @@ export function AirlineDatePicker({
   disabled = false,
   className,
   variant = "default",
+  paxCount = 1,
 }: AirlineDatePickerProps) {
   const { t, lang } = useI18n();
   const isMobile = useIsMobile();
@@ -96,83 +100,140 @@ export function AirlineDatePicker({
   // Active route endpoints based on active selection target
   const activeFrom = activeTarget === "depart" ? origin : destination;
   const activeTo = activeTarget === "depart" ? destination : origin;
+  const isNetworkValid = (origin === "GZA" || destination === "GZA") && origin !== destination;
 
-  // Memoized route fare lookup
-  const getRouteFare = useMemo(() => {
-    const cache = new Map<string, { hasService: boolean; lowestFare: number | null }>();
-    return (isoDate: string) => {
-      const cached = cache.get(isoDate);
-      if (cached !== undefined) return cached;
-      if (!activeFrom || !activeTo || activeFrom === activeTo) {
-        const res = { hasService: false, lowestFare: null };
-        cache.set(isoDate, res);
-        return res;
-      }
-      const flights = searchFlights(activeFrom, activeTo, isoDate);
-      if (!flights || flights.length === 0) {
-        const res = { hasService: false, lowestFare: null };
-        cache.set(isoDate, res);
-        return res;
-      }
-      const lowestFare = Math.min(...flights.map((f) => f.basePrice));
-      const res = { hasService: true, lowestFare };
-      cache.set(isoDate, res);
-      return res;
-    };
-  }, [activeFrom, activeTo]);
+  const year1 = displayMonth.getFullYear();
+  const month1 = displayMonth.getMonth() + 1;
+  const nextMonthDate = new Date(year1, month1, 1);
+  const year2 = nextMonthDate.getFullYear();
+  const month2 = nextMonthDate.getMonth() + 1;
 
-  const getDepartFare = useMemo(() => {
-    const cache = new Map<string, { hasService: boolean; lowestFare: number | null }>();
-    return (isoDate: string) => {
-      const cached = cache.get(isoDate);
-      if (cached) return cached;
-      const flights = origin && destination && origin !== destination
-        ? searchFlights(origin, destination, isoDate)
-        : [];
-      const result = flights.length
-        ? { hasService: true, lowestFare: Math.min(...flights.map((flight) => flight.basePrice)) }
-        : { hasService: false, lowestFare: null };
-      cache.set(isoDate, result);
-      return result;
-    };
-  }, [origin, destination]);
+  // Monthly service queries for outbound and inbound
+  const { data: outMonth1 } = useMonthlyFlightServiceQuery(
+    origin,
+    destination,
+    year1,
+    month1,
+    { paxCount },
+    { enabled: open && isNetworkValid },
+  );
+  const { data: outMonth2 } = useMonthlyFlightServiceQuery(
+    origin,
+    destination,
+    year2,
+    month2,
+    { paxCount },
+    { enabled: open && isNetworkValid && numberOfMonths >= 2 },
+  );
+
+  const { data: inMonth1 } = useMonthlyFlightServiceQuery(
+    destination,
+    origin,
+    year1,
+    month1,
+    { paxCount },
+    { enabled: open && isNetworkValid && tripType === "round" },
+  );
+  const { data: inMonth2 } = useMonthlyFlightServiceQuery(
+    destination,
+    origin,
+    year2,
+    month2,
+    { paxCount },
+    { enabled: open && isNetworkValid && numberOfMonths >= 2 && tripType === "round" },
+  );
+
+  const outboundServices = useMemo(() => {
+    const map: Record<string, MonthlyDayService> = {};
+    if (outMonth1) Object.assign(map, outMonth1);
+    if (outMonth2) Object.assign(map, outMonth2);
+    return map;
+  }, [outMonth1, outMonth2]);
+
+  const inboundServices = useMemo(() => {
+    const map: Record<string, MonthlyDayService> = {};
+    if (inMonth1) Object.assign(map, inMonth1);
+    if (inMonth2) Object.assign(map, inMonth2);
+    return map;
+  }, [inMonth1, inMonth2]);
+
+  const activeServices = activeTarget === "depart" ? outboundServices : inboundServices;
 
   const effectiveMinDate = activeTarget === "return" && departDate
     ? departDate > (minDate || todayISO()) ? departDate : (minDate || todayISO())
     : (minDate || todayISO());
 
-  // Independent meaningful lowest fare per visible month
-  const getMinFareForMonth = useMemo(() => {
-    const cache = new Map<string, number | null>();
-    return (year: number, month: number): number | null => {
-      const key = `${activeFrom}-${activeTo}-${year}-${month}`;
-      const cached = cache.get(key);
-      if (cached !== undefined) return cached;
+  const getRouteFare = useCallback(
+    (isoDate: string) => {
+      const day = activeServices[isoDate];
+      if (day && day.hasService) {
+        return { hasService: true, lowestFare: day.lowestFare };
+      }
+      return { hasService: false, lowestFare: null };
+    },
+    [activeServices],
+  );
 
-      const daysInMonth = new Date(year, month + 1, 0).getDate();
-      const effectiveMin = effectiveMinDate;
+  const getDepartFare = useCallback(
+    (isoDate: string) => {
+      const day = outboundServices[isoDate];
+      if (day && day.hasService) {
+        return { hasService: true, lowestFare: day.lowestFare };
+      }
+      return { hasService: false, lowestFare: null };
+    },
+    [outboundServices],
+  );
+
+  const getMinFareForMonth = useCallback(
+    (year: number, monthZeroIndexed: number): number | null => {
+      const monthStr = String(monthZeroIndexed + 1).padStart(2, "0");
+      const prefix = `${year}-${monthStr}-`;
       const fares: number[] = [];
-
-      for (let d = 1; d <= daysInMonth; d++) {
-        const iso = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-        if (iso >= effectiveMin) {
-          const info = getRouteFare(iso);
-          if (info.hasService && info.lowestFare !== null) {
-            fares.push(info.lowestFare);
-          }
+      for (const [dateStr, info] of Object.entries(activeServices)) {
+        if (
+          dateStr.startsWith(prefix) &&
+          dateStr >= effectiveMinDate &&
+          info.hasService &&
+          info.lowestFare !== null
+        ) {
+          fares.push(info.lowestFare);
         }
       }
+      return fares.length > 1 ? Math.min(...fares) : null;
+    },
+    [activeServices, effectiveMinDate],
+  );
 
-      const res = fares.length > 1 ? Math.min(...fares) : null;
-      cache.set(key, res);
-      return res;
-    };
-  }, [activeFrom, activeTo, effectiveMinDate, getRouteFare]);
+  // Route-aware service availability checks for entered dates using effective flight queries
+  const { data: departDateFlights, isLoading: isDepartLoading } = useFlightSearchQuery(
+    origin,
+    destination,
+    departDate,
+    { paxCount },
+    { enabled: Boolean(departDate && isNetworkValid) },
+  );
 
-  // Route-aware service availability checks for entered dates
-  const isNetworkValid = (origin === "GZA" || destination === "GZA") && origin !== destination;
-  const hasDepartService = !departDate || !isNetworkValid || searchFlights(origin, destination, departDate).length > 0;
-  const hasReturnService = tripType !== "round" || !returnDate || !isNetworkValid || searchFlights(destination, origin, returnDate).length > 0;
+  const { data: returnDateFlights, isLoading: isReturnLoading } = useFlightSearchQuery(
+    destination,
+    origin,
+    returnDate,
+    { paxCount },
+    { enabled: Boolean(tripType === "round" && returnDate && isNetworkValid) },
+  );
+
+  const hasDepartService =
+    !departDate ||
+    !isNetworkValid ||
+    isDepartLoading ||
+    (departDateFlights ? departDateFlights.length > 0 : true);
+
+  const hasReturnService =
+    tripType !== "round" ||
+    !returnDate ||
+    !isNetworkValid ||
+    isReturnLoading ||
+    (returnDateFlights ? returnDateFlights.length > 0 : true);
 
   const departRoute = lang === "ar" ? `\u2066${origin} → ${destination}\u2069` : `${origin} → ${destination}`;
   const returnRoute = lang === "ar" ? `\u2066${destination} → ${origin}\u2069` : `${destination} → ${origin}`;

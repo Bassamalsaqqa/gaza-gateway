@@ -36,6 +36,7 @@ import { makePnr } from "../format.ts";
 import { isFlightBookable } from "../booking-rules.ts";
 
 export type Leg = "out" | "in";
+export type { SearchCriteria };
 
 /** Per-leg check-in: the passenger indexes that completed check-in on that leg. */
 export type CheckedIn = { out: number[]; in: number[] };
@@ -63,6 +64,8 @@ export interface Booking {
   checkedIn: CheckedIn;
   /** Local-only ownership: the account email this booking is linked to. */
   ownerEmail: string | null;
+  /** Stable client submission identity for duplicate prevention. */
+  submissionId?: string | undefined;
   /** Backward compatibility with legacy booking shape. */
   account?: boolean;
 }
@@ -79,11 +82,38 @@ export interface BookingCreateInput {
   contact: Contact;
   total: number;
   ownerEmail?: string | null;
+  submissionId?: string | undefined;
   account?: boolean;
   ref?: string;
   createdAt?: string;
   checkedIn?: CheckedIn;
   status?: "confirmed" | "cancelled";
+}
+
+export type BookingCreationFailureReason =
+  | "synthetic_fixture"
+  | "flight_missing"
+  | "cancelled"
+  | "departed"
+  | "landed"
+  | "boarding"
+  | "past"
+  | "sold_out"
+  | "insufficient_seats"
+  | "route_mismatch"
+  | "date_mismatch"
+  | "unavailable";
+
+export class BookingCreationError extends Error {
+  public override readonly name = "BookingCreationError";
+  public readonly reason: BookingCreationFailureReason;
+  public readonly leg?: "out" | "in" | undefined;
+
+  constructor(reason: BookingCreationFailureReason, message: string, leg?: "out" | "in") {
+    super(message);
+    this.reason = reason;
+    this.leg = leg;
+  }
 }
 
 /** Canonical iterable leg representation. */
@@ -238,6 +268,7 @@ interface RawBookingShape {
   status?: unknown;
   checkedIn?: unknown;
   ownerEmail?: unknown;
+  submissionId?: unknown;
 }
 
 /**
@@ -363,6 +394,8 @@ export function normalizeBooking(raw: unknown): Booking | null {
     status,
     checkedIn,
     ownerEmail,
+    submissionId:
+      typeof b.submissionId === "string" && b.submissionId.trim() ? b.submissionId.trim() : undefined,
   };
 }
 

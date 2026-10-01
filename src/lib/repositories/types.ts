@@ -56,12 +56,33 @@ export type ClaimResult =
   | { status: "owned-by-another" }
   | { status: "contact-mismatch" };
 
+export interface MonthlyDayService {
+  date: string;
+  hasService: boolean;
+  lowestFare: number | null;
+  flightCount: number;
+}
+
+export type MonthlyServiceMap = Record<string, MonthlyDayService>;
+
 export interface FlightRepository {
   /** Retrieves scheduled flights for a given date with operational overrides applied. */
   getFlights(date: string, direction?: "dep" | "arr"): Promise<Flight[]>;
 
   /** Resolves a single flight instance with operational overrides applied. */
   getFlightById(id: string): Promise<Flight | null>;
+
+  /** Searches effective flights for a route on a specific date with operational overrides composed. */
+  searchFlights(origin: string, destination: string, date: string): Promise<Flight[]>;
+
+  /** Retrieves a monthly service and lowest fare map for a route with operational overrides composed. */
+  getMonthlyServiceMap(
+    year: number,
+    month: number,
+    origin: string,
+    destination: string,
+    options?: { paxCount?: number; now?: Date | string | number },
+  ): Promise<MonthlyServiceMap>;
 
   /** Retrieves all stored operational overrides. */
   getOverrides(): Promise<Record<string, FlightOverride>>;
@@ -83,4 +104,5 @@ export interface RepositoryRegistry {
   booking: BookingRepository;
   flight: FlightRepository;
   passenger: import("../passenger/repository.ts").PassengerRepository;
+  bookingDraft: import("../booking-draft/types.ts").BookingDraftRepository;
 }

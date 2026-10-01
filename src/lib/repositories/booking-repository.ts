@@ -6,10 +6,11 @@
  * Studio/capacity fixture isolation, and reactive subscriber notifications.
  */
 
-import type { Booking, BookingCreateInput, BookingPassenger, Leg } from "../domain/booking.ts";
-import { makePassengerId } from "../domain/booking.ts";
-import { isSyntheticFlightId } from "../domain/flight.ts";
-import { isFlightBookable } from "../booking-rules.ts";
+import type { Booking, BookingCreateInput, BookingPassenger, Leg, SearchCriteria } from "../domain/booking.ts";
+import { makePassengerId, BookingCreationError } from "../domain/booking.ts";
+import { isSyntheticFlightId, getEffectiveFlight, type Flight } from "../domain/flight.ts";
+import { isFlightBookable, getFlightBookability } from "../booking-rules.ts";
+import { flightById } from "../data.ts";
 import { makePnr } from "../format.ts";
 import type { BookingRepository, ClaimResult } from "./types.ts";
 import { normalizeEmailIdentity } from "../passenger/domain.ts";
@@ -78,61 +79,176 @@ export class LocalBookingRepository implements BookingRepository {
   }
 
   public async create(data: BookingCreateInput): Promise<Booking> {
-    // 1. Studio & synthetic flight fixture isolation
-    if (
-      isSyntheticFlightId(data.outbound?.id) ||
-      (data.inbound && isSyntheticFlightId(data.inbound.id))
-    ) {
-      throw new Error("Cannot create booking: synthetic test fixture flight cannot be booked.");
-    }
-
-    // 2. Strict bookability guard
     const seatPaxCount =
-      data.passengers.filter((p) => p.type !== "infant").length || 1;
-    if (!isFlightBookable(data.outbound, { paxCount: seatPaxCount })) {
-      throw new Error("Cannot create booking: outbound flight is not bookable.");
-    }
-    if (data.inbound && !isFlightBookable(data.inbound, { paxCount: seatPaxCount })) {
-      throw new Error("Cannot create booking: inbound flight is not bookable.");
-    }
+      (data.passengers ?? []).filter((p) => p.type !== "infant").length || 1;
 
-    // 3. Atomically mutate and ensure unique PNR
+    // Atomically mutate coordinator: validates inside transaction against CURRENT shared coordinator flightOverrides
     return this.coordinator.mutate((state) => {
+      // 1. Idempotency guard: if submissionId was previously committed, return existing booking
+      if (data.submissionId) {
+        const existing = state.bookings.find((b) => b.submissionId === data.submissionId);
+        if (existing) {
+          return { ...existing };
+        }
+      }
+
+      // 2. Studio & synthetic flight fixture isolation
+      if (
+        isSyntheticFlightId(data.outbound?.id) ||
+        (data.inbound && isSyntheticFlightId(data.inbound.id))
+      ) {
+        throw new BookingCreationError(
+          "synthetic_fixture",
+          "Cannot create booking: synthetic test fixture flight cannot be booked.",
+          isSyntheticFlightId(data.outbound?.id) ? "out" : "in",
+        );
+      }
+
+      // 3. Re-resolve outbound flight from deterministic base schedule + current transaction overrides
+      if (!data.outbound?.id) {
+        throw new BookingCreationError("flight_missing", "Cannot create booking: outbound flight missing.", "out");
+      }
+      const baseOutbound = flightById(data.outbound.id) ?? data.outbound;
+      const effectiveOutbound = getEffectiveFlight(baseOutbound, state.flightOverrides[baseOutbound.id]);
+
+      // Route and date criteria validation (if criteria provided)
+      const looseCriteria = data.criteria as Record<string, unknown> | undefined;
+      const looseData = data as unknown as Record<string, unknown>;
+      const criteriaOrigin =
+        (typeof looseCriteria?.["origin"] === "string" ? looseCriteria["origin"] : null) ??
+        (typeof looseCriteria?.["originCode"] === "string" ? looseCriteria["originCode"] : null);
+      const criteriaDest =
+        (typeof looseCriteria?.["destination"] === "string" ? looseCriteria["destination"] : null) ??
+        (typeof looseCriteria?.["destinationCode"] === "string" ? looseCriteria["destinationCode"] : null);
+
+      if (criteriaOrigin && effectiveOutbound.originCode.toUpperCase() !== criteriaOrigin.toUpperCase()) {
+        throw new BookingCreationError("route_mismatch", "Cannot create booking: outbound flight route mismatch.", "out");
+      }
+      if (criteriaDest && effectiveOutbound.destinationCode.toUpperCase() !== criteriaDest.toUpperCase()) {
+        throw new BookingCreationError("route_mismatch", "Cannot create booking: outbound flight route mismatch.", "out");
+      }
+      if (data.criteria?.departDate && effectiveOutbound.date !== data.criteria.departDate) {
+        throw new BookingCreationError("date_mismatch", "Cannot create booking: outbound flight date mismatch.", "out");
+      }
+
+      // Operational bookability evaluation (clock, status, seatsLeft)
+      const outBookability = getFlightBookability(effectiveOutbound, { paxCount: seatPaxCount });
+      if (!outBookability.bookable) {
+        throw new BookingCreationError(
+          outBookability.reason ?? "unavailable",
+          `Cannot create booking: outbound flight is not bookable (${outBookability.reason ?? "unavailable"}).`,
+          "out",
+        );
+      }
+
+      // 4. Re-resolve inbound flight (if round trip or inbound provided)
+      let effectiveInbound: Flight | null = null;
+      const isRoundTrip =
+        data.criteria?.tripType === "round" ||
+        looseCriteria?.["tripType"] === "round-trip" ||
+        Boolean(data.inbound);
+
+      if (isRoundTrip) {
+        if (!data.inbound?.id) {
+          throw new BookingCreationError("flight_missing", "Cannot create booking: inbound flight missing for round trip.", "in");
+        }
+        const baseInbound = flightById(data.inbound.id) ?? data.inbound;
+        effectiveInbound = getEffectiveFlight(baseInbound, state.flightOverrides[baseInbound.id]);
+
+        if (criteriaDest && effectiveInbound.originCode.toUpperCase() !== criteriaDest.toUpperCase()) {
+          throw new BookingCreationError("route_mismatch", "Cannot create booking: inbound flight route mismatch.", "in");
+        }
+        if (criteriaOrigin && effectiveInbound.destinationCode.toUpperCase() !== criteriaOrigin.toUpperCase()) {
+          throw new BookingCreationError("route_mismatch", "Cannot create booking: inbound flight route mismatch.", "in");
+        }
+        if (data.criteria?.returnDate && effectiveInbound.date !== data.criteria.returnDate) {
+          throw new BookingCreationError("date_mismatch", "Cannot create booking: inbound flight date mismatch.", "in");
+        }
+
+        const inBookability = getFlightBookability(effectiveInbound, { paxCount: seatPaxCount });
+        if (!inBookability.bookable) {
+          throw new BookingCreationError(
+            inBookability.reason ?? "unavailable",
+            `Cannot create booking: inbound flight is not bookable (${inBookability.reason ?? "unavailable"}).`,
+            "in",
+          );
+        }
+      }
+
+      // 5. Ensure unique PNR
       const existingRefs = new Set(state.bookings.map((b) => b.ref.toUpperCase()));
       let pnr = (data.ref ? data.ref.trim().toUpperCase() : makePnr());
-
-      // If candidate PNR already exists, generate fresh unique PNR
       while (existingRefs.has(pnr)) {
         pnr = makePnr();
       }
 
-      // 4. Assign deterministic, stable passenger IDs: `pax-${ref}-${index}`
-      const passengers: BookingPassenger[] = data.passengers.map((p, idx) => ({
-        id: "id" in p && p.id && !p.id.startsWith("pax-TEMP") ? p.id : makePassengerId(pnr, idx),
-        type: p.type ?? "adult",
-        firstName: p.firstName ?? "",
-        lastName: p.lastName ?? "",
-        dob: p.dob ?? "",
-        nationality: p.nationality ?? "Palestinian",
-        document: p.document ?? "",
-        withAdult: p.withAdult,
-      }));
+      // 6. Assign deterministic, stable passenger IDs: `pax-${ref}-${index}`
+      const passengers: BookingPassenger[] = (data.passengers || []).map((p, idx) => {
+        let firstName = p.firstName ?? "";
+        let lastName = p.lastName ?? "";
+        const looseP = p as unknown as Record<string, unknown>;
+        if (!firstName && !lastName && typeof looseP["name"] === "string") {
+          const parts = looseP["name"].trim().split(/\s+/);
+          firstName = parts[0] ?? "";
+          lastName = parts.slice(1).join(" ");
+        }
+        return {
+          id: "id" in p && p.id && !p.id.startsWith("pax-TEMP") ? p.id : makePassengerId(pnr, idx),
+          type: p.type ?? "adult",
+          firstName,
+          lastName,
+          dob: p.dob ?? "",
+          nationality: p.nationality ?? "Palestinian",
+          document: p.document ?? "",
+          withAdult: p.withAdult,
+        };
+      });
 
+      const criteria: SearchCriteria = {
+        tripType:
+          data.criteria?.tripType === "round" ||
+          looseCriteria?.["tripType"] === "round-trip" ||
+          Boolean(effectiveInbound)
+            ? "round"
+            : "oneway",
+        origin: criteriaOrigin ?? effectiveOutbound.originCode,
+        destination: criteriaDest ?? effectiveOutbound.destinationCode,
+        departDate: data.criteria?.departDate ?? effectiveOutbound.date,
+        returnDate: typeof looseCriteria?.["returnDate"] === "string" ? (looseCriteria["returnDate"] as string) : (effectiveInbound?.date ?? ""),
+        cabin:
+          (typeof looseCriteria?.["cabin"] === "string" ? (looseCriteria["cabin"] as "economy" | "business" | "first") : null) ??
+          (typeof looseData["cabin"] === "string" ? (looseData["cabin"] as "economy" | "business" | "first") : null) ??
+          "economy",
+        adults:
+          (typeof looseCriteria?.["adults"] === "number" ? (looseCriteria["adults"] as number) : null) ??
+          (passengers.filter((p) => p.type === "adult").length || 1),
+        children:
+          (typeof looseCriteria?.["children"] === "number" ? (looseCriteria["children"] as number) : null) ??
+          (passengers.filter((p) => p.type === "child").length || 0),
+        infants:
+          (typeof looseCriteria?.["infants"] === "number" ? (looseCriteria["infants"] as number) : null) ??
+          (passengers.filter((p) => p.type === "infant").length || 0),
+      };
+
+      const fareId = ((data.fareId ?? looseData["fareFamily"] ?? "essential") as unknown) as "essential" | "classic" | "flex";
+
+      // Store the accepted effective snapshot
       const created: Booking = {
         ref: pnr,
         createdAt: data.createdAt ?? new Date().toISOString(),
-        criteria: data.criteria,
-        outbound: data.outbound,
-        inbound: data.inbound ?? null,
-        fareId: data.fareId,
+        criteria,
+        outbound: effectiveOutbound,
+        inbound: effectiveInbound,
+        fareId,
         passengers,
-        seats: { ...data.seats },
-        extras: { ...data.extras },
+        seats: { ...(data.seats ?? {}) },
+        extras: data.extras ? { ...data.extras } : { pax: [] },
         contact: { ...data.contact },
         total: data.total,
         status: data.status ?? "confirmed",
         checkedIn: data.checkedIn ?? { out: [], in: [] },
         ownerEmail: data.ownerEmail ? normalizeEmailIdentity(data.ownerEmail) : null,
+        submissionId: data.submissionId,
       };
 
       state.bookings = [created, ...state.bookings];

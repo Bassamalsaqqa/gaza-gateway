@@ -20,7 +20,8 @@ import {
 } from "@/lib/data";
 import { dateLong, money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
-import { defaultCriteria, useStore } from "@/lib/store";
+import { defaultCriteria } from "@/lib/booking-draft";
+import { useRepositories } from "@/lib/repositories";
 
 export const Route = createFileRoute("/{-$locale}/flight/$flightId")({
   head: ({ params }) => {
@@ -82,7 +83,7 @@ function FlightDetail({
   t: (key: string, vars?: Record<string, string | number>) => string;
 }) {
   const navigate = useAppNavigate();
-  const { resetDraft, setDraft } = useStore();
+  const { bookingDraft: draftRepo } = useRepositories();
   const from = airportByCode(flight.originCode) ?? GZA;
   const to = airportByCode(flight.destinationCode) ?? GZA;
   const price = farePrice(flight.basePrice, "essential", "economy");
@@ -91,7 +92,7 @@ function FlightDetail({
   const bookability = getFlightBookability(flight, { paxCount: 1 });
   const isBookable = bookability.bookable;
 
-  function bookThisFlight() {
+  async function bookThisFlight() {
     if (!isFlightBookable(flight, { paxCount: 1 })) return;
     const criteria = {
       ...defaultCriteria(flight.date, addDaysISO(flight.date, 7)),
@@ -100,8 +101,8 @@ function FlightDetail({
       destination: flight.destinationCode,
       departDate: flight.date,
     };
-    resetDraft(criteria);
-    setDraft((prev) => ({ ...prev, entry: "results", outbound: flight }));
+    await draftRepo.resetDraft(criteria);
+    await draftRepo.updateDraft((prev) => ({ ...prev, entry: "results", outbound: flight }));
     void navigate({ to: "/book" });
   }
 

@@ -1,22 +1,23 @@
 # Data Flow, State Management & Pretend-Action Inventory
 
 > **Document Purpose**: Complete audit of current data sources, state persistence, cross-screen entity splits, and enabled no-op actions across public and admin workspaces.
-> **Status**: **HC-0 / HC-1 Present Dossier & Archive Foundation Accepted (Owner Authorized Publication)**. Phase 5A complete (Phase 5 overall in progress); Phase 5B paused throughout this run; HC-2/HC-3 not started.
-> **Future Target**: Phase 5B (Booking Draft & Search Convergence, paused throughout this run), Phase 5C (Manage, Check-in & Boarding Pass Convergence), Phase 5D (Public Contact Workflow Convergence), then Phase 6 before any production backend.
+> **Status**: **Phase 5B: Booking Draft & Effective Flight Discovery Convergence Implemented on Feature Branch (Awaiting Engineering Acceptance)**. Phase 5A complete; Phase 5C (Manage/Check-in/Boarding Pass), Phase 5D, and HC-2/HC-3 unstarted.
+> **Future Target**: Phase 5C (Manage, Check-in & Boarding Pass Convergence), Phase 5D (Public Contact Workflow Convergence), then Phase 6 before any production backend.
 
 ---
 
 ## 1. Current State Stores & Persistence
 
-Following Phase 4, the application coordinates persistence across canonical repositories and legacy boundary keys:
+Following Phase 5B, the application coordinates persistence across canonical repositories and legacy boundary keys:
 
 | Store / Source | Implementation Files | Persistence | Entities & Data Types Managed |
 | :--- | :--- | :--- | :--- |
+| **Canonical Booking Draft** (`BookingDraftRepository`) | `src/lib/booking-draft/` | `localStorage["gza.booking.draft.v1"]` (schemaVersion: 1) | Active booking wizard draft (`BookingDraft`). 5 storage states, serialized mutation queue, tombstone anti-resurrection, cross-tab synchronization. |
 | **Canonical Repositories** (`BookingRepository`, `FlightRepository`) | `src/lib/repositories/`, `src/lib/domain/` | `localStorage["gza.repo.v1"]` (schemaVersion: 1) | Canonical bookings (`Booking[]`) and mutable operational flight overrides (`flightOverrides: Record<string, FlightOverride>`). Single source of truth for public and admin views. Synchronized across tabs via `subscribeToStorage()`. |
-| **Canonical Passenger State** (`PassengerRepository`) | `src/lib/passenger/` | `localStorage["gza.passenger.v1"]` (schemaVersion: 1) | Canonical passenger account (`PassengerAccount | null`), profile preferences, and saved companions (`Traveler[]`). Migrated once from `gza.store.v1` only if absent; present empty state is authoritative. Synchronized across tabs via `subscribe()`. |
+| **Canonical Passenger State** (`PassengerRepository`) | `src/lib/passenger/` | `localStorage["gza.passenger.v1"]` (schemaVersion: 1) | Canonical passenger account (`PassengerAccount \| null`), profile preferences, and saved companions (`Traveler[]`). Migrated once from `gza.store.v1` only if absent; present empty state is authoritative. Synchronized across tabs via `subscribe()`. |
 | **Published Editorial Content** | `src/content/published/` | Compiled source in prerendered HTML and route chunks | Canonical Home, Travel, Airport Past, and Airport Present proof documents. Normal public URLs never read local drafts. Gallery still uses its legacy placeholder GalleryItem system until HC-2. |
 | **Local Editorial Drafts** | `src/content/repository.ts` | `localStorage["gza.content.draft.v1"]` (schemaVersion: 1) | Admin Travel draft and explicit `?contentPreview=1` overlay only. Save errors reject; corrupt data falls back to published. |
-| **Public Store Façade** (`useStore`) | `src/lib/store.tsx` | `localStorage["gza.store.v1"]` (`draft` ONLY) | Active booking wizard draft (`draft: Draft`). Legacy account, travelers, bookings and unknown envelope keys are semantically preserved/inert with absent fields remaining absent, without writing canonical passenger changes back (no dual writer). |
+| **Legacy Store Key** | Preserved read-only migration source | `localStorage["gza.store.v1"]` | Closed legacy store. Migrated once to `gza.booking.draft.v1` if canonical draft is missing. ZERO active draft writers; original string preserved byte-for-byte; never resurrected once cleared. |
 | **Admin Store Façade** (`useAdmin`) | `src/lib/admin-store.tsx` | `localStorage["gza.admin.v1"]` (staffId) | Staff identity (`Staff \| null`), active role (`AdminRole`). Flight operational override mutations delegate directly to `flightRepo` (single writer). |
 | **Admin Operations State** (`useAdmin().ops`) | `src/lib/admin-ops.ts`, `src/lib/admin-store.tsx` | Session in-memory state in `AdminProvider` (`useState<OpsState>`). Resets to seed on reload. | Schedules (`Schedule[]`), aircraft fleet (`AircraftType[]`), seat maps (`Record<string, SeatMapConfig>`), fare products (`FareConfig[]`), baggage allowance (`BaggageConfig`), meals (`OptionItem[]`), assistance options (`OptionItem[]`), destination parameters (`DestinationConfig[]`). |
 | **Admin Static Mock Data** | `src/lib/admin-mock.ts` | In-memory static constants | Customer profiles (`mockCustomers`), check-in desk fixtures, staff inbox, staff directory, audit and analytics fixtures, and non-migrated CMS/story collections. Home, Travel and Past proof arrays now derive from `src/content/`. |
