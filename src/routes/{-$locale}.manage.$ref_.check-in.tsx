@@ -182,12 +182,15 @@ function CheckInPage() {
     if (!leg) return;
     try {
       setError(null);
+      const selectedSeats = Object.fromEntries(
+        selected.flatMap((index) => (seats[index] ? [[index, seats[index]]] : [])),
+      );
       await completeCheckInMutation.mutateAsync({
         ref: booking.ref,
         leg,
         selectedPaxIndexes: selected,
         documents: docs,
-        seats,
+        seats: selectedSeats,
       });
       setStep("done");
     } catch (err) {
@@ -405,6 +408,27 @@ function CheckInPage() {
           <p className="mt-2 text-sm text-muted-foreground">{t("ci.seatsSub")}</p>
           {account?.seatPreference && account.seatPreference !== "none" ? (
             <p className="mt-1 text-xs text-muted-foreground">{t("ci.seatSuggestion")}</p>
+          ) : null}
+
+          {selected.length > 1 ? (
+            <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label={t("ci.seats")}>
+              {selected.map((i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setActivePax(i)}
+                  aria-pressed={activePax === i}
+                  className={cn(
+                    "rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer",
+                    activePax === i
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-input bg-card text-muted-foreground hover:border-primary/60",
+                  )}
+                >
+                  {paxLabel(i)} · <span className="code-id font-bold">{seats[i] ?? "—"}</span>
+                </button>
+              ))}
+            </div>
           ) : null}
 
           <div className="mt-4">

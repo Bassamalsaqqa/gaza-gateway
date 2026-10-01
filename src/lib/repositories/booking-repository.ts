@@ -367,18 +367,18 @@ export class LocalBookingRepository implements BookingRepository {
         throw new Error(`Cannot update seats: booking ${clean} is cancelled.`);
       }
 
-      // Resolve effective flights within current transaction overrides
+      // Resolve effective flights within current transaction overrides without snapshot fallbacks
       const baseOutbound = flightById(existing.outbound.id);
       const effectiveOutbound = baseOutbound
-        ? getEffectiveFlight(baseOutbound, state.flightOverrides[baseOutbound.id]) ?? existing.outbound
-        : existing.outbound;
+        ? getEffectiveFlight(baseOutbound, state.flightOverrides[baseOutbound.id])
+        : null;
 
       let effectiveInbound: Flight | null = null;
       if (existing.inbound) {
         const baseInbound = flightById(existing.inbound.id);
         effectiveInbound = baseInbound
-          ? getEffectiveFlight(baseInbound, state.flightOverrides[baseInbound.id]) ?? existing.inbound
-          : existing.inbound;
+          ? getEffectiveFlight(baseInbound, state.flightOverrides[baseInbound.id])
+          : null;
       }
 
       // Pure domain validation for seat syntax, cabin zone, availability, immutability, duplicates, leg preservation
@@ -386,6 +386,15 @@ export class LocalBookingRepository implements BookingRepository {
         outbound: effectiveOutbound,
         inbound: effectiveInbound,
       });
+
+      // Genuine no-op: if prospective seats are identical to existing seats, return existing booking unchanged
+      const isNoOp =
+        Object.keys(existing.seats).length === Object.keys(nextSeats).length &&
+        Object.entries(existing.seats).every(([k, v]) => nextSeats[k] === v);
+
+      if (isNoOp) {
+        return { ...existing };
+      }
 
       // Invariant: Canonical pricing recalculation using latest booking facts
       const nextTotal = bookingTotal({
@@ -489,7 +498,7 @@ export class LocalBookingRepository implements BookingRepository {
         throw new Error(`Cannot check in: flight ${bookedFlight.id} is unavailable.`);
       }
 
-      // Step 1: Validate passenger index list BEFORE replay handling or doc/seat processing (Finding 3)
+      // Step 1: Validate passenger index list and seat keys BEFORE replay handling or doc/seat processing
       if (!input.selectedPaxIndexes || !Array.isArray(input.selectedPaxIndexes) || input.selectedPaxIndexes.length === 0) {
         throw new Error("Cannot check in: at least one passenger must be selected.");
       }
@@ -513,6 +522,25 @@ export class LocalBookingRepository implements BookingRepository {
         }
         if (pax.type === "infant") {
           throw new Error(`Cannot check in infant passenger at index ${paxIdx} directly.`);
+        }
+      }
+
+      if (input.seats) {
+        for (const [key, _seat] of Object.entries(input.seats)) {
+          if (!/^(0|[1-9]\d*)$/.test(key)) {
+            throw new Error(`Invalid passenger index key '${key}' in check-in seats.`);
+          }
+          const paxIdx = Number.parseInt(key, 10);
+          if (paxIdx < 0 || paxIdx >= existing.passengers.length) {
+            throw new Error(`Invalid passenger index ${paxIdx} on booking ${clean}: index out of range.`);
+          }
+          if (!input.selectedPaxIndexes.includes(paxIdx)) {
+            throw new Error(`Cannot assign seat for unselected passenger index ${paxIdx} during check-in.`);
+          }
+          const pax = existing.passengers[paxIdx];
+          if (pax?.type === "infant") {
+            throw new Error(`Cannot assign seat to infant passenger at index ${paxIdx}. Infants travel on an adult's lap.`);
+          }
         }
       }
 

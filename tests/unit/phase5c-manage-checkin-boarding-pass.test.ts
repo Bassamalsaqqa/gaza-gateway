@@ -1497,4 +1497,325 @@ describe("Phase 5C: Manage, Check-in & Boarding Pass Convergence", () => {
       );
     });
   });
+
+  describe("12. Phase 5C Correction 02: Selected-Only Passenger Check-in Seats (Defect 1)", () => {
+    let mockStorage: ReturnType<typeof createMockStorage>;
+    let coordinator: RepoStorageCoordinator;
+    let repo: LocalBookingRepository;
+    const checkInClock = new Date("2026-10-10T04:00:00+03:00");
+
+    beforeEach(() => {
+      const booking = createBaseBooking();
+      const initialJson = JSON.stringify({
+        schemaVersion: 1,
+        bookings: [booking],
+        flightOverrides: {},
+      });
+      mockStorage = createMockStorage({ "gza.repo.v1": initialJson });
+      coordinator = new RepoStorageCoordinator({ storage: mockStorage });
+      repo = new LocalBookingRepository(coordinator);
+    });
+
+    it("rejects explicit unselected seat entry, leaving booking and backing storage unchanged", async () => {
+      let notifications = 0;
+      coordinator.subscribe(() => {
+        notifications++;
+      });
+
+      const baselineBooking = structuredClone(await repo.getByRef("GZA-5C01"));
+      const baselineRaw = mockStorage.getItem("gza.repo.v1");
+
+      // Attempt to check in passenger 0, but provide seat for unselected passenger 1
+      await assert.rejects(
+        () =>
+          repo.completeCheckIn({
+            ref: "GZA-5C01",
+            leg: "out",
+            selectedPaxIndexes: [0],
+            documents: { 0: "NEW-DOC-0" },
+            seats: { 0: "15A", 1: "15B" }, // 1 is unselected!
+            now: checkInClock,
+          }),
+        /unselected passenger/i,
+      );
+
+      // Verify in-memory state completely unchanged
+      const inMemory = await repo.getByRef("GZA-5C01");
+      assert.deepEqual(inMemory, baselineBooking);
+
+      // Verify backing storage unchanged
+      assert.equal(mockStorage.getItem("gza.repo.v1"), baselineRaw);
+
+      // Verify subscribers received zero notifications
+      assert.equal(notifications, 0);
+    });
+
+    it("legitimate partial check-in commits only selected passenger and preserves unselected passenger facts", async () => {
+      const updated = await repo.completeCheckIn({
+        ref: "GZA-5C01",
+        leg: "out",
+        selectedPaxIndexes: [0],
+        documents: { 0: "NEW-DOC-AHMAD", 1: "STALE-DOC-FATIMA" }, // doc for 1 should be ignored
+        seats: { 0: "15A" }, // only selected passenger 0 seat provided
+        now: checkInClock,
+      });
+
+      // Passenger 0 committed
+      assert.deepEqual(updated.checkedIn.out, [0]);
+      assert.equal(updated.seats["out-0"], "15A");
+      assert.equal(updated.passengers[0]?.document, "NEW-DOC-AHMAD");
+
+      // Passenger 1 preserved completely: seat remains 11B, document remains P10002, unchecked
+      assert.equal(updated.seats["out-1"], "11B");
+      assert.equal(updated.passengers[1]?.document, "P10002");
+
+      // Persisted in storage
+      const persisted = await repo.getByRef("GZA-5C01");
+      assert.deepEqual(persisted?.checkedIn.out, [0]);
+      assert.equal(persisted?.seats["out-0"], "15A");
+      assert.equal(persisted?.seats["out-1"], "11B");
+      assert.equal(persisted?.passengers[1]?.document, "P10002");
+    });
+
+    it("invalid extra seat entries cannot bypass the boundary through identical replay handling", async () => {
+      // First, check in passenger 0 legitimately
+      await repo.completeCheckIn({
+        ref: "GZA-5C01",
+        leg: "out",
+        selectedPaxIndexes: [0],
+        documents: { 0: "P10001" },
+        seats: { 0: "11A" },
+        now: checkInClock,
+      });
+
+      // Valid identical replay succeeds idempotently
+      const replay = await repo.completeCheckIn({
+        ref: "GZA-5C01",
+        leg: "out",
+        selectedPaxIndexes: [0],
+        documents: { 0: "P10001" },
+        seats: { 0: "11A" },
+        now: checkInClock,
+      });
+      assert.deepEqual(replay.checkedIn.out, [0]);
+
+      // Replay attempt with unselected passenger seat MUST REJECT in Step 1, not return existing booking!
+      await assert.rejects(
+        () =>
+          repo.completeCheckIn({
+            ref: "GZA-5C01",
+            leg: "out",
+            selectedPaxIndexes: [0],
+            documents: { 0: "P10001" },
+            seats: { 0: "11A", 1: "11B" }, // extra seat entry for unselected passenger 1
+            now: checkInClock,
+          }),
+        /unselected passenger/i,
+      );
+    });
+
+    it("validateCheckInSeats rejects unselected passenger seat and non-integer keys", () => {
+      const b = createBaseBooking();
+      assert.throws(
+        () =>
+          validateCheckInSeats(
+            b,
+            "out",
+            [0],
+            { 0: "15A", 1: "15B" },
+            mockOutboundFlight,
+          ),
+        /unselected passenger/i,
+      );
+
+      assert.throws(
+        () =>
+          validateCheckInSeats(
+            b,
+            "out",
+            [0],
+            { "0abc": "15A" } as unknown as Record<number, string>,
+            mockOutboundFlight,
+          ),
+        /invalid passenger index key/i,
+      );
+    });
+  });
+
+  describe("13. Phase 5C Correction 02: Canonical Flight Authority for updateSeats() (Defect 2)", () => {
+    let mockStorage: ReturnType<typeof createMockStorage>;
+    let coordinator: RepoStorageCoordinator;
+    let repo: LocalBookingRepository;
+
+    beforeEach(() => {
+      const booking = createBaseBooking();
+      const initialJson = JSON.stringify({
+        schemaVersion: 1,
+        bookings: [booking],
+        flightOverrides: {},
+      });
+      mockStorage = createMockStorage({ "gza.repo.v1": initialJson });
+      coordinator = new RepoStorageCoordinator({ storage: mockStorage });
+      repo = new LocalBookingRepository(coordinator);
+    });
+
+    it("canonical outbound exists -> valid outbound change succeeds", async () => {
+      // PS100 exists in schedule (data.ts)
+      const updated = await repo.updateSeats("GZA-5C01", {
+        "out-0": "11C",
+        "out-1": "12B",
+      });
+      assert.equal(updated.seats["out-0"], "11C");
+      assert.equal(updated.seats["out-1"], "12B");
+
+      const persisted = await repo.getByRef("GZA-5C01");
+      assert.equal(persisted?.seats["out-0"], "11C");
+      assert.equal(persisted?.seats["out-1"], "12B");
+    });
+
+    it("outbound missing -> new/reassigned seat rejected, complete memory/storage unchanged", async () => {
+      // Point the booking to a non-existent flight ID in the catalog
+      await repo.update("GZA-5C01", {
+        outbound: {
+          ...mockOutboundFlight,
+          id: "PS999-2026-10-10-out",
+        },
+      });
+
+      const baselineBooking = structuredClone(await repo.getByRef("GZA-5C01"));
+      const baselineRaw = mockStorage.getItem("gza.repo.v1");
+
+      await assert.rejects(
+        () =>
+          repo.updateSeats("GZA-5C01", {
+            "out-0": "11C",
+            "out-1": "12B",
+          }),
+        /unavailable/i,
+      );
+
+      // Memory unchanged
+      const inMemory = await repo.getByRef("GZA-5C01");
+      assert.deepEqual(inMemory, baselineBooking);
+
+      // Storage unchanged
+      assert.equal(mockStorage.getItem("gza.repo.v1"), baselineRaw);
+    });
+
+    it("actual removal on missing leg also rejected", async () => {
+      // Point the booking to a non-existent flight ID in the catalog
+      await repo.update("GZA-5C01", {
+        outbound: {
+          ...mockOutboundFlight,
+          id: "PS999-2026-10-10-out",
+        },
+      });
+
+      const baselineBooking = structuredClone(await repo.getByRef("GZA-5C01"));
+      const baselineRaw = mockStorage.getItem("gza.repo.v1");
+
+      // Attempt to remove passenger 0's seat by only specifying passenger 1
+      await assert.rejects(
+        () =>
+          repo.updateSeats("GZA-5C01", {
+            "out-1": "11B", // out-0 omitted -> removal
+          }),
+        /unavailable/i,
+      );
+
+      // Memory and storage unchanged
+      assert.deepEqual(await repo.getByRef("GZA-5C01"), baselineBooking);
+      assert.equal(mockStorage.getItem("gza.repo.v1"), baselineRaw);
+    });
+
+    it("round trip with resolvable outbound and missing inbound -> outbound-only mutation succeeds and inbound stays unchanged; inbound mutation rejects", async () => {
+      // Outbound PS100 is in catalog; inbound PS999 is missing from catalog
+      await repo.update("GZA-5C01", {
+        inbound: {
+          ...mockInboundFlight,
+          id: "PS999-2026-10-15-in",
+        },
+        seats: {
+          "out-0": "11A",
+          "out-1": "11B",
+          "in-0": "14A",
+          "in-1": "14B",
+        },
+      });
+
+      // 1. Outbound-only mutation succeeds
+      const updated = await repo.updateSeats("GZA-5C01", {
+        "out-0": "11C",
+        "out-1": "12B",
+      });
+      assert.equal(updated.seats["out-0"], "11C");
+      assert.equal(updated.seats["out-1"], "12B");
+      // Inbound seats untouched!
+      assert.equal(updated.seats["in-0"], "14A");
+      assert.equal(updated.seats["in-1"], "14B");
+
+      // 2. Inbound mutation rejects
+      await assert.rejects(
+        () =>
+          repo.updateSeats("GZA-5C01", {
+            "in-0": "15A",
+          }),
+        /unavailable/i,
+      );
+    });
+
+    it("genuine unchanged request on missing leg is non-destructive under the chosen documented rule", async () => {
+      // Point the booking to a non-existent flight ID
+      await repo.update("GZA-5C01", {
+        outbound: {
+          ...mockOutboundFlight,
+          id: "PS999-2026-10-10-out",
+        },
+      });
+
+      const baselineBooking = structuredClone(await repo.getByRef("GZA-5C01"));
+      const baselineRaw = mockStorage.getItem("gza.repo.v1");
+
+      // 1. Unchanged explicit seat map passes non-destructively
+      const sameSeats = await repo.updateSeats("GZA-5C01", {
+        "out-0": "11A",
+        "out-1": "11B",
+      });
+      assert.equal(sameSeats.seats["out-0"], "11A");
+      assert.equal(sameSeats.seats["out-1"], "11B");
+      assert.deepEqual(sameSeats, baselineBooking);
+
+      // 2. Empty map (omitting both legs preserves both) passes non-destructively
+      const emptyUpdate = await repo.updateSeats("GZA-5C01", {});
+      assert.deepEqual(emptyUpdate, baselineBooking);
+      assert.equal(mockStorage.getItem("gza.repo.v1"), baselineRaw);
+    });
+
+    it("operational overrides retain canonical flight-ID seat availability identity", async () => {
+      // Apply operational delay / gate override on PS100
+      coordinator.mutate((state) => {
+        state.flightOverrides["PS100-2026-10-10-out"] = {
+          flightId: "PS100-2026-10-10-out",
+          gate: "B9",
+          status: "Delayed",
+          revisedDepart: "08:30",
+        };
+      });
+
+      // 11C is available on PS100 schedule -> succeeds
+      const updated = await repo.updateSeats("GZA-5C01", {
+        "out-0": "11C",
+      });
+      assert.equal(updated.seats["out-0"], "11C");
+
+      // 12A is occupied on PS100 schedule -> must reject with not available
+      await assert.rejects(
+        () =>
+          repo.updateSeats("GZA-5C01", {
+            "out-0": "12A",
+          }),
+        /not available/i,
+      );
+    });
+  });
 });

@@ -6129,6 +6129,227 @@ async function runBrowserSmoke() {
       }
     });
 
+    await checkStep("Check 45: Phase 5C — Partial Check-in Boundary Isolation: deselected passenger seat change discarded and unselected state preserved", async () => {
+      const testContext = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+      try {
+        const testPage = await testContext.newPage();
+
+        const bookingRef = "GZA-5C45";
+        const flightOut = {
+          id: "PS100-2026-10-10-out",
+          number: "PS100",
+          originCode: "GZA",
+          destinationCode: "AMM",
+          date: "2026-10-10",
+          departTime: "07:15",
+          arriveTime: "08:10",
+          durationMinutes: 55,
+          aircraft: "Airbus A321neo",
+          status: "Scheduled",
+          gate: "A1",
+          terminal: "1",
+          basePrice: 177,
+          seatsLeft: 19,
+        };
+
+        const initialRepo = {
+          schemaVersion: 1,
+          bookings: [
+            {
+              ref: bookingRef,
+              createdAt: "2026-10-01T10:00:00Z",
+              status: "confirmed",
+              ownerEmail: "isolation@example.ps",
+              total: 350,
+              contact: { email: "isolation@example.ps", phone: "+970 8 282 3333" },
+              criteria: {
+                tripType: "oneway",
+                origin: "GZA",
+                destination: "AMM",
+                departDate: "2026-10-10",
+                returnDate: "",
+                adults: 2,
+                children: 0,
+                infants: 0,
+                cabin: "economy",
+              },
+              outbound: flightOut,
+              inbound: null,
+              fareId: "classic",
+              passengers: [
+                { id: `pax-${bookingRef}-0`, firstName: "Tariq", lastName: "Hamdan", type: "adult", dob: "1987-04-12", nationality: "PS", document: "DOC-TARIQ-OLD" },
+                { id: `pax-${bookingRef}-1`, firstName: "Laila", lastName: "Hamdan", type: "adult", dob: "1990-09-22", nationality: "PS", document: "DOC-LAILA-ORIG" },
+              ],
+              seats: { "out-0": "11A", "out-1": "11B" },
+              extras: { pax: [] },
+              checkedIn: { out: [], in: [] },
+            },
+          ],
+          flightOverrides: {},
+        };
+
+        const clockMs = Date.parse("2026-10-10T04:00:00+03:00");
+
+        await testContext.addInitScript(({ initialRepo, clockMs }) => {
+          try {
+            if (!localStorage.getItem("gza.repo.v1")) {
+              localStorage.setItem("gza.repo.v1", JSON.stringify(initialRepo));
+            }
+            const RealDate = Date;
+            class MockDate extends RealDate {
+              constructor(...args) {
+                if (args.length === 0) super(clockMs);
+                else super(...args);
+              }
+              static now() { return clockMs; }
+            }
+            window.Date = MockDate;
+          } catch { }
+        }, { initialRepo, clockMs });
+
+        // 1. Navigate to /manage and retrieve booking
+        await testPage.goto(`${baseUrl}/manage`, { waitUntil: "domcontentloaded" });
+        await testPage.waitForSelector('#pnr', { timeout: 10000 });
+        await testPage.fill('#pnr', bookingRef);
+        await testPage.fill('#identifier', 'hamdan');
+        await testPage.click('button[type="submit"]');
+
+        await testPage.waitForURL((url) => url.pathname.includes(`/manage/${bookingRef}`), { timeout: 8000 });
+
+        // 2. Navigate to check-in
+        const checkinLink = testPage.locator(`a[href*="/manage/${bookingRef}/check-in"]`).first();
+        await checkinLink.click();
+        await testPage.waitForURL((url) => url.pathname.includes("check-in"), { timeout: 8000 });
+
+        // Step: Choose Leg (if leg selection step is active)
+        const legBtn = testPage.locator('button:has-text("Outbound"), button:has-text("PS100")').first();
+        if ((await legBtn.count()) > 0) {
+          await legBtn.click();
+          await testPage.waitForTimeout(300);
+        }
+
+        // Step: Choose Pax — select BOTH passengers 0 and 1
+        await testPage.waitForSelector('#ci-pax-0', { timeout: 5000 });
+        const pax0Checkbox = testPage.locator('#ci-pax-0');
+        if (!(await pax0Checkbox.isChecked())) {
+          await testPage.locator('label[for="ci-pax-0"]').click();
+        }
+        const pax1Checkbox = testPage.locator('#ci-pax-1');
+        if (!(await pax1Checkbox.isChecked())) {
+          await testPage.locator('label[for="ci-pax-1"]').click();
+        }
+
+        // Proceed to Details
+        const continueBtn1 = testPage.locator('button:has-text("Continue"), button:has-text("Next")').first();
+        await continueBtn1.click();
+
+        // Step: Details — fill documents for both
+        await testPage.waitForSelector('#doc-0', { timeout: 5000 });
+        await testPage.fill('#doc-0', 'DOC-TARIQ-NEW');
+        await testPage.waitForSelector('#doc-1', { timeout: 5000 });
+        await testPage.fill('#doc-1', 'DOC-LAILA-CHANGED');
+
+        // Proceed to Seats
+        const continueBtn2 = testPage.locator('button:has-text("Continue"), button:has-text("Next")').first();
+        await continueBtn2.click();
+
+        // Step: Seats — switch to Passenger 1 and change their seat
+        await testPage.waitForSelector('button:has-text("Laila")', { timeout: 5000 });
+        await testPage.locator('button:has-text("Laila")').click();
+        await testPage.waitForTimeout(200);
+
+        // Click seat 15B for passenger 1
+        const seat15b = testPage.locator('button[aria-label*="15B"]').first();
+        await seat15b.waitFor({ state: "visible", timeout: 5000 });
+        await seat15b.click();
+        await testPage.waitForTimeout(200);
+
+        // Verify the passenger button for Laila now reflects 15B
+        const lailaBtn = testPage.locator('button:has-text("Laila")').first();
+        const lailaBtnText = await lailaBtn.innerText();
+        if (!lailaBtnText.includes("15B")) {
+          throw new Error(`Expected passenger 1 seat to update to 15B in UI, got: "${lailaBtnText}"`);
+        }
+
+        // Navigate BACK from Seats to Details
+        const backBtn1 = testPage.locator('button:has-text("Back"), button:has-text("السابق")').first();
+        await backBtn1.click();
+        await testPage.waitForSelector('#doc-0', { timeout: 5000 });
+
+        // Navigate BACK from Details to Pax
+        const backBtn2 = testPage.locator('button:has-text("Back"), button:has-text("السابق")').first();
+        await backBtn2.click();
+        await testPage.waitForSelector('#ci-pax-1', { timeout: 5000 });
+
+        // DESELECT Passenger 1 (uncheck)
+        if (await pax1Checkbox.isChecked()) {
+          await testPage.locator('label[for="ci-pax-1"]').click();
+        }
+        if (await pax1Checkbox.isChecked()) {
+          throw new Error("Failed to uncheck passenger 1");
+        }
+        if (!(await pax0Checkbox.isChecked())) {
+          throw new Error("Passenger 0 should remain checked");
+        }
+
+        // Proceed forward: Pax -> Details
+        await testPage.locator('button:has-text("Continue"), button:has-text("Next")').first().click();
+
+        // Step: Details (only passenger 0 is active)
+        await testPage.waitForSelector('#doc-0', { timeout: 5000 });
+        if ((await testPage.locator('#doc-1').count()) > 0) {
+          throw new Error("Deselected passenger 1 doc input should not appear in details step");
+        }
+
+        // Proceed forward: Details -> Seats
+        await testPage.locator('button:has-text("Continue"), button:has-text("Next")').first().click();
+
+        // Step: Seats -> Review
+        await testPage.waitForSelector('button:has-text("Continue")', { timeout: 5000 });
+        await testPage.locator('button:has-text("Continue")').first().click();
+
+        // Step: Review -> Complete check-in
+        await testPage.waitForSelector('button:has-text("Complete check-in")', { timeout: 5000 });
+        await testPage.locator('button:has-text("Complete check-in")').first().click();
+
+        // Verify done step
+        await testPage.waitForSelector('text=Check-in complete', { timeout: 8000 });
+
+        // Inspect canonical stored booking in localStorage
+        const storedRepo = await testPage.evaluate(() => {
+          const raw = localStorage.getItem("gza.repo.v1");
+          return raw ? JSON.parse(raw) : null;
+        });
+        const storedBooking = storedRepo?.bookings?.find((b) => b.ref === "GZA-5C45");
+        if (!storedBooking) {
+          throw new Error("Booking GZA-5C45 not found in canonical storage");
+        }
+
+        // 1. checkedIn is exactly [0]
+        if (JSON.stringify(storedBooking.checkedIn?.out) !== JSON.stringify([0])) {
+          throw new Error(`Expected checkedIn.out to be [0], got: ${JSON.stringify(storedBooking.checkedIn?.out)}`);
+        }
+
+        // 2. Passenger 0 changes committed (new document, seat)
+        if (storedBooking.passengers?.[0]?.document !== "DOC-TARIQ-NEW") {
+          throw new Error(`Expected passenger 0 document 'DOC-TARIQ-NEW', got: ${storedBooking.passengers?.[0]?.document}`);
+        }
+        if (storedBooking.seats?.["out-0"] !== "11A") {
+          throw new Error(`Expected passenger 0 seat '11A', got: ${storedBooking.seats?.["out-0"]}`);
+        }
+
+        // 3. Passenger 1 seat and document UNCHANGED
+        if (storedBooking.passengers?.[1]?.document !== "DOC-LAILA-ORIG") {
+          throw new Error(`Passenger 1 document was mutated! Expected 'DOC-LAILA-ORIG', got: ${storedBooking.passengers?.[1]?.document}`);
+        }
+        if (storedBooking.seats?.["out-1"] !== "11B") {
+          throw new Error(`Passenger 1 seat was mutated! Expected '11B', got: ${storedBooking.seats?.["out-1"]}`);
+        }
+      } finally {
+        await testContext.close();
+      }
+    });
+
   } finally {
     await browser.close();
     if (server) {
