@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 export interface PublicPhotoHeroProps {
   mediaId: ApprovedMediaId;
-  routeKey: "airport" | "present" | "gallery" | "destinations" | "travel" | "manage" | "check-in" | "flights";
+  routeKey: "airport" | "present" | "gallery" | "destinations" | "travel" | "manage" | "check-in" | "flights" | "past";
   title: string;
   description?: string;
   archiveContext?: string;

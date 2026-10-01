@@ -13,11 +13,11 @@ import {
   arrivalsOn,
   departuresOn,
   destinations,
-  galleryItems,
   GZA,
   img,
   todayISO,
 } from "@/lib/data";
+import { getPublishedArchiveRecords } from "@/lib/archive";
 import { pick, useI18n } from "@/lib/i18n";
 import { ResponsiveImage } from "@/components/responsive-image";
 import { MEDIA } from "@/lib/media";
@@ -71,7 +71,7 @@ function Home() {
     () => (board === "departures" ? departuresOn(today) : arrivalsOn(today)).slice(0, 5),
     [board, today],
   );
-  const archive = galleryItems.slice(0, 6);
+  const archive = useMemo(() => getPublishedArchiveRecords().slice(0, 6), []);
 
   return (
     <>
@@ -581,13 +581,19 @@ function Home() {
               key={item.id}
               className="group overflow-hidden rounded-xl border border-border bg-card shadow-xs transition-transform hover:-translate-y-1"
             >
-              <AppLink to="/gallery" aria-label={item.title[lang === "ar" ? "ar" : "en"]}>
-                <img
-                  src={img(item.imageSeed, 400, 400)}
-                  alt=""
-                  loading="lazy"
-                  className="aspect-square size-full object-cover transition-opacity group-hover:opacity-85"
-                />
+              <AppLink to="/gallery" aria-label={pick(lang, item.title)}>
+                {item.mediaId && item.mediaId in MEDIA ? (
+                  <ResponsiveImage
+                    entry={item.mediaId as keyof typeof MEDIA}
+                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
+                    altOverride={{ en: item.alt.en, ar: item.alt.ar }}
+                    className="aspect-square size-full object-cover transition-opacity group-hover:opacity-85"
+                  />
+                ) : (
+                  <span className="aspect-square flex size-full items-center justify-center p-3 text-center text-xs text-muted-foreground">
+                    {pick(lang, item.title)}
+                  </span>
+                )}
               </AppLink>
             </li>
           ))}

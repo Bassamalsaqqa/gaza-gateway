@@ -2379,12 +2379,12 @@ async function runBrowserSmoke() {
 
       // Verify gallery filter interaction & reset
       const initialCountText = await page.locator(".code-id").first().textContent();
-      await page.selectOption("#filter-category", "photograph");
+      await page.selectOption("#filter-category", "document");
       const filteredCountText = await page.locator(".code-id").first().textContent();
       if (initialCountText === filteredCountText) {
         throw new Error("Gallery category filter did not change displayed item count");
       }
-      await page.getByRole("button", { name: /Clear filters|إزالة التصفية|Reset|إعادة الضبط/i }).click();
+      await page.getByRole("button", { name: /Clear filters|إزالة التصفية|Reset|إعادة الضبط/i }).first().click();
       const resetCountText = await page.locator(".code-id").first().textContent();
       if (resetCountText !== initialCountText) {
         throw new Error("Gallery reset button did not restore item count");
@@ -6355,6 +6355,149 @@ async function runBrowserSmoke() {
         }
       } finally {
         await testContext.close();
+      }
+    });
+
+    await checkStep("Check 46: HC-2 - EN Gallery: canonical documentary records, filter behavior, and lightbox modal", async () => {
+      const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+      try {
+        await page.goto(baseUrl + "/gallery", { waitUntil: "domcontentloaded" });
+
+        // 1. Verify absence of seeded historical images or legacy fake categories
+        const images = await page.locator("img").evaluateAll((imgs) => imgs.map((i) => i.src));
+        for (const src of images) {
+          if (src.includes("picsum.photos") || src.includes("placeholder")) {
+            throw new Error(`Found seeded placeholder image in Gallery: ${src}`);
+          }
+        }
+
+        // 2. Verify canonical published record displayed
+        await page.waitForSelector("text=Gaza International Airport Passenger Terminal Ruins", { timeout: 5000 });
+        const countText = await page.locator(".code-id").first().textContent();
+        if (!countText.includes("1")) {
+          throw new Error(`Expected 1 catalog item, got: ${countText}`);
+        }
+
+        // 3. Verify filter interaction and empty state with reset
+        await page.selectOption("#filter-category", "document");
+        const emptyCount = await page.locator(".code-id").first().textContent();
+        if (!emptyCount.includes("0")) {
+          throw new Error(`Expected 0 items after filtering to document, got: ${emptyCount}`);
+        }
+        await page.getByRole("button", { name: /Clear filters|Reset/i }).first().click();
+        const restoredCount = await page.locator(".code-id").first().textContent();
+        if (!restoredCount.includes("1")) {
+          throw new Error(`Expected count to restore to 1 after reset, got: ${restoredCount}`);
+        }
+
+        // 4. Open Lightbox
+        const cardTrigger = page.locator("li button[aria-haspopup='dialog']").first();
+        await cardTrigger.click();
+        const dialog = page.locator("[role='dialog']");
+        await dialog.waitFor({ state: "visible", timeout: 5000 });
+
+        // Verify documentary metadata details in Lightbox
+        await dialog.locator("text=Gisha Access").first().waitFor({ state: "visible", timeout: 5000 });
+        await dialog.locator("text=CC BY-SA 2.0 Generic").waitFor({ state: "visible", timeout: 5000 });
+        await dialog.locator("text=src-gisha-2008").or(dialog.locator("text=Gisha Access")).first().waitFor({ state: "visible", timeout: 5000 });
+
+        // Verify close with Escape key and focus return
+        await page.keyboard.press("Escape");
+        await dialog.waitFor({ state: "hidden", timeout: 5000 });
+
+        // 5. Curated external sources present on page
+        await page.locator("text=Primary Sources & Historical References").waitFor({ state: "visible", timeout: 5000 });
+        await page.locator("text=Saleh & Hegab Engineering Consultants").waitFor({ state: "visible", timeout: 5000 });
+      } finally {
+        await page.close();
+      }
+    });
+
+    await checkStep("Check 47: HC-2 - AR Gallery: RTL directionality, Arabic metadata, and LTR technical identifiers", async () => {
+      const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+      try {
+        await page.goto(baseUrl + "/ar/gallery", { waitUntil: "domcontentloaded" });
+
+        // 1. Verify RTL dir
+        const htmlDir = await page.locator("html").getAttribute("dir");
+        if (htmlDir !== "rtl") {
+          throw new Error(`Expected dir="rtl" on /ar/gallery, got: ${htmlDir}`);
+        }
+
+        // 2. Verify Arabic title and metadata
+        await page.waitForSelector("text=أطلال مبنى المسافرين بمطار غزة الدولي", { timeout: 5000 });
+        await page.locator("text=المصادر الأولية والمراجع التاريخية").waitFor({ state: "visible", timeout: 5000 });
+
+        // 3. Technical dates and identifiers remain LTR readable (Western Arabic numerals)
+        const dateText = await page.locator("text=2008-06-13").or(page.locator("text=13 يونيو/حزيران 2008")).first().textContent();
+        if (!dateText.includes("2008")) {
+          throw new Error(`Expected Western digits 2008 in date, got: ${dateText}`);
+        }
+
+        // 4. Open Lightbox in Arabic
+        const cardTrigger = page.locator("li button[aria-haspopup='dialog']").first();
+        await cardTrigger.click();
+        const dialog = page.locator("[role='dialog']");
+        await dialog.waitFor({ state: "visible", timeout: 5000 });
+
+        // Verify Arabic labels inside modal
+        await dialog.locator("text=الوسيط").first().waitFor({ state: "visible", timeout: 5000 });
+        await dialog.locator("text=الحقبة التاريخية").first().waitFor({ state: "visible", timeout: 5000 });
+
+        // Close via close button
+        const closeBtn = dialog.locator('button[aria-label*="Close"], button[aria-label*="إغلاق"]').first();
+        await closeBtn.click();
+        await dialog.waitFor({ state: "hidden", timeout: 5000 });
+      } finally {
+        await page.close();
+      }
+    });
+
+    await checkStep("Check 48: HC-2 - Airport Past: documentary hero, distinct opening/Clinton dedication, source citations, and held intake immunity", async () => {
+      const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+      try {
+        // EN /airport/past
+        await page.goto(baseUrl + "/airport/past", { waitUntil: "domcontentloaded" });
+
+        // 1. Hero is documentary hero (airport-archive-hero-2000), not seeded airport-archive-hall
+        const heroSection = page.locator('section[data-public-hero="past"]');
+        await heroSection.waitFor({ state: "visible", timeout: 5000 });
+        const heroImg = heroSection.locator("img").first();
+        const heroSrc = await heroImg.getAttribute("src");
+        if (heroSrc && heroSrc.includes("airport-archive-hall")) {
+          throw new Error(`Past hero is using seeded airport-archive-hall: ${heroSrc}`);
+        }
+
+        // 2. Distinct commercial opening (Nov 24, 1998) vs Clinton dedication (Dec 14, 1998)
+        await page.waitForSelector("text=November 24, 1998", { timeout: 5000 });
+        await page.waitForSelector("text=December 14, 1998", { timeout: 5000 });
+
+        // 3. All timeline chapters cite real resolvable source references
+        const sourceLinks = page.locator('ol a[href^="http"]');
+        const linkCount = await sourceLinks.count();
+        if (linkCount < 4) {
+          throw new Error(`Expected at least 4 source citation links in timeline, got: ${linkCount}`);
+        }
+
+        // 4. Sources panel replaces [CATALOG-ID-FIELD] with real source records
+        const bodyText = await page.locator("body").innerText();
+        if (bodyText.includes("[CATALOG-ID-FIELD]") || bodyText.includes("[PROVENANCE]")) {
+          throw new Error("Found placeholder [CATALOG-ID-FIELD] or [PROVENANCE] in Past page");
+        }
+        await page.locator("text=src-oslo-ii-1995").waitFor({ state: "visible", timeout: 5000 });
+        await page.locator("text=src-icao-council-2002").waitFor({ state: "visible", timeout: 5000 });
+
+        // 5. Held videos and intake photographs are NOT rendered in public UI
+        if (bodyText.includes("vid-journeyman-2002") || bodyText.includes("vid-afp-2014-ruins") || bodyText.includes("past-052")) {
+          throw new Error("Found held intake ID in public Past page");
+        }
+
+        // AR /ar/airport/past
+        await page.goto(baseUrl + "/ar/airport/past", { waitUntil: "domcontentloaded" });
+        await page.waitForSelector("text=24 تشرين الثاني/نوفمبر 1998", { timeout: 5000 });
+        await page.waitForSelector("text=14 كانون الأول/ديسمبر 1998", { timeout: 5000 });
+      } finally {
+        await page.close();
       }
     });
 

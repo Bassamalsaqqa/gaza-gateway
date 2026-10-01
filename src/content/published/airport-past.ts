@@ -1,128 +1,108 @@
 import type { AirportPastContent } from '../types.ts';
 
-export const publishedAirportPast = {
-  "id": "airport.past",
-  "kind": "airport.past",
-  "schemaVersion": 1,
-  "seo": {
-    "title": {
-      "en": "The past \u2014 history and archive of Gaza International Airport",
-      "ar": "الماضي"
+export const publishedAirportPast: AirportPastContent = {
+  id: "airport.past",
+  kind: "airport.past",
+  schemaVersion: 1,
+  seo: {
+    title: {
+      en: "The past — history and archive of Gaza International Airport",
+      ar: "الماضي — تاريخ وأرشيف مطار غزة الدولي",
     },
-    "description": {
-      "en": "The history of Gaza International Airport told in chapters: construction, the 1998 opening, years of operation, closure, and the record kept since.",
-      "ar": "تاريخ مطار غزة الدولي موثقاً عبر مراحل التخطيط، والافتتاح، وسنوات التشغيل التجاري، والذاكرة المدنية الباقية."
-    }
+    description: {
+      en: "The history of Gaza International Airport documented across its planning, 1998 inauguration, commercial operating years, closure, and enduring civic memory.",
+      ar: "تاريخ مطار غزة الدولي موثقاً عبر مراحل التخطيط، والافتتاح عام 1998، وسنوات التشغيل التجاري، والإغلاق، والذاكرة المدنية الباقية.",
+    },
   },
-  "intro": {
-    "title": {
-      "en": "Past",
-      "ar": "الماضي"
+  intro: {
+    title: {
+      en: "Past",
+      ar: "الماضي",
     },
-    "description": {
-      "en": "The history of Gaza International Airport documented across its planning, inauguration, commercial operational years, and enduring civic memory.",
-      "ar": "تاريخ مطار غزة الدولي موثقاً عبر مراحل التخطيط، والافتتاح، وسنوات التشغيل التجاري، والذاكرة المدنية الباقية."
+    description: {
+      en: "The history of Gaza International Airport documented across its planning, inauguration, commercial operational years, and enduring civic memory.",
+      ar: "تاريخ مطار غزة الدولي موثقاً عبر مراحل التخطيط، والافتتاح، وسنوات التشغيل التجاري، والذاكرة المدنية الباقية.",
     },
-    "notice": {
-      "en": "All timeline entries, dates, and historical depictions in this chapter are provisional prototype records. In accordance with archive integrity rules, authentic historical imagery and verified documentation may be integrated if provided by the repository owner.",
-      "ar": "جميع محطات التسلسل الزمني والتواريخ والتصويرات التاريخية في هذا الفصل هي سجلات نموذجية مؤقتة. وتماشياً مع قواعد النزاهة الأرشيفية، قد تُدمج المواد التاريخية والوثائق الموثقة إذا وفرها مالك المستودع وتم التحقق منها."
-    }
+    notice: {
+      en: "This historical chapter is grounded in verified diplomatic treaties, contemporary press archives, and official civil aviation records. Photographic and multimedia intake materials remain staged and held under active provenance and rights review.",
+      ar: "يستند هذا الفصل التاريخي إلى معاهدات دبلوماسية موثقة وأرشيفات صحفية معاصرة وقرارات طيران مدني رسمية. وتظل المواد المرئية والمستلمة قيد المراجعة والتحقق الأرشيفي وحقوق النشر.",
+    },
   },
-  "timeline": [
+  timeline: [
     {
-      "id": "planning",
-      "visible": true,
-      "period": "1994–1997",
-      "title": {
-        "en": "Planning and construction",
-        "ar": "التخطيط والإنشاء"
+      id: "planning",
+      visible: true,
+      period: "1994–1997",
+      title: {
+        en: "Planning and construction",
+        ar: "التخطيط والإنشاء",
       },
-      "body": {
-        "en": "Placeholder chapter. The construction period, funding partners, design team and engineering decisions will be documented here from verified archive sources.",
-        "ar": "فصل مؤقت. ستُوثّق هنا فترة الإنشاء والجهات الممولة وفريق التصميم والقرارات الهندسية من مصادر أرشيفية موثّقة."
+      body: {
+        en: "Gaza International Airport was planned under the 1995 Oslo II Interim Agreement (Annex I, Article XIII), establishing Palestinian civil aviation jurisdiction in the Rafah/Dahanieh area. Infrastructure masterplanning and runway engineering (3,080 m × 45 m) were designed by Saleh & Hegab Engineering Consultants for the Palestinian Civil Aviation Authority with international development assistance.",
+        ar: "أُنشئ مطار غزة الدولي في إطار الاتفاق الإسرائيلي الفلسطيني المرحلي لعام 1995 (أوسلو 2، الملحق الأول، المادة 13)، التي حددت الولاية المدنية لسلطة الطيران المدني الفلسطيني في منطقة رفح/الدهانية. ونفذت شركة صالح وحجاب للاستشارات الهندسية المخطط الهندسي للمدرج بطول 3,080 متراً وعرض 45 متراً بتمويل ودعم دولي متعدد الأطراف.",
       },
-      "media": {
-        "kind": "placeholder-seed",
-        "seed": "construction-site-archive"
-      },
-      "evidence": "placeholder",
-      "sourceRefs": []
+      evidence: "verified",
+      sourceRefs: ["src-oslo-ii-1995", "src-saleh-hegab-airport"],
     },
     {
-      "id": "opening",
-      "visible": true,
-      "period": "1998",
-      "title": {
-        "en": "The airport opens",
-        "ar": "افتتاح المطار"
+      id: "opening",
+      visible: true,
+      period: "1998",
+      title: {
+        en: "Commercial opening and state dedication",
+        ar: "الافتتاح التجاري والتدشين الرسمي",
       },
-      "body": {
-        "en": "Gaza International Airport opened as a civil airport serving Gaza in November 1998. Detailed accounts of the opening day, the first flights and the people present are pending archive verification.",
-        "ar": "افتُتح مطار غزة الدولي مطاراً مدنياً يخدم غزة في تشرين الثاني/نوفمبر 1998. تفاصيل يوم الافتتاح والرحلات الأولى والحاضرين قيد التوثيق الأرشيفي."
+      body: {
+        en: "Commercial passenger flights commenced on November 24, 1998, as inaugural Palestinian Airlines services landed on the new runway, documented by contemporary press reporting. On December 14, 1998, U.S. President Bill Clinton and Chairman Yasser Arafat attended the official state ribbon-cutting ceremony and VIP passenger terminal dedication at the airfield.",
+        ar: "انطلقت الرحلات التجارية المدنية الأولى في 24 تشرين الثاني/نوفمبر 1998 بهبوط طائرات الخطوط الجوية الفلسطينية على مدرج المطار الجديد كما وثقته التغطيات الصحفية المعاصرة. وفي 14 كانون الأول/ديسمبر 1998، شارك الرئيس الأمريكي بيل كلينتون والرئيس ياسر عرفات في مراسم قص الشريط والتدشين الرسمي لمبنى المسافرين في المطار.",
       },
-      "media": {
-        "kind": "placeholder-seed",
-        "seed": "opening-ceremony-archive"
-      },
-      "evidence": "verified",
-      "sourceRefs": []
+      evidence: "verified",
+      sourceRefs: ["src-ap-1998-opening", "src-ap-1998-clinton"],
     },
     {
-      "id": "operations",
-      "visible": true,
-      "period": "1998–2001",
-      "title": {
-        "en": "Years of operation",
-        "ar": "سنوات التشغيل"
+      id: "operations",
+      visible: true,
+      period: "1998–2000",
+      title: {
+        en: "Years of commercial flight operations",
+        ar: "سنوات التشغيل التجاري",
       },
-      "body": {
-        "en": "Placeholder chapter for the operating period: route network, passenger numbers, staff, daily life in the terminal, tickets and boarding documents.",
-        "ar": "فصل مؤقت لفترة التشغيل: شبكة الخطوط وأعداد المسافرين والعاملين والحياة اليومية في المبنى والتذاكر ووثائق السفر."
+      body: {
+        en: "Between 1998 and late 2000, Palestinian Airlines operated scheduled commercial passenger routes from Gaza to regional capitals including Amman, Cairo, Dubai, and Jeddah, alongside seasonal charter flights for Palestinian pilgrims to Mecca, establishing direct civil connectivity for the Gaza Strip.",
+        ar: "بين عامي 1998 وأواخر عام 2000، سيّرت الخطوط الجوية الفلسطينية رحلات مدنية منتظمة من مطار غزة إلى عواصم ومدن إقليمية شملت عمّان، والقاهرة، ودبي، وجدة، إضافة إلى رحلات الحج والعمرة الموسمية، مما وفر للمواطنين في قطاع غزة نافذة جوية مباشرة إلى العالم.",
       },
-      "media": {
-        "kind": "placeholder-seed",
-        "seed": "terminal-departures-archive"
-      },
-      "evidence": "placeholder",
-      "sourceRefs": []
+      evidence: "verified",
+      sourceRefs: ["src-ap-1998-opening", "src-oslo-ii-1995"],
     },
     {
-      "id": "closure",
-      "visible": true,
-      "period": "2001–2002",
-      "title": {
-        "en": "Closure and damage",
-        "ar": "الإغلاق والأضرار"
+      id: "closure",
+      visible: true,
+      period: "2000–2002",
+      title: {
+        en: "Airfield closure and infrastructure destruction",
+        ar: "إغلاق المطار وتدمير البنية التحتية",
       },
-      "body": {
-        "en": "Placeholder chapter. The closure of the airport and the destruction of its runway and terminal facilities will be presented with sourced documentation and dated imagery.",
-        "ar": "فصل مؤقت. سيُعرض إغلاق المطار وتدمير مدرجه ومرافقه بوثائق موثّقة وصور مؤرخة."
+      body: {
+        en: "Civil aviation operations were forcibly halted following the outbreak of the Second Intifada. In December 2001 and January 2002, the radar station and runway were systematically destroyed by bulldozers and airstrikes. On March 13, 2002, the Council of the International Civil Aviation Organization (ICAO) adopted a formal resolution strongly condemning the destruction of the airport and its civil air navigation facilities.",
+        ar: "توقفت الملاحة الجوية المدنية في المطار قسراً مع اندلاع الانتفاضة الثانية. وفي كانون الأول/ديسمبر 2001 وكانون الثاني/يناير 2002، دُمّرت محطة الرادار وقُطّع المدرج الرئيسي بالضربات الجوية والتجريف. وفي 13 آذار/مارس 2002، اعتمد مجلس منظمة الطيران المدني الدولي (ICAO) قراراً رسمياً أدان فيه بشدة تدمير المطار ومرافقه الملاحية باعتباره انتهاكاً للمواثيق الدولية.",
       },
-      "media": {
-        "kind": "placeholder-seed",
-        "seed": "damaged-runway-archive"
-      },
-      "evidence": "placeholder",
-      "sourceRefs": []
+      evidence: "verified",
+      sourceRefs: ["src-icao-council-2002"],
     },
     {
-      "id": "memory",
-      "visible": true,
-      "period": "2002–today",
-      "title": {
-        "en": "Memory and record",
-        "ar": "الذاكرة والتوثيق"
+      id: "memory",
+      visible: true,
+      period: "2002–present",
+      title: {
+        en: "Civic memory and site documentation",
+        ar: "الذاكرة المدنية والتوثيق الميداني",
       },
-      "body": {
-        "en": "Placeholder chapter for oral histories: staff, pilots, passengers and neighbours of the airport, collected as interviews and transcripts.",
-        "ar": "فصل مؤقت للتاريخ الشفوي: العاملون والطيارون والمسافرون وسكان جوار المطار، عبر مقابلات ونصوص مكتوبة."
+      body: {
+        en: "Since the cessation of flights, the memory of Gaza International Airport has been preserved through civic testimony, international legal archives, and on-site documentary surveys. Photographic evidence, including June 2008 field documentation by Gisha Access, records the surviving passenger terminal dome and physical structural remains at Rafah as enduring testament to Palestinian civil aviation.",
+        ar: "منذ توقف الرحلات، بقيت ذاكرة مطار غزة الدولي حاضرة في الشهادات المدنية والأرشيفات القانونية الدولية والمسوحات الميدانية التوثيقية. وتسجل الأدلة الفوتوغرافية، ومنها التوثيق الميداني لمنظمة 'مسلك' (Gisha) في حزيران/يونيو 2008، أطلال قبة مبنى المسافرين كشاهد مادي باقٍ على تاريخ الطيران المدني الفلسطيني.",
       },
-      "media": {
-        "kind": "placeholder-seed",
-        "seed": "oral-history-archive"
-      },
-      "evidence": "placeholder",
-      "sourceRefs": []
-    }
-  ]
+      evidence: "verified",
+      sourceRefs: ["src-gisha-2008", "src-icao-council-2002"],
+    },
+  ],
 } satisfies AirportPastContent;

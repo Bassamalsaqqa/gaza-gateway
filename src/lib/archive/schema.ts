@@ -62,6 +62,7 @@ export const sourceTypeSchema = z.enum([
   "press",
   "archive",
   "academic",
+  "video",
 ]);
 
 export const sourceRecordSchema = z.object({

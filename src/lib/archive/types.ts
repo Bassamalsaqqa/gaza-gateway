@@ -46,7 +46,32 @@ export type SourceType =
   | "official-record"
   | "press"
   | "archive"
-  | "academic";
+  | "academic"
+  | "video";
+
+export const MEDIUM_LABELS: Record<Medium, { en: string; ar: string }> = {
+  photograph: { en: "Photograph", ar: "صورة فوتوغرافية" },
+  document: { en: "Document", ar: "وثيقة" },
+  video: { en: "Video", ar: "تسجيل مرئي" },
+  illustration: { en: "Illustration", ar: "رسم توضيحي" },
+};
+
+export const HISTORICAL_PHASE_LABELS: Record<HistoricalPhase, { en: string; ar: string }> = {
+  "planning-construction": { en: "Planning & Construction", ar: "التخطيط والإنشاء" },
+  "opening-golden-era": { en: "Opening & Operation", ar: "الافتتاح والتشغيل" },
+  "closure-destruction": { en: "Closure & Destruction", ar: "الإغلاق والتدمير" },
+  "post-destruction-ruins": { en: "Post-Destruction Ruins", ar: "أطلال ما بعد التدمير" },
+  "contemporary-status": { en: "Contemporary Status", ar: "الوضع المعاصر" },
+};
+
+export const SOURCE_TYPE_LABELS: Record<SourceType, { en: string; ar: string }> = {
+  treaty: { en: "Diplomatic Treaty", ar: "اتفاقية دبلوماسية" },
+  "official-record": { en: "Official Aviation Record", ar: "سجل طيران مدني رسمي" },
+  press: { en: "Contemporary Press", ar: "تغطية صحفية معاصرة" },
+  archive: { en: "Archival Record", ar: "سجل أرشيفي" },
+  academic: { en: "Academic Research", ar: "بحث أكاديمي" },
+  video: { en: "Video Archive", ar: "أرشيف مرئي" },
+};
 
 export interface SourceRecord {
   id: string;

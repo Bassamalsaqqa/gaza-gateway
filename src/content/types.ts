@@ -57,7 +57,7 @@ export interface HistoricalTimelineEntry {
   period: string;
   title: LocalizedText;
   body: LocalizedText;
-  media: MediaReference;
+  media?: MediaReference;
   evidence: EvidenceState;
   sourceRefs: string[];
 }

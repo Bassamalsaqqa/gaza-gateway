@@ -28,8 +28,8 @@ export const publishedHome = {
       "ar": "مطار غزة الدولي — الماضي والحاضر والمستقبل."
     },
     "heritageSpotlightDesc": {
-      "en": "Gaza International Airport was the Palestinian Authority's civil aviation gateway. This section brings together its history, present condition, and future vision. Historical and present-day documentary imagery remains provisional while verified source material is gathered; future-vision sections use clearly labeled illustrative concept imagery.",
-      "ar": "كان مطار غزة الدولي بوابة الطيران المدني التابعة للسلطة الفلسطينية. يجمع هذا القسم بين تاريخ المطار وواقعه الحالي ورؤيته المستقبلية. تبقى الصور التوثيقية التاريخية وصور الواقع الحالي مؤقتة إلى حين توفير مواد موثّقة، بينما تستخدم أقسام الرؤية المستقبلية تصوّرات توضيحية موسومة بوضوح."
+      "en": "Gaza International Airport was the Palestinian Authority's civil aviation gateway. This section brings together its history, present condition, and future vision. Verified documentary material and primary sources are published under archival standards, while future-vision sections use clearly labeled illustrative concept imagery.",
+      "ar": "كان مطار غزة الدولي البوابة المدنية لسلطة الطيران الفلسطيني. يجمع هذا القسم بين تاريخ المطار وواقعه الحالي ورؤيته المستقبلية. تُنشر المواد التوثيقية المعتمدة والمصادر الأولية وفق معايير أرشيفية، وتستخدم أقسام الرؤية المستقبلية تصوّرات معمارية توضيحية معلنة."
     },
     "past": {
       "en": "Past",
@@ -80,8 +80,8 @@ export const publishedHome = {
       "ar": "من الأرشيف"
     },
     "archiveSub": {
-      "en": "Photographs, documents and concept material — placeholders until the real archive is supplied.",
-      "ar": "صور ووثائق ومواد تصورية — عناصر مؤقتة حتى توفير الأرشيف الحقيقي."
+      "en": "Verified documentary records and external primary sources documenting Gaza International Airport.",
+      "ar": "سجلات وثائقية معتمدة ومصادر أولية توثق مطار غزة الدولي."
     }
   },
   "sections": [

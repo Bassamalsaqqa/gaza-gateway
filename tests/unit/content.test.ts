@@ -52,8 +52,8 @@ describe("typed published editorial content", () => {
     assert.equal(isValidContent("travel", { ...publishedTravel, kind: "unknown" }), false);
     assert.equal(isValidContent("travel", { ...publishedTravel, schemaVersion: 2 }), false);
   });
-  it("keeps historical placeholders and rejects false media truth", () => {
-    assert.equal(publishedAirportPast.timeline[0]?.evidence, "placeholder");
+  it("keeps historical source grounding and rejects false media truth", () => {
+    assert.equal(publishedAirportPast.timeline[0]?.evidence, "verified");
     const falseTruth = clone(publishedAirportPast);
     falseTruth.timeline[0]!.media = { kind: "media", id: "home-hero" };
     assert.equal(isValidContent("airport.past", falseTruth), false);

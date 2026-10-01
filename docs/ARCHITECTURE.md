@@ -65,9 +65,10 @@ Phase 4 resolved pre-existing public/admin state disconnects by introducing two 
 | **Legacy Store Key** | Preserved read-only migration source | `gza.store.v1` | One-time migration to `gza.booking.draft.v1` when draft key is missing | **Closed Legacy Key**: ZERO active draft writers | Deprecated |
 | **Staff Session** | `src/lib/admin-store.tsx` (`useAdmin`) | `gza.admin.v1` (`staffId`) | Admin Shell, permission guards, role switcher | **Preserved Legacy Key** | Phase 6 |
 | **OpsState (Simulation)**| `src/lib/admin-store.tsx` (`ops`, `patchOps`) | In-memory React state | Operations Dashboard, Turnaround timers | **Preserved Session Simulation** | Phase 6 |
-| **Published Home, Travel, Past, Present editorial** | `src/content/published/` | Compiled typed source | Public Home, Travel, Airport Past, Airport Present; selected Admin read panels | **Canonical Published Content** | Phase 7 broader coverage |
+| **Published Home, Travel, Past, Present editorial** | `src/content/published/` | Compiled typed source | Public Home, Travel, Airport Past (5 source-backed verified chapters), Airport Present; selected Admin read panels | **Canonical Published Content** | Phase 7 broader coverage |
+| **Historical Archive & Source Registry (HC-2)** | `src/lib/archive/` (`catalog.ts`, `sources.ts`) | Compiled typed catalog & registry | Public Gallery (`/gallery`), Home archive spotlight, Airport Past sources panel (`/airport/past`) | **Canonical Archive Foundation** (`getPublishedArchiveRecords()`, `SOURCE_REGISTRY`) | Phase 7B (Provenance Admin) |
 | **Local editorial draft** | `ContentRepository` | `gza.content.draft.v1` | Explicit preview and Admin Travel editor | **Browser-local, not published** | Future backend publication |
-| **Other CMS & stories** | Route/i18n source and `src/lib/admin-mock.ts` | Compiled source and static fixtures | Present, Future, About, Contact, destinations, archive | **Not yet converged** | Phase 7 |
+| **Other CMS & stories** | Route/i18n source and `src/lib/admin-mock.ts` | Compiled source and static fixtures | Future, About, Contact, destinations | **Not yet converged** | Phase 7 |
 | **Settings (Contact & Appearance)** | `SettingsRepository` (`src/lib/settings/`) | `gza.settings.draft.v1` | Public Contact (`?settingsPreview=1`), Appearance Studio (`?skinPreview=1`), Admin Settings | **Authoritative Settings Draft** | Phase 5D / 6 |
 | **Appearance Legacy Key** | Read once for migration | `gza.skin.preview.v1` | Migrated once to canonical `gza.settings.draft.v1`; untouched; no dual writes | **Dormant Legacy Key** | Deprecated |
 
@@ -123,9 +124,25 @@ Future asset and copy drops must adhere to the following protocol:
 
 ### 4.3 Public Media Hero & Quick-Action Rail Architecture
 
-- **`PublicPhotoHero` (`src/components/media/public-photo-hero.tsx`)**: Reusable bounded hero rendering responsive photography via `ResponsiveImage` (intrinsic dimensions, standard srcSet/sizes, eager loading), directional dark overlay behind localized text (EN left-to-right gradient, AR right-to-left gradient), route-specific focal positioning, authentic archival date eyebrow for historical documentary assets, and stable route markers (`data-public-hero="{routeKey}"`). Implemented across `/airport`, `/airport/present`, `/gallery`, `/destinations`, `/travel`, `/manage`, `/check-in`. Photographs are strictly never mirrored.
+- **`PublicPhotoHero` (`src/components/media/public-photo-hero.tsx`)**: Reusable bounded hero rendering responsive photography via `ResponsiveImage` (intrinsic dimensions, standard srcSet/sizes, eager loading), directional dark overlay behind localized text (EN left-to-right gradient, AR right-to-left gradient), route-specific focal positioning, authentic archival date eyebrow for historical documentary assets, and stable route markers (`data-public-hero="{routeKey}"`). Implemented across `/airport`, `/airport/past`, `/airport/present`, `/gallery`, `/destinations`, `/travel`, `/manage`, `/check-in`. Photographs are strictly never mirrored.
 - **Home Utility Rail (`data-home-utility-rail="true"`)**: Single grouped rail with no gaps displaying 4 utility cards (`flight-status`, `check-in`, `travel-guidelines`, `airport-heritage`). Decorative image slices maintain seamless connectivity across all four cards by mirroring only the decorative image layer (`ltr:scale-x-[-1]`) in English LTR, while Arabic RTL keeps natural unmirrored artwork.
 - **Passenger Auth Shell (`PassengerAuthShell`)**: Sign-in route (`/signin`) features an optional photographic panel (`data-auth-media="signin"`) showing `signin-photo`, desktop two-column form priority, and compact mobile photo band, preserving fallback for other auth views.
+
+### 4.4 Historical Archive Authority & Authoritative Source Registry (HC-2)
+
+- **Canonical Archive Authority (`src/lib/archive/`)**:
+  - `ARCHIVE_CATALOG`: Bounded repository of 10 records (1 published `rec-present-ruins-2008`, 7 staging, 1 held for provenance, 1 excluded duplicate).
+  - Public archive selector: `getPublishedArchiveRecords()` exposes only schema-valid published records with approved media references. Staging, held, excluded, or duplicate records are never exposed to public views.
+  - Public Gallery (`/gallery`, `/ar/gallery`): Entirely decoupled from legacy `galleryItems`. Renders responsive media cards from `getPublishedArchiveRecords()`, supports media type and historical phase filtering, and includes a singleton-safe lightbox (Escape key, focus trap/return, scroll lock, disabled prev/next buttons when a single record is present).
+  - Home Archive Spotlight: Uses `getPublishedArchiveRecords()` instead of legacy mock slices.
+- **Authoritative Source Registry (`SOURCE_REGISTRY`)**:
+  - Contains 6 verified contemporary external primary records (`src-oslo-ii-1995`, `src-ap-1998-opening`, `src-ap-1998-clinton`, `src-icao-council-2002`, `src-gisha-2008`, `src-saleh-hegab-airport`).
+  - Public external references are curated outbound links (`getAllSourceRecords()`), cleanly separated from reusable archive media.
+- **Airport Past Chapter Architecture (`/airport/past`, `/ar/airport/past`)**:
+  - Uses `PublicPhotoHero` with `airport-archive-hero-2000` (`routeKey="past"`).
+  - Seeded timeline placeholder photos removed. Timeline chapters (planning, opening, operations, closure, memory) are fully typed, each with `evidence: "verified"` and valid, resolvable citations in `SOURCE_REGISTRY`.
+- **Hero Metadata Clearance Gap Documented**:
+  - `airport-archive-hero-2000` and `gallery-aircraft-archive-2000` retain approved historical-documentary hero status for `/airport/past` and existing media references, but lack explicit photographer/license provenance for general public archive catalog redistribution.
 
 ---
 
@@ -161,12 +178,14 @@ Phase 3.9 and Phase 4 established a permanent, lightweight local test foundation
    - Unified multi-document settings envelope (`gza.settings.draft.v1`) with independent Contact and Appearance drafts, one-time legacy migration with untouched legacy key, transactional failure resilience, and explicit preview immunity.
 3. **Public Workflows Convergence (Phase 5 in progress: Phase 5A, Phase 5B, and Phase 5C complete; Phase 5D planned)**:
    - Direct binding of passenger account management, saved companions, and public booking wizard state into repository queries and mutations. Phase 5A converged canonical passenger identity, account state, and saved travelers on `PassengerRepository` (`gza.passenger.v1`). Phase 5B converged booking wizard draft (`BookingDraftRepository` on `gza.booking.draft.v1`) and effective flight discovery (`FlightRepository`). Phase 5C converged Manage, Check-in, and Boarding Pass onto canonical repositories, typed commands, check-in eligibility window (24h to 60m), and live effective flights, accepted and merged into main. Phase 5D will converge public contact messaging and feedback.
-4. **Admin Workflows Convergence (Phase 6)**:
+4. **Historical Archive Foundation & Publication (HC-2 implemented on feature branch)**:
+   - Decoupled public gallery from legacy fixtures, introduced canonical `getPublishedArchiveRecords()`, 6-record `SOURCE_REGISTRY`, source-backed Airport Past timeline across 5 chapters, singleton-safe lightbox, and 58-item intake audit. Awaiting independent review.
+5. **Admin Workflows Convergence (Phase 6)**:
    - Direct repository binding for operational flight dispatch, schedule master templates, check-in desk, customer CRM, and activity logs.
-5. **SEO & Head Metadata Parity (Phase 11)**:
+6. **SEO & Head Metadata Parity (Phase 11)**:
    - Arabic homepage `<title>` and `<meta name="description">` parity.
    - Comprehensive OpenGraph and Twitter card metadata for Arabic routes.
    - Automated `sitemap.xml` and `robots.txt` generation.
    - Structured JSON-LD metadata for airline and airport entities.
-6. **Backend Readiness & API Contracts (Phase 12–13)**:
+7. **Backend Readiness & API Contracts (Phase 12–13)**:
    - Server-side database, authenticated REST/tRPC endpoints, and live payment processing.

@@ -830,3 +830,132 @@ describe("HC-0 / HC-1 Archive & Present Foundation Invariants", () => {
     }
   });
 });
+
+describe("HC-2 Historical Archive Publication Invariants", () => {
+  // HC2-1: Public selector exposes only schema-valid published records; staging, hold-rights, hold-provenance, excluded, duplicateOf never leak.
+  it("HC2-1: Public archive selector exposes strictly published, schema-valid records; staging, holds, and duplicates never leak", () => {
+    const published = getPublishedArchiveRecords();
+    assert.ok(published.length > 0, "Must have at least one published record");
+
+    for (const record of published) {
+      assert.equal(record.publicationState, "published");
+      assert.equal(record.duplicateOf, undefined);
+      const schemaCheck = archiveRecordSchema.safeParse(record);
+      assert.ok(schemaCheck.success, `Published record ${record.id} must satisfy archiveRecordSchema`);
+    }
+
+    const allIntake = getIntakeArchiveRecords();
+    for (const intake of allIntake) {
+      if (intake.publicationState !== "published" || intake.duplicateOf) {
+        assert.ok(
+          !published.some((p) => p.id === intake.id),
+          `Unpublished intake record ${intake.id} (${intake.publicationState}) must never appear in published selector`,
+        );
+      }
+    }
+  });
+
+  // HC2-2: past-052 stays excluded duplicate of past-050; no independent duplicate publication
+  it("HC2-2: past-052 remains excluded duplicate alias of past-050 with no independent publication", () => {
+    const intake52 = getArchiveRecordById("past-052", true);
+    assert.ok(intake52, "past-052 must exist in intake archive");
+    assert.equal(intake52.duplicateOf, "past-050");
+    assert.equal(intake52.publicationState, "excluded");
+
+    // Public lookups must return undefined
+    assert.equal(getArchiveRecordById("past-052"), undefined);
+    assert.equal(getArchiveRecordBySlug("gaza-airport-past-interior-waiting-area-hall"), undefined);
+
+    const published = getPublishedArchiveRecords();
+    assert.ok(!published.some((r) => r.id === "past-052"), "past-052 must not exist in published archive");
+  });
+
+  // HC2-3: Public documentary IDs are historical-documentary; Future AI cannot enter archive/Past evidence
+  it("HC2-3: Public documentary IDs are historical-documentary; Future AI is rejected from Past/Archive evidence", () => {
+    const published = getPublishedArchiveRecords();
+    for (const record of published) {
+      if (record.mediaId) {
+        assert.equal(
+          APPROVED_MEDIA_CATALOG[record.mediaId],
+          "historical-documentary",
+          `Record ${record.id} mediaId ${record.mediaId} must have historical-documentary truth class`,
+        );
+      }
+    }
+
+    // Past timeline rejects future-concept-ai or illustrative-photo
+    const pastHeroProbe = JSON.parse(JSON.stringify(publishedAirportPast));
+    pastHeroProbe.timeline[0].media = { kind: "media", id: "future-hero" };
+    assert.equal(isValidContent("airport.past", pastHeroProbe), false, "Must reject future-hero in Past timeline");
+
+    const illustrativeProbe = JSON.parse(JSON.stringify(publishedAirportPast));
+    illustrativeProbe.timeline[0].media = { kind: "media", id: "home-hero" };
+    assert.equal(isValidContent("airport.past", illustrativeProbe), false, "Must reject illustrative-photo in Past timeline");
+  });
+
+  // HC2-4: Published photos satisfy rights/credit/license URL/source/date/bilingual contracts; verified records and verified Past chapters have nonempty resolvable sourceRefs
+  it("HC2-4: Published photos satisfy rights/credit/license contracts, and all verified Past entries cite resolvable sources", () => {
+    const published = getPublishedArchiveRecords();
+    for (const rec of published) {
+      if (rec.medium === "photograph") {
+        assert.notEqual(rec.rights.status, "unknown");
+        assert.notEqual(rec.rights.status, "rights-managed");
+        assert.ok(rec.rights.credit || rec.rights.license, `Record ${rec.id} must have credit or license`);
+        if (rec.rights.status === "licensed") {
+          assert.ok(rec.rights.licenseUrl, `Licensed record ${rec.id} must have licenseUrl`);
+          assert.match(rec.rights.licenseUrl, /^https?:\/\//);
+        }
+      }
+      assert.ok(rec.title.en.trim().length > 0);
+      assert.ok(rec.title.ar.trim().length > 0);
+      assert.ok(rec.alt.en.trim().length > 0);
+      assert.ok(rec.alt.ar.trim().length > 0);
+      assert.notEqual(rec.datePrecision, "unknown");
+    }
+
+    // Verified Past timeline chapters
+    for (const entry of publishedAirportPast.timeline) {
+      if (entry.evidence === "verified") {
+        assert.ok(entry.sourceRefs.length > 0, `Verified entry ${entry.id} must cite at least one sourceRef`);
+        for (const ref of entry.sourceRefs) {
+          assert.ok(SOURCE_REGISTRY[ref], `Entry ${entry.id} references non-existent source: ${ref}`);
+        }
+      }
+    }
+  });
+
+  // HC2-5: Source IDs unique; public external references resolve to actual registry entries; held videos cannot become published media
+  it("HC2-5: Source IDs are unique, valid, and held videos never leak as published media", () => {
+    const sources = getAllSourceRecords();
+    const seen = new Set<string>();
+    for (const s of sources) {
+      assert.ok(!seen.has(s.id), `Duplicate source ID: ${s.id}`);
+      seen.add(s.id);
+      assert.match(s.url, /^https?:\/\//, `Source ${s.id} has invalid URL: ${s.url}`);
+    }
+
+    // Video intake catalog items remain unpublished
+    const intakeVideos = getIntakeArchiveRecords().filter((r) => r.medium === "video");
+    assert.ok(intakeVideos.length >= 7, "Intake catalog must include at least 7 video records");
+    for (const vid of intakeVideos) {
+      assert.notEqual(vid.publicationState, "published", `Intake video ${vid.id} must not be published`);
+      assert.equal(getArchiveRecordById(vid.id), undefined, `Intake video ${vid.id} must not be publicly retrievable`);
+    }
+  });
+
+  // HC2-6: Gallery no legacy galleryItems authority or seeded historical photos; Past no seeded hero/false evidence timeline image
+  it("HC2-6: Gallery and Past do not rely on legacy galleryItems or seeded images", () => {
+    const gallerySrc = readFileSync(new URL("../../src/routes/{-$locale}.gallery.tsx", import.meta.url), "utf8");
+    assert.ok(!gallerySrc.includes("galleryItems"), "Gallery route must not reference legacy galleryItems");
+    assert.ok(!gallerySrc.includes("img("), "Gallery route must not use img() seed function");
+    assert.ok(gallerySrc.includes("getPublishedArchiveRecords"), "Gallery route must use canonical getPublishedArchiveRecords");
+
+    const pastSrc = readFileSync(new URL("../../src/routes/{-$locale}.airport.past.tsx", import.meta.url), "utf8");
+    assert.ok(!pastSrc.includes("airport-archive-hall"), "Past route must not use seeded airport-archive-hall hero");
+    assert.ok(pastSrc.includes("airport-archive-hero-2000"), "Past route must use approved airport-archive-hero-2000 hero");
+
+    for (const entry of publishedAirportPast.timeline) {
+      assert.notEqual(entry.media?.kind, "placeholder-seed", `Timeline entry ${entry.id} must not use placeholder-seed`);
+    }
+  });
+});

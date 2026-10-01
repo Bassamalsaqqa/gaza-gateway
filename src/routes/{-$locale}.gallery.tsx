@@ -1,18 +1,25 @@
 import { createFileRoute } from "@tanstack/react-router";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, ExternalLink, X } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AppLink } from "@/components/app-link";
 import { btnClass, Container, EmptyState } from "@/components/kit";
 import { PublicPhotoHero } from "@/components/media/public-photo-hero";
+import { ResponsiveImage } from "@/components/responsive-image";
 import {
-  galleryCategoryLabels,
-  galleryEraLabels,
-  galleryItems,
-  img,
-  type GalleryItem,
-} from "@/lib/data";
+  getPublishedArchiveRecords,
+  getAllSourceRecords,
+  getSourceRecordById,
+} from "@/lib/archive";
+import {
+  MEDIUM_LABELS,
+  HISTORICAL_PHASE_LABELS,
+  SOURCE_TYPE_LABELS,
+  type Medium,
+  type HistoricalPhase,
+} from "@/lib/archive/types";
+import { MEDIA } from "@/lib/media";
 import { pick, useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import galleryFilterToolbarImg from "@/assets/media/decorative/gallery/gallery-filter-toolbar.webp";
@@ -37,36 +44,31 @@ export const Route = createFileRoute("/{-$locale}/gallery")({
   component: GalleryPage,
 });
 
-type CategoryFilter = Exclude<GalleryItem["category"], "concept"> | "all";
-type EraFilter = Exclude<GalleryItem["era"], "future"> | "all";
+type CategoryFilter = Medium | "all";
+type PhaseFilter = HistoricalPhase | "all";
 
 function GalleryPage() {
   const { t, lang } = useI18n();
   const [category, setCategory] = useState<CategoryFilter>("all");
-  const [era, setEra] = useState<EraFilter>("all");
+  const [era, setEra] = useState<PhaseFilter>("all");
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [openingItemId, setOpeningItemId] = useState<string | null>(null);
   const reduceMotion = useReducedMotion();
 
   const triggerRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
-  // Strictly exclude future concept items — archive represents documentary records
-  const documentaryItems = useMemo(
-    () =>
-      galleryItems.filter(
-        (item) => item.era !== "future" && (item.category as string) !== "concept",
-      ),
-    [],
-  );
+  // Strictly source-cleared published documentary records only
+  const publishedRecords = useMemo(() => getPublishedArchiveRecords(), []);
+  const externalSources = useMemo(() => getAllSourceRecords(), []);
 
   const items = useMemo(
     () =>
-      documentaryItems.filter(
+      publishedRecords.filter(
         (item) =>
-          (category === "all" || item.category === category) &&
-          (era === "all" || item.era === era),
+          (category === "all" || item.medium === category) &&
+          (era === "all" || item.phase === era),
       ),
-    [documentaryItems, category, era],
+    [publishedRecords, category, era],
   );
 
   // Keyboard navigation for Lightbox while open
@@ -121,12 +123,12 @@ function GalleryPage() {
   };
 
   const handlePrev = () => {
-    if (openIndex === null || items.length === 0) return;
+    if (openIndex === null || items.length <= 1) return;
     setOpenIndex((openIndex - 1 + items.length) % items.length);
   };
 
   const handleNext = () => {
-    if (openIndex === null || items.length === 0) return;
+    if (openIndex === null || items.length <= 1) return;
     setOpenIndex((openIndex + 1) % items.length);
   };
 
@@ -184,9 +186,9 @@ function GalleryPage() {
                   className="h-9 rounded-lg border border-input bg-card px-3 text-xs font-medium text-foreground transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
                 >
                   <option value="all">{t("gallery.categoryAll")}</option>
-                  {(["photograph", "document", "architecture"] as const).map((id) => (
+                  {(["photograph", "document", "video", "illustration"] as const).map((id) => (
                     <option key={id} value={id}>
-                      {pick(lang, galleryCategoryLabels[id])}
+                      {MEDIUM_LABELS[id][lang]}
                     </option>
                   ))}
                 </select>
@@ -201,15 +203,23 @@ function GalleryPage() {
                   id="filter-era"
                   value={era}
                   onChange={(e) => {
-                    setEra(e.target.value as EraFilter);
+                    setEra(e.target.value as PhaseFilter);
                     setOpenIndex(null);
                   }}
                   className="h-9 rounded-lg border border-input bg-card px-3 text-xs font-medium text-foreground transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
                 >
                   <option value="all">{t("gallery.eraAll")}</option>
-                  {(["past", "present"] as const).map((id) => (
+                  {(
+                    [
+                      "planning-construction",
+                      "opening-golden-era",
+                      "closure-destruction",
+                      "post-destruction-ruins",
+                      "contemporary-status",
+                    ] as const
+                  ).map((id) => (
                     <option key={id} value={id}>
-                      {pick(lang, galleryEraLabels[id])}
+                      {HISTORICAL_PHASE_LABELS[id][lang]}
                     </option>
                   ))}
                 </select>
@@ -272,12 +282,18 @@ function GalleryPage() {
                 >
                   {/* Archival Preview Image */}
                   <span className="relative block aspect-4/3 w-full overflow-hidden bg-ink">
-                    <img
-                      src={img(item.imageSeed, 800, 600)}
-                      alt=""
-                      loading="lazy"
-                      className="size-full object-cover opacity-85 transition-transform duration-500 group-hover:scale-105"
-                    />
+                    {item.mediaId && item.mediaId in MEDIA ? (
+                      <ResponsiveImage
+                        entry={item.mediaId as keyof typeof MEDIA}
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        altOverride={{ en: item.alt.en, ar: item.alt.ar }}
+                        className="size-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105"
+                      />
+                    ) : (
+                      <span className="flex size-full items-center justify-center p-4 text-center text-xs text-white/60">
+                        {pick(lang, item.title)}
+                      </span>
+                    )}
                   </span>
 
                   {/* Clean Content: Title + Subtitle */}
@@ -300,7 +316,8 @@ function GalleryPage() {
                         {pick(lang, item.title)}
                       </span>
                       <span className="mt-1 text-xs text-ink-muted">
-                        {pick(lang, galleryCategoryLabels[item.category])} · {pick(lang, galleryEraLabels[item.era])}
+                        {MEDIUM_LABELS[item.medium]?.[lang] ?? item.medium} ·{" "}
+                        {HISTORICAL_PHASE_LABELS[item.phase]?.[lang] ?? item.phase}
                       </span>
                     </span>
                   </span>
@@ -309,6 +326,66 @@ function GalleryPage() {
             ))}
           </ul>
         )}
+
+        {/* Curated Primary Sources & External Historical References */}
+        <section className="mt-16 border-t border-border pt-12">
+          <div className="max-w-3xl">
+            <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+              {t("gallery.externalSourcesTitle")}
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              {t("gallery.externalSourcesSub")}
+            </p>
+          </div>
+
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {externalSources.map((source) => (
+              <article
+                key={source.id}
+                className="flex flex-col justify-between rounded-xl border border-border bg-card p-4 shadow-2xs transition-colors hover:border-border/80"
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+                    <span className="rounded-md bg-secondary px-2 py-0.5 font-medium">
+                      {SOURCE_TYPE_LABELS[source.type]?.[lang] ?? source.type}
+                    </span>
+                    {source.publicationDate ? (
+                      <span className="code-id">{source.publicationDate}</span>
+                    ) : null}
+                  </div>
+                  <h3 className="mt-2 text-sm font-bold text-foreground leading-snug">
+                    {pick(lang, { en: source.title, ar: source.titleAr ?? source.title })}
+                  </h3>
+                  <p className="mt-1 text-xs text-muted-foreground font-medium">
+                    {source.publisher}
+                  </p>
+                  {source.notes ? (
+                    <p className="mt-2 text-xs leading-relaxed text-muted-foreground line-clamp-3">
+                      {source.notes}
+                    </p>
+                  ) : null}
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-border/60">
+                  <a
+                    href={source.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-clay hover:underline focus-visible:outline-2 focus-visible:outline-ring"
+                  >
+                    <span>{t("gallery.viewSource")}</span>
+                    <ExternalLink aria-hidden="true" className="size-3.5" />
+                  </a>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          {/* Archival Ingestion & Provenance Review Disclosure */}
+          <div className="mt-8 rounded-xl border border-border bg-secondary/30 p-4 sm:p-5 text-xs text-muted-foreground leading-relaxed">
+            <p>{t("gallery.noticeBody")}</p>
+          </div>
+        </section>
       </Container>
 
       {/* Accessible Radix Dialog Media Lightbox */}
@@ -337,16 +414,27 @@ function GalleryPage() {
                 {/* Visual Image Stage */}
                 <div className="relative aspect-16/10 max-h-[50vh] w-full shrink-0 overflow-hidden bg-ink sm:max-h-[55vh]">
                   <AnimatePresence mode="wait" initial={false}>
-                    <motion.img
+                    <motion.div
                       key={current.id}
-                      src={img(current.imageSeed, 1600, 1000)}
-                      alt=""
                       initial={reduceMotion ? false : { opacity: 0, scale: 0.985 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={reduceMotion ? { opacity: 1 } : { opacity: 0, scale: 1.01 }}
                       transition={{ duration: reduceMotion ? 0 : 0.2, ease: [0.22, 1, 0.36, 1] }}
-                      className="size-full object-cover sm:object-contain"
-                    />
+                      className="size-full flex items-center justify-center"
+                    >
+                      {current.mediaId && current.mediaId in MEDIA ? (
+                        <ResponsiveImage
+                          entry={current.mediaId as keyof typeof MEDIA}
+                          sizes="(max-width: 1024px) 100vw, 1000px"
+                          altOverride={{ en: current.alt.en, ar: current.alt.ar }}
+                          className="size-full object-cover sm:object-contain"
+                        />
+                      ) : (
+                        <div className="p-8 text-center text-sm text-white/70">
+                          {pick(lang, current.title)}
+                        </div>
+                      )}
+                    </motion.div>
                   </AnimatePresence>
                   {/* Close Control (44×44px minimum touch target) */}
                   <DialogPrimitive.Close
@@ -361,7 +449,8 @@ function GalleryPage() {
                 <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-5 sm:p-7">
                   <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
                     <span>
-                      {pick(lang, galleryCategoryLabels[current.category])} · {pick(lang, galleryEraLabels[current.era])}
+                      {MEDIUM_LABELS[current.medium]?.[lang] ?? current.medium} ·{" "}
+                      {HISTORICAL_PHASE_LABELS[current.phase]?.[lang] ?? current.phase}
                     </span>
                     <span className="code-id">
                       {openIndex !== null &&
@@ -381,39 +470,125 @@ function GalleryPage() {
                   </DialogPrimitive.Description>
 
                   {/* Clean Definition List Metadata */}
-                  <dl className="mt-5 grid gap-3 rounded-xl border border-border bg-secondary/50 p-4 text-xs sm:grid-cols-3">
+                  <dl className="mt-5 grid gap-3 rounded-xl border border-border bg-secondary/50 p-4 text-xs sm:grid-cols-2 lg:grid-cols-4">
                     <div>
                       <dt className="text-xs font-semibold text-muted-foreground">
-                        {t("gallery.filterCategory")}
+                        {t("gallery.medium")}
                       </dt>
                       <dd className="mt-1 font-medium text-foreground">
-                        {pick(lang, galleryCategoryLabels[current.category])}
+                        {MEDIUM_LABELS[current.medium]?.[lang] ?? current.medium}
                       </dd>
                     </div>
                     <div>
                       <dt className="text-xs font-semibold text-muted-foreground">
-                        {t("gallery.filterEra")}
+                        {t("gallery.historicalPhase")}
                       </dt>
                       <dd className="mt-1 font-medium text-foreground">
-                        {pick(lang, galleryEraLabels[current.era])}
+                        {HISTORICAL_PHASE_LABELS[current.phase]?.[lang] ?? current.phase}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs font-semibold text-muted-foreground">
+                        {t("gallery.location")}
+                      </dt>
+                      <dd className="mt-1 font-medium text-foreground">
+                        {current.location ?? "—"}
                       </dd>
                     </div>
                     <div>
                       <dt className="text-xs font-semibold text-muted-foreground">
                         {t("gallery.curatorialStatus")}
                       </dt>
-                      <dd className="mt-1 text-muted-foreground">
-                        {t("gallery.provenanceStatus")}
+                      <dd className="mt-1 font-medium text-foreground">
+                        {current.evidenceStatus === "verified"
+                          ? t("gallery.provisionalNotice")
+                          : t("gallery.provenancePending")}
                       </dd>
                     </div>
+                    {current.date ? (
+                      <div>
+                        <dt className="text-xs font-semibold text-muted-foreground">
+                          Date
+                        </dt>
+                        <dd className="mt-1 font-medium text-foreground code-id">
+                          {current.date}
+                        </dd>
+                      </div>
+                    ) : null}
+                    {current.rights.credit ? (
+                      <div>
+                        <dt className="text-xs font-semibold text-muted-foreground">
+                          {t("gallery.credit")}
+                        </dt>
+                        <dd className="mt-1 font-medium text-foreground">
+                          {current.rights.credit}
+                        </dd>
+                      </div>
+                    ) : null}
+                    {current.rights.license ? (
+                      <div>
+                        <dt className="text-xs font-semibold text-muted-foreground">
+                          {t("gallery.license")}
+                        </dt>
+                        <dd className="mt-1 font-medium text-foreground">
+                          {current.rights.licenseUrl ? (
+                            <a
+                              href={current.rights.licenseUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="underline underline-offset-2 hover:text-foreground inline-flex items-center gap-1"
+                            >
+                              {current.rights.license}
+                            </a>
+                          ) : (
+                            current.rights.license
+                          )}
+                        </dd>
+                      </div>
+                    ) : null}
                   </dl>
+
+                  {/* Source Citations */}
+                  {current.sourceRefs && current.sourceRefs.length > 0 ? (
+                    <div className="mt-4 border-t border-border pt-3">
+                      <h4 className="text-xs font-semibold text-muted-foreground">
+                        {t("gallery.sourceReferences")}
+                      </h4>
+                      <ul className="mt-2 space-y-1.5">
+                        {current.sourceRefs.map((refId) => {
+                          const src = getSourceRecordById(refId);
+                          if (!src) return null;
+                          return (
+                            <li key={refId} className="text-xs">
+                              <a
+                                href={src.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 font-medium text-clay hover:underline"
+                              >
+                                <span>{pick(lang, { en: src.title, ar: src.titleAr ?? src.title })}</span>
+                                <ExternalLink aria-hidden="true" className="size-3 shrink-0" />
+                              </a>
+                              <span className="ms-1.5 text-muted-foreground">
+                                ({src.publisher})
+                              </span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  ) : null}
 
                   {/* Modal Navigation Controls (44px min touch target) */}
                   <div className="mt-6 flex items-center justify-between border-t border-border pt-4">
                     <button
                       type="button"
                       onClick={handlePrev}
-                      className={cn(btnClass("outline", "md"), "min-h-11 min-w-11 px-4 gap-2")}
+                      disabled={items.length <= 1}
+                      className={cn(
+                        btnClass("outline", "md"),
+                        "min-h-11 min-w-11 px-4 gap-2 disabled:opacity-40 disabled:cursor-not-allowed",
+                      )}
                     >
                       <ChevronLeft aria-hidden="true" className="size-4 rtl:rotate-180" />
                       <span>{t("gallery.prev")}</span>
@@ -422,7 +597,11 @@ function GalleryPage() {
                     <button
                       type="button"
                       onClick={handleNext}
-                      className={cn(btnClass("outline", "md"), "min-h-11 min-w-11 px-4 gap-2")}
+                      disabled={items.length <= 1}
+                      className={cn(
+                        btnClass("outline", "md"),
+                        "min-h-11 min-w-11 px-4 gap-2 disabled:opacity-40 disabled:cursor-not-allowed",
+                      )}
                     >
                       <span>{t("gallery.next")}</span>
                       <ChevronRight aria-hidden="true" className="size-4 rtl:rotate-180" />

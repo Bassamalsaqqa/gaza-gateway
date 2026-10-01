@@ -30,7 +30,7 @@ export const timelineEntries: AdminPastEntry[] = publishedAirportPast.timeline.m
   period: entry.period,
   title: entry.title,
   narrative: entry.body,
-  media: entry.media.seed,
-  verification: entry.evidence === "verified" ? "verified" : "unsourced",
+  media: entry.media?.kind === "media" ? entry.media.id : "",
+  verification: entry.evidence === "verified" ? "verified" : entry.evidence === "provisional" ? "pending" : "unsourced",
   state: "published",
 }));

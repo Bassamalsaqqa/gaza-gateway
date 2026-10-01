@@ -39,3 +39,50 @@
   - `signin-photo`: Illustrative photograph of commercial aircraft on airport apron (`sign-in-photo.jpg`).
 - **Home Utility Rail Decorative Artwork**:
   - `utility-flight-status.webp`, `utility-check-in.webp`, `utility-travel-guidelines.webp`, `utility-airport-heritage.webp`: Four contiguous slices from owner-approved master artwork (`4-cards/`). Decorative image layers mirrored in English LTR to preserve connectivity seams; unmirrored in Arabic RTL.
+
+## Historical Archive Intake Audit & Machine Counts (HC-2)
+- **Intake Master Directory**: `images_assets_to_be_used_in_website_after_proper_placement_and_compression/Past` (read-only source intake).
+- **Exact Machine-Derived Counts**:
+  - Total intake files audited: **58**
+  - Unique visual/SHA-256 hashes: **57**
+  - Exact byte/visual duplicates: **1** (`past-052` is identical to `past-050`)
+  - Newly cleared intake photos: **0** (authorized stance; zero unverified intake photos published)
+  - Published archive records in `ARCHIVE_CATALOG`: **1** (`rec-present-ruins-2008` / `airport-present-ruins-2008`, Gisha Access, June 13, 2008, CC BY-SA 2.0)
+  - Staging catalog records: **7** (6 video records + `past-050`)
+  - Held for provenance / dispute: **1** (`vid-journeyman-2002`, held due to November 2 opening date conflict)
+  - Excluded duplicate records: **1** (`past-052` referencing `past-050`)
+  - Total records in `ARCHIVE_CATALOG`: **10**
+  - Authoritative external source records in `SOURCE_REGISTRY`: **6**
+  - New production image assets / derivatives added: **0** (reused existing approved assets)
+
+## Historical Documentary Hero Metadata Clearance Gap (HC-2)
+- **`airport-archive-hero-2000`** and **`gallery-aircraft-archive-2000`**:
+  - Approved historical-documentary hero assets for `/airport/past` and existing media references.
+  - Lack explicit individual photographer credit and open-access licensing paperwork for reusable public catalog distribution.
+  - Retained as approved bounded heroes without fabricating provenance or rights, but intentionally excluded from public reusable gallery archive listings (`getPublishedArchiveRecords()`).
+
+## Authoritative External Primary & Contemporary Sources (HC-2)
+- **Oslo II Accord (`src-oslo-ii-1995`)**:
+  - Israeli-Palestinian Interim Agreement on the West Bank and the Gaza Strip, Annex I (Protocol Concerning Redeployment and Security Arrangements), Article IX (Passenger Terminal and Airfield).
+  - Date: September 28, 1995.
+  - Repository: United Nations Peacemaker (`peacemaker.un.org`).
+- **Associated Press Archive — Opening (`src-ap-1998-opening`)**:
+  - News agency contemporary report: "Yasser Arafat Opens Gaza International Airport". Commercial inaugural flight operations.
+  - Date: November 24, 1998.
+  - Publisher: Associated Press Archive (Story No. 008779).
+- **Associated Press Archive — Ribbon Cutting (`src-ap-1998-clinton`)**:
+  - News agency contemporary report: "Clinton Cuts Ribbon at Gaza Airport". Official dedication ceremony with President Bill Clinton.
+  - Date: December 14, 1998.
+  - Publisher: Associated Press Archive (Story No. 010041).
+- **ICAO Council Resolution (`src-icao-council-2002`)**:
+  - International Civil Aviation Organization 165th Session Resolution on the destruction of Gaza International Airport runway and radar facilities.
+  - Date: March 13, 2002.
+  - Repository: ICAO Council Working Papers (`icao.int`).
+- **Gisha – Legal Center for Freedom of Movement (`src-gisha-2008`)**:
+  - Gaza Closure and Civil Aviation Infrastructure Documentation.
+  - Date: June 13, 2008.
+  - License: Creative Commons Attribution-ShareAlike 2.0 Generic ([CC BY-SA 2.0](https://creativecommons.org/licenses/by-sa/2.0/)).
+  - Host: Wikimedia Commons / Flickr.
+- **Saleh & Hegab Architectural and Engineering Profile (`src-saleh-hegab-airport`)**:
+  - Original architectural and civil engineering project documentation for Gaza International Airport terminal and runway infrastructure.
+  - Publisher: Saleh & Hegab Architectural & Engineering Consultants.

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { isApprovedMediaId } from "../lib/media-policy.ts";
+import { isApprovedMediaId, APPROVED_MEDIA_CATALOG } from "../lib/media-policy.ts";
 import { SOURCE_REGISTRY } from "../lib/archive/sources.ts";
 import { HOME_SECTION_POLICY, type ContentDocument, type ContentKey, type HomeCopyKey, type LocalizedText } from "./types.ts";
 
@@ -50,23 +50,55 @@ const travel = z.object({
   sections: z.array(travelSection).length(TRAVEL_IDS.length),
 }).strict().refine((doc) => unique(doc.sections.map((s) => s.id)) &&
   unique(doc.sections.flatMap((s) => s.points.map((p) => p.id))));
-const media = z.union([
-  z.object({ kind: z.literal("placeholder-seed"), seed: z.enum(PLACEHOLDER_SEEDS as [string, ...string[]]) }).strict(),
-  // Approved historical-documentary hero assets are registered in APPROVED_MEDIA_CATALOG.
-  // Past timeline chapters currently remain bound to placeholder seeds until collection migration.
-  z.object({ kind: z.literal("media"), id: approvedMedia }).strict().refine(() => false),
+const documentaryMedia = z.string().refine(
+  (id) => isApprovedMediaId(id) && APPROVED_MEDIA_CATALOG[id] === "historical-documentary",
+  { message: "Timeline media must be an approved historical-documentary asset" },
+);
+
+const timelineMedia = z.union([
+  z.object({ kind: z.literal("media"), id: documentaryMedia }).strict(),
+  z.object({ kind: z.literal("placeholder-seed"), seed: z.enum(PLACEHOLDER_SEEDS as [string, ...string[]]) }).strict().refine(() => false),
 ]);
+
 const timelineEntry = z.object({
   id: z.enum(["planning", "opening", "operations", "closure", "memory"]),
-  visible: z.boolean(), period: plainText, title: localized, body: localized, media,
+  visible: z.boolean(),
+  period: plainText,
+  title: localized,
+  body: localized,
+  media: timelineMedia.optional(),
   evidence: z.enum(["verified", "provisional", "placeholder"]),
   sourceRefs: z.array(slug),
-}).strict();
+}).strict().superRefine((entry, ctx) => {
+  if (entry.evidence === "verified" && entry.sourceRefs.length === 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `Verified timeline entry "${entry.id}" must cite at least one sourceRef`,
+      path: ["sourceRefs"],
+    });
+  }
+});
+
 const past = z.object({
-  ...envelope, id: z.literal("airport.past"), kind: z.literal("airport.past"),
+  ...envelope,
+  id: z.literal("airport.past"),
+  kind: z.literal("airport.past"),
   intro: z.object({ title: localized, description: localized, notice: localized }).strict(),
   timeline: z.array(timelineEntry).length(PAST_IDS.length),
-}).strict().refine((doc) => unique(doc.timeline.map((entry) => entry.id)));
+}).strict().superRefine((doc, ctx) => {
+  if (!unique(doc.timeline.map((entry) => entry.id))) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Duplicate timeline entry ID" });
+  }
+  const allRefs = doc.timeline.flatMap((entry) => entry.sourceRefs);
+  for (const ref of allRefs) {
+    if (!SOURCE_REGISTRY[ref]) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Unresolved sourceRef: ${ref}`,
+      });
+    }
+  }
+});
 
 const presentFact = z.object({
   id: z.string(),

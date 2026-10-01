@@ -69,8 +69,8 @@ const sections: Section[] = [
     heading: { en: "Content, imagery and the archive", ar: "المحتوى والصور والأرشيف" },
     body: [
       {
-        en: "Historical and present-day sections may use clearly identified placeholders while verified source material is gathered. Future-vision sections may use labeled owner-provided AI-generated concept imagery. Such concept imagery is illustrative only and must not be treated as documentary evidence of the airport's historical or current condition.",
-        ar: "قد تستخدم الأقسام التاريخية وأقسام الواقع الحالي عناصر مؤقتة موسومة بوضوح إلى حين جمع مواد موثّقة. وقد تستخدم أقسام الرؤية المستقبلية صوراً مفاهيمية مولّدة بالذكاء الاصطناعي ومقدّمة من مالك المشروع مع وسمها بوضوح. هذه الصور المستقبلية توضيحية فقط ولا تُعدّ دليلاً توثيقياً على الحالة التاريخية أو الحالية للمطار.",
+        en: "Historical and present-day sections feature verified documentary photography where cleared, while unverified intake imagery remains held in staging. Future-vision sections present labeled owner-provided concept imagery. Concept imagery is illustrative only and must not be treated as documentary evidence of the airport's historical or current condition.",
+        ar: "تتضمن الأقسام التاريخية والراهنة صوراً توثيقية معتمدة حيثما تم إثبات حقوقها ومصادرها، مع إبقاء المواد الإضافية المستلمة في مرحلة الفحص الأرشيفي قيد المراجعة. وتعرض أقسام رؤية المستقبل تصورات معمارية مقدمة من المالك وموسومة بأنها توضيحية فقط ولا تمثل أدلة وثائقية على حالة المطار التاريخية أو الحالية.",
       },
     ],
   },

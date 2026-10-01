@@ -39,8 +39,8 @@ function AboutPage() {
           <h2 className="text-xl font-bold">{t("brand.airport")}</h2>
           <p className="mt-2 text-base leading-relaxed text-muted-foreground">
             {pick(lang, {
-              en: "GZA opened in 1998 as the civil airport serving Gaza. This site presents its history, its present-day state and the vision for its future, keeping verified material clearly separated from placeholders.",
-              ar: "افتُتح مطار غزة الدولي (GZA) عام 1998 مطاراً مدنياً يخدم غزة. يعرض هذا الموقع تاريخه وحاضره ورؤية مستقبله، مع فصل واضح بين المواد الموثّقة والعناصر المؤقتة.",
+              en: "GZA opened in 1998 as the civil airport serving Gaza. This site presents its history, its present-day state, and the vision for its future, keeping verified documentary material clearly separated from illustrative concepts and unverified intake.",
+              ar: "افتُتح مطار غزة الدولي عام 1998 بصفته المطار المدني الذي يخدم غزة. يقدم هذا الموقع تاريخه، وواقعه الراهن، ورؤية مستقبله، مع الفصل الواضح بين المواد الوثائقية المعتمدة والتصورات التوضيحية والمواد قيد التحقق الأرشيفي.",
             })}
           </p>
           <AppLink to="/airport" className={btnClass("outline", "md", "mt-5")}>
@@ -74,8 +74,8 @@ function AboutPage() {
           <h2 className="text-xl font-bold">{pick(lang, { en: "About the material", ar: "عن المواد المعروضة" })}</h2>
           <p className="mt-2 max-w-3xl text-base leading-relaxed text-muted-foreground">
             {pick(lang, {
-              en: "Imagery on this site is clearly separated by purpose and evidentiary role. Future-vision sections may use owner-provided AI-generated architectural concepts and are labeled as illustrative rather than documentary. Historical and present-day sections continue to use clearly marked placeholders until verified, rights-cleared source material is attached. Flight schedules, fares and bookings remain demonstration data held in your browser only.",
-              ar: "تُفصل الصور في هذا الموقع بوضوح بحسب الغرض منها ودورها التوثيقي. قد تستخدم أقسام الرؤية المستقبلية تصوّرات معمارية مولّدة بالذكاء الاصطناعي ومقدّمة من مالك المشروع، وتُوسم بوضوح على أنها مواد توضيحية وليست توثيقية. أما الأقسام التاريخية وأقسام الواقع الحالي فتبقى فيها الصور المؤقتة موسومة بوضوح إلى حين إرفاق مواد موثّقة ومصرّح باستخدامها. جداول الرحلات والأسعار والحجوزات تبقى بيانات تجريبية محفوظة في متصفحك فقط.",
+              en: "Imagery on this site is classified by purpose and evidentiary role: future-vision sections present owner-provided architectural visualizations labeled as illustrative; historical and present-day sections present verified documentary photography where cleared, while remaining intake records are held under rights and provenance review. Flight schedules, fares and bookings remain demonstration data held in your browser only.",
+              ar: "تُصنَّف المواد المرئية في هذا الموقع بحسب الغرض والدور التوثيقي: تقدم أقسام رؤية المستقبل تصورات معمارية مقدمة من المالك وموسومة بأنها توضيحية؛ بينما تقدم الأقسام التاريخية والراهنة صوراً توثيقية معتمدة حيثما تم إثبات حقوقها ومصادرها، مع إبقاء المواد الإضافية المستلمة قيد المراجعة والتحقق الأرشيفي. وتبقى جداول الرحلات والأسعار والحجوزات بيانات توضيحية محفوظة في متصفحك فقط.",
             })}
           </p>
           <img

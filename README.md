@@ -2,7 +2,7 @@
 
 > **Product**: Gaza International Airport (`GZA`) & Palestinian Airlines (`PS`)
 > **Production Domain**: [https://www.gazaairport.com](https://www.gazaairport.com)
-> **Engineering Status**: **Phase 5C Manage Trip, Check-in & Boarding Pass Convergence ACCEPTED SOURCE on `main`.** Phase 5 overall remains in progress; Phase 5A, Phase 5B, and Phase 5C complete/accepted; Phase 5D (Public Contact Convergence), Phase 6, and HC-2/HC-3 planned and unstarted. Public Manage, Check-in, and Boarding Pass routes are repository-native; check-in window opens 24h prior and closes 60m prior to scheduled departure. Source merge/push does not mean live cPanel deployment. See [roadmap.md](roadmap.md) for the full sequence.
+> **Engineering Status**: **Phase 5C Manage Trip, Check-in & Boarding Pass Convergence ACCEPTED SOURCE on `main`.** HC-2 (Historical Archive Foundation & Publication) implemented on feature branch `hc2/historical-archive-publication` awaiting independent acceptance (not merged to `main`, not deployed). Phase 5 overall remains in progress; Phase 5A, Phase 5B, and Phase 5C complete/accepted on `main`; Phase 5D (Public Contact Convergence), Phase 6, HC-3 planned and unstarted. Public Manage, Check-in, and Boarding Pass routes are repository-native; check-in window opens 24h prior and closes 60m prior to scheduled departure. Live deployment remains on Phase 5B; source merge/push does not mean live cPanel deployment. See [roadmap.md](roadmap.md) for the full sequence.
 > **Documentation Index**:
 > - [Master Engineering Roadmap (Phases 0–12)](roadmap.md)
 > - [System Architecture Specification](docs/ARCHITECTURE.md)
