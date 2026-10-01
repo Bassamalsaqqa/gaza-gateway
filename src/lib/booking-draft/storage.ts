@@ -163,6 +163,7 @@ export class BookingDraftStorageCoordinator {
   private state: BookingDraftState;
   private readonly storage: Storage | null;
   private readonly inMemoryOnly: boolean;
+  private isEphemeral = false;
   private readonly listeners = new Set<() => void>();
   private cleanupStorageListener: (() => void) | null = null;
   private writeQueue: Promise<unknown> = Promise.resolve();
@@ -185,6 +186,7 @@ export class BookingDraftStorageCoordinator {
     const initialSubmissionId = generateSubmissionId();
 
     if (this.inMemoryOnly) {
+      this.isEphemeral = true;
       return {
         ready: true,
         isPersistent: false,
@@ -198,6 +200,7 @@ export class BookingDraftStorageCoordinator {
 
     if (!this.storage) {
       // Storage access threw or is not supported in current environment
+      this.isEphemeral = true;
       return {
         ready: true,
         isPersistent: false,
@@ -213,7 +216,8 @@ export class BookingDraftStorageCoordinator {
     try {
       rawCanonical = this.storage.getItem(BOOKING_DRAFT_STORAGE_KEY);
     } catch {
-      // SecurityError or storage blocked -> unavailable state
+      // SecurityError or storage blocked -> enter EPHEMERAL mode without reading legacy
+      this.isEphemeral = true;
       return {
         ready: true,
         isPersistent: false,
@@ -263,7 +267,8 @@ export class BookingDraftStorageCoordinator {
           submissionId: initialSubmissionId,
         };
       } catch {
-        // Storage full or read-only -> memory fallback
+        // Storage full or read-only -> enter EPHEMERAL mode while retaining runtime draft
+        this.isEphemeral = true;
         return {
           ready: true,
           isPersistent: false,
@@ -358,6 +363,7 @@ export class BookingDraftStorageCoordinator {
       }
     }
 
+    this.isEphemeral = true;
     return {
       ready: true,
       isPersistent: false,
@@ -373,7 +379,7 @@ export class BookingDraftStorageCoordinator {
    * Processes a storage event (from window listener or cross-tab synchronization test harness).
    */
   public handleStorageEvent(event: { key?: string | null; newValue?: string | null }): void {
-    if (event.key !== BOOKING_DRAFT_STORAGE_KEY) return;
+    if (this.inMemoryOnly || this.isEphemeral || event.key !== BOOKING_DRAFT_STORAGE_KEY) return;
     if (!this.storage) return;
 
     try {
@@ -441,7 +447,7 @@ export class BookingDraftStorageCoordinator {
    * Sets up multi-tab synchronization via the window `storage` event.
    */
   private setupStorageListener(): void {
-    if (this.inMemoryOnly || typeof window === "undefined") return;
+    if (this.inMemoryOnly || this.isEphemeral || typeof window === "undefined" || !this.storage) return;
 
     const listener = (event: StorageEvent) => {
       this.handleStorageEvent(event);
@@ -484,7 +490,10 @@ export class BookingDraftStorageCoordinator {
    * 3. Successful mutations commit atomically to in-memory state and notify subscribers.
    */
   public async mutate<T>(
-    mutator: (currentDraft: Draft, currentState: BookingDraftState) => { draft: Draft; status?: "active" | "cleared" },
+    mutator: (
+      currentDraft: Draft,
+      currentState: BookingDraftState,
+    ) => { draft: Draft; status?: "active" | "cleared"; refreshSubmissionId?: boolean },
   ): Promise<Draft> {
     return new Promise<Draft>((resolve, reject) => {
       this.writeQueue = this.writeQueue
@@ -500,6 +509,9 @@ export class BookingDraftStorageCoordinator {
             const sanitizedNextDraft = sanitizeDraftStructure(mutationResult.draft);
             const nextRevision = this.state.revision + 1;
             const nowIso = new Date().toISOString();
+            const nextSubmissionId = mutationResult.refreshSubmissionId
+              ? generateSubmissionId()
+              : this.state.submissionId;
 
             // 3. Prepare envelope
             const envelope: BookingDraftEnvelopeV1 =
@@ -511,7 +523,7 @@ export class BookingDraftStorageCoordinator {
                     updatedAt: nowIso,
                     clearedAt: nowIso,
                     revision: nextRevision,
-                    submissionId: this.state.submissionId,
+                    submissionId: nextSubmissionId,
                   }
                 : {
                     schemaVersion: BOOKING_DRAFT_SCHEMA_VERSION,
@@ -519,11 +531,11 @@ export class BookingDraftStorageCoordinator {
                     draft: sanitizedNextDraft,
                     updatedAt: nowIso,
                     revision: nextRevision,
-                    submissionId: this.state.submissionId,
+                    submissionId: nextSubmissionId,
                   };
 
-            // 4. Persist to storage if applicable
-            if (!this.inMemoryOnly) {
+            // 4. Persist to storage if applicable (only when persistent and not in ephemeral mode)
+            if (!this.inMemoryOnly && !this.isEphemeral) {
               if (!this.storage) {
                 throw new StorageCommitError(
                   "Cannot persist booking draft: local storage is unavailable.",
@@ -543,10 +555,11 @@ export class BookingDraftStorageCoordinator {
             this.state = {
               ...this.state,
               draft: nextStatus === "cleared" ? createFreshDraft() : sanitizedNextDraft,
-              storageState: nextStatus === "cleared" ? "cleared" : "active",
+              storageState: this.isEphemeral ? "unavailable" : (nextStatus === "cleared" ? "cleared" : "active"),
               revision: nextRevision,
               updatedAt: nowIso,
-              isPersistent: !this.inMemoryOnly,
+              isPersistent: !this.inMemoryOnly && !this.isEphemeral,
+              submissionId: nextSubmissionId,
             };
 
             this.notifySubscribers();

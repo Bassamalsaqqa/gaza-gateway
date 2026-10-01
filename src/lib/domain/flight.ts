@@ -96,7 +96,7 @@ export function sanitizeFlightOverride(raw: unknown): FlightOverride | null {
 export function getEffectiveFlight(
   flight: Flight,
   override?: FlightOverride | null,
-): Flight & { note?: string; revisedDepart?: string } {
+): Flight {
   if (!flight || typeof flight !== "object") return flight;
   if (!override || typeof override !== "object") return flight;
 

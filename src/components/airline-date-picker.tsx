@@ -206,34 +206,45 @@ export function AirlineDatePicker({
   );
 
   // Route-aware service availability checks for entered dates using effective flight queries
-  const { data: departDateFlights, isLoading: isDepartLoading } = useFlightSearchQuery(
+  const { data: departDateFlights, isLoading: isDepartLoading, isError: isDepartError } = useFlightSearchQuery(
     origin,
     destination,
     departDate,
-    { paxCount },
+    undefined,
     { enabled: Boolean(departDate && isNetworkValid) },
   );
 
-  const { data: returnDateFlights, isLoading: isReturnLoading } = useFlightSearchQuery(
+  const { data: returnDateFlights, isLoading: isReturnLoading, isError: isReturnError } = useFlightSearchQuery(
     destination,
     origin,
     returnDate,
-    { paxCount },
+    undefined,
     { enabled: Boolean(tripType === "round" && returnDate && isNetworkValid) },
+  );
+
+  const bookableDepartDateFlights = useMemo(
+    () => (departDateFlights ? departDateFlights.filter((f) => isFlightBookable(f, { paxCount })) : null),
+    [departDateFlights, paxCount],
+  );
+  const bookableReturnDateFlights = useMemo(
+    () => (returnDateFlights ? returnDateFlights.filter((f) => isFlightBookable(f, { paxCount })) : null),
+    [returnDateFlights, paxCount],
   );
 
   const hasDepartService =
     !departDate ||
     !isNetworkValid ||
     isDepartLoading ||
-    (departDateFlights ? departDateFlights.length > 0 : true);
+    isDepartError ||
+    (bookableDepartDateFlights ? bookableDepartDateFlights.length > 0 : true);
 
   const hasReturnService =
     tripType !== "round" ||
     !returnDate ||
     !isNetworkValid ||
     isReturnLoading ||
-    (returnDateFlights ? returnDateFlights.length > 0 : true);
+    isReturnError ||
+    (bookableReturnDateFlights ? bookableReturnDateFlights.length > 0 : true);
 
   const departRoute = lang === "ar" ? `\u2066${origin} → ${destination}\u2069` : `${origin} → ${destination}`;
   const returnRoute = lang === "ar" ? `\u2066${destination} → ${origin}\u2069` : `${destination} → ${origin}`;

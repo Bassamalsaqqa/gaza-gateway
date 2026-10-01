@@ -180,7 +180,7 @@ function BookPage() {
     draft.criteria.origin,
     draft.criteria.destination,
     draft.criteria.departDate,
-    { paxCount: seatRequiredCount },
+    undefined,
     { enabled: !isCapacityProof && Boolean(draft.criteria.departDate) },
   );
 
@@ -188,7 +188,7 @@ function BookPage() {
     draft.criteria.destination,
     draft.criteria.origin,
     draft.criteria.returnDate,
-    { paxCount: seatRequiredCount },
+    undefined,
     {
       enabled:
         !isCapacityProof &&

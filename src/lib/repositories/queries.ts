@@ -370,7 +370,7 @@ export function useFlightSearchQuery(
     (queryOptions?.enabled !== undefined ? queryOptions.enabled : true);
 
   return useQuery({
-    queryKey: flightKeys.search(origin, destination, date, options?.paxCount),
+    queryKey: flightKeys.search(origin, destination, date),
     queryFn: () => flightRepo.searchFlights(origin, destination, date),
     enabled,
   });
@@ -400,8 +400,15 @@ export function useMonthlyFlightServiceQuery(
     Boolean(origin && destination && year && month) &&
     (queryOptions?.enabled !== undefined ? queryOptions.enabled : true);
 
+  const normalizedNow =
+    options?.now instanceof Date
+      ? options.now.toISOString()
+      : options?.now !== undefined
+        ? String(options.now)
+        : undefined;
+
   return useQuery({
-    queryKey: flightKeys.monthlyService(origin, destination, year, month, options?.paxCount),
+    queryKey: flightKeys.monthlyService(origin, destination, year, month, options?.paxCount, normalizedNow),
     queryFn: () => flightRepo.getMonthlyServiceMap(year, month, origin, destination, options),
     enabled,
   });

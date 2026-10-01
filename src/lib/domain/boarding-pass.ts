@@ -27,7 +27,7 @@ export function getBoardingPassData(
   booking: Booking,
   leg: Leg,
   paxIndex: number,
-  effectiveFlight?: Flight & { revisedDepart?: string },
+  effectiveFlight?: Flight,
 ): BoardingPassData | null {
   const bookedFlight = leg === "in" ? booking.inbound : booking.outbound;
   const passenger = booking.passengers[paxIndex];

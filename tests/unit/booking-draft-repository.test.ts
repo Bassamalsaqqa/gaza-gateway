@@ -239,23 +239,139 @@ describe("Phase 5B: Canonical Booking Draft Repository & Invariants", () => {
       assert.equal(finalDraft?.contact.phone, "+970111111");
     });
 
-    it("failed storage write throws StorageCommitError and rolls back in-memory draft", async () => {
-      const failingStorage = makeFailingStorage();
-      // Start with valid storage
-      const validStorage = makeStorage();
-      const repo = new LocalBookingDraftRepository({ storage: validStorage });
-      await repo.resetDraft(defaultCriteria("2026-10-15", "2026-10-22"));
+    it("failed storage write on previously persistent draft throws StorageCommitError and preserves in-memory draft", async () => {
+      let shouldFail = false;
+      const data = new Map<string, string>();
+      const dynamicStorage: Storage = {
+        get length() { return data.size; },
+        key(i) { return Array.from(data.keys())[i] ?? null; },
+        getItem(key) { return data.get(key) ?? null; },
+        setItem(key, value) {
+          if (shouldFail) throw new Error("QuotaExceededError");
+          data.set(key, String(value));
+        },
+        removeItem(key) { data.delete(key); },
+        clear() { data.clear(); },
+      } as unknown as Storage;
 
-      // Now attach failing storage
-      const failingRepo = new LocalBookingDraftRepository({ storage: failingStorage });
+      const repo = new LocalBookingDraftRepository({ storage: dynamicStorage });
+      assert.equal(repo.isPersistent(), true);
+      await repo.resetDraft(defaultCriteria("2026-10-15", "2026-10-22"));
+      const initialSubmissionId = repo.getSubmissionId();
+      const initialRevision = repo.getState().revision;
+
+      // Now induce storage failure on subsequent mutation
+      shouldFail = true;
+
       await assert.rejects(
         async () => {
-          await failingRepo.updateDraft({
-            contact: { email: "fail@example.com", phone: "" },
+          await repo.updateDraft({
+            contact: { email: "fail@example.com", phone: "+970" },
           });
         },
         /QuotaExceededError/i,
       );
+
+      // Verify draft, submissionId, and revision rolled back / remained unchanged
+      const afterFailDraft = await repo.getDraft();
+      assert.equal(afterFailDraft.contact.email, "");
+      assert.equal(repo.getSubmissionId(), initialSubmissionId);
+      assert.equal(repo.getState().revision, initialRevision);
+    });
+
+    it("failed resetDraft preserves 100% of previous state including submissionId and revision", async () => {
+      let shouldFail = false;
+      const data = new Map<string, string>();
+      const dynamicStorage: Storage = {
+        get length() { return data.size; },
+        key(i) { return Array.from(data.keys())[i] ?? null; },
+        getItem(key) { return data.get(key) ?? null; },
+        setItem(key, value) {
+          if (shouldFail) throw new Error("DiskQuotaFull");
+          data.set(key, String(value));
+        },
+        removeItem(key) { data.delete(key); },
+        clear() { data.clear(); },
+      } as unknown as Storage;
+
+      const repo = new LocalBookingDraftRepository({ storage: dynamicStorage });
+      await repo.updateDraft({ contact: { email: "preserved@example.com", phone: "+970123" } });
+      const beforeState = repo.getState();
+
+      // Induce failure on reset
+      shouldFail = true;
+
+      await assert.rejects(
+        async () => {
+          await repo.resetDraft(defaultCriteria("2026-11-01", "2026-11-10"));
+        },
+        /DiskQuotaFull/i,
+      );
+
+      // Full state equality on failed reset
+      const afterState = repo.getState();
+      assert.equal(afterState.submissionId, beforeState.submissionId);
+      assert.equal(afterState.revision, beforeState.revision);
+      assert.equal(afterState.draft.contact.email, "preserved@example.com");
+      assert.equal(afterState.draft.criteria.departDate, beforeState.draft.criteria.departDate);
+    });
+
+    it("initialization failure enters ephemeral mode, remains in-memory, and allows updates without subsequent writes", async () => {
+      let writeAttempts = 0;
+      const initFailingStorage: Storage = {
+        get length() { return 0; },
+        key() { return null; },
+        getItem() { return null; },
+        setItem() {
+          writeAttempts++;
+          throw new Error("QuotaExceededError");
+        },
+        removeItem() {},
+        clear() {},
+      } as unknown as Storage;
+
+      const repo = new LocalBookingDraftRepository({ storage: initFailingStorage });
+      assert.equal(repo.isPersistent(), false);
+      assert.equal(repo.getState().storageState, "unavailable");
+      assert.equal(writeAttempts, 1);
+
+      // Update executes in memory without further write attempts
+      const updated = await repo.updateDraft({ contact: { email: "ephemeral@example.com", phone: "+970" } });
+      assert.equal(updated.contact.email, "ephemeral@example.com");
+      assert.equal(repo.isPersistent(), false);
+      assert.equal(repo.getState().storageState, "unavailable");
+      assert.equal(writeAttempts, 1);
+    });
+
+    it("thrown getItem at initialization enters ephemeral mode without reading legacy store", async () => {
+      let legacyRead = false;
+      const thrownAccessStorage: Storage = {
+        get length() { return 0; },
+        key() { return null; },
+        getItem(key) {
+          if (key === "gza.booking.draft.v1") {
+            throw new Error("SecurityError: Access Denied");
+          }
+          if (key === "gza.store.v1") {
+            legacyRead = true;
+          }
+          return null;
+        },
+        setItem() {
+          throw new Error("ShouldNotWrite");
+        },
+        removeItem() {},
+        clear() {},
+      } as unknown as Storage;
+
+      const repo = new LocalBookingDraftRepository({ storage: thrownAccessStorage });
+      assert.equal(repo.isPersistent(), false);
+      assert.equal(repo.getState().storageState, "unavailable");
+      assert.equal(legacyRead, false, "Must not read legacy store when canonical read throws");
+
+      // Can update in memory
+      const updated = await repo.updateDraft({ contact: { email: "secure@example.com", phone: "" } });
+      assert.equal(updated.contact.email, "secure@example.com");
     });
   });
 
@@ -335,6 +451,48 @@ describe("Phase 5B: Canonical Booking Draft Repository & Invariants", () => {
       assert.equal(result.reconciledDraft.outbound?.gate, "B3");
       assert.equal(result.reconciledDraft.outbound?.aircraft, "Airbus A321neo");
       assert.equal(result.reconciledDraft.outbound?.status, "Delayed");
+    });
+
+    it("revised-time-only operational change: same ID and status, only revisedDepart changes → changed true, snapshot updated, passengers/contact/seats/extras/fare preserved", () => {
+      const originalFlight = sampleFlight({
+        id: "PS100-2026-10-15-out",
+        status: "Scheduled",
+        departTime: "10:00",
+        arriveTime: "11:30",
+        gate: "A1",
+        terminal: "1",
+        aircraft: "Boeing 737-800",
+        revisedDepart: undefined,
+      });
+
+      const draft = makeTestDraft("GZA", "AMM");
+      draft.outbound = originalFlight;
+      draft.fare = "classic";
+      draft.seats = { "out-0": "12A" };
+      draft.passengers = [{ id: "p0", type: "adult", firstName: "Yusuf", lastName: "Nasser" }];
+      draft.contact = { email: "yusuf@example.com", phone: "+970599112233" };
+      draft.extras = { pax: [{ meal: "vegetarian" }] };
+
+      // Operational update: only revisedDepart changes
+      const effectiveFlight: Flight = {
+        ...originalFlight,
+        revisedDepart: "11:15",
+      };
+
+      const result = reconcileDraft(draft, { outboundEffective: effectiveFlight });
+
+      assert.equal(result.changed, true);
+      assert.equal(result.outbound.status, "refreshed");
+      assert.equal(result.reconciledDraft.outbound?.revisedDepart, "11:15");
+      assert.equal(result.reconciledDraft.outbound?.departTime, "10:00");
+      assert.equal(result.reconciledDraft.outbound?.status, "Scheduled");
+
+      // Verify passenger/contact/seats/extras/fare remain untouched
+      assert.deepEqual(result.reconciledDraft.passengers, draft.passengers);
+      assert.deepEqual(result.reconciledDraft.contact, draft.contact);
+      assert.deepEqual(result.reconciledDraft.seats, draft.seats);
+      assert.deepEqual(result.reconciledDraft.extras, draft.extras);
+      assert.equal(result.reconciledDraft.fare, "classic");
     });
 
     it("clears only invalidated leg and its prefix-matching seat keys while preserving surviving leg and data", () => {

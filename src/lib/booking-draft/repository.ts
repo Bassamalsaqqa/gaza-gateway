@@ -76,9 +76,6 @@ export class LocalBookingDraftRepository implements BookingDraftRepository {
     criteria: SearchCriteria,
     options?: { meal?: string; email?: string; phone?: string },
   ): Promise<Draft> {
-    // Fresh criteria reset generates a fresh stable submission ID
-    this.coordinator.refreshSubmissionId();
-
     return this.coordinator.mutate(() => {
       const passengers = passengersFor(criteria);
       const meal = options?.meal ?? "standard";
@@ -97,16 +94,14 @@ export class LocalBookingDraftRepository implements BookingDraftRepository {
         },
       };
 
-      return { draft: resetDraftData, status: "active" };
+      return { draft: resetDraftData, status: "active", refreshSubmissionId: true };
     });
   }
 
   public async clearDraft(): Promise<void> {
     await this.coordinator.mutate((currentDraft) => {
-      return { draft: currentDraft, status: "cleared" };
+      return { draft: currentDraft, status: "cleared", refreshSubmissionId: true };
     });
-    // Fresh submission ID for next booking lifecycle
-    this.coordinator.refreshSubmissionId();
   }
 
   public async reconcile(

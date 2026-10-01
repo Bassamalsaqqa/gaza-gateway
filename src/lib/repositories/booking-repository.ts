@@ -108,7 +108,10 @@ export class LocalBookingRepository implements BookingRepository {
       if (!data.outbound?.id) {
         throw new BookingCreationError("flight_missing", "Cannot create booking: outbound flight missing.", "out");
       }
-      const baseOutbound = flightById(data.outbound.id) ?? data.outbound;
+      const baseOutbound = flightById(data.outbound.id);
+      if (!baseOutbound) {
+        throw new BookingCreationError("flight_missing", "Cannot create booking: outbound flight missing from canonical schedule.", "out");
+      }
       const effectiveOutbound = getEffectiveFlight(baseOutbound, state.flightOverrides[baseOutbound.id]);
 
       // Route and date criteria validation (if criteria provided)
@@ -152,7 +155,10 @@ export class LocalBookingRepository implements BookingRepository {
         if (!data.inbound?.id) {
           throw new BookingCreationError("flight_missing", "Cannot create booking: inbound flight missing for round trip.", "in");
         }
-        const baseInbound = flightById(data.inbound.id) ?? data.inbound;
+        const baseInbound = flightById(data.inbound.id);
+        if (!baseInbound) {
+          throw new BookingCreationError("flight_missing", "Cannot create booking: inbound flight missing for round trip from canonical schedule.", "in");
+        }
         effectiveInbound = getEffectiveFlight(baseInbound, state.flightOverrides[baseInbound.id]);
 
         if (criteriaDest && effectiveInbound.originCode.toUpperCase() !== criteriaDest.toUpperCase()) {

@@ -32,7 +32,7 @@ type AdminValue = {
   can: (permission: Permission) => boolean;
   overrides: Record<string, FlightOverride>;
   applyOverride: (flightId: string, patch: FlightOverride) => Promise<void>;
-  withOverride: (flight: Flight) => Flight & { note?: string; revisedDepart?: string };
+  withOverride: (flight: Flight) => Flight;
   /** Operations & commercial configuration held in local state for this session. */
   ops: OpsState;
   patchOps: <K extends keyof OpsState>(key: K, value: OpsState[K]) => void;

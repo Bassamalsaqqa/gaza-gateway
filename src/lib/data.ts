@@ -51,6 +51,8 @@ export type Flight = {
   terminal: string;
   basePrice: number;
   seatsLeft: number;
+  revisedDepart?: string;
+  note?: string;
 };
 
 export type Fare = {

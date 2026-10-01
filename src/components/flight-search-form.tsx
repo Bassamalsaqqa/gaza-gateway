@@ -174,18 +174,18 @@ export function FlightSearchForm({
 
   /* ── Effective flight queries for operational availability & service ── */
   const seatPax = criteria.adults + criteria.children;
-  const { data: departFlights, isLoading: isDepartLoading } = useFlightSearchQuery(
+  const { data: departFlights, isLoading: isDepartLoading, isError: isDepartError } = useFlightSearchQuery(
     criteria.origin,
     criteria.destination,
     criteria.departDate,
-    { paxCount: seatPax },
+    undefined,
     { enabled: Boolean(criteria.departDate && isNetworkValid) },
   );
-  const { data: returnFlights, isLoading: isReturnLoading } = useFlightSearchQuery(
+  const { data: returnFlights, isLoading: isReturnLoading, isError: isReturnError } = useFlightSearchQuery(
     criteria.destination,
     criteria.origin,
     criteria.returnDate,
-    { paxCount: seatPax },
+    undefined,
     { enabled: Boolean(criteria.tripType === "round" && criteria.returnDate && isNetworkValid) },
   );
 
@@ -207,14 +207,16 @@ export function FlightSearchForm({
     !criteria.departDate ||
     !isNetworkValid ||
     isDepartLoading ||
-    (departFlights ? departFlights.length > 0 : true);
+    isDepartError ||
+    (bookableDepartFlights ? bookableDepartFlights.length > 0 : true);
 
   const hasReturnService =
     criteria.tripType !== "round" ||
     !criteria.returnDate ||
     !isNetworkValid ||
     isReturnLoading ||
-    (returnFlights ? returnFlights.length > 0 : true);
+    isReturnError ||
+    (bookableReturnFlights ? bookableReturnFlights.length > 0 : true);
 
   const departRoute =
     lang === "ar"
@@ -270,8 +272,11 @@ export function FlightSearchForm({
     if (error) setError(validate(criteria));
   }, [error, criteria, validate]);
 
+  const isSubmitDisabled = isResolving;
+
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (isSubmitDisabled) return;
     const problem = validate(criteria);
     setError(problem);
     if (problem) return;
@@ -522,8 +527,8 @@ export function FlightSearchForm({
             >
               <button
                 type="submit"
-                disabled={isResolving}
-                aria-disabled={isResolving}
+                disabled={isSubmitDisabled}
+                aria-disabled={isSubmitDisabled}
                 className={cn(
                   "inline-flex items-center justify-center gap-2",
                   "h-12 w-full xl:w-auto xl:h-full xl:min-h-[58px] xl:px-6 rounded-xl",

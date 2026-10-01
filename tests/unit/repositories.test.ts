@@ -13,6 +13,7 @@ import {
   anyCheckedIn,
   passCount,
   bookingToMockBooking,
+  BookingCreationError,
   type Booking,
 } from "../../src/lib/domain/booking.ts";
 import {
@@ -45,20 +46,20 @@ import type { Flight } from "../../src/lib/data.ts";
 
 function createMockFlight(overrides: Partial<Flight> = {}): Flight {
   return {
-    id: "PS204-2026-10-15-out",
-    number: "PS 204",
+    id: "PS100-2026-10-15-out",
+    number: "PS100",
     originCode: "GZA",
     destinationCode: "AMM",
     date: "2026-10-15",
-    departTime: "14:30",
-    arriveTime: "15:45",
-    durationMinutes: 75,
-    aircraft: "Boeing 737-700",
+    departTime: "19:45",
+    arriveTime: "20:40",
+    durationMinutes: 55,
+    aircraft: "Boeing 737-800",
     status: "Scheduled",
-    gate: "A2",
+    gate: "A6",
     terminal: "1",
-    basePrice: 180,
-    seatsLeft: 42,
+    basePrice: 189,
+    seatsLeft: 8,
     ...overrides,
   };
 }
@@ -299,6 +300,7 @@ describe("Canonical Repositories & Domain Layer", () => {
   describe("Domain Model: Flight Override Pure Composition", () => {
     it("purely composes base flight with operational override", () => {
       const baseFlight = createMockFlight({
+        departTime: "14:30",
         status: "Scheduled",
         gate: "A2",
         terminal: "1",
@@ -596,6 +598,31 @@ describe("Canonical Repositories & Domain Layer", () => {
       assert.deepEqual(flightKeys.details(), ["flights", "detail"]);
       assert.deepEqual(flightKeys.detail("PS204-1"), ["flights", "detail", "PS204-1"]);
       assert.deepEqual(flightKeys.overrides(), ["flights", "overrides"]);
+      assert.deepEqual(flightKeys.searches(), ["flights", "search"]);
+      assert.deepEqual(flightKeys.search("GZA", "AMM", "2026-10-15"), [
+        "flights",
+        "search",
+        { origin: "GZA", destination: "AMM", date: "2026-10-15" },
+      ]);
+      assert.deepEqual(flightKeys.search("gza", "amm", "2026-10-15"), [
+        "flights",
+        "search",
+        { origin: "GZA", destination: "AMM", date: "2026-10-15" },
+      ]);
+      assert.deepEqual(flightKeys.monthlyServices(), ["flights", "monthlyService"]);
+      assert.deepEqual(
+        flightKeys.monthlyService("GZA", "AMM", 2026, 10, 2, "2026-10-01T12:00:00Z"),
+        [
+          "flights",
+          "monthlyService",
+          { origin: "GZA", destination: "AMM", year: 2026, month: 10, paxCount: 2, now: "2026-10-01T12:00:00Z" },
+        ],
+      );
+      // Distinct explicit clock inputs produce distinct query keys to prevent stale cache reuse
+      assert.notDeepEqual(
+        flightKeys.monthlyService("GZA", "AMM", 2026, 10, 1, "2026-10-01T00:00:00Z"),
+        flightKeys.monthlyService("GZA", "AMM", 2026, 10, 1, "2026-10-15T00:00:00Z"),
+      );
     });
   });
 
@@ -897,13 +924,10 @@ describe("Canonical Repositories & Domain Layer", () => {
     });
 
     it("rejects booking creation when outbound or inbound flight is unbookable", async () => {
-      const repo = createTestBookingRepo();
-
-      // Unbookable flight: 0 seats left
-      const soldOutFlight = createMockFlight({
-        id: "PS-SOLDOUT",
-        seatsLeft: 0,
-      });
+      const storage = new MemoryStorage();
+      const repos = createRepositories({ storage });
+      await repos.flight.setOverride("PS100-2026-10-15-out", { status: "Cancelled" });
+      const repo = repos.booking;
 
       await assert.rejects(
         async () => {
@@ -919,7 +943,7 @@ describe("Canonical Repositories & Domain Layer", () => {
               infants: 0,
             },
             fareId: "classic",
-            outbound: soldOutFlight,
+            outbound: createMockFlight(),
             passengers: [{ name: "Traveller", type: "adult" }],
             seats: {},
             extras: { pax: [] },
@@ -927,8 +951,101 @@ describe("Canonical Repositories & Domain Layer", () => {
             total: 180,
           });
         },
-        /not bookable/i,
+        (err: unknown) => {
+          assert.ok(err instanceof BookingCreationError);
+          assert.equal(err.reason, "cancelled");
+          assert.equal(err.leg, "out");
+          return true;
+        },
       );
+    });
+
+    it("rejects booking creation when outbound or inbound flight is unknown in canonical schedule", async () => {
+      const repo = createTestBookingRepo();
+      let notifications = 0;
+      repo.subscribe(() => {
+        notifications++;
+      });
+
+      // Plausible unknown outbound
+      await assert.rejects(
+        async () => {
+          await repo.create({
+            criteria: {
+              tripType: "oneway",
+              origin: "GZA",
+              destination: "AMM",
+              departDate: "2026-10-15",
+              cabin: "economy",
+              adults: 1,
+              children: 0,
+              infants: 0,
+            },
+            fareId: "classic",
+            outbound: {
+              ...createMockFlight(),
+              id: "PS999-2026-10-15-out",
+              number: "PS999",
+            },
+            passengers: [{ name: "Traveller", type: "adult" }],
+            seats: {},
+            extras: { pax: [] },
+            contact: { email: "unknown@example.com", phone: "+970599000000" },
+            total: 180,
+          });
+        },
+        (err: unknown) => {
+          assert.ok(err instanceof BookingCreationError);
+          assert.equal(err.reason, "flight_missing");
+          assert.equal(err.leg, "out");
+          return true;
+        },
+      );
+
+      // Plausible unknown inbound on round trip
+      await assert.rejects(
+        async () => {
+          await repo.create({
+            criteria: {
+              tripType: "round",
+              origin: "GZA",
+              destination: "AMM",
+              departDate: "2026-10-15",
+              returnDate: "2026-10-20",
+              cabin: "economy",
+              adults: 1,
+              children: 0,
+              infants: 0,
+            },
+            fareId: "classic",
+            outbound: createMockFlight(),
+            inbound: {
+              ...createMockFlight(),
+              id: "PS998-2026-10-20-in",
+              number: "PS998",
+              originCode: "AMM",
+              destinationCode: "GZA",
+              date: "2026-10-20",
+            },
+            passengers: [{ name: "Traveller", type: "adult" }],
+            seats: {},
+            extras: { pax: [] },
+            contact: { email: "unknown-inbound@example.com", phone: "+970599000000" },
+            total: 360,
+          });
+        },
+        (err: unknown) => {
+          assert.ok(err instanceof BookingCreationError);
+          assert.equal(err.reason, "flight_missing");
+          assert.equal(err.leg, "in");
+          return true;
+        },
+      );
+
+      // Verify ZERO bookings were persisted
+      const all = await repo.list();
+      assert.ok(!all.some((b) => b.contact.email.includes("unknown")));
+      assert.equal(notifications, 0, "No notifications dispatched on rejected booking creation");
     });
   });
   describe("Transactional Mutation & Storage Failure Resilience (Correction 2)", () => {

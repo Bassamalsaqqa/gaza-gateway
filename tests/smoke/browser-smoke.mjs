@@ -5412,6 +5412,156 @@ async function runBrowserSmoke() {
       }
     });
 
+    await checkStep("Check 41: Phase 5B — No Sellable Service Search & Calendar Convergence Regression (Operational Cancellation, Submit Disabled, Clean Context Restoration)", async () => {
+      const testContext = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+      try {
+        const testPage = await testContext.newPage();
+
+        // 1. Prepare operational overrides cancelling all flights for GZA -> AMM on 2026-10-15
+        const cancelledFlightIds = [
+          "PS140-2026-10-15-out",
+          "PS100-2026-10-15-out",
+        ];
+
+        const initialDraftEnvelope = {
+          schemaVersion: 1,
+          status: "active",
+          revision: 1,
+          updatedAt: new Date().toISOString(),
+          source: "direct",
+          draft: {
+            criteria: {
+              tripType: "oneway",
+              origin: "GZA",
+              destination: "AMM",
+              departDate: "2026-10-15",
+              returnDate: "",
+              adults: 1,
+              children: 0,
+              infants: 0,
+              cabin: "economy",
+            },
+            outbound: null,
+            inbound: null,
+            fareId: "classic",
+            passengers: [],
+            seats: {},
+            extras: { baggage: 0, meal: "standard", lounge: false, priorityBoarding: false, carbonOffset: false },
+            contact: { email: "", phone: "" },
+            entry: "search",
+            submissionId: "smoke-sub-no-service-41",
+          },
+        };
+
+        const initialRepo = {
+          schemaVersion: 1,
+          bookings: [],
+          flightOverrides: Object.fromEntries(
+            cancelledFlightIds.map((id) => [
+              id,
+              { flightId: id, status: "Cancelled", note: "Smoke test full cancellation" },
+            ]),
+          ),
+        };
+
+        await testContext.addInitScript(({ env, rep }) => {
+          try {
+            localStorage.setItem("gza.booking.draft.v1", JSON.stringify(env));
+            localStorage.setItem("gza.repo.v1", JSON.stringify(rep));
+          } catch { }
+        }, { env: initialDraftEnvelope, rep: initialRepo });
+
+        // 2. Navigate to search step on /book?step=search
+        await testPage.goto(`${baseUrl}/book?step=search`, { waitUntil: "domcontentloaded" });
+        await testPage.waitForSelector('[data-flight-search-console]', { timeout: 10000 });
+
+        // 3. Verify date trigger indicates aria-invalid
+        const departTrigger = testPage.locator('#search-depart');
+        await testPage.waitForFunction(() => {
+          const el = document.querySelector('#search-depart');
+          return el && el.getAttribute("aria-invalid") === "true";
+        }, { timeout: 10000 });
+        const isInvalid = await departTrigger.getAttribute("aria-invalid");
+        if (isInvalid !== "true") {
+          throw new Error(`Expected departTrigger to have aria-invalid="true", got "${isInvalid}"`);
+        }
+
+        // 4. Click submit button: must trigger validation, show role="alert" banner, and NOT navigate
+        const submitBtn = testPage.locator('button[type="submit"]').first();
+        await submitBtn.click();
+        await testPage.waitForTimeout(400);
+
+        const alertBanner = testPage.locator('form[aria-label] div[role="alert"]').first();
+        if ((await alertBanner.count()) === 0) {
+          throw new Error("Expected validation role='alert' banner when submitting date with no sellable service");
+        }
+        const alertText = (await alertBanner.textContent()) || "";
+        if (!alertText.includes("AMM") && !alertText.toLowerCase().includes("no scheduled")) {
+          throw new Error(`Unexpected alert banner text: "${alertText}"`);
+        }
+
+        const currentUrl = testPage.url();
+        if (currentUrl.includes("step=results")) {
+          throw new Error(`Submit button navigated to results despite no sellable service: ${currentUrl}`);
+        }
+
+        // 5. Clean context restoration: pick a date with sellable service (2026-10-16)
+        await departTrigger.click();
+        await testPage.waitForSelector('[data-day="2026-10-16"]', { timeout: 5000 });
+        const dayBtn = testPage.locator('[data-day="2026-10-16"]').first();
+        await dayBtn.click();
+        await testPage.waitForTimeout(300);
+
+        // Date trigger aria-invalid should be cleared
+        await testPage.waitForFunction(() => {
+          const el = document.querySelector('#search-depart');
+          return el && el.getAttribute("aria-invalid") !== "true";
+        }, { timeout: 5000 });
+
+        // Submit now advances to results
+        await submitBtn.click();
+        await testPage.waitForURL((url) => url.searchParams.get("step") === "results", { timeout: 8000 });
+        if (!testPage.url().includes("step=results")) {
+          throw new Error(`Expected successful navigation to results after picking valid date: ${testPage.url()}`);
+        }
+
+        // 6. Verify Arabic route (/ar/book?step=search) also enforces no-service validation and displays role="alert"
+        await testPage.goto(`${baseUrl}/ar/book?step=search`, { waitUntil: "domcontentloaded" });
+        await testPage.waitForSelector('[data-flight-search-console]', { timeout: 10000 });
+        // Set date to cancelled 2026-10-15
+        await testPage.evaluate(() => {
+          const raw = localStorage.getItem("gza.booking.draft.v1");
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            parsed.draft.criteria.departDate = "2026-10-15";
+            localStorage.setItem("gza.booking.draft.v1", JSON.stringify(parsed));
+          }
+        });
+        await testPage.reload({ waitUntil: "domcontentloaded" });
+        await testPage.waitForSelector('[data-flight-search-console]', { timeout: 10000 });
+
+        const arDepartTrigger = testPage.locator('#search-depart');
+        await testPage.waitForFunction(() => {
+          const el = document.querySelector('#search-depart');
+          return el && el.getAttribute("aria-invalid") === "true";
+        }, { timeout: 10000 });
+
+        const arSubmitBtn = testPage.locator('button[type="submit"]').first();
+        await arSubmitBtn.click();
+        await testPage.waitForTimeout(400);
+
+        const arAlertBanner = testPage.locator('form[aria-label] div[role="alert"]').first();
+        if ((await arAlertBanner.count()) === 0) {
+          throw new Error("Arabic search form did not display role='alert' error banner for no sellable service");
+        }
+        if (testPage.url().includes("step=results")) {
+          throw new Error("Arabic search navigated to results despite no sellable service");
+        }
+      } finally {
+        await testContext.close();
+      }
+    });
+
   } finally {
     await browser.close();
     if (server) {

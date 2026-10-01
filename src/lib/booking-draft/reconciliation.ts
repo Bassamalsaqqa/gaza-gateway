@@ -24,7 +24,9 @@ function haveFlightDisplayFieldsChanged(stored: Flight, effective: Flight): bool
     stored.aircraft !== effective.aircraft ||
     stored.departTime !== effective.departTime ||
     stored.arriveTime !== effective.arriveTime ||
-    stored.seatsLeft !== effective.seatsLeft
+    stored.seatsLeft !== effective.seatsLeft ||
+    stored.revisedDepart !== effective.revisedDepart ||
+    stored.note !== effective.note
   );
 }
 
