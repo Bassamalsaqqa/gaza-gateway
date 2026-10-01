@@ -10,7 +10,7 @@ import type { Booking, BookingCreateInput, BookingPassenger, Leg, SearchCriteria
 import { makePassengerId, BookingCreationError } from "../domain/booking.ts";
 import { isSyntheticFlightId, getEffectiveFlight, type Flight } from "../domain/flight.ts";
 import { isFlightBookable, getFlightBookability } from "../booking-rules.ts";
-import { flightById } from "../data.ts";
+import { flightById, SEAT_ROWS, SEAT_LETTERS } from "../data.ts";
 import { makePnr } from "../format.ts";
 import type { BookingRepository, CheckInCommandInput, ClaimResult } from "./types.ts";
 import type { Extras } from "../booking-draft/types.ts";
@@ -19,6 +19,7 @@ import { bookingTotal } from "../domain/pricing.ts";
 import {
   validateUpdateSeatsAssignments,
   validateCheckInSeats,
+  isValidSeatSyntax,
 } from "../domain/seat-validation.ts";
 import { normalizeEmailIdentity } from "../passenger/domain.ts";
 import {
@@ -526,7 +527,7 @@ export class LocalBookingRepository implements BookingRepository {
       }
 
       if (input.seats) {
-        for (const [key, _seat] of Object.entries(input.seats)) {
+        for (const [key, seat] of Object.entries(input.seats)) {
           if (!/^(0|[1-9]\d*)$/.test(key)) {
             throw new Error(`Invalid passenger index key '${key}' in check-in seats.`);
           }
@@ -540,6 +541,11 @@ export class LocalBookingRepository implements BookingRepository {
           const pax = existing.passengers[paxIdx];
           if (pax?.type === "infant") {
             throw new Error(`Cannot assign seat to infant passenger at index ${paxIdx}. Infants travel on an adult's lap.`);
+          }
+          if (!isValidSeatSyntax(seat)) {
+            throw new Error(
+              `Invalid seat syntax '${seat}' for passenger ${paxIdx} on leg ${input.leg}. Must be row (1-${SEAT_ROWS}) followed by letter (${SEAT_LETTERS.join("")}).`,
+            );
           }
         }
       }

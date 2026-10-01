@@ -18,6 +18,7 @@ import { LocalFlightRepository } from "../../src/lib/repositories/flight-reposit
 import { RepoStorageCoordinator, StorageCommitError } from "../../src/lib/repositories/storage.ts";
 import {
   parseSeatCode,
+  parseSeatKey,
   isSeatInCabinZone,
   validateUpdateSeatsAssignments,
   validateCheckInSeats,
@@ -852,6 +853,12 @@ describe("Phase 5C: Manage, Check-in & Boarding Pass Convergence", () => {
         assert.equal(parseSeatCode("11Z"), null);
         assert.equal(parseSeatCode("11AA"), null);
         assert.equal(parseSeatCode("row11"), null);
+        assert.equal(parseSeatCode(" 11A"), null);
+        assert.equal(parseSeatCode("11A "), null);
+        assert.equal(parseSeatCode(" 11A  "), null);
+        assert.equal(parseSeatCode("01A"), null);
+        assert.equal(parseSeatCode("001A"), null);
+        assert.equal(parseSeatCode("11a"), null);
       });
     });
 
@@ -1815,6 +1822,239 @@ describe("Phase 5C: Manage, Check-in & Boarding Pass Convergence", () => {
             "out-0": "12A",
           }),
         /not available/i,
+      );
+    });
+  });
+
+  describe("14. Phase 5C Correction 03: Canonical Seat Representation & Alias Rejection", () => {
+    let mockStorage: ReturnType<typeof createMockStorage>;
+    let coordinator: RepoStorageCoordinator;
+    let repo: LocalBookingRepository;
+    let notifyCount = 0;
+    const checkInClock = new Date("2026-10-10T04:00:00+03:00");
+
+    beforeEach(() => {
+      notifyCount = 0;
+      const booking = createBaseBooking();
+      const initialJson = JSON.stringify({
+        schemaVersion: 1,
+        bookings: [booking],
+        flightOverrides: {},
+      });
+      mockStorage = createMockStorage({ "gza.repo.v1": initialJson });
+      coordinator = new RepoStorageCoordinator({ storage: mockStorage });
+      repo = new LocalBookingRepository(coordinator);
+      repo.subscribe(() => {
+        notifyCount++;
+      });
+    });
+
+    it("1. repository-level update with missing canonical outbound and out-00 rejects; complete booking and backing storage unchanged; zero successful notification/write", async () => {
+      // Point outbound to missing flight ID in catalog and clear seats
+      await repo.update("GZA-5C01", {
+        outbound: {
+          ...mockOutboundFlight,
+          id: "PS999-2026-10-10-out",
+        },
+        seats: {},
+      });
+
+      const baselineBooking = structuredClone(await repo.getByRef("GZA-5C01"));
+      const baselineRaw = mockStorage.getItem("gza.repo.v1");
+      notifyCount = 0;
+
+      // Attempt to update with out-00 alias
+      await assert.rejects(
+        () =>
+          repo.updateSeats("GZA-5C01", {
+            "out-00": "15A",
+          }),
+        /Invalid seat assignment key 'out-00'/i,
+      );
+
+      // Memory unchanged
+      const inMemory = await repo.getByRef("GZA-5C01");
+      assert.deepEqual(inMemory, baselineBooking);
+      assert.deepEqual(inMemory?.seats, {});
+
+      // Backing storage unchanged
+      assert.equal(mockStorage.getItem("gza.repo.v1"), baselineRaw);
+
+      // Zero successful notifications
+      assert.equal(notifyCount, 0);
+    });
+
+    it("2. rejects leading-zero and whitespace assignment-key aliases; exact out-0 and in-1 remain valid", async () => {
+      // Direct unit validation on parseSeatKey
+      assert.equal(parseSeatKey("out-00"), null);
+      assert.equal(parseSeatKey("out-01"), null);
+      assert.equal(parseSeatKey("out-000"), null);
+      assert.equal(parseSeatKey(" out-0"), null);
+      assert.equal(parseSeatKey("out-0 "), null);
+      assert.equal(parseSeatKey(" out-0 "), null);
+      assert.equal(parseSeatKey("in-00"), null);
+      assert.equal(parseSeatKey("in-01"), null);
+      assert.equal(parseSeatKey(" in-0"), null);
+      assert.equal(parseSeatKey("in-0 "), null);
+      assert.equal(parseSeatKey(" in-1 "), null);
+
+      assert.deepEqual(parseSeatKey("out-0"), { leg: "out", paxIndex: 0 });
+      assert.deepEqual(parseSeatKey("out-1"), { leg: "out", paxIndex: 1 });
+      assert.deepEqual(parseSeatKey("in-0"), { leg: "in", paxIndex: 0 });
+      assert.deepEqual(parseSeatKey("in-1"), { leg: "in", paxIndex: 1 });
+      assert.deepEqual(parseSeatKey("out-10"), { leg: "out", paxIndex: 10 });
+      assert.deepEqual(parseSeatKey("in-20"), { leg: "in", paxIndex: 20 });
+
+      // Shared validator rejects aliases
+      const b = createBaseBooking();
+      for (const invalidKey of ["out-00", "out-01", " out-0", "out-0 ", "in-00", " in-1 "]) {
+        assert.throws(
+          () =>
+            validateUpdateSeatsAssignments(b, { [invalidKey]: "11A" }, {
+              outbound: mockOutboundFlight,
+              inbound: mockInboundFlight,
+            }),
+          /Invalid seat assignment key/i,
+        );
+      }
+
+      // Repository update rejects aliases
+      await assert.rejects(
+        () => repo.updateSeats("GZA-5C01", { "out-00": "11A" }),
+        /Invalid seat assignment key 'out-00'/i,
+      );
+      await assert.rejects(
+        () => repo.updateSeats("GZA-5C01", { " out-0": "11A" }),
+        /Invalid seat assignment key ' out-0'/i,
+      );
+
+      // Exact valid out-0 and in-1 remain valid
+      const updated = await repo.updateSeats("GZA-5C01", {
+        "out-0": "11C",
+        "in-1": "14B",
+      });
+      assert.equal(updated.seats["out-0"], "11C");
+      assert.equal(updated.seats["in-1"], "14B");
+    });
+
+    it("3. rejects padded seat strings; two passengers cannot acquire same physical seat through 11A / 11A  aliases", async () => {
+      const b = createBaseBooking();
+
+      // Pure validator rejects padded seat strings with invalid syntax
+      assert.throws(
+        () =>
+          validateUpdateSeatsAssignments(
+            b,
+            { "out-0": "11A", "out-1": "11A " },
+            { outbound: mockOutboundFlight, inbound: mockInboundFlight },
+          ),
+        /Invalid seat syntax '11A '/i,
+      );
+
+      assert.throws(
+        () =>
+          validateUpdateSeatsAssignments(
+            b,
+            { "out-0": "11A", "out-1": " 11A" },
+            { outbound: mockOutboundFlight, inbound: mockInboundFlight },
+          ),
+        /Invalid seat syntax ' 11A'/i,
+      );
+
+      // Pure validator rejects duplicate exact canonical seats
+      assert.throws(
+        () =>
+          validateUpdateSeatsAssignments(
+            b,
+            { "out-0": "11A", "out-1": "11A" },
+            { outbound: mockOutboundFlight, inbound: mockInboundFlight },
+          ),
+        /Duplicate seat assignment 11A for passengers 0 and 1/i,
+      );
+
+      // Repository command rejects padded seat string, preserving state and zero notifications
+      const baselineBooking = structuredClone(await repo.getByRef("GZA-5C01"));
+      const baselineRaw = mockStorage.getItem("gza.repo.v1");
+      notifyCount = 0;
+
+      await assert.rejects(
+        () =>
+          repo.updateSeats("GZA-5C01", {
+            "out-0": "11A",
+            "out-1": "11A ",
+          }),
+        /Invalid seat syntax '11A '/i,
+      );
+
+      assert.deepEqual(await repo.getByRef("GZA-5C01"), baselineBooking);
+      assert.equal(mockStorage.getItem("gza.repo.v1"), baselineRaw);
+      assert.equal(notifyCount, 0);
+
+      // Repository command rejects duplicate exact canonical seats
+      await assert.rejects(
+        () =>
+          repo.updateSeats("GZA-5C01", {
+            "out-0": "11A",
+            "out-1": "11A",
+          }),
+        /Duplicate seat assignment 11A/i,
+      );
+
+      assert.deepEqual(await repo.getByRef("GZA-5C01"), baselineBooking);
+      assert.equal(mockStorage.getItem("gza.repo.v1"), baselineRaw);
+      assert.equal(notifyCount, 0);
+    });
+
+    it("4. check-in cannot use a padded seat value or replay to circumvent exact canonical seat validation; legitimate identical replay still works", async () => {
+      // 1. Initial check-in attempt with padded seat rejects
+      await assert.rejects(
+        () =>
+          repo.completeCheckIn({
+            ref: "GZA-5C01",
+            leg: "out",
+            selectedPaxIndexes: [0],
+            documents: { 0: "P10001" },
+            seats: { 0: "11A " },
+            now: checkInClock,
+          }),
+        /Invalid seat syntax '11A '/i,
+      );
+
+      // 2. Legitimate check-in with canonical seat succeeds
+      const checkedIn = await repo.completeCheckIn({
+        ref: "GZA-5C01",
+        leg: "out",
+        selectedPaxIndexes: [0],
+        documents: { 0: "P10001" },
+        seats: { 0: "11A" },
+        now: checkInClock,
+      });
+      assert.deepEqual(checkedIn.checkedIn.out, [0]);
+      assert.equal(checkedIn.seats["out-0"], "11A");
+
+      // 3. Legitimate identical replay succeeds idempotently
+      const replay = await repo.completeCheckIn({
+        ref: "GZA-5C01",
+        leg: "out",
+        selectedPaxIndexes: [0],
+        documents: { 0: "P10001" },
+        seats: { 0: "11A" },
+        now: checkInClock,
+      });
+      assert.deepEqual(replay.checkedIn.out, [0]);
+
+      // 4. Replay attempt with padded seat code is rejected in Step 1 before replay handling
+      await assert.rejects(
+        () =>
+          repo.completeCheckIn({
+            ref: "GZA-5C01",
+            leg: "out",
+            selectedPaxIndexes: [0],
+            documents: { 0: "P10001" },
+            seats: { 0: "11A " },
+            now: checkInClock,
+          }),
+        /Invalid seat syntax '11A '/i,
       );
     });
   });

@@ -45,10 +45,12 @@ export function isValidSeatSyntax(seat: unknown): boolean {
 
 /**
  * Parses a seat string into row and letter, returning null if malformed.
+ * Strictly requires canonical syntax: row (1-28) followed by uppercase letter (A-F)
+ * with no leading zeros and no leading/trailing whitespace.
  */
 export function parseSeatCode(seat: unknown): ParsedSeatCode | null {
-  if (typeof seat !== "string" || !seat.trim()) return null;
-  const match = /^([1-9]|[12]\d)([A-F])$/.exec(seat.trim());
+  if (typeof seat !== "string") return null;
+  const match = /^([1-9]|[12]\d)([A-F])$/.exec(seat);
   if (!match) return null;
   const row = Number.parseInt(match[1] as string, 10);
   const letter = match[2] as (typeof SEAT_LETTERS)[number];
@@ -75,14 +77,16 @@ export function isSeatInCabinZone(rowOrSeat: number | string, cabin: string): bo
 
 /**
  * Parses a canonical seat key (e.g. "out-0", "in-1") into leg and passenger index.
+ * Strictly requires exact canonical format: 'out-N' or 'in-N' where N is 0 or a
+ * non-zero digit followed by digits, with no leading zeros and no whitespace.
  */
-export function parseSeatKey(key: string): ParsedSeatKey | null {
+export function parseSeatKey(key: unknown): ParsedSeatKey | null {
   if (typeof key !== "string") return null;
-  const match = /^(out|in)-(\d+)$/.exec(key.trim());
+  const match = /^(out|in)-(0|[1-9]\d*)$/.exec(key);
   if (!match) return null;
   const leg = match[1] as Leg;
   const paxIndex = Number.parseInt(match[2] as string, 10);
-  if (!Number.isInteger(paxIndex) || paxIndex < 0) return null;
+  if (!Number.isInteger(paxIndex) || paxIndex < 0 || !Number.isSafeInteger(paxIndex)) return null;
   return { leg, paxIndex };
 }
 
@@ -221,20 +225,26 @@ export function validateUpdateSeatsAssignments(
   }
 
   // 2. Build prospective next seats preserving unrelated leg assignments
-  const hasOutProposed = Object.keys(proposedSeats).some((k) => k.startsWith("out-"));
-  const hasInProposed = Object.keys(proposedSeats).some((k) => k.startsWith("in-"));
+  const hasOutProposed = Object.keys(proposedSeats).some((k) => parseSeatKey(k)?.leg === "out");
+  const hasInProposed = Object.keys(proposedSeats).some((k) => parseSeatKey(k)?.leg === "in");
 
   const nextSeats: Record<string, string> = {};
 
   // For Outbound leg:
   if (hasOutProposed) {
     for (const [k, v] of Object.entries(proposedSeats)) {
-      if (k.startsWith("out-")) nextSeats[k] = v;
+      const parsedKey = parseSeatKey(k);
+      if (parsedKey && parsedKey.leg === "out") {
+        nextSeats[`out-${parsedKey.paxIndex}`] = v;
+      }
     }
   } else {
     // Preserve existing outbound seats
     for (const [k, v] of Object.entries(booking.seats)) {
-      if (k.startsWith("out-")) nextSeats[k] = v;
+      const parsedKey = parseSeatKey(k);
+      if (parsedKey && parsedKey.leg === "out") {
+        nextSeats[`out-${parsedKey.paxIndex}`] = v;
+      }
     }
   }
 
@@ -242,12 +252,18 @@ export function validateUpdateSeatsAssignments(
   if (booking.inbound) {
     if (hasInProposed) {
       for (const [k, v] of Object.entries(proposedSeats)) {
-        if (k.startsWith("in-")) nextSeats[k] = v;
+        const parsedKey = parseSeatKey(k);
+        if (parsedKey && parsedKey.leg === "in") {
+          nextSeats[`in-${parsedKey.paxIndex}`] = v;
+        }
       }
     } else {
       // Preserve existing inbound seats
       for (const [k, v] of Object.entries(booking.seats)) {
-        if (k.startsWith("in-")) nextSeats[k] = v;
+        const parsedKey = parseSeatKey(k);
+        if (parsedKey && parsedKey.leg === "in") {
+          nextSeats[`in-${parsedKey.paxIndex}`] = v;
+        }
       }
     }
   }
@@ -289,7 +305,7 @@ export function validateUpdateSeatsAssignments(
     const parsedKey = parseSeatKey(key)!;
     const flight = parsedKey.leg === "in" ? flights.inbound : flights.outbound;
     if (flight) {
-      const isSameOwnerExistingSeat = booking.seats[key] === seat;
+      const isSameOwnerExistingSeat = booking.seats[`${parsedKey.leg}-${parsedKey.paxIndex}`] === seat;
       validateSeatAssignment({
         seat,
         paxIndex: parsedKey.paxIndex,
@@ -323,13 +339,15 @@ export function validateUpdateSeatsAssignments(
       if (booking.passengers[i]?.type === "infant") continue;
       const s = nextSeats[`${leg}-${i}`];
       if (s) {
-        const existingOwner = seen.get(s);
+        const parsed = parseSeatCode(s);
+        const canonicalCode = parsed ? `${parsed.row}${parsed.letter}` : s;
+        const existingOwner = seen.get(canonicalCode);
         if (existingOwner !== undefined) {
           throw new Error(
             `Duplicate seat assignment ${s} for passengers ${existingOwner} and ${i} on leg ${leg}.`,
           );
         }
-        seen.set(s, i);
+        seen.set(canonicalCode, i);
       }
     }
   }
@@ -422,13 +440,15 @@ export function validateCheckInSeats(
     if (booking.passengers[i]?.type === "infant") continue;
     const s = nextSeats[`${leg}-${i}`];
     if (s) {
-      const existingOwner = seen.get(s);
+      const parsed = parseSeatCode(s);
+      const canonicalCode = parsed ? `${parsed.row}${parsed.letter}` : s;
+      const existingOwner = seen.get(canonicalCode);
       if (existingOwner !== undefined && existingOwner !== i) {
         throw new Error(
           `Duplicate seat assignment ${s} for passengers ${existingOwner} and ${i} on leg ${leg}.`,
         );
       }
-      seen.set(s, i);
+      seen.set(canonicalCode, i);
     }
   }
 

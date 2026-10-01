@@ -2468,94 +2468,102 @@ async function runBrowserSmoke() {
       await assertWebpImage(page, 'img[data-decorative-asset="flights-search-toolbar"]', "ar-flights-search-toolbar");
 
       // 4. Home Flight Search (/ and /ar)
-      await page.goto(baseUrl + "/", { waitUntil: "domcontentloaded" });
-      await assertWebpImage(page, 'img[data-decorative-asset="home-flight-search-ticket"]', "home-flight-search-ticket");
+      // Pin clock to a Thursday so default departDate is Friday (when DOH has no scheduled flights)
+      await page.clock.setFixedTime(new Date("2026-10-01T12:00:00Z"));
+      try {
+        await page.goto(baseUrl + "/", { waitUntil: "domcontentloaded" });
+        await page.evaluate(() => localStorage.clear());
+        await page.goto(baseUrl + "/", { waitUntil: "domcontentloaded" });
+        await assertWebpImage(page, 'img[data-decorative-asset="home-flight-search-ticket"]', "home-flight-search-ticket");
 
-      // Verify ticket image is visibly strong (opacity >= 0.85 and not covered by opaque overlay)
-      const ticketOpacity = await page.evaluate(() => {
-        const img = document.querySelector('img[data-decorative-asset="home-flight-search-ticket"]');
-        return img ? parseFloat(window.getComputedStyle(img).opacity) : 0;
-      });
-      if (ticketOpacity < 0.85) {
-        throw new Error(`Home flight search ticket image opacity should be >= 0.85, got ${ticketOpacity}`);
-      }
+        // Verify ticket image is visibly strong (opacity >= 0.85 and not covered by opaque overlay)
+        const ticketOpacity = await page.evaluate(() => {
+          const img = document.querySelector('img[data-decorative-asset="home-flight-search-ticket"]');
+          return img ? parseFloat(window.getComputedStyle(img).opacity) : 0;
+        });
+        if (ticketOpacity < 0.85) {
+          throw new Error(`Home flight search ticket image opacity should be >= 0.85, got ${ticketOpacity}`);
+        }
 
-      // Verify the three Home heritage images load as external WebP with naturalWidth > 0, empty alt, aria-hidden="true"
-      await assertWebpImage(page, 'img[data-decorative-asset="home-airport-past-body"]', "home-airport-past-body");
-      await assertWebpImage(page, 'img[data-decorative-asset="home-airport-present-body"]', "home-airport-present-body");
-      await assertWebpImage(page, 'img[data-decorative-asset="home-airport-future-body"]', "home-airport-future-body");
+        // Verify the three Home heritage images load as external WebP with naturalWidth > 0, empty alt, aria-hidden="true"
+        await assertWebpImage(page, 'img[data-decorative-asset="home-airport-past-body"]', "home-airport-past-body");
+        await assertWebpImage(page, 'img[data-decorative-asset="home-airport-present-body"]', "home-airport-present-body");
+        await assertWebpImage(page, 'img[data-decorative-asset="home-airport-future-body"]', "home-airport-future-body");
 
-      // Verify Future upper concept disclosure remains
-      const futureConceptBadge = page.locator('span:has-text("Illustrative future concept"), span:has-text("تصوّر مستقبلي توضيحي")').first();
-      if ((await futureConceptBadge.count()) === 0) {
-        throw new Error("Future upper concept disclosure missing on Home heritage card");
-      }
+        // Verify Future upper concept disclosure remains
+        const futureConceptBadge = page.locator('span:has-text("Illustrative future concept"), span:has-text("تصوّر مستقبلي توضيحي")').first();
+        if ((await futureConceptBadge.count()) === 0) {
+          throw new Error("Future upper concept disclosure missing on Home heritage card");
+        }
 
-      // a) Deliberately invalid search stays on Home, displays role="alert" banner, readable over ticket art
-      await page.click("#search-to");
-      await page.waitForTimeout(300);
-      await page.click('[data-value="DOH"]');
-      await page.waitForTimeout(200);
-      const searchSubmitBtn = page.locator('form[aria-label] button[type="submit"]').first();
-      await searchSubmitBtn.click();
-      await page.waitForTimeout(400);
+        // a) Deliberately invalid search stays on Home, displays role="alert" banner, readable over ticket art
+        await page.click("#search-to");
+        await page.waitForTimeout(300);
+        await page.click('[data-value="DOH"]');
+        await page.waitForTimeout(500);
+        const searchSubmitBtn = page.locator('form[aria-label] button[type="submit"]').first();
+        await searchSubmitBtn.click();
+        await page.waitForTimeout(400);
 
-      if (!page.url().endsWith("/")) {
-        throw new Error(`Invalid search should stay on Home (/), but navigated to: ${page.url()}`);
-      }
-      const alertBanner = page.locator('form[aria-label] div[role="alert"]').first();
-      if ((await alertBanner.count()) === 0) {
-        throw new Error(`Invalid Home search did not show role="alert" banner`);
-      }
-      const alertText = (await alertBanner.textContent()) || "";
-      if (!alertText.includes("DOH") || !alertText.toLowerCase().includes("no scheduled")) {
-        throw new Error(`Unexpected alert text for DOH invalid search: "${alertText}"`);
-      }
+        if (!page.url().endsWith("/")) {
+          throw new Error(`Invalid search should stay on Home (/), but navigated to: ${page.url()}`);
+        }
+        const alertBanner = page.locator('form[aria-label] div[role="alert"]').first();
+        if ((await alertBanner.count()) === 0) {
+          throw new Error(`Invalid Home search did not show role="alert" banner`);
+        }
+        const alertText = (await alertBanner.textContent()) || "";
+        if (!alertText.includes("DOH") || !alertText.toLowerCase().includes("no scheduled")) {
+          throw new Error(`Unexpected alert text for DOH invalid search: "${alertText}"`);
+        }
 
-      // b) Valid Home search follows expected navigation flow to /book
-      await page.click("#search-to");
-      await page.waitForTimeout(300);
-      await page.click('[data-value="AMM"]');
-      await page.waitForTimeout(200);
-      await searchSubmitBtn.click();
-      await page.waitForURL((url) => url.pathname.includes("/book"), { timeout: 8000 });
-      if (!page.url().includes("/book")) {
-        throw new Error(`Valid search failed to navigate to /book, URL is: ${page.url()}`);
-      }
+        // b) Valid Home search follows expected navigation flow to /book
+        await page.click("#search-to");
+        await page.waitForTimeout(300);
+        await page.click('[data-value="AMM"]');
+        await page.waitForTimeout(500);
+        await searchSubmitBtn.click();
+        await page.waitForURL((url) => url.pathname.includes("/book"), { timeout: 8000 });
+        if (!page.url().includes("/book")) {
+          throw new Error(`Valid search failed to navigate to /book, URL is: ${page.url()}`);
+        }
 
-      // Verify Arabic Home search: invalid search stays on /ar and shows Arabic role="alert"
-      await page.goto(baseUrl + "/ar", { waitUntil: "domcontentloaded" });
-      await assertWebpImage(page, 'img[data-decorative-asset="home-flight-search-ticket"]', "ar-home-flight-search-ticket");
+        // Verify Arabic Home search: invalid search stays on /ar and shows Arabic role="alert"
+        await page.goto(baseUrl + "/ar", { waitUntil: "domcontentloaded" });
+        await assertWebpImage(page, 'img[data-decorative-asset="home-flight-search-ticket"]', "ar-home-flight-search-ticket");
 
-      const ticketOpacityAr = await page.evaluate(() => {
-        const img = document.querySelector('img[data-decorative-asset="home-flight-search-ticket"]');
-        return img ? parseFloat(window.getComputedStyle(img).opacity) : 0;
-      });
-      if (ticketOpacityAr < 0.85) {
-        throw new Error(`Arabic Home flight search ticket image opacity should be >= 0.85, got ${ticketOpacityAr}`);
-      }
+        const ticketOpacityAr = await page.evaluate(() => {
+          const img = document.querySelector('img[data-decorative-asset="home-flight-search-ticket"]');
+          return img ? parseFloat(window.getComputedStyle(img).opacity) : 0;
+        });
+        if (ticketOpacityAr < 0.85) {
+          throw new Error(`Arabic Home flight search ticket image opacity should be >= 0.85, got ${ticketOpacityAr}`);
+        }
 
-      await assertWebpImage(page, 'img[data-decorative-asset="home-airport-past-body"]', "ar-home-airport-past-body");
-      await assertWebpImage(page, 'img[data-decorative-asset="home-airport-present-body"]', "ar-home-airport-present-body");
-      await assertWebpImage(page, 'img[data-decorative-asset="home-airport-future-body"]', "ar-home-airport-future-body");
+        await assertWebpImage(page, 'img[data-decorative-asset="home-airport-past-body"]', "ar-home-airport-past-body");
+        await assertWebpImage(page, 'img[data-decorative-asset="home-airport-present-body"]', "ar-home-airport-present-body");
+        await assertWebpImage(page, 'img[data-decorative-asset="home-airport-future-body"]', "ar-home-airport-future-body");
 
-      const futureConceptBadgeAr = page.locator('span:has-text("تصوّر مستقبلي توضيحي"), span:has-text("Illustrative future concept")').first();
-      if ((await futureConceptBadgeAr.count()) === 0) {
-        throw new Error("Future upper concept disclosure missing on Arabic Home heritage card");
-      }
-      await page.click("#search-to");
-      await page.waitForTimeout(300);
-      await page.click('[data-value="DOH"]');
-      await page.waitForTimeout(200);
-      const searchSubmitBtnAr = page.locator('form[aria-label] button[type="submit"]').first();
-      await searchSubmitBtnAr.click();
-      await page.waitForTimeout(400);
-      if (!page.url().endsWith("/ar")) {
-        throw new Error(`Invalid Arabic search should stay on /ar, but navigated to: ${page.url()}`);
-      }
-      const alertBannerAr = page.locator('form[aria-label] div[role="alert"]').first();
-      if ((await alertBannerAr.count()) === 0) {
-        throw new Error(`Invalid Arabic Home search did not show role="alert" banner`);
+        const futureConceptBadgeAr = page.locator('span:has-text("تصوّر مستقبلي توضيحي"), span:has-text("Illustrative future concept")').first();
+        if ((await futureConceptBadgeAr.count()) === 0) {
+          throw new Error("Future upper concept disclosure missing on Arabic Home heritage card");
+        }
+        await page.click("#search-to");
+        await page.waitForTimeout(300);
+        await page.click('[data-value="DOH"]');
+        await page.waitForTimeout(500);
+        const searchSubmitBtnAr = page.locator('form[aria-label] button[type="submit"]').first();
+        await searchSubmitBtnAr.click();
+        await page.waitForTimeout(400);
+        if (!page.url().endsWith("/ar")) {
+          throw new Error(`Invalid Arabic search should stay on /ar, but navigated to: ${page.url()}`);
+        }
+        const alertBannerAr = page.locator('form[aria-label] div[role="alert"]').first();
+        if ((await alertBannerAr.count()) === 0) {
+          throw new Error(`Invalid Arabic Home search did not show role="alert" banner`);
+        }
+      } finally {
+        await page.clock.setSystemTime(Date.now());
       }
 
       // 5. Immunity Proofs: Unskinned forms remain unskinned
