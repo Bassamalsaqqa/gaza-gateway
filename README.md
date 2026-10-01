@@ -2,7 +2,7 @@
 
 > **Product**: Gaza International Airport (`GZA`) & Palestinian Airlines (`PS`)
 > **Production Domain**: [https://www.gazaairport.com](https://www.gazaairport.com)
-> **Engineering Status**: **Phase 5B implemented on feature branch; correction candidate awaiting independent engineering acceptance.** Phase 5A complete; Phase 5C (Manage/Check-in/Boarding Pass), Phase 5D, and HC-2/HC-3 unstarted. See [roadmap.md](roadmap.md) for the full sequence.
+> **Engineering Status**: **Phase 5B Booking Draft & Effective Flight Discovery Convergence COMPLETE / ACCEPTED.** Phase 5 overall remains in progress; Phase 5A and HC-0/HC-1/Present complete; Phase 5C (Manage/Check-in/Boarding Pass), Phase 5D, and HC-2/HC-3 planned and unstarted. Canonical `gza.booking.draft.v1` and effective `FlightRepository` authority accepted; repository publication does not mean live cPanel deployment. See [roadmap.md](roadmap.md) for the full sequence.
 > **Documentation Index**:
 > - [Master Engineering Roadmap (Phases 0–12)](roadmap.md)
 > - [System Architecture Specification](docs/ARCHITECTURE.md)

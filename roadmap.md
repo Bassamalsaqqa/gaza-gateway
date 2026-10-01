@@ -1,8 +1,8 @@
 # Master Engineering Roadmap — Gaza Airport & Palestinian Airlines
 
 > **Product**: Digital home of Palestinian Airlines operating through Gaza International Airport ([gazaairport.com](https://www.gazaairport.com)), featuring an airport public presence and an administration workspace.
-> **Current Status**: **Phase 5B implemented on feature branch; correction candidate awaiting independent engineering acceptance.** Phase 5A complete; Phase 5C (Manage/Check-in/Boarding Pass), Phase 5D, and HC-2/HC-3 unstarted.
-> **Immediate Next Step**: Independent Codex review of Phase 5B candidate branch `phase5/booking-draft-flight-discovery-convergence`.
+> **Current Status**: **Phase 5B Booking Draft & Effective Flight Discovery Convergence COMPLETE / ACCEPTED.** Phase 5 overall remains in progress; Phase 5A and HC-0/HC-1/Present complete; Phase 5C (Manage/Check-in/Boarding Pass), Phase 5D, and HC-2/HC-3 planned and unstarted. Repository publication does not mean live cPanel deployment.
+> **Immediate Next Step**: Plan and execute Phase 5C (Manage, Check-in & Boarding Pass Convergence).
 > **Historical baseline**: Phase 4 began from source commit `9e36b869274830f84c97cbbefe3b3fb0a98c6d2e` and HostPapa release commit `92ad935f8477e1663eefa8282d2770c66b64b8b2`. These are starting milestones, not current branch heads.
 
 ---
@@ -32,7 +32,7 @@
 | **Designer Media Checkpoint** | **Designer Media + Public Surface Integration & Visual Cleanup 0.1** | **Accepted by Owner** | Integrated 4 utility rail cards and 8 responsive photo heroes across public surfaces (/airport, /gallery, /destinations, /travel, /manage, /check-in, /signin, /flights); removed passenger-visible illustrative badges while strictly preserving internal truth policies; resolved airport.chapter-card policy drift and documentation focal alignment; audited /book?step=results. |
 | **Phase 5A** | **Passenger State, Account & Auth-Truth Convergence** | **Complete** | Canonical passenger state on `gza.passenger.v1` (`PassengerRepository`), email normalization, profile identity email immutability, transactional CRUD and sign-out, anti-resurrection migration with no dual-write back to `gza.store.v1`, hardened booking claims with explicit result status (`ClaimResult`), station `todayISO()` trip grouping, truthful local auth disclosure (no fake password comparison/storage), and responsive EN/AR certification. |
 | **HC-0 / HC-1** | **Present Dossier & Archive Foundation** | **Accepted (Owner Authorized Publication)** | Present documentary dossier (`/airport/present`, `/ar/airport/present`) with licensed dated ruins hero (`airport-present-ruins-2008`, June 2008 documentary photograph) and nine designer artwork skins; compiled typed content document (`airport.present`); bounded archive/source/rights metadata foundation (`src/lib/archive/`), SourceRecord registry, and 58-item non-runtime intake audit. |
-| **Phase 5B** | **Booking Draft & Search Convergence** | **Implemented on Feature Branch** | Connect booking wizard search and draft to canonical flight repository and dedicated `gza.booking.draft.v1` store (`BookingDraftRepository`). Correction candidate awaiting independent engineering acceptance. |
+| **Phase 5B** | **Booking Draft & Search Convergence** | **Complete** | Connect booking wizard search and draft to canonical flight repository and dedicated `gza.booking.draft.v1` store (`BookingDraftRepository`). Accepted and merged into main. |
 | **Phase 5C** | **Manage, Check-in & Boarding Pass Convergence** | **Planned** | Operational flight status convergence in Manage, boarding pass generation, and check-in workflows. |
 | **Phase 5D** | **Public Contact Workflow Convergence** | **Planned** | Public contact messaging, feedback form, and draft convergence. |
 | **Phase 6** | **Admin Workflows Convergence** | **Planned** | Connect admin flight quick-edit, schedule manager, passenger desk, customer notes, and activity logging to the shared domain repositories. |
