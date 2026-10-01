@@ -1,8 +1,8 @@
 # Data Flow, State Management & Pretend-Action Inventory
 
 > **Document Purpose**: Complete audit of current data sources, state persistence, cross-screen entity splits, and enabled no-op actions across public and admin workspaces.
-> **Status**: **Phase 5C Manage, Check-in & Boarding Pass Convergence IMPLEMENTED on feature branch.** Awaiting independent engineering acceptance review. Phase 5 overall remains in progress; Phase 5A, 5B, and HC-0/HC-1/Present complete; Phase 5D (Public Contact) and HC-2/HC-3 planned and unstarted. Repository publication does not mean live cPanel deployment.
-> **Future Target**: Independent engineering acceptance review of Phase 5C feature branch, followed by Phase 5D (Public Contact Workflow Convergence), then Phase 6 before any production backend.
+> **Status**: **Phase 5C Manage, Check-in & Boarding Pass Convergence ACCEPTED SOURCE on main.** Phase 5 overall remains in progress; Phase 5A, 5B, 5C, and HC-0/HC-1/Present complete; Phase 5D (Public Contact) and HC-2/HC-3 planned and unstarted. Repository publication does not mean live cPanel deployment.
+> **Future Target**: Historical Archive Publication & Documentation Dossier (HC-2), followed by Phase 5D (Public Contact Workflow Convergence), then Phase 6 before any production backend.
 
 ---
 
@@ -222,8 +222,8 @@ The development program follows this strictly sequenced progression:
    - Compiled bilingual Home, Travel, Airport Past, and Airport Present records, runtime validation, local draft repository and explicit preview. Admin Travel editing is the real draft proof; global publishing and broader CMS work remain future phases. Gallery continues on its legacy placeholder system pending HC-2.
 3. **Phase 4C — Settings & Appearance Store Convergence (complete)**:
    - Unified multi-document settings envelope (gza.settings.draft.v1) with independent Contact and Appearance drafts, one-time legacy migration with untouched legacy key, transactional failure resilience, and explicit preview immunity.
-4. **Phase 5 — Public Workflows Convergence (in progress: Phase 5A and Phase 5B complete; Phase 5C next/unstarted)**:
-   - Connect booking engine, trip management, check-in, passenger account hub, and contact forms to canonical domain repositories with comprehensive client-side validation. Phase 5A converged passenger identity, account state, and saved travelers on `PassengerRepository` (`gza.passenger.v1`). Phase 5B converged booking wizard draft (`BookingDraftRepository`) and effective flight discovery (`FlightRepository`), accepted and merged into main. Phase 5C will address Manage, Check-in, and Boarding Pass.
+4. **Phase 5 — Public Workflows Convergence (in progress: Phase 5A, Phase 5B, and Phase 5C complete; Phase 5D planned)**:
+   - Connect booking engine, trip management, check-in, passenger account hub, and contact forms to canonical domain repositories with comprehensive client-side validation. Phase 5A converged passenger identity, account state, and saved travelers on `PassengerRepository` (`gza.passenger.v1`). Phase 5B converged booking wizard draft (`BookingDraftRepository`) and effective flight discovery (`FlightRepository`), accepted and merged into main. Phase 5C converged Manage, Check-in, and Boarding Pass onto canonical repositories and effective flights, accepted and merged into main. Phase 5D will address public contact forms and messaging.
 5. **Phase 6 — Admin Workflows Convergence**:
    - Connect admin flight quick-edit, schedule manager, passenger desk, customer notes, and activity logs to the shared domain repositories, eliminating simulated no-ops.
 6. **Phase 7 — CMS Admin Workflows**:
