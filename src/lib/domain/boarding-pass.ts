@@ -15,19 +15,27 @@ export interface BoardingPassData {
   destinationCode: string;
   date: string;
   scheduledDepartureTime: string;
-  revisedDepartureTime?: string;
-  terminal?: string;
-  gate?: string;
-  seat?: string;
+  revisedDepartureTime?: string | undefined;
+  terminal?: string | undefined;
+  gate?: string | undefined;
+  seat?: string | undefined;
   cabin: Booking["criteria"]["cabin"];
   fareId: Booking["fareId"];
+  operationalStatus: BoardingPassOperationalStatus;
 }
+
+export type BoardingPassOperationalStatus =
+  | "active"
+  | "cancelled"
+  | "departed"
+  | "landed"
+  | "unavailable";
 
 export function getBoardingPassData(
   booking: Booking,
   leg: Leg,
   paxIndex: number,
-  effectiveFlight?: Flight,
+  effectiveFlight?: Flight | null,
 ): BoardingPassData | null {
   const bookedFlight = leg === "in" ? booking.inbound : booking.outbound;
   const passenger = booking.passengers[paxIndex];
@@ -41,6 +49,18 @@ export function getBoardingPassData(
   ) return null;
 
   const flight = effectiveFlight ?? bookedFlight;
+
+  let operationalStatus: BoardingPassOperationalStatus = "active";
+  if (effectiveFlight === null) {
+    operationalStatus = "unavailable";
+  } else if (flight.status === "Cancelled") {
+    operationalStatus = "cancelled";
+  } else if (flight.status === "Departed") {
+    operationalStatus = "departed";
+  } else if (flight.status === "Landed") {
+    operationalStatus = "landed";
+  }
+
   const data: BoardingPassData = {
     bookingRef: booking.ref,
     passengerId: passenger.id,
@@ -59,6 +79,7 @@ export function getBoardingPassData(
     scheduledDepartureTime: bookedFlight.departTime,
     cabin: booking.criteria.cabin,
     fareId: booking.fareId,
+    operationalStatus,
   };
   if (effectiveFlight?.revisedDepart) data.revisedDepartureTime = effectiveFlight.revisedDepart;
   if (flight.terminal) data.terminal = flight.terminal;
@@ -80,15 +101,22 @@ export type BoardingPassViewModel = {
   seat: string | null;
   sequence: number;
   totalCheckedIn: number;
+  scheduledDepartureTime: string;
+  revisedDepartureTime?: string | undefined;
+  boardingOpensTime: string;
+  boardingClosesTime: string;
+  /** Backwards compatibility alias for boardingOpensTime. */
   boardingTime: string;
   fareId: string;
+  operationalStatus: BoardingPassOperationalStatus;
 };
 
 export function flightForLeg(booking: Booking, leg: Leg): Flight {
   return leg === "in" && booking.inbound ? booking.inbound : booking.outbound;
 }
 
-export function computeBoardingTime(departTime: string): string {
+/** Computes boarding opens time: exactly 45 minutes before scheduled departure time. */
+export function computeBoardingOpensTime(departTime: string): string {
   const [h, m] = departTime.split(":").map(Number);
   if (h === undefined || m === undefined || Number.isNaN(h) || Number.isNaN(m)) return departTime;
   const total = (h * 60 + m - 45 + 24 * 60) % (24 * 60);
@@ -97,11 +125,26 @@ export function computeBoardingTime(departTime: string): string {
   return `${hh}:${mm}`;
 }
 
+/** Computes boarding closes time: exactly 20 minutes before scheduled departure time. */
+export function computeBoardingClosesTime(departTime: string): string {
+  const [h, m] = departTime.split(":").map(Number);
+  if (h === undefined || m === undefined || Number.isNaN(h) || Number.isNaN(m)) return departTime;
+  const total = (h * 60 + m - 20 + 24 * 60) % (24 * 60);
+  const hh = String(Math.floor(total / 60)).padStart(2, "0");
+  const mm = String(total % 60).padStart(2, "0");
+  return `${hh}:${mm}`;
+}
+
+/** Backwards-compatible alias for computeBoardingOpensTime. */
+export function computeBoardingTime(departTime: string): string {
+  return computeBoardingOpensTime(departTime);
+}
+
 export function buildBoardingPassViewModel(
   booking: Booking,
   leg: Leg,
   paxIndex: number,
-  effectiveFlight?: Flight
+  effectiveFlight?: Flight | null,
 ): BoardingPassViewModel {
   const passenger = booking.passengers[paxIndex];
   if (!passenger) {
@@ -118,18 +161,23 @@ export function buildBoardingPassViewModel(
   }
 
   const infantIdxs = infantsWith(booking, paxIndex);
-  const infantNames = infantIdxs.map(i => {
+  const infantNames = infantIdxs.map((i) => {
     const inf = booking.passengers[i];
     return `${inf?.firstName ?? ""} ${inf?.lastName ?? ""}`.trim();
   });
 
-  const flight = effectiveFlight ?? flightForLeg(booking, leg);
-  if (!getBoardingPassData(booking, leg, paxIndex, flight)) {
+  const bookedFlight = flightForLeg(booking, leg);
+  const flight = effectiveFlight ?? bookedFlight;
+  const data = getBoardingPassData(booking, leg, paxIndex, effectiveFlight);
+  if (!data) {
     throw new Error(`Boarding pass data is unavailable for ${booking.ref}`);
   }
   const seat = booking.seats[`${leg}-${paxIndex}`] ?? null;
   const checkedForLeg = checkedInPax(booking, leg);
   const sequence = Math.max(1, checkedForLeg.indexOf(paxIndex) + 1);
+
+  const opensTime = computeBoardingOpensTime(bookedFlight.departTime);
+  const closesTime = computeBoardingClosesTime(bookedFlight.departTime);
 
   return {
     ref: booking.ref,
@@ -142,7 +190,12 @@ export function buildBoardingPassViewModel(
     seat,
     sequence,
     totalCheckedIn: checkedForLeg.length,
-    boardingTime: computeBoardingTime(flight.departTime),
+    scheduledDepartureTime: bookedFlight.departTime,
+    revisedDepartureTime: effectiveFlight?.revisedDepart,
+    boardingOpensTime: opensTime,
+    boardingClosesTime: closesTime,
+    boardingTime: opensTime,
     fareId: booking.fareId,
+    operationalStatus: data.operationalStatus,
   };
 }

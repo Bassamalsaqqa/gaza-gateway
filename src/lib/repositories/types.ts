@@ -7,7 +7,17 @@
  */
 
 import type { Booking, BookingCreateInput, Leg } from "../domain/booking.ts";
+import type { Extras } from "../booking-draft/types.ts";
 import type { Flight, FlightOverride } from "../domain/flight.ts";
+
+export interface CheckInCommandInput {
+  ref: string;
+  leg: Leg;
+  selectedPaxIndexes: number[];
+  documents: Record<number, string>;
+  seats?: Record<number, string>;
+  now?: Date | string | number;
+}
 
 export interface BookingRepository {
   /** Retrieves all confirmed and cancelled bookings. */
@@ -19,10 +29,25 @@ export interface BookingRepository {
   /** Creates and persists a new booking with stable passenger IDs. */
   create(data: BookingCreateInput): Promise<Booking>;
 
-  /** Updates fields on an existing booking. */
+  /** Cancels a confirmed booking. Rejects if booking not found or already cancelled. */
+  cancel(ref: string): Promise<Booking>;
+
+  /** Updates passenger contact details. Rejects if booking is cancelled or invalid email. */
+  updateContact(ref: string, contact: { email: string; phone?: string }): Promise<Booking>;
+
+  /** Updates seat assignments and canonically recalculates totals. Rejects if booking cancelled or modifying checked-in seats. */
+  updateSeats(ref: string, seats: Record<string, string>): Promise<Booking>;
+
+  /** Updates passenger extras and canonically recalculates totals. Rejects if booking cancelled. */
+  updateExtras(ref: string, extras: Extras): Promise<Booking>;
+
+  /** Atomically completes check-in for selected passengers, validating window, flight status, and seats. */
+  completeCheckIn(input: CheckInCommandInput): Promise<Booking>;
+
+  /** Updates fields on an existing booking (generic internal/admin method). */
   update(ref: string, patch: Partial<Booking>): Promise<Booking | null>;
 
-  /** Marks specific passenger indices as checked in on the given leg. */
+  /** Marks specific passenger indices as checked in on the given leg (generic internal method). */
   checkIn(ref: string, leg: Leg, paxIndexes: number[]): Promise<Booking | null>;
 
   /**

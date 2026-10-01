@@ -16,11 +16,15 @@ import {
   openPaxForLeg,
   seatedPassengers,
   type Leg,
-  useStore,
-} from "@/lib/store";
+} from "@/lib/domain/booking";
+import { getCheckInEligibility } from "@/lib/domain/check-in";
 import { usePassengerAccount } from "@/lib/passenger";
+import {
+  useBookingEffectiveFlights,
+  useBookingQuery,
+  useCompleteCheckInMutation,
+} from "@/lib/repositories/queries";
 import { cn } from "@/lib/utils";
-
 
 export const Route = createFileRoute("/{-$locale}/manage/$ref_/check-in")({
   head: ({ params }) => ({
@@ -45,11 +49,11 @@ type Step = "leg" | "pax" | "details" | "seats" | "review" | "done";
 function CheckInPage() {
   const { ref } = Route.useParams();
   const { t, lang } = useI18n();
-  const { ready, findBooking, updateBooking } = useStore();
+  const { data: booking, isLoading } = useBookingQuery(ref);
+  const effectiveFlights = useBookingEffectiveFlights(booking);
+  const completeCheckInMutation = useCompleteCheckInMutation();
 
   const { data: account } = usePassengerAccount();
-  const booking = findBooking(ref);
-
 
   const [step, setStep] = useState<Step>("leg");
   const [leg, setLeg] = useState<Leg | null>(null);
@@ -66,7 +70,7 @@ function CheckInPage() {
     [booking, legs],
   );
 
-  if (!ready) {
+  if (isLoading) {
     return (
       <Container className="py-16">
         <GazaLoadingState />
@@ -121,7 +125,13 @@ function CheckInPage() {
     );
   }
 
-  const flight = leg === "in" && booking.inbound ? booking.inbound : booking.outbound;
+  const effectiveFlightForLeg = (l: Leg) =>
+    l === "in" ? effectiveFlights.inbound?.effectiveFlight : effectiveFlights.outbound.effectiveFlight;
+
+  const currentBookedFlight = leg === "in" && booking.inbound ? booking.inbound : booking.outbound;
+  const currentEffectiveFlight = leg ? effectiveFlightForLeg(leg) : null;
+  const flight = currentEffectiveFlight ?? currentBookedFlight;
+
   // Infants share an adult's seat, so only seated passengers appear as choices.
   const seatable = seatedPassengers(booking);
   // Passengers already checked in for the chosen leg are not offered again.
@@ -130,6 +140,27 @@ function CheckInPage() {
     booking.passengers.flatMap((p, i) => (p.type === "infant" && (p.withAdult ?? 0) === adultIndex ? [i] : []));
 
   const startLeg = (chosen: Leg) => {
+    const effFlight = effectiveFlightForLeg(chosen);
+    const elig = getCheckInEligibility(booking, chosen, effFlight);
+    if (!elig.eligible) {
+      const reasonKey =
+        elig.reason === "too_early"
+          ? "ci.tooEarly"
+          : elig.reason === "closed"
+            ? "ci.closed"
+            : elig.reason === "flight_cancelled"
+              ? "ci.flightCancelled"
+              : elig.reason === "flight_boarding"
+                ? "ci.flightBoarding"
+                : elig.reason === "flight_departed"
+                  ? "ci.flightDeparted"
+                  : elig.reason === "flight_landed"
+                    ? "ci.flightLanded"
+                    : "ci.notAvailable";
+      setError(t(reasonKey));
+      return;
+    }
+
     const open = openPaxForLeg(booking, chosen);
     setLeg(chosen);
     setSelected(open);
@@ -143,32 +174,24 @@ function CheckInPage() {
       ),
     );
     setActivePax(open[0] ?? 0);
+    setError(null);
     setStep("pax");
   };
 
   const complete = async () => {
     if (!leg) return;
-    const nextSeats = { ...booking.seats };
-    // Only the passengers being checked in now have their seat and document saved.
-    selected.forEach((index) => {
-      const seat = seats[index];
-      if (seat) nextSeats[`${leg}-${index}`] = seat;
-    });
-    const passengers = booking.passengers.map((p, i) =>
-      selected.includes(i) && docs[i] !== undefined ? { ...p, document: docs[i] as string } : p,
-    );
-    // Merge check-in state for one atomic repository mutation
-    const currentChecked = booking.checkedIn?.[leg] ?? [];
-    const merged = Array.from(new Set([...currentChecked, ...selected])).sort((a, b) => a - b);
     try {
-      await updateBooking(booking.ref, {
-        seats: nextSeats,
-        passengers,
-        checkedIn: { ...booking.checkedIn, [leg]: merged },
+      setError(null);
+      await completeCheckInMutation.mutateAsync({
+        ref: booking.ref,
+        leg,
+        selectedPaxIndexes: selected,
+        documents: docs,
+        seats,
       });
       setStep("done");
-    } catch {
-      setError(t("error.checkinFailed"));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("error.checkinFailed"));
     }
   };
 
@@ -188,21 +211,30 @@ function CheckInPage() {
       {step === "leg" ? (
         <Panel className="mt-6">
           <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">{t("ci.chooseLeg")}</h2>
+          {error ? (
+            <p role="alert" className="mt-3 text-sm font-semibold text-destructive">
+              {error}
+            </p>
+          ) : null}
           <div className="mt-4 grid gap-3">
             {legs.map((l) => {
               const f = l === "in" && booking.inbound ? booking.inbound : booking.outbound;
+              const eff = effectiveFlightForLeg(l);
+              const elig = getCheckInEligibility(booking, l, eff);
               const done = legFullyCheckedIn(booking, l);
               const remaining = openPaxForLeg(booking, l).length;
               const already = checkedInPax(booking, l).length;
+              const isBlocked = done || !elig.eligible;
+
               return (
                 <button
                   key={l}
                   type="button"
-                  disabled={done}
+                  disabled={isBlocked}
                   onClick={() => startLeg(l)}
                   className={cn(
                     "flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4 text-start transition-colors",
-                    done ? "border-border bg-secondary/60" : "border-input bg-card hover:border-primary",
+                    isBlocked ? "border-border bg-secondary/60 cursor-not-allowed opacity-80" : "border-input bg-card hover:border-primary cursor-pointer",
                   )}
                 >
                   <span>
@@ -224,15 +256,31 @@ function CheckInPage() {
                     ) : null}
                     {done ? (
                       <Pill tone="brand">{t("ci.alreadyDone")}</Pill>
+                    ) : !elig.eligible ? (
+                      <Pill tone="ink">
+                        {elig.reason === "too_early"
+                          ? t("ci.tooEarly")
+                          : elig.reason === "closed"
+                            ? t("ci.closed")
+                            : elig.reason === "flight_cancelled"
+                              ? t("ci.flightCancelled")
+                              : elig.reason === "flight_boarding"
+                                ? t("ci.flightBoarding")
+                                : elig.reason === "flight_departed"
+                                  ? t("ci.flightDeparted")
+                                  : elig.reason === "flight_landed"
+                                    ? t("ci.flightLanded")
+                                    : t("ci.notAvailable")}
+                      </Pill>
                     ) : (
                       <>
                         <Pill>
                           {remaining === 1 ? t("ci.paxRemainingOne") : t("ci.paxRemaining", { n: String(remaining) })}
                         </Pill>
-                        <StatusBadge status={f.status} />
+                        <StatusBadge status={eff?.status ?? f.status} />
                       </>
                     )}
-                    {!done ? <ChevronRight aria-hidden="true" className="size-4 rtl:-scale-x-100" /> : null}
+                    {!isBlocked ? <ChevronRight aria-hidden="true" className="size-4 rtl:-scale-x-100" /> : null}
                   </span>
                 </button>
               );
@@ -274,7 +322,7 @@ function CheckInPage() {
                         aria-labelledby={labelId}
                         onCheckedChange={(checked) => {
                           setSelected((prev) =>
-                            checked ? [...new Set([...prev, i])] : prev.filter((x) => x !== i)
+                            checked ? [...new Set([...prev, i])] : prev.filter((x) => x !== i),
                           );
                         }}
                         className="size-5"
@@ -358,10 +406,10 @@ function CheckInPage() {
           {account?.seatPreference && account.seatPreference !== "none" ? (
             <p className="mt-1 text-xs text-muted-foreground">{t("ci.seatSuggestion")}</p>
           ) : null}
+
           <div className="mt-4">
             <SeatMap
               flightId={flight.id}
-              // The seat map works in the order of the passengers being checked in.
               assignments={Object.fromEntries(
                 selected.flatMap((i, pos) => (seats[i] ? [[pos, seats[i] as string]] : [])),
               )}
@@ -381,7 +429,6 @@ function CheckInPage() {
                 Object.values(seats),
               )}
             />
-
           </div>
           <StepNav
             error={null}
@@ -408,11 +455,21 @@ function CheckInPage() {
               </li>
             ))}
           </ul>
+          {error ? (
+            <p role="alert" className="mt-4 text-sm font-semibold text-destructive">
+              {error}
+            </p>
+          ) : null}
           <div className="mt-6 flex flex-wrap gap-2">
             <button type="button" onClick={() => setStep("seats")} className={btnClass("secondary", "md")}>
               {t("ci.back")}
             </button>
-            <button type="button" onClick={complete} className={btnClass("primary", "md")}>
+            <button
+              type="button"
+              onClick={complete}
+              disabled={completeCheckInMutation.isPending}
+              className={btnClass("primary", "md")}
+            >
               <Check aria-hidden="true" className="size-4" />
               {t("ci.confirm")}
             </button>

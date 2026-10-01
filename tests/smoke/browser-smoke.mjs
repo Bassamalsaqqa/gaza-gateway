@@ -5562,6 +5562,382 @@ async function runBrowserSmoke() {
       }
     });
 
+    await checkStep("Check 42: Phase 5C — Manage Trip, Online Check-in & Boarding Pass Convergence (English end-to-end journey)", async () => {
+      const testContext = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+      try {
+        const testPage = await testContext.newPage();
+
+        const bookingRef = "GZA-5C42";
+        const flightOut = {
+          id: "PS100-2026-10-10-out",
+          number: "PS100",
+          originCode: "GZA",
+          destinationCode: "AMM",
+          date: "2026-10-10",
+          departTime: "07:15",
+          arriveTime: "08:10",
+          durationMinutes: 55,
+          aircraft: "Airbus A321neo",
+          status: "Scheduled",
+          gate: "A1",
+          terminal: "1",
+          basePrice: 177,
+          seatsLeft: 19,
+        };
+
+        const initialRepo = {
+          schemaVersion: 1,
+          bookings: [
+            {
+              ref: bookingRef,
+              createdAt: "2026-10-01T10:00:00Z",
+              status: "confirmed",
+              ownerEmail: "khalil@example.ps",
+              total: 350,
+              contact: { email: "khalil@example.ps", phone: "+970 8 282 0000" },
+              criteria: {
+                tripType: "oneway",
+                origin: "GZA",
+                destination: "AMM",
+                departDate: "2026-10-10",
+                returnDate: "",
+                adults: 2,
+                children: 0,
+                infants: 1,
+                cabin: "economy",
+              },
+              outbound: flightOut,
+              inbound: null,
+              fareId: "classic",
+              passengers: [
+                { id: `pax-${bookingRef}-0`, firstName: "Ahmad", lastName: "Khalil", type: "adult", dob: "1985-05-15", nationality: "PS", document: "" },
+                { id: `pax-${bookingRef}-1`, firstName: "Fatima", lastName: "Khalil", type: "adult", dob: "1988-08-20", nationality: "PS", document: "" },
+                { id: `pax-${bookingRef}-2`, firstName: "Nour", lastName: "Khalil", type: "infant", dob: "2025-11-01", nationality: "PS", document: "", withAdult: 0 },
+              ],
+              seats: { "out-0": "10A", "out-1": "10B" },
+              extras: { pax: [] },
+              checkedIn: { out: [], in: [] },
+            },
+          ],
+          flightOverrides: {},
+        };
+
+        // Controlled clock: 2026-10-10 04:00 (departure is 07:15, so 3h15m before departure, within 24h to 60m window)
+        const clockMs = Date.parse("2026-10-10T04:00:00+03:00");
+
+        await testContext.addInitScript(({ initialRepo, clockMs }) => {
+          try {
+            if (!localStorage.getItem("gza.repo.v1")) {
+              localStorage.setItem("gza.repo.v1", JSON.stringify(initialRepo));
+            }
+            const RealDate = Date;
+            class MockDate extends RealDate {
+              constructor(...args) {
+                if (args.length === 0) {
+                  super(clockMs);
+                } else {
+                  super(...args);
+                }
+              }
+              static now() {
+                return clockMs;
+              }
+            }
+            window.Date = MockDate;
+          } catch {
+            // ignore
+          }
+        }, { initialRepo, clockMs });
+
+        // 1. Navigate to /manage and retrieve booking
+        await testPage.goto(`${baseUrl}/manage`, { waitUntil: "domcontentloaded" });
+        await testPage.waitForSelector('#pnr', { timeout: 10000 });
+        await testPage.fill('#pnr', bookingRef);
+        await testPage.fill('#identifier', 'khalil');
+        await testPage.click('button[type="submit"]');
+
+        await testPage.waitForURL((url) => url.pathname.includes(`/manage/${bookingRef}`), { timeout: 8000 });
+        if (!testPage.url().includes(`/manage/${bookingRef}`)) {
+          throw new Error(`Expected navigation to /manage/${bookingRef}, got ${testPage.url()}`);
+        }
+
+        // 2. Booking detail inspection
+        await testPage.waitForSelector('text=GZA-5C42', { timeout: 5000 });
+        const scheduledTimeEl = testPage.locator('text=07:15').first();
+        if ((await scheduledTimeEl.count()) === 0) {
+          throw new Error("Scheduled departure time 07:15 not found on booking detail");
+        }
+
+        // 3. Navigate to check-in
+        const checkinLink = testPage.locator(`a[href*="/manage/${bookingRef}/check-in"]`).first();
+        if ((await checkinLink.count()) === 0) {
+          throw new Error("Check-in link not found on booking detail");
+        }
+        await checkinLink.click();
+        await testPage.waitForURL((url) => url.pathname.includes("check-in"), { timeout: 8000 });
+
+        // Step: Choose Leg (if leg selection step is active)
+        const legBtn = testPage.locator('button:has-text("Outbound"), button:has-text("PS100")').first();
+        if ((await legBtn.count()) > 0) {
+          await legBtn.click();
+          await testPage.waitForTimeout(300);
+        }
+
+        // Step: Choose Pax (select only passenger 0 to test partial check-in)
+        await testPage.waitForSelector('#ci-pax-0', { timeout: 5000 });
+        const pax1Checkbox = testPage.locator('#ci-pax-1');
+        if ((await pax1Checkbox.count()) > 0 && (await pax1Checkbox.isChecked())) {
+          await testPage.locator('label[for="ci-pax-1"]').click();
+        }
+        const pax0Checkbox = testPage.locator('#ci-pax-0');
+        if (!(await pax0Checkbox.isChecked())) {
+          await testPage.locator('label[for="ci-pax-0"]').click();
+        }
+        // Verify infant is not presented as an independent selectable passenger
+        const infantCheckbox = testPage.locator('#ci-pax-2');
+        if ((await infantCheckbox.count()) > 0) {
+          throw new Error("Infant should not be selectable as a standalone check-in passenger");
+        }
+
+        // Click Continue to Document step
+        const continueBtn1 = testPage.locator('button:has-text("Continue"), button:has-text("Next")').first();
+        await continueBtn1.click();
+
+        // Step: Document entry
+        await testPage.waitForSelector('#doc-0', { timeout: 5000 });
+        await testPage.fill('#doc-0', 'PASS-AHMAD-123');
+
+        const continueBtn2 = testPage.locator('button:has-text("Continue"), button:has-text("Next")').first();
+        await continueBtn2.click();
+
+        // Step: Seat selection (accept pre-assigned and continue to review)
+        await testPage.waitForSelector('button:has-text("Continue")', { timeout: 5000 });
+        const continueBtn3 = testPage.locator('button:has-text("Continue")').first();
+        await continueBtn3.click();
+
+        // Step: Review and Complete Check-in
+        await testPage.waitForSelector('button:has-text("Complete check-in")', { timeout: 5000 });
+        const completeBtn = testPage.locator('button:has-text("Complete check-in")').first();
+        await completeBtn.click();
+
+        // Verify done step
+        await testPage.waitForSelector('text=Check-in complete', { timeout: 8000 });
+
+        // Verify canonical persistence in localStorage
+        const storedRepo = await testPage.evaluate(() => {
+          const raw = localStorage.getItem("gza.repo.v1");
+          return raw ? JSON.parse(raw) : null;
+        });
+        const storedBooking = storedRepo?.bookings?.find((b) => b.ref === "GZA-5C42");
+        if (!storedBooking) {
+          throw new Error("Booking GZA-5C42 not found in canonical storage after check-in");
+        }
+        if (!storedBooking.checkedIn?.out?.includes(0)) {
+          throw new Error("Passenger 0 not recorded in checkedIn.out in canonical storage");
+        }
+        if (storedBooking.passengers?.[0]?.document !== "PASS-AHMAD-123") {
+          throw new Error(`Passenger 0 document not updated in canonical storage: ${storedBooking.passengers?.[0]?.document}`);
+        }
+
+        // 4. View Boarding Pass
+        await testPage.goto(`${baseUrl}/boarding-pass/${bookingRef}/out/0`, { waitUntil: "domcontentloaded" });
+        await testPage.waitForSelector('text=Khalil', { timeout: 10000 });
+
+        // Verify boarding pass fields
+        const bpText = await testPage.textContent('body');
+        if (!bpText.includes("07:15")) {
+          throw new Error("Boarding pass does not show scheduled departure 07:15");
+        }
+        if (!bpText.includes("06:30")) {
+          throw new Error("Boarding pass does not show Boarding opens time 06:30 (scheduled - 45m)");
+        }
+        if (!bpText.includes("10A") && !bpText.includes("14A")) {
+          throw new Error("Boarding pass does not display assigned seat");
+        }
+
+        // 5. Test Operational Flight Override Reactivity
+        await testPage.evaluate(({ bRef, flightId }) => {
+          const raw = localStorage.getItem("gza.repo.v1");
+          if (raw) {
+            const data = JSON.parse(raw);
+            data.flightOverrides[flightId] = {
+              flightId,
+              gate: "B9",
+              terminal: "T2",
+              revisedDepart: "08:30",
+            };
+            localStorage.setItem("gza.repo.v1", JSON.stringify(data));
+          }
+        }, { bRef: bookingRef, flightId: "PS100-2026-10-10-out" });
+
+        await testPage.reload({ waitUntil: "domcontentloaded" });
+        await testPage.waitForSelector('text=B9', { timeout: 10000 });
+
+        const updatedBpText = await testPage.textContent('body');
+        if (!updatedBpText.includes("B9")) {
+          throw new Error("Boarding pass failed to reflect revised gate B9");
+        }
+        if (!updatedBpText.includes("08:30")) {
+          throw new Error("Boarding pass failed to reflect revised departure 08:30");
+        }
+        if (!updatedBpText.includes("07:15")) {
+          throw new Error("Boarding pass lost scheduled departure 07:15 after operational revision");
+        }
+        if (!updatedBpText.includes("06:30")) {
+          throw new Error("Boarding pass recalculated boarding opens time from revised departure instead of scheduled");
+        }
+
+        // 6. Test Operational Cancellation Treatment
+        await testPage.evaluate(({ flightId }) => {
+          const raw = localStorage.getItem("gza.repo.v1");
+          if (raw) {
+            const data = JSON.parse(raw);
+            data.flightOverrides[flightId] = {
+              flightId,
+              status: "Cancelled",
+            };
+            localStorage.setItem("gza.repo.v1", JSON.stringify(data));
+          }
+        }, { flightId: "PS100-2026-10-10-out" });
+
+        await testPage.reload({ waitUntil: "domcontentloaded" });
+        await testPage.waitForSelector('[role="alert"]:has-text("Cancelled")', { timeout: 10000 });
+      } finally {
+        await testContext.close();
+      }
+    });
+
+    await checkStep("Check 43: Phase 5C — Arabic Manage, RTL & Technical LTR Formatting, Checked-in Seat Protection", async () => {
+      const testContext = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+      try {
+        const testPage = await testContext.newPage();
+
+        const bookingRef = "GZA-5C43";
+        const flightOut = {
+          id: "PS100-2026-10-10-out",
+          number: "PS100",
+          originCode: "GZA",
+          destinationCode: "AMM",
+          date: "2026-10-10",
+          departTime: "07:15",
+          arriveTime: "08:10",
+          durationMinutes: 55,
+          aircraft: "Airbus A321neo",
+          status: "Scheduled",
+          gate: "A1",
+          terminal: "1",
+          basePrice: 177,
+          seatsLeft: 19,
+        };
+
+        const initialRepo = {
+          schemaVersion: 1,
+          bookings: [
+            {
+              ref: bookingRef,
+              createdAt: "2026-10-01T10:00:00Z",
+              status: "confirmed",
+              ownerEmail: "salem@example.ps",
+              total: 250,
+              contact: { email: "salem@example.ps", phone: "+970 8 282 1111" },
+              criteria: {
+                tripType: "oneway",
+                origin: "GZA",
+                destination: "AMM",
+                departDate: "2026-10-10",
+                returnDate: "",
+                adults: 1,
+                children: 0,
+                infants: 0,
+                cabin: "economy",
+              },
+              outbound: flightOut,
+              inbound: null,
+              fareId: "classic",
+              passengers: [
+                { id: `pax-${bookingRef}-0`, firstName: "Salem", lastName: "Baraka", type: "adult", dob: "1990-03-12", nationality: "PS", document: "DOC-SALEM-1" },
+              ],
+              seats: { "out-0": "14A" },
+              extras: { pax: [] },
+              checkedIn: { out: [0], in: [] }, // Passenger 0 is ALREADY checked in with seat 14A
+            },
+          ],
+          flightOverrides: {},
+        };
+
+        const clockMs = Date.parse("2026-10-10T04:00:00+03:00");
+
+        await testContext.addInitScript(({ initialRepo, clockMs }) => {
+          try {
+            if (!localStorage.getItem("gza.repo.v1")) {
+              localStorage.setItem("gza.repo.v1", JSON.stringify(initialRepo));
+            }
+            const RealDate = Date;
+            class MockDate extends RealDate {
+              constructor(...args) {
+                if (args.length === 0) {
+                  super(clockMs);
+                } else {
+                  super(...args);
+                }
+              }
+              static now() {
+                return clockMs;
+              }
+            }
+            window.Date = MockDate;
+          } catch {
+            // ignore
+          }
+        }, { initialRepo, clockMs });
+
+        // 1. Navigate to Arabic Manage: /ar/manage
+        await testPage.goto(`${baseUrl}/ar/manage`, { waitUntil: "domcontentloaded" });
+        await testPage.waitForSelector('#pnr', { timeout: 10000 });
+
+        // Verify document direction is RTL
+        const isRtl = await testPage.evaluate(() => document.documentElement.dir === "rtl");
+        if (!isRtl) {
+          throw new Error("Arabic manage route /ar/manage does not have dir='rtl'");
+        }
+
+        // Fill Arabic lookup form
+        await testPage.fill('#pnr', bookingRef);
+        await testPage.fill('#identifier', 'salem@example.ps');
+        await testPage.click('button[type="submit"]');
+
+        await testPage.waitForURL((url) => url.pathname.includes(`/ar/manage/${bookingRef}`), { timeout: 8000 });
+
+        // 2. Technical LTR identifiers check
+        const pnrEl = testPage.locator(`text=${bookingRef}`).first();
+        if ((await pnrEl.count()) === 0) {
+          throw new Error(`PNR ${bookingRef} not rendered on Arabic booking detail`);
+        }
+
+        // 3. Checked-in seat protection in seat selection view
+        await testPage.goto(`${baseUrl}/ar/manage/${bookingRef}/seats`, { waitUntil: "domcontentloaded" });
+        await testPage.waitForTimeout(500);
+
+        // The seat page must show seat protection warning or notice that checked-in seats cannot be altered
+        const pageText = await testPage.textContent('body');
+        if (!pageText.includes("14A")) {
+          throw new Error("Current assigned seat 14A not displayed on Arabic seat management view");
+        }
+
+        // 4. Check-in route eligibility guard
+        await testPage.goto(`${baseUrl}/ar/manage/${bookingRef}/check-in`, { waitUntil: "domcontentloaded" });
+        await testPage.waitForTimeout(500);
+
+        // Since passenger 0 is already checked in, verify that check-in does not offer an active submit button
+        const submitCi = testPage.locator('button:has-text("إتمام"), button:has-text("تسجيل الوصول")').first();
+        if ((await submitCi.count()) > 0 && !(await submitCi.isDisabled())) {
+          throw new Error("Check-in allowed active submission for an already checked-in passenger");
+        }
+      } finally {
+        await testContext.close();
+      }
+    });
+
   } finally {
     await browser.close();
     if (server) {

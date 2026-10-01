@@ -1,15 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppLink, useAppNavigate } from "@/components/app-link";
 import { SeatMap } from "@/components/booking/seat-map";
 import { Code, Container, EmptyState, GazaLoadingState, PageHeader, Panel, btnClass } from "@/components/kit";
 import { airportByCode, seatFee } from "@/lib/data";
 import { dateLong, money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
-import { bookingLegs, bookingTotal, isCheckedIn, type Leg, useStore } from "@/lib/store";
+import { bookingLegs, isCheckedIn, type Leg } from "@/lib/domain/booking";
 import { usePassengerAccount } from "@/lib/passenger";
+import { useBookingQuery, useUpdateBookingSeatsMutation } from "@/lib/repositories/queries";
 import { cn } from "@/lib/utils";
-
 
 export const Route = createFileRoute("/{-$locale}/manage/$ref_/seats")({
   head: ({ params }) => ({
@@ -33,19 +33,24 @@ function ManageSeatsPage() {
   const { ref } = Route.useParams();
   const { t, lang } = useI18n();
   const navigate = useAppNavigate();
-  const { ready, findBooking, updateBooking } = useStore();
+  const { data: booking, isLoading } = useBookingQuery(ref);
+  const updateSeatsMutation = useUpdateBookingSeatsMutation();
 
   const { data: account } = usePassengerAccount();
-  const booking = findBooking(ref);
-
 
   const legs = useMemo(() => (booking ? bookingLegs(booking) : []), [booking]);
   const [leg, setLeg] = useState<Leg>("out");
-  const [seats, setSeats] = useState<Record<string, string>>(booking?.seats ?? {});
+  const [seats, setSeats] = useState<Record<string, string>>({});
   const [activePax, setActivePax] = useState(0);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  if (!ready) {
+  useEffect(() => {
+    if (booking?.seats) {
+      setSeats(booking.seats);
+    }
+  }, [booking?.seats]);
+
+  if (isLoading) {
     return (
       <Container className="py-16">
         <GazaLoadingState />
@@ -92,18 +97,12 @@ function ManageSeatsPage() {
     return `${p?.firstName ?? ""} ${p?.lastName ?? ""}`.trim() || `${t("book.passenger")} ${i + 1}`;
   };
 
+  const isCurrentLegCheckedInForActivePax = (booking.checkedIn?.[leg] ?? []).includes(activePax);
+
   const save = async () => {
-    const totals = bookingTotal({
-      outbound: booking.outbound,
-      inbound: booking.inbound,
-      fareId: booking.fareId,
-      criteria: booking.criteria,
-      seats,
-      extras: booking.extras,
-    });
     try {
       setSaveError(null);
-      await updateBooking(booking.ref, { seats, total: totals.total });
+      await updateSeatsMutation.mutateAsync({ ref: booking.ref, seats });
       void navigate({ to: "/manage/$ref", params: { ref: booking.ref } });
     } catch {
       setSaveError(t("error.saveFailed"));
@@ -154,6 +153,9 @@ function ManageSeatsPage() {
         {isCheckedIn(booking, leg) ? (
           <p className="mt-2 text-xs text-muted-foreground">{t("ci.alreadyDone")}</p>
         ) : null}
+        {isCurrentLegCheckedInForActivePax ? (
+          <p className="mt-2 text-xs font-medium text-amber-700 dark:text-amber-400">{t("ci.seatProtected")}</p>
+        ) : null}
         {account?.seatPreference && account.seatPreference !== "none" ? (
           <p className="mt-2 text-xs text-muted-foreground">{t("ci.seatSuggestion")}</p>
         ) : null}
@@ -172,6 +174,12 @@ function ManageSeatsPage() {
             onSelect={(pos, seat) => {
               const target = seatable[pos];
               if (target === undefined) return;
+              const isChecked = (booking.checkedIn?.[leg] ?? []).includes(target);
+              if (isChecked) {
+                setSaveError(t("ci.seatProtected"));
+                return;
+              }
+              setSaveError(null);
               setSeats((prev) => ({ ...prev, [`${leg}-${target}`]: seat }));
             }}
             passengerLabels={seatable.map((i) => paxLabel(i))}
@@ -184,16 +192,23 @@ function ManageSeatsPage() {
         </p>
 
         <div className="mt-5 flex flex-wrap gap-2">
-          <button type="button" onClick={save} className={btnClass("primary", "md")}>
+          <button
+            type="button"
+            onClick={save}
+            disabled={updateSeatsMutation.isPending}
+            className={btnClass("primary", "md")}
+          >
             {t("common.save")}
           </button>
           <AppLink to="/manage/$ref" params={{ ref: booking.ref }} className={btnClass("secondary", "md")}>
             {t("common.cancel")}
           </AppLink>
         </div>
-          {saveError ? (
-            <p role="alert" className="mt-2 text-sm font-semibold text-destructive">{saveError}</p>
-          ) : null}
+        {saveError ? (
+          <p role="alert" className="mt-2 text-sm font-semibold text-destructive">
+            {saveError}
+          </p>
+        ) : null}
       </Panel>
     </Container>
   );

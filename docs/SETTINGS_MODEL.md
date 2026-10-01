@@ -23,7 +23,7 @@ Settings adhere to the following invariants:
 | **Airport** | Time Zone | Text | Domain / System Fact | Read-only in Admin. Station reference `Asia/Gaza (UTC+3)`. |
 | **Airport** | Terminals | Text | Operations Fact | Read-only in Admin. Operational fixture: "Terminal 1". |
 | **Airport** | Gates | Text | Operations Fact | Read-only in Admin. Operational fixture: "A1, A2, A4, B1, B3". |
-| **Service** | Check-in Opens | Text | Service Policy | Read-only in Admin. Rule: 48h prior to departure. |
+| **Service** | Check-in Opens | Text | Service Policy | Read-only in Admin. Rule: 24h prior to departure. |
 | **Service** | Check-in Closes | Text | Service Policy | Read-only in Admin. Rule: 60 min prior to departure. |
 | **Service** | Boarding Cutoff | Text | Service Policy | Read-only in Admin. Rule: 20 min prior to departure. |
 | **Service** | Cabin Baggage | Text | Service Policy | Read-only in Admin. Standard allowance: 7 kg. |

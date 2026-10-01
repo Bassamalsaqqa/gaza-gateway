@@ -1,11 +1,16 @@
 import { AppLink } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useMemo } from "react";
+import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { Ticket } from "lucide-react";
 import { BoardingPassCard, passesForBooking } from "@/components/booking/boarding-pass";
 import { btnClass, EmptyState, Notice, Panel, Pill } from "@/components/kit";
 import { useI18n } from "@/lib/i18n";
+import type { Flight } from "@/lib/data";
 import { anyCheckedIn } from "@/lib/domain/booking";
 import { useMyBookings } from "@/lib/passenger";
+import { flightKeys } from "@/lib/repositories/keys";
+import { useRepositories } from "@/lib/repositories/registry";
 
 export const Route = createFileRoute("/{-$locale}/account/boarding-passes")({
   head: () => ({
@@ -27,8 +32,51 @@ export const Route = createFileRoute("/{-$locale}/account/boarding-passes")({
 function BoardingPassesPage() {
   const { t } = useI18n();
   const { data: bookings } = useMyBookings();
+  const { flight: flightRepo } = useRepositories();
+  const queryClient = useQueryClient();
 
-  const passes = bookings.flatMap((b) => passesForBooking(b));
+  useEffect(() => {
+    return flightRepo.subscribe(() => {
+      queryClient.invalidateQueries({ queryKey: flightKeys.all });
+    });
+  }, [flightRepo, queryClient]);
+
+  // Collect unique flight IDs across confirmed bookings
+  const flightIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const b of bookings) {
+      if (b.status === "confirmed") {
+        if (b.outbound?.id) ids.add(b.outbound.id);
+        if (b.inbound?.id) ids.add(b.inbound.id);
+      }
+    }
+    return Array.from(ids);
+  }, [bookings]);
+
+  const flightQueries = useQueries({
+    queries: flightIds.map((id) => ({
+      queryKey: flightKeys.detail(id),
+      queryFn: () => flightRepo.getFlightById(id),
+      enabled: Boolean(id),
+    })),
+  });
+
+  const effectiveFlightMap = useMemo(() => {
+    const map = new Map<string, Flight | null>();
+    flightIds.forEach((id, idx) => {
+      map.set(id, flightQueries[idx]?.data ?? null);
+    });
+    return map;
+  }, [flightIds, flightQueries]);
+
+  const passes = useMemo(() => {
+    return bookings.flatMap((b) => {
+      const outEff = (b.outbound?.id ? effectiveFlightMap.get(b.outbound.id) : null) ?? null;
+      const inEff = (b.inbound?.id ? effectiveFlightMap.get(b.inbound.id) : null) ?? null;
+      return passesForBooking(b, { out: outEff, in: inEff });
+    });
+  }, [bookings, effectiveFlightMap]);
+
   const pendingCheckin = bookings.filter((b) => b.status === "confirmed" && !anyCheckedIn(b));
 
   if (passes.length === 0) {

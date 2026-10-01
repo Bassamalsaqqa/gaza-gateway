@@ -4,10 +4,16 @@ import { Check, Ticket, UserPlus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { EXTRA_BAG_PRICE, airportByCode, fares, mealOptions } from "@/lib/data";
 import { Code, Container, EmptyState, GazaLoadingState, Notice, Panel, btnClass } from "@/components/kit";
+import { StatusBadge } from "@/components/flight-status";
 import { dateLong, money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
 import { extrasFor, totalExtraBags } from "@/lib/booking-draft";
-import { useBookingQuery, useClaimBookingMutation, type ClaimResult } from "@/lib/repositories";
+import {
+  useBookingEffectiveFlights,
+  useBookingQuery,
+  useClaimBookingMutation,
+  type ClaimResult,
+} from "@/lib/repositories";
 import { bookingBelongsToAccount, normalizeEmailIdentity, usePassengerAccount } from "@/lib/passenger";
 import { passesForBooking } from "@/components/booking/boarding-pass";
 
@@ -48,7 +54,13 @@ function ConfirmationPage() {
   }, [normalizedRef, normalizedAccountEmail]);
 
   const { data: booking, isPending, isError } = useBookingQuery(normalizedRef);
-  const passes = booking ? passesForBooking(booking) : [];
+  const effectiveFlights = useBookingEffectiveFlights(booking);
+  const passes = booking
+    ? passesForBooking(booking, {
+        out: effectiveFlights.outbound.effectiveFlight,
+        in: effectiveFlights.inbound?.effectiveFlight ?? null,
+      })
+    : [];
   const firstPass = passes[0];
 
   const activeClaim =
@@ -78,7 +90,11 @@ function ConfirmationPage() {
   }
 
   if (isError) {
-    return <Container className="py-14"><EmptyState title={t("conf.loadFailed")} description={t("conf.loadFailedSub")} /></Container>;
+    return (
+      <Container className="py-14">
+        <EmptyState title={t("conf.loadFailed")} description={t("conf.loadFailedSub")} />
+      </Container>
+    );
   }
 
   if (!booking) {
@@ -128,14 +144,25 @@ function ConfirmationPage() {
         <Panel>
           <p className="eyebrow text-clay">{t("conf.itinerary")}</p>
           <ul className="mt-3 divide-y divide-border">
-            {[booking.outbound, booking.inbound].map((flight, index) =>
-              flight ? (
+            {[booking.outbound, booking.inbound].map((flight, index) => {
+              if (!flight) return null;
+              const legState = index === 0 ? effectiveFlights.outbound : effectiveFlights.inbound;
+              const eff = legState?.effectiveFlight;
+              const displayFlight = eff ?? flight;
+
+              return (
                 <li key={flight.id} className="py-3 first:pt-0 last:pb-0">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {t(index === 0 ? "book.outbound" : "book.inbound")}
-                  </p>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      {t(index === 0 ? "book.outbound" : "book.inbound")}
+                    </p>
+                    {eff ? <StatusBadge status={eff.status} /> : null}
+                  </div>
                   <p className="mt-1 font-semibold">
-                    {pick(lang, airportByCode(flight.originCode)?.city ?? { en: flight.originCode, ar: flight.originCode })}{" "}
+                    {pick(
+                      lang,
+                      airportByCode(flight.originCode)?.city ?? { en: flight.originCode, ar: flight.originCode },
+                    )}{" "}
                     →{" "}
                     {pick(
                       lang,
@@ -146,14 +173,23 @@ function ConfirmationPage() {
                     )}
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    <Code>{flight.number}</Code> · {dateLong(flight.date, lang)} ·{" "}
-                    <span className="code-id">{flight.departTime}</span>–
-                    <span className="code-id">{flight.arriveTime}</span> · {t("flights.terminal")}{" "}
-                    <span className="code-id">{flight.terminal}</span>
+                    <Code>{displayFlight.number}</Code> · {dateLong(flight.date, lang)} ·{" "}
+                    <span className="code-id">{flight.departTime}</span>
+                    {eff?.revisedDepart ? (
+                      <>
+                        {" · "}
+                        {t("bp.revised")}:{" "}
+                        <span className="code-id font-semibold text-clay">{eff.revisedDepart}</span>
+                      </>
+                    ) : null}
+                    {" – "}
+                    <span className="code-id">{displayFlight.arriveTime}</span> · {t("flights.terminal")}{" "}
+                    <span className="code-id">{displayFlight.terminal}</span> · {t("flights.gate")}{" "}
+                    <span className="code-id">{displayFlight.gate}</span>
                   </p>
                 </li>
-              ) : null,
-            )}
+              );
+            })}
           </ul>
         </Panel>
 
@@ -243,56 +279,50 @@ function ConfirmationPage() {
             ) : (
               <button
                 type="button"
-                disabled={claimMutation.isPending}
                 onClick={async () => {
-                  try {
-                    const res = await claimMutation.mutateAsync({ ref: booking.ref, accountEmail: account.email });
-                    let err: string | null = null;
-                    if (res.status === "contact-mismatch") {
-                      err = t("auth.claimContactMismatch");
-                    } else if (res.status === "owned-by-another") {
-                      err = t("auth.claimOwnedByAnother");
-                    } else if (res.status === "not-found") {
-                      err = t("auth.claimNotFound");
-                    }
-                    setScopedClaim({
-                      ref: normalizedRef,
-                      accountEmail: normalizedAccountEmail!,
-                      status: res.status,
-                      error: err,
-                    });
-                  } catch {
-                    setScopedClaim({
-                      ref: normalizedRef,
-                      accountEmail: normalizedAccountEmail!,
-                      status: "not-found",
-                      error: t("error.saveFailed"),
-                    });
-                  }
+                  if (!account?.email) return;
+                  const res = await claimMutation.mutateAsync({
+                    ref: booking.ref,
+                    accountEmail: account.email,
+                  });
+                  setScopedClaim({
+                    ref: normalizedRef,
+                    accountEmail: normalizedAccountEmail!,
+                    status: res.status,
+                    error:
+                      res.status === "contact-mismatch"
+                        ? t("auth.claimContactMismatch")
+                        : res.status === "owned-by-another"
+                          ? t("auth.claimOwnedByAnother")
+                          : res.status === "not-found"
+                            ? t("auth.claimNotFound")
+                            : null,
+                  });
                 }}
-                className={btnClass("clay", "md")}
+                disabled={claimMutation.isPending}
+                className={btnClass("outline", "md")}
               >
-                {claimMutation.isPending ? t("common.loading") : t("conf.linkAccount")}
+                <UserPlus aria-hidden="true" className="size-4" />
+                {claimMutation.isPending ? t("common.saving") : t("auth.claimEligible", { ref: booking.ref })}
               </button>
             )}
           </div>
-          {activeClaim?.status === "claimed" ? (
-            <p role="status" className="mt-2 text-sm text-brand-deep font-medium">
+          {activeClaim?.error ? (
+            <p role="alert" className="mt-3 text-sm font-semibold text-destructive">
+              {activeClaim.error}
+            </p>
+          ) : activeClaim?.status === "claimed" ? (
+            <p role="status" className="mt-3 text-sm font-semibold text-brand-deep">
               {t("auth.claimSuccess", { ref: booking.ref })}
             </p>
           ) : activeClaim?.status === "already-owned-by-user" ? (
-            <p role="status" className="mt-2 text-sm text-brand-deep font-medium">
+            <p role="status" className="mt-3 text-sm font-semibold text-brand-deep">
               {t("auth.claimAlreadyOwned", { ref: booking.ref })}
             </p>
-          ) : activeClaim?.error ? (
-            <p role="alert" className="mt-2 text-sm text-destructive font-medium">
-              {activeClaim.error}
-            </p>
           ) : null}
-          <div className="mt-4">
-            <Notice>{t("conf.guestNote")}</Notice>
-          </div>
         </Panel>
+
+        <Notice>{t("conf.manageNotice")}</Notice>
       </div>
     </Container>
   );

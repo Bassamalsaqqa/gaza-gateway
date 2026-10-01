@@ -10,15 +10,16 @@
 import { useEffect } from "react";
 import {
   useQuery,
+  useQueries,
   useMutation,
   useQueryClient,
   type UseQueryResult,
   type UseMutationResult,
 } from "@tanstack/react-query";
-import type { Booking, BookingCreateInput } from "../domain/booking.ts";
+import type { Booking, BookingCreateInput, Leg } from "../domain/booking.ts";
 import type { Flight, FlightOverride } from "../domain/flight.ts";
-import type { ClaimResult, MonthlyServiceMap } from "./types.ts";
-import type { BookingDraftState, Draft, SearchCriteria } from "../booking-draft/types.ts";
+import type { CheckInCommandInput, ClaimResult, MonthlyServiceMap } from "./types.ts";
+import type { BookingDraftState, Draft, Extras, SearchCriteria } from "../booking-draft/types.ts";
 import { emptyPaxExtras, passengersFor } from "../booking-draft/factories.ts";
 import { bookingDraftKeys, bookingKeys, flightKeys } from "./keys.ts";
 export { bookingDraftKeys, bookingKeys, flightKeys } from "./keys.ts";
@@ -108,6 +109,225 @@ export function useUpdateBookingMutation(): UseMutationResult<
       }
     },
   });
+}
+
+/**
+ * Mutation hook for cancelling a booking through the canonical repository.
+ */
+export function useCancelBookingMutation(): UseMutationResult<
+  Booking,
+  Error,
+  { ref: string }
+> {
+  const { booking: bookingRepo } = useRepositories();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ ref }: { ref: string }) => bookingRepo.cancel(ref),
+    onSuccess: (updated) => {
+      queryClient.invalidateQueries({ queryKey: bookingKeys.all });
+      if (updated?.ref) {
+        queryClient.setQueryData(bookingKeys.detail(updated.ref), updated);
+      }
+    },
+  });
+}
+
+/**
+ * Mutation hook for updating passenger contact info through the canonical repository.
+ */
+export function useUpdateBookingContactMutation(): UseMutationResult<
+  Booking,
+  Error,
+  { ref: string; contact: { email: string; phone?: string } }
+> {
+  const { booking: bookingRepo } = useRepositories();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ ref, contact }: { ref: string; contact: { email: string; phone?: string } }) =>
+      bookingRepo.updateContact(ref, contact),
+    onSuccess: (updated) => {
+      queryClient.invalidateQueries({ queryKey: bookingKeys.all });
+      if (updated?.ref) {
+        queryClient.setQueryData(bookingKeys.detail(updated.ref), updated);
+      }
+    },
+  });
+}
+
+/**
+ * Mutation hook for updating seat assignments through the canonical repository.
+ */
+export function useUpdateBookingSeatsMutation(): UseMutationResult<
+  Booking,
+  Error,
+  { ref: string; seats: Record<string, string> }
+> {
+  const { booking: bookingRepo } = useRepositories();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ ref, seats }: { ref: string; seats: Record<string, string> }) =>
+      bookingRepo.updateSeats(ref, seats),
+    onSuccess: (updated) => {
+      queryClient.invalidateQueries({ queryKey: bookingKeys.all });
+      if (updated?.ref) {
+        queryClient.setQueryData(bookingKeys.detail(updated.ref), updated);
+      }
+    },
+  });
+}
+
+/**
+ * Mutation hook for updating passenger extras through the canonical repository.
+ */
+export function useUpdateBookingExtrasMutation(): UseMutationResult<
+  Booking,
+  Error,
+  { ref: string; extras: Extras }
+> {
+  const { booking: bookingRepo } = useRepositories();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ ref, extras }: { ref: string; extras: Extras }) =>
+      bookingRepo.updateExtras(ref, extras),
+    onSuccess: (updated) => {
+      queryClient.invalidateQueries({ queryKey: bookingKeys.all });
+      if (updated?.ref) {
+        queryClient.setQueryData(bookingKeys.detail(updated.ref), updated);
+      }
+    },
+  });
+}
+
+/**
+ * Mutation hook for atomically completing check-in through the canonical repository.
+ */
+export function useCompleteCheckInMutation(): UseMutationResult<
+  Booking,
+  Error,
+  CheckInCommandInput
+> {
+  const { booking: bookingRepo } = useRepositories();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: CheckInCommandInput) => bookingRepo.completeCheckIn(input),
+    onSuccess: (updated) => {
+      queryClient.invalidateQueries({ queryKey: bookingKeys.all });
+      if (updated?.ref) {
+        queryClient.setQueryData(bookingKeys.detail(updated.ref), updated);
+      }
+    },
+  });
+}
+
+export interface EffectiveLegState {
+  bookedFlight: Flight | null;
+  effectiveFlight: Flight | null;
+  isUnavailable: boolean;
+  isLoading: boolean;
+  isError: boolean;
+}
+
+export interface BookingEffectiveFlightsResult {
+  outbound: EffectiveLegState;
+  inbound: EffectiveLegState | null;
+  isLoading: boolean;
+  isError: boolean;
+}
+
+/**
+ * Hook to resolve effective flight instances (with operational overrides applied)
+ * for a booking's outbound and inbound legs.
+ * Uses bounded useQueries and keeps React Query cache in sync via FlightRepository subscription.
+ */
+export function useBookingEffectiveFlights(
+  booking: Booking | null | undefined,
+): BookingEffectiveFlightsResult {
+  const { flight: flightRepo } = useRepositories();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    return flightRepo.subscribe(() => {
+      queryClient.invalidateQueries({ queryKey: flightKeys.all });
+    });
+  }, [flightRepo, queryClient]);
+
+  const outboundId = booking?.outbound?.id?.trim() ?? "";
+  const inboundId = booking?.inbound?.id?.trim() ?? "";
+
+  const results = useQueries({
+    queries: [
+      {
+        queryKey: flightKeys.detail(outboundId),
+        queryFn: () => (outboundId ? flightRepo.getFlightById(outboundId) : Promise.resolve(null)),
+        enabled: Boolean(outboundId),
+      },
+      {
+        queryKey: flightKeys.detail(inboundId),
+        queryFn: () => (inboundId ? flightRepo.getFlightById(inboundId) : Promise.resolve(null)),
+        enabled: Boolean(inboundId),
+      },
+    ],
+  });
+
+  const [outboundQuery, inboundQuery] = results;
+
+  const outboundBooked = booking?.outbound ?? null;
+  const inboundBooked = booking?.inbound ?? null;
+
+  const outboundEffective = outboundId ? (outboundQuery?.data ?? null) : null;
+  const inboundEffective = inboundId ? (inboundQuery?.data ?? null) : null;
+
+  const isOutboundLoading = Boolean(outboundId && outboundQuery?.isLoading);
+  const isInboundLoading = Boolean(inboundId && inboundQuery?.isLoading);
+
+  const isOutboundError = Boolean(outboundId && outboundQuery?.isError);
+  const isInboundError = Boolean(inboundId && inboundQuery?.isError);
+
+  const isOutboundUnavailable = Boolean(
+    outboundId && !isOutboundLoading && !isOutboundError && outboundQuery?.isSuccess && outboundQuery.data === null,
+  );
+  const isInboundUnavailable = Boolean(
+    inboundId && !isInboundLoading && !isInboundError && inboundQuery?.isSuccess && inboundQuery.data === null,
+  );
+
+  const outboundState: EffectiveLegState = {
+    bookedFlight: outboundBooked,
+    effectiveFlight: outboundEffective,
+    isUnavailable: isOutboundUnavailable,
+    isLoading: isOutboundLoading,
+    isError: isOutboundError,
+  };
+
+  const inboundState: EffectiveLegState | null = inboundBooked
+    ? {
+        bookedFlight: inboundBooked,
+        effectiveFlight: inboundEffective,
+        isUnavailable: isInboundUnavailable,
+        isLoading: isInboundLoading,
+        isError: isInboundError,
+      }
+    : null;
+
+  return {
+    outbound: outboundState,
+    inbound: inboundState,
+    isLoading: isOutboundLoading || isInboundLoading,
+    isError: isOutboundError || isInboundError,
+  };
+}
+
+export function getEffectiveFlightForLeg(
+  effectiveFlights: BookingEffectiveFlightsResult,
+  leg: Leg,
+): Flight | null {
+  return leg === "in"
+    ? effectiveFlights.inbound?.effectiveFlight ?? null
+    : effectiveFlights.outbound.effectiveFlight;
 }
 
 /**

@@ -159,11 +159,16 @@ describe("Boarding-Pass Domain Selector (Phase 4.0.1)", () => {
       assert.equal(vmNoSeat.seat, null);
     });
 
-    it("supports operational flight override", () => {
-      const overrideFlight = { ...mockFlightOut, number: "PS 999", departTime: "11:00" };
+    it("supports operational flight override while preserving scheduled departure for boarding opens", () => {
+      const overrideFlight = { ...mockFlightOut, number: "PS 999", gate: "B2", revisedDepart: "11:00" };
       const vm = buildBoardingPassViewModel(baseBooking, "out", 0, overrideFlight);
       assert.equal(vm.flight.number, "PS 999");
-      assert.equal(vm.boardingTime, "10:15");
+      assert.equal(vm.flight.gate, "B2");
+      assert.equal(vm.scheduledDepartureTime, "10:00");
+      assert.equal(vm.revisedDepartureTime, "11:00");
+      // Boarding opens is strictly derived from scheduled departure (10:00 - 45m = 09:15)
+      assert.equal(vm.boardingOpensTime, "09:15");
+      assert.equal(vm.boardingTime, "09:15");
     });
 
     it("rejects infant passenger directly", () => {

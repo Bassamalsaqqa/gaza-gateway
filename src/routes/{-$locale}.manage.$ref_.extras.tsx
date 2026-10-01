@@ -2,22 +2,18 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select as UiSelect, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AppLink, useAppNavigate } from "@/components/app-link";
-import { Container, EmptyState, Field, GazaLoadingState, PageHeader, Panel, Select, btnClass } from "@/components/kit";
+import { Container, EmptyState, Field, GazaLoadingState, PageHeader, Panel, btnClass } from "@/components/kit";
 import { EXTRA_BAG_PRICE, assistanceOptions, mealOptions } from "@/lib/data";
 import { money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
 import { pageHead } from "@/lib/head";
-import {
-  bookingTotal,
-  emptyPaxExtras,
-  extrasForPassengers,
-  totalExtraBags,
-  type Extras,
-  type PaxExtras,
-  useStore,
-} from "@/lib/store";
+import { totalExtraBags } from "@/lib/booking-draft";
+import { bookingTotal } from "@/lib/domain/pricing";
+import { emptyPaxExtras, extrasForPassengers } from "@/lib/booking-draft/factories";
+import type { Extras, PaxExtras } from "@/lib/booking-draft/types";
+import { useBookingQuery, useUpdateBookingExtrasMutation } from "@/lib/repositories/queries";
 
 export const Route = createFileRoute("/{-$locale}/manage/$ref_/extras")({
   head: ({ params }) =>
@@ -41,16 +37,19 @@ function ManageExtrasPage() {
   const { ref } = Route.useParams();
   const { t, lang } = useI18n();
   const navigate = useAppNavigate();
-  const { ready, findBooking, updateBooking } = useStore();
-  const booking = findBooking(ref);
-  const [extras, setExtras] = useState<Extras>(
-    booking
-      ? extrasForPassengers(booking.extras, booking.passengers.length)
-      : { pax: [emptyPaxExtras()] },
-  );
+  const { data: booking, isLoading } = useBookingQuery(ref);
+  const updateExtrasMutation = useUpdateBookingExtrasMutation();
+
+  const [extras, setExtras] = useState<Extras>({ pax: [emptyPaxExtras()] });
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  if (!ready) {
+  useEffect(() => {
+    if (booking) {
+      setExtras(extrasForPassengers(booking.extras, booking.passengers.length));
+    }
+  }, [booking]);
+
+  if (isLoading) {
     return (
       <Container className="py-16">
         <GazaLoadingState />
@@ -107,7 +106,7 @@ function ManageExtrasPage() {
   const save = async () => {
     try {
       setSaveError(null);
-      await updateBooking(booking.ref, { extras, total: totals.total });
+      await updateExtrasMutation.mutateAsync({ ref: booking.ref, extras });
       void navigate({ to: "/manage/$ref", params: { ref: booking.ref } });
     } catch {
       setSaveError(t("error.saveFailed"));
@@ -244,16 +243,23 @@ function ManageExtrasPage() {
         </dl>
 
         <div className="mt-5 flex flex-wrap gap-2">
-          <button type="button" onClick={save} className={btnClass("primary", "md")}>
+          <button
+            type="button"
+            onClick={save}
+            disabled={updateExtrasMutation.isPending}
+            className={btnClass("primary", "md")}
+          >
             {t("common.save")}
           </button>
           <AppLink to="/manage/$ref" params={{ ref: booking.ref }} className={btnClass("secondary", "md")}>
             {t("common.cancel")}
           </AppLink>
         </div>
-          {saveError ? (
-            <p role="alert" className="mt-2 text-sm font-semibold text-destructive">{saveError}</p>
-          ) : null}
+        {saveError ? (
+          <p role="alert" className="mt-2 text-sm font-semibold text-destructive">
+            {saveError}
+          </p>
+        ) : null}
       </Panel>
     </Container>
   );

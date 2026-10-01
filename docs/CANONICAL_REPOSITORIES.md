@@ -1,6 +1,6 @@
 # Canonical Mock Domain & Repository Architecture
 
-> **Document Status**: Active Reference (Phase 5 in progress — Phase 5B Booking Draft & Effective Flight Discovery Convergence COMPLETE / ACCEPTED; Phase 5C planned/unstarted)
+> **Document Status**: Active Reference (Phase 5 in progress — Phase 5C Manage, Check-in & Boarding Pass Convergence IMPLEMENTED on feature branch; Phase 5D planned)
 > **Product**: Gaza Airport & Palestinian Airlines ([gazaairport.com](https://www.gazaairport.com))
 > **Phase 4 starting commits**: `9e36b869274830f84c97cbbefe3b3fb0a98c6d2e` (`main`); `92ad935f8477e1663eefa8282d2770c66b64b8b2` (`hostpapa-deploy`)
 > **Pre-operational Prototype Notice**: Gaza Gateway is an authentic, browser-local client-side prototype. It does not connect to a live backend database, payment gateway, GDS, or external server.
@@ -16,21 +16,24 @@ Prior to Phase 4, Gaza Gateway had a fragmented data architecture with two criti
 
 Phase 4 resolved these defects by introducing **two bounded aggregates** with asynchronous, backend-ready contracts: `BookingRepository` and `FlightRepository`, backed by a versioned persistence schema (`gza.repo.v1`), centralized TanStack React Query keys and hooks, and strict single-writer mutation boundaries.
 
-Phase 5B extends this architecture to the public booking funnel:
-- Canonical **`BookingDraftRepository`** (`src/lib/booking-draft/`) backed by `gza.booking.draft.v1` (`schemaVersion: 1`), removing booking draft ownership from `StoreProvider` and establishing 5 distinct storage states with tombstone anti-resurrection.
-- Canonical **Effective Flight Discovery & Calendar Availability** through `FlightRepository.searchFlights` and `FlightRepository.getMonthlyServiceMap`, resolving operational overrides and capacity across both Gaza departures and arrivals.
-- **Dynamic Selection Reconciliation** in `/book` that refreshes operational snapshots, invalidates cancelled or unbookable legs, evicts affected seats via prefix deletion (`out-*` / `in-*`), clamps wizard progression back to Results, and provides localized alerts.
-- **Fresh Transactional Booking Authority** in `BookingRepository.create` that re-resolves effective flights against shared coordinator overrides inside the transaction and enforces idempotency via `submissionId`.
+Phase 5B extended this architecture to the public booking funnel (`BookingDraftRepository` on `gza.booking.draft.v1` and effective flight discovery).
+
+Phase 5C converges public Manage Trip, Check-in, and Boarding Pass surfaces onto canonical repositories and effective flights:
+- Bounded, typed `BookingRepository` commands (`cancel`, `updateContact`, `updateSeats`, `updateExtras`, `completeCheckIn`) with canonical pricing recalculation (`bookingTotal`), checked-in seat protection, and full coordinator rollback on storage failure.
+- Authoritative check-in eligibility engine (`getCheckInEligibility`) enforcing the 24h to 60m scheduled departure window in station timezone (with non-GZA inbound origin support) and operational status restrictions.
+- Atomic check-in revalidation inside the mutation transaction closing TOCTOU races.
+- Multi-query hook `useBookingEffectiveFlights(booking)` subscribing to `FlightRepository` invalidation to keep operational flight status, gates, terminals, and revised departure times reactive without polling.
+- Pure boarding-pass view model (`buildBoardingPassViewModel`) with scheduled vs revised departure distinction, policy-derived `boardingOpensTime` ("Boarding opens"), and non-active operational treatments (Cancelled, Departed, Landed, Unavailable).
 
 ---
 
-## 2. Post-Phase-5B Ownership Matrix
+## 2. Post-Phase-5C Ownership Matrix
 
 | Aggregate / Entity | Primary Writer | Primary Storage Key | Consumers (Public & Admin) | Current State | Future Migration Target |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Booking Draft** | `BookingDraftRepository` (`src/lib/booking-draft/`) | `gza.booking.draft.v1` (`schemaVersion: 1`) | Public Booking Wizard (`/book`), Flight Detail CTA (`/flight/$flightId`), Flight Search Form (`FlightSearchForm`) | **Complete (Phase 5B)** with 5 storage states, serialized mutation queue, tombstone anti-resurrection, and multi-tab synchronization | Phase 13 (Backend Cart/Session) |
 | **Passenger State (Account & Travelers)** | `PassengerRepository` (`src/lib/passenger/`) | `gza.passenger.v1` (`account`, `travelers`) | Site Header, `/account/*`, `/book` (saved traveler pickers), `/signin`, `/register`, `/verify-email`, `/account/security` | **Migrated (Phase 5A)** to canonical `PassengerRepository` with transactional coordinator and zero password persistence | Phase 13 (Backend Auth & Database) |
-| **Booking** | `BookingRepository` (`LocalBookingRepository`) | `gza.repo.v1` (`bookings[]`) | Public Confirmation (`/booking-confirmation/$ref`), Manage Booking (`/manage`), Admin Dashboard, Admin Bookings (`/admin/bookings`), Admin Booking Detail (`/admin/bookings/$ref`), Admin Global Search (`AdminSearch`), Account Trips (`/account/trips`) | **Migrated (Phase 4 & 5B)** with single-writer pattern, React Query invalidation, hardened `claim()`, and fresh transaction re-resolution with `submissionId` idempotency | Phase 5C / 6 |
+| **Booking** | `BookingRepository` (`LocalBookingRepository`) | `gza.repo.v1` (`bookings[]`) | Public Confirmation (`/booking-confirmation/$ref`), Manage Booking (`/manage/*`), Check-in (`/check-in`, `/manage/:ref/check-in`), Boarding Pass (`/boarding-pass/*`), Account Trips (`/account/trips`), Admin Dashboard, Admin Bookings (`/admin/bookings`), Admin Booking Detail (`/admin/bookings/$ref`), Admin Global Search (`AdminSearch`) | **Converged (Phase 4, 5B, 5C)** with single-writer pattern, React Query invalidation, typed passenger commands (`cancel`, `updateContact`, `updateSeats`, `updateExtras`, `completeCheckIn`), and checked-in seat protection | Phase 6 |
 | **Flight Operations (Overrides)** | `FlightRepository` (`LocalFlightRepository`) | `gza.repo.v1` (`flightOverrides{}`) | Public Flights Board (`/flights`), Public Flight Detail (`/flight/$flightId`), Public Booking Discovery (`/book`), Calendar Date Picker (`AirlineDatePicker`), Admin Dashboard, Admin Flights (`/admin/flights`), Flight Operations Quick-Edit | **Migrated (Phase 4 & 5B)** with pure `getEffectiveFlight()` composition, bidirectional search, and batched monthly service map | Phase 6 (Admin dispatch & schedules) |
 | **Flight Schedules & Reference** | `src/lib/data.ts` (deterministic generator) | Static / In-memory | `FlightRepository`, flight search, route generation | **Preserved** as immutable baseline timetable and schedule generator | Phase 6 (Mutable schedules) |
 | **Legacy Store Key** | Preserved read-only migration source | `gza.store.v1` | One-time migration to `gza.booking.draft.v1` when draft key is missing | **Closed Legacy Key**: ZERO active draft writers; original string preserved byte-for-byte; never resurrected once cleared | Fully Deprecated |
@@ -108,6 +111,11 @@ export interface BookingRepository {
   getByRef(ref: string): Promise<Booking | null>;
   create(input: BookingCreateInput): Promise<Booking>;
   update(ref: string, patch: Partial<Booking>): Promise<Booking | null>;
+  cancel(ref: string): Promise<Booking>;
+  updateContact(ref: string, contact: Contact): Promise<Booking>;
+  updateSeats(ref: string, seats: Record<string, string>): Promise<Booking>;
+  updateExtras(ref: string, extras: Extras): Promise<Booking>;
+  completeCheckIn(input: CheckInCommandInput): Promise<Booking>;
   checkIn(ref: string, leg: Leg, paxIndexes: number[]): Promise<Booking | null>;
   claim(ref: string, accountEmail: string): Promise<ClaimResult>;
   delete(ref: string): Promise<boolean>;
@@ -263,10 +271,37 @@ To guarantee that heavy admin fixtures and editor metadata do not leak into publ
 - **`src/lib/domain/booking-seeds.ts`**: Contains clean, deterministic seeds for 6 demo bookings (`GZA4TQ`, `GZA9MK`, `GZA7RD`, `GZA2BX`, `GZA5ZN`, `GZA8LP`). Does not import CMS, analytics, or story collections.
 - **Bundle Measurement**: The Phase 4 measured public entry script was about 414 kB uncompressed. Verify each later release independently; the public startup graph should exclude `admin-mock.ts`, Appearance Studio scenario registry, and heavy visual motifs.
 
-## 8. Boarding-Pass Data Boundary (Phase 4.0.1)
+## 8. Boarding-Pass & Check-in Architecture (Phase 4.0.1 & Phase 5C)
 
-`getBoardingPassData(booking, leg, passengerIndex, effectiveFlight?)` in `src/lib/domain/boarding-pass.ts` is a pure selector for supported pass facts. It returns a stable passenger ID, PNR, route, flight/date/times, optional current operational gate/terminal/revised departure, assigned seat when present, fare, and cabin. It returns `null` for an invalid passenger or leg, an unchecked passenger, an infant traveling on an adult's lap, or a mismatched effective flight. It does not invent a barcode standard, boarding time, zone, or sequence. The existing pass UI retains prototype presentation fields until the owner's artwork arrives.
+### 8.1 Boarding-Pass Data Model & Selector (`src/lib/domain/boarding-pass.ts`)
 
-The admin booking list, detail, and search use repository results as authority after query resolution. An empty list and a `null` detail result never fall back to static `mockBookings`. The latter remains in non-migrated customer detail fixtures pending Phase 6.
+`getBoardingPassData(booking, leg, passengerIndex, effectiveFlight?)` and `buildBoardingPassViewModel(booking, leg, passengerIndex, effectiveFlight?)` are pure domain selectors:
+- **Fact Integrity**: Derives PNR, passenger name, document number, fare class, cabin, booked origin/destination, and scheduled departure/arrival strictly from the canonical `Booking`.
+- **Operational Reality**: Resolves current gate, terminal, aircraft equipment, revised departure time, and passenger notes from the effective `Flight` (composed via `FlightRepository`).
+- **Time Semantics**: Preserves `scheduledDepartureTime` distinctly from `revisedDepartureTime`. Computes policy-derived `boardingOpensTime` (scheduled departure minus 45 minutes) and `boardingClosesTime` (scheduled departure minus 20 minutes) with station date/midnight rollover safety. Never treats revised departure as extending or replacing scheduled departure.
+- **Operational Status Classification**: Maps flight status into five explicit pass operational states: `"active"`, `"cancelled"`, `"departed"`, `"landed"`, or `"unavailable"`. Cancelled, Departed, Landed, and Unavailable flights render explicit non-usable operational treatment banners rather than a deceptive valid-looking boarding pass.
+- **Prototype Truth**: Preserves explicit non-scannable prototype disclosure (`bp.notReal`). Barcode blocks are decorative only and inaccessible to assistive tech; no fake BCBP, Aztec, or QR payloads are generated.
 
-**Current hardening notes:** `RepositoryProvider`, individual query hooks, and mutation success handlers can invalidate overlapping query keys after one write. This has not produced an observed query storm in the local proof flows; consolidation can follow when broader workflows migrate. `BookingRepository.list()` returns a new array and `getByRef()` a shallow object copy, so nested passenger/seat/extras values are not deeply immutable. Current migrated readers do not intentionally mutate those values; future API adapters should formalize readonly data or defensive cloning at the boundary.
+### 8.2 Check-in Eligibility & Atomic Transaction (`src/lib/domain/check-in.ts`)
+
+- **Eligibility Engine (`getCheckInEligibility`)**:
+  - Authoritative window: Opens **exactly 24 hours** prior to scheduled departure (inclusive); closes **exactly 60 minutes** prior (exclusive).
+  - Timezone safety: Evaluated in the departure station timezone (including inbound origin stations).
+  - Revision immunity: `revisedDepart` never extends the check-in eligibility window.
+  - Allowed flight statuses: `Scheduled`, `OnTime`, `Delayed`.
+  - Blocked statuses: `Cancelled`, `Boarding`, `Departed`, `Landed`, or missing/unresolved flights.
+- **Atomic Command (`BookingRepository.completeCheckIn`)**:
+  - Re-evaluates eligibility inside the coordinator transaction against latest canonical booking, current effective flight overrides, and station clock.
+  - Validates passenger non-infant status, unique non-empty document input, and non-duplicate seat assignments.
+  - Commits document updates, leg seats, and `checkedIn` indexes in a single atomic transaction.
+  - Guarantees full rollback on storage quota or commit failure; UI never displays success unless persistence succeeds.
+  - Repeated identical requests are idempotent.
+
+### 8.3 Bounded Passenger Commands & Checked-in Seat Protection
+
+`BookingRepository` commands (`cancel`, `updateContact`, `updateSeats`, `updateExtras`) enforce strict invariants:
+- Rejected on cancelled bookings.
+- **Checked-in Seat Protection**: `updateSeats` prohibits modifying the assigned seat of any passenger who has already checked in for that specific leg. Unchecked passengers and open legs remain fully editable.
+- **Canonical Pricing Recalculation**: `updateSeats` and `updateExtras` recalculate the booking total price using the canonical domain pricing formula (`bookingTotal` in `src/lib/domain/pricing.ts`), completely preventing caller-supplied or divergent UI price tampering.
+
+**Current hardening notes:** `RepositoryProvider`, individual query hooks, and mutation success handlers invalidate relevant query keys upon write. `BookingRepository.list()` returns a new array and `getByRef()` a shallow object copy. Current migrated readers do not mutate those values directly; mutations flow exclusively through typed repository commands.

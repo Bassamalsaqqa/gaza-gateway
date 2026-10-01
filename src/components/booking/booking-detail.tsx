@@ -10,17 +10,17 @@ import { pick, useI18n } from "@/lib/i18n";
 import {
   bookingLegs,
   checkedInPax,
-  extrasFor,
   infantsWith,
   isPaxCheckedIn,
   legFullyCheckedIn,
   openLegs,
   openPaxForLeg,
   seatedPassengers,
-  totalExtraBags,
   type Booking,
   type Leg,
-} from "@/lib/store";
+} from "@/lib/domain/booking";
+import { extrasFor, totalExtraBags } from "@/lib/booking-draft";
+import { useBookingEffectiveFlights } from "@/lib/repositories/queries";
 
 export function BookingDetail({
   booking,
@@ -37,6 +37,8 @@ export function BookingDetail({
   const remainingLegs = openLegs(booking);
   const active = booking.status === "confirmed";
 
+  const effectiveFlights = useBookingEffectiveFlights(booking);
+
   const paxName = (i: number) => {
     const p = booking.passengers[i];
     return `${p?.firstName ?? ""} ${p?.lastName ?? ""}`.trim() || t("book.pax", { n: String(i + 1) });
@@ -47,6 +49,9 @@ export function BookingDetail({
     remainingLegs.length === 1
       ? t(remainingLegs[0] === "out" ? "manage.checkinOut" : "manage.checkinIn")
       : t("manage.checkinBoth");
+
+  const outboundEffective = effectiveFlights.outbound.effectiveFlight ?? booking.outbound;
+  const isOutboundUnavailable = effectiveFlights.outbound.isUnavailable;
 
   return (
     <div className="space-y-4">
@@ -59,8 +64,10 @@ export function BookingDetail({
           <div className="flex flex-wrap items-center gap-2">
             {booking.status === "cancelled" ? (
               <Pill tone="ink">{t("manage.cancelled")}</Pill>
+            ) : isOutboundUnavailable ? (
+              <Pill tone="ink">{t("bp.operationalUnavailable")}</Pill>
             ) : (
-              <StatusBadge status={booking.outbound.status} />
+              <StatusBadge status={outboundEffective.status} />
             )}
             {fare ? <Pill>{pick(lang, fare.name)}</Pill> : null}
           </div>
@@ -100,10 +107,23 @@ export function BookingDetail({
         ) : null}
       </Panel>
 
-      {[booking.outbound, booking.inbound].map((flight, index) =>
-        flight ? (
+      {[booking.outbound, booking.inbound].map((flight, index) => {
+        if (!flight) return null;
+        const legState = index === 0 ? effectiveFlights.outbound : effectiveFlights.inbound;
+        const effective = legState?.effectiveFlight;
+        const isUnavailable = legState?.isUnavailable ?? false;
+        const displayFlight = effective ?? flight;
+
+        return (
           <Panel key={flight.id}>
-            <p className="eyebrow text-clay">{t(index === 0 ? "book.outbound" : "book.inbound")}</p>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="eyebrow text-clay">{t(index === 0 ? "book.outbound" : "book.inbound")}</p>
+              {isUnavailable ? (
+                <Pill tone="ink">{t("bp.operationalUnavailable")}</Pill>
+              ) : effective ? (
+                <StatusBadge status={effective.status} />
+              ) : null}
+            </div>
             <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
               <p className="text-lg font-bold">
                 {pick(lang, airportByCode(flight.originCode)?.city ?? { en: flight.originCode, ar: flight.originCode })} →{" "}
@@ -113,18 +133,32 @@ export function BookingDetail({
                 )}
               </p>
               <AppLink to="/flight/$flightId" params={{ flightId: flight.id }} className="text-sm underline">
-                <Code className="text-sm text-muted-foreground">{flight.number}</Code>
+                <Code className="text-sm text-muted-foreground">{displayFlight.number}</Code>
               </AppLink>
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
-              {dateLong(flight.date, lang)} · <span className="code-id">{flight.departTime}</span>–
-              <span className="code-id">{flight.arriveTime}</span> · {t("flights.gate")}{" "}
-              <span className="code-id">{flight.gate}</span> · {t("flights.terminal")}{" "}
-              <span className="code-id">{flight.terminal}</span> · {flight.aircraft}
+              {dateLong(flight.date, lang)} ·{" "}
+              <span>
+                {t("flights.scheduled")}: <span className="code-id">{flight.departTime}</span>
+              </span>
+              {effective?.revisedDepart ? (
+                <span>
+                  {" · "}
+                  {t("bp.revised")}:{" "}
+                  <span className="code-id font-semibold text-clay">{effective.revisedDepart}</span>
+                </span>
+              ) : null}
+              {" – "}
+              <span className="code-id">{displayFlight.arriveTime}</span> · {t("flights.gate")}{" "}
+              <span className="code-id">{displayFlight.gate}</span> · {t("flights.terminal")}{" "}
+              <span className="code-id">{displayFlight.terminal}</span> · {displayFlight.aircraft}
             </p>
+            {effective?.note ? (
+              <p className="mt-2 text-xs text-muted-foreground">{effective.note}</p>
+            ) : null}
           </Panel>
-        ) : null,
-      )}
+        );
+      })}
 
       <Panel>
         <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">{t("book.passengersLabel")}</h2>
@@ -176,7 +210,7 @@ export function BookingDetail({
                     {extras.assistance.length > 0 ? (
                       <span>
                         {extras.assistance
-                          .map((id) => pick(lang, assistanceOptions.find((a) => a.id === id)?.label ?? { en: id, ar: id }))
+                          .map((id: string) => pick(lang, assistanceOptions.find((a) => a.id === id)?.label ?? { en: id, ar: id }))
                           .join(", ")}
                       </span>
                     ) : null}
@@ -287,10 +321,15 @@ export function BookingDetail({
             setCancelError(t("error.saveFailed"));
           }
         }}
-        onClose={() => { setConfirmOpen(false); setCancelError(null); }}
+        onClose={() => {
+          setConfirmOpen(false);
+          setCancelError(null);
+        }}
       />
       {cancelError ? (
-        <p role="alert" className="mt-2 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">{cancelError}</p>
+        <p role="alert" className="mt-2 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">
+          {cancelError}
+        </p>
       ) : null}
     </div>
   );

@@ -12,7 +12,10 @@ import { isSyntheticFlightId, getEffectiveFlight, type Flight } from "../domain/
 import { isFlightBookable, getFlightBookability } from "../booking-rules.ts";
 import { flightById } from "../data.ts";
 import { makePnr } from "../format.ts";
-import type { BookingRepository, ClaimResult } from "./types.ts";
+import type { BookingRepository, CheckInCommandInput, ClaimResult } from "./types.ts";
+import type { Extras } from "../booking-draft/types.ts";
+import { getCheckInEligibility } from "../domain/check-in.ts";
+import { bookingTotal } from "../domain/pricing.ts";
 import { normalizeEmailIdentity } from "../passenger/domain.ts";
 import {
   RepoStorageCoordinator,
@@ -259,6 +262,351 @@ export class LocalBookingRepository implements BookingRepository {
 
       state.bookings = [created, ...state.bookings];
       return { ...created };
+    });
+  }
+
+  public async cancel(ref: string): Promise<Booking> {
+    if (!ref || typeof ref !== "string") {
+      throw new Error("Cannot cancel booking: reference is required.");
+    }
+    const clean = ref.trim().toUpperCase();
+
+    return this.coordinator.mutate((state) => {
+      const index = state.bookings.findIndex((b) => b.ref.toUpperCase() === clean);
+      if (index === -1) {
+        throw new Error(`Booking ${clean} not found.`);
+      }
+
+      const existing = state.bookings[index];
+      if (!existing) {
+        throw new Error(`Booking ${clean} not found.`);
+      }
+
+      // Idempotent cancellation
+      if (existing.status === "cancelled") {
+        return { ...existing };
+      }
+
+      const updated: Booking = {
+        ...existing,
+        status: "cancelled",
+      };
+
+      state.bookings[index] = updated;
+      return { ...updated };
+    });
+  }
+
+  public async updateContact(
+    ref: string,
+    contact: { email: string; phone?: string },
+  ): Promise<Booking> {
+    if (!ref || typeof ref !== "string") {
+      throw new Error("Cannot update contact: reference is required.");
+    }
+    const clean = ref.trim().toUpperCase();
+    const cleanEmail = (contact?.email ?? "").trim();
+    if (!/.+@.+\..+/.test(cleanEmail)) {
+      throw new Error("Cannot update contact: invalid email address.");
+    }
+    const cleanPhone = (contact?.phone ?? "").trim();
+
+    return this.coordinator.mutate((state) => {
+      const index = state.bookings.findIndex((b) => b.ref.toUpperCase() === clean);
+      if (index === -1) {
+        throw new Error(`Booking ${clean} not found.`);
+      }
+
+      const existing = state.bookings[index];
+      if (!existing) {
+        throw new Error(`Booking ${clean} not found.`);
+      }
+
+      if (existing.status === "cancelled") {
+        throw new Error(`Cannot update contact: booking ${clean} is cancelled.`);
+      }
+
+      const updated: Booking = {
+        ...existing,
+        contact: {
+          email: cleanEmail,
+          phone: cleanPhone,
+        },
+      };
+
+      state.bookings[index] = updated;
+      return { ...updated };
+    });
+  }
+
+  public async updateSeats(
+    ref: string,
+    seats: Record<string, string>,
+  ): Promise<Booking> {
+    if (!ref || typeof ref !== "string") {
+      throw new Error("Cannot update seats: reference is required.");
+    }
+    const clean = ref.trim().toUpperCase();
+
+    return this.coordinator.mutate((state) => {
+      const index = state.bookings.findIndex((b) => b.ref.toUpperCase() === clean);
+      if (index === -1) {
+        throw new Error(`Booking ${clean} not found.`);
+      }
+
+      const existing = state.bookings[index];
+      if (!existing) {
+        throw new Error(`Booking ${clean} not found.`);
+      }
+
+      if (existing.status === "cancelled") {
+        throw new Error(`Cannot update seats: booking ${clean} is cancelled.`);
+      }
+
+      // Invariant: Checked-in passenger's checked-in leg seat is protected in the repository.
+      const legs: Leg[] = ["out", "in"];
+      for (const leg of legs) {
+        const checkedPax = existing.checkedIn?.[leg] ?? [];
+        for (const paxIdx of checkedPax) {
+          const key = `${leg}-${paxIdx}`;
+          const currentSeat = existing.seats[key];
+          const newSeat = seats[key];
+          if (currentSeat && newSeat !== currentSeat) {
+            throw new Error(
+              `Cannot change seat for checked-in passenger ${paxIdx} on leg ${leg}. Current: ${currentSeat}, Requested: ${newSeat ?? "none"}`,
+            );
+          }
+        }
+      }
+
+      // Invariant: No duplicate physical seat assigned to multiple passengers on the same leg
+      for (const leg of legs) {
+        const seen = new Map<string, number>();
+        for (let i = 0; i < existing.passengers.length; i++) {
+          if (existing.passengers[i]?.type === "infant") continue;
+          const s = seats[`${leg}-${i}`];
+          if (s) {
+            const existingOwner = seen.get(s);
+            if (existingOwner !== undefined) {
+              throw new Error(
+                `Duplicate seat assignment ${s} for passengers ${existingOwner} and ${i} on leg ${leg}.`,
+              );
+            }
+            seen.set(s, i);
+          }
+        }
+      }
+
+      // Invariant: Canonical pricing recalculation using latest booking facts
+      const nextTotal = bookingTotal({
+        outbound: existing.outbound,
+        inbound: existing.inbound,
+        fareId: existing.fareId,
+        criteria: existing.criteria,
+        seats,
+        extras: existing.extras,
+      }).total;
+
+      const updated: Booking = {
+        ...existing,
+        seats: { ...seats },
+        total: nextTotal,
+      };
+
+      state.bookings[index] = updated;
+      return { ...updated };
+    });
+  }
+
+  public async updateExtras(
+    ref: string,
+    extras: Extras,
+  ): Promise<Booking> {
+    if (!ref || typeof ref !== "string") {
+      throw new Error("Cannot update extras: reference is required.");
+    }
+    const clean = ref.trim().toUpperCase();
+
+    return this.coordinator.mutate((state) => {
+      const index = state.bookings.findIndex((b) => b.ref.toUpperCase() === clean);
+      if (index === -1) {
+        throw new Error(`Booking ${clean} not found.`);
+      }
+
+      const existing = state.bookings[index];
+      if (!existing) {
+        throw new Error(`Booking ${clean} not found.`);
+      }
+
+      if (existing.status === "cancelled") {
+        throw new Error(`Cannot update extras: booking ${clean} is cancelled.`);
+      }
+
+      // Invariant: Canonical pricing recalculation using latest booking facts
+      const nextTotal = bookingTotal({
+        outbound: existing.outbound,
+        inbound: existing.inbound,
+        fareId: existing.fareId,
+        criteria: existing.criteria,
+        seats: existing.seats,
+        extras,
+      }).total;
+
+      const updated: Booking = {
+        ...existing,
+        extras: { ...extras },
+        total: nextTotal,
+      };
+
+      state.bookings[index] = updated;
+      return { ...updated };
+    });
+  }
+
+  public async completeCheckIn(input: CheckInCommandInput): Promise<Booking> {
+    if (!input.ref || typeof input.ref !== "string") {
+      throw new Error("Cannot complete check-in: reference is required.");
+    }
+    const clean = input.ref.trim().toUpperCase();
+
+    return this.coordinator.mutate((state) => {
+      const index = state.bookings.findIndex((b) => b.ref.toUpperCase() === clean);
+      if (index === -1) {
+        throw new Error(`Booking ${clean} not found.`);
+      }
+
+      const existing = state.bookings[index];
+      if (!existing) {
+        throw new Error(`Booking ${clean} not found.`);
+      }
+
+      if (existing.status === "cancelled") {
+        throw new Error(`Cannot check in: booking ${clean} is cancelled.`);
+      }
+
+      const bookedFlight = input.leg === "in" ? existing.inbound : existing.outbound;
+      if (!bookedFlight) {
+        throw new Error(`Cannot check in: leg ${input.leg} does not exist on booking ${clean}.`);
+      }
+
+      // Re-resolve canonical effective flight with current transaction overrides
+      const baseFlight = flightById(bookedFlight.id);
+      const effectiveFlight = baseFlight
+        ? getEffectiveFlight(baseFlight, state.flightOverrides[baseFlight.id])
+        : null;
+
+      if (!effectiveFlight) {
+        throw new Error(`Cannot check in: flight ${bookedFlight.id} is unavailable.`);
+      }
+
+      // Invariant: Authoritative check-in eligibility evaluation
+      const eligibility = getCheckInEligibility(existing, input.leg, effectiveFlight, {
+        now: input.now,
+      });
+
+      // Idempotency check: if all requested passengers are already checked in for this leg
+      const currentChecked = existing.checkedIn?.[input.leg] ?? [];
+      const isAlreadyFullyCheckedIn =
+        input.selectedPaxIndexes.length > 0 &&
+        input.selectedPaxIndexes.every((i) => currentChecked.includes(i));
+
+      if (isAlreadyFullyCheckedIn) {
+        // Return existing booking without modifying state
+        return { ...existing };
+      }
+
+      if (!eligibility.eligible) {
+        throw new Error(`Check-in is not permitted: ${eligibility.reason ?? "ineligible"}.`);
+      }
+
+      if (!input.selectedPaxIndexes || input.selectedPaxIndexes.length === 0) {
+        throw new Error("Cannot check in: no passengers selected.");
+      }
+
+      // Validate passenger indices
+      for (const paxIdx of input.selectedPaxIndexes) {
+        if (paxIdx < 0 || paxIdx >= existing.passengers.length) {
+          throw new Error(`Invalid passenger index ${paxIdx} on booking ${clean}.`);
+        }
+        const pax = existing.passengers[paxIdx];
+        if (!pax) {
+          throw new Error(`Passenger ${paxIdx} does not exist.`);
+        }
+        if (pax.type === "infant") {
+          throw new Error(`Cannot check in infant passenger at index ${paxIdx} directly.`);
+        }
+        if (currentChecked.includes(paxIdx)) {
+          throw new Error(`Passenger ${paxIdx} is already checked in for leg ${input.leg}.`);
+        }
+        const doc = (input.documents?.[paxIdx] ?? pax.document ?? "").trim();
+        if (!doc) {
+          throw new Error(`Missing travel document for passenger ${paxIdx}.`);
+        }
+      }
+
+      // Check seat allocations and prevent duplicates on this leg
+      const nextSeats = { ...existing.seats };
+      for (const paxIdx of input.selectedPaxIndexes) {
+        const seat = input.seats?.[paxIdx] ?? existing.seats[`${input.leg}-${paxIdx}`];
+        if (seat) {
+          nextSeats[`${input.leg}-${paxIdx}`] = seat;
+        }
+      }
+
+      const assignedOnLeg = new Map<string, number>();
+      for (let i = 0; i < existing.passengers.length; i++) {
+        if (existing.passengers[i]?.type === "infant") continue;
+        const s = nextSeats[`${input.leg}-${i}`];
+        if (s) {
+          const owner = assignedOnLeg.get(s);
+          if (owner !== undefined && owner !== i) {
+            throw new Error(
+              `Duplicate seat assignment ${s} for passengers ${owner} and ${i} on leg ${input.leg}.`,
+            );
+          }
+          assignedOnLeg.set(s, i);
+        }
+      }
+
+      // Prepare updated passenger documents
+      const nextPassengers = existing.passengers.map((p, i) => {
+        if (input.selectedPaxIndexes.includes(i)) {
+          const doc = (input.documents?.[i] ?? p.document ?? "").trim();
+          return { ...p, document: doc };
+        }
+        return p;
+      });
+
+      // Prepare updated check-in list
+      const mergedCheckedIn = Array.from(
+        new Set([...currentChecked, ...input.selectedPaxIndexes]),
+      ).sort((a, b) => a - b);
+
+      const nextCheckedIn = {
+        ...existing.checkedIn,
+        [input.leg]: mergedCheckedIn,
+      };
+
+      // Recalculate total if seat charges changed
+      const nextTotal = bookingTotal({
+        outbound: existing.outbound,
+        inbound: existing.inbound,
+        fareId: existing.fareId,
+        criteria: existing.criteria,
+        seats: nextSeats,
+        extras: existing.extras,
+      }).total;
+
+      const updated: Booking = {
+        ...existing,
+        passengers: nextPassengers,
+        seats: nextSeats,
+        checkedIn: nextCheckedIn,
+        total: nextTotal,
+      };
+
+      state.bookings[index] = updated;
+      return { ...updated };
     });
   }
 

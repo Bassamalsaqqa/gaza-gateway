@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 import { btnClass, Container, EmptyState, Field, Input } from "@/components/kit";
 import { PublicPhotoHero } from "@/components/media/public-photo-hero";
 import { useI18n } from "@/lib/i18n";
-import { useStore } from "@/lib/store";
+import { useRepositories } from "@/lib/repositories/registry";
+import { matchesBookingIdentifier, normalizePnr } from "@/lib/domain/booking-lookup";
 
 type ManageSearch = { ref?: string | undefined };
 
@@ -34,37 +35,52 @@ function ManageLookupPage() {
   const { t } = useI18n();
   const navigate = useAppNavigate();
   const { ref: refParam } = Route.useSearch();
-  const { findBooking, ready } = useStore();
+  const { booking: bookingRepo } = useRepositories();
   const [ref, setRef] = useState(refParam ?? "");
   const [identifier, setIdentifier] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
 
-  // Older links used /manage?ref=ABC123 — send them to the deep-linkable detail route.
+  // Older links used /manage?ref=ABC123 — send them to the deep-linkable detail route if found.
   useEffect(() => {
-    if (ready && refParam && findBooking(refParam)) {
-      void navigate({ to: "/manage/$ref", params: { ref: refParam }, replace: true });
-    }
-  }, [ready, refParam, findBooking, navigate]);
+    if (!refParam) return;
+    const clean = normalizePnr(refParam);
+    if (!clean) return;
+    let cancelled = false;
+    void bookingRepo.getByRef(clean).then((found) => {
+      if (!cancelled && found) {
+        void navigate({ to: "/manage/$ref", params: { ref: found.ref }, replace: true });
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [refParam, bookingRepo, navigate]);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const value = identifier.trim().toLowerCase();
-    if (!value) {
+    const cleanRef = normalizePnr(ref);
+    const cleanIdentifier = identifier.trim();
+    if (!cleanIdentifier) {
       setError(t("manage.needIdentifier"));
       setNotFound(false);
       return;
     }
     setError(null);
-    const found = findBooking(ref.trim());
-    const matches =
-      found?.passengers.some((p) => p.lastName.trim().toLowerCase() === value) ||
-      found?.contact.email.trim().toLowerCase() === value;
-    if (found && matches) {
-      setNotFound(false);
-      void navigate({ to: "/manage/$ref", params: { ref: found.ref } });
-    } else {
+    setIsSearching(true);
+    try {
+      const found = await bookingRepo.getByRef(cleanRef);
+      if (found && matchesBookingIdentifier(found, cleanIdentifier)) {
+        setNotFound(false);
+        void navigate({ to: "/manage/$ref", params: { ref: found.ref } });
+      } else {
+        setNotFound(true);
+      }
+    } catch {
       setNotFound(true);
+    } finally {
+      setIsSearching(false);
     }
   };
 
@@ -107,7 +123,7 @@ function ManageLookupPage() {
                 required
               />
             </Field>
-            <button type="submit" className={btnClass("primary", "md", "w-full")}>
+            <button type="submit" disabled={isSearching} className={btnClass("primary", "md", "w-full")}>
               <Search aria-hidden="true" className="size-4" />
               {t("manage.find")}
             </button>
@@ -137,7 +153,6 @@ function ManageLookupPage() {
             />
           )}
         </div>
-
       </Container>
     </>
   );

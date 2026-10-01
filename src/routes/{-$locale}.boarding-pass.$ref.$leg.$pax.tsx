@@ -1,10 +1,10 @@
 import { AppLink } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
 import { Printer, Ticket } from "lucide-react";
-import { BoardingPassCard, passesForBooking } from "@/components/booking/boarding-pass";
+import { BoardingPassCard, passFor } from "@/components/booking/boarding-pass";
 import { Container, EmptyState, GazaLoadingState, Notice, PageHeader, btnClass } from "@/components/kit";
 import { useI18n } from "@/lib/i18n";
-import { useStore } from "@/lib/store";
+import { useBookingEffectiveFlights, useBookingQuery } from "@/lib/repositories/queries";
 
 export const Route = createFileRoute("/{-$locale}/boarding-pass/$ref/$leg/$pax")({
   head: ({ params }) => ({
@@ -28,11 +28,11 @@ function BoardingPassDetailPage() {
   const { ref, leg: legParam, pax } = Route.useParams();
   const leg = legParam === "in" ? "in" : "out";
   const { t } = useI18n();
-  const { findBooking, ready } = useStore();
-  const booking = findBooking(ref);
+  const { data: booking, isLoading } = useBookingQuery(ref);
+  const effectiveFlights = useBookingEffectiveFlights(booking);
   const paxIndex = Number.parseInt(pax, 10);
 
-  if (!ready) {
+  if (isLoading || effectiveFlights.isLoading) {
     return (
       <Container className="py-16">
         <GazaLoadingState />
@@ -56,10 +56,15 @@ function BoardingPassDetailPage() {
     );
   }
 
-  const passes = passesForBooking(booking).filter((p) => p.paxIndex === paxIndex && p.leg === leg);
+  const effectiveFlight =
+    leg === "in"
+      ? effectiveFlights.inbound?.effectiveFlight
+      : effectiveFlights.outbound.effectiveFlight;
+
+  const pass = passFor(booking, leg, paxIndex, effectiveFlight);
   const passenger = booking.passengers[paxIndex];
 
-  if (passes.length === 0 || !passenger) {
+  if (!pass || !passenger) {
     return (
       <Container className="py-14">
         <EmptyState
@@ -116,22 +121,22 @@ function BoardingPassDetailPage() {
 
       <Container className="py-8 sm:py-10">
         <div className="mx-auto max-w-3xl space-y-5">
-          {passes.map((item) => (
-            <BoardingPassCard key={`${item.leg}-${item.paxIndex}`} item={item} />
-          ))}
+          <BoardingPassCard item={pass} />
 
           {booking.passengers.length > 1 ? (
             <nav aria-label={t("book.passengersLabel")} className="flex flex-wrap gap-2 print:hidden">
-              {booking.passengers.map((p, i) => (p.type === "infant" ? null : (
-                <AppLink
-                  key={`${p.lastName}-${i}`}
-                  to="/boarding-pass/$ref/$leg/$pax"
-                  params={{ ref: booking.ref, leg, pax: String(i) }}
-                  className={btnClass(i === paxIndex ? "ink" : "outline", "sm")}
-                >
-                  {p.firstName} {p.lastName}
-                </AppLink>
-              )))}
+              {booking.passengers.map((p, i) =>
+                p.type === "infant" ? null : (
+                  <AppLink
+                    key={`${p.lastName}-${i}`}
+                    to="/boarding-pass/$ref/$leg/$pax"
+                    params={{ ref: booking.ref, leg, pax: String(i) }}
+                    className={btnClass(i === paxIndex ? "ink" : "outline", "sm")}
+                  >
+                    {p.firstName} {p.lastName}
+                  </AppLink>
+                ),
+              )}
             </nav>
           ) : null}
 

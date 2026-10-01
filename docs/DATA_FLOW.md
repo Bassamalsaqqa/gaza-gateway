@@ -1,14 +1,14 @@
 # Data Flow, State Management & Pretend-Action Inventory
 
 > **Document Purpose**: Complete audit of current data sources, state persistence, cross-screen entity splits, and enabled no-op actions across public and admin workspaces.
-> **Status**: **Phase 5B Booking Draft & Effective Flight Discovery Convergence COMPLETE / ACCEPTED.** Phase 5 overall remains in progress; Phase 5A and HC-0/HC-1/Present complete; Phase 5C (Manage/Check-in/Boarding Pass), Phase 5D, and HC-2/HC-3 planned and unstarted. Repository publication does not mean live cPanel deployment.
-> **Future Target**: Phase 5C (Manage, Check-in & Boarding Pass Convergence), Phase 5D (Public Contact Workflow Convergence), then Phase 6 before any production backend.
+> **Status**: **Phase 5C Manage, Check-in & Boarding Pass Convergence IMPLEMENTED on feature branch.** Awaiting independent engineering acceptance review. Phase 5 overall remains in progress; Phase 5A, 5B, and HC-0/HC-1/Present complete; Phase 5D (Public Contact) and HC-2/HC-3 planned and unstarted. Repository publication does not mean live cPanel deployment.
+> **Future Target**: Independent engineering acceptance review of Phase 5C feature branch, followed by Phase 5D (Public Contact Workflow Convergence), then Phase 6 before any production backend.
 
 ---
 
 ## 1. Current State Stores & Persistence
 
-Following Phase 5B, the application coordinates persistence across canonical repositories and legacy boundary keys:
+Following Phase 5C, the application coordinates persistence across canonical repositories and legacy boundary keys:
 
 | Store / Source | Implementation Files | Persistence | Entities & Data Types Managed |
 | :--- | :--- | :--- | :--- |
@@ -101,8 +101,8 @@ Following Phase 4, bookings and operational flight overrides share canonical rep
    - A passenger booking completed on `/book` writes to the canonical `BookingRepository` (`gza.repo.v1`).
    - The admin booking list (`/admin/bookings`), detail (`/admin/bookings/:ref`), and global search all query the same canonical `BookingRepository`. A public-created PNR appears immediately in the admin booking table and detail view. An empty repository correctly shows an empty list; a missing PNR correctly shows a not-found state.
    - `mockBookings` in `src/lib/admin-mock.ts` remains for non-migrated customer detail fixture references and migration-era sample data. It is never a fallback for a successfully resolved canonical booking list, detail, or global search.
-2. **Check-in — Partially Converged**:
-   - When a passenger checks in via `/manage/:ref/check-in`, the booking record is updated atomically in `BookingRepository` (seats, passengers, and `checkedIn` fields in a single mutation).
+2. **Check-in — Converged on Public Side**:
+   - Public Manage, Check-in, and Boarding Pass routes are 100% repository-native (`BookingRepository` + `FlightRepository`). When a passenger checks in via `/manage/:ref/check-in`, `useCompleteCheckInMutation` invokes `BookingRepository.completeCheckIn` which atomically persists passenger documents, leg seat assignments, and `checkedIn` indexes in a single coordinator transaction with full rollback on storage error.
    - The airport check-in desk monitor (`/admin/check-in`) still renders static `deskPassengers` from `src/lib/admin-mock.ts` and does not reflect public passenger check-in progress. Resolution: Phase 6.
 3. **Contact & Inbox Disconnect**:
    - Submitting the public contact form (`src/routes/{-$locale}.contact.tsx`) updates local component state (`setSent(true)`) to display an inline prototype panel; it emits no toast and writes to no store.
@@ -158,21 +158,24 @@ These controls perform real, functional mutations across shared state within the
 For engineering clarity, the following controls perform authentic data mutations that persist across browser reloads:
 
 1. **Public Cancel Booking (`src/routes/{-$locale}.manage.$ref.tsx`)**:
-   - Opens `ConfirmDialog`; on confirmation, invokes `await updateBooking(ref, { status: "cancelled" })` on `useStore()`.
-   - Delegates to `bookingRepo.update()` which atomically mutates via `RepoStorageCoordinator.mutate()`, serializing to `localStorage["gza.repo.v1"]`. On storage failure, throws `StorageCommitError` and rolls back in-memory state.
+   - Opens `ConfirmDialog`; on confirmation, invokes `await cancelBooking(ref)` via `useCancelBookingMutation()`.
+   - Delegates directly to `bookingRepo.cancel(ref)` which validates active status inside `RepoStorageCoordinator.mutate()`, transitions status to `"cancelled"`, and serializes to `localStorage["gza.repo.v1"]`. On storage failure, throws `StorageCommitError` and rolls back in-memory state.
 2. **Public Flight Check-in (`src/routes/{-$locale}.manage.$ref_.check-in.tsx`)**:
-   - Performs a single atomic `await updateBooking(ref, { seats, passengers, checkedIn })` combining seat assignments, passenger data, and check-in status.
-   - Delegates to `bookingRepo.update()` which persists to `gza.repo.v1`. On failure, error propagates and UI does not advance to success state.
+   - Performs a single atomic `await completeCheckIn(input)` via `useCompleteCheckInMutation()`.
+   - Delegates directly to `bookingRepo.completeCheckIn(input)` which revalidates eligibility, non-infant passengers, unique required documents, and non-duplicate valid seat assignments, persisting seats, passenger documents, and `checkedIn` indexes together in `gza.repo.v1`. On failure, rolls back and UI does not advance to success state.
 3. **Public Booking Creation (`src/routes/{-$locale}.book.tsx`)**:
    - Submitting the multi-step booking engine invokes `addBooking(...)` on `useStore()`.
    - Generates a persistent PNR (e.g. `GZA-7K8P`) via `bookingRepo.create()` and persists to `gza.repo.v1`.
 4. **Public Saved Travelers & Profile (`src/routes/{-$locale}.account.*.tsx`)**:
-   - Adding, editing, or deleting saved passenger profiles persists to `localStorage["gza.store.v1"]`.
+   - Adding, editing, or deleting saved passenger profiles persists to `localStorage["gza.passenger.v1"]`.
 5. **Admin Flight Operational Overrides (`src/components/admin/flight-quick-edit.tsx`)**:
    - Editing flight status, gate, terminal, revised departure time, or operational note invokes `flightRepo.setOverride(flightId, patch)`.
    - Persists to `gza.repo.v1` via `RepoStorageCoordinator.mutate()` and merges with base flights via effective flight queries.
 6. **Admin Booking Cancellation (`src/routes/{-$locale}.admin.bookings.$ref.tsx`)**:
    - Confirmation invokes `useUpdateBookingMutation()` with `status: "cancelled"`. The canonical booking record changes in `gza.repo.v1`; the local cancelled flag is only immediate presentation state.
+7. **Public Manage Trip Edits (`src/routes/{-$locale}.manage.$ref_.*.tsx`)**:
+   - Contact (`updateContact`), Seats (`updateSeats`), and Extras (`updateExtras`) invoke dedicated typed mutation hooks against `BookingRepository`.
+   - Each command revalidates against latest canonical booking, rejects changes on cancelled bookings, enforces checked-in seat protection (cannot change seat of an already checked-in passenger on that leg), and canonically recalculates total price via pure `bookingTotal`.
 
 ---
 

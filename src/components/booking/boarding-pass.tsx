@@ -7,6 +7,7 @@ import { dateShort } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
 import { checkedInPax, isPaxCheckedIn, type Booking, type Leg } from "@/lib/domain/booking";
 import { buildBoardingPassViewModel, type BoardingPassViewModel } from "@/lib/domain/boarding-pass";
+import type { Flight } from "@/lib/data";
 
 export type PassLeg = Leg;
 
@@ -16,35 +17,70 @@ export type BoardingPassItem = BoardingPassViewModel;
  * A pass exists for one booking, one passenger and one leg — and only when that
  * passenger has actually checked in for that leg.
  */
-export function passesForBooking(booking: Booking): BoardingPassItem[] {
+export function passesForBooking(
+  booking: Booking,
+  effectiveFlights?: { out?: Flight | null | undefined; in?: Flight | null | undefined } | undefined,
+): BoardingPassItem[] {
   if (booking.status !== "confirmed") return [];
   const legs: Leg[] = booking.inbound ? ["out", "in"] : ["out"];
   return legs.flatMap((leg) =>
-    checkedInPax(booking, leg).map((paxIndex) => buildBoardingPassViewModel(booking, leg, paxIndex))
+    checkedInPax(booking, leg).map((paxIndex) => {
+      const eff = leg === "in" ? effectiveFlights?.in : effectiveFlights?.out;
+      return buildBoardingPassViewModel(booking, leg, paxIndex, eff);
+    }),
   );
 }
 
 /** One specific pass, or null when that passenger/leg is not checked in. */
-export function passFor(booking: Booking, leg: Leg, paxIndex: number): BoardingPassItem | null {
+export function passFor(
+  booking: Booking,
+  leg: Leg,
+  paxIndex: number,
+  effectiveFlight?: Flight | null,
+): BoardingPassItem | null {
   const passenger = booking.passengers[paxIndex];
   if (!passenger || passenger.type === "infant") return null;
   if (!isPaxCheckedIn(booking, leg, paxIndex)) return null;
   if (leg === "in" && !booking.inbound) return null;
-  return buildBoardingPassViewModel(booking, leg, paxIndex);
+  return buildBoardingPassViewModel(booking, leg, paxIndex, effectiveFlight);
 }
 
 export function BoardingPassCard({ item, compact = false }: { item: BoardingPassItem; compact?: boolean }) {
   const { t, lang } = useI18n();
-  const { ref, leg, paxIndex, passengerName, infantNames, flight, seat, sequence, totalCheckedIn, boardingTime, fareId } = item;
+  const {
+    ref,
+    leg,
+    paxIndex,
+    passengerName,
+    infantNames,
+    flight,
+    seat,
+    sequence,
+    totalCheckedIn,
+    scheduledDepartureTime,
+    revisedDepartureTime,
+    boardingOpensTime,
+    boardingTime,
+    fareId,
+    operationalStatus,
+  } = item;
   const from = airportByCode(flight.originCode);
   const to = airportByCode(flight.destinationCode);
   const fare = fares.find((f) => f.id === fareId);
 
+  const isNonActive = operationalStatus !== "active";
+
   return (
-    <article className="overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-soft)] print:shadow-none">
+    <article
+      className={`overflow-hidden rounded-2xl border bg-card shadow-[var(--shadow-soft)] print:shadow-none ${
+        isNonActive ? "border-muted-foreground/30 opacity-90" : "border-border"
+      }`}
+    >
       <div
         data-decorative-asset="boarding-pass-ticket-band"
-        className="relative flex flex-wrap items-center justify-between gap-3 overflow-hidden bg-clay px-5 py-3 text-ink-foreground"
+        className={`relative flex flex-wrap items-center justify-between gap-3 overflow-hidden px-5 py-3 text-ink-foreground ${
+          isNonActive ? "bg-muted-foreground/70" : "bg-clay"
+        }`}
       >
         <img
           src={ticketWorldMapImg}
@@ -65,16 +101,48 @@ export function BoardingPassCard({ item, compact = false }: { item: BoardingPass
 
       <div className="grid gap-5 p-5 sm:grid-cols-[1fr_auto] sm:p-6">
         <div>
+          {operationalStatus === "cancelled" ? (
+            <div
+              role="alert"
+              className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm font-medium text-destructive"
+            >
+              {t("bp.notValidCancelled")}
+            </div>
+          ) : operationalStatus === "departed" ? (
+            <div
+              role="status"
+              className="mb-4 rounded-xl border border-border bg-muted/60 p-3 text-sm font-medium text-muted-foreground"
+            >
+              {t("bp.flightDeparted")}
+            </div>
+          ) : operationalStatus === "landed" ? (
+            <div
+              role="status"
+              className="mb-4 rounded-xl border border-border bg-muted/60 p-3 text-sm font-medium text-muted-foreground"
+            >
+              {t("bp.flightLanded")}
+            </div>
+          ) : operationalStatus === "unavailable" ? (
+            <div
+              role="status"
+              className="mb-4 rounded-xl border border-border bg-muted/60 p-3 text-sm font-medium text-muted-foreground"
+            >
+              {t("bp.operationalUnavailable")}
+            </div>
+          ) : null}
+
           <div className="flex flex-wrap items-center gap-2">
-            <StatusBadge status={flight.status} />
+            {operationalStatus === "unavailable" ? (
+              <Pill tone="ink">{t("bp.operationalUnavailable")}</Pill>
+            ) : (
+              <StatusBadge status={flight.status} />
+            )}
             <Pill tone="brand">{t("ci.paxDone")}</Pill>
             {fare ? <Pill>{pick(lang, fare.name)}</Pill> : null}
           </div>
 
           <p className="eyebrow mt-4 text-muted-foreground">{t("bp.passenger")}</p>
-          <p className="mt-1 text-xl font-bold uppercase sm:text-2xl">
-            {passengerName}
-          </p>
+          <p className="mt-1 text-xl font-bold uppercase sm:text-2xl">{passengerName}</p>
           {infantNames.length > 0 ? (
             <p className="mt-1 text-xs text-muted-foreground">
               {t("bp.infantOnPass", {
@@ -91,8 +159,11 @@ export function BoardingPassCard({ item, compact = false }: { item: BoardingPass
 
           <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-4">
             <Cell label={t("flights.date")} value={dateShort(flight.date, lang)} />
-            <Cell label={t("flights.scheduled")} value={flight.departTime} mono />
-            <Cell label={t("bp.boardingTime")} value={boardingTime} mono />
+            <Cell label={t("flights.scheduled")} value={scheduledDepartureTime} mono />
+            {revisedDepartureTime ? (
+              <Cell label={t("bp.revised")} value={revisedDepartureTime} mono />
+            ) : null}
+            <Cell label={t("bp.boardingOpens")} value={boardingOpensTime || boardingTime} mono />
             <Cell label={t("book.seatsLabel")} value={seat ?? "—"} mono />
             <Cell label={t("flights.terminal")} value={flight.terminal} mono />
             <Cell label={t("flights.gate")} value={flight.gate} mono />
@@ -116,6 +187,7 @@ export function BoardingPassCard({ item, compact = false }: { item: BoardingPass
           <Code className="text-[0.65rem] text-muted-foreground">
             {ref}·{flight.number}·{seat ?? "—"}
           </Code>
+          <p className="max-w-[120px] text-center text-[0.65rem] text-muted-foreground">{t("bp.notReal")}</p>
         </div>
       </div>
     </article>

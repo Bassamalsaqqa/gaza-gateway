@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { BookingDetail } from "@/components/booking/booking-detail";
 import { Container, EmptyState, GazaLoadingState, PageHeader, btnClass } from "@/components/kit";
 import { useI18n } from "@/lib/i18n";
-import { useStore } from "@/lib/store";
+import { useBookingQuery, useCancelBookingMutation } from "@/lib/repositories/queries";
 
 export const Route = createFileRoute("/{-$locale}/manage/$ref")({
   head: ({ params }) => ({
@@ -26,10 +26,10 @@ export const Route = createFileRoute("/{-$locale}/manage/$ref")({
 function ManageDetailPage() {
   const { ref } = Route.useParams();
   const { t } = useI18n();
-  const { findBooking, updateBooking, ready } = useStore();
-  const booking = findBooking(ref);
+  const { data: booking, isLoading } = useBookingQuery(ref);
+  const cancelMutation = useCancelBookingMutation();
 
-  if (!ready) {
+  if (isLoading) {
     return (
       <Container className="py-16">
         <GazaLoadingState />
@@ -69,7 +69,9 @@ function ManageDetailPage() {
         <div className="mx-auto max-w-3xl">
           <BookingDetail
             booking={booking}
-            onCancel={async () => { await updateBooking(booking.ref, { status: "cancelled" }); }}
+            onCancel={async () => {
+              await cancelMutation.mutateAsync({ ref: booking.ref });
+            }}
           />
         </div>
       </Container>

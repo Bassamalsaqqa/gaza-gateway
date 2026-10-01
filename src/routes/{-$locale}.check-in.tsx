@@ -6,7 +6,9 @@ import { btnClass, Container, EmptyState, Field, Input, Panel } from "@/componen
 import { PublicPhotoHero } from "@/components/media/public-photo-hero";
 import { pageHead } from "@/lib/head";
 import { useI18n } from "@/lib/i18n";
-import { openLegs, useStore } from "@/lib/store";
+import { openLegs } from "@/lib/domain/booking";
+import { matchesBookingIdentifier, normalizePnr } from "@/lib/domain/booking-lookup";
+import { useRepositories } from "@/lib/repositories/registry";
 
 export const Route = createFileRoute("/{-$locale}/check-in")({
   head: ({ params }) =>
@@ -30,35 +32,41 @@ export const Route = createFileRoute("/{-$locale}/check-in")({
 function CheckInEntryPage() {
   const { t } = useI18n();
   const navigate = useAppNavigate();
-  const { findBooking } = useStore();
+  const { booking: bookingRepo } = useRepositories();
   const [ref, setRef] = useState("");
   const [identifier, setIdentifier] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "notFound" | "noneEligible">("idle");
+  const [isSearching, setIsSearching] = useState(false);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const value = identifier.trim().toLowerCase();
-    if (!value) {
+    const cleanRef = normalizePnr(ref);
+    const cleanIdentifier = identifier.trim();
+    if (!cleanIdentifier) {
       setError(t("manage.needIdentifier"));
       setStatus("idle");
       return;
     }
     setError(null);
-    const found = findBooking(ref.trim());
-    const matches =
-      found?.passengers.some((p) => p.lastName.trim().toLowerCase() === value) ||
-      found?.contact.email.trim().toLowerCase() === value;
-    if (!found || !matches) {
+    setIsSearching(true);
+    try {
+      const found = await bookingRepo.getByRef(cleanRef);
+      if (!found || !matchesBookingIdentifier(found, cleanIdentifier)) {
+        setStatus("notFound");
+        return;
+      }
+      if (found.status !== "confirmed" || openLegs(found).length === 0) {
+        setStatus("noneEligible");
+        return;
+      }
+      setStatus("idle");
+      void navigate({ to: "/manage/$ref/check-in", params: { ref: found.ref } });
+    } catch {
       setStatus("notFound");
-      return;
+    } finally {
+      setIsSearching(false);
     }
-    if (found.status !== "confirmed" || openLegs(found).length === 0) {
-      setStatus("noneEligible");
-      return;
-    }
-    setStatus("idle");
-    void navigate({ to: "/manage/$ref/check-in", params: { ref: found.ref } });
   };
 
   return (
@@ -100,7 +108,7 @@ function CheckInEntryPage() {
                 required
               />
             </Field>
-            <button type="submit" className={btnClass("primary", "md", "w-full")}>
+            <button type="submit" disabled={isSearching} className={btnClass("primary", "md", "w-full")}>
               <Search aria-hidden="true" className="size-4" />
               {t("ci.publicFind")}
             </button>

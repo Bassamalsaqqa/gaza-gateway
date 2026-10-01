@@ -2,8 +2,8 @@
 
 > **Repository**: `Bassamalsaqqa/gaza-gateway`
 > **Production Domain**: `https://www.gazaairport.com`
-> **Engineering Status**: **Phase 5B Booking Draft & Effective Flight Discovery Convergence COMPLETE / ACCEPTED.** Phase 5 overall remains in progress; Phase 5A and HC-0/HC-1/Present complete; Phase 5C (Manage/Check-in/Boarding Pass), Phase 5D, and HC-2/HC-3 planned and unstarted. Repository publication does not mean live cPanel deployment.
-> **Immediate Next Step**: Plan and execute Phase 5C (Manage, Check-in & Boarding Pass Convergence).
+> **Engineering Status**: **Phase 5C Manage, Check-in & Boarding Pass Convergence IMPLEMENTED on feature branch.** Awaiting independent engineering acceptance review. Phase 5 overall remains in progress; Phase 5A, 5B, and HC-0/HC-1/Present complete; Phase 5D (Public Contact) and HC-2/HC-3 planned and unstarted. Repository publication does not mean live cPanel deployment.
+> **Immediate Next Step**: Independent engineering acceptance review of Phase 5C feature branch, followed by Phase 5D (Public Contact Convergence).
 
 ---
 
@@ -18,13 +18,13 @@
 | **Styling & Design Tokens** | Tailwind CSS | 4.2.1 | CSS variables (`@theme inline`), oklch tokens in `src/styles.css`, semantic typography (`.type-*`), RTL cursive protection. |
 | **Component Primitives** | Radix UI Headless | Various (^1.1 - ^2.2) | Accessible headless primitives (`RadioGroup`, `Dialog`, `AlertDialog`, `Popover`, `Select`, `Switch`, `Tabs`, `Accordion`). |
 | **Icons** | Lucide React | 0.575.0 | Aviation, navigation, and UI control icons. |
-| **State & Cache Layer** | React Context & Query | React Query 5.101.1 | `<QueryClientProvider>` and `<RepositoryProvider>` mounted at root; hierarchical query keys (`bookingDraftKeys`, `bookingKeys`, `flightKeys`, `passengerKeys`), repository hooks (`useBookingDraftQuery`, `useUpdateBookingDraftMutation`, `useBookingsQuery`, `useFlightSearchQuery`, etc.). |
+| **State & Cache Layer** | React Context & Query | React Query 5.101.1 | `<QueryClientProvider>` and `<RepositoryProvider>` mounted at root; hierarchical query keys (`bookingDraftKeys`, `bookingKeys`, `flightKeys`, `passengerKeys`), repository hooks (`useBookingDraftQuery`, `useUpdateBookingDraftMutation`, `useBookingsQuery`, `useFlightSearchQuery`, `useBookingEffectiveFlights`, etc.). |
 
 ---
 
-## 2. Canonical Domain & Repository Architecture (Phase 4, 5A & 5B Reality)
+## 2. Canonical Domain & Repository Architecture (Phase 4, 5A, 5B & 5C Reality)
 
-Phase 4 resolved pre-existing public/admin state disconnects by introducing two backend-ready, bounded domain aggregates with asynchronous contracts, persistent schema `gza.repo.v1`, and central React Query hooks. Phase 4.0.1 confirmed canonical booking authority in admin views. Phase 5A converged passenger identity, account state, and saved travelers into a canonical `gza.passenger.v1` store managed by `PassengerRepository`. Phase 5B converges booking draft state into `BookingDraftRepository` (`gza.booking.draft.v1`) and connects public flight discovery directly to `FlightRepository`:
+Phase 4 resolved pre-existing public/admin state disconnects by introducing two backend-ready, bounded domain aggregates with asynchronous contracts, persistent schema `gza.repo.v1`, and central React Query hooks. Phase 4.0.1 confirmed canonical booking authority in admin views. Phase 5A converged passenger identity, account state, and saved travelers into a canonical `gza.passenger.v1` store managed by `PassengerRepository`. Phase 5B converged booking draft state into `BookingDraftRepository` (`gza.booking.draft.v1`) and connected public flight discovery directly to `FlightRepository`. Phase 5C converges public Manage Trip, Check-in, and Boarding Pass surfaces onto canonical repositories and effective flights:
 
 ### 2.1 The Canonical Repositories
 1. **`BookingDraftRepository` (`src/lib/booking-draft/repository.ts`)**:
@@ -37,12 +37,15 @@ Phase 4 resolved pre-existing public/admin state disconnects by introducing two 
    - Single source of truth and single writer for completed bookings.
    - Enforces bookability invariants, deterministic stable passenger IDs (`pax-${ref}-${index}`), and fixture isolation.
    - `create` executes inside a shared coordinator transaction, re-resolves effective flights against live `flightOverrides`, checks station clock departure cutoffs and inventory capacity, and enforces idempotency via client `submissionId`.
+   - Exposes bounded, typed command methods for public passenger operations: `cancel`, `updateContact`, `updateSeats`, `updateExtras`, and `completeCheckIn`.
+   - Each command validates within the shared coordinator transaction, prevents mutations on cancelled bookings, enforces checked-in seat protection in `updateSeats`, recalculates totals using canonical pricing (`bookingTotal`), and guarantees atomic rollback on storage failure.
    - Backed by `gza.repo.v1` (`bookings[]`).
 3. **`FlightRepository` (`src/lib/repositories/flight-repository.ts`)**:
    - Manages deterministic flight schedules composed with mutable operational flight overrides via pure `getEffectiveFlight()`.
    - Exposes `searchFlights(origin, destination, date, options)` for bidirectional route queries with effective operational status and party capacity filtering.
    - Exposes `getMonthlyServiceMap(origin, destination, yearMonth, paxCount)` for batched calendar availability and lowest bookable fare derivation.
    - Stores overrides in `gza.repo.v1` (`flightOverrides`).
+   - Powers the bounded multi-query hook `useBookingEffectiveFlights(booking)` to resolve live operational status, gates, terminals, and revised departure times for booked itineraries.
 4. **`PassengerRepository` (`src/lib/passenger/repository.ts`)**:
    - Single source of truth and single writer for passenger identity, account profile/preferences, and saved companions (`Traveler[]`).
    - Backed by `gza.passenger.v1` (`{ schemaVersion: 1, account: PassengerAccount | null, travelers: Traveler[] }`) with one-time migration from `gza.store.v1` only when the canonical passenger key is absent.
@@ -50,14 +53,14 @@ Phase 4 resolved pre-existing public/admin state disconnects by introducing two 
    - Enforces normalized lowercase email identity, profile email immutability, and deterministic stable traveler IDs (`crypto.randomUUID()` with fallback).
    - Storage coordinator (`PassengerStorageCoordinator`): transactional writes with rollback on `StorageCommitError`, cross-tab synchronization via `storage` events, and isolated in-memory preview repository for Appearance Studio.
 
-### 2.2 Post-Phase-5B Ownership Matrix
+### 2.2 Post-Phase-5C Ownership Matrix
 
-| Aggregate / Entity | Primary Writer | Primary Storage Key | Consumers (Public & Admin) | Phase 5B Boundary | Future Target |
+| Aggregate / Entity | Primary Writer | Primary Storage Key | Consumers (Public & Admin) | Phase 5C Boundary | Future Target |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Booking Draft** | `BookingDraftRepository` (`src/lib/booking-draft/`) | `gza.booking.draft.v1` (`schemaVersion: 1`) | Public Booking Wizard (`/book`), Flight Detail CTA (`/flight/$flightId`), Flight Search Form (`FlightSearchForm`) | **Canonical Repository** | Phase 13 (Backend Cart/Session) |
 | **Passenger State (Account & Travelers)** | `PassengerRepository` (`src/lib/passenger/`) | `gza.passenger.v1` (`account`, `travelers`) | Site Header, `/account/*`, `/book` (saved traveler pickers), `/signin`, `/register`, `/verify-email`, `/account/security` | **Canonical Repository** | Phase 13 (Backend Auth & DB) |
-| **Booking** | `BookingRepository` | `gza.repo.v1` (`bookings[]`) | Public confirmation, Manage Booking, Admin Bookings table/detail/search, Account Trips (filtered by normalized owner email) | **Canonical Repository** | Phase 5C / 6 |
-| **Flight Overrides** | `FlightRepository` | `gza.repo.v1` (`flightOverrides{}`) | Public flight board/detail, Public booking discovery, Calendar date picker, Admin flights/dashboard | **Canonical Repository** | Phase 6 |
+| **Booking** | `BookingRepository` | `gza.repo.v1` (`bookings[]`) | Public confirmation, Manage Booking (`/manage/*`), Check-in (`/check-in`, `/manage/:ref/check-in`), Boarding Pass (`/boarding-pass/*`), Account Trips (`/account/trips`), Admin Bookings table/detail/search | **Canonical Repository** (typed commands: cancel, updateContact, updateSeats, updateExtras, completeCheckIn) | Phase 6 |
+| **Flight Overrides** | `FlightRepository` | `gza.repo.v1` (`flightOverrides{}`) | Public flight board/detail, Public booking discovery, Calendar date picker, Manage & Boarding Pass effective flights, Admin flights/dashboard | **Canonical Repository** | Phase 6 |
 | **Flight Schedules** | `src/lib/data.ts` (deterministic generator) | In-memory reference | `FlightRepository`, flight search, route generation | **Preserved Baseline** | Phase 6 |
 | **Legacy Store Key** | Preserved read-only migration source | `gza.store.v1` | One-time migration to `gza.booking.draft.v1` when draft key is missing | **Closed Legacy Key**: ZERO active draft writers | Deprecated |
 | **Staff Session** | `src/lib/admin-store.tsx` (`useAdmin`) | `gza.admin.v1` (`staffId`) | Admin Shell, permission guards, role switcher | **Preserved Legacy Key** | Phase 6 |
@@ -156,8 +159,8 @@ Phase 3.9 and Phase 4 established a permanent, lightweight local test foundation
    - Typed bilingual Home, Travel and Airport Past records; compiled published source, validated browser-local drafts and explicit preview. Full media management remains Phase 7B.
 2. **Settings & Appearance Store Convergence (Phase 4C complete)**:
    - Unified multi-document settings envelope (`gza.settings.draft.v1`) with independent Contact and Appearance drafts, one-time legacy migration with untouched legacy key, transactional failure resilience, and explicit preview immunity.
-3. **Public Workflows Convergence (Phase 5 in progress: Phase 5A and Phase 5B complete; Phase 5C next/unstarted)**:
-   - Direct binding of passenger account management, saved companions, and public booking wizard state into repository queries and mutations. Phase 5A converged canonical passenger identity, account state, and saved travelers on `PassengerRepository` (`gza.passenger.v1`). Phase 5B converged booking wizard draft (`BookingDraftRepository` on `gza.booking.draft.v1`) and effective flight discovery (`FlightRepository`), accepted and merged into main. Phase 5C will converge Manage, Check-in, and Boarding Pass.
+3. **Public Workflows Convergence (Phase 5 in progress: Phase 5A and Phase 5B complete; Phase 5C IMPLEMENTED on feature branch; Phase 5D planned)**:
+   - Direct binding of passenger account management, saved companions, and public booking wizard state into repository queries and mutations. Phase 5A converged canonical passenger identity, account state, and saved travelers on `PassengerRepository` (`gza.passenger.v1`). Phase 5B converged booking wizard draft (`BookingDraftRepository` on `gza.booking.draft.v1`) and effective flight discovery (`FlightRepository`), accepted and merged into main. Phase 5C converges Manage, Check-in, and Boarding Pass onto canonical repositories, typed commands, check-in eligibility window (24h to 60m), and live effective flights. Phase 5D will converge public contact messaging and feedback.
 4. **Admin Workflows Convergence (Phase 6)**:
    - Direct repository binding for operational flight dispatch, schedule master templates, check-in desk, customer CRM, and activity logs.
 5. **SEO & Head Metadata Parity (Phase 11)**:

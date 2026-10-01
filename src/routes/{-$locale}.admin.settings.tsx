@@ -357,7 +357,7 @@ function AdminSettingsPage() {
 
                 {tab === "service"
                   ? [
-                      text("se-open", t("a2.se.ciOpens"), "48 h", "ltr"),
+                      text("se-open", t("a2.se.ciOpens"), "24 h", "ltr"),
                       text("se-close", t("a2.se.ciCloses"), "60 min", "ltr"),
                       text("se-board", t("a2.se.boarding"), "20 min", "ltr"),
                       text("se-cabin", t("a2.se.cabinBag"), "7 kg", "ltr"),

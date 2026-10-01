@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { AppLink, useAppNavigate } from "@/components/app-link";
+import { useEffect, useState } from "react";
+import { AppLink } from "@/components/app-link";
 import { Container, EmptyState, Field, GazaLoadingState, Input, PageHeader, Panel, btnClass } from "@/components/kit";
 import { pageHead } from "@/lib/head";
 import { useI18n } from "@/lib/i18n";
-import { useStore } from "@/lib/store";
+import { useBookingQuery, useUpdateBookingContactMutation } from "@/lib/repositories/queries";
 
 export const Route = createFileRoute("/{-$locale}/manage/$ref_/contact")({
   head: ({ params }) =>
@@ -27,17 +27,26 @@ export const Route = createFileRoute("/{-$locale}/manage/$ref_/contact")({
 function ManageContactPage() {
   const { ref } = Route.useParams();
   const { t } = useI18n();
-  const navigate = useAppNavigate();
-  const { ready, findBooking, updateBooking } = useStore();
-  const booking = findBooking(ref);
+  const { data: booking, isLoading } = useBookingQuery(ref);
+  const updateContactMutation = useUpdateBookingContactMutation();
+
   const [form, setForm] = useState({
-    email: booking?.contact.email ?? "",
-    phone: booking?.contact.phone ?? "",
+    email: "",
+    phone: "",
   });
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!ready) {
+  useEffect(() => {
+    if (booking?.contact) {
+      setForm({
+        email: booking.contact.email,
+        phone: booking.contact.phone ?? "",
+      });
+    }
+  }, [booking?.contact]);
+
+  if (isLoading) {
     return (
       <Container className="py-16">
         <GazaLoadingState />
@@ -85,7 +94,10 @@ function ManageContactPage() {
     }
     setError(null);
     try {
-      await updateBooking(booking.ref, { contact: { email: form.email.trim(), phone: form.phone.trim() } });
+      await updateContactMutation.mutateAsync({
+        ref: booking.ref,
+        contact: { email: form.email.trim(), phone: form.phone.trim() },
+      });
       setSaved(true);
     } catch {
       setError(t("error.saveFailed"));
@@ -129,7 +141,7 @@ function ManageContactPage() {
             />
           </Field>
           <div className="sm:col-span-2 flex flex-wrap items-center gap-2">
-            <button type="submit" className={btnClass("primary", "md")}>
+            <button type="submit" disabled={updateContactMutation.isPending} className={btnClass("primary", "md")}>
               {t("common.save")}
             </button>
             <AppLink to="/manage/$ref" params={{ ref: booking.ref }} className={btnClass("secondary", "md")}>

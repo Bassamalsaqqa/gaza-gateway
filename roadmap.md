@@ -1,8 +1,8 @@
 # Master Engineering Roadmap — Gaza Airport & Palestinian Airlines
 
 > **Product**: Digital home of Palestinian Airlines operating through Gaza International Airport ([gazaairport.com](https://www.gazaairport.com)), featuring an airport public presence and an administration workspace.
-> **Current Status**: **Phase 5B Booking Draft & Effective Flight Discovery Convergence COMPLETE / ACCEPTED.** Phase 5 overall remains in progress; Phase 5A and HC-0/HC-1/Present complete; Phase 5C (Manage/Check-in/Boarding Pass), Phase 5D, and HC-2/HC-3 planned and unstarted. Repository publication does not mean live cPanel deployment.
-> **Immediate Next Step**: Plan and execute Phase 5C (Manage, Check-in & Boarding Pass Convergence).
+> **Current Status**: **Phase 5C Manage, Check-in & Boarding Pass Convergence IMPLEMENTED on feature branch.** Awaiting independent engineering acceptance review. Phase 5 overall remains in progress; Phase 5A, 5B, and HC-0/HC-1/Present complete; Phase 5D (Public Contact) and HC-2/HC-3 planned and unstarted. Repository publication does not mean live cPanel deployment.
+> **Immediate Next Step**: Independent engineering acceptance review of Phase 5C feature branch, followed by Phase 5D (Public Contact Convergence).
 > **Historical baseline**: Phase 4 began from source commit `9e36b869274830f84c97cbbefe3b3fb0a98c6d2e` and HostPapa release commit `92ad935f8477e1663eefa8282d2770c66b64b8b2`. These are starting milestones, not current branch heads.
 
 ---
@@ -33,7 +33,7 @@
 | **Phase 5A** | **Passenger State, Account & Auth-Truth Convergence** | **Complete** | Canonical passenger state on `gza.passenger.v1` (`PassengerRepository`), email normalization, profile identity email immutability, transactional CRUD and sign-out, anti-resurrection migration with no dual-write back to `gza.store.v1`, hardened booking claims with explicit result status (`ClaimResult`), station `todayISO()` trip grouping, truthful local auth disclosure (no fake password comparison/storage), and responsive EN/AR certification. |
 | **HC-0 / HC-1** | **Present Dossier & Archive Foundation** | **Accepted (Owner Authorized Publication)** | Present documentary dossier (`/airport/present`, `/ar/airport/present`) with licensed dated ruins hero (`airport-present-ruins-2008`, June 2008 documentary photograph) and nine designer artwork skins; compiled typed content document (`airport.present`); bounded archive/source/rights metadata foundation (`src/lib/archive/`), SourceRecord registry, and 58-item non-runtime intake audit. |
 | **Phase 5B** | **Booking Draft & Search Convergence** | **Complete** | Connect booking wizard search and draft to canonical flight repository and dedicated `gza.booking.draft.v1` store (`BookingDraftRepository`). Accepted and merged into main. |
-| **Phase 5C** | **Manage, Check-in & Boarding Pass Convergence** | **Planned** | Operational flight status convergence in Manage, boarding pass generation, and check-in workflows. |
+| **Phase 5C** | **Manage, Check-in & Boarding Pass Convergence** | **In Review (Feature Branch)** | Operational flight status convergence in Manage, boarding pass generation, check-in workflows, typed BookingRepository commands, atomic check-in revalidation, and station-timezone eligibility (24h to 60m). |
 | **Phase 5D** | **Public Contact Workflow Convergence** | **Planned** | Public contact messaging, feedback form, and draft convergence. |
 | **Phase 6** | **Admin Workflows Convergence** | **Planned** | Connect admin flight quick-edit, schedule manager, passenger desk, customer notes, and activity logging to the shared domain repositories. |
 | **Phase 7** | **CMS Admin Workflows** | **Planned** | Enable full authored CMS editing for destinations, airport historical chapters, and travel guidance. |
@@ -61,4 +61,4 @@
    - `gza.skin.preview.v1`: Read-only legacy migration fallback.
 2. **Client Simulation Boundary**: No live backend, database, authentication SDK, mail service, or payment processor exists. Passenger account state is stored locally on device; password fields are never compared, persisted, hashed, or transmitted.
 3. **Static Deployment Target**: Prebuilt static HTML and assets deployed to HostPapa shared hosting (`public_html/`) via `build:hostpapa`, `hostpapa:prepare`, and `hostpapa:verify`.
-4. **Repository Convergence**: Phase 4 introduced canonical booking and flight repositories; Phase 5A converged canonical passenger identity and account state; Phase 5B converged booking draft state and effective flight discovery. Manage, check-in, and boarding pass convergence follow in Phase 5C.
+4. **Repository Convergence**: Phase 4 introduced canonical booking and flight repositories; Phase 5A converged canonical passenger identity and account state; Phase 5B converged booking draft state and effective flight discovery; Phase 5C converged Manage, Check-in, and Boarding Pass onto canonical repositories and effective flights. Public contact convergence follows in Phase 5D.
