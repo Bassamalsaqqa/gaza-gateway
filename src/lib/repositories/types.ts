@@ -29,19 +29,19 @@ export interface BookingRepository {
   /** Creates and persists a new booking with stable passenger IDs. */
   create(data: BookingCreateInput): Promise<Booking>;
 
-  /** Cancels a confirmed booking. Rejects if booking not found or already cancelled. */
+  /** Cancels a confirmed booking. Idempotently returns booking if already cancelled. Rejects if booking not found. */
   cancel(ref: string): Promise<Booking>;
 
   /** Updates passenger contact details. Rejects if booking is cancelled or invalid email. */
   updateContact(ref: string, contact: { email: string; phone?: string }): Promise<Booking>;
 
-  /** Updates seat assignments and canonically recalculates totals. Rejects if booking cancelled or modifying checked-in seats. */
+  /** Updates seat assignments and canonically recalculates totals. Rejects if booking cancelled, modifying checked-in seats, invalid seat format/cabin/availability, duplicate seats, or infant/invalid passenger. */
   updateSeats(ref: string, seats: Record<string, string>): Promise<Booking>;
 
   /** Updates passenger extras and canonically recalculates totals. Rejects if booking cancelled. */
   updateExtras(ref: string, extras: Extras): Promise<Booking>;
 
-  /** Atomically completes check-in for selected passengers, validating window, flight status, and seats. */
+  /** Atomically completes check-in for selected passengers, validating window, flight status, duplicate indexes, passenger eligibility, documents, and seats. Returns idempotent booking if identical request is resubmitted. */
   completeCheckIn(input: CheckInCommandInput): Promise<Booking>;
 
   /** Updates fields on an existing booking (generic internal/admin method). */

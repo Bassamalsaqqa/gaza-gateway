@@ -82,8 +82,10 @@ export function getBoardingPassData(
     operationalStatus,
   };
   if (effectiveFlight?.revisedDepart) data.revisedDepartureTime = effectiveFlight.revisedDepart;
-  if (flight.terminal) data.terminal = flight.terminal;
-  if (flight.gate) data.gate = flight.gate;
+  if (effectiveFlight !== null) {
+    if (flight.terminal) data.terminal = flight.terminal;
+    if (flight.gate) data.gate = flight.gate;
+  }
   const seat = booking.seats[`${leg}-${paxIndex}`];
   if (seat) data.seat = seat;
   return data;
@@ -167,7 +169,9 @@ export function buildBoardingPassViewModel(
   });
 
   const bookedFlight = flightForLeg(booking, leg);
-  const flight = effectiveFlight ?? bookedFlight;
+  const flight: Flight = effectiveFlight === null
+    ? { ...bookedFlight, gate: "—", terminal: "—" }
+    : (effectiveFlight ?? bookedFlight);
   const data = getBoardingPassData(booking, leg, paxIndex, effectiveFlight);
   if (!data) {
     throw new Error(`Boarding pass data is unavailable for ${booking.ref}`);

@@ -50,9 +50,6 @@ export function BookingDetail({
       ? t(remainingLegs[0] === "out" ? "manage.checkinOut" : "manage.checkinIn")
       : t("manage.checkinBoth");
 
-  const outboundEffective = effectiveFlights.outbound.effectiveFlight ?? booking.outbound;
-  const isOutboundUnavailable = effectiveFlights.outbound.isUnavailable;
-
   return (
     <div className="space-y-4">
       <Panel>
@@ -64,10 +61,14 @@ export function BookingDetail({
           <div className="flex flex-wrap items-center gap-2">
             {booking.status === "cancelled" ? (
               <Pill tone="ink">{t("manage.cancelled")}</Pill>
-            ) : isOutboundUnavailable ? (
+            ) : effectiveFlights.outbound.isLoading ? (
+              <Pill tone="neutral">{t("common.loading")}</Pill>
+            ) : effectiveFlights.outbound.isUnavailable || effectiveFlights.outbound.isError ? (
               <Pill tone="ink">{t("bp.operationalUnavailable")}</Pill>
+            ) : effectiveFlights.outbound.effectiveFlight ? (
+              <StatusBadge status={effectiveFlights.outbound.effectiveFlight.status} />
             ) : (
-              <StatusBadge status={outboundEffective.status} />
+              <Pill tone="ink">{t("bp.operationalUnavailable")}</Pill>
             )}
             {fare ? <Pill>{pick(lang, fare.name)}</Pill> : null}
           </div>
@@ -111,14 +112,18 @@ export function BookingDetail({
         if (!flight) return null;
         const legState = index === 0 ? effectiveFlights.outbound : effectiveFlights.inbound;
         const effective = legState?.effectiveFlight;
-        const isUnavailable = legState?.isUnavailable ?? false;
-        const displayFlight = effective ?? flight;
+        const isLegLoading = legState?.isLoading ?? false;
+        const isLegUnavailable = (legState?.isUnavailable || legState?.isError) ?? false;
 
         return (
           <Panel key={flight.id}>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="eyebrow text-clay">{t(index === 0 ? "book.outbound" : "book.inbound")}</p>
-              {isUnavailable ? (
+              {booking.status === "cancelled" ? (
+                <Pill tone="ink">{t("manage.cancelled")}</Pill>
+              ) : isLegLoading ? (
+                <Pill tone="neutral">{t("common.loading")}</Pill>
+              ) : isLegUnavailable ? (
                 <Pill tone="ink">{t("bp.operationalUnavailable")}</Pill>
               ) : effective ? (
                 <StatusBadge status={effective.status} />
@@ -133,7 +138,7 @@ export function BookingDetail({
                 )}
               </p>
               <AppLink to="/flight/$flightId" params={{ flightId: flight.id }} className="text-sm underline">
-                <Code className="text-sm text-muted-foreground">{displayFlight.number}</Code>
+                <Code className="text-sm text-muted-foreground">{flight.number}</Code>
               </AppLink>
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -149,9 +154,10 @@ export function BookingDetail({
                 </span>
               ) : null}
               {" – "}
-              <span className="code-id">{displayFlight.arriveTime}</span> · {t("flights.gate")}{" "}
-              <span className="code-id">{displayFlight.gate}</span> · {t("flights.terminal")}{" "}
-              <span className="code-id">{displayFlight.terminal}</span> · {displayFlight.aircraft}
+              <span className="code-id">{effective?.arriveTime ?? flight.arriveTime}</span> · {t("flights.gate")}{" "}
+              <span className="code-id">{effective?.gate ?? "—"}</span> · {t("flights.terminal")}{" "}
+              <span className="code-id">{effective?.terminal ?? "—"}</span>
+              {effective?.aircraft ? ` · ${effective.aircraft}` : ""}
             </p>
             {effective?.note ? (
               <p className="mt-2 text-xs text-muted-foreground">{effective.note}</p>

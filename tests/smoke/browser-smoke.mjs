@@ -5614,7 +5614,7 @@ async function runBrowserSmoke() {
                 { id: `pax-${bookingRef}-1`, firstName: "Fatima", lastName: "Khalil", type: "adult", dob: "1988-08-20", nationality: "PS", document: "" },
                 { id: `pax-${bookingRef}-2`, firstName: "Nour", lastName: "Khalil", type: "infant", dob: "2025-11-01", nationality: "PS", document: "", withAdult: 0 },
               ],
-              seats: { "out-0": "10A", "out-1": "10B" },
+              seats: { "out-0": "11A", "out-1": "11B" },
               extras: { pax: [] },
               checkedIn: { out: [], in: [] },
             },
@@ -5751,7 +5751,7 @@ async function runBrowserSmoke() {
         if (!bpText.includes("06:30")) {
           throw new Error("Boarding pass does not show Boarding opens time 06:30 (scheduled - 45m)");
         }
-        if (!bpText.includes("10A") && !bpText.includes("14A")) {
+        if (!bpText.includes("11A") && !bpText.includes("14A")) {
           throw new Error("Boarding pass does not display assigned seat");
         }
 
@@ -5932,6 +5932,197 @@ async function runBrowserSmoke() {
         const submitCi = testPage.locator('button:has-text("إتمام"), button:has-text("تسجيل الوصول")').first();
         if ((await submitCi.count()) > 0 && !(await submitCi.isDisabled())) {
           throw new Error("Check-in allowed active submission for an already checked-in passenger");
+        }
+      } finally {
+        await testContext.close();
+      }
+    });
+
+    await checkStep("Check 44: Phase 5C — Operational Flight Presentation: loading, error, missing/unavailable, and override verification", async () => {
+      const testContext = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+      try {
+        const testPage = await testContext.newPage();
+
+        const bookingRef = "GZA-5C44";
+        const flightOut = {
+          id: "PS100-2026-10-10-out",
+          number: "PS100",
+          originCode: "GZA",
+          destinationCode: "AMM",
+          date: "2026-10-10",
+          departTime: "07:15",
+          arriveTime: "08:10",
+          durationMinutes: 55,
+          aircraft: "Airbus A321neo",
+          status: "Scheduled",
+          gate: "A1",
+          terminal: "1",
+          basePrice: 177,
+          seatsLeft: 19,
+        };
+
+        const initialRepo = {
+          schemaVersion: 1,
+          bookings: [
+            {
+              ref: bookingRef,
+              createdAt: "2026-10-01T10:00:00Z",
+              status: "confirmed",
+              ownerEmail: "presentation@example.ps",
+              total: 200,
+              contact: { email: "presentation@example.ps", phone: "+970 8 282 2222" },
+              criteria: {
+                tripType: "oneway",
+                origin: "GZA",
+                destination: "AMM",
+                departDate: "2026-10-10",
+                returnDate: "",
+                adults: 1,
+                children: 0,
+                infants: 0,
+                cabin: "economy",
+              },
+              outbound: flightOut,
+              inbound: null,
+              fareId: "classic",
+              passengers: [
+                { id: `pax-${bookingRef}-0`, firstName: "Kareem", lastName: "Nasser", type: "adult", dob: "1992-04-10", nationality: "PS", document: "DOC-KAREEM-1" },
+              ],
+              seats: { "out-0": "11A" },
+              extras: { pax: [] },
+              checkedIn: { out: [0], in: [] },
+            },
+          ],
+          flightOverrides: {
+            // Stage 1: Active operational override with gate B9, terminal T2, revised departure 08:30
+            "PS100-2026-10-10-out": {
+              flightId: "PS100-2026-10-10-out",
+              gate: "B9",
+              terminal: "T2",
+              revisedDepart: "08:30",
+              status: "Delayed",
+            },
+          },
+        };
+
+        const clockMs = Date.parse("2026-10-10T04:00:00+03:00");
+
+        await testContext.addInitScript(({ initialRepo, clockMs }) => {
+          try {
+            if (!localStorage.getItem("gza.repo.v1")) {
+              localStorage.setItem("gza.repo.v1", JSON.stringify(initialRepo));
+            }
+            const RealDate = Date;
+            class MockDate extends RealDate {
+              constructor(...args) {
+                if (args.length === 0) super(clockMs);
+                else super(...args);
+              }
+              static now() { return clockMs; }
+            }
+            window.Date = MockDate;
+          } catch {
+            // ignore
+          }
+        }, { initialRepo, clockMs });
+
+        // 1. Verify successful operational override presentation on Manage Detail
+        await testPage.goto(`${baseUrl}/manage/${bookingRef}`, { waitUntil: "domcontentloaded" });
+        await testPage.waitForSelector('text=B9', { timeout: 10000 });
+
+        const detailText = await testPage.textContent('body');
+        if (!detailText.includes("B9")) {
+          throw new Error("Operational gate B9 not displayed on Manage Detail");
+        }
+        if (!detailText.includes("T2")) {
+          throw new Error("Operational terminal T2 not displayed on Manage Detail");
+        }
+        if (!detailText.includes("08:30")) {
+          throw new Error("Operational revised departure 08:30 not displayed on Manage Detail");
+        }
+        if (!detailText.includes("07:15")) {
+          throw new Error("Scheduled departure 07:15 lost on Manage Detail");
+        }
+
+        // 2. Verify successful operational override presentation on Boarding Pass
+        await testPage.goto(`${baseUrl}/boarding-pass/${bookingRef}/out/0`, { waitUntil: "domcontentloaded" });
+        await testPage.waitForSelector('text=B9', { timeout: 10000 });
+
+        const bpText = await testPage.textContent('body');
+        if (!bpText.includes("B9")) {
+          throw new Error("Operational gate B9 not displayed on Boarding Pass");
+        }
+        if (!bpText.includes("08:30")) {
+          throw new Error("Operational revised departure 08:30 not displayed on Boarding Pass");
+        }
+        if (!bpText.includes("07:15")) {
+          throw new Error("Scheduled departure 07:15 lost on Boarding Pass");
+        }
+
+        // 3. Stage 2: Simulate flight resolution unavailable/missing
+        // Point the booking to a non-existent flight ID in the catalog
+        await testPage.evaluate(({ bRef }) => {
+          const raw = localStorage.getItem("gza.repo.v1");
+          if (raw) {
+            const data = JSON.parse(raw);
+            const b = data.bookings.find((item) => item.ref === bRef);
+            if (b) {
+              b.outbound.id = "PS999-2026-10-10-out";
+              b.outbound.number = "PS999";
+              b.outbound.gate = "A1"; // Booked snapshot has gate A1
+              b.outbound.terminal = "1";
+            }
+            delete data.flightOverrides["PS100-2026-10-10-out"];
+            localStorage.setItem("gza.repo.v1", JSON.stringify(data));
+          }
+        }, { bRef: bookingRef });
+
+        // Reload Boarding Pass
+        await testPage.reload({ waitUntil: "domcontentloaded" });
+        await testPage.waitForSelector('text=Operational flight status unavailable', { timeout: 10000 });
+
+        const unavailBpText = await testPage.textContent('body');
+        // Proving booked gate A1 is NOT presented as current gate
+        // The gate cell should show "—", not "A1"
+        const gateCell = testPage.locator('div:has(> p:text("Gate")) p.code-id, div:has(> p:text("بوابة")) p.code-id').first();
+        if ((await gateCell.count()) > 0) {
+          const gateValue = (await gateCell.textContent()).trim();
+          if (gateValue === "A1") {
+            throw new Error("Booked gate A1 was falsely presented as current gate when effective flight was unavailable");
+          }
+        }
+        // Scheduled booked facts survive
+        if (!unavailBpText.includes("07:15")) {
+          throw new Error("Scheduled departure 07:15 did not survive on unavailable Boarding Pass");
+        }
+        if (!unavailBpText.includes("PS999")) {
+          throw new Error("Flight number PS999 did not survive on unavailable Boarding Pass");
+        }
+
+        // Reload Manage Detail
+        await testPage.goto(`${baseUrl}/manage/${bookingRef}`, { waitUntil: "domcontentloaded" });
+        await testPage.waitForSelector('text=Operational flight status unavailable', { timeout: 10000 });
+
+        const unavailDetailText = await testPage.textContent('body');
+        // Scheduled facts survive
+        if (!unavailDetailText.includes("07:15")) {
+          throw new Error("Scheduled departure 07:15 did not survive on unavailable Manage Detail");
+        }
+        // Booked gate A1 is NOT presented as current
+        if (unavailDetailText.includes("Gate A1") || unavailDetailText.includes("gate A1")) {
+          throw new Error("Booked gate A1 was falsely presented as current gate on unavailable Manage Detail");
+        }
+
+        // 4. Test Arabic presentation of unavailable status
+        await testPage.goto(`${baseUrl}/ar/manage/${bookingRef}`, { waitUntil: "domcontentloaded" });
+        await testPage.waitForSelector('text=الحالة التشغيلية للرحلة غير متوفرة', { timeout: 10000 });
+
+        const arText = await testPage.textContent('body');
+        if (!arText.includes("07:15")) {
+          throw new Error("Scheduled departure 07:15 did not survive in Arabic view");
+        }
+        if (!arText.includes("PS999")) {
+          throw new Error("Technical identifier PS999 not displayed in Arabic view");
         }
       } finally {
         await testContext.close();

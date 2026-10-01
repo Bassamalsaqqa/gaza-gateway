@@ -16,6 +16,12 @@ import {
 import { LocalBookingRepository } from "../../src/lib/repositories/booking-repository.ts";
 import { LocalFlightRepository } from "../../src/lib/repositories/flight-repository.ts";
 import { RepoStorageCoordinator, StorageCommitError } from "../../src/lib/repositories/storage.ts";
+import {
+  parseSeatCode,
+  isSeatInCabinZone,
+  validateUpdateSeatsAssignments,
+  validateCheckInSeats,
+} from "../../src/lib/domain/seat-validation.ts";
 import type { Booking } from "../../src/lib/domain/booking.ts";
 import type { Flight } from "../../src/lib/data.ts";
 
@@ -118,8 +124,8 @@ describe("Phase 5C: Manage, Check-in & Boarding Pass Convergence", () => {
       { id: "pax-GZA-5C01-2", firstName: "Nour", lastName: "Khalil", type: "infant", dob: "2025-11-01", nationality: "PS", document: "P10003", withAdult: 0 },
     ],
     seats: {
-      "out-0": "10A",
-      "out-1": "10B",
+      "out-0": "11A",
+      "out-1": "11B",
     },
     extras: { pax: [] },
     checkedIn: {
@@ -392,25 +398,25 @@ describe("Phase 5C: Manage, Check-in & Boarding Pass Convergence", () => {
     });
 
     it("updateSeats prevents altering seat of an already checked-in passenger on that leg", async () => {
-      // First check in passenger 0 on outbound leg (currently in 10A)
+      // First check in passenger 0 on outbound leg (currently in 11A)
       const booking = (await repo.getByRef("GZA-5C01"))!;
       booking.checkedIn.out = [0];
       await repo.update("GZA-5C01", { checkedIn: booking.checkedIn });
 
-      // Attempt to change passenger 0's seat on outbound leg to "12A" -> MUST REJECT
+      // Attempt to change passenger 0's seat on outbound leg to "12B" -> MUST REJECT
       await assert.rejects(
-        () => repo.updateSeats("GZA-5C01", { "out-0": "12A", "out-1": "10B" }),
-        /checked-in passenger/i,
+        () => repo.updateSeats("GZA-5C01", { "out-0": "12B", "out-1": "11B" }),
+        /checked-in/i,
       );
 
       // Unchecked passenger 1's seat on outbound leg CAN be changed
-      const updated = await repo.updateSeats("GZA-5C01", { "out-0": "10A", "out-1": "12B" });
+      const updated = await repo.updateSeats("GZA-5C01", { "out-0": "11A", "out-1": "12B" });
       assert.equal(updated.seats["out-1"], "12B");
-      assert.equal(updated.seats["out-0"], "10A");
+      assert.equal(updated.seats["out-0"], "11A");
     });
 
     it("updateSeats recalculates total price canonically", async () => {
-      const updated = await repo.updateSeats("GZA-5C01", { "out-0": "1A", "out-1": "1B" });
+      const updated = await repo.updateSeats("GZA-5C01", { "out-0": "11C", "out-1": "12B" });
       assert.ok(updated.total > 0);
       const persisted = await repo.getByRef("GZA-5C01");
       assert.equal(persisted?.total, updated.total);
@@ -439,22 +445,22 @@ describe("Phase 5C: Manage, Check-in & Boarding Pass Convergence", () => {
           1: "DOC-FATIMA-99",
         },
         seats: {
-          0: "14A",
-          1: "14B",
+          0: "15A",
+          1: "15B",
         },
         now: checkInClock,
       });
 
       assert.deepEqual(updated.checkedIn.out, [0, 1]);
-      assert.equal(updated.seats["out-0"], "14A");
-      assert.equal(updated.seats["out-1"], "14B");
+      assert.equal(updated.seats["out-0"], "15A");
+      assert.equal(updated.seats["out-1"], "15B");
       assert.equal(updated.passengers[0]?.document, "DOC-AHMAD-99");
       assert.equal(updated.passengers[1]?.document, "DOC-FATIMA-99");
 
       // Verify in storage
       const persisted = await repo.getByRef("GZA-5C01");
       assert.deepEqual(persisted?.checkedIn.out, [0, 1]);
-      assert.equal(persisted?.seats["out-0"], "14A");
+      assert.equal(persisted?.seats["out-0"], "15A");
     });
 
     it("completeCheckIn is idempotent on repeated identical submission", async () => {
@@ -464,7 +470,7 @@ describe("Phase 5C: Manage, Check-in & Boarding Pass Convergence", () => {
         leg: "out" as const,
         selectedPaxIndexes: [0],
         documents: { 0: "DOC-IDEMPOTENT-1" },
-        seats: { 0: "10A" },
+        seats: { 0: "11A" },
         now: checkInClock,
       };
 
@@ -474,7 +480,7 @@ describe("Phase 5C: Manage, Check-in & Boarding Pass Convergence", () => {
       // Repeated identical submission should succeed idempotently
       const second = await repo.completeCheckIn(input);
       assert.deepEqual(second.checkedIn.out, [0]);
-      assert.equal(second.seats["out-0"], "10A");
+      assert.equal(second.seats["out-0"], "11A");
     });
 
     it("completeCheckIn rejects infant passenger index", async () => {
@@ -511,32 +517,219 @@ describe("Phase 5C: Manage, Check-in & Boarding Pass Convergence", () => {
             },
             now: checkInClock,
           }),
-        /duplicate seat/i,
+        /duplicate/i,
       );
     });
 
-    it("completeCheckIn rolls back memory and storage when storage throws StorageCommitError", async () => {
-      mockStorage.setFailWrites(true);
-      const checkInClock = new Date("2026-10-10T04:00:00+03:00");
+    describe("5.1 Storage Rollback Matrix Across All 5 Bounded Commands", () => {
+      it("completeCheckIn rolls back memory and storage when storage throws StorageCommitError", async () => {
+        let notifications = 0;
+        coordinator.subscribe(() => {
+          notifications++;
+        });
 
-      await assert.rejects(
-        () =>
+        const baselineBooking = structuredClone(await repo.getByRef("GZA-5C01"));
+        const baselineRaw = mockStorage.getItem("gza.repo.v1");
+        const checkInClock = new Date("2026-10-10T04:00:00+03:00");
+
+        const execute = () =>
           repo.completeCheckIn({
             ref: "GZA-5C01",
             leg: "out",
             selectedPaxIndexes: [0],
             documents: { 0: "DOC-FAIL" },
-            seats: { 0: "20A" },
+            seats: { 0: "15A" },
             now: checkInClock,
-          }),
-        StorageCommitError,
-      );
+          });
 
-      // Verify that after failure, storage and memory remained unchanged
-      mockStorage.setFailWrites(false);
-      const restored = await repo.getByRef("GZA-5C01");
-      assert.deepEqual(restored?.checkedIn.out, []);
-      assert.notEqual(restored?.seats["out-0"], "20A");
+        mockStorage.setFailWrites(true);
+
+        // 1. Rejection with StorageCommitError
+        await assert.rejects(execute, StorageCommitError);
+
+        // 2. In-memory booking completely unchanged
+        const inMemory = await repo.getByRef("GZA-5C01");
+        assert.deepEqual(inMemory, baselineBooking);
+
+        // 3. Backing persisted envelope unchanged
+        assert.equal(mockStorage.getItem("gza.repo.v1"), baselineRaw);
+
+        // 4. Subscribers received no false notification
+        assert.equal(notifications, 0);
+
+        // 5. Retrying after storage recovery succeeds
+        mockStorage.setFailWrites(false);
+        const recovered = await execute();
+        assert.deepEqual(recovered.checkedIn.out, [0]);
+        assert.equal(recovered.seats["out-0"], "15A");
+        assert.equal(recovered.passengers[0]?.document, "DOC-FAIL");
+        assert.equal(notifications, 1);
+
+        const persisted = await repo.getByRef("GZA-5C01");
+        assert.deepEqual(persisted?.checkedIn.out, [0]);
+      });
+
+      it("cancel rolls back memory and storage when storage throws StorageCommitError", async () => {
+        let notifications = 0;
+        coordinator.subscribe(() => {
+          notifications++;
+        });
+
+        const baselineBooking = structuredClone(await repo.getByRef("GZA-5C01"));
+        const baselineRaw = mockStorage.getItem("gza.repo.v1");
+
+        const execute = () => repo.cancel("GZA-5C01");
+
+        mockStorage.setFailWrites(true);
+
+        // 1. Rejection with StorageCommitError
+        await assert.rejects(execute, StorageCommitError);
+
+        // 2. In-memory booking completely unchanged
+        const inMemory = await repo.getByRef("GZA-5C01");
+        assert.deepEqual(inMemory, baselineBooking);
+
+        // 3. Backing persisted envelope unchanged
+        assert.equal(mockStorage.getItem("gza.repo.v1"), baselineRaw);
+
+        // 4. Subscribers received no false notification
+        assert.equal(notifications, 0);
+
+        // 5. Retrying after storage recovery succeeds
+        mockStorage.setFailWrites(false);
+        const recovered = await execute();
+        assert.equal(recovered.status, "cancelled");
+        assert.equal(notifications, 1);
+
+        const persisted = await repo.getByRef("GZA-5C01");
+        assert.equal(persisted?.status, "cancelled");
+      });
+
+      it("updateContact rolls back memory and storage when storage throws StorageCommitError", async () => {
+        let notifications = 0;
+        coordinator.subscribe(() => {
+          notifications++;
+        });
+
+        const baselineBooking = structuredClone(await repo.getByRef("GZA-5C01"));
+        const baselineRaw = mockStorage.getItem("gza.repo.v1");
+
+        const execute = () =>
+          repo.updateContact("GZA-5C01", {
+            email: "recovered@example.ps",
+            phone: "+970 59 777 6666",
+          });
+
+        mockStorage.setFailWrites(true);
+
+        // 1. Rejection with StorageCommitError
+        await assert.rejects(execute, StorageCommitError);
+
+        // 2. In-memory booking completely unchanged
+        const inMemory = await repo.getByRef("GZA-5C01");
+        assert.deepEqual(inMemory, baselineBooking);
+
+        // 3. Backing persisted envelope unchanged
+        assert.equal(mockStorage.getItem("gza.repo.v1"), baselineRaw);
+
+        // 4. Subscribers received no false notification
+        assert.equal(notifications, 0);
+
+        // 5. Retrying after storage recovery succeeds
+        mockStorage.setFailWrites(false);
+        const recovered = await execute();
+        assert.equal(recovered.contact.email, "recovered@example.ps");
+        assert.equal(recovered.contact.phone, "+970 59 777 6666");
+        assert.equal(notifications, 1);
+
+        const persisted = await repo.getByRef("GZA-5C01");
+        assert.equal(persisted?.contact.email, "recovered@example.ps");
+      });
+
+      it("updateSeats rolls back memory and storage when storage throws StorageCommitError", async () => {
+        let notifications = 0;
+        coordinator.subscribe(() => {
+          notifications++;
+        });
+
+        const baselineBooking = structuredClone(await repo.getByRef("GZA-5C01"));
+        const baselineRaw = mockStorage.getItem("gza.repo.v1");
+
+        const execute = () =>
+          repo.updateSeats("GZA-5C01", {
+            "out-0": "15A",
+            "out-1": "15B",
+          });
+
+        mockStorage.setFailWrites(true);
+
+        // 1. Rejection with StorageCommitError
+        await assert.rejects(execute, StorageCommitError);
+
+        // 2. In-memory booking completely unchanged
+        const inMemory = await repo.getByRef("GZA-5C01");
+        assert.deepEqual(inMemory, baselineBooking);
+
+        // 3. Backing persisted envelope unchanged
+        assert.equal(mockStorage.getItem("gza.repo.v1"), baselineRaw);
+
+        // 4. Subscribers received no false notification
+        assert.equal(notifications, 0);
+
+        // 5. Retrying after storage recovery succeeds
+        mockStorage.setFailWrites(false);
+        const recovered = await execute();
+        assert.equal(recovered.seats["out-0"], "15A");
+        assert.equal(recovered.seats["out-1"], "15B");
+        assert.equal(notifications, 1);
+
+        const persisted = await repo.getByRef("GZA-5C01");
+        assert.equal(persisted?.seats["out-0"], "15A");
+        assert.equal(persisted?.seats["out-1"], "15B");
+      });
+
+      it("updateExtras rolls back memory and storage when storage throws StorageCommitError", async () => {
+        let notifications = 0;
+        coordinator.subscribe(() => {
+          notifications++;
+        });
+
+        const baselineBooking = structuredClone(await repo.getByRef("GZA-5C01"));
+        const baselineRaw = mockStorage.getItem("gza.repo.v1");
+
+        const execute = () =>
+          repo.updateExtras("GZA-5C01", {
+            pax: [
+              { bags: 2, meal: "gourmet", assistance: "none" },
+              { bags: 1, meal: "standard", assistance: "none" },
+            ],
+          });
+
+        mockStorage.setFailWrites(true);
+
+        // 1. Rejection with StorageCommitError
+        await assert.rejects(execute, StorageCommitError);
+
+        // 2. In-memory booking completely unchanged
+        const inMemory = await repo.getByRef("GZA-5C01");
+        assert.deepEqual(inMemory, baselineBooking);
+
+        // 3. Backing persisted envelope unchanged
+        assert.equal(mockStorage.getItem("gza.repo.v1"), baselineRaw);
+
+        // 4. Subscribers received no false notification
+        assert.equal(notifications, 0);
+
+        // 5. Retrying after storage recovery succeeds
+        mockStorage.setFailWrites(false);
+        const recovered = await execute();
+        assert.equal(recovered.extras.pax[0]?.bags, 2);
+        assert.equal(recovered.extras.pax[1]?.bags, 1);
+        assert.equal(notifications, 1);
+
+        const persisted = await repo.getByRef("GZA-5C01");
+        assert.equal(persisted?.extras.pax[0]?.bags, 2);
+      });
     });
   });
 
@@ -609,6 +802,698 @@ describe("Phase 5C: Manage, Check-in & Boarding Pass Convergence", () => {
       assert.throws(
         () => buildBoardingPassViewModel(booking, "out", 2),
         /infant/i,
+      );
+    });
+
+    it("presents gate '—' and terminal '—' when effective flight is null (missing/error)", () => {
+      const vm = buildBoardingPassViewModel(booking, "out", 0, null);
+      assert.equal(vm.flight.gate, "—");
+      assert.equal(vm.flight.terminal, "—");
+      assert.equal(vm.operationalStatus, "unavailable");
+      // Booked scheduled facts survive
+      assert.equal(vm.scheduledDepartureTime, "07:15");
+      assert.equal(vm.revisedDepartureTime, undefined);
+    });
+
+    it("presents operational override gate B9 and revised departure 08:30 distinct from scheduled 07:15", () => {
+      const overrideFlight: Flight = {
+        ...mockOutboundFlight,
+        gate: "B9",
+        terminal: "T2",
+        revisedDepart: "08:30",
+        status: "Delayed",
+      };
+      const vm = buildBoardingPassViewModel(booking, "out", 0, overrideFlight);
+      assert.equal(vm.flight.gate, "B9");
+      assert.equal(vm.flight.terminal, "T2");
+      assert.equal(vm.scheduledDepartureTime, "07:15");
+      assert.equal(vm.revisedDepartureTime, "08:30");
+      assert.equal(vm.operationalStatus, "active");
+    });
+  });
+
+  describe("7. Canonical Seat Validation Domain Rules (Finding 1)", () => {
+    const booking = createBaseBooking();
+
+    describe("parseSeatCode", () => {
+      it("parses valid seat codes correctly", () => {
+        assert.deepEqual(parseSeatCode("1A"), { row: 1, letter: "A" });
+        assert.deepEqual(parseSeatCode("11C"), { row: 11, letter: "C" });
+        assert.deepEqual(parseSeatCode("28F"), { row: 28, letter: "F" });
+      });
+
+      it("returns null for malformed or out-of-range seat codes", () => {
+        assert.equal(parseSeatCode(""), null);
+        assert.equal(parseSeatCode("A"), null);
+        assert.equal(parseSeatCode("12"), null);
+        assert.equal(parseSeatCode("0A"), null);
+        assert.equal(parseSeatCode("29A"), null);
+        assert.equal(parseSeatCode("11G"), null);
+        assert.equal(parseSeatCode("11Z"), null);
+        assert.equal(parseSeatCode("11AA"), null);
+        assert.equal(parseSeatCode("row11"), null);
+      });
+    });
+
+    describe("isSeatInCabinZone", () => {
+      it("validates rows according to cabin zone boundaries", () => {
+        // Business: 1-4
+        assert.equal(isSeatInCabinZone("1A", "business"), true);
+        assert.equal(isSeatInCabinZone("4F", "business"), true);
+        assert.equal(isSeatInCabinZone("5A", "business"), false);
+        assert.equal(isSeatInCabinZone("11A", "business"), false);
+
+        // Premium: 5-10
+        assert.equal(isSeatInCabinZone("5A", "premium"), true);
+        assert.equal(isSeatInCabinZone("10F", "premium"), true);
+        assert.equal(isSeatInCabinZone("4A", "premium"), false);
+        assert.equal(isSeatInCabinZone("11A", "premium"), false);
+
+        // Economy: 11-28
+        assert.equal(isSeatInCabinZone("11A", "economy"), true);
+        assert.equal(isSeatInCabinZone("28F", "economy"), true);
+        assert.equal(isSeatInCabinZone("1A", "economy"), false);
+        assert.equal(isSeatInCabinZone("10A", "economy"), false);
+      });
+    });
+
+    describe("validateUpdateSeatsAssignments", () => {
+      it("accepts valid in-cabin available seats", () => {
+        assert.doesNotThrow(() =>
+          validateUpdateSeatsAssignments(
+            booking,
+            { "out-0": "11C", "out-1": "12B" },
+            booking.outbound,
+            booking.inbound,
+          ),
+        );
+      });
+
+      it("rejects malformed seat code", () => {
+        assert.throws(
+          () =>
+            validateUpdateSeatsAssignments(
+              booking,
+              { "out-0": "INVALID" },
+              booking.outbound,
+              booking.inbound,
+            ),
+          /invalid seat syntax/i,
+        );
+      });
+
+      it("rejects seat outside booked cabin zone", () => {
+        // Booking is economy (11-28), 1A is business
+        assert.throws(
+          () =>
+            validateUpdateSeatsAssignments(
+              booking,
+              { "out-0": "1A" },
+              booking.outbound,
+              booking.inbound,
+            ),
+          /outside booked cabin/i,
+        );
+      });
+
+      it("rejects deterministically unavailable seat", () => {
+        // 12A is unavailable on PS100
+        assert.throws(
+          () =>
+            validateUpdateSeatsAssignments(
+              booking,
+              { "out-0": "12A" },
+              booking.outbound,
+              booking.inbound,
+            ),
+          /not available/i,
+        );
+      });
+
+      it("rejects duplicate physical seat among passengers on the same leg", () => {
+        assert.throws(
+          () =>
+            validateUpdateSeatsAssignments(
+              booking,
+              { "out-0": "11C", "out-1": "11C" },
+              booking.outbound,
+              booking.inbound,
+            ),
+          /duplicate/i,
+        );
+      });
+
+      it("rejects assigning a seat to an infant passenger", () => {
+        // Passenger index 2 is an infant
+        assert.throws(
+          () =>
+            validateUpdateSeatsAssignments(
+              booking,
+              { "out-2": "11C" },
+              booking.outbound,
+              booking.inbound,
+            ),
+          /infant/i,
+        );
+      });
+
+      it("rejects assignment for nonexistent passenger key", () => {
+        assert.throws(
+          () =>
+            validateUpdateSeatsAssignments(
+              booking,
+              { "out-99": "11C" },
+              booking.outbound,
+              booking.inbound,
+            ),
+          /passenger/i,
+        );
+
+        assert.throws(
+          () =>
+            validateUpdateSeatsAssignments(
+              booking,
+              { "invalid-key": "11C" },
+              booking.outbound,
+              booking.inbound,
+            ),
+          /invalid seat assignment key/i,
+        );
+      });
+
+      it("rejects inbound seat assignment on a one-way booking", () => {
+        const oneWayBooking = { ...booking, inbound: null };
+        assert.throws(
+          () =>
+            validateUpdateSeatsAssignments(
+              oneWayBooking,
+              { "in-0": "11C" },
+              oneWayBooking.outbound,
+              null,
+            ),
+          /one-way trip/i,
+        );
+      });
+
+      it("retains same passenger's existing canonical seat privilege", () => {
+        // Passenger 0 currently has 11A. Retaining 11A passes even though 11A might be considered occupied for others.
+        assert.doesNotThrow(() =>
+          validateUpdateSeatsAssignments(
+            booking,
+            { "out-0": "11A" },
+            booking.outbound,
+            booking.inbound,
+          ),
+        );
+      });
+
+      it("prevents another passenger from acquiring the existing seat of another passenger", () => {
+        // 12A is deterministically unavailable on PS100.
+        // Passenger 0 has 12A in their booking.
+        const bookingWithUnavailableSeat = createBaseBooking({
+          seats: { "out-0": "12A" },
+        });
+
+        // Passenger 0 can retain 12A due to same-owner privilege
+        assert.doesNotThrow(() =>
+          validateUpdateSeatsAssignments(
+            bookingWithUnavailableSeat,
+            { "out-0": "12A" },
+            bookingWithUnavailableSeat.outbound,
+            bookingWithUnavailableSeat.inbound,
+          ),
+        );
+
+        // Passenger 1 attempting to acquire 12A cannot bypass availability and must reject!
+        assert.throws(
+          () =>
+            validateUpdateSeatsAssignments(
+              bookingWithUnavailableSeat,
+              { "out-1": "12A" },
+              bookingWithUnavailableSeat.outbound,
+              bookingWithUnavailableSeat.inbound,
+            ),
+          /not available/i,
+        );
+      });
+
+      it("resolves the correct canonical flight for the requested leg (inbound vs outbound)", () => {
+        // Deterministic facts:
+        // On Outbound (PS100): 13A is AVAILABLE, 12A is OCCUPIED.
+        // On Inbound (PS101):  12A is AVAILABLE, 13A is OCCUPIED.
+
+        // Outbound leg: 13A succeeds, 12A fails
+        assert.doesNotThrow(() =>
+          validateUpdateSeatsAssignments(
+            booking,
+            { "out-0": "13A" },
+            booking.outbound,
+            booking.inbound,
+          ),
+        );
+        assert.throws(
+          () =>
+            validateUpdateSeatsAssignments(
+              booking,
+              { "out-0": "12A" },
+              booking.outbound,
+              booking.inbound,
+            ),
+          /not available on flight PS100/i,
+        );
+
+        // Inbound leg: 12A succeeds, 13A fails
+        assert.doesNotThrow(() =>
+          validateUpdateSeatsAssignments(
+            booking,
+            { "in-0": "12A" },
+            booking.outbound,
+            booking.inbound,
+          ),
+        );
+        assert.throws(
+          () =>
+            validateUpdateSeatsAssignments(
+              booking,
+              { "in-0": "13A" },
+              booking.outbound,
+              booking.inbound,
+            ),
+          /not available on flight PS101/i,
+        );
+      });
+
+      it("preserves unrelated leg assignments when updating seats", async () => {
+        const repoStorage = createMockStorage({
+          "gza.repo.v1": JSON.stringify({
+            schemaVersion: 1,
+            bookings: [
+              {
+                ...booking,
+                seats: {
+                  "out-0": "11A",
+                  "in-0": "12B",
+                },
+              },
+            ],
+            flightOverrides: {},
+          }),
+        });
+        const c = new RepoStorageCoordinator({ storage: repoStorage });
+        const r = new LocalBookingRepository(c);
+
+        // Update outbound seat only
+        const updated = await r.updateSeats("GZA-5C01", { "out-0": "11C" });
+        assert.equal(updated.seats["out-0"], "11C");
+        // Inbound seat preserved!
+        assert.equal(updated.seats["in-0"], "12B");
+      });
+    });
+
+    describe("validateCheckInSeats", () => {
+      it("validates check-in seats with correct flight ID and cabin rules", () => {
+        assert.doesNotThrow(() =>
+          validateCheckInSeats(
+            booking,
+            "out",
+            [0, 1],
+            { 0: "15A", 1: "15B" },
+            mockOutboundFlight,
+          ),
+        );
+      });
+
+      it("rejects unavailable seat during check-in", () => {
+        // 12A is unavailable on PS100
+        assert.throws(
+          () =>
+            validateCheckInSeats(
+              booking,
+              "out",
+              [0],
+              { 0: "12A" },
+              mockOutboundFlight,
+            ),
+          /not available/i,
+        );
+      });
+
+      it("rejects seat outside cabin during check-in", () => {
+        assert.throws(
+          () =>
+            validateCheckInSeats(
+              booking,
+              "out",
+              [0],
+              { 0: "1A" },
+              mockOutboundFlight,
+            ),
+          /cabin/i,
+        );
+      });
+
+      it("rejects duplicate physical seat assignment during check-in", () => {
+        assert.throws(
+          () =>
+            validateCheckInSeats(
+              booking,
+              "out",
+              [0, 1],
+              { 0: "15A", 1: "15A" },
+              mockOutboundFlight,
+            ),
+          /duplicate/i,
+        );
+      });
+    });
+  });
+
+  describe("8. Checked-in Seat State Exact Immutability (Finding 2)", () => {
+    it("allows keeping the same seat for a checked-in passenger", () => {
+      const booking = createBaseBooking({
+        seats: { "out-0": "11A", "out-1": "11B" },
+        checkedIn: { out: [0], in: [] },
+      });
+
+      // Passenger 0 is checked in with 11A. Keeping 11A succeeds.
+      assert.doesNotThrow(() =>
+        validateUpdateSeatsAssignments(
+          booking,
+          { "out-0": "11A", "out-1": "12B" },
+          booking.outbound,
+          booking.inbound,
+        ),
+      );
+    });
+
+    it("rejects seat change for a checked-in passenger (11A to 12B)", () => {
+      const booking = createBaseBooking({
+        seats: { "out-0": "11A", "out-1": "11B" },
+        checkedIn: { out: [0], in: [] },
+      });
+
+      // Passenger 0 is checked in with 11A. Changing to 12B must reject.
+      assert.throws(
+        () =>
+          validateUpdateSeatsAssignments(
+            booking,
+            { "out-0": "12B", "out-1": "11B" },
+            booking.outbound,
+            booking.inbound,
+          ),
+        /checked-in/i,
+      );
+    });
+
+    it("rejects seat removal for a checked-in passenger", () => {
+      const booking = createBaseBooking({
+        seats: { "out-0": "11A", "out-1": "11B" },
+        checkedIn: { out: [0], in: [] },
+      });
+
+      // Passenger 0 is checked in with 11A. Omitting out-0 must reject.
+      assert.throws(
+        () =>
+          validateUpdateSeatsAssignments(
+            booking,
+            { "out-1": "11B" },
+            booking.outbound,
+            booking.inbound,
+          ),
+        /checked-in/i,
+      );
+    });
+
+    it("allows absent-to-absent for a checked-in passenger who has no assigned seat", () => {
+      const booking = createBaseBooking({
+        seats: { "out-1": "11B" }, // out-0 has no assigned seat
+        checkedIn: { out: [0], in: [] },
+      });
+
+      // Passenger 0 is checked in with NO seat. Leaving out-0 absent succeeds.
+      assert.doesNotThrow(() =>
+        validateUpdateSeatsAssignments(
+          booking,
+          { "out-1": "12B" },
+          booking.outbound,
+          booking.inbound,
+        ),
+      );
+    });
+
+    it("rejects absent-to-seat for a checked-in passenger who has no assigned seat", () => {
+      const booking = createBaseBooking({
+        seats: { "out-1": "11B" }, // out-0 has no assigned seat
+        checkedIn: { out: [0], in: [] },
+      });
+
+      // Passenger 0 is checked in with NO seat. Assigning 11A must reject.
+      assert.throws(
+        () =>
+          validateUpdateSeatsAssignments(
+            booking,
+            { "out-0": "11A", "out-1": "11B" },
+            booking.outbound,
+            booking.inbound,
+          ),
+        /checked-in/i,
+      );
+    });
+
+    it("enforces seat immutability inside the completeCheckIn repository command", async () => {
+      const initialBooking = createBaseBooking({
+        seats: { "out-0": "11A", "out-1": "11B" },
+        checkedIn: { out: [0], in: [] },
+      });
+      const repoStorage = createMockStorage({
+        "gza.repo.v1": JSON.stringify({
+          schemaVersion: 1,
+          bookings: [initialBooking],
+          flightOverrides: {},
+        }),
+      });
+      const c = new RepoStorageCoordinator({ storage: repoStorage });
+      const r = new LocalBookingRepository(c);
+      const checkInClock = new Date("2026-10-10T04:00:00+03:00");
+
+      // Passenger 0 is already checked in with 11A. Attempting to check in with 15A must reject!
+      await assert.rejects(
+        () =>
+          r.completeCheckIn({
+            ref: "GZA-5C01",
+            leg: "out",
+            selectedPaxIndexes: [0],
+            documents: { 0: "P10001" },
+            seats: { 0: "15A" },
+            now: checkInClock,
+          }),
+        /already checked in/i,
+      );
+    });
+  });
+
+  describe("9. Duplicate Check-in Passenger Indexes & Replay Ordering (Finding 3)", () => {
+    let mockStorage: ReturnType<typeof createMockStorage>;
+    let coordinator: RepoStorageCoordinator;
+    let repo: LocalBookingRepository;
+    const checkInClock = new Date("2026-10-10T04:00:00+03:00");
+
+    beforeEach(() => {
+      const booking = createBaseBooking();
+      const initialJson = JSON.stringify({
+        schemaVersion: 1,
+        bookings: [booking],
+        flightOverrides: {},
+      });
+      mockStorage = createMockStorage({ "gza.repo.v1": initialJson });
+      coordinator = new RepoStorageCoordinator({ storage: mockStorage });
+      repo = new LocalBookingRepository(coordinator);
+    });
+
+    it("rejects duplicate passenger indexes [0, 0] BEFORE replay check", async () => {
+      await assert.rejects(
+        () =>
+          repo.completeCheckIn({
+            ref: "GZA-5C01",
+            leg: "out",
+            selectedPaxIndexes: [0, 0],
+            documents: { 0: "P10001" },
+            seats: { 0: "11A" },
+            now: checkInClock,
+          }),
+        /duplicate passenger index/i,
+      );
+    });
+
+    it("rejects [0, 0] even when passenger 0 is already checked in (strictly before replay check)", async () => {
+      // First successfully check in passenger 0
+      await repo.completeCheckIn({
+        ref: "GZA-5C01",
+        leg: "out",
+        selectedPaxIndexes: [0],
+        documents: { 0: "P10001" },
+        seats: { 0: "11A" },
+        now: checkInClock,
+      });
+
+      // Now attempt duplicate index submission [0, 0] — must reject with duplicate error, NOT succeed as replay
+      await assert.rejects(
+        () =>
+          repo.completeCheckIn({
+            ref: "GZA-5C01",
+            leg: "out",
+            selectedPaxIndexes: [0, 0],
+            documents: { 0: "P10001" },
+            seats: { 0: "11A" },
+            now: checkInClock,
+          }),
+        /duplicate passenger index/i,
+      );
+    });
+
+    it("rejects negative passenger index [-1]", async () => {
+      await assert.rejects(
+        () =>
+          repo.completeCheckIn({
+            ref: "GZA-5C01",
+            leg: "out",
+            selectedPaxIndexes: [-1],
+            documents: {},
+            seats: {},
+            now: checkInClock,
+          }),
+        /out of range/i,
+      );
+    });
+
+    it("rejects out-of-range passenger index [99]", async () => {
+      await assert.rejects(
+        () =>
+          repo.completeCheckIn({
+            ref: "GZA-5C01",
+            leg: "out",
+            selectedPaxIndexes: [99],
+            documents: {},
+            seats: {},
+            now: checkInClock,
+          }),
+        /out of range/i,
+      );
+    });
+
+    it("rejects non-integer passenger index [1.5]", async () => {
+      await assert.rejects(
+        () =>
+          repo.completeCheckIn({
+            ref: "GZA-5C01",
+            leg: "out",
+            selectedPaxIndexes: [1.5 as unknown as number],
+            documents: {},
+            seats: {},
+            now: checkInClock,
+          }),
+        /must be an integer/i,
+      );
+    });
+
+    it("rejects empty passenger index list []", async () => {
+      await assert.rejects(
+        () =>
+          repo.completeCheckIn({
+            ref: "GZA-5C01",
+            leg: "out",
+            selectedPaxIndexes: [],
+            documents: {},
+            seats: {},
+            now: checkInClock,
+          }),
+        /at least one passenger/i,
+      );
+    });
+
+    it("rejects infant passenger index [2]", async () => {
+      await assert.rejects(
+        () =>
+          repo.completeCheckIn({
+            ref: "GZA-5C01",
+            leg: "out",
+            selectedPaxIndexes: [2],
+            documents: { 2: "P10003" },
+            seats: {},
+            now: checkInClock,
+          }),
+        /infant/i,
+      );
+    });
+
+    it("preserves idempotent replay for identical completed submission", async () => {
+      const input = {
+        ref: "GZA-5C01",
+        leg: "out" as const,
+        selectedPaxIndexes: [0],
+        documents: { 0: "P10001" },
+        seats: { 0: "11A" },
+        now: checkInClock,
+      };
+
+      const first = await repo.completeCheckIn(input);
+      assert.deepEqual(first.checkedIn.out, [0]);
+      assert.equal(first.seats["out-0"], "11A");
+
+      // Identical replay returns existing booking
+      const replay = await repo.completeCheckIn(input);
+      assert.deepEqual(replay.checkedIn.out, [0]);
+      assert.equal(replay.seats["out-0"], "11A");
+      assert.equal(replay.passengers[0]?.document, "P10001");
+    });
+
+    it("rejects non-identical request for already checked-in passenger (changed document)", async () => {
+      await repo.completeCheckIn({
+        ref: "GZA-5C01",
+        leg: "out",
+        selectedPaxIndexes: [0],
+        documents: { 0: "P10001" },
+        seats: { 0: "11A" },
+        now: checkInClock,
+      });
+
+      // Submitting changed document for already checked-in passenger must reject
+      await assert.rejects(
+        () =>
+          repo.completeCheckIn({
+            ref: "GZA-5C01",
+            leg: "out",
+            selectedPaxIndexes: [0],
+            documents: { 0: "NEW-DOC-CHANGED" },
+            seats: { 0: "11A" },
+            now: checkInClock,
+          }),
+        /already checked in/i,
+      );
+    });
+
+    it("rejects non-identical request for already checked-in passenger (changed seat)", async () => {
+      await repo.completeCheckIn({
+        ref: "GZA-5C01",
+        leg: "out",
+        selectedPaxIndexes: [0],
+        documents: { 0: "P10001" },
+        seats: { 0: "11A" },
+        now: checkInClock,
+      });
+
+      // Submitting changed seat for already checked-in passenger must reject
+      await assert.rejects(
+        () =>
+          repo.completeCheckIn({
+            ref: "GZA-5C01",
+            leg: "out",
+            selectedPaxIndexes: [0],
+            documents: { 0: "P10001" },
+            seats: { 0: "15A" },
+            now: checkInClock,
+          }),
+        /already checked in/i,
       );
     });
   });

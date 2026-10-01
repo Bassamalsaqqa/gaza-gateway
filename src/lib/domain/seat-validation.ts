@@ -1,0 +1,358 @@
+/**
+ * Gaza Gateway — Canonical Seat Assignment Validation
+ *
+ * Implements pure domain validation for passenger seat assignments across
+ * BookingRepository commands (`updateSeats` and `completeCheckIn`).
+ *
+ * Enforces:
+ * 1. Assignment keys resolve real, seat-requiring passengers on existing booking legs.
+ * 2. Strict syntax: row number (1-28) followed by valid seat letter (A-F).
+ * 3. In-cabin enforcement: seat must fall within the booked cabin zone.
+ * 4. Deterministic availability: new/reassigned seats must be available on the canonical flight.
+ * 5. Same-owner privilege: a passenger retaining their existing canonical seat bypasses
+ *    availability for that seat, but no other passenger may acquire that privilege.
+ * 6. Checked-in seat immutability: checked-in passengers' seat assignments (including absent seats)
+ *    are strictly immutable.
+ * 7. Duplicate prevention: no two passengers may occupy the same physical seat on a leg.
+ * 8. Leg preservation: unrelated leg assignments are preserved.
+ */
+
+import {
+  SEAT_LETTERS,
+  SEAT_ROWS,
+  cabinZone,
+  isSeatAvailable,
+  type Flight,
+} from "../data.ts";
+import type { Booking, Leg } from "./booking.ts";
+
+export interface ParsedSeatCode {
+  row: number;
+  letter: (typeof SEAT_LETTERS)[number];
+}
+
+export interface ParsedSeatKey {
+  leg: Leg;
+  paxIndex: number;
+}
+
+/**
+ * Validates canonical seat code syntax: 1-28 followed by A-F (e.g. "12A", "1B").
+ */
+export function isValidSeatSyntax(seat: unknown): boolean {
+  return parseSeatCode(seat) !== null;
+}
+
+/**
+ * Parses a seat string into row and letter, returning null if malformed.
+ */
+export function parseSeatCode(seat: unknown): ParsedSeatCode | null {
+  if (typeof seat !== "string" || !seat.trim()) return null;
+  const match = /^([1-9]|[12]\d)([A-F])$/.exec(seat.trim());
+  if (!match) return null;
+  const row = Number.parseInt(match[1] as string, 10);
+  const letter = match[2] as (typeof SEAT_LETTERS)[number];
+  if (row < 1 || row > SEAT_ROWS) return null;
+  if (!SEAT_LETTERS.includes(letter)) return null;
+  return { row, letter };
+}
+
+/**
+ * Checks whether a given row or seat string is inside the booked cabin zone.
+ */
+export function isSeatInCabinZone(rowOrSeat: number | string, cabin: string): boolean {
+  let row: number;
+  if (typeof rowOrSeat === "number") {
+    row = rowOrSeat;
+  } else {
+    const parsed = parseSeatCode(rowOrSeat);
+    if (!parsed) return false;
+    row = parsed.row;
+  }
+  const zone = cabinZone(cabin);
+  return row >= zone.firstRow && row <= zone.lastRow;
+}
+
+/**
+ * Parses a canonical seat key (e.g. "out-0", "in-1") into leg and passenger index.
+ */
+export function parseSeatKey(key: string): ParsedSeatKey | null {
+  if (typeof key !== "string") return null;
+  const match = /^(out|in)-(\d+)$/.exec(key.trim());
+  if (!match) return null;
+  const leg = match[1] as Leg;
+  const paxIndex = Number.parseInt(match[2] as string, 10);
+  if (!Number.isInteger(paxIndex) || paxIndex < 0) return null;
+  return { leg, paxIndex };
+}
+
+/**
+ * Validates a single proposed seat assignment against booking, passenger, cabin, and flight availability.
+ */
+export function validateSeatAssignment({
+  seat,
+  paxIndex,
+  leg,
+  booking,
+  flight,
+  isSameOwnerExistingSeat,
+}: {
+  seat: string;
+  paxIndex: number;
+  leg: Leg;
+  booking: Booking;
+  flight: Flight;
+  isSameOwnerExistingSeat: boolean;
+}): void {
+  // 1. Leg existence
+  if (leg === "in" && !booking.inbound) {
+    throw new Error(
+      `Cannot assign seat on inbound leg: booking ${booking.ref} is a one-way trip.`,
+    );
+  }
+
+  // 2. Passenger existence
+  if (paxIndex < 0 || paxIndex >= booking.passengers.length) {
+    throw new Error(
+      `Invalid passenger index ${paxIndex} on booking ${booking.ref}.`,
+    );
+  }
+
+  const pax = booking.passengers[paxIndex];
+  if (!pax) {
+    throw new Error(`Passenger ${paxIndex} does not exist on booking ${booking.ref}.`);
+  }
+
+  // 3. Infant check
+  if (pax.type === "infant") {
+    throw new Error(
+      `Cannot assign seat to infant passenger at index ${paxIndex}. Infants travel on an adult's lap.`,
+    );
+  }
+
+  // 4. Seat syntax
+  const parsed = parseSeatCode(seat);
+  if (!parsed) {
+    throw new Error(
+      `Invalid seat syntax '${seat}' for passenger ${paxIndex} on leg ${leg}. Must be row (1-${SEAT_ROWS}) followed by letter (${SEAT_LETTERS.join("")}).`,
+    );
+  }
+
+  // 5. Cabin zone
+  const bookedCabin = booking.criteria.cabin;
+  if (!isSeatInCabinZone(parsed.row, bookedCabin)) {
+    const zone = cabinZone(bookedCabin);
+    throw new Error(
+      `Seat ${seat} is outside booked cabin zone '${bookedCabin}' (rows ${zone.firstRow}–${zone.lastRow}).`,
+    );
+  }
+
+  // 6. Availability check
+  // Retaining the SAME passenger's EXISTING canonical seat bypasses availability,
+  // but another passenger cannot acquire that privilege.
+  if (!isSameOwnerExistingSeat) {
+    if (!isSeatAvailable(flight.id, parsed.row, parsed.letter)) {
+      throw new Error(
+        `Seat ${seat} is not available on flight ${flight.id}.`,
+      );
+    }
+  }
+}
+
+/**
+ * Validates and merges proposed seat assignments for `updateSeats()`.
+ * Preserves unrelated leg assignments and enforces exact checked-in immutability.
+ */
+export function validateUpdateSeatsAssignments(
+  booking: Booking,
+  proposedSeats: Record<string, string>,
+  flightsOrOutbound: { outbound: Flight; inbound: Flight | null } | Flight,
+  inboundArg?: Flight | null,
+): Record<string, string> {
+  const flights: { outbound: Flight; inbound: Flight | null } =
+    flightsOrOutbound && "outbound" in flightsOrOutbound
+      ? flightsOrOutbound
+      : { outbound: flightsOrOutbound as Flight, inbound: inboundArg ?? null };
+  if (booking.status === "cancelled") {
+    throw new Error(`Cannot update seats: booking ${booking.ref} is cancelled.`);
+  }
+
+  // 1. Validate every key and value in proposedSeats
+  for (const [key, seat] of Object.entries(proposedSeats)) {
+    const parsedKey = parseSeatKey(key);
+    if (!parsedKey) {
+      throw new Error(`Invalid seat assignment key '${key}'. Expected format 'out-0' or 'in-0'.`);
+    }
+
+    const flight = parsedKey.leg === "in" ? flights.inbound : flights.outbound;
+    if (!flight) {
+      throw new Error(
+        `Cannot assign seat on inbound leg: booking ${booking.ref} is a one-way trip.`,
+      );
+    }
+
+    const isSameOwnerExistingSeat = booking.seats[key] === seat;
+
+    validateSeatAssignment({
+      seat,
+      paxIndex: parsedKey.paxIndex,
+      leg: parsedKey.leg,
+      booking,
+      flight,
+      isSameOwnerExistingSeat,
+    });
+  }
+
+  // 2. Build next seats preserving unrelated leg assignments
+  const hasOutProposed = Object.keys(proposedSeats).some((k) => k.startsWith("out-"));
+  const hasInProposed = Object.keys(proposedSeats).some((k) => k.startsWith("in-"));
+
+  const nextSeats: Record<string, string> = {};
+
+  // For Outbound leg:
+  if (hasOutProposed) {
+    for (const [k, v] of Object.entries(proposedSeats)) {
+      if (k.startsWith("out-")) nextSeats[k] = v;
+    }
+  } else {
+    // Preserve existing outbound seats
+    for (const [k, v] of Object.entries(booking.seats)) {
+      if (k.startsWith("out-")) nextSeats[k] = v;
+    }
+  }
+
+  // For Inbound leg:
+  if (booking.inbound) {
+    if (hasInProposed) {
+      for (const [k, v] of Object.entries(proposedSeats)) {
+        if (k.startsWith("in-")) nextSeats[k] = v;
+      }
+    } else {
+      // Preserve existing inbound seats
+      for (const [k, v] of Object.entries(booking.seats)) {
+        if (k.startsWith("in-")) nextSeats[k] = v;
+      }
+    }
+  }
+
+  // 3. Enforce exact checked-in seat immutability (Finding 2)
+  const legs: Leg[] = ["out", "in"];
+  for (const leg of legs) {
+    const checkedPax = booking.checkedIn?.[leg] ?? [];
+    for (const paxIdx of checkedPax) {
+      const key = `${leg}-${paxIdx}`;
+      const currentSeat = booking.seats[key];
+      const newSeat = nextSeats[key];
+      if (currentSeat !== newSeat) {
+        throw new Error(
+          `Cannot change seat for checked-in passenger ${paxIdx} on leg ${leg}. Current: ${currentSeat ?? "none"}, Requested: ${newSeat ?? "none"}`,
+        );
+      }
+    }
+  }
+
+  // 4. Duplicate physical seat check on each leg
+  for (const leg of legs) {
+    const seen = new Map<string, number>();
+    for (let i = 0; i < booking.passengers.length; i++) {
+      if (booking.passengers[i]?.type === "infant") continue;
+      const s = nextSeats[`${leg}-${i}`];
+      if (s) {
+        const existingOwner = seen.get(s);
+        if (existingOwner !== undefined) {
+          throw new Error(
+            `Duplicate seat assignment ${s} for passengers ${existingOwner} and ${i} on leg ${leg}.`,
+          );
+        }
+        seen.set(s, i);
+      }
+    }
+  }
+
+  return nextSeats;
+}
+
+/**
+ * Validates and allocates seats for `completeCheckIn()`.
+ * Checks syntax, cabin zone, leg flight availability, same-owner privilege, and duplicate prevention.
+ */
+export function validateCheckInSeats(
+  booking: Booking,
+  leg: Leg,
+  selectedPaxIndexes: number[],
+  proposedSeats: Record<number, string> | undefined,
+  flight: Flight,
+): Record<string, string> {
+  const nextSeats: Record<string, string> = { ...booking.seats };
+
+  // 1. If explicit seats were provided in check-in input, validate them
+  if (proposedSeats) {
+    for (const [paxStr, seat] of Object.entries(proposedSeats)) {
+      const paxIndex = Number.parseInt(paxStr, 10);
+      if (!Number.isInteger(paxIndex) || paxIndex < 0 || paxIndex >= booking.passengers.length) {
+        throw new Error(`Invalid passenger index ${paxIndex} in check-in seats.`);
+      }
+
+      const key = `${leg}-${paxIndex}`;
+      const isSameOwnerExistingSeat = booking.seats[key] === seat;
+
+      // Checked-in passengers on this leg cannot change their seat via check-in
+      if ((booking.checkedIn?.[leg] ?? []).includes(paxIndex)) {
+        if (booking.seats[key] !== seat) {
+          throw new Error(
+            `Cannot change seat for checked-in passenger ${paxIndex} on leg ${leg}. Current: ${booking.seats[key] ?? "none"}, Requested: ${seat}`,
+          );
+        }
+      }
+
+      validateSeatAssignment({
+        seat,
+        paxIndex,
+        leg,
+        booking,
+        flight,
+        isSameOwnerExistingSeat,
+      });
+
+      nextSeats[key] = seat;
+    }
+  }
+
+  // 2. For selected passengers without explicit seats in input, validate their existing seat if assigned
+  for (const paxIndex of selectedPaxIndexes) {
+    const key = `${leg}-${paxIndex}`;
+    const explicit = proposedSeats?.[paxIndex];
+    if (!explicit) {
+      const existingSeat = booking.seats[key];
+      if (existingSeat) {
+        validateSeatAssignment({
+          seat: existingSeat,
+          paxIndex,
+          leg,
+          booking,
+          flight,
+          isSameOwnerExistingSeat: true,
+        });
+        nextSeats[key] = existingSeat;
+      }
+    }
+  }
+
+  // 3. Duplicate physical seat check on the check-in leg
+  const seen = new Map<string, number>();
+  for (let i = 0; i < booking.passengers.length; i++) {
+    if (booking.passengers[i]?.type === "infant") continue;
+    const s = nextSeats[`${leg}-${i}`];
+    if (s) {
+      const existingOwner = seen.get(s);
+      if (existingOwner !== undefined && existingOwner !== i) {
+        throw new Error(
+          `Duplicate seat assignment ${s} for passengers ${existingOwner} and ${i} on leg ${leg}.`,
+        );
+      }
+      seen.set(s, i);
+    }
+  }
+
+  return nextSeats;
+}

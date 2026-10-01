@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Check, Ticket, UserPlus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { EXTRA_BAG_PRICE, airportByCode, fares, mealOptions } from "@/lib/data";
-import { Code, Container, EmptyState, GazaLoadingState, Notice, Panel, btnClass } from "@/components/kit";
+import { Code, Container, EmptyState, GazaLoadingState, Notice, Panel, Pill, btnClass } from "@/components/kit";
 import { StatusBadge } from "@/components/flight-status";
 import { dateLong, money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
@@ -148,7 +148,8 @@ function ConfirmationPage() {
               if (!flight) return null;
               const legState = index === 0 ? effectiveFlights.outbound : effectiveFlights.inbound;
               const eff = legState?.effectiveFlight;
-              const displayFlight = eff ?? flight;
+              const isLegLoading = legState?.isLoading ?? false;
+              const isLegUnavailable = (legState?.isUnavailable || legState?.isError) ?? false;
 
               return (
                 <li key={flight.id} className="py-3 first:pt-0 last:pb-0">
@@ -156,7 +157,13 @@ function ConfirmationPage() {
                     <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                       {t(index === 0 ? "book.outbound" : "book.inbound")}
                     </p>
-                    {eff ? <StatusBadge status={eff.status} /> : null}
+                    {isLegLoading ? (
+                      <Pill tone="neutral">{t("common.loading")}</Pill>
+                    ) : isLegUnavailable ? (
+                      <Pill tone="ink">{t("bp.operationalUnavailable")}</Pill>
+                    ) : eff ? (
+                      <StatusBadge status={eff.status} />
+                    ) : null}
                   </div>
                   <p className="mt-1 font-semibold">
                     {pick(
@@ -173,7 +180,7 @@ function ConfirmationPage() {
                     )}
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    <Code>{displayFlight.number}</Code> · {dateLong(flight.date, lang)} ·{" "}
+                    <Code>{flight.number}</Code> · {dateLong(flight.date, lang)} ·{" "}
                     <span className="code-id">{flight.departTime}</span>
                     {eff?.revisedDepart ? (
                       <>
@@ -183,9 +190,9 @@ function ConfirmationPage() {
                       </>
                     ) : null}
                     {" – "}
-                    <span className="code-id">{displayFlight.arriveTime}</span> · {t("flights.terminal")}{" "}
-                    <span className="code-id">{displayFlight.terminal}</span> · {t("flights.gate")}{" "}
-                    <span className="code-id">{displayFlight.gate}</span>
+                    <span className="code-id">{eff?.arriveTime ?? flight.arriveTime}</span> · {t("flights.terminal")}{" "}
+                    <span className="code-id">{eff?.terminal ?? "—"}</span> · {t("flights.gate")}{" "}
+                    <span className="code-id">{eff?.gate ?? "—"}</span>
                   </p>
                 </li>
               );

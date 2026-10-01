@@ -279,14 +279,21 @@ export function useBookingEffectiveFlights(
   const outboundBooked = booking?.outbound ?? null;
   const inboundBooked = booking?.inbound ?? null;
 
-  const outboundEffective = outboundId ? (outboundQuery?.data ?? null) : null;
-  const inboundEffective = inboundId ? (inboundQuery?.data ?? null) : null;
-
   const isOutboundLoading = Boolean(outboundId && outboundQuery?.isLoading);
   const isInboundLoading = Boolean(inboundId && inboundQuery?.isLoading);
 
   const isOutboundError = Boolean(outboundId && outboundQuery?.isError);
   const isInboundError = Boolean(inboundId && inboundQuery?.isError);
+
+  // Explicitly prevent cached data from coexisting with a query error or loading state
+  const outboundEffective =
+    outboundId && !isOutboundLoading && !isOutboundError && outboundQuery?.isSuccess
+      ? (outboundQuery.data ?? null)
+      : null;
+  const inboundEffective =
+    inboundId && !isInboundLoading && !isInboundError && inboundQuery?.isSuccess
+      ? (inboundQuery.data ?? null)
+      : null;
 
   const isOutboundUnavailable = Boolean(
     outboundId && !isOutboundLoading && !isOutboundError && outboundQuery?.isSuccess && outboundQuery.data === null,

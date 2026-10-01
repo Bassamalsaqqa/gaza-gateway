@@ -64,7 +64,12 @@ function BoardingPassesPage() {
   const effectiveFlightMap = useMemo(() => {
     const map = new Map<string, Flight | null>();
     flightIds.forEach((id, idx) => {
-      map.set(id, flightQueries[idx]?.data ?? null);
+      const q = flightQueries[idx];
+      if (q && q.isSuccess && !q.isLoading && !q.isError && q.data) {
+        map.set(id, q.data);
+      } else {
+        map.set(id, null);
+      }
     });
     return map;
   }, [flightIds, flightQueries]);

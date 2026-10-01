@@ -16,6 +16,10 @@ import type { BookingRepository, CheckInCommandInput, ClaimResult } from "./type
 import type { Extras } from "../booking-draft/types.ts";
 import { getCheckInEligibility } from "../domain/check-in.ts";
 import { bookingTotal } from "../domain/pricing.ts";
+import {
+  validateUpdateSeatsAssignments,
+  validateCheckInSeats,
+} from "../domain/seat-validation.ts";
 import { normalizeEmailIdentity } from "../passenger/domain.ts";
 import {
   RepoStorageCoordinator,
@@ -363,39 +367,25 @@ export class LocalBookingRepository implements BookingRepository {
         throw new Error(`Cannot update seats: booking ${clean} is cancelled.`);
       }
 
-      // Invariant: Checked-in passenger's checked-in leg seat is protected in the repository.
-      const legs: Leg[] = ["out", "in"];
-      for (const leg of legs) {
-        const checkedPax = existing.checkedIn?.[leg] ?? [];
-        for (const paxIdx of checkedPax) {
-          const key = `${leg}-${paxIdx}`;
-          const currentSeat = existing.seats[key];
-          const newSeat = seats[key];
-          if (currentSeat && newSeat !== currentSeat) {
-            throw new Error(
-              `Cannot change seat for checked-in passenger ${paxIdx} on leg ${leg}. Current: ${currentSeat}, Requested: ${newSeat ?? "none"}`,
-            );
-          }
-        }
+      // Resolve effective flights within current transaction overrides
+      const baseOutbound = flightById(existing.outbound.id);
+      const effectiveOutbound = baseOutbound
+        ? getEffectiveFlight(baseOutbound, state.flightOverrides[baseOutbound.id]) ?? existing.outbound
+        : existing.outbound;
+
+      let effectiveInbound: Flight | null = null;
+      if (existing.inbound) {
+        const baseInbound = flightById(existing.inbound.id);
+        effectiveInbound = baseInbound
+          ? getEffectiveFlight(baseInbound, state.flightOverrides[baseInbound.id]) ?? existing.inbound
+          : existing.inbound;
       }
 
-      // Invariant: No duplicate physical seat assigned to multiple passengers on the same leg
-      for (const leg of legs) {
-        const seen = new Map<string, number>();
-        for (let i = 0; i < existing.passengers.length; i++) {
-          if (existing.passengers[i]?.type === "infant") continue;
-          const s = seats[`${leg}-${i}`];
-          if (s) {
-            const existingOwner = seen.get(s);
-            if (existingOwner !== undefined) {
-              throw new Error(
-                `Duplicate seat assignment ${s} for passengers ${existingOwner} and ${i} on leg ${leg}.`,
-              );
-            }
-            seen.set(s, i);
-          }
-        }
-      }
+      // Pure domain validation for seat syntax, cabin zone, availability, immutability, duplicates, leg preservation
+      const nextSeats = validateUpdateSeatsAssignments(existing, seats, {
+        outbound: effectiveOutbound,
+        inbound: effectiveInbound,
+      });
 
       // Invariant: Canonical pricing recalculation using latest booking facts
       const nextTotal = bookingTotal({
@@ -403,13 +393,13 @@ export class LocalBookingRepository implements BookingRepository {
         inbound: existing.inbound,
         fareId: existing.fareId,
         criteria: existing.criteria,
-        seats,
+        seats: nextSeats,
         extras: existing.extras,
       }).total;
 
       const updated: Booking = {
         ...existing,
-        seats: { ...seats },
+        seats: nextSeats,
         total: nextTotal,
       };
 
@@ -499,35 +489,24 @@ export class LocalBookingRepository implements BookingRepository {
         throw new Error(`Cannot check in: flight ${bookedFlight.id} is unavailable.`);
       }
 
-      // Invariant: Authoritative check-in eligibility evaluation
-      const eligibility = getCheckInEligibility(existing, input.leg, effectiveFlight, {
-        now: input.now,
-      });
-
-      // Idempotency check: if all requested passengers are already checked in for this leg
-      const currentChecked = existing.checkedIn?.[input.leg] ?? [];
-      const isAlreadyFullyCheckedIn =
-        input.selectedPaxIndexes.length > 0 &&
-        input.selectedPaxIndexes.every((i) => currentChecked.includes(i));
-
-      if (isAlreadyFullyCheckedIn) {
-        // Return existing booking without modifying state
-        return { ...existing };
+      // Step 1: Validate passenger index list BEFORE replay handling or doc/seat processing (Finding 3)
+      if (!input.selectedPaxIndexes || !Array.isArray(input.selectedPaxIndexes) || input.selectedPaxIndexes.length === 0) {
+        throw new Error("Cannot check in: at least one passenger must be selected.");
       }
 
-      if (!eligibility.eligible) {
-        throw new Error(`Check-in is not permitted: ${eligibility.reason ?? "ineligible"}.`);
-      }
-
-      if (!input.selectedPaxIndexes || input.selectedPaxIndexes.length === 0) {
-        throw new Error("Cannot check in: no passengers selected.");
-      }
-
-      // Validate passenger indices
+      const seenIndexes = new Set<number>();
       for (const paxIdx of input.selectedPaxIndexes) {
-        if (paxIdx < 0 || paxIdx >= existing.passengers.length) {
-          throw new Error(`Invalid passenger index ${paxIdx} on booking ${clean}.`);
+        if (typeof paxIdx !== "number" || !Number.isInteger(paxIdx)) {
+          throw new Error(`Invalid passenger index ${paxIdx} on booking ${clean}: index must be an integer.`);
         }
+        if (paxIdx < 0 || paxIdx >= existing.passengers.length) {
+          throw new Error(`Invalid passenger index ${paxIdx} on booking ${clean}: index out of range.`);
+        }
+        if (seenIndexes.has(paxIdx)) {
+          throw new Error(`Cannot check in: duplicate passenger index ${paxIdx} in request.`);
+        }
+        seenIndexes.add(paxIdx);
+
         const pax = existing.passengers[paxIdx];
         if (!pax) {
           throw new Error(`Passenger ${paxIdx} does not exist.`);
@@ -535,38 +514,67 @@ export class LocalBookingRepository implements BookingRepository {
         if (pax.type === "infant") {
           throw new Error(`Cannot check in infant passenger at index ${paxIdx} directly.`);
         }
-        if (currentChecked.includes(paxIdx)) {
-          throw new Error(`Passenger ${paxIdx} is already checked in for leg ${input.leg}.`);
+      }
+
+      // Step 2: Idempotent replay vs already checked in
+      const currentChecked = existing.checkedIn?.[input.leg] ?? [];
+      const allAlreadyCheckedIn = input.selectedPaxIndexes.every((i) => currentChecked.includes(i));
+      const anyAlreadyCheckedIn = input.selectedPaxIndexes.some((i) => currentChecked.includes(i));
+
+      if (allAlreadyCheckedIn) {
+        // Verify whether this is an identical request replay
+        let isIdentical = true;
+        for (const paxIdx of input.selectedPaxIndexes) {
+          const reqDoc = input.documents?.[paxIdx];
+          if (reqDoc !== undefined && reqDoc.trim() !== (existing.passengers[paxIdx]?.document ?? "").trim()) {
+            isIdentical = false;
+            break;
+          }
+          const reqSeat = input.seats?.[paxIdx];
+          const curSeat = existing.seats[`${input.leg}-${paxIdx}`];
+          if (reqSeat !== undefined && reqSeat !== curSeat) {
+            isIdentical = false;
+            break;
+          }
         }
+        if (isIdentical) {
+          // Idempotent return without state modification
+          return { ...existing };
+        }
+        throw new Error(`Passenger is already checked in for leg ${input.leg}.`);
+      }
+
+      if (anyAlreadyCheckedIn) {
+        const already = input.selectedPaxIndexes.find((i) => currentChecked.includes(i));
+        throw new Error(`Passenger ${already} is already checked in for leg ${input.leg}.`);
+      }
+
+      // Step 3: Authoritative check-in eligibility evaluation
+      const eligibility = getCheckInEligibility(existing, input.leg, effectiveFlight, {
+        now: input.now,
+      });
+
+      if (!eligibility.eligible) {
+        throw new Error(`Check-in is not permitted: ${eligibility.reason ?? "ineligible"}.`);
+      }
+
+      // Step 4: Validate travel documents for newly checking-in passengers
+      for (const paxIdx of input.selectedPaxIndexes) {
+        const pax = existing.passengers[paxIdx]!;
         const doc = (input.documents?.[paxIdx] ?? pax.document ?? "").trim();
         if (!doc) {
           throw new Error(`Missing travel document for passenger ${paxIdx}.`);
         }
       }
 
-      // Check seat allocations and prevent duplicates on this leg
-      const nextSeats = { ...existing.seats };
-      for (const paxIdx of input.selectedPaxIndexes) {
-        const seat = input.seats?.[paxIdx] ?? existing.seats[`${input.leg}-${paxIdx}`];
-        if (seat) {
-          nextSeats[`${input.leg}-${paxIdx}`] = seat;
-        }
-      }
-
-      const assignedOnLeg = new Map<string, number>();
-      for (let i = 0; i < existing.passengers.length; i++) {
-        if (existing.passengers[i]?.type === "infant") continue;
-        const s = nextSeats[`${input.leg}-${i}`];
-        if (s) {
-          const owner = assignedOnLeg.get(s);
-          if (owner !== undefined && owner !== i) {
-            throw new Error(
-              `Duplicate seat assignment ${s} for passengers ${owner} and ${i} on leg ${input.leg}.`,
-            );
-          }
-          assignedOnLeg.set(s, i);
-        }
-      }
+      // Step 5: Pure domain seat allocation and validation (Finding 1)
+      const nextSeats = validateCheckInSeats(
+        existing,
+        input.leg,
+        input.selectedPaxIndexes,
+        input.seats,
+        effectiveFlight,
+      );
 
       // Prepare updated passenger documents
       const nextPassengers = existing.passengers.map((p, i) => {

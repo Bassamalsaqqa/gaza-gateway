@@ -57,8 +57,10 @@ Every persistent domain has an authoritative, isolated storage key. No domain wr
 | **Appearance (Legacy working copy)**| `gza.skin.preview.v1` | **Legacy Non-Authoritative**. Read once for deterministic migration when `site.appearance` is absent. Left byte-for-byte untouched; no dual writes. |
 | **Appearance (Export Artifact)** | `gza.appearance.v1` | **Export file format identifier**. Used for JSON export/import of skin configuration. |
 | **Bookings & Operational Flights** | `gza.repo.v1` | **Canonical Repository Store**. Governed by `RepoStorageCoordinator`. Bookings & overrides. |
+| **Booking Wizard Draft** | `gza.booking.draft.v1` | **Canonical Booking Draft Store**. Governed by `BookingDraftRepository` for active booking wizard flows. |
+| **Passenger Account & Travelers** | `gza.passenger.v1` | **Canonical Passenger Store**. Governed by `PassengerRepository` for account profile and saved travelers. |
 | **Content & Travel CMS** | `gza.content.draft.v1`| **Canonical Content Draft Store**. Travel CMS, destination media, and editorial drafts. |
-| **Public User State** | `gza.store.v1` | Public booking wizard draft, authenticated mock customer profile. |
+| **Legacy Public State** | `gza.store.v1` | Closed legacy migration/rollback source only, no active public writer. |
 | **Staff & Admin Auth** | `gza.admin.v1` | Staff session token (`staffId`) and legacy admin overrides. |
 | **Airport Operations** | In-memory `OpsState` | Airport operations operational control board state. |
 
