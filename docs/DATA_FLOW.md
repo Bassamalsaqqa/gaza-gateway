@@ -1,8 +1,9 @@
 # Data Flow, State Management & Pretend-Action Inventory
 
 > **Document Purpose**: Complete audit of current data sources, state persistence, cross-screen entity splits, and enabled no-op actions across public and admin workspaces.
-> **Status**: **Phase 5C and HC-2 ACCEPTED SOURCE on main; HC-3 (Owner Archive Visual Integration & Media Experience) implemented on feature branch `hc3/archive-visual-integration` (awaiting independent review).** Phase 5 overall remains in progress; Phase 5A, 5B, 5C, HC-0, HC-1, and HC-2 complete/accepted on `main`; Phase 5D (Public Contact Workflow Convergence) and Phase 6 planned. Packaging and pushing `hostpapa-deploy` does not constitute a live deployment; the owner reports Phase 5C and HC-2 deployed; this run does not verify or change production.
-> **Future Target**: Independent review of HC-3, then Phase 5D — Public Contact Workflow Convergence, then Phase 6 before any production backend.
+> **Status**: **Phase 5C, HC-2 and HC-3 Complete / Accepted Source on `main`.** Phase 5 remains in progress; Phase 5A, 5B, 5C, HC-0, HC-1, HC-2 and HC-3 are complete/accepted. Phase 5D — Public Contact Workflow Convergence is the next engineering lane and remains Planned / Unstarted; Phase 6 and Phase 7/7B remain Planned / Unstarted.
+> **Production / Source Checkpoint**: The owner reports deployment of the verified HostPapa package `86bb9d7ff5d05279824ecb495140bd294558e499`, built from accepted HC-3 implementation `e99fefa62d1be76050ec11ee962e1ea524b21974`. Source `main` contains that same implementation plus this documentation reconciliation, intentionally one documentation-only commit ahead of production source. No independent live browser verification is claimed; the release and production are unchanged by this reconciliation.
+> **Future Target**: Phase 5D — Public Contact Workflow Convergence (Planned / Unstarted), then Phase 6 before any production backend.
 
 ---
 

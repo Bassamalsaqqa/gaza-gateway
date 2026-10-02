@@ -2,8 +2,9 @@
 
 > **Repository**: `Bassamalsaqqa/gaza-gateway`
 > **Production Domain**: `https://www.gazaairport.com`
-> **Engineering Status**: **Phase 5C and HC-2 ACCEPTED SOURCE on main; HC-3 (Owner Archive Visual Integration & Media Experience) implemented on feature branch `hc3/archive-visual-integration` (awaiting independent review).** Phase 5 overall remains in progress; Phase 5A, 5B, 5C, HC-0, HC-1, and HC-2 complete/accepted on `main`; Phase 5D (Public Contact Workflow Convergence) and Phase 6 planned. Packaging and pushing `hostpapa-deploy` does not constitute a live deployment; the owner reports Phase 5C and HC-2 deployed; this run does not verify or change production.
-> **Immediate Next Step**: Independent review of HC-3, then Phase 5D — Public Contact Workflow Convergence.
+> **Engineering Status**: **Phase 5C, HC-2 and HC-3 Complete / Accepted Source on `main`.** Phase 5 remains in progress; Phase 5A, 5B, 5C, HC-0, HC-1, HC-2 and HC-3 are complete/accepted. Phase 5D — Public Contact Workflow Convergence is the next engineering lane and remains Planned / Unstarted; Phase 6 and Phase 7/7B remain Planned / Unstarted.
+> **Production / Source Checkpoint**: The owner reports deployment of the verified HostPapa package `86bb9d7ff5d05279824ecb495140bd294558e499`, built from accepted HC-3 implementation `e99fefa62d1be76050ec11ee962e1ea524b21974`. Source `main` contains that same implementation plus this documentation reconciliation, intentionally one documentation-only commit ahead of production source. No independent live browser verification is claimed; the release and production are unchanged by this reconciliation.
+> **Immediate Next Step**: Phase 5D — Public Contact Workflow Convergence (Planned / Unstarted).
 
 ---
 
@@ -128,13 +129,13 @@ Future asset and copy drops must adhere to the following protocol:
 - **Home Utility Rail (`data-home-utility-rail="true"`)**: Single grouped rail with no gaps displaying 4 utility cards (`flight-status`, `check-in`, `travel-guidelines`, `airport-heritage`). Decorative image slices maintain seamless connectivity across all four cards by mirroring only the decorative image layer (`ltr:scale-x-[-1]`) in English LTR, while Arabic RTL keeps natural unmirrored artwork.
 - **Passenger Auth Shell (`PassengerAuthShell`)**: Sign-in route (`/signin`) features an optional photographic panel (`data-auth-media="signin"`) showing `signin-photo`, desktop two-column form priority, and compact mobile photo band, preserving fallback for other auth views.
 
-### 4.4 Historical Archive Authority & Authoritative Source Registry (HC-2)
+### 4.4 Historical Archive Authority & Authoritative Source Registry (HC-2 / HC-3 Complete / Accepted Source)
 
 - **Canonical Archive Authority (`src/lib/archive/`)**:
-  - `ARCHIVE_CATALOG`: Bounded repository of 11 records (1 published `rec-present-ruins-2008`, 6 staging [5 video records + `past-050` photograph], 3 held for provenance, 1 excluded duplicate).
-  - Public archive selector: `getPublishedArchiveRecords()` exposes only schema-valid published records with approved media references. Staging, held, excluded, or duplicate records are never exposed to public views.
-  - Public Gallery (`/gallery`, `/ar/gallery`): Entirely decoupled from legacy `galleryItems`. Renders responsive media cards from `getPublishedArchiveRecords()`, supports dynamic media type and historical phase filtering, and includes a singleton-safe lightbox (Escape key, focus trap/return, scroll lock, disabled prev/next buttons when a single record is present).
-  - Home Archive Spotlight: Uses `getPublishedArchiveRecords()` instead of legacy mock slices.
+  - `ARCHIVE_CATALOG`: 67 records (58 owner intake records, 8 unpublished video intake records, 1 licensed Gisha record). Owner intake includes 37 owner-directed published records (36 photographs and 1 document), 18 held records, 1 staging record and 2 exclusions. With Gisha, public local media totals 37 photographs and 1 document. Four verified external video projections make 42 Gallery items without promoting internal video ArchiveRecords to published local media.
+  - Public archive selector: `getPublishedArchiveRecords()` exposes only schema-valid published records with approved media references and explicit publication basis. Owner-directed display preserves unknown rights and cautious evidence status; it does not establish copyright clearance. Staging, held, excluded, or duplicate records are never exposed to public views. Verified external videos are separately derived by `getVerifiedVideoReferences()` from `SOURCE_REGISTRY`.
+  - Public Gallery (`/gallery`, `/ar/gallery`): Entirely decoupled from legacy `galleryItems`. Renders responsive media cards from `getPublishedArchiveRecords()`, supports dynamic medium, historical phase and subject filtering, and includes a singleton-safe lightbox (Escape key, focus trap/return, scroll lock, disabled prev/next buttons when a single record is present).
+  - Home Archive Spotlight: Uses six curated records from `getFeaturedArchiveRecords(6)`, derived from the canonical published collection instead of legacy mock slices.
 - **Authoritative Source Registry (`SOURCE_REGISTRY`)**:
   - Contains 13 verified contemporary external records (9 text/treaty/document/official records: `src-oslo-ii-1995`, `src-ap-1998-opening`, `src-ap-1998-clinton`, `src-worldbank-2007`, `src-unsco-2000`, `src-unrwa-2001`, `src-icao-council-2002`, `src-gisha-2008`, `src-saleh-hegab-airport`; 4 verified external video references: `src-video-ap-1998-opening`, `src-video-clinton-1998`, `src-video-aljazeera-2009`, `src-video-afp-2018`).
   - Public external references are curated outbound links (`getAllSourceRecords()`), cleanly separated from reusable archive media.
