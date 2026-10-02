@@ -1,0 +1,1 @@
+var e=`/assets/airport-future-body-Vm0bAN0n.webp`;export{e as t};
