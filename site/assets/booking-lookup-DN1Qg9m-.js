@@ -1,0 +1,1 @@
+function e(e){return(e??``).trim().toUpperCase()}function t(e){return(e??``).trim().toLowerCase()}function n(e,n){if(!e)return!1;let r=t(n);return r?!!((e.passengers??[]).some(e=>t(e.lastName)===r)||e.contact?.email&&t(e.contact.email)===r):!1}export{e as n,n as t};
