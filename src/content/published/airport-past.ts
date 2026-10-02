@@ -62,32 +62,32 @@ export const publishedAirportPast: AirportPastContent = {
     {
       id: "operations",
       visible: true,
-      period: "1998–2000",
+      period: "1998–2001",
       title: {
         en: "Years of commercial flight operations",
         ar: "سنوات التشغيل التجاري",
       },
       body: {
-        en: "From late 1998 until operations were halted in autumn 2000 following the outbreak of the Second Intifada, the airport served as the home base for Palestinian Airlines. According to World Bank transport documentation, the passenger terminal was designed for up to 700,000 passengers annually; during 1999, the airfield handled tens of thousands of passengers across regional routes including Amman, Cairo, Jeddah, Dubai, Doha, Istanbul, and Larnaca, alongside operations by international carriers.",
-        ar: "من أواخر عام 1998 حتى توقف العمليات في خريف عام 2000 في أعقاب اندلاع الانتفاضة الثانية، عمل المطار كقاعدة رئيسية للخطوط الجوية الفلسطينية. ووفقاً لتقارير البنك الدولي لقطاع النقل، صُمم مبنى المسافرين لاستيعاب ما يصل إلى 700,000 مسافر سنوياً؛ وخلال عام 1999، خدم المطار عشرات آلاف المسافرين عبر وجهات إقليمية شملت عمّان، والقاهرة، وجدة، ودبي، والدوحة، وإسطنبول، ولارنكا، إلى جانب رحلات لشركات طيران دولية أخرى.",
+        en: "From late 1998 until regular flight schedules were disrupted in late 2000 and placed under continuous closure in early 2001, the airport served as the operational home base for Palestinian Airlines. According to World Bank transport documentation (Report No. 69315), the passenger terminal was designed for up to 700,000 passengers annually; during 1999, the airfield handled about 60,000 passengers across 1,168 flights on scheduled regional routes including Amman, Cairo, Jeddah, Dubai, Doha, Istanbul, and Larnaca, alongside services by regional airlines.",
+        ar: "من أواخر عام 1998 حتى تعطلت جداول الرحلات المنتظمة أواخر عام 2000 وفُرض الإغلاق المستمر أوائل عام 2001، عمل المطار كقاعدة تشغيلية رئيسية للخطوط الجوية الفلسطينية. ووفقاً لتقارير البنك الدولي لقطاع النقل (تقرير رقم 69315)، صُمم مبنى المسافرين لاستيعاب ما يصل إلى 700 ألف مسافر سنوياً؛ وخلال عام 1999، استقبل المطار نحو 60 ألف مسافر في 1,168 رحلة عبر وجهات إقليمية شملت عمّان، والقاهرة، وجدة، ودبي، والدوحة، وإسطنبول، ولارنكا، إلى جانب رحلات لشركات طيران إقليمية.",
       },
       evidence: "verified",
-      sourceRefs: ["src-worldbank-2007"],
+      sourceRefs: ["src-worldbank-2007", "src-unsco-2000", "src-unrwa-2001"],
     },
     {
       id: "closure",
       visible: true,
       period: "2000–2002",
       title: {
-        en: "Airfield closure and infrastructure destruction",
-        ar: "إغلاق المطار وتدمير البنية التحتية",
+        en: "Airfield closures, shutdown, and infrastructure destruction",
+        ar: "إغلاقات المطار، والتعطيل المستمر، وتدمير البنية التحتية",
       },
       body: {
-        en: "Civil aviation operations ceased after access was closed in autumn 2000. Between late 2001 and early 2002, military strikes and bulldozing heavily damaged the runway, radar installations, and air navigation equipment, rendering the airfield inoperative. On March 13, 2002, the Council of the International Civil Aviation Organization (ICAO) adopted a formal resolution strongly condemning the destruction of Gaza International Airport and its navigational facilities as a violation of international civil aviation principles.",
-        ar: "توقفت حركة الطيران المدني بعد إغلاق المطار في خريف عام 2000. وبين أواخر عام 2001 وأوائل عام 2002، ألحقت الضربات العسكرية وأعمال التجريف أضراراً جسيمة بالمدرج ومحطة الرادار والتجهيزات الملاحية، مما أدى إلى خروج المطار عن الخدمة تماماً. وفي 13 آذار/مارس 2002، اعتمد مجلس منظمة الطيران المدني الدولي (ICAO) قراراً رسمياً أدان فيه بشدة تدمير مطار غزة الدولي ومرافقه الملاحية باعتباره انتهاكاً لمبادئ الطيران المدني الدولي.",
+        en: "Following the outbreak of the Second Intifada in late September 2000, Israeli authorities closed the airport on October 8, 2000, followed by a brief reopening on October 19, beginning a period of intermittent closures. On February 25, 2001, authorities placed the airfield under continuous closure, as documented by UN reports. In December 2001, military air strikes destroyed the radar installation and control facilities, and in January 2002, military bulldozing tore up the runway, rendering the airfield inoperative. On March 13, 2002, the Council of the International Civil Aviation Organization (ICAO) adopted a formal resolution strongly condemning the destruction of Gaza International Airport and its air navigation facilities.",
+        ar: "في أعقاب اندلاع الانتفاضة الثانية في أواخر أيلول/سبتمبر 2000، أغلقت السلطات الإسرائيلية المطار في 8 تشرين الأول/أكتوبر 2000، ثم سمحت بإعادة فتحه لفترة وجيزة في 19 تشرين الأول/أكتوبر لتبدأ مرحلة من الإغلاقات المتقطعة. وفي 25 شباط/فبراير 2001، فرضت السلطات إغلاقاً مستمراً على المطار وفق ما وثقته تقارير الأمم المتحدة. وفي كانون الأول/ديسمبر 2001، دمرت الغارات الجوية العسكرية محطة الرادار ومرافق المراقبة، وفي كانون الثاني/يناير 2002 جرفت الآليات العسكرية المدرج مما جعله خارج الخدمة تماماً. وفي 13 آذار/مارس 2002، اعتمد مجلس منظمة الطيران المدني الدولي (ICAO) قراراً رسمياً أدان فيه بشدة تدمير مطار غزة الدولي ومرافقه الملاحية.",
       },
       evidence: "verified",
-      sourceRefs: ["src-icao-council-2002", "src-worldbank-2007"],
+      sourceRefs: ["src-unsco-2000", "src-unrwa-2001", "src-icao-council-2002", "src-worldbank-2007"],
     },
     {
       id: "memory",

@@ -998,13 +998,27 @@ describe("HC-2 Historical Archive Publication Invariants", () => {
     const operations = publishedAirportPast.timeline.find((t) => t.id === "operations");
     assert.ok(operations, "operations chapter must exist");
     assert.ok(operations.sourceRefs.includes("src-worldbank-2007"), "operations must cite World Bank 2007 report");
+    assert.ok(operations.sourceRefs.includes("src-unsco-2000"), "operations must cite UNSCO 2000 report");
+    assert.ok(operations.sourceRefs.includes("src-unrwa-2001"), "operations must cite UNRWA 2001 report");
     assert.match(operations.body.en, /700,000 passengers annually/, "Must reference 700,000 design capacity");
+    assert.match(operations.body.en, /about 60,000 passengers/, "Must reference about 60,000 passengers in 1999");
+    assert.match(operations.body.en, /1,168 flights/, "Must reference 1,168 flights in 1999");
+    assert.ok(!operations.body.en.includes("90,000"), "Must not claim 90,000 passengers");
     assert.match(operations.body.en, /Amman, Cairo, Jeddah, Dubai, Doha, Istanbul, and Larnaca/, "Must list verified routes");
 
     const closure = publishedAirportPast.timeline.find((t) => t.id === "closure");
     assert.ok(closure, "closure chapter must exist");
+    assert.equal(closure.period, "2000–2002", "closure period must be 2000–2002");
+    assert.ok(closure.sourceRefs.includes("src-unsco-2000"), "closure must cite UNSCO 2000 report");
+    assert.ok(closure.sourceRefs.includes("src-unrwa-2001"), "closure must cite UNRWA 2001 report");
     assert.ok(closure.sourceRefs.includes("src-icao-council-2002"), "closure must cite ICAO resolution");
     assert.ok(closure.sourceRefs.includes("src-worldbank-2007"), "closure must cite World Bank report for damages");
+    assert.match(closure.body.en, /October 8, 2000/, "Must note October 8, 2000 initial closure");
+    assert.match(closure.body.en, /October 19/, "Must note October 19 brief reopening");
+    assert.match(closure.body.en, /February 25, 2001/, "Must note February 25, 2001 continuous closure");
+    assert.match(closure.body.en, /December 2001/, "Must note December 2001 radar destruction");
+    assert.match(closure.body.en, /January 2002/, "Must note January 2002 runway bulldozing");
+    assert.match(closure.body.en, /March 13, 2002/, "Must note March 13, 2002 ICAO resolution");
 
     const memory = publishedAirportPast.timeline.find((t) => t.id === "memory");
     assert.ok(memory, "memory chapter must exist");
@@ -1083,6 +1097,168 @@ describe("HC-2 Historical Archive Publication Invariants", () => {
     const gallerySrc = readFileSync(new URL("../../src/routes/{-$locale}.gallery.tsx", import.meta.url), "utf8");
     assert.ok(gallerySrc.includes('t("gallery.date")'), "Gallery lightbox must use localized Date label");
     assert.ok(gallerySrc.includes("formatLocation"), "Gallery lightbox must use formatLocation helper");
-    assert.ok(gallerySrc.includes("source.notesAr"), "Gallery must reference source.notesAr");
+  });
+
+  // HC2-C2-1: Primary World Bank Report No. 69315 audit & exact metrics
+  it("HC2-C2-1: World Bank Report No. 69315 metadata, exact 1999 volume, routes, and design capacity are verified", () => {
+    const wb = SOURCE_REGISTRY["src-worldbank-2007"];
+    assert.ok(wb, "src-worldbank-2007 must exist in SOURCE_REGISTRY");
+    assert.equal(wb.publisher, "World Bank");
+    assert.match(wb.title, /Report No\. 69315/);
+    assert.match(wb.title, /West Bank and Gaza - Transport Sector Strategy Note/);
+    assert.equal(wb.publicationDate, "2007-10-30");
+    assert.equal(wb.url, "https://documents.worldbank.org/en/publication/documents-reports/documentdetail/932271469672170770/693150ESW0P1000ctober030020070Final");
+    assert.match(wb.notes, /Annex 6/);
+    assert.match(wb.notes, /about 60,000/);
+    assert.match(wb.notes, /1,168 flights/);
+    assert.match(wb.notes, /41,000.*Palestinian Airlines/);
+    assert.match(wb.notes, /\$86\.5M/);
+    assert.match(wb.notes, /Royal Wings, EgyptAir, Royal Air Maroc, Tarom/);
+    assert.ok(wb.notesAr && wb.notesAr.includes("60 ألف"), "Arabic notes must state 60 thousand");
+    assert.ok(!wb.notes.includes("90,000"), "Must not cite unverified 90,000 figure");
+
+    const pastOps = publishedAirportPast.timeline.find((t) => t.id === "operations");
+    assert.ok(pastOps);
+    assert.match(pastOps.body.en, /about 60,000 passengers across 1,168 flights/);
+    assert.match(pastOps.body.ar, /نحو 60 ألف مسافر في 1,168 رحلة/);
+    assert.ok(!pastOps.body.en.includes("90,000"));
+    assert.ok(!pastOps.body.ar.includes("90 ألف"));
+  });
+
+  // HC2-C2-2: UN primary documents and exact closure chronology
+  it("HC2-C2-2: Registers UNSCO and UNRWA primary documents and enforces precise closure chronology", () => {
+    const unsco = SOURCE_REGISTRY["src-unsco-2000"];
+    assert.ok(unsco, "src-unsco-2000 must exist in SOURCE_REGISTRY");
+    assert.equal(unsco.publisher, "Office of the United Nations Special Coordinator in the Occupied Territories (UNSCO)");
+    assert.equal(unsco.publicationDate, "2000-10");
+    assert.equal(unsco.url, "https://www.un.org/unispal/document/auto-insert-202335/");
+    assert.match(unsco.notes, /initial closure of Gaza International Airport on October 8, 2000/);
+    assert.match(unsco.notes, /temporary reopening on October 19, 2000/);
+
+    const unrwa = SOURCE_REGISTRY["src-unrwa-2001"];
+    assert.ok(unrwa, "src-unrwa-2001 must exist in SOURCE_REGISTRY");
+    assert.equal(unrwa.publisher, "United Nations General Assembly");
+    assert.equal(unrwa.publicationDate, "2001");
+    assert.equal(unrwa.url, "https://www.un.org/unispal/document/auto-insert-184580/");
+    assert.match(unrwa.notes, /continuous closure starting February 25, 2001/);
+    assert.match(unrwa.notes, /A\/56\/13/);
+
+    const closure = publishedAirportPast.timeline.find((t) => t.id === "closure");
+    assert.ok(closure);
+    assert.equal(closure.period, "2000–2002");
+    assert.deepEqual(closure.sourceRefs, ["src-unsco-2000", "src-unrwa-2001", "src-icao-council-2002", "src-worldbank-2007"]);
+    assert.match(closure.body.en, /October 8, 2000/);
+    assert.match(closure.body.en, /October 19/);
+    assert.match(closure.body.en, /February 25, 2001/);
+    assert.match(closure.body.en, /December 2001/);
+    assert.match(closure.body.en, /January 2002/);
+    assert.match(closure.body.en, /March 13, 2002/);
+    assert.match(closure.body.ar, /8 تشرين الأول\/أكتوبر 2000/);
+    assert.match(closure.body.ar, /19 تشرين الأول\/أكتوبر/);
+    assert.match(closure.body.ar, /25 شباط\/فبراير 2001/);
+    assert.match(closure.body.ar, /كانون الأول\/ديسمبر 2001/);
+    assert.match(closure.body.ar, /كانون الثاني\/يناير 2002/);
+    assert.match(closure.body.ar, /13 آذار\/مارس 2002/);
+  });
+
+  // HC2-C2-3: Video provenance matrix and upstream oEmbed reconciliation
+  it("HC2-C2-3: Reconciles all 8 intake video records against upstream oEmbed metadata and isolates held items", () => {
+    const intakeVideos = getIntakeArchiveRecords().filter((r) => r.medium === "video");
+    assert.equal(intakeVideos.length, 8);
+
+    // Clinton FOIA release (tBht5QeKHaA) cataloged as vid-journeyman-2002
+    const clintonVid = intakeVideos.find((v) => v.youtubeId === "tBht5QeKHaA");
+    assert.ok(clintonVid, "tBht5QeKHaA Clinton FOIA video must exist in catalog");
+    assert.equal(clintonVid.id, "vid-journeyman-2002");
+    assert.equal(clintonVid.rights.holder, "William J. Clinton Presidential Library / US National Archives");
+    assert.match(clintonVid.title.en, /Pres\. Clinton and Chairman Arafat at Gaza Airport/);
+    assert.equal(clintonVid.publicationState, "hold-provenance");
+
+    // Journeyman held items
+    const jm1 = intakeVideos.find((v) => v.youtubeId === "hJ-zww_qO6c");
+    assert.ok(jm1);
+    assert.equal(jm1.id, "vid-ayyad-1998-montage");
+    assert.equal(jm1.publicationState, "hold-provenance");
+
+    const jm2 = intakeVideos.find((v) => v.youtubeId === "jb8SszpUxgg");
+    assert.ok(jm2);
+    assert.equal(jm2.id, "vid-harazeen-crushed-rubble");
+    assert.equal(jm2.publicationState, "hold-provenance");
+
+    // BBC El Arish Howard Johnson report
+    const bbcVid = intakeVideos.find((v) => v.youtubeId === "0ExS0XCVk0E");
+    assert.ok(bbcVid);
+    assert.equal(bbcVid.id, "vid-ap-1998-dahanieh-open-soon");
+    assert.equal(bbcVid.rights.holder, "BBC News");
+    assert.equal(bbcVid.publicationState, "staging");
+
+    // Motaz montage
+    const motazVid = intakeVideos.find((v) => v.youtubeId === "yFF4KY-mQk0");
+    assert.ok(motazVid);
+    assert.equal(motazVid.id, "vid-afp-grounded-peace");
+    assert.equal(motazVid.rights.holder, "Motaz Ayyad");
+    assert.equal(motazVid.publicationState, "staging");
+
+    // AP 1998 opening
+    const apVid = intakeVideos.find((v) => v.youtubeId === "vYodi28td20");
+    assert.ok(apVid);
+    assert.equal(apVid.id, "vid-afp-2014-ruins");
+    assert.equal(apVid.rights.holder, "Associated Press");
+    assert.equal(apVid.publicationState, "staging");
+
+    // AFP 2018 report
+    const afpVid = intakeVideos.find((v) => v.youtubeId === "gaSe8Pbmm5Q");
+    assert.ok(afpVid);
+    assert.equal(afpVid.id, "vid-bbc-2012-el-arish");
+    assert.equal(afpVid.rights.holder, "AFP News Agency");
+    assert.equal(afpVid.publicationState, "staging");
+
+    // Al Jazeera 2009 ruins report
+    const ajVid = intakeVideos.find((v) => v.youtubeId === "-k3kR5f3nYY");
+    assert.ok(ajVid);
+    assert.equal(ajVid.id, "vid-aljazeera-ruins");
+    assert.equal(ajVid.rights.holder, "Al Jazeera Arabic");
+    assert.equal(ajVid.publicationState, "staging");
+
+    // Exactly 4 verified video SourceRecords in SOURCE_REGISTRY
+    const registryVideoSources = getAllSourceRecords().filter((s) => s.type === "video");
+    assert.equal(registryVideoSources.length, 4);
+    const sourceIds = registryVideoSources.map((s) => s.id).sort();
+    assert.deepEqual(sourceIds, [
+      "src-video-afp-2018",
+      "src-video-aljazeera-2009",
+      "src-video-ap-1998-opening",
+      "src-video-clinton-1998",
+    ]);
+
+    // Neither the 3 held videos nor the 5 staging videos are marked published
+    for (const v of intakeVideos) {
+      assert.notEqual(v.publicationState, "published", `Video ${v.id} must never have published state`);
+    }
+  });
+
+  // HC2-C2-4: Registry and catalog counts invariant
+  it("HC2-C2-4: Guarantees exact machine counts for source registry (13) and catalog records (11)", () => {
+    const allSources = getAllSourceRecords();
+    assert.equal(allSources.length, 13, "SOURCE_REGISTRY must have exactly 13 records (9 text/official + 4 video)");
+
+    const textSources = allSources.filter((s) => s.type !== "video");
+    const videoSources = allSources.filter((s) => s.type === "video");
+    assert.equal(textSources.length, 9, "Must have exactly 9 non-video sources");
+    assert.equal(videoSources.length, 4, "Must have exactly 4 video sources");
+
+    // Catalog records
+    const publishedRecords = getPublishedArchiveRecords();
+    assert.equal(publishedRecords.length, 1, "Only 1 photograph (2008 ruins) is published");
+    assert.equal(publishedRecords[0].id, "rec-present-ruins-2008");
+    assert.equal(publishedRecords[0].mediaId, "airport-present-ruins-2008");
+
+    const intakeRecords = getIntakeArchiveRecords();
+    assert.equal(intakeRecords.length, 11, "Must have exactly 11 intake catalog records (1 published + 2 unreleased photos + 8 videos)");
+
+    const stagingVideos = intakeRecords.filter((r) => r.medium === "video" && r.publicationState === "staging");
+    const heldVideos = intakeRecords.filter((r) => r.medium === "video" && r.publicationState === "hold-provenance");
+    assert.equal(stagingVideos.length, 5, "5 videos in staging");
+    assert.equal(heldVideos.length, 3, "3 videos in hold-provenance");
   });
 });

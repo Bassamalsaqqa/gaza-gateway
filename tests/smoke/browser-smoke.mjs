@@ -6516,6 +6516,19 @@ async function runBrowserSmoke() {
         await page.locator("text=src-oslo-ii-1995").waitFor({ state: "visible", timeout: 5000 });
         await page.locator("text=src-icao-council-2002").waitFor({ state: "visible", timeout: 5000 });
         await page.locator("text=src-worldbank-2007").waitFor({ state: "visible", timeout: 5000 });
+        await page.locator("text=src-unsco-2000").waitFor({ state: "visible", timeout: 5000 });
+        await page.locator("text=src-unrwa-2001").waitFor({ state: "visible", timeout: 5000 });
+
+        // Verify accurate metrics and closure chronology in rendered content
+        if (!bodyText.includes("about 60,000 passengers") || !bodyText.includes("1,168 flights")) {
+          throw new Error("Missing verified 1999 passenger volume or flight count on Past page");
+        }
+        if (bodyText.includes("90,000")) {
+          throw new Error("Found unverified 90,000 passenger claim on Past page");
+        }
+        if (!bodyText.includes("February 25, 2001")) {
+          throw new Error("Missing February 25, 2001 continuous closure date on Past page");
+        }
 
         // Verify mixed-state methodology notice (not unconditional awaitingReferences)
         await page.locator("text=Published timeline milestones are linked to verified primary and official sources").waitFor({ state: "visible", timeout: 5000 });
@@ -6529,6 +6542,17 @@ async function runBrowserSmoke() {
         await page.goto(baseUrl + "/ar/airport/past", { waitUntil: "domcontentloaded" });
         await page.waitForSelector("text=24 تشرين الثاني/نوفمبر 1998", { timeout: 5000 });
         await page.waitForSelector("text=14 كانون الأول/ديسمبر 1998", { timeout: 5000 });
+
+        const arBodyText = await page.locator("body").innerText();
+        if (!arBodyText.includes("نحو 60 ألف مسافر") || !arBodyText.includes("1,168 رحلة")) {
+          throw new Error("Missing verified Arabic 1999 passenger volume or flight count on Past page");
+        }
+        if (arBodyText.includes("90")) {
+          throw new Error("Found unverified 90,000 passenger claim in Arabic on Past page");
+        }
+        if (!arBodyText.includes("25 شباط/فبراير 2001")) {
+          throw new Error("Missing 25 February 2001 continuous closure date in Arabic on Past page");
+        }
 
         // Verify Arabic mixed-state methodology notice in sources panel
         await page.locator("text=ترتبط المحطات الزمنية المنشورة بمصادر أولية ورسمية تم التحقق منها").waitFor({ state: "visible", timeout: 5000 });

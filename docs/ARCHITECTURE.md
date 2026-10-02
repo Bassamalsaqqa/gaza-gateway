@@ -136,7 +136,7 @@ Future asset and copy drops must adhere to the following protocol:
   - Public Gallery (`/gallery`, `/ar/gallery`): Entirely decoupled from legacy `galleryItems`. Renders responsive media cards from `getPublishedArchiveRecords()`, supports dynamic media type and historical phase filtering, and includes a singleton-safe lightbox (Escape key, focus trap/return, scroll lock, disabled prev/next buttons when a single record is present).
   - Home Archive Spotlight: Uses `getPublishedArchiveRecords()` instead of legacy mock slices.
 - **Authoritative Source Registry (`SOURCE_REGISTRY`)**:
-  - Contains 11 verified contemporary external records (7 text/treaty/document/archive records: `src-oslo-ii-1995`, `src-ap-1998-opening`, `src-ap-1998-clinton`, `src-worldbank-2007`, `src-icao-council-2002`, `src-gisha-2008`, `src-saleh-hegab-airport`; 4 verified external video references: `src-video-ap-1998-opening`, `src-video-clinton-1998`, `src-video-aljazeera-2009`, `src-video-afp-2018`).
+  - Contains 13 verified contemporary external records (9 text/treaty/document/official records: `src-oslo-ii-1995`, `src-ap-1998-opening`, `src-ap-1998-clinton`, `src-worldbank-2007`, `src-unsco-2000`, `src-unrwa-2001`, `src-icao-council-2002`, `src-gisha-2008`, `src-saleh-hegab-airport`; 4 verified external video references: `src-video-ap-1998-opening`, `src-video-clinton-1998`, `src-video-aljazeera-2009`, `src-video-afp-2018`).
   - Public external references are curated outbound links (`getAllSourceRecords()`), cleanly separated from reusable archive media.
 - **Airport Past Chapter Architecture (`/airport/past`, `/ar/airport/past`)**:
   - Uses `PublicPhotoHero` with `airport-archive-hero-2000` (`routeKey="past"`).

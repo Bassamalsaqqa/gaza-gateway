@@ -48,11 +48,11 @@
   - Exact byte/visual duplicates: **1** (`past-052` is identical to `past-050`)
   - Newly cleared intake photos: **0** (authorized stance; zero unverified intake photos published)
   - Published archive records in `ARCHIVE_CATALOG`: **1** (`rec-present-ruins-2008` / `airport-present-ruins-2008`, Gisha Access, June 13, 2008, CC BY-SA 2.0)
-  - Staging catalog records: **6** (5 video records [`vid-ap-1998-opening`, `vid-motaz-2014`, `vid-bbc-2012`, `vid-afp-2018-ruins`, `vid-aljazeera-ruins`] + `past-050` photograph)
-  - Held for provenance / dispute: **3** (3 video records: `vid-journeyman-2002` [Clinton FOIA / Journeyman date conflict], `vid-afp-2014-ruins` [Journeyman 2019], `vid-noor-2015` [Journeyman 2025])
+  - Staging catalog records: **6** (5 video records [`vid-afp-2014-ruins`, `vid-afp-grounded-peace`, `vid-ap-1998-dahanieh-open-soon`, `vid-bbc-2012-el-arish`, `vid-aljazeera-ruins`] + `past-050` photograph)
+  - Held for provenance / dispute: **3** (3 video records: `vid-journeyman-2002` [Clinton FOIA / historical intake label mismatch], `vid-ayyad-1998-montage` [Journeyman documentary v2 with Nov 2 date claim], `vid-harazeen-crushed-rubble` [Journeyman documentary v1 with Nov 2 date claim])
   - Excluded duplicate records: **1** (`past-052` referencing `past-050`)
   - Total records in `ARCHIVE_CATALOG`: **11**
-  - Authoritative external source records in `SOURCE_REGISTRY`: **11** (7 text/treaty/document/archive records: `src-oslo-ii-1995`, `src-ap-1998-opening`, `src-ap-1998-clinton`, `src-worldbank-2007`, `src-icao-council-2002`, `src-gisha-2008`, `src-saleh-hegab-airport`; 4 verified external video references: `src-video-ap-1998-opening`, `src-video-clinton-1998`, `src-video-aljazeera-2009`, `src-video-afp-2018`)
+  - Authoritative external source records in `SOURCE_REGISTRY`: **13** (9 text/treaty/document/official records: `src-oslo-ii-1995`, `src-ap-1998-opening`, `src-ap-1998-clinton`, `src-worldbank-2007`, `src-unsco-2000`, `src-unrwa-2001`, `src-icao-council-2002`, `src-gisha-2008`, `src-saleh-hegab-airport`; 4 verified external video references: `src-video-ap-1998-opening`, `src-video-clinton-1998`, `src-video-aljazeera-2009`, `src-video-afp-2018`)
   - New production image assets / derivatives added: **0** (reused existing approved assets)
 
 ## Historical Documentary Hero Metadata Clearance Gap (HC-2)
@@ -74,6 +74,18 @@
   - News agency contemporary report: "Clinton Cuts Ribbon at Gaza Airport". Official dedication ceremony with President Bill Clinton.
   - Date: December 14, 1998.
   - Publisher: Associated Press Archive (Story No. 010041).
+- **World Bank Transport Sector Strategy Note (`src-worldbank-2007`)**:
+  - West Bank and Gaza - Transport Sector Strategy Note (Report No. 69315, October 30, 2007). Section 2.5 (pp. 25–26) and Annex 6 (pp. 88–92).
+  - Documents airport construction ($86.5M via loans and grants), 700,000 passenger design capacity, 1999 volume (~60,000 passengers across all airlines; 41,000 on PAL), scheduled PAL routes, regional carriers, and damage assessments.
+  - Publisher: World Bank.
+- **UNSCO Economic & Mobility Impact Report (`src-unsco-2000`)**:
+  - The Impact on the Palestinian Economy of the Recent Confrontations, Mobility Restrictions and Border Closures, 28 September–19 October 2000 (Footnote 3).
+  - Documents initial airport closure on October 8, 2000 and temporary reopening on October 19, 2000.
+  - Publisher: Office of the United Nations Special Coordinator in the Occupied Territories (UNSCO).
+- **UNRWA Commissioner-General Report A/56/13 (`src-unrwa-2001`)**:
+  - Report of the Commissioner-General of UNRWA (1 July 2000–30 June 2001), General Assembly Official Records Fifty-sixth Session, Supplement No. 13 (A/56/13, paragraph 141).
+  - Documents intermittent closures after September 2000 and continuous closure from February 25, 2001.
+  - Publisher: United Nations General Assembly.
 - **ICAO Council Resolution (`src-icao-council-2002`)**:
   - International Civil Aviation Organization 165th Session Resolution on the destruction of Gaza International Airport runway and radar facilities.
   - Date: March 13, 2002.

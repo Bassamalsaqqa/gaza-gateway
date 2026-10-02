@@ -99,16 +99,44 @@ export const SOURCE_REGISTRY: Record<string, SourceRecord> = {
 
   "src-worldbank-2007": {
     id: "src-worldbank-2007",
-    title: "West Bank and Gaza - Transport sector strategy note (Report No. 69315-GZ)",
-    titleAr: "الضفة الغربية وقطاع غزة — مذكرة استراتيجية قطاع النقل (تقرير رقم 69315-GZ)",
+    title: "West Bank and Gaza - Transport Sector Strategy Note (Report No. 69315)",
+    titleAr: "الضفة الغربية وقطاع غزة — مذكرة استراتيجية قطاع النقل (تقرير رقم 69315)",
     publisher: "World Bank",
     type: "official-record",
     language: "en",
     publicationDate: "2007-10-30",
     url: "https://documents.worldbank.org/en/publication/documents-reports/documentdetail/932271469672170770/693150ESW0P1000ctober030020070Final",
     archivalStatus: "official-repository",
-    notes: "Official World Bank sector study. Annex 6 (pp. 86–93) documents Gaza International Airport construction, funding sources, runway specifications (3,080 m), operational capacity (700,000 passengers/year), Palestinian Airlines routes (Amman, Cairo, Jeddah, Dubai, Doha, Istanbul, Larnaca), 1999 passenger volumes (~60,000), and damage assessments.",
-    notesAr: "دراسة قطاعية رسمية للبنك الدولي. يوثق الملحق 6 (ص 86-93) إنشاء مطار غزة الدولي ومصادر تمويله ومواصفات المدرج (3080 م) وطاقته الاستيعابية (700 ألف مسافر سنوياً) ووجهات الخطوط الجوية الفلسطينية وحجم المسافرين لعام 1999 وتقييمات الأضرار.",
+    notes: "Official World Bank transport sector study (Report No. 69315, October 30, 2007). Section 2.5 (pp. 25–26) and Annex 6 (pp. 88–92) document airport construction ($86.5M via loans and grants), 700,000 annual passenger design capacity, 1999 traffic (about 60,000 passengers across all airlines; 41,000 on Palestinian Airlines across 1,168 flights), Palestinian Airlines routes (Amman, Cairo, Jeddah, Dubai, Doha, Istanbul, Larnaca), regional carrier services (Royal Wings, EgyptAir, Royal Air Maroc, Tarom), and damage assessments.",
+    notesAr: "دراسة قطاعية رسمية للبنك الدولي (تقرير رقم 69315، 30 تشرين الأول/أكتوبر 2007). يوثق القسم 2.5 (ص 25-26) والملحق 6 (ص 88-92) إنشاء المطار (86.5 مليون دولار عبر قروض ومنح)، وطاقته الاستيعابية (700 ألف مسافر سنوياً)، وحركة السفر عام 1999 (نحو 60 ألف مسافر عبر جميع الشركات؛ 41 ألفاً عبر الخطوط الفلسطينية في 1,168 رحلة)، ووجهات الخطوط الفلسطينية (عمان، القاهرة، جدة، دبي، الدوحة، إسطنبول، لارنكا)، ورحلات الشركات الإقليمية، وتقييمات الأضرار.",
+  },
+
+  "src-unsco-2000": {
+    id: "src-unsco-2000",
+    title: "The Impact on the Palestinian Economy of the Recent Confrontations, Mobility Restrictions and Border Closures, 28 September–19 October 2000",
+    titleAr: "أثر المواجهات والقيود على الحركة وإغلاق الحدود على الاقتصاد الفلسطيني (28 أيلول/سبتمبر – 19 تشرين الأول/أكتوبر 2000) — تقرير أونسكو",
+    publisher: "Office of the United Nations Special Coordinator in the Occupied Territories (UNSCO)",
+    type: "official-record",
+    language: "en",
+    publicationDate: "2000-10",
+    url: "https://www.un.org/unispal/document/auto-insert-202335/",
+    archivalStatus: "official-repository",
+    notes: "Official UNSCO report documenting mobility restrictions, recording the initial closure of Gaza International Airport on October 8, 2000, and its temporary reopening on October 19, 2000 (footnote 3).",
+    notesAr: "تقرير رسمي لمكتب منسق الأمم المتحدة الخاص (أونسكو) يوثق القيود على الحركة ويسجل الإغلاق الأولي لمطار غزة الدولي في 8 تشرين الأول/أكتوبر 2000 وإعادة فتحه المؤقتة في 19 تشرين الأول/أكتوبر 2000 (الحاشية 3).",
+  },
+
+  "src-unrwa-2001": {
+    id: "src-unrwa-2001",
+    title: "Report of the Commissioner-General of the United Nations Relief and Works Agency for Palestine Refugees in the Near East (1 July 2000–30 June 2001), A/56/13",
+    titleAr: "تقرير المفوض العام لوكالة الأمم المتحدة لإغاثة وتشغيل اللاجئين الفلسطينيين (أونروا) (1 تموز/يوليو 2000 – 30 حزيران/يونيو 2001)، وثيقة A/56/13",
+    publisher: "United Nations General Assembly",
+    type: "official-record",
+    language: "en",
+    publicationDate: "2001",
+    url: "https://www.un.org/unispal/document/auto-insert-184580/",
+    archivalStatus: "official-repository",
+    notes: "UN General Assembly Official Records, Fifty-sixth Session, Supplement No. 13 (A/56/13, paragraph 141), documenting that after intermittent closures beginning late September 2000, Israeli authorities placed Gaza International Airport under continuous closure starting February 25, 2001.",
+    notesAr: "وثائق الجمعية العامة للأمم المتحدة الرسمية، الدورة 56، الملحق 13 (A/56/13، الفقرة 141)، والتي توثق أنه بعد الإغلاقات المتقطعة التي بدأت أواخر أيلول/سبتمبر 2000، فرضت السلطات الإسرائيلية إغلاقاً مستمراً على مطار غزة الدولي اعتباراً من 25 شباط/فبراير 2001.",
   },
 
   "src-video-ap-1998-opening": {
