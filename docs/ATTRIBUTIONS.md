@@ -63,21 +63,21 @@
 
 ## Authoritative External Primary & Contemporary Sources (HC-2)
 - **Oslo II Accord (`src-oslo-ii-1995`)**:
-  - Israeli-Palestinian Interim Agreement on the West Bank and the Gaza Strip, Annex I (Protocol Concerning Redeployment and Security Arrangements), Article IX (Passenger Terminal and Airfield).
+  - Israeli-Palestinian Interim Agreement on the West Bank and the Gaza Strip, Annex I (Protocol Concerning Redeployment and Security Arrangements), Article XIII (Security of the Airspace).
   - Date: September 28, 1995.
-  - Repository: United Nations Peacemaker (`peacemaker.un.org`).
-- **Associated Press Archive — Opening (`src-ap-1998-opening`)**:
-  - News agency contemporary report: "Yasser Arafat Opens Gaza International Airport". Commercial inaugural flight operations.
-  - Date: November 24, 1998.
-  - Publisher: Associated Press Archive (Story No. 008779).
-- **Associated Press Archive — Ribbon Cutting (`src-ap-1998-clinton`)**:
-  - News agency contemporary report: "Clinton Cuts Ribbon at Gaza Airport". Official dedication ceremony with President Bill Clinton.
-  - Date: December 14, 1998.
-  - Publisher: Associated Press Archive (Story No. 010041).
+  - Repository: United Nations / Government of Israel and PLO (`un.org/unispal`).
+- **The New York Times — Opening (`src-ap-1998-opening`)**:
+  - Contemporary press report: “Palestinians Walking on Air At Opening of Gaza Airport” (by Deborah Sontag). Documents official opening ceremony and inaugural flight arrivals.
+  - Event Date: November 24, 1998; Publication Date: November 25, 1998.
+  - Publisher: The New York Times (`nytimes.com`).
+- **The Washington Post — State Dedication (`src-ap-1998-clinton`)**:
+  - Contemporary press report: “Clinton Cuts Ribbon at Gaza Airport” (by John M. Goshko). Documents official state ribbon-cutting ceremony and VIP terminal dedication attended by U.S. President Bill Clinton and Chairman Yasser Arafat.
+  - Event Date: December 14, 1998; Publication Date: December 15, 1998.
+  - Publisher: The Washington Post (`washingtonpost.com`).
 - **World Bank Transport Sector Strategy Note (`src-worldbank-2007`)**:
-  - West Bank and Gaza - Transport Sector Strategy Note (Report No. 69315, October 30, 2007). Section 2.5 (pp. 25–26) and Annex 6 (pp. 88–92).
-  - Documents airport construction ($86.5M via loans and grants), 700,000 passenger design capacity, 1999 volume (~60,000 passengers across all airlines; 41,000 on PAL), scheduled PAL routes, regional carriers, and damage assessments.
-  - Publisher: World Bank.
+  - West Bank and Gaza - Transport Sector Strategy Note (Report No. 69315, Project ID P100971, October 30, 2007). Section 2.5 (pp. 25–26) and Annex 6 (pp. 88–92).
+  - Documents airport construction supported by PA land contribution, soft loans, and international donor grants ($86.5M estimated in Section 2.5; $86.7M accomplished expenditures itemized in Annex Table 20, comprising $7.4M PA land contribution, $39.6M soft loans from Egyptian banks and Spain, and $39.7M grants from Germany, Spain, Saudi Arabia, and Netherlands including aircraft donation), 700,000 passenger annual design capacity, 1999 volume (about 60,000 total airport passengers across 1,168 total airport flights; about 41,000 passengers travelled with Palestinian Airlines), scheduled PAL routes, regional carriers, and damage assessments.
+  - Publisher: World Bank (`documents.worldbank.org` / Handle: `hdl.handle.net/10986/12584`).
 - **UNSCO Economic & Mobility Impact Report (`src-unsco-2000`)**:
   - The Impact on the Palestinian Economy of the Recent Confrontations, Mobility Restrictions and Border Closures, 28 September–19 October 2000 (Footnote 3).
   - Documents initial airport closure on October 8, 2000 and temporary reopening on October 19, 2000.
@@ -98,3 +98,21 @@
 - **Saleh & Hegab Architectural and Engineering Profile (`src-saleh-hegab-airport`)**:
   - Original architectural and civil engineering project documentation for Gaza International Airport terminal and runway infrastructure.
   - Publisher: Saleh & Hegab Architectural & Engineering Consultants.
+
+## Authoritative External Video References (HC-2)
+- **AP Archive — Gaza Airport Opens (`src-video-ap-1998-opening`)**:
+  - Contemporary television news footage: "GAZA: INTERNATIONAL AIRPORT OPENS". Documents the official opening ceremony and inaugural aircraft arrivals.
+  - Event Date: November 24, 1998; Publication Date: July 21, 2015.
+  - Publisher: Associated Press Archive / AP Archive YouTube (`vYodi28td20`).
+- **William J. Clinton Presidential Library — State Dedication (`src-video-clinton-1998`)**:
+  - Official White House Communications Agency (WHCA) archival videotape footage released under FOIA request 2017-0234-F: "Pres. Clinton and Chairman Arafat at Gaza Airport (1998)". Documents the state ribbon-cutting ceremony and VIP terminal dedication.
+  - Event Date: December 14, 1998; Publication / Upload Date: August 30, 2017.
+  - Publisher: William J. Clinton Presidential Library YouTube (`tBht5QeKHaA`).
+- **Al Jazeera Arabic — Destroyed Airport Field Report (`src-video-aljazeera-2009`)**:
+  - Field documentary report by Abbas Nasser from the ruins of Yasser Arafat International Airport.
+  - Event / Broadcast Date: February 13, 2009; Publication Date: February 13, 2009.
+  - Publisher: Al Jazeera Arabic YouTube (`-k3kR5f3nYY`).
+- **AFP News Agency — Retrospective Oslo Report (`src-video-afp-2018`)**:
+  - Retrospective report marking 25 years after Oslo: "Destroyed Gaza airport symbolises grounded peace hopes".
+  - Event Date: September 2018; Publication Date: September 12, 2018.
+  - Publisher: AFP News Agency YouTube (`gaSe8Pbmm5Q`).

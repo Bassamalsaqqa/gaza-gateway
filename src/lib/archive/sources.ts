@@ -99,16 +99,16 @@ export const SOURCE_REGISTRY: Record<string, SourceRecord> = {
 
   "src-worldbank-2007": {
     id: "src-worldbank-2007",
-    title: "West Bank and Gaza - Transport Sector Strategy Note (Report No. 69315)",
-    titleAr: "الضفة الغربية وقطاع غزة — مذكرة استراتيجية قطاع النقل (تقرير رقم 69315)",
+    title: "West Bank and Gaza - Transport Sector Strategy Note",
+    titleAr: "الضفة الغربية وقطاع غزة — مذكرة استراتيجية قطاع النقل",
     publisher: "World Bank",
     type: "official-record",
     language: "en",
     publicationDate: "2007-10-30",
     url: "https://documents.worldbank.org/en/publication/documents-reports/documentdetail/932271469672170770/693150ESW0P1000ctober030020070Final",
     archivalStatus: "official-repository",
-    notes: "Official World Bank transport sector study (Report No. 69315, October 30, 2007). Section 2.5 (pp. 25–26) and Annex 6 (pp. 88–92) document airport construction ($86.5M via loans and grants), 700,000 annual passenger design capacity, 1999 traffic (about 60,000 passengers across all airlines; 41,000 on Palestinian Airlines across 1,168 flights), Palestinian Airlines routes (Amman, Cairo, Jeddah, Dubai, Doha, Istanbul, Larnaca), regional carrier services (Royal Wings, EgyptAir, Royal Air Maroc, Tarom), and damage assessments.",
-    notesAr: "دراسة قطاعية رسمية للبنك الدولي (تقرير رقم 69315، 30 تشرين الأول/أكتوبر 2007). يوثق القسم 2.5 (ص 25-26) والملحق 6 (ص 88-92) إنشاء المطار (86.5 مليون دولار عبر قروض ومنح)، وطاقته الاستيعابية (700 ألف مسافر سنوياً)، وحركة السفر عام 1999 (نحو 60 ألف مسافر عبر جميع الشركات؛ 41 ألفاً عبر الخطوط الفلسطينية في 1,168 رحلة)، ووجهات الخطوط الفلسطينية (عمان، القاهرة، جدة، دبي، الدوحة، إسطنبول، لارنكا)، ورحلات الشركات الإقليمية، وتقييمات الأضرار.",
+    notes: "Official World Bank transport policy note (Report No. 69315, Project ID P100971, October 30, 2007). Section 2.5 (pp. 25–26) and Annex 6 (pp. 88–92) document airport construction supported by Palestinian Authority land contribution, soft loans, and international donor grants (Section 2.5 notes an estimated $86.5M total cost with 46% grants, 45% soft loans, 9% PA self-financing; Annex Table 20 itemizes $86.7M accomplished expenditures: $7.4M PA land contribution, $39.6M soft loans from Egyptian banks and Spain, and $39.7M grants from Germany, Spain, Saudi Arabia, and Netherlands including aircraft donation), 700,000 annual passenger design capacity, 1999 traffic (about 60,000 total airport passengers across 1,168 total airport flights; about 41,000 passengers travelled with Palestinian Airlines), scheduled Palestinian Airlines routes (Amman, Cairo, Jeddah, Dubai, Doha, Istanbul, Larnaca), regional carrier services (Royal Wings, EgyptAir, Royal Air Maroc, Tarom), and damage assessments.",
+    notesAr: "مذكرة سياسات رسمية لقطاع النقل صادرة عن البنك الدولي (تقرير رقم 69315، معرّف المشروع P100971، 30 تشرين الأول/أكتوبر 2007). يوثق القسم 2.5 (ص 25-26) والملحق 6 (ص 88-92) إنشاء المطار بدعم من مساهمة السلطة الفلسطينية في توفير الأرض والقروض الميسرة ومنح المانحين الدوليين (يشير القسم 2.5 إلى تكلفة تقديرية 86.5 مليون دولار: 46% منح، 45% قروض ميسرة، 9% تمويل ذاتي؛ بينما يفصّل جدول الملحق 20 نفقات منجزة بقيمة 86.7 مليون دولار: 7.4 مليون مساهمة أرض من السلطة، 39.6 مليون قروض ميسرة من بنوك مصرية وإسبانيا، 39.7 مليون منح من ألمانيا وإسبانيا والسعودية وهولندا شملت طائرات)، وطاقة استيعابية 700 ألف مسافر سنوياً، وحركة السفر عام 1999 (نحو 60 ألف مسافر إجمالي بالمطار عبر 1,168 رحلة للمطار؛ سافر نحو 41 ألف مسافر عبر الخطوط الفلسطينية)، والوجهات المجدولة، ورحلات الشركات الإقليمية، وتقييمات الأضرار.",
   },
 
   "src-unsco-2000": {
@@ -165,8 +165,8 @@ export const SOURCE_REGISTRY: Record<string, SourceRecord> = {
     eventDate: "1998-12-14",
     url: "https://www.youtube.com/watch?v=tBht5QeKHaA",
     archivalStatus: "official-repository",
-    notes: "Official White House Communications Agency archival footage of the arrival and ceremony with U.S. President Bill Clinton and Chairman Yasser Arafat at Gaza International Airport on December 14, 1998.",
-    notesAr: "تسجيل أرشيفي رسمي لوكالة الاتصالات بالبيت الأبيض يوثق مراسم وصول الرئيس الأمريكي بيل كلينتون ورئيس السلطة الوطنية ياسر عرفات في مطار غزة الدولي في 14 كانون الأول/ديسمبر 1998.",
+    notes: "Official White House Communications Agency (WHCA) archival videotape footage, released under FOIA request 2017-0234-F by the William J. Clinton Presidential Library (uploaded August 30, 2017). Documents the arrival and state ceremony with U.S. President Bill Clinton and Chairman Yasser Arafat at Gaza International Airport on December 14, 1998.",
+    notesAr: "تسجيل فيديو أرشيفي رسمي لوكالة الاتصالات بالبيت الأبيض (WHCA)، أُفرج عنه بموجب طلب قانون حرية المعلومات FOIA 2017-0234-F من مكتبة ويليام ج. كلينتون الرئاسية (رُفع في 30 آب/أغسطس 2017). يوثق وصول الرئيس الأمريكي بيل كلينتون ورئيس السلطة الوطنية ياسر عرفات ومراسم الاحتفال بمطار غزة الدولي في 14 كانون الأول/ديسمبر 1998.",
   },
 
   "src-video-aljazeera-2009": {

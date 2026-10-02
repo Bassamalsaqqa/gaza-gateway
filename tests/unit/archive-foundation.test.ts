@@ -1103,14 +1103,15 @@ describe("HC-2 Historical Archive Publication Invariants", () => {
   it("HC2-C2-1: World Bank Report No. 69315 metadata, exact 1999 volume, routes, and design capacity are verified", () => {
     const wb = SOURCE_REGISTRY["src-worldbank-2007"];
     assert.ok(wb, "src-worldbank-2007 must exist in SOURCE_REGISTRY");
-    assert.equal(wb.publisher, "World Bank");
-    assert.match(wb.title, /Report No\. 69315/);
-    assert.match(wb.title, /West Bank and Gaza - Transport Sector Strategy Note/);
+    assert.equal(wb.title, "West Bank and Gaza - Transport Sector Strategy Note");
+    assert.equal(wb.titleAr, "الضفة الغربية وقطاع غزة — مذكرة استراتيجية قطاع النقل");
     assert.equal(wb.publicationDate, "2007-10-30");
     assert.equal(wb.url, "https://documents.worldbank.org/en/publication/documents-reports/documentdetail/932271469672170770/693150ESW0P1000ctober030020070Final");
+    assert.match(wb.notes, /Report No\. 69315/);
+    assert.match(wb.notes, /Project ID P100971/);
     assert.match(wb.notes, /Annex 6/);
     assert.match(wb.notes, /about 60,000/);
-    assert.match(wb.notes, /1,168 flights/);
+    assert.match(wb.notes, /1,168.*flights/);
     assert.match(wb.notes, /41,000.*Palestinian Airlines/);
     assert.match(wb.notes, /\$86\.5M/);
     assert.match(wb.notes, /Royal Wings, EgyptAir, Royal Air Maroc, Tarom/);
@@ -1260,5 +1261,178 @@ describe("HC-2 Historical Archive Publication Invariants", () => {
     const heldVideos = intakeRecords.filter((r) => r.medium === "video" && r.publicationState === "hold-provenance");
     assert.equal(stagingVideos.length, 5, "5 videos in staging");
     assert.equal(heldVideos.length, 3, "3 videos in hold-provenance");
+  });
+
+  // HC2-C3-1: Documentation source identities & treaty airspace jurisdiction integrity
+  it("HC2-C3-1: Enforces accurate documentation identities, Oslo II Article XIII airspace security, and distinct video source references", () => {
+    // 1. Verify docs/ATTRIBUTIONS.md contents
+    const attributionsPath = new URL("../../docs/ATTRIBUTIONS.md", import.meta.url);
+    const attributionsText = readFileSync(attributionsPath, "utf8");
+
+    // Oslo II aviation provision is Article XIII (Security of the Airspace), NOT Article IX
+    assert.ok(
+      attributionsText.includes("Article XIII (Security of the Airspace)"),
+      "ATTRIBUTIONS.md must cite Oslo II Annex I Article XIII",
+    );
+    assert.ok(
+      !attributionsText.includes("Article IX (Passenger Terminal and Airfield)"),
+      "ATTRIBUTIONS.md must not assign aviation provisions to Article IX",
+    );
+    assert.ok(
+      !attributionsText.includes("Article IX"),
+      "ATTRIBUTIONS.md must contain no erroneous Article IX references",
+    );
+
+    // Press publishers in ATTRIBUTIONS.md
+    assert.ok(
+      attributionsText.includes("The New York Times — Opening (`src-ap-1998-opening`)"),
+      "ATTRIBUTIONS.md must identify src-ap-1998-opening as The New York Times",
+    );
+    assert.ok(
+      attributionsText.includes("The Washington Post — State Dedication (`src-ap-1998-clinton`)"),
+      "ATTRIBUTIONS.md must identify src-ap-1998-clinton as The Washington Post",
+    );
+    assert.ok(
+      !attributionsText.includes("Story No. 008779"),
+      "ATTRIBUTIONS.md must not contain obsolete AP Story No. 008779 for NYT press source",
+    );
+    assert.ok(
+      !attributionsText.includes("Story No. 010041"),
+      "ATTRIBUTIONS.md must not contain obsolete AP Story No. 010041 for WaPo press source",
+    );
+
+    // Video references in ATTRIBUTIONS.md
+    assert.ok(
+      attributionsText.includes("Authoritative External Video References (HC-2)"),
+      "ATTRIBUTIONS.md must include dedicated video references section",
+    );
+    assert.ok(
+      attributionsText.includes("src-video-ap-1998-opening"),
+      "ATTRIBUTIONS.md must document src-video-ap-1998-opening",
+    );
+    assert.ok(
+      attributionsText.includes("src-video-clinton-1998"),
+      "ATTRIBUTIONS.md must document src-video-clinton-1998",
+    );
+
+    // 2. Verify SOURCE_REGISTRY publishers and types
+    const nyt = SOURCE_REGISTRY["src-ap-1998-opening"];
+    assert.ok(nyt);
+    assert.equal(nyt.publisher, "The New York Times");
+    assert.equal(nyt.type, "press");
+    assert.equal(nyt.eventDate, "1998-11-24");
+    assert.equal(nyt.publicationDate, "1998-11-25");
+
+    const wapo = SOURCE_REGISTRY["src-ap-1998-clinton"];
+    assert.ok(wapo);
+    assert.equal(wapo.publisher, "The Washington Post");
+    assert.equal(wapo.type, "press");
+    assert.equal(wapo.eventDate, "1998-12-14");
+    assert.equal(wapo.publicationDate, "1998-12-15");
+
+    const apVid = SOURCE_REGISTRY["src-video-ap-1998-opening"];
+    assert.ok(apVid);
+    assert.equal(apVid.publisher, "AP Archive");
+    assert.equal(apVid.type, "video");
+    assert.equal(apVid.eventDate, "1998-11-24");
+
+    const clintonVid = SOURCE_REGISTRY["src-video-clinton-1998"];
+    assert.ok(clintonVid);
+    assert.equal(clintonVid.publisher, "William J. Clinton Presidential Library");
+    assert.equal(clintonVid.type, "video");
+    assert.equal(clintonVid.eventDate, "1998-12-14");
+
+    // All 4 video sources have distinct IDs and live/official URLs
+    const videoSources = [
+      SOURCE_REGISTRY["src-video-ap-1998-opening"],
+      SOURCE_REGISTRY["src-video-clinton-1998"],
+      SOURCE_REGISTRY["src-video-aljazeera-2009"],
+      SOURCE_REGISTRY["src-video-afp-2018"],
+    ];
+    for (const vs of videoSources) {
+      assert.ok(vs, "Video source must exist in SOURCE_REGISTRY");
+      assert.equal(vs.type, "video");
+      assert.match(vs.url, /^https:\/\/www\.youtube\.com\/watch\?v=/);
+    }
+  });
+
+  // HC2-C3-2: Clinton video upstream verification, publication date, event date, and FOIA collection provenance
+  it("HC2-C3-2: Reconciles Clinton video upstream upload date (2017-08-30), historical event date (1998-12-14), and FOIA collection provenance", () => {
+    const clintonVid = SOURCE_REGISTRY["src-video-clinton-1998"];
+    assert.ok(clintonVid, "src-video-clinton-1998 must exist");
+    assert.equal(clintonVid.publicationDate, "2017-08-30", "Verified YouTube upstream uploadDate is 2017-08-30 (not 2021-08-10)");
+    assert.equal(clintonVid.eventDate, "1998-12-14", "Event date must remain 1998-12-14 (Clinton ribbon-cutting dedication)");
+    assert.equal(clintonVid.url, "https://www.youtube.com/watch?v=tBht5QeKHaA");
+    assert.equal(clintonVid.publisher, "William J. Clinton Presidential Library");
+
+    // Bilingual notes document White House Communications Agency and FOIA request 2017-0234-F
+    assert.match(clintonVid.notes, /White House Communications Agency \(WHCA\)/);
+    assert.match(clintonVid.notes, /FOIA request 2017-0234-F/);
+    assert.match(clintonVid.notes, /August 30, 2017/);
+    assert.ok(clintonVid.notesAr, "Arabic notes must be present");
+    assert.match(clintonVid.notesAr, /وكالة الاتصالات بالبيت الأبيض/);
+    assert.match(clintonVid.notesAr, /2017-0234-F/);
+    assert.match(clintonVid.notesAr, /30 آب\/أغسطس 2017/);
+
+    // Intake archive record vid-journeyman-2002 remains isolated in hold-provenance
+    const intakeVid = getArchiveRecordById("vid-journeyman-2002", true);
+    assert.ok(intakeVid);
+    assert.equal(intakeVid.youtubeId, "tBht5QeKHaA");
+    assert.equal(intakeVid.publicationState, "hold-provenance");
+    assert.ok(!getPublishedArchiveRecords().some((r) => r.id === "vid-journeyman-2002"));
+  });
+
+  // HC2-C3-3: World Bank distinct identifier roles, traffic decoupling, and financing discrepancy documentation
+  it("HC2-C3-3: Enforces World Bank distinct identifier roles (Report No. 69315 vs Project ID P100971), traffic decoupling, and financing explanation", () => {
+    const wb = SOURCE_REGISTRY["src-worldbank-2007"];
+    assert.ok(wb);
+
+    // Clean human title without forced report number
+    assert.equal(wb.title, "West Bank and Gaza - Transport Sector Strategy Note");
+    assert.equal(wb.titleAr, "الضفة الغربية وقطاع غزة — مذكرة استراتيجية قطاع النقل");
+
+    // Distinct identifier roles documented in notes
+    assert.match(wb.notes, /Report No\. 69315/);
+    assert.match(wb.notes, /Project ID P100971/);
+    assert.ok(wb.notesAr);
+    assert.match(wb.notesAr, /تقرير رقم 69315/);
+    assert.match(wb.notesAr, /معرّف المشروع P100971/);
+
+    // Traffic semantics unambiguously decoupled: 60k total airport pax / 1,168 flights; 41k PAL pax
+    assert.match(wb.notes, /about 60,000 total airport passengers across 1,168 total airport flights/);
+    assert.match(wb.notes, /about 41,000 passengers travelled with Palestinian Airlines/);
+    assert.match(wb.notesAr, /نحو 60 ألف مسافر إجمالي بالمطار عبر 1,168 رحلة للمطار/);
+    assert.match(wb.notesAr, /سافر نحو 41 ألف مسافر عبر الخطوط الفلسطينية/);
+
+    // Financing discrepancy documented in notes: Section 2.5 ($86.5M) vs Annex Table 20 ($86.7M, PA land $7.4M, loans $39.6M, grants $39.7M)
+    assert.match(wb.notes, /Section 2\.5/);
+    assert.match(wb.notes, /\$86\.5M/);
+    assert.match(wb.notes, /Annex Table 20/);
+    assert.match(wb.notes, /\$86\.7M/);
+    assert.match(wb.notes, /\$7\.4M PA land contribution/);
+    assert.match(wb.notes, /\$39\.6M soft loans/);
+    assert.match(wb.notes, /\$39\.7M grants/);
+
+    assert.match(wb.notesAr, /القسم 2\.5/);
+    assert.match(wb.notesAr, /86\.5 مليون دولار/);
+    assert.match(wb.notesAr, /جدول الملحق 20/);
+    assert.match(wb.notesAr, /86\.7 مليون دولار/);
+    assert.match(wb.notesAr, /7\.4 مليون مساهمة أرض/);
+    assert.match(wb.notesAr, /39\.6 مليون قروض ميسرة/);
+    assert.match(wb.notesAr, /39\.7 مليون منح/);
+
+    // Timeline planning body mentions PA land, soft loans, and international donor grants
+    const planning = publishedAirportPast.timeline.find((t) => t.id === "planning");
+    assert.ok(planning);
+    assert.match(planning.body.en, /Palestinian Authority land contribution, soft loans, and international donor grants/);
+    assert.match(planning.body.ar, /مساهمة السلطة الفلسطينية في توفير الأرض، وقروض ميسرة، ومنح المانحين الدوليين/);
+
+    // Timeline operations body mentions 60,000 passengers across 1,168 flights, and 41,000 on PAL
+    const operations = publishedAirportPast.timeline.find((t) => t.id === "operations");
+    assert.ok(operations);
+    assert.match(operations.body.en, /about 60,000 passengers across 1,168 flights/);
+    assert.match(operations.body.en, /about 41,000 passengers travelling on Palestinian Airlines/);
+    assert.match(operations.body.ar, /نحو 60 ألف مسافر في 1,168 رحلة/);
+    assert.match(operations.body.ar, /سافر نحو 41 ألفاً منهم على متن الخطوط الجوية الفلسطينية/);
   });
 });
