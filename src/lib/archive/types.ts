@@ -13,6 +13,11 @@ export type PublicationState =
   | "hold-provenance"
   | "excluded";
 
+export type PublicationBasis =
+  | "rights-cleared"
+  | "product-owner-directed-display"
+  | "external-embed";
+
 export type RightsStatus =
   | "owner-cleared"
   | "public-domain"
@@ -39,6 +44,19 @@ export type HistoricalPhase =
   | "post-destruction-ruins"
   | "contemporary-status";
 
+export type ArchiveSubject =
+  | "airport-architecture"
+  | "operations-services"
+  | "interior-passenger-spaces"
+  | "aircraft-fleet"
+  | "crew-staff"
+  | "passengers-pilgrimage"
+  | "humanitarian-aviation"
+  | "official-visits"
+  | "damage-ruins"
+  | "documents-ephemera"
+  | "illustrations";
+
 export type DatePrecision = "exact" | "month" | "year" | "circa" | "unknown";
 
 export type SourceType =
@@ -62,6 +80,20 @@ export const HISTORICAL_PHASE_LABELS: Record<HistoricalPhase, { en: string; ar: 
   "closure-destruction": { en: "Closure & Destruction", ar: "الإغلاق والتدمير" },
   "post-destruction-ruins": { en: "Post-Destruction Ruins", ar: "أطلال ما بعد التدمير" },
   "contemporary-status": { en: "Contemporary Status", ar: "الوضع المعاصر" },
+};
+
+export const ARCHIVE_SUBJECT_LABELS: Record<ArchiveSubject, { en: string; ar: string }> = {
+  "airport-architecture": { en: "Airport Architecture", ar: "عمارة المطار" },
+  "operations-services": { en: "Operations & Services", ar: "العمليات والخدمات" },
+  "interior-passenger-spaces": { en: "Passenger Spaces & Interiors", ar: "مساحات المسافرين والصالات" },
+  "aircraft-fleet": { en: "Aircraft & Fleet", ar: "الطائرات والأسطول" },
+  "crew-staff": { en: "Crew & Personnel", ar: "طواقم العمل والموظفون" },
+  "passengers-pilgrimage": { en: "Passengers & Pilgrimage", ar: "المسافرون وموسم الحج" },
+  "humanitarian-aviation": { en: "Humanitarian Aviation", ar: "طيران الإغاثة الإنساني" },
+  "official-visits": { en: "Official Visits & Ceremonies", ar: "الزيارات والمراسم الرسمية" },
+  "damage-ruins": { en: "Destruction & Ruins", ar: "الدمار والأطلال" },
+  "documents-ephemera": { en: "Documents & Ephemera", ar: "الوثائق والمقتنيات" },
+  illustrations: { en: "Illustrations", ar: "رسومات توضيحية" },
 };
 
 export const SOURCE_TYPE_LABELS: Record<SourceType, { en: string; ar: string }> = {
@@ -89,6 +121,25 @@ export interface SourceRecord {
   notesAr?: string;
 }
 
+export interface VerifiedVideoReference {
+  id: string;
+  sourceRef: string;
+  youtubeId: string;
+  title: { en: string; ar: string };
+  caption: { en: string; ar: string };
+  alt: { en: string; ar: string };
+  publisher: string;
+  date?: string | undefined;
+  uploadDate?: string | undefined;
+  datePrecision: DatePrecision;
+  phase: HistoricalPhase;
+  subjects: ArchiveSubject[];
+  medium: "video";
+  url: string;
+  notes?: string | undefined;
+  notesAr?: string | undefined;
+}
+
 export interface ArchiveRights {
   status: RightsStatus;
   license?: string;
@@ -104,7 +155,7 @@ export interface ArchiveRecord {
   slug: string;
   medium: Medium;
   phase: HistoricalPhase;
-  subjects: string[];
+  subjects: ArchiveSubject[];
   title: {
     en: string;
     ar: string;
@@ -127,6 +178,8 @@ export interface ArchiveRecord {
   sourceRefs: string[];
   rights: ArchiveRights;
   publicationState: PublicationState;
+  publicationBasis?: PublicationBasis;
+  curatorPublicationStatus?: string;
   relatedTimelineEventIds?: string[];
   relatedRecordIds?: string[];
   featured?: boolean;

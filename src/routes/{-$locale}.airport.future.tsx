@@ -8,6 +8,7 @@ import { pick, useI18n } from "@/lib/i18n";
 import { ResponsiveImage } from "@/components/responsive-image";
 import { GazaSurface, SurfaceMedia, useSurfaceRecipe } from "@/design/surfaces";
 import { MEDIA } from "@/lib/media";
+import airportFutureBodyImg from "@/assets/media/decorative/airport/airport-future-body.webp";
 
 type FutureSearch = {
   skinPreview?: 1;
@@ -129,17 +130,14 @@ function FuturePage() {
           {/* Chapter 1 — Landside / Terminal Arrival */}
           {(() => {
             const chapter1Content = (
-              <>
-                <h2 className="type-title-md text-foreground">
+              <div className="relative z-10 flex flex-col justify-center">
+                <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
                   {t("airport.themeTerminalTitle")}
                 </h2>
-                <p className="mt-3 text-base leading-relaxed text-muted-foreground">
+                <p className="mt-3 text-base leading-relaxed text-muted-foreground sm:text-lg sm:leading-relaxed">
                   {t("airport.themeTerminalBody")}
                 </p>
-                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                  {t("airport.designIntentText")}
-                </p>
-              </>
+              </div>
             );
 
             // ── Clean conditional at presentation boundary ──
@@ -159,7 +157,14 @@ function FuturePage() {
                       className="size-full object-cover opacity-90 transition-transform duration-500 hover:scale-105"
                     />
                   </figure>
-                  <div className="flex flex-col justify-center p-6 sm:p-8">
+                  <div className="relative isolate flex flex-col justify-center overflow-hidden p-6 sm:p-8">
+                    <img
+                      src={airportFutureBodyImg}
+                      alt=""
+                      aria-hidden="true"
+                      loading="lazy"
+                      className="pointer-events-none absolute inset-0 size-full select-none object-cover object-center opacity-15"
+                    />
                     {chapter1Content}
                   </div>
                 </GazaSurface>
@@ -223,7 +228,16 @@ function FuturePage() {
                   className="overflow-hidden flex flex-col"
                 >
                   {chapter1Media}
-                  <div className="p-6 sm:p-8">{chapter1Content}</div>
+                  <div className="relative isolate overflow-hidden p-6 sm:p-8">
+                    <img
+                      src={airportFutureBodyImg}
+                      alt=""
+                      aria-hidden="true"
+                      loading="lazy"
+                      className="pointer-events-none absolute inset-0 size-full select-none object-cover object-center opacity-15"
+                    />
+                    {chapter1Content}
+                  </div>
                 </GazaSurface>
               );
             }
@@ -269,7 +283,16 @@ function FuturePage() {
                   baselineClassName="overflow-hidden rounded-2xl border border-border bg-card shadow-xs p-6 sm:p-8"
                   className="overflow-hidden p-6 sm:p-8"
                 >
-                  <div className="max-w-3xl">{chapter1Content}</div>
+                  <div className="relative isolate overflow-hidden max-w-3xl p-6 sm:p-8">
+                    <img
+                      src={airportFutureBodyImg}
+                      alt=""
+                      aria-hidden="true"
+                      loading="lazy"
+                      className="pointer-events-none absolute inset-0 size-full select-none object-cover object-center opacity-15"
+                    />
+                    {chapter1Content}
+                  </div>
                 </GazaSurface>
               );
             }
@@ -284,7 +307,14 @@ function FuturePage() {
                 className="grid gap-6 overflow-hidden sm:grid-cols-2"
               >
                 {chapter1Media}
-                <div className="flex flex-col justify-center p-6 sm:p-8">
+                <div className="relative isolate flex flex-col justify-center overflow-hidden p-6 sm:p-8">
+                  <img
+                    src={airportFutureBodyImg}
+                    alt=""
+                    aria-hidden="true"
+                    loading="lazy"
+                    className="pointer-events-none absolute inset-0 size-full select-none object-cover object-center opacity-15"
+                  />
                   {chapter1Content}
                 </div>
               </GazaSurface>
@@ -299,16 +329,22 @@ function FuturePage() {
             baselineClassName="grid gap-6 overflow-hidden rounded-2xl border border-border bg-card shadow-xs sm:grid-cols-2 sm:[&>figure]:order-last"
             className="grid gap-6 overflow-hidden sm:grid-cols-2 sm:[&>figure]:order-last"
           >
-            <div className="flex flex-col justify-center p-6 sm:p-8">
-              <h2 className="type-title-md text-foreground">
-                {t("airport.themeHospitalityTitle")}
-              </h2>
-              <p className="mt-3 text-base leading-relaxed text-muted-foreground">
-                {t("airport.themeHospitalityBody")}
-              </p>
-              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                {t("airport.designIntentText")}
-              </p>
+            <div className="relative isolate flex flex-col justify-center overflow-hidden p-6 sm:p-8">
+              <img
+                src={airportFutureBodyImg}
+                alt=""
+                aria-hidden="true"
+                loading="lazy"
+                className="pointer-events-none absolute inset-0 size-full select-none object-cover object-center opacity-15"
+              />
+              <div className="relative z-10 flex flex-col justify-center">
+                <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+                  {t("airport.themeHospitalityTitle")}
+                </h2>
+                <p className="mt-3 text-base leading-relaxed text-muted-foreground sm:text-lg sm:leading-relaxed">
+                  {t("airport.themeHospitalityBody")}
+                </p>
+              </div>
             </div>
             <figure className="relative m-0 aspect-[16/10] size-full overflow-hidden bg-ink sm:aspect-auto">
               <ResponsiveImage
@@ -334,16 +370,22 @@ function FuturePage() {
                 className="size-full object-cover opacity-90 transition-transform duration-500 hover:scale-105"
               />
             </figure>
-            <div className="flex flex-col justify-center p-6 sm:p-8">
-              <h2 className="type-title-md text-foreground">
-                {t("airport.themeMasterplanTitle")}
-              </h2>
-              <p className="mt-3 text-base leading-relaxed text-muted-foreground">
-                {t("airport.themeMasterplanBody")}
-              </p>
-              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                {t("airport.designIntentText")}
-              </p>
+            <div className="relative isolate flex flex-col justify-center overflow-hidden p-6 sm:p-8">
+              <img
+                src={airportFutureBodyImg}
+                alt=""
+                aria-hidden="true"
+                loading="lazy"
+                className="pointer-events-none absolute inset-0 size-full select-none object-cover object-center opacity-15"
+              />
+              <div className="relative z-10 flex flex-col justify-center">
+                <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+                  {t("airport.themeMasterplanTitle")}
+                </h2>
+                <p className="mt-3 text-base leading-relaxed text-muted-foreground sm:text-lg sm:leading-relaxed">
+                  {t("airport.themeMasterplanBody")}
+                </p>
+              </div>
             </div>
           </GazaSurface>
         </div>
@@ -371,14 +413,24 @@ function FuturePage() {
                         className="size-full object-cover opacity-85 transition-transform duration-500 hover:scale-105"
                       />
                     </div>
-                    <figcaption className="px-4 py-3 text-xs leading-relaxed text-muted-foreground">
-                      {captionText}
+                    <figcaption className="relative isolate overflow-hidden border-t border-border/80 bg-ink px-4 py-3 text-xs leading-relaxed text-ink-muted">
+                      <img
+                        src={airportFutureBodyImg}
+                        alt=""
+                        aria-hidden="true"
+                        loading="lazy"
+                        className="pointer-events-none absolute inset-0 size-full select-none object-cover object-center opacity-25"
+                      />
+                      <span className="relative z-10 block font-medium text-ink-foreground/90">
+                        {captionText}
+                      </span>
                     </figcaption>
                   </figure>
                 </li>
               );
             })}
           </ul>
+
         </section>
 
         {/* Future Network Vision Panel */}

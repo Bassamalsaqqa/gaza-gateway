@@ -17,7 +17,7 @@ import {
   img,
   todayISO,
 } from "@/lib/data";
-import { getPublishedArchiveRecords } from "@/lib/archive";
+import { getFeaturedArchiveRecords } from "@/lib/archive";
 import { pick, useI18n } from "@/lib/i18n";
 import { ResponsiveImage } from "@/components/responsive-image";
 import { MEDIA } from "@/lib/media";
@@ -71,7 +71,7 @@ function Home() {
     () => (board === "departures" ? departuresOn(today) : arrivalsOn(today)).slice(0, 5),
     [board, today],
   );
-  const archive = useMemo(() => getPublishedArchiveRecords().slice(0, 6), []);
+  const archive = useMemo(() => getFeaturedArchiveRecords(6), []);
 
   return (
     <>
@@ -368,7 +368,7 @@ function Home() {
                   to: "/airport/past",
                   title: content.copy.past,
                   sub: content.copy.pastSub,
-                  seed: "archive-terminal-old",
+                  mediaId: "past-024" as const,
                   isFuture: false,
                 },
                 {
@@ -376,7 +376,7 @@ function Home() {
                   to: "/airport/present",
                   title: content.copy.present,
                   sub: content.copy.presentSub,
-                  seed: "empty-runway-today",
+                  mediaId: "airport-present-ruins-2008" as const,
                   isFuture: false,
                 },
                 {
@@ -384,7 +384,7 @@ function Home() {
                   to: "/airport/future",
                   title: content.copy.future,
                   sub: content.copy.futureSub,
-                  seed: "terminal-concept-render",
+                  mediaId: "aerial-day" as const,
                   isFuture: true,
                 },
               ] as const
@@ -395,20 +395,11 @@ function Home() {
                 className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-xs transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-lift)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               >
                 <div className="relative aspect-[16/10] overflow-hidden bg-ink">
-                  {chapter.isFuture ? (
-                    <ResponsiveImage
-                      entry="aerial-day"
-                      sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                      className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                  ) : (
-                    <img
-                      src={img(chapter.seed, 800, 500)}
-                      alt=""
-                      loading="lazy"
-                      className="size-full object-cover opacity-70 transition-transform duration-500 group-hover:scale-105 group-hover:opacity-85"
-                    />
-                  )}
+                  <ResponsiveImage
+                    entry={chapter.mediaId}
+                    sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                    className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
                   <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/30 to-transparent" />
                   {chapter.isFuture && (
                     <span className="absolute bottom-2.5 end-3 rounded bg-ink/80 px-1.5 py-0.5 font-mono text-[0.65rem] text-ink-muted">
@@ -434,17 +425,12 @@ function Home() {
                   <div className="relative z-10 flex flex-1 flex-col justify-between">
                     <div>
                       <h3 className="text-xl font-bold text-ink-foreground transition-colors group-hover:text-sand">
-                      {pick(lang, chapter.title)}
-                    </h3>
+                        {pick(lang, chapter.title)}
+                      </h3>
                       <p className="mt-2 text-xs leading-relaxed text-ink-muted sm:text-sm">
-                      {pick(lang, chapter.sub)}
-                    </p>
-                  </div>
-
-                    <span className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-sand transition-colors group-hover:text-sand-deep">
-                    <span>{t("airport.readChapter")}</span>
-                    <ArrowRight aria-hidden="true" className="size-3.5 rtl:rotate-180" />
-                  </span>
+                        {pick(lang, chapter.sub)}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </AppLink>
@@ -565,40 +551,42 @@ function Home() {
       </Container>
 
       {/* 8. Archival Gallery Preview */}
-      <Container className="mt-16 sm:mt-20 mb-12">
-        <SectionHeader
-          title={pick(lang, content.copy.archiveTitle)}
-          description={pick(lang, content.copy.archiveSub)}
-          action={
-            <AppLink to="/gallery" className={btnClass("outline", "sm")}>
-              {t("home.openArchive")}
-            </AppLink>
-          }
-        />
-        <ul className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          {archive.map((item) => (
-            <li
-              key={item.id}
-              className="group overflow-hidden rounded-xl border border-border bg-card shadow-xs transition-transform hover:-translate-y-1"
-            >
-              <AppLink to="/gallery" aria-label={pick(lang, item.title)}>
-                {item.mediaId && item.mediaId in MEDIA ? (
-                  <ResponsiveImage
-                    entry={item.mediaId as keyof typeof MEDIA}
-                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
-                    altOverride={{ en: item.alt.en, ar: item.alt.ar }}
-                    className="aspect-square size-full object-cover transition-opacity group-hover:opacity-85"
-                  />
-                ) : (
-                  <span className="aspect-square flex size-full items-center justify-center p-3 text-center text-xs text-muted-foreground">
-                    {pick(lang, item.title)}
-                  </span>
-                )}
+      <section data-testid="home-archive-preview">
+        <Container className="mt-16 sm:mt-20 mb-12">
+          <SectionHeader
+            title={pick(lang, content.copy.archiveTitle)}
+            description={pick(lang, content.copy.archiveSub)}
+            action={
+              <AppLink to="/gallery" className={btnClass("outline", "sm")}>
+                {t("home.openArchive")}
               </AppLink>
-            </li>
-          ))}
-        </ul>
-      </Container>
+            }
+          />
+          <ul className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            {archive.map((item) => (
+              <li
+                key={item.id}
+                className="group overflow-hidden rounded-xl border border-border bg-card shadow-xs transition-transform hover:-translate-y-1"
+              >
+                <AppLink to="/gallery" aria-label={pick(lang, item.title)}>
+                  {item.mediaId && item.mediaId in MEDIA ? (
+                    <ResponsiveImage
+                      entry={item.mediaId as keyof typeof MEDIA}
+                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
+                      altOverride={{ en: item.alt.en, ar: item.alt.ar }}
+                      className="aspect-square size-full object-cover transition-opacity group-hover:opacity-85"
+                    />
+                  ) : (
+                    <span className="aspect-square flex size-full items-center justify-center p-3 text-center text-xs text-muted-foreground">
+                      {pick(lang, item.title)}
+                    </span>
+                  )}
+                </AppLink>
+              </li>
+            ))}
+          </ul>
+        </Container>
+      </section>
     </>
   );
 }

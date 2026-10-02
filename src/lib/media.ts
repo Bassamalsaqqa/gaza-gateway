@@ -148,6 +148,132 @@ import airportPresentRuins2008_768 from "@/assets/media/documentary/airport-pres
 import airportPresentRuins2008_960 from "@/assets/media/documentary/airport-present-ruins-2008-960.webp";
 import airportPresentRuins2008_1109 from "@/assets/media/documentary/airport-present-ruins-2008-1109.webp";
 
+// Historical documentary archive photos (HC-3 owner intake display)
+import past_003_360 from "@/assets/media/documentary/past/past-003-360.webp";
+import past_003_480 from "@/assets/media/documentary/past/past-003-480.webp";
+import past_003_600 from "@/assets/media/documentary/past/past-003-600.webp";
+import past_005_360 from "@/assets/media/documentary/past/past-005-360.webp";
+import past_005_480 from "@/assets/media/documentary/past/past-005-480.webp";
+import past_005_600 from "@/assets/media/documentary/past/past-005-600.webp";
+import past_006_360 from "@/assets/media/documentary/past/past-006-360.webp";
+import past_006_470 from "@/assets/media/documentary/past/past-006-470.webp";
+import past_007_360 from "@/assets/media/documentary/past/past-007-360.webp";
+import past_007_480 from "@/assets/media/documentary/past/past-007-480.webp";
+import past_007_600 from "@/assets/media/documentary/past/past-007-600.webp";
+import past_008_360 from "@/assets/media/documentary/past/past-008-360.webp";
+import past_008_480 from "@/assets/media/documentary/past/past-008-480.webp";
+import past_008_600 from "@/assets/media/documentary/past/past-008-600.webp";
+import past_009_360 from "@/assets/media/documentary/past/past-009-360.webp";
+import past_009_480 from "@/assets/media/documentary/past/past-009-480.webp";
+import past_009_600 from "@/assets/media/documentary/past/past-009-600.webp";
+import past_010_360 from "@/assets/media/documentary/past/past-010-360.webp";
+import past_010_480 from "@/assets/media/documentary/past/past-010-480.webp";
+import past_010_640 from "@/assets/media/documentary/past/past-010-640.webp";
+import past_011_360 from "@/assets/media/documentary/past/past-011-360.webp";
+import past_011_480 from "@/assets/media/documentary/past/past-011-480.webp";
+import past_011_600 from "@/assets/media/documentary/past/past-011-600.webp";
+import past_012_360 from "@/assets/media/documentary/past/past-012-360.webp";
+import past_012_480 from "@/assets/media/documentary/past/past-012-480.webp";
+import past_012_600 from "@/assets/media/documentary/past/past-012-600.webp";
+import past_014_360 from "@/assets/media/documentary/past/past-014-360.webp";
+import past_014_480 from "@/assets/media/documentary/past/past-014-480.webp";
+import past_014_600 from "@/assets/media/documentary/past/past-014-600.webp";
+import past_015_360 from "@/assets/media/documentary/past/past-015-360.webp";
+import past_015_480 from "@/assets/media/documentary/past/past-015-480.webp";
+import past_015_600 from "@/assets/media/documentary/past/past-015-600.webp";
+import past_016_360 from "@/assets/media/documentary/past/past-016-360.webp";
+import past_016_480 from "@/assets/media/documentary/past/past-016-480.webp";
+import past_016_600 from "@/assets/media/documentary/past/past-016-600.webp";
+import past_021_360 from "@/assets/media/documentary/past/past-021-360.webp";
+import past_021_480 from "@/assets/media/documentary/past/past-021-480.webp";
+import past_021_640 from "@/assets/media/documentary/past/past-021-640.webp";
+import past_022_360 from "@/assets/media/documentary/past/past-022-360.webp";
+import past_022_480 from "@/assets/media/documentary/past/past-022-480.webp";
+import past_022_640 from "@/assets/media/documentary/past/past-022-640.webp";
+import past_023_360 from "@/assets/media/documentary/past/past-023-360.webp";
+import past_023_480 from "@/assets/media/documentary/past/past-023-480.webp";
+import past_023_640 from "@/assets/media/documentary/past/past-023-640.webp";
+import past_024_360 from "@/assets/media/documentary/past/past-024-360.webp";
+import past_024_480 from "@/assets/media/documentary/past/past-024-480.webp";
+import past_024_640 from "@/assets/media/documentary/past/past-024-640.webp";
+import past_024_960 from "@/assets/media/documentary/past/past-024-960.webp";
+import past_024_1280 from "@/assets/media/documentary/past/past-024-1280.webp";
+import past_024_1496 from "@/assets/media/documentary/past/past-024-1496.webp";
+import past_026_360 from "@/assets/media/documentary/past/past-026-360.webp";
+import past_026_480 from "@/assets/media/documentary/past/past-026-480.webp";
+import past_026_640 from "@/assets/media/documentary/past/past-026-640.webp";
+import past_026_750 from "@/assets/media/documentary/past/past-026-750.webp";
+import past_028_360 from "@/assets/media/documentary/past/past-028-360.webp";
+import past_028_480 from "@/assets/media/documentary/past/past-028-480.webp";
+import past_028_600 from "@/assets/media/documentary/past/past-028-600.webp";
+import past_029_360 from "@/assets/media/documentary/past/past-029-360.webp";
+import past_029_480 from "@/assets/media/documentary/past/past-029-480.webp";
+import past_029_640 from "@/assets/media/documentary/past/past-029-640.webp";
+import past_030_360 from "@/assets/media/documentary/past/past-030-360.webp";
+import past_030_480 from "@/assets/media/documentary/past/past-030-480.webp";
+import past_030_640 from "@/assets/media/documentary/past/past-030-640.webp";
+import past_031_360 from "@/assets/media/documentary/past/past-031-360.webp";
+import past_031_480 from "@/assets/media/documentary/past/past-031-480.webp";
+import past_031_640 from "@/assets/media/documentary/past/past-031-640.webp";
+import past_032_360 from "@/assets/media/documentary/past/past-032-360.webp";
+import past_032_480 from "@/assets/media/documentary/past/past-032-480.webp";
+import past_032_640 from "@/assets/media/documentary/past/past-032-640.webp";
+import past_032_689 from "@/assets/media/documentary/past/past-032-689.webp";
+import past_033_360 from "@/assets/media/documentary/past/past-033-360.webp";
+import past_033_480 from "@/assets/media/documentary/past/past-033-480.webp";
+import past_033_640 from "@/assets/media/documentary/past/past-033-640.webp";
+import past_038_360 from "@/assets/media/documentary/past/past-038-360.webp";
+import past_038_480 from "@/assets/media/documentary/past/past-038-480.webp";
+import past_038_640 from "@/assets/media/documentary/past/past-038-640.webp";
+import past_038_960 from "@/assets/media/documentary/past/past-038-960.webp";
+import past_040_360 from "@/assets/media/documentary/past/past-040-360.webp";
+import past_040_480 from "@/assets/media/documentary/past/past-040-480.webp";
+import past_040_640 from "@/assets/media/documentary/past/past-040-640.webp";
+import past_040_720 from "@/assets/media/documentary/past/past-040-720.webp";
+import past_042_360 from "@/assets/media/documentary/past/past-042-360.webp";
+import past_042_480 from "@/assets/media/documentary/past/past-042-480.webp";
+import past_042_640 from "@/assets/media/documentary/past/past-042-640.webp";
+import past_042_800 from "@/assets/media/documentary/past/past-042-800.webp";
+import past_043_360 from "@/assets/media/documentary/past/past-043-360.webp";
+import past_043_480 from "@/assets/media/documentary/past/past-043-480.webp";
+import past_043_640 from "@/assets/media/documentary/past/past-043-640.webp";
+import past_044_360 from "@/assets/media/documentary/past/past-044-360.webp";
+import past_044_480 from "@/assets/media/documentary/past/past-044-480.webp";
+import past_044_640 from "@/assets/media/documentary/past/past-044-640.webp";
+import past_044_720 from "@/assets/media/documentary/past/past-044-720.webp";
+import past_045_360 from "@/assets/media/documentary/past/past-045-360.webp";
+import past_045_480 from "@/assets/media/documentary/past/past-045-480.webp";
+import past_045_640 from "@/assets/media/documentary/past/past-045-640.webp";
+import past_046_360 from "@/assets/media/documentary/past/past-046-360.webp";
+import past_046_480 from "@/assets/media/documentary/past/past-046-480.webp";
+import past_046_640 from "@/assets/media/documentary/past/past-046-640.webp";
+import past_049_360 from "@/assets/media/documentary/past/past-049-360.webp";
+import past_049_480 from "@/assets/media/documentary/past/past-049-480.webp";
+import past_049_600 from "@/assets/media/documentary/past/past-049-600.webp";
+import past_050_360 from "@/assets/media/documentary/past/past-050-360.webp";
+import past_050_480 from "@/assets/media/documentary/past/past-050-480.webp";
+import past_050_640 from "@/assets/media/documentary/past/past-050-640.webp";
+import past_050_960 from "@/assets/media/documentary/past/past-050-960.webp";
+import past_050_1280 from "@/assets/media/documentary/past/past-050-1280.webp";
+import past_050_2048 from "@/assets/media/documentary/past/past-050-2048.webp";
+import past_051_360 from "@/assets/media/documentary/past/past-051-360.webp";
+import past_051_480 from "@/assets/media/documentary/past/past-051-480.webp";
+import past_051_640 from "@/assets/media/documentary/past/past-051-640.webp";
+import past_053_360 from "@/assets/media/documentary/past/past-053-360.webp";
+import past_053_480 from "@/assets/media/documentary/past/past-053-480.webp";
+import past_053_640 from "@/assets/media/documentary/past/past-053-640.webp";
+import past_054_360 from "@/assets/media/documentary/past/past-054-360.webp";
+import past_054_480 from "@/assets/media/documentary/past/past-054-480.webp";
+import past_054_640 from "@/assets/media/documentary/past/past-054-640.webp";
+import past_056_360 from "@/assets/media/documentary/past/past-056-360.webp";
+import past_056_480 from "@/assets/media/documentary/past/past-056-480.webp";
+import past_056_640 from "@/assets/media/documentary/past/past-056-640.webp";
+import past_056_800 from "@/assets/media/documentary/past/past-056-800.webp";
+import past_058_360 from "@/assets/media/documentary/past/past-058-360.webp";
+import past_058_480 from "@/assets/media/documentary/past/past-058-480.webp";
+import past_058_640 from "@/assets/media/documentary/past/past-058-640.webp";
+import past_058_768 from "@/assets/media/documentary/past/past-058-768.webp";
+
 // Editorial & service illustrative photos
 import destinationsHero640 from "@/assets/media/editorial/destinations-hero-640.webp";
 import destinationsHero960 from "@/assets/media/editorial/destinations-hero-960.webp";
@@ -508,6 +634,502 @@ export const MEDIA: Record<ApprovedMediaId, MediaEntry> = {
     truthClass: "illustrative-photo",
     altEn: "Commercial passenger aircraft parked at a terminal jet bridge on an airport apron.",
     altAr: "طائرة ركاب تجارية متوقفة عند جسر صعود المسافرين في ساحة المطار.",
+  },
+
+  // Historical documentary archive photos (HC-3 owner intake display)
+  "past-003": {
+    id: "past-003",
+    width: 600,
+    height: 335,
+    variants: [
+      { src: past_003_360, width: 360, height: 201 },
+      { src: past_003_480, width: 480, height: 268 },
+      { src: past_003_600, width: 600, height: 335 },
+    ],
+    truthClass: "historical-documentary",
+    altEn: "A white Palestinian Airlines twin-engine turboprop with a high wing and T-tail parked on an apron.",
+    altAr: "طائرة توربينية بيضاء للخطوط الجوية الفلسطينية ذات جناح مرتفع وذيل على شكل T متوقفة على ساحة مطار.",
+  },
+  "past-005": {
+    id: "past-005",
+    width: 600,
+    height: 385,
+    variants: [
+      { src: past_005_360, width: 360, height: 231 },
+      { src: past_005_480, width: 480, height: 308 },
+      { src: past_005_600, width: 600, height: 385 },
+    ],
+    truthClass: "historical-documentary",
+    altEn: "Airport apron, passenger terminal and tall control tower with part of a large airliner in the foreground.",
+    altAr: "ساحة مطار ومبنى مسافرين وبرج مراقبة مرتفع وجزء من طائرة كبيرة في المقدمة.",
+  },
+  "past-006": {
+    id: "past-006",
+    width: 470,
+    height: 600,
+    variants: [
+      { src: past_006_360, width: 360, height: 460 },
+      { src: past_006_470, width: 470, height: 600 },
+    ],
+    truthClass: "historical-documentary",
+    altEn: "A uniformed cabin crew member standing in an aircraft cabin during in-flight service.",
+    altAr: "إحدى أفراد طاقم الضيافة بزي رسمي داخل مقصورة طائرة أثناء الخدمة.",
+  },
+  "past-007": {
+    id: "past-007",
+    width: 600,
+    height: 407,
+    variants: [
+      { src: past_007_360, width: 360, height: 244 },
+      { src: past_007_480, width: 480, height: 326 },
+      { src: past_007_600, width: 600, height: 407 },
+    ],
+    truthClass: "historical-documentary",
+    altEn: "Airline pilots and cabin crew pose together in front of a Palestinian Airlines aircraft.",
+    altAr: "طيارون وأفراد ضيافة يقفون معاً أمام طائرة للخطوط الجوية الفلسطينية.",
+  },
+  "past-008": {
+    id: "past-008",
+    width: 600,
+    height: 446,
+    variants: [
+      { src: past_008_360, width: 360, height: 268 },
+      { src: past_008_480, width: 480, height: 357 },
+      { src: past_008_600, width: 600, height: 446 },
+    ],
+    truthClass: "historical-documentary",
+    altEn: "Three flight crew members seated in an aircraft cockpit, with one turning toward the camera.",
+    altAr: "ثلاثة من أفراد الطاقم جالسون في قمرة قيادة طائرة وأحدهم يلتفت نحو الكاميرا.",
+  },
+  "past-009": {
+    id: "past-009",
+    width: 600,
+    height: 397,
+    variants: [
+      { src: past_009_360, width: 360, height: 238 },
+      { src: past_009_480, width: 480, height: 318 },
+      { src: past_009_600, width: 600, height: 397 },
+    ],
+    truthClass: "historical-documentary",
+    altEn: "Four uniformed pilots stand side by side in front of a Palestinian Airlines aircraft.",
+    altAr: "أربعة طيارين بزي رسمي يقفون جنباً إلى جنب أمام طائرة للخطوط الجوية الفلسطينية.",
+  },
+  "past-010": {
+    id: "past-010",
+    width: 640,
+    height: 433,
+    variants: [
+      { src: past_010_360, width: 360, height: 244 },
+      { src: past_010_480, width: 480, height: 325 },
+      { src: past_010_640, width: 640, height: 433 },
+    ],
+    truthClass: "historical-documentary",
+    altEn: "Workers handle cardboard boxes beside an aircraft stairway marked Gaza International Airport on the apron.",
+    altAr: "عمال يناولون صناديق بجانب سُلّم طائرة مكتوب عليه Gaza International Airport على ساحة المطار.",
+  },
+  "past-011": {
+    id: "past-011",
+    width: 600,
+    height: 381,
+    variants: [
+      { src: past_011_360, width: 360, height: 229 },
+      { src: past_011_480, width: 480, height: 305 },
+      { src: past_011_600, width: 600, height: 381 },
+    ],
+    truthClass: "historical-documentary",
+    altEn: "Passengers in light-colored clothing gather near the stairs of a Palestinian Airlines aircraft.",
+    altAr: "مسافرون بملابس فاتحة يتجمعون قرب سُلّم طائرة للخطوط الجوية الفلسطينية.",
+  },
+  "past-012": {
+    id: "past-012",
+    width: 600,
+    height: 407,
+    variants: [
+      { src: past_012_360, width: 360, height: 244 },
+      { src: past_012_480, width: 480, height: 326 },
+      { src: past_012_600, width: 600, height: 407 },
+    ],
+    truthClass: "historical-documentary",
+    altEn: "Several passengers descend aircraft stairs while ground staff wait beside the aircraft.",
+    altAr: "عدة مسافرين ينزلون سُلّم طائرة بينما يقف موظفون أرضيون بجانبها.",
+  },
+  "past-014": {
+    id: "past-014",
+    width: 600,
+    height: 428,
+    variants: [
+      { src: past_014_360, width: 360, height: 257 },
+      { src: past_014_480, width: 480, height: 342 },
+      { src: past_014_600, width: 600, height: 428 },
+    ],
+    truthClass: "historical-documentary",
+    altEn: "A passenger in white pilgrimage clothing stands in front of a Palestinian Airlines aircraft.",
+    altAr: "مسافرة بملابس الحج البيضاء تقف أمام طائرة للخطوط الجوية الفلسطينية.",
+  },
+  "past-015": {
+    id: "past-015",
+    width: 600,
+    height: 319,
+    variants: [
+      { src: past_015_360, width: 360, height: 191 },
+      { src: past_015_480, width: 480, height: 255 },
+      { src: past_015_600, width: 600, height: 319 },
+    ],
+    truthClass: "historical-documentary",
+    altEn: "Passengers in white pilgrimage garments descend aircraft stairs with staff nearby.",
+    altAr: "مسافرون بملابس الحج البيضاء ينزلون سُلّم طائرة وموظفون بالقرب منهم.",
+  },
+  "past-016": {
+    id: "past-016",
+    width: 600,
+    height: 395,
+    variants: [
+      { src: past_016_360, width: 360, height: 237 },
+      { src: past_016_480, width: 480, height: 316 },
+      { src: past_016_600, width: 600, height: 395 },
+    ],
+    truthClass: "historical-documentary",
+    altEn: "Passengers in white pilgrimage garments descend from an aircraft while a ground worker assists them.",
+    altAr: "مسافرون بملابس الحج البيضاء ينزلون من طائرة بينما يساعدهم موظف أرضي.",
+  },
+  "past-021": {
+    id: "past-021",
+    width: 640,
+    height: 480,
+    variants: [
+      { src: past_021_360, width: 360, height: 270 },
+      { src: past_021_480, width: 480, height: 360 },
+      { src: past_021_640, width: 640, height: 480 },
+    ],
+    truthClass: "historical-documentary",
+    altEn: "Front of a small airport service building with an air-cargo sign above an arched entrance.",
+    altAr: "واجهة مبنى خدمات صغير في المطار مع لافتة للشحن الجوي فوق مدخل مقوس.",
+  },
+  "past-022": {
+    id: "past-022",
+    width: 640,
+    height: 480,
+    variants: [
+      { src: past_022_360, width: 360, height: 270 },
+      { src: past_022_480, width: 480, height: 360 },
+      { src: past_022_640, width: 640, height: 480 },
+    ],
+    truthClass: "historical-documentary",
+    altEn: "Large rectangular airport hangar or service building with tall segmented doors.",
+    altAr: "مبنى مستطيل كبير في المطار يشبه الحظيرة وله أبواب مقسمة مرتفعة.",
+  },
+  "past-023": {
+    id: "past-023",
+    width: 640,
+    height: 480,
+    variants: [
+      { src: past_023_360, width: 360, height: 270 },
+      { src: past_023_480, width: 480, height: 360 },
+      { src: past_023_640, width: 640, height: 480 },
+    ],
+    truthClass: "historical-documentary",
+    altEn: "Red-and-white ambulance parked in front of several airport service-bay doors.",
+    altAr: "سيارة إسعاف حمراء وبيضاء متوقفة أمام عدة أبواب لمرافق خدمات في المطار.",
+  },
+  "past-024": {
+    id: "past-024",
+    width: 1496,
+    height: 919,
+    variants: [
+      { src: past_024_360, width: 360, height: 221 },
+      { src: past_024_480, width: 480, height: 295 },
+      { src: past_024_640, width: 640, height: 393 },
+      { src: past_024_960, width: 960, height: 590 },
+      { src: past_024_1280, width: 1280, height: 786 },
+      { src: past_024_1496, width: 1496, height: 919 },
+    ],
+    truthClass: "historical-documentary",
+    altEn: "Wide view of the intact airport terminal and control tower behind landscaped grounds and palm trees.",
+    altAr: "منظر واسع لمبنى المطار وبرج المراقبة وهما سليمَان خلف حدائق وأشجار نخيل.",
+  },
+  "past-026": {
+    id: "past-026",
+    width: 750,
+    height: 472,
+    variants: [
+      { src: past_026_360, width: 360, height: 227 },
+      { src: past_026_480, width: 480, height: 302 },
+      { src: past_026_640, width: 640, height: 403 },
+      { src: past_026_750, width: 750, height: 472 },
+    ],
+    truthClass: "historical-documentary",
+    altEn: "Long row of freestanding airport arches leading toward a ruined building under a blue sky.",
+    altAr: "صف طويل من أقواس المطار القائمة يقود نحو مبنى مهدّم تحت سماء زرقاء.",
+  },
+  "past-028": {
+    id: "past-028",
+    width: 600,
+    height: 450,
+    variants: [
+      { src: past_028_360, width: 360, height: 270 },
+      { src: past_028_480, width: 480, height: 360 },
+      { src: past_028_600, width: 600, height: 450 },
+    ],
+    truthClass: "historical-documentary",
+    altEn: "Open airport parking or approach area with a red car, palm trees and white entrance structures in the distance.",
+    altAr: "منطقة مواقف أو وصول مفتوحة في المطار مع سيارة حمراء ونخيل ومنشآت مدخل بيضاء في الخلفية.",
+  },
+  "past-029": {
+    id: "past-029",
+    width: 640,
+    height: 480,
+    variants: [
+      { src: past_029_360, width: 360, height: 270 },
+      { src: past_029_480, width: 480, height: 360 },
+      { src: past_029_640, width: 640, height: 480 },
+    ],
+    truthClass: "historical-documentary",
+    altEn: "Three large cylindrical storage tanks with service piping in the foreground.",
+    altAr: "ثلاثة خزانات أسطوانية كبيرة مع تجهيزات وأنابيب خدمات في المقدمة.",
+  },
+  "past-030": {
+    id: "past-030",
+    width: 640,
+    height: 480,
+    variants: [
+      { src: past_030_360, width: 360, height: 270 },
+      { src: past_030_480, width: 480, height: 360 },
+      { src: past_030_640, width: 640, height: 480 },
+    ],
+    truthClass: "historical-documentary",
+    altEn: "Red airport fire engine parked beside a cream-colored service building with an arched entrance.",
+    altAr: "مركبة إطفاء حمراء في المطار متوقفة بجانب مبنى خدمات فاتح اللون بمدخل مقوس.",
+  },
+  "past-031": {
+    id: "past-031",
+    width: 640,
+    height: 480,
+    variants: [
+      { src: past_031_360, width: 360, height: 270 },
+      { src: past_031_480, width: 480, height: 360 },
+      { src: past_031_640, width: 640, height: 480 },
+    ],
+    truthClass: "historical-documentary",
+    altEn: "Symmetrical airport building with arched windows on two wings and a rounded glass entrance in the center.",
+    altAr: "مبنى مطار متناظر بنوافذ مقوسة في جناحين ومدخل زجاجي مستدير في الوسط.",
+  },
+  "past-032": {
+    id: "past-032",
+    width: 689,
+    height: 429,
+    variants: [
+      { src: past_032_360, width: 360, height: 224 },
+      { src: past_032_480, width: 480, height: 299 },
+      { src: past_032_640, width: 640, height: 398 },
+      { src: past_032_689, width: 689, height: 429 },
+    ],
+    truthClass: "historical-documentary",
+    altEn: "Airport control tower rising behind a long terminal façade with repeating pointed arches.",
+    altAr: "برج مراقبة في المطار يرتفع خلف واجهة طويلة لمبنى المسافرين ذات أقواس مدببة متكررة.",
+  },
+  "past-033": {
+    id: "past-033",
+    width: 640,
+    height: 480,
+    variants: [
+      { src: past_033_360, width: 360, height: 270 },
+      { src: past_033_480, width: 480, height: 360 },
+      { src: past_033_640, width: 640, height: 480 },
+    ],
+    truthClass: "historical-documentary",
+    altEn: "Long intact airport terminal frontage with repeating arches, palm trees and signage along the roofline.",
+    altAr: "واجهة طويلة وسليمة لمبنى المطار مع أقواس متكررة ونخيل ولافتة على خط السقف.",
+  },
+  "past-038": {
+    id: "past-038",
+    width: 960,
+    height: 682,
+    variants: [
+      { src: past_038_360, width: 360, height: 256 },
+      { src: past_038_480, width: 480, height: 341 },
+      { src: past_038_640, width: 640, height: 455 },
+      { src: past_038_960, width: 960, height: 682 },
+    ],
+    truthClass: "historical-documentary",
+    altEn: "Uniformed personnel on a grassy area beside the airport terminal and control tower.",
+    altAr: "أفراد بزي رسمي على مساحة عشبية بجانب مبنى المطار وبرج المراقبة.",
+  },
+  "past-040": {
+    id: "past-040",
+    width: 720,
+    height: 540,
+    variants: [
+      { src: past_040_360, width: 360, height: 270 },
+      { src: past_040_480, width: 480, height: 360 },
+      { src: past_040_640, width: 640, height: 480 },
+      { src: past_040_720, width: 720, height: 540 },
+    ],
+    truthClass: "historical-documentary",
+    altEn: "Intact airport control tower framed by palm trees and green landscaping under a blue sky.",
+    altAr: "برج مراقبة مطار سليم تحيط به أشجار نخيل وتشجير أخضر تحت سماء زرقاء.",
+  },
+  "past-042": {
+    id: "past-042",
+    width: 800,
+    height: 534,
+    variants: [
+      { src: past_042_360, width: 360, height: 240 },
+      { src: past_042_480, width: 480, height: 320 },
+      { src: past_042_640, width: 640, height: 427 },
+      { src: past_042_800, width: 800, height: 534 },
+    ],
+    truthClass: "historical-documentary",
+    altEn: "Wide baggage-claim hall with a carousel, luggage trolleys and rows of pointed arches.",
+    altAr: "صالة واسعة لاستلام الأمتعة فيها سير حقائب وعربات وأقواس مدببة متكررة.",
+  },
+  "past-043": {
+    id: "past-043",
+    width: 640,
+    height: 480,
+    variants: [
+      { src: past_043_360, width: 360, height: 270 },
+      { src: past_043_480, width: 480, height: 360 },
+      { src: past_043_640, width: 640, height: 480 },
+    ],
+    truthClass: "historical-documentary",
+    altEn: "Airport baggage-claim area with a carousel at right and service counters or doors at left.",
+    altAr: "منطقة استلام أمتعة في المطار مع سير حقائب إلى اليمين وواجهات خدمات أو أبواب إلى اليسار.",
+  },
+  "past-044": {
+    id: "past-044",
+    width: 720,
+    height: 536,
+    variants: [
+      { src: past_044_360, width: 360, height: 268 },
+      { src: past_044_480, width: 480, height: 357 },
+      { src: past_044_640, width: 640, height: 476 },
+      { src: past_044_720, width: 720, height: 536 },
+    ],
+    truthClass: "historical-documentary",
+    altEn: "Small bank counter inside the airport beneath bilingual Egyptian Arab Land Bank signage.",
+    altAr: "مكتب مصرفي صغير داخل المطار أسفل لافتة ثنائية اللغة للبنك العقاري المصري العربي.",
+  },
+  "past-045": {
+    id: "past-045",
+    width: 640,
+    height: 480,
+    variants: [
+      { src: past_045_360, width: 360, height: 270 },
+      { src: past_045_480, width: 480, height: 360 },
+      { src: past_045_640, width: 640, height: 480 },
+    ],
+    truthClass: "historical-documentary",
+    altEn: "Several airport counters beneath overhead number signs and pointed architectural arches.",
+    altAr: "عدة كاونترات في المطار أسفل لوحات أرقام وأقواس معمارية مدببة.",
+  },
+  "past-046": {
+    id: "past-046",
+    width: 640,
+    height: 480,
+    variants: [
+      { src: past_046_360, width: 360, height: 270 },
+      { src: past_046_480, width: 480, height: 360 },
+      { src: past_046_640, width: 640, height: 480 },
+    ],
+    truthClass: "historical-documentary",
+    altEn: "Long airport hall with repeated columns and arches, benches and overhead monitors.",
+    altAr: "ممر طويل في المطار بأعمدة وأقواس متكررة ومقاعد وشاشات علوية.",
+  },
+  "past-049": {
+    id: "past-049",
+    width: 600,
+    height: 418,
+    variants: [
+      { src: past_049_360, width: 360, height: 251 },
+      { src: past_049_480, width: 480, height: 334 },
+      { src: past_049_600, width: 600, height: 418 },
+    ],
+    truthClass: "historical-documentary",
+    altEn: "Crowded airport terminal hall with many passengers, families and luggage beneath high windows and arches.",
+    altAr: "صالة مطار مزدحمة بالمسافرين والعائلات والحقائب تحت نوافذ مرتفعة وأقواس.",
+  },
+  "past-050": {
+    id: "past-050",
+    width: 2048,
+    height: 1365,
+    variants: [
+      { src: past_050_360, width: 360, height: 240 },
+      { src: past_050_480, width: 480, height: 320 },
+      { src: past_050_640, width: 640, height: 427 },
+      { src: past_050_960, width: 960, height: 640 },
+      { src: past_050_1280, width: 1280, height: 853 },
+      { src: past_050_2048, width: 2048, height: 1365 },
+    ],
+    truthClass: "historical-documentary",
+    altEn: "Large airport waiting hall with rows of metal seats, pointed arches and glazed service areas.",
+    altAr: "صالة انتظار كبيرة في المطار فيها صفوف مقاعد معدنية وأقواس مدببة وواجهات خدمات زجاجية.",
+  },
+  "past-051": {
+    id: "past-051",
+    width: 640,
+    height: 480,
+    variants: [
+      { src: past_051_360, width: 360, height: 270 },
+      { src: past_051_480, width: 480, height: 360 },
+      { src: past_051_640, width: 640, height: 480 },
+    ],
+    truthClass: "historical-documentary",
+    altEn: "Airport security screening equipment including a metal detector, baggage scanner and operator monitor.",
+    altAr: "معدات تفتيش أمني في المطار تشمل بوابة كشف معدني وجهاز فحص حقائب وشاشة تشغيل.",
+  },
+  "past-053": {
+    id: "past-053",
+    width: 640,
+    height: 480,
+    variants: [
+      { src: past_053_360, width: 360, height: 270 },
+      { src: past_053_480, width: 480, height: 360 },
+      { src: past_053_640, width: 640, height: 480 },
+    ],
+    truthClass: "historical-documentary",
+    altEn: "Rows of metal airport seats beside large pointed-arch windows with daylight entering the hall.",
+    altAr: "صفوف من مقاعد المطار المعدنية بجانب نوافذ كبيرة مدببة يدخل منها ضوء النهار.",
+  },
+  "past-054": {
+    id: "past-054",
+    width: 640,
+    height: 480,
+    variants: [
+      { src: past_054_360, width: 360, height: 270 },
+      { src: past_054_480, width: 480, height: 360 },
+      { src: past_054_640, width: 640, height: 480 },
+    ],
+    truthClass: "historical-documentary",
+    altEn: "Blue passport stamp reading Palestinian Authority and Gaza International Airport with the date 8-04-2000.",
+    altAr: "ختم جواز أزرق مكتوب عليه السلطة الفلسطينية ومطار غزة الدولي ويحمل تاريخ 8-04-2000.",
+  },
+  "past-056": {
+    id: "past-056",
+    width: 800,
+    height: 535,
+    variants: [
+      { src: past_056_360, width: 360, height: 241 },
+      { src: past_056_480, width: 480, height: 321 },
+      { src: past_056_640, width: 640, height: 428 },
+      { src: past_056_800, width: 800, height: 535 },
+    ],
+    truthClass: "historical-documentary",
+    altEn: "Several staff members work at consoles and telephones inside an airport control tower overlooking the airfield.",
+    altAr: "عدة موظفين يعملون على وحدات تحكم وهواتف داخل برج مراقبة يطل على ساحة المطار.",
+  },
+  "past-058": {
+    id: "past-058",
+    width: 768,
+    height: 484,
+    variants: [
+      { src: past_058_360, width: 360, height: 227 },
+      { src: past_058_480, width: 480, height: 302 },
+      { src: past_058_640, width: 640, height: 403 },
+      { src: past_058_768, width: 768, height: 484 },
+    ],
+    truthClass: "historical-documentary",
+    altEn: "Intact airport building with repeated pointed arches, parked cars, lawn and a Palestinian flag.",
+    altAr: "مبنى مطار سليم بأقواس مدببة متكررة وسيارات متوقفة ومساحة خضراء وعلم فلسطيني.",
   },
 };
 

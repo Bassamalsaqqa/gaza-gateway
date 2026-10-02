@@ -22,10 +22,21 @@ import {
   getArchiveRecordById,
   getArchiveRecordBySlug,
   getIntakeArchiveRecords,
+  getFeaturedArchiveRecords,
+  getVerifiedVideoReferences,
+  getGalleryItems,
+  getDerivedFilterOptions,
+  getPublishedArchiveRecordsForTimelineEvent,
 } from "../../src/lib/archive/catalog.ts";
-import type { ArchiveRecord } from "../../src/lib/archive/types.ts";
+import type { ArchiveRecord, PublicationBasis, ArchiveSubject } from "../../src/lib/archive/types.ts";
 import { SOURCE_REGISTRY, getAllSourceRecords } from "../../src/lib/archive/sources.ts";
-import { archiveRecordSchema, sourceRecordSchema } from "../../src/lib/archive/schema.ts";
+import {
+  archiveRecordSchema,
+  sourceRecordSchema,
+  ELIGIBLE_OWNER_INTAKE_IDS,
+  ELIGIBLE_OWNER_INTAKE_REGISTRY,
+  extractVerifiedYouTubeId,
+} from "../../src/lib/archive/schema.ts";
 import {
   APPROVED_MEDIA_CATALOG,
   TARGET_ALLOWED_TRUTH_CLASSES,
@@ -142,12 +153,21 @@ describe("HC-0 / HC-1 Archive & Present Foundation Invariants", () => {
       assert.ok(record.alt.en.trim().length > 0, `${record.id} missing alt.en`);
       assert.ok(record.alt.ar.trim().length > 0, `${record.id} missing alt.ar`);
 
-      if (record.medium === "photograph") {
-        assert.notEqual(record.rights.status, "unknown", `${record.id} photo cannot have unknown rights`);
-        assert.ok(
-          record.rights.license || record.rights.credit,
-          `${record.id} photo must provide license or credit`,
-        );
+      if (record.medium === "photograph" || record.medium === "document") {
+        if (record.publicationBasis === "rights-cleared") {
+          assert.notEqual(record.rights.status, "unknown", `${record.id} rights-cleared record cannot have unknown rights`);
+          assert.ok(
+            record.rights.license || record.rights.credit,
+            `${record.id} rights-cleared record must provide license or credit`,
+          );
+        } else if (record.publicationBasis === "product-owner-directed-display") {
+          assert.equal(record.rights.status, "unknown", `${record.id} owner-directed photo has honest unknown rights status`);
+          assert.ok(
+            record.rights.credit,
+            `${record.id} owner-directed photo must provide credit statement`,
+          );
+          assert.ok(record.mediaId, `${record.id} owner-directed photo must have registered mediaId`);
+        }
       }
 
       if (record.evidenceStatus === "verified") {
@@ -897,20 +917,27 @@ describe("HC-2 Historical Archive Publication Invariants", () => {
   it("HC2-4: Published photos satisfy rights/credit/license contracts, and all verified Past entries cite resolvable sources", () => {
     const published = getPublishedArchiveRecords();
     for (const rec of published) {
-      if (rec.medium === "photograph") {
-        assert.notEqual(rec.rights.status, "unknown");
-        assert.notEqual(rec.rights.status, "rights-managed");
-        assert.ok(rec.rights.credit || rec.rights.license, `Record ${rec.id} must have credit or license`);
-        if (rec.rights.status === "licensed") {
-          assert.ok(rec.rights.licenseUrl, `Licensed record ${rec.id} must have licenseUrl`);
-          assert.match(rec.rights.licenseUrl, /^https?:\/\//);
+      if (rec.medium === "photograph" || rec.medium === "document") {
+        if (rec.publicationBasis === "rights-cleared") {
+          assert.notEqual(rec.rights.status, "unknown", `${rec.id} rights-cleared record must have known rights`);
+          assert.notEqual(rec.rights.status, "rights-managed");
+          assert.ok(rec.rights.credit || rec.rights.license, `Record ${rec.id} must have credit or license`);
+          if (rec.rights.status === "licensed") {
+            assert.ok(rec.rights.licenseUrl, `Licensed record ${rec.id} must have licenseUrl`);
+            assert.match(rec.rights.licenseUrl, /^https?:\/\//);
+          }
+          assert.notEqual(rec.datePrecision, "unknown");
+        } else if (rec.publicationBasis === "product-owner-directed-display") {
+          assert.equal(rec.rights.status, "unknown", `${rec.id} owner-directed photo has honest unknown rights status`);
+          assert.ok(rec.rights.credit, `Owner-directed record ${rec.id} must preserve credit statement`);
+          assert.ok(rec.mediaId, `Owner-directed record ${rec.id} must have mediaId`);
+          assert.ok(APPROVED_MEDIA_CATALOG[rec.mediaId], `Media ${rec.mediaId} must be registered in APPROVED_MEDIA_CATALOG`);
         }
       }
       assert.ok(rec.title.en.trim().length > 0);
       assert.ok(rec.title.ar.trim().length > 0);
       assert.ok(rec.alt.en.trim().length > 0);
       assert.ok(rec.alt.ar.trim().length > 0);
-      assert.notEqual(rec.datePrecision, "unknown");
     }
 
     // Verified Past timeline chapters
@@ -946,9 +973,11 @@ describe("HC-2 Historical Archive Publication Invariants", () => {
   // HC2-6: Gallery no legacy galleryItems authority or seeded historical photos; Past no seeded hero/false evidence timeline image
   it("HC2-6: Gallery and Past do not rely on legacy galleryItems or seeded images", () => {
     const gallerySrc = readFileSync(new URL("../../src/routes/{-$locale}.gallery.tsx", import.meta.url), "utf8");
-    assert.ok(!gallerySrc.includes("galleryItems"), "Gallery route must not reference legacy galleryItems");
     assert.ok(!gallerySrc.includes("img("), "Gallery route must not use img() seed function");
-    assert.ok(gallerySrc.includes("getPublishedArchiveRecords"), "Gallery route must use canonical getPublishedArchiveRecords");
+    assert.ok(
+      gallerySrc.includes("getGalleryItems") || gallerySrc.includes("getPublishedArchiveRecords"),
+      "Gallery route must use canonical archive selectors",
+    );
 
     const pastSrc = readFileSync(new URL("../../src/routes/{-$locale}.airport.past.tsx", import.meta.url), "utf8");
     assert.ok(!pastSrc.includes("airport-archive-hall"), "Past route must not use seeded airport-archive-hall hero");
@@ -1066,17 +1095,28 @@ describe("HC-2 Historical Archive Publication Invariants", () => {
   // HC2-C1-4: Dynamic filter derivation and singleton handling
   it("HC2-C1-4: Dynamic filter derivation from published records suppresses empty choices for singleton collections", () => {
     const published = getPublishedArchiveRecords();
-    const availableMediums = Array.from(new Set(published.map((r) => r.medium)));
-    const availablePhases = Array.from(new Set(published.map((r) => r.phase)));
+    const availableMediums = Array.from(new Set(published.map((r) => r.medium))).sort();
+    const availablePhases = Array.from(new Set(published.map((r) => r.phase))).sort();
 
-    // Since currently only 1 photograph is published:
-    assert.deepEqual(availableMediums, ["photograph"]);
-    assert.deepEqual(availablePhases, ["post-destruction-ruins"]);
+    // Published documentary records include photographs and documents across historical phases
+    assert.deepEqual(availableMediums, ["document", "photograph"]);
+    assert.ok(availablePhases.includes("opening-golden-era"), "Must include opening-golden-era phase");
+    assert.ok(availablePhases.includes("post-destruction-ruins"), "Must include post-destruction-ruins phase");
 
-    // Gallery route derives options deterministically and does NOT hardcode empty document/video options
+    // Gallery route derives options deterministically and does NOT hardcode empty options
     const gallerySrc = readFileSync(new URL("../../src/routes/{-$locale}.gallery.tsx", import.meta.url), "utf8");
-    assert.ok(gallerySrc.includes("availableMediums.length >= 2"), "Category dropdown must be guarded by availableMediums.length >= 2");
-    assert.ok(gallerySrc.includes("availablePhases.length >= 2"), "Era dropdown must be guarded by availablePhases.length >= 2");
+    assert.ok(
+      gallerySrc.includes("availableMediums.length >= 2") ||
+      gallerySrc.includes("derivedFilters.mediums.length >= 2") ||
+      gallerySrc.includes("filterOptions.mediums.length >= 2"),
+      "Category dropdown must be guarded against empty or singleton choices",
+    );
+    assert.ok(
+      gallerySrc.includes("availablePhases.length >= 2") ||
+      gallerySrc.includes("derivedFilters.phases.length >= 2") ||
+      gallerySrc.includes("filterOptions.phases.length >= 2"),
+      "Era dropdown must be guarded against empty or singleton choices",
+    );
   });
 
   // HC2-C1-5: Arabic parity in Gallery & Past
@@ -1239,7 +1279,7 @@ describe("HC-2 Historical Archive Publication Invariants", () => {
   });
 
   // HC2-C2-4: Registry and catalog counts invariant
-  it("HC2-C2-4: Guarantees exact machine counts for source registry (13) and catalog records (11)", () => {
+  it("HC2-C2-4: Guarantees exact machine counts for source registry (13) and catalog records (67)", () => {
     const allSources = getAllSourceRecords();
     assert.equal(allSources.length, 13, "SOURCE_REGISTRY must have exactly 13 records (9 text/official + 4 video)");
 
@@ -1250,17 +1290,29 @@ describe("HC-2 Historical Archive Publication Invariants", () => {
 
     // Catalog records
     const publishedRecords = getPublishedArchiveRecords();
-    assert.equal(publishedRecords.length, 1, "Only 1 photograph (2008 ruins) is published");
-    assert.equal(publishedRecords[0].id, "rec-present-ruins-2008");
-    assert.equal(publishedRecords[0].mediaId, "airport-present-ruins-2008");
+    assert.equal(publishedRecords.length, 38, "38 records published (37 owner intake + 1 Gisha ruins)");
+    const gishaRecord = publishedRecords.find((r) => r.id === "rec-present-ruins-2008");
+    assert.ok(gishaRecord, "rec-present-ruins-2008 must be published");
+    assert.equal(gishaRecord?.mediaId, "airport-present-ruins-2008");
 
     const intakeRecords = getIntakeArchiveRecords();
-    assert.equal(intakeRecords.length, 11, "Must have exactly 11 intake catalog records (1 published + 2 unreleased photos + 8 videos)");
+    assert.equal(intakeRecords.length, 67, "Must have exactly 67 intake catalog records (58 owner intake + 8 videos + 1 Gisha)");
 
     const stagingVideos = intakeRecords.filter((r) => r.medium === "video" && r.publicationState === "staging");
     const heldVideos = intakeRecords.filter((r) => r.medium === "video" && r.publicationState === "hold-provenance");
     assert.equal(stagingVideos.length, 5, "5 videos in staging");
     assert.equal(heldVideos.length, 3, "3 videos in hold-provenance");
+
+    const ownerIntake = intakeRecords.filter((r) => r.id.startsWith("past-"));
+    assert.equal(ownerIntake.length, 58, "Must have all 58 owner intake records");
+    const ownerPublished = ownerIntake.filter((r) => r.publicationState === "published");
+    assert.equal(ownerPublished.length, 37, "Must have exactly 37 owner intake records published");
+    const ownerHeld = ownerIntake.filter((r) => r.publicationState.startsWith("hold-"));
+    assert.equal(ownerHeld.length, 18, "Must have 18 owner intake records held");
+    const ownerExcluded = ownerIntake.filter((r) => r.publicationState === "excluded");
+    assert.equal(ownerExcluded.length, 2, "Must have 2 owner intake records excluded (past-004 illustration, past-052 duplicate)");
+    const ownerStaging = ownerIntake.filter((r) => r.publicationState === "staging");
+    assert.equal(ownerStaging.length, 1, "Must have 1 owner intake record in staging (past-037)");
   });
 
   // HC2-C3-1: Documentation source identities & treaty airspace jurisdiction integrity
@@ -1434,5 +1486,491 @@ describe("HC-2 Historical Archive Publication Invariants", () => {
     assert.match(operations.body.en, /about 41,000 passengers travelling on Palestinian Airlines/);
     assert.match(operations.body.ar, /نحو 60 ألف مسافر في 1,168 رحلة/);
     assert.match(operations.body.ar, /سافر نحو 41 ألفاً منهم على متن الخطوط الجوية الفلسطينية/);
+  });
+});
+
+describe("HC-3 Owner Archive Visual Integration Invariants", () => {
+  it("HC3-1: Basis-specific publication and schema validation decouple display authorization from license clearance", () => {
+    const published = getPublishedArchiveRecords();
+    assert.equal(published.length, 38, "Must have exactly 38 published records");
+
+    for (const record of published) {
+      const parsed = archiveRecordSchema.safeParse(record);
+      assert.ok(parsed.success, `Record ${record.id} must satisfy archiveRecordSchema: ${JSON.stringify(parsed.error?.issues)}`);
+
+      if (record.publicationBasis === "rights-cleared") {
+        assert.equal(record.id, "rec-present-ruins-2008");
+        assert.equal(record.rights.status, "licensed");
+        assert.ok(record.rights.licenseUrl && record.rights.licenseUrl.startsWith("http"));
+        assert.equal(record.evidenceStatus, "verified");
+        assert.ok(record.sourceRefs.length > 0);
+      } else if (record.publicationBasis === "product-owner-directed-display") {
+        assert.equal(record.rights.status, "unknown", `${record.id} must preserve honest unknown rights status`);
+        assert.ok(record.rights.credit.trim().length > 0, `${record.id} must provide credit statement`);
+        assert.ok(record.mediaId, `${record.id} must have mediaId`);
+        assert.equal(
+          APPROVED_MEDIA_CATALOG[record.mediaId! as keyof typeof APPROVED_MEDIA_CATALOG],
+          "historical-documentary",
+          `${record.mediaId} must be historical-documentary`,
+        );
+      } else {
+        assert.fail(`Unexpected publication basis: ${record.publicationBasis}`);
+      }
+    }
+  });
+
+  it("HC3-2: Canonical accounting of all 58 intake files, 18 holds, 2 excluded, 1 staging, and 0 leakages", () => {
+    const allIntake = getIntakeArchiveRecords();
+    const ownerIntake = allIntake.filter((r) => r.id.startsWith("past-"));
+    assert.equal(ownerIntake.length, 58, "All 58 owner files must be represented");
+
+    const published = ownerIntake.filter((r) => r.publicationState === "published");
+    assert.equal(published.length, 37, "Exactly 37 owner intake records published");
+
+    const held = ownerIntake.filter((r) => r.publicationState.startsWith("hold-"));
+    assert.equal(held.length, 18, "Exactly 18 owner intake records held");
+
+    const excluded = ownerIntake.filter((r) => r.publicationState === "excluded");
+    assert.equal(excluded.length, 2, "Exactly 2 owner intake records excluded (past-004, past-052)");
+
+    const staging = ownerIntake.filter((r) => r.publicationState === "staging");
+    assert.equal(staging.length, 1, "Exactly 1 owner intake record in staging (past-037)");
+
+    // Verify duplicate exclusion
+    const rec52 = getArchiveRecordById("past-052", true);
+    assert.ok(rec52);
+    assert.equal(rec52.duplicateOf, "past-050");
+    assert.equal(rec52.publicationState, "excluded");
+
+    // Verify illustration exclusion
+    const rec04 = getArchiveRecordById("past-004", true);
+    assert.ok(rec04);
+    assert.equal(rec04.medium, "illustration");
+    assert.equal(rec04.publicationState, "excluded");
+
+    // Verify no held or excluded records leak into public selector
+    const publicRecords = getPublishedArchiveRecords();
+    for (const h of held) {
+      assert.ok(!publicRecords.some((p) => p.id === h.id), `Held record ${h.id} must not leak`);
+    }
+    assert.ok(!publicRecords.some((p) => p.id === "past-052"), "past-052 must not leak");
+    assert.ok(!publicRecords.some((p) => p.id === "past-004"), "past-004 must not leak");
+    assert.ok(!publicRecords.some((p) => p.id === "past-037"), "past-037 must not leak");
+  });
+
+  it("HC3-3: Canonical featured six selector returns diverse, non-empty, published records", () => {
+    const featured = getFeaturedArchiveRecords(6);
+    assert.equal(featured.length, 6, "Must return exactly 6 featured records");
+
+    const ids = featured.map((r) => r.id);
+    assert.equal(new Set(ids).size, 6, "Featured records must all be unique");
+
+    // Must all be published
+    for (const rec of featured) {
+      assert.equal(rec.publicationState, "published");
+    }
+
+    // Must cover diverse subjects / categories
+    const subjects = new Set(featured.flatMap((r) => r.subjects));
+    assert.ok(subjects.has("airport-architecture"), "Featured must include architecture");
+    assert.ok(subjects.has("interior-passenger-spaces"), "Featured must include interior");
+    assert.ok(subjects.has("aircraft-fleet") || subjects.has("operations-services"), "Featured must include aircraft or operations");
+    assert.ok(subjects.has("crew-staff") || subjects.has("passengers-pilgrimage"), "Featured must include people");
+    assert.ok(subjects.has("documents-ephemera"), "Featured must include documents/ephemera");
+    assert.ok(subjects.has("damage-ruins"), "Featured must include ruins/present evidence");
+  });
+
+  it("HC3-4: External video references are strictly decoupled from local media publication", () => {
+    const videos = getVerifiedVideoReferences();
+    assert.equal(videos.length, 4, "Must have exactly 4 verified video references");
+
+    const expectedIds = ["src-video-afp-2018", "src-video-aljazeera-2009", "src-video-ap-1998-opening", "src-video-clinton-1998"];
+    const actualIds = videos.map((v) => v.sourceRef).sort();
+    assert.deepEqual(actualIds, expectedIds);
+
+    for (const v of videos) {
+      assert.ok(v.youtubeId && v.youtubeId.length > 5, `Invalid youtubeId for ${v.id}`);
+      assert.ok(v.title.en && v.title.ar, `Missing bilingual title for ${v.id}`);
+      assert.ok(v.publisher && v.publisher.length > 0, `Missing publisher for ${v.id}`);
+      assert.ok(v.date && v.date.length >= 4, `Invalid date for ${v.id}`);
+    }
+
+    // Ensure none of the 8 internal video intake records are marked published
+    const intakeRecords = getIntakeArchiveRecords();
+    const videoIntake = intakeRecords.filter((r) => r.medium === "video");
+    assert.equal(videoIntake.length, 8);
+    for (const vi of videoIntake) {
+      assert.notEqual(vi.publicationState, "published", `Video intake ${vi.id} cannot be published as local media`);
+      assert.equal(vi.mediaId, undefined, `Video intake ${vi.id} must not have a local mediaId`);
+    }
+  });
+
+  it("HC3-5: Gallery items unify photos and videos, and derive filter options without empty choices", () => {
+    const galleryItems = getGalleryItems();
+    assert.equal(galleryItems.length, 42, "38 published photos/documents + 4 verified videos = 42 gallery items");
+
+    const videoItems = galleryItems.filter((i) => i.medium === "video");
+    const photoItems = galleryItems.filter((i) => i.medium === "photograph");
+    const docItems = galleryItems.filter((i) => i.medium === "document");
+
+    assert.equal(videoItems.length, 4);
+    assert.equal(photoItems.length, 37);
+    assert.equal(docItems.length, 1);
+
+    const filters = getDerivedFilterOptions(galleryItems);
+    assert.deepEqual(filters.mediums, ["document", "photograph", "video"]);
+    assert.ok(filters.phases.length >= 3, "Must have at least 3 phases");
+    assert.ok(filters.subjects.length >= 6, "Must have at least 6 distinct subjects");
+
+    // Every item must have valid title, alt or caption, and subjects
+    for (const item of galleryItems) {
+      assert.ok(item.title.en.trim().length > 0);
+      assert.ok(item.title.ar.trim().length > 0);
+      assert.ok(item.subjects.length > 0);
+    }
+  });
+
+  it("HC3-6: Media registry enforces documentary classification on all 37 owner derivatives", () => {
+    const published = getPublishedArchiveRecords().filter((r) => r.id.startsWith("past-"));
+    assert.equal(published.length, 37);
+
+    for (const rec of published) {
+      assert.ok(rec.mediaId, `Record ${rec.id} must have mediaId`);
+      const truthClass = APPROVED_MEDIA_CATALOG[rec.mediaId! as keyof typeof APPROVED_MEDIA_CATALOG];
+      assert.equal(truthClass, "historical-documentary");
+    }
+  });
+
+  // HC3-7: Adversarial tests for publication basis validation bypasses
+  it("HC3-7: Adversarial tests reject all publication basis bypasses and enforce positive eligibility", () => {
+    const validPublic = getArchiveRecordById("past-003", true)!;
+    assert.ok(validPublic, "past-003 must exist");
+    const held002 = getArchiveRecordById("past-002", true)!;
+    assert.ok(held002, "past-002 must exist");
+
+    // Case 1: owner-directed with missing curatorPublicationStatus and missing intakeReference
+    const case1 = {
+      ...validPublic,
+      curatorPublicationStatus: undefined,
+      intakeReference: undefined,
+    };
+    const res1 = archiveRecordSchema.safeParse(case1);
+    assert.equal(res1.success, false, "Must reject owner-directed record with missing curatorPublicationStatus / intakeReference");
+
+    // Case 2: owner-directed with rights-managed status and Getty Images holder
+    const case2 = {
+      ...validPublic,
+      rights: {
+        status: "rights-managed" as const,
+        holder: "Getty Images",
+        credit: "Getty Images",
+      },
+    };
+    const res2 = archiveRecordSchema.safeParse(case2);
+    assert.equal(res2.success, false, "Must reject owner-directed display with rights-managed / Getty Images");
+
+    // Case 3: local photograph with mediaId, curatorPublicationStatus hold-rights, rights-managed, changed to external-embed with arbitrary youtubeId
+    const case3 = {
+      ...held002,
+      publicationBasis: "external-embed" as const,
+      publicationState: "published" as const,
+      youtubeId: "dQw4w9WgXcQ",
+    };
+    const res3 = archiveRecordSchema.safeParse(case3);
+    assert.equal(res3.success, false, "Must reject local media masquerading as external-embed with arbitrary youtubeId");
+
+    // Case 4: Swapping originalFilename from held past-002 while retaining eligible past-003 identity
+    const case4a = {
+      ...validPublic,
+      originalFilename: held002.originalFilename,
+    };
+    const res4a = archiveRecordSchema.safeParse(case4a);
+    assert.equal(res4a.success, false, "Must reject past-003 with substituted held past-002 filename");
+
+    // Case 4b: Swapping held filename AND unrelated mediaId (airport-archive-hero-2000)
+    const case4b = {
+      ...validPublic,
+      originalFilename: held002.originalFilename,
+      mediaId: "airport-archive-hero-2000",
+    };
+    const res4b = archiveRecordSchema.safeParse(case4b);
+    assert.equal(res4b.success, false, "Must reject substituted filename and unrelated mediaId");
+
+    // Case 4c: Swapping mediaId to past-005 while retaining past-003 identity
+    const case4c = {
+      ...validPublic,
+      mediaId: "past-005",
+    };
+    const res4c = archiveRecordSchema.safeParse(case4c);
+    assert.equal(res4c.success, false, "Must reject swapped mediaId past-005 on past-003");
+
+    // Case 4d: Swapping arbitrary originalFilename
+    const case4d = {
+      ...validPublic,
+      originalFilename: "arbitrary-renamed-file.jpg",
+    };
+    const res4d = archiveRecordSchema.safeParse(case4d);
+    assert.equal(res4d.success, false, "Must reject arbitrary non-audited originalFilename");
+
+    // Case 4e: Swapping medium to document on photograph past-003
+    const case4e = {
+      ...validPublic,
+      medium: "document" as const,
+    };
+    const res4e = archiveRecordSchema.safeParse(case4e);
+    assert.equal(res4e.success, false, "Must reject non-audited medium on past-003");
+
+    // Case 4f: Swapping intakeReference on past-003
+    const case4f = {
+      ...validPublic,
+      intakeReference: "past-005",
+    };
+    const res4f = archiveRecordSchema.safeParse(case4f);
+    assert.equal(res4f.success, false, "Must reject mismatched intakeReference on past-003");
+
+    // Case 5: Held identity spoofing (past-001 or past-013 given staging-rights-review)
+    const heldRec = getArchiveRecordById("past-001", true)!;
+    assert.ok(heldRec, "past-001 must exist");
+    const case5 = {
+      ...heldRec,
+      publicationBasis: "product-owner-directed-display" as const,
+      publicationState: "published" as const,
+      curatorPublicationStatus: "staging-rights-review",
+      intakeReference: "past-001",
+      mediaId: "past-001",
+    };
+    const res5 = archiveRecordSchema.safeParse(case5);
+    assert.equal(res5.success, false, "Must reject held ID past-001 attempting to publish under owner display");
+
+    // Case 6: Non-intake ID spoofing (e.g. past-999)
+    const case6 = {
+      ...validPublic,
+      id: "past-999",
+      slug: "past-999-fake",
+      intakeReference: "past-999",
+    };
+    const res6 = archiveRecordSchema.safeParse(case6);
+    assert.equal(res6.success, false, "Must reject non-audited ID past-999 under owner display");
+
+    // Case 7: External embed with mismatched or non-video sourceRef
+    const case7a = {
+      ...validPublic,
+      medium: "video" as const,
+      mediaId: undefined,
+      publicationBasis: "external-embed" as const,
+      youtubeId: "vYodi28td20",
+      sourceRefs: ["src-oslo-ii-1995"], // treaty, not video
+    };
+    const res7a = archiveRecordSchema.safeParse(case7a);
+    assert.equal(res7a.success, false, "Must reject external embed with non-video sourceRef");
+
+    const case7b = {
+      ...validPublic,
+      medium: "video" as const,
+      mediaId: undefined,
+      publicationBasis: "external-embed" as const,
+      youtubeId: "tBht5QeKHaA", // Clinton ID
+      sourceRefs: ["src-video-afp-2018"], // valid video source, but URL has gaSe8Pbmm5Q
+    };
+    const res7b = archiveRecordSchema.safeParse(case7b);
+    assert.equal(res7b.success, false, "Must reject external embed with mismatched youtubeId and sourceRef URL");
+
+    // Case 7c: External embed with HTTP (non-HTTPS) source URL
+    const apSource = SOURCE_REGISTRY["src-video-ap-1998-opening"];
+    const origApUrl = apSource.url;
+    try {
+      apSource.url = "http://www.youtube.com/watch?v=vYodi28td20";
+      const case7c = {
+        ...validPublic,
+        medium: "video" as const,
+        mediaId: undefined,
+        publicationBasis: "external-embed" as const,
+        youtubeId: "vYodi28td20",
+        sourceRefs: ["src-video-ap-1998-opening"],
+      };
+      assert.equal(archiveRecordSchema.safeParse(case7c).success, false, "Must reject external embed with HTTP source URL");
+
+      // Case 7d: External embed with spoofed host URL
+      apSource.url = "https://example.com/youtube.com/watch?v=vYodi28td20";
+      assert.equal(archiveRecordSchema.safeParse(case7c).success, false, "Must reject external embed with spoofed host URL");
+    } finally {
+      apSource.url = origApUrl;
+    }
+
+    // Case 8: Universal licensing obligations across all publication bases
+    const case8 = {
+      ...validPublic,
+      rights: {
+        status: "licensed" as const,
+        license: "", // empty license name
+        licenseUrl: "https://example.com/license",
+        credit: "Some Credit",
+      },
+    };
+    const res8 = archiveRecordSchema.safeParse(case8);
+    assert.equal(res8.success, false, "Must reject licensed record with empty license name even under owner display");
+
+    // Positive Test 1: All 37 real eligible owner records pass validation
+    for (const id of ELIGIBLE_OWNER_INTAKE_IDS) {
+      const rec = getArchiveRecordById(id, true);
+      assert.ok(rec, `Eligible record ${id} must exist in catalog`);
+      const res = archiveRecordSchema.safeParse(rec);
+      assert.equal(res.success, true, `Real eligible record ${id} must pass schema validation`);
+    }
+
+    // Positive Test 2: Legitimate Gisha licensed record passes
+    const gisha = getArchiveRecordById("rec-present-ruins-2008")!;
+    assert.ok(gisha);
+    const resGisha = archiveRecordSchema.safeParse(gisha);
+    assert.equal(resGisha.success, true, "Gisha licensed record must pass validation");
+  });
+
+  // HC3-8: Timeline media associations derive from canonical records and exclude operational interiors from destruction
+  it("HC3-8: Timeline selectors derive from canonical relatedTimelineEventIds and exclude operational interiors from destruction", () => {
+    // 1. Operational counters (past-045) and security (past-051) must be in operations
+    const opPhotos = getPublishedArchiveRecordsForTimelineEvent("operations");
+    const opIds = opPhotos.map((p) => p.id);
+    assert.ok(opIds.includes("past-045"), "past-045 (counters) must be associated with operations");
+    assert.ok(opIds.includes("past-051"), "past-051 (security screening) must be associated with operations");
+    assert.ok(opIds.includes("past-007"), "past-007 (crew) must be associated with operations");
+    assert.ok(opIds.includes("past-050"), "past-050 (waiting hall) must be associated with operations");
+    assert.ok(opIds.includes("past-054"), "past-054 (passport stamp) must be associated with operations");
+
+    // 2. Closure/destruction must strictly EXCLUDE operational interiors past-045 and past-051
+    const closurePhotos = getPublishedArchiveRecordsForTimelineEvent("closure");
+    const closureIds = closurePhotos.map((p) => p.id);
+    assert.ok(!closureIds.includes("past-045"), "past-045 must NOT be in closure/destruction");
+    assert.ok(!closureIds.includes("past-051"), "past-051 must NOT be in closure/destruction");
+    // Closure must only contain records of damage/destruction
+    for (const cp of closurePhotos) {
+      assert.ok(cp.subjects.includes("damage-ruins") || cp.phase === "closure-destruction", `${cp.id} must be genuine damage/ruins record`);
+    }
+
+    // 3. Memory must contain genuine ruins record
+    const memoryPhotos = getPublishedArchiveRecordsForTimelineEvent("memory");
+    const memoryIds = memoryPhotos.map((p) => p.id);
+    assert.ok(memoryIds.includes("rec-present-ruins-2008"), "rec-present-ruins-2008 must be in memory");
+
+    // 4. Planning chapter has no unsupported architectural associations fabricated
+    const planningPhotos = getPublishedArchiveRecordsForTimelineEvent("planning");
+    assert.deepEqual(planningPhotos, [], "Planning chapter must return empty strip rather than unsupported photos");
+
+    // 5. Selectors reject held and duplicate records even if requested
+    const allPublished = getPublishedArchiveRecords();
+    for (const eventId of ["planning", "opening", "operations", "closure", "memory"]) {
+      const records = getPublishedArchiveRecordsForTimelineEvent(eventId);
+      for (const r of records) {
+        assert.equal(r.publicationState, "published", `Timeline record ${r.id} must be published`);
+        assert.equal(r.duplicateOf, undefined, `Timeline record ${r.id} must not be a duplicate alias`);
+      }
+    }
+  });
+
+  // HC3-9: External video references resolve dynamically from SOURCE_REGISTRY and distinguish event from upload dates
+  it("HC3-9: External video references resolve dynamically from SOURCE_REGISTRY with distinct event/upload dates", () => {
+    const videos = getVerifiedVideoReferences();
+    assert.equal(videos.length, 4, "Must return exactly 4 verified video references");
+
+    // 1. Verify AFP eventDate (month precision 2018-09) is distinct from publication/upload date (2018-09-12)
+    const afpVideo = videos.find((v) => v.sourceRef === "src-video-afp-2018")!;
+    assert.ok(afpVideo, "AFP video reference must exist");
+    assert.equal(afpVideo.date, "2018-09", "Event date for AFP must be 2018-09");
+    assert.equal(afpVideo.datePrecision, "month", "AFP datePrecision must be month");
+    assert.equal(afpVideo.uploadDate, "2018-09-12", "AFP uploadDate must be exact 2018-09-12");
+
+    // 2. Verify all four known source IDs and their YouTube IDs
+    const expectedMappings: Record<string, string> = {
+      "src-video-ap-1998-opening": "vYodi28td20",
+      "src-video-clinton-1998": "tBht5QeKHaA",
+      "src-video-aljazeera-2009": "-k3kR5f3nYY",
+      "src-video-afp-2018": "gaSe8Pbmm5Q",
+    };
+    for (const v of videos) {
+      assert.equal(v.youtubeId, expectedMappings[v.sourceRef], `YouTube ID mismatch for ${v.sourceRef}`);
+      assert.ok(v.url.includes(v.youtubeId), `URL must contain YouTube ID for ${v.sourceRef}`);
+    }
+
+    // 3. Verify dynamic resolution: mutating SOURCE_REGISTRY publisher is reflected
+    const originalPublisher = SOURCE_REGISTRY["src-video-ap-1998-opening"].publisher;
+    try {
+      SOURCE_REGISTRY["src-video-ap-1998-opening"].publisher = "Dynamic AP Archive Test";
+      const updatedVideos = getVerifiedVideoReferences();
+      const updatedAP = updatedVideos.find((v) => v.sourceRef === "src-video-ap-1998-opening")!;
+      assert.equal(updatedAP.publisher, "Dynamic AP Archive Test", "Publisher change must be dynamically reflected");
+    } finally {
+      SOURCE_REGISTRY["src-video-ap-1998-opening"].publisher = originalPublisher;
+    }
+
+    // 4. In-memory temporary URL mutation tests for security & identity enforcement
+    const originalApUrl = SOURCE_REGISTRY["src-video-ap-1998-opening"].url;
+    try {
+      // Insecure HTTP URL -> excluded from verified video references
+      SOURCE_REGISTRY["src-video-ap-1998-opening"].url = "http://www.youtube.com/watch?v=vYodi28td20";
+      const httpVids = getVerifiedVideoReferences();
+      assert.equal(httpVids.find((v) => v.sourceRef === "src-video-ap-1998-opening"), undefined, "Insecure HTTP video source must be excluded from projection");
+
+      // Spoofed host URL -> excluded from verified video references
+      SOURCE_REGISTRY["src-video-ap-1998-opening"].url = "https://example.com/youtube.com/watch?v=vYodi28td20";
+      const spoofVids = getVerifiedVideoReferences();
+      assert.equal(spoofVids.find((v) => v.sourceRef === "src-video-ap-1998-opening"), undefined, "Spoofed host video source must be excluded from projection");
+
+      // Changed video identity (Clinton ID on AP source) -> excluded because expectedYouTubeId mismatches
+      SOURCE_REGISTRY["src-video-ap-1998-opening"].url = "https://www.youtube.com/watch?v=tBht5QeKHaA";
+      const changedVids = getVerifiedVideoReferences();
+      assert.equal(changedVids.find((v) => v.sourceRef === "src-video-ap-1998-opening"), undefined, "Mismatched video ID on AP source must be excluded to prevent attaching AP presentation to Clinton video");
+    } finally {
+      SOURCE_REGISTRY["src-video-ap-1998-opening"].url = originalApUrl;
+    }
+
+    // 5. extractVerifiedYouTubeId unit test coverage
+    assert.equal(extractVerifiedYouTubeId("https://www.youtube.com/watch?v=vYodi28td20"), "vYodi28td20");
+    assert.equal(extractVerifiedYouTubeId("https://youtu.be/vYodi28td20"), "vYodi28td20");
+    assert.equal(extractVerifiedYouTubeId("https://www.youtube-nocookie.com/embed/vYodi28td20"), "vYodi28td20");
+    assert.equal(extractVerifiedYouTubeId("http://www.youtube.com/watch?v=vYodi28td20"), null);
+    assert.equal(extractVerifiedYouTubeId("https://example.com/watch?v=vYodi28td20"), null);
+    assert.equal(extractVerifiedYouTubeId("not-a-url"), null);
+  });
+
+  // HC3-10: Public rights copy and attribution consistency
+  it("HC3-10: Gallery renders concise rights notice and excludes contradictory noticeBody block", () => {
+    // 1. Verify concise public rights notice exists in EN and AR i18n
+    assert.ok(en["gallery.publicRightsNotice"], "EN must have gallery.publicRightsNotice");
+    assert.ok(ar["gallery.publicRightsNotice"], "AR must have gallery.publicRightsNotice");
+    assert.ok(en["gallery.publicRightsNotice"].includes("Rights in historical photographs"));
+    assert.ok(ar["gallery.publicRightsNotice"].includes("تبقى حقوق الصور والتسجيلات"));
+
+    // 2. Verify Gallery route file does NOT render gallery.noticeBody
+    const galleryRouteSource = readFileSync(
+      new URL("../../src/routes/{-$locale}.gallery.tsx", import.meta.url),
+      "utf8",
+    );
+    assert.ok(
+      !galleryRouteSource.includes("gallery.noticeBody"),
+      "Gallery route must NOT render contradictory gallery.noticeBody block",
+    );
+
+    // 3. Verify Gisha photograph retains exact CC BY-SA 2.0 Generic license
+    const gisha = getArchiveRecordById("rec-present-ruins-2008")!;
+    assert.equal(gisha.rights.license, "CC BY-SA 2.0 Generic");
+    assert.equal(gisha.rights.licenseUrl, "https://creativecommons.org/licenses/by-sa/2.0/");
+    assert.equal(gisha.rights.credit, "Gisha Access");
+  });
+
+  it("HC3-11: Public copy preserves unknown reuse rights and Future illustrative disclosure in both languages", () => {
+    assert.ok(getPublishedArchiveRecords().some((record) => record.rights.status === "unknown"));
+    assert.match(en["airport.sourcesBody"], /reuse rights remain unconfirmed/);
+    assert.match(ar["airport.sourcesBody"], /لم تُثبت حقوق إعادة استخدامها/);
+    assert.doesNotMatch(publishedAirportPast.intro.notice.en, /intake materials remain staged and held/);
+    assert.equal(publishedAirportPast.intro.notice.en, en["airport.pastNotice"]);
+    assert.equal(publishedAirportPast.intro.notice.ar, ar["airport.pastNotice"]);
+    for (const dictionary of [en, ar]) {
+      for (const key of ["gallery.sub", "airport.sourcesBody", "airport.pastNotice", "footer.rights"] as const) {
+        assert.doesNotMatch(dictionary[key], /Cleared documentary photography|Unverified intake imagery remains held|صوراً مؤقتة|وفقاً للمعايير التوثيقية المؤسسية/);
+      }
+    }
+    assert.match(en["footer.rights"], /respective owners/);
+    assert.match(ar["footer.rights"], /حقوق الصور والتسجيلات التاريخية لأصحابها/);
+    assert.match(en["footer.rights"], /Future imagery is illustrative, not historical evidence/);
+    assert.match(ar["footer.rights"], /صور المستقبل توضيحية وليست أدلة تاريخية/);
   });
 });

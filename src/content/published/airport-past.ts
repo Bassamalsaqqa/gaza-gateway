@@ -24,8 +24,8 @@ export const publishedAirportPast: AirportPastContent = {
       ar: "تاريخ مطار غزة الدولي موثقاً عبر مراحل التخطيط، والافتتاح، وسنوات التشغيل التجاري، والذاكرة المدنية الباقية.",
     },
     notice: {
-      en: "This historical chapter is grounded in verified diplomatic treaties, contemporary press archives, and official civil aviation records. Photographic and multimedia intake materials remain staged and held under active provenance and rights review.",
-      ar: "يستند هذا الفصل التاريخي إلى معاهدات دبلوماسية موثقة وأرشيفات صحفية معاصرة وقرارات طيران مدني رسمية. وتظل المواد المرئية والمستلمة قيد المراجعة والتحقق الأرشيفي وحقوق النشر.",
+      en: "This chronology draws on treaties, contemporary reporting and official aviation records. Evidence and rights details accompany the archive items.",
+      ar: "يستند هذا التسلسل التاريخي إلى معاهدات وتقارير صحفية معاصرة وسجلات طيران رسمية. وترافق المواد الأرشيفية معلومات عن أدلتها وحقوقها.",
     },
   },
   timeline: [

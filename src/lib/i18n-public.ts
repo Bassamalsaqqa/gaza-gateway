@@ -390,17 +390,17 @@ export const en: Dict = {
   "airport.futureSummary":
     "Architectural proposals, passenger service philosophy, phased masterplanning, and route connectivity for a restored Mediterranean civil gateway.",
   "airport.sourcesBody":
-    "In accordance with institutional evidentiary standards, historical milestones and archive records are grounded in verified primary treaties, contemporary press reports, and official aviation documents. Unverified intake imagery remains held in staging pending provenance and rights confirmation.",
+    "Historical milestones link to their sources. Photographs include licensed material and selected archive copies whose reuse rights remain unconfirmed.",
   "airport.pastSubtitle":
     "The history of Gaza International Airport documented across its planning, inauguration, commercial operational years, and enduring civic memory.",
   "airport.pastNotice":
-    "This historical chapter presents source-backed chronological milestones grounded in verified diplomatic treaties, contemporary press coverage, and official aviation records. Additional intake imagery remains held pending rights verification.",
+    "This chronology draws on treaties, contemporary reporting and official aviation records. Evidence and rights details accompany the archive items.",
   "airport.awaitingReferences":
     "Awaiting primary archival references and verified records.",
   "airport.sourcesNoticeMixed":
-    "Published timeline milestones are linked to verified primary and official sources. Additional archival photography, footage, and intake materials remain under active provenance and rights review.",
+    "The published chronology links to its historical sources. Further archive material remains under review.",
   "airport.methodologyBody":
-    "This historical chapter is structured to support verified archival documentation. If primary records are provided and verified, milestones can be linked to authoritative references.",
+    "Historical milestones link to supporting sources; each archive item records its evidence and rights status.",
   "airport.futureSubtitle":
     "Architectural proposals, masterplanning principles, and passenger experience design for a restored civil gateway connecting Gaza to the world.",
   "airport.futurePlainDisclosure": "Illustrative future concepts; not current or historical photographs.",
@@ -409,13 +409,13 @@ export const en: Dict = {
     "The proposals presented here represent architectural and planning research concepts. They demonstrate physical readiness, environmental design, and service capacity ahead of operational reconstruction, rather than contracted commercial timelines.",
   "airport.themeTerminalTitle": "Terminal Architecture & Civic Identity",
   "airport.themeTerminalBody":
-    "Proposals for the terminal embrace Mediterranean limestone, natural daylighting, terraced courtyards, and deep shade canopies. The layout separates arrivals and departures smoothly while creating dignified civic public spaces.",
+    "Terminal concepts feature Mediterranean limestone, natural daylight, shaded courtyards, and intuitive circulation separating arrivals and departures.",
   "airport.themeHospitalityTitle": "Passenger Hospitality & Wayfinding",
   "airport.themeHospitalityBody":
-    "Passenger service is structured around ease, dignity, and calm. Features include streamlined self-service bag drop, spacious security halls without punitive crowding, dedicated family lounges, and universal accessibility.",
+    "Guest experience prioritizes ease and dignity: clear wayfinding, spacious processing halls, dedicated family areas, and universal step-free access.",
   "airport.themeMasterplanTitle": "Phased Airfield Masterplan",
   "airport.themeMasterplanBody":
-    "A structured, phased reconstruction strategy: primary runway reconstruction (3,080m) and navigational aids, expanding apron stands for regional and narrowbody rotations, integrated solar generation, and intermodal bus links.",
+    "A structured airside strategy: 3,080 m runway reconstruction, modernized apron stands, integrated solar power, and intermodal transit connections.",
   "airport.designIntentLabel": "Design intent:",
   "airport.designIntentText":
     "Civic warmth, Mediterranean climate adaptation, and passenger dignity.",
@@ -425,7 +425,7 @@ export const en: Dict = {
 
   // gallery
   "gallery.title": "Archive",
-  "gallery.sub": "Authentic historical and documentary records of Gaza International Airport. Cleared documentary photography and verified external primary sources.",
+  "gallery.sub": "Historical photographs, documents and external video references from Gaza International Airport.",
   "gallery.futureIntro": "For future terminal concept studies, visit the",
   "gallery.futureLink": "Future vision chapter",
   "gallery.provenanceStatus": "Verified documentary record with established provenance and licensing",
@@ -442,19 +442,27 @@ export const en: Dict = {
   "gallery.items": "{n} items",
   "gallery.catalogSchema": "Archival Catalog Schema",
   "gallery.provenancePending": "Archival Review",
+  "gallery.verifiedExternalReference": "Verified external reference",
   "gallery.catalogIdField": "Catalog ID",
   "gallery.viewDetails": "Inspect record",
   "gallery.itemPosition": "Record {current} of {total}",
   "gallery.format": "Medium / Format",
   "gallery.curatorialStatus": "Archival status",
   "gallery.provisionalNotice":
-    "Documentary archival record. Authentic material preserved in accordance with institutional archival standards.",
+    "Evidence and rights details are recorded for each item.",
   "gallery.filterAria": "Filter archive collection",
   "gallery.close": "Close viewer",
   "gallery.eraAll": "All eras",
   "gallery.categoryAll": "All categories",
+  "gallery.filterSubject": "Subject",
+  "gallery.subjectAll": "All subjects",
+  "gallery.publicRightsNotice":
+    "Rights in historical photographs and footage remain with their respective owners. Credits are shown where known.",
+  "airport.watchArchive": "Watch the archive",
+  "airport.watchArchiveSub":
+    "Archival television broadcasts, newsreels, and historical footage of Gaza International Airport.",
   "gallery.noticeBody":
-    "The Gaza Gateway archive publishes only verified documentary records with confirmed provenance, rights clearance, and authoritative source citations. Additional intake photographs and multimedia records remain held in staging pending rights review and are not published without explicit permission.",
+    "The collection includes licensed material and selected owner-supplied copies with unconfirmed reuse rights. Other intake remains held for review.",
   "gallery.emptyDescription":
     "No records match your selected category and era filters. Clear filters to view all catalogued items.",
   "gallery.externalSourcesTitle": "Primary Sources & Historical References",
@@ -562,7 +570,7 @@ export const en: Dict = {
   "common.delete": "Delete",
   "account.removeConfirm": "Are you sure you want to remove this saved traveller?",
   "footer.rights":
-    "Imagery is classified by purpose: future-vision sections use owner-provided concept visualizations labeled as illustrative; historical and present-day sections present verified documentary photography where cleared, with remaining intake held under rights review.",
+    "Rights in historical photographs and footage remain with their respective owners. Credits are shown where known. Future imagery is illustrative, not historical evidence.",
   "footer.plan": "Plan your trip",
   "footer.discover": "Discover",
   "footer.help": "Help",
@@ -1220,17 +1228,17 @@ export const ar: Dict = {
   "airport.futureSummary":
     "مقترحات معمارية، وفلسفة خدمة المسافرين، ومخطط عام مرحلي، وشبكة ربط جوي لبوابة مدنية متوسطية مستعادة.",
   "airport.sourcesBody":
-    "وفقاً للمعايير التوثيقية المؤسسية، تستند المحطات التاريخية وسجلات الأرشيف إلى معاهدات دبلوماسية موثقة وتقارير صحفية معاصرة وقرارات طيران مدني رسمية. وتبقى الصور والمواد غير المعتمدة قيد التحقق الأرشيفي وحقوق النشر.",
+    "ترتبط المحطات التاريخية بمصادرها. وتشمل الصور مواد مرخّصة ونسخاً أرشيفية مختارة لم تُثبت حقوق إعادة استخدامها بعد.",
   "airport.pastSubtitle":
     "تاريخ مطار غزة الدولي موثقاً عبر مراحل التخطيط، والافتتاح، وسنوات التشغيل التجاري، والذاكرة المدنية الباقية.",
   "airport.pastNotice":
-    "يعرض هذا الفصل التاريخي محطات زمنية موثقة تستند إلى معاهدات دبلوماسية وتقارير صحفية معاصرة وقرارات طيران مدني رسمية. وتظل الصور والمواد الإضافية قيد التحقق الأرشيفي.",
+    "يستند هذا التسلسل التاريخي إلى معاهدات وتقارير صحفية معاصرة وسجلات طيران رسمية. وترافق المواد الأرشيفية معلومات عن أدلتها وحقوقها.",
   "airport.awaitingReferences":
     "بانتظار المراجع الأرشيفية الأولية والسجلات الموثقة.",
   "airport.sourcesNoticeMixed":
-    "ترتبط المحطات الزمنية المنشورة بمصادر أولية ورسمية تم التحقق منها. بينما تظل الصور الفوتوغرافية والتسجيلات المرئية الإضافية قيد التحقق الأرشيفي ومراجعة حقوق النشر.",
+    "يرتبط التسلسل التاريخي المنشور بمصادره. وتبقى مواد أرشيفية أخرى قيد المراجعة.",
   "airport.methodologyBody":
-    "صُمم هذا الفصل التاريخي ليدعم التوثيق الأرشيفي المعتمد. وإذا قُدمت سجلات أولية وتم التحقق منها، يمكن ربط المحطات بمراجع موثقة.",
+    "ترتبط المحطات التاريخية بمصادرها، ويبيّن كل عنصر أرشيفي حالة أدلته وحقوقه.",
   "airport.futureSubtitle":
     "مقترحات معمارية، ومبادئ المخطط العام، وتصميم تجربة المسافرين لبوابة مدنية مستعادة تصل غزة بالعالم.",
   "airport.futurePlainDisclosure": "تصورات معمارية مستقبلية توضيحية وليست صوراً واقعية أو تاريخية.",
@@ -1239,13 +1247,13 @@ export const ar: Dict = {
     "تمثل المقترحات المعروضة هنا مفاهيم بحثية معمارية وتخطيطية. وهي توضح الجاهزية المادية، والتصميم البيئي، والقدرة الاستيعابية قبل إعادة الإعمار التشغيلي، ولا تمثل جداول زمنية تجارية تعاقدية.",
   "airport.themeTerminalTitle": "عمارة مبنى الركاب والهوية المدنية",
   "airport.themeTerminalBody":
-    "تعتمد مقترحات مبنى الركاب على الحجر الجيري المتوسطي، والإضاءة الطبيعية، والأفنية المتدرجة، ومظلات الظل العميقة. ويفصل التصميم بين حركة القادمين والمغادرين بسلاسة مع توفير مساحات عامة مدنية كريمة.",
+    "تعتمد تصاميم المبنى على الحجر الجيري المتوسطي، والإضاءة الطبيعية، والأفنية المظللة، مع حركة انسيابية تفصل بين مساري الوصول والمغادرة.",
   "airport.themeHospitalityTitle": "ضيافة المسافرين والإرشاد المكاني",
   "airport.themeHospitalityBody":
-    "صُممت خدمة المسافرين لتتمحور حول السهولة والكرامة والهدوء. وتشمل تسليم الأمتعة الذاتي الانسيابي، وقاعات تفتيش رحبة دون ازدحام مرهق، وصالات مخصصة للعائلات، وتيسير الوصول الشامل.",
+    "ترتكز تجربة المسافر على الكرامة والسهولة: إرشاد مكاني واضح، وقاعات إجراءات رحبة، ومساحات مخصصة للعائلات، وتيسير حركة شامل.",
   "airport.themeMasterplanTitle": "المخطط العام المرحلي للمطار",
   "airport.themeMasterplanBody":
-    "استراتيجية إعادة إعمار مرحلية ومنظمة: إعادة بناء المدرج الرئيسي (3,080 متراً) والمساعدات الملاحية، وتوسيع مواقف الطائرات لرحلات الطائرات الإقليمية وضيقة البدن، وتوليد الطاقة الشمسية المدمج، وربط حافلات النقل المتعدد الوسائط.",
+    "مخطط مرحلي للجانب الجوي: إعادة بناء المدرج بطول 3,080 متراً، ومرابض طائرات حديثة، وتوليد طاقة شمسية مدمج، وربط بوسائط النقل المتعددة.",
   "airport.designIntentLabel": "الهدف التصميمي:",
   "airport.designIntentText":
     "دفء مدني، وتكيف مع المناخ المتوسطي، وكرامة المسافر.",
@@ -1255,7 +1263,7 @@ export const ar: Dict = {
 
   // gallery
   "gallery.title": "الأرشيف",
-  "gallery.sub": "السجلات التاريخية والوثائقية لمطار غزة الدولي. تصوير توثيقي معتمد ومصادر أولية موثقة.",
+  "gallery.sub": "صور ووثائق تاريخية ومراجع مرئية خارجية لمطار غزة الدولي.",
   "gallery.futureIntro": "للاطلاع على دراسات المخطط المستقبلي، تفضل بزيارة",
   "gallery.futureLink": "فصل رؤية المستقبل",
   "gallery.provenanceStatus": "سجل توثيقي معتمد ذو مصدر وترخيص موثقين",
@@ -1272,18 +1280,26 @@ export const ar: Dict = {
   "gallery.items": "{n} عنصراً",
   "gallery.catalogSchema": "مخطط الفهرسة الأرشيفي",
   "gallery.provenancePending": "المراجعة الأرشيفية",
+  "gallery.verifiedExternalReference": "مرجع خارجي موثّق",
   "gallery.catalogIdField": "معرّف الفهرس",
   "gallery.viewDetails": "معاينة السجل",
   "gallery.itemPosition": "السجل {current} من {total}",
   "gallery.format": "الوسيط / الصيغة",
   "gallery.curatorialStatus": "الحالة الأرشيفية",
-  "gallery.provisionalNotice": "سجل أرشيفي توثيقي. مادة حقيقية محفوظة وفقاً للمعايير الأرشيفية المؤسسية.",
+  "gallery.provisionalNotice": "تُبيَّن تفاصيل الأدلة والحقوق لكل عنصر.",
   "gallery.filterAria": "تصفية مجموعة الأرشيف",
   "gallery.close": "إغلاق العارض",
   "gallery.eraAll": "جميع الحقب",
   "gallery.categoryAll": "جميع التصنيفات",
+  "gallery.filterSubject": "الموضوع",
+  "gallery.subjectAll": "جميع الموضوعات",
+  "gallery.publicRightsNotice":
+    "تبقى حقوق الصور والتسجيلات التاريخية لأصحابها، وتُذكر الاعتمادات حيثما كانت معروفة.",
+  "airport.watchArchive": "شاهد الأرشيف",
+  "airport.watchArchiveSub":
+    "بث تلفزيوني أرشيفي، وتقارير إخبارية، وتسجيلات تاريخية لمطار غزة الدولي.",
   "gallery.noticeBody":
-    "ينشر أرشيف بوابة غزة السجلات التوثيقية المعتمدة فقط ذات المصدر المؤكد والترخيص المعتمد والمراجع الموثقة. وتظل الصور والوسائط المستلمة الإضافية قيد المراجعة ولا تُنشر إلا بعد التحقق التام.",
+    "تضم المجموعة مواد مرخّصة ونسخاً مختارة قدّمها مالك المشروع ولم تُثبت حقوق إعادة استخدامها. وتبقى مواد أخرى قيد المراجعة.",
   "gallery.emptyDescription":
     "لا توجد سجلات تطابق عوامل التصفية المختارة للتصنيف والحقبة. قم بإلغاء التصفية لعرض جميع العناصر المفهرسة.",
   "gallery.externalSourcesTitle": "المصادر الأولية والمراجع التاريخية",
@@ -1387,7 +1403,7 @@ export const ar: Dict = {
   "common.loading": "جارٍ التحميل...",
   "common.delete": "حذف",
   "account.removeConfirm": "هل أنت متأكد من رغبتك في إزالة هذا المسافر المحفوظ؟",
-  "footer.rights": "تُصنّف الصور بحسب الغرض منها: تستخدم أقسام الرؤية المستقبلية تصوّرات مفاهيمية مقدّمة من مالك المشروع مع وسمها بوضوح، أما الأقسام التاريخية فتستخدم صوراً مؤقتة إلى حين توفير مصادر موثّقة.",
+  "footer.rights": "تبقى حقوق الصور والتسجيلات التاريخية لأصحابها، وتُذكر الاعتمادات حيثما كانت معروفة. صور المستقبل توضيحية وليست أدلة تاريخية.",
   "footer.plan": "خطّط لرحلتك",
   "footer.discover": "اكتشف",
   "footer.help": "المساعدة",

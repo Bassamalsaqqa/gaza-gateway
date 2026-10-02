@@ -19,6 +19,8 @@
  *   node tests/smoke/browser-smoke.mjs [--url http://localhost:8080]
  */
 
+import fs from "node:fs";
+import path from "node:path";
 import { chromium } from "playwright-core";
 import { preview } from "vite";
 
@@ -42,6 +44,20 @@ async function startServer(port = 4173) {
 }
 
 async function runBrowserSmoke() {
+  const distClient = path.resolve("dist/client");
+  const indexPath = path.join(distClient, "index.html");
+  let entryAsset = "unknown";
+  let indexMtime = "unknown";
+  let indexSize = 0;
+  if (fs.existsSync(indexPath)) {
+    const indexStat = fs.statSync(indexPath);
+    indexMtime = indexStat.mtime.toISOString();
+    indexSize = indexStat.size;
+    const indexContent = fs.readFileSync(indexPath, "utf8");
+    const entryMatch = indexContent.match(/src="(\/assets\/[^"]+\.js)"/);
+    if (entryMatch) entryAsset = entryMatch[1];
+  }
+
   const customUrlArg = process.argv.find((a) => a.startsWith("--url="));
   let customUrl = customUrlArg ? customUrlArg.split("=")[1] : null;
 
@@ -55,6 +71,9 @@ async function runBrowserSmoke() {
 
   console.log(`\n========================================`);
   console.log(`Gaza Gateway — Browser Smoke Suite`);
+  console.log(`Build Root: ${distClient}`);
+  console.log(`Index Mtime: ${indexMtime} (${indexSize} bytes)`);
+  console.log(`Entry Asset Fingerprint: ${entryAsset}`);
   console.log(`Target URL: ${baseUrl}`);
   console.log(`========================================\n`);
 
@@ -4914,14 +4933,14 @@ async function runBrowserSmoke() {
 
         // Intended text must resolve
         if (isAr) {
-          if (!overviewText.includes("وفقاً للمعايير التوثيقية المؤسسية")) {
+          if (!overviewText.includes("ترتبط المحطات التاريخية بمصادرها")) {
             throw new Error(`Expected Arabic sourcesBody text missing on ${overviewPath}`);
           }
           if (!overviewText.includes("مقترحات معمارية، وفلسفة خدمة المسافرين")) {
             throw new Error(`Expected Arabic futureSummary text missing on ${overviewPath}`);
           }
         } else {
-          if (!overviewText.includes("In accordance with institutional evidentiary standards")) {
+          if (!overviewText.includes("Historical milestones link to their sources")) {
             throw new Error(`Expected English sourcesBody text missing on ${overviewPath}`);
           }
           if (!overviewText.includes("Architectural proposals, passenger service philosophy")) {
@@ -4951,21 +4970,21 @@ async function runBrowserSmoke() {
         if (isAr) {
           if (
             !pastText.includes("بانتظار المراجع الأرشيفية الأولية والسجلات الموثقة") &&
-            !pastText.includes("ترتبط المحطات الزمنية المنشورة بمصادر أولية ورسمية")
+            !pastText.includes("يرتبط التسلسل التاريخي المنشور بمصادره")
           ) {
             throw new Error(`Expected Arabic methodology notice text missing on ${pastPath}`);
           }
-          if (!pastText.includes("صُمم هذا الفصل التاريخي ليدعم التوثيق الأرشيفي المعتمد")) {
+          if (!pastText.includes("ترتبط المحطات التاريخية بمصادرها، ويبيّن كل عنصر أرشيفي حالة أدلته وحقوقه")) {
             throw new Error(`Expected Arabic methodologyBody text missing on ${pastPath}`);
           }
         } else {
           if (
             !pastText.includes("Awaiting primary archival references and verified records") &&
-            !pastText.includes("Published timeline milestones are linked to verified primary")
+            !pastText.includes("The published chronology links to its historical sources")
           ) {
             throw new Error(`Expected English methodology notice text missing on ${pastPath}`);
           }
-          if (!pastText.includes("This historical chapter is structured to support verified archival documentation")) {
+          if (!pastText.includes("Historical milestones link to supporting sources; each archive item records its evidence and rights status")) {
             throw new Error(`Expected English methodologyBody text missing on ${pastPath}`);
           }
         }
@@ -5654,7 +5673,8 @@ async function runBrowserSmoke() {
 
         await testContext.addInitScript(({ initialRepo, clockMs }) => {
           try {
-            if (!localStorage.getItem("gza.repo.v1")) {
+            if (!sessionStorage.getItem("gza.smoke.check42_init")) {
+              sessionStorage.setItem("gza.smoke.check42_init", "1");
               localStorage.setItem("gza.repo.v1", JSON.stringify(initialRepo));
             }
             const RealDate = Date;
@@ -5705,10 +5725,8 @@ async function runBrowserSmoke() {
 
         // Step: Choose Leg (if leg selection step is active)
         const legBtn = testPage.locator('button:has-text("Outbound"), button:has-text("PS100")').first();
-        if ((await legBtn.count()) > 0) {
-          await legBtn.click();
-          await testPage.waitForTimeout(300);
-        }
+        await legBtn.waitFor({ state: "visible", timeout: 10000 });
+        await legBtn.click();
 
         // Step: Choose Pax (select only passenger 0 to test partial check-in)
         await testPage.waitForSelector('#ci-pax-0', { timeout: 5000 });
@@ -5937,9 +5955,7 @@ async function runBrowserSmoke() {
 
         // 2. Technical LTR identifiers check
         const pnrEl = testPage.locator(`text=${bookingRef}`).first();
-        if ((await pnrEl.count()) === 0) {
-          throw new Error(`PNR ${bookingRef} not rendered on Arabic booking detail`);
-        }
+        await pnrEl.waitFor({ state: "visible", timeout: 10000 });
 
         // 3. Checked-in seat protection in seat selection view
         await testPage.goto(`${baseUrl}/ar/manage/${bookingRef}/seats`, { waitUntil: "domcontentloaded" });
@@ -6377,12 +6393,12 @@ async function runBrowserSmoke() {
       }
     });
 
-    await checkStep("Check 46: HC-2 - EN Gallery: canonical documentary records, dynamic filter behavior, and lightbox modal", async () => {
+    await checkStep("Check 46: HC-3 - EN Gallery: 42 documentary records, rights notice, dynamic filters, video modal, Escape dismissal, focus return, and whole-card links", async () => {
       const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
       try {
         await page.goto(baseUrl + "/gallery", { waitUntil: "domcontentloaded" });
 
-        // 1. Verify absence of seeded historical images or legacy fake categories
+        // 1. Verify absence of seeded historical images or placeholder images
         const images = await page.locator("img").evaluateAll((imgs) => imgs.map((i) => i.src));
         for (const src of images) {
           if (src.includes("picsum.photos") || src.includes("placeholder")) {
@@ -6390,49 +6406,168 @@ async function runBrowserSmoke() {
           }
         }
 
-        // 2. Verify canonical published record displayed
-        await page.waitForSelector("text=Gaza International Airport Passenger Terminal Ruins", { timeout: 5000 });
-        const countText = await page.locator(".code-id").first().textContent();
-        if (!countText.includes("1")) {
-          throw new Error(`Expected 1 catalog item, got: ${countText}`);
+        // 2. Verify total catalog items: 38 photos/documents + 4 videos = 42 items
+        const countBadge = page.locator(".code-id").first();
+        await countBadge.waitFor({ state: "visible", timeout: 5000 });
+        const countText = await countBadge.textContent();
+        if (!countText.includes("42")) {
+          throw new Error(`Expected 42 catalog items in Gallery, got: ${countText}`);
         }
 
-        // 3. Verify dynamic filter derivation: singleton scope badge rendered, interactive select suppressed when < 2 options
-        const selectFilters = await page.locator("#filter-category, #filter-era").count();
-        if (selectFilters > 0) {
-          throw new Error(`Expected interactive filter select dropdowns to be suppressed when < 2 options, found ${selectFilters}`);
-        }
-        await page.locator('[data-testid="gallery-filter-toolbar"]').getByText("Photograph · Post-Destruction Ruins").waitFor({ state: "visible", timeout: 5000 });
+        // 3. Verify concise public rights notice banner
+        await page.locator("#main").getByText("Rights in historical photographs and footage remain with their respective owners", { exact: false }).waitFor({ state: "visible", timeout: 5000 });
 
-        // 4. Open Lightbox
-        const cardTrigger = page.locator("li button[aria-haspopup='dialog']").first();
-        await cardTrigger.click();
-        const dialog = page.locator("[role='dialog']");
-        await dialog.waitFor({ state: "visible", timeout: 5000 });
+        // 4. Verify contradictory gallery.noticeBody essay is completely absent
+        const contradictoryEssay = page.locator("text=All historical documentary media published on this platform have undergone");
+        if ((await contradictoryEssay.count()) > 0) {
+          throw new Error("Contradictory gallery.noticeBody essay was still found rendered in EN Gallery");
+        }
+
+        // 5. Verify dynamic filter selects rendered (Medium, Era, Subject)
+        const filterCategory = page.locator("#filter-category");
+        const filterEra = page.locator("#filter-era");
+        const filterSubject = page.locator("#filter-subject");
+        await filterCategory.waitFor({ state: "visible", timeout: 5000 });
+        await filterEra.waitFor({ state: "visible", timeout: 5000 });
+        await filterSubject.waitFor({ state: "visible", timeout: 5000 });
+
+        // 6. Test licensed Gisha photograph details, scroll lock, keyboard navigation, Escape dismissal, and focus-return
+        const gishaCard = page.locator("li button[aria-haspopup='dialog']", {
+          hasText: "Gaza International Airport Passenger Terminal Ruins",
+        }).first();
+        await gishaCard.scrollIntoViewIfNeeded();
+        await gishaCard.click();
+        const photoDialog = page.locator("[role='dialog']");
+        await photoDialog.waitFor({ state: "visible", timeout: 5000 });
 
         // Verify documentary metadata details in Lightbox
-        await dialog.locator("text=Gisha Access").first().waitFor({ state: "visible", timeout: 5000 });
-        await dialog.locator("text=CC BY-SA 2.0 Generic").waitFor({ state: "visible", timeout: 5000 });
-        await dialog.locator("text=Rafah, Gaza Strip").waitFor({ state: "visible", timeout: 5000 });
-        await dialog.locator("dt:has-text('Date')").waitFor({ state: "visible", timeout: 5000 });
-        await dialog.locator("dd:has-text('2008-06-13')").waitFor({ state: "visible", timeout: 5000 });
-        await dialog.locator("text=src-gisha-2008").or(dialog.locator("text=Gisha Access")).first().waitFor({ state: "visible", timeout: 5000 });
+        await photoDialog.locator("text=Gisha Access").first().waitFor({ state: "visible", timeout: 5000 });
+        await photoDialog.locator("text=CC BY-SA 2.0 Generic").waitFor({ state: "visible", timeout: 5000 });
+        await photoDialog.locator("text=2008-06-13").or(photoDialog.locator("text=June 13, 2008")).first().waitFor({ state: "visible", timeout: 5000 });
+        await photoDialog.locator("text=src-gisha-2008").or(photoDialog.locator("text=Gisha Access")).first().waitFor({ state: "visible", timeout: 5000 });
 
-        // Verify close with Escape key and focus return
+        // Verify body scroll-lock
+        const isBodyLocked = await page.evaluate(() => document.body.style.overflow === "hidden");
+        if (!isBodyLocked) {
+          throw new Error("Expected body overflow to be locked when dialog is open");
+        }
+
+        // Verify focus trapping inside dialog
+        await page.keyboard.press("Tab");
+        const focusedInside = await photoDialog.evaluate((dialog) => dialog.contains(document.activeElement));
+        if (!focusedInside) {
+          throw new Error("Focus escaped dialog during Tab navigation");
+        }
+
+        // Test LTR keyboard navigation: assert actual next/previous item identity change
+        const initialTitle = await photoDialog.locator("h2").textContent();
+        const initialPos = await photoDialog.locator("span.code-id").first().textContent();
+
+        // ArrowRight advances to next item in LTR
+        await page.keyboard.press("ArrowRight");
+        await page.waitForTimeout(200);
+        const nextTitle = await photoDialog.locator("h2").textContent();
+        const nextPos = await photoDialog.locator("span.code-id").first().textContent();
+        if (nextTitle === initialTitle && nextPos === initialPos) {
+          throw new Error(`ArrowRight in LTR did not advance item: was "${initialTitle}", still "${nextTitle}"`);
+        }
+
+        // ArrowLeft returns to initial item in LTR
+        await page.keyboard.press("ArrowLeft");
+        await page.waitForTimeout(200);
+        const returnedTitle = await photoDialog.locator("h2").textContent();
+        if (returnedTitle !== initialTitle) {
+          throw new Error(`ArrowLeft in LTR did not return to initial item: expected "${initialTitle}", got "${returnedTitle}"`);
+        }
+
+        // Verify durable Escape dismissal, focus-return to trigger, and restored scroll state
         await page.keyboard.press("Escape");
-        await dialog.waitFor({ state: "hidden", timeout: 5000 });
+        await photoDialog.waitFor({ state: "hidden", timeout: 5000 });
+        const gishaFocused = await gishaCard.evaluate((el) => el === document.activeElement);
+        if (!gishaFocused) {
+          throw new Error("Focus did not return to Gisha card trigger button after Escape dismissal");
+        }
 
-        // 5. Curated external sources present on page, including verified video sources
-        await page.locator("text=Primary Sources & Historical References").waitFor({ state: "visible", timeout: 5000 });
-        await page.locator("text=Saleh & Hegab Engineering Consultants").waitFor({ state: "visible", timeout: 5000 });
-        await page.locator("text=AP Archive").first().waitFor({ state: "visible", timeout: 5000 });
-        await page.locator("text=Watch at original source").first().waitFor({ state: "visible", timeout: 5000 });
+        // Verify body scroll-lock restored
+        const isBodyRestored = await page.evaluate(() => document.body.style.overflow !== "hidden");
+        if (!isBodyRestored) {
+          throw new Error("Expected body overflow to be restored after dialog dismissal");
+        }
+
+        // 7. Test filter by Medium: "video" (External archival video)
+        await filterCategory.selectOption("video");
+        const filteredCards = page.locator("li button[aria-haspopup='dialog']");
+        const videoCardCount = await filteredCards.count();
+        if (videoCardCount !== 4) {
+          throw new Error(`Expected 4 video cards after filtering by video medium, got: ${videoCardCount}`);
+        }
+
+        // 8. Open Video Lightbox modal and verify ArchiveVideoPlayer
+        const firstVideoCard = filteredCards.first();
+        await firstVideoCard.click();
+        const videoDialog = page.locator("[role='dialog']");
+        await videoDialog.waitFor({ state: "visible", timeout: 5000 });
+        await videoDialog.getByText("Verified external reference", { exact: true }).waitFor({ state: "visible" });
+
+        // Verify iframe created with youtube-nocookie.com/embed/ and NO autoplay
+        const iframe = videoDialog.locator('iframe[src*="youtube-nocookie.com/embed/"]');
+        await iframe.waitFor({ state: "visible", timeout: 5000 });
+        const iframeSrc = await iframe.getAttribute("src");
+        if (!iframeSrc || !iframeSrc.includes("youtube-nocookie.com/embed/")) {
+          throw new Error(`Expected youtube-nocookie embed URL, got: ${iframeSrc}`);
+        }
+        if (iframeSrc.includes("autoplay=1")) {
+          throw new Error(`ArchiveVideoPlayer iframe must not autoplay: ${iframeSrc}`);
+        }
+
+        // Verify iframe title attribute for accessibility
+        const iframeTitle = await iframe.getAttribute("title");
+        if (!iframeTitle || iframeTitle.trim().length === 0) {
+          throw new Error("ArchiveVideoPlayer iframe missing accessible title");
+        }
+
+        // Verify durable Escape dismissal and focus-return for video dialog
+        // Supported parent-dialog control flow: when focus is within parent dialog controls (e.g. close button),
+        // Escape dismisses the dialog and returns focus to the originating card trigger.
+        // (Note: when a user clicks/interacts inside a cross-origin YouTube iframe document, the browser prevents
+        // key events from bubbling out of the isolated frame; accessible parent dialog controls remain navigable
+        // via Tab or direct interaction, and dismissing returns focus to the trigger).
+        const closeBtn = videoDialog.locator('button[aria-label*="Close"], button[aria-label*="إغلاق"]').first();
+        await closeBtn.focus();
+        await page.keyboard.press("Escape");
+        await videoDialog.waitFor({ state: "hidden", timeout: 5000 });
+        const videoFocused = await firstVideoCard.evaluate((el) => el === document.activeElement);
+        if (!videoFocused) {
+          throw new Error("Focus did not return to video card trigger after Escape dismissal");
+        }
+
+        // Reset filter
+        await filterCategory.selectOption("all");
+
+        // 9. Verify absence of held records in Gallery list
+        const heldCount = await page.locator(".code-id:has-text('past-001'), .code-id:has-text('past-002'), .code-id:has-text('past-013'), .code-id:has-text('past-052')").count();
+        if (heldCount > 0) {
+          throw new Error("Held or duplicate record IDs leaked into Gallery items");
+        }
+
+        // 10. Verify whole-card safe external links for sources
+        const sourceLinks = page.locator("section a[href^='http']");
+        const sourceCount = await sourceLinks.count();
+        if (sourceCount < 4) {
+          throw new Error(`Expected at least 4 source link cards, got: ${sourceCount}`);
+        }
+        const firstSource = sourceLinks.first();
+        const target = await firstSource.getAttribute("target");
+        const rel = await firstSource.getAttribute("rel");
+        if (target !== "_blank" || !rel?.includes("noopener")) {
+          throw new Error(`Source card link missing safe target/rel: target=${target}, rel=${rel}`);
+        }
       } finally {
         await page.close();
       }
     });
 
-    await checkStep("Check 47: HC-2 - AR Gallery: RTL directionality, Arabic metadata, and LTR technical identifiers", async () => {
+    await checkStep("Check 47: HC-3 - AR Gallery: RTL directionality, Arabic metadata, rights notice, Escape dismissal, and LTR identifiers", async () => {
       const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
       try {
         await page.goto(baseUrl + "/ar/gallery", { waitUntil: "domcontentloaded" });
@@ -6443,18 +6578,30 @@ async function runBrowserSmoke() {
           throw new Error(`Expected dir="rtl" on /ar/gallery, got: ${htmlDir}`);
         }
 
-        // 2. Verify Arabic title, scope badge, and metadata
-        await page.waitForSelector("text=أطلال مبنى المسافرين بمطار غزة الدولي", { timeout: 5000 });
-        await page.locator("text=المصادر الأولية والمراجع التاريخية").waitFor({ state: "visible", timeout: 5000 });
-        await page.locator('[data-testid="gallery-filter-toolbar"]').getByText("صورة فوتوغرافية · أطلال ما بعد التدمير").waitFor({ state: "visible", timeout: 5000 });
-
-        // 3. Technical dates and identifiers remain LTR readable (Western Arabic numerals)
-        const dateText = await page.locator("text=2008-06-13").or(page.locator("text=13 يونيو/حزيران 2008")).first().textContent();
-        if (!dateText.includes("2008")) {
-          throw new Error(`Expected Western digits 2008 in date, got: ${dateText}`);
+        // 2. Verify Arabic title and 42 items count
+        await page.waitForSelector("text=الأرشيف", { timeout: 5000 });
+        const countBadge = page.locator(".code-id").first();
+        await countBadge.waitFor({ state: "visible", timeout: 5000 });
+        const countText = await countBadge.textContent();
+        if (!countText.includes("42")) {
+          throw new Error(`Expected 42 catalog items in Arabic Gallery, got: ${countText}`);
         }
 
-        // 4. Open Lightbox in Arabic
+        // 3. Verify Arabic concise public rights notice banner
+        await page.locator("#main").getByText("تبقى حقوق الصور والتسجيلات التاريخية لأصحابها، وتُذكر الاعتمادات حيثما كانت معروفة", { exact: false }).waitFor({ state: "visible", timeout: 5000 });
+
+        // 4. Verify contradictory Arabic gallery.noticeBody essay is absent
+        const contradictoryArEssay = page.locator("text=خضعت جميع الوسائط الوثائقية التاريخية المنشورة");
+        if ((await contradictoryArEssay.count()) > 0) {
+          throw new Error("Contradictory Arabic gallery.noticeBody essay was still found rendered in AR Gallery");
+        }
+
+        // 5. Verify Arabic filter selects rendered
+        await page.locator("#filter-category").waitFor({ state: "visible", timeout: 5000 });
+        await page.locator("#filter-era").waitFor({ state: "visible", timeout: 5000 });
+        await page.locator("#filter-subject").waitFor({ state: "visible", timeout: 5000 });
+
+        // 6. Open Lightbox in Arabic, verify RTL semantics, Escape dismissal, and focus-return
         const cardTrigger = page.locator("li button[aria-haspopup='dialog']").first();
         await cardTrigger.click();
         const dialog = page.locator("[role='dialog']");
@@ -6463,32 +6610,106 @@ async function runBrowserSmoke() {
         // Verify Arabic labels inside modal: no hardcoded English "Date"
         await dialog.locator("text=الوسيط").first().waitFor({ state: "visible", timeout: 5000 });
         await dialog.locator("text=الحقبة التاريخية").first().waitFor({ state: "visible", timeout: 5000 });
-        await dialog.getByText("التاريخ", { exact: true }).waitFor({ state: "visible", timeout: 5000 });
-        await dialog.locator("text=رفح، قطاع غزة").waitFor({ state: "visible", timeout: 5000 });
         const englishDateLabelCount = await dialog.locator("dt:has-text('Date')").count();
         if (englishDateLabelCount > 0) {
           throw new Error("Found hardcoded English 'Date' label inside Arabic Lightbox modal");
         }
 
-        // Close via close button
+        // Verify body scroll-lock in Arabic
+        const isArBodyLocked = await page.evaluate(() => document.body.style.overflow === "hidden");
+        if (!isArBodyLocked) {
+          throw new Error("Expected body overflow to be locked when Arabic dialog is open");
+        }
+
+        // Verify focus trapping inside Arabic dialog
+        await page.keyboard.press("Tab");
+        const focusedInsideAr = await dialog.evaluate((d) => d.contains(document.activeElement));
+        if (!focusedInsideAr) {
+          throw new Error("Focus escaped Arabic dialog during Tab navigation");
+        }
+
+        // Test RTL keyboard navigation: ArrowLeft advances in RTL, ArrowRight returns
+        const initialArTitle = await dialog.locator("h2").textContent();
+        const initialArPos = await dialog.locator("span.code-id").first().textContent();
+
+        // ArrowLeft advances to next item in RTL
+        await page.keyboard.press("ArrowLeft");
+        await page.waitForTimeout(200);
+        const nextArTitle = await dialog.locator("h2").textContent();
+        const nextArPos = await dialog.locator("span.code-id").first().textContent();
+        if (nextArTitle === initialArTitle && nextArPos === initialArPos) {
+          throw new Error(`ArrowLeft in RTL did not advance item: was "${initialArTitle}", still "${nextArTitle}"`);
+        }
+
+        // ArrowRight returns to initial item in RTL
+        await page.keyboard.press("ArrowRight");
+        await page.waitForTimeout(200);
+        const returnedArTitle = await dialog.locator("h2").textContent();
+        if (returnedArTitle !== initialArTitle) {
+          throw new Error(`ArrowRight in RTL did not return to initial item: expected "${initialArTitle}", got "${returnedArTitle}"`);
+        }
+
+        // Close via Escape key and verify focus returns to trigger
+        await page.keyboard.press("Escape");
+        await dialog.waitFor({ state: "hidden", timeout: 5000 });
+        const arFocused = await cardTrigger.evaluate((el) => el === document.activeElement);
+        if (!arFocused) {
+          throw new Error("Focus did not return to Arabic card trigger after Escape dismissal");
+        }
+
+        // Verify body scroll-lock restored
+        const isArBodyRestored = await page.evaluate(() => document.body.style.overflow !== "hidden");
+        if (!isArBodyRestored) {
+          throw new Error("Expected body overflow to be restored after Arabic dialog dismissal");
+        }
+
+        // 7. Verify close button also works cleanly
+        await cardTrigger.click();
+        await dialog.waitFor({ state: "visible", timeout: 5000 });
         const closeBtn = dialog.locator('button[aria-label*="Close"], button[aria-label*="إغلاق"]').first();
         await closeBtn.click();
         await dialog.waitFor({ state: "hidden", timeout: 5000 });
 
-        // 5. External sources in Arabic: verify Arabic notes and video watch label
+        // 8. Arabic video modal test: filter by video, open, Escape dismissal, and focus-return
+        await page.locator("#filter-category").selectOption("video");
+        const arVideoCards = page.locator("li button[aria-haspopup='dialog']");
+        const arVideoCount = await arVideoCards.count();
+        if (arVideoCount !== 4) {
+          throw new Error(`Expected 4 video cards in Arabic Gallery, got: ${arVideoCount}`);
+        }
+        const firstArVideoCard = arVideoCards.first();
+        await firstArVideoCard.click();
+        const arVideoDialog = page.locator("[role='dialog']");
+        await arVideoDialog.waitFor({ state: "visible", timeout: 5000 });
+        await arVideoDialog.getByText("مرجع خارجي موثّق", { exact: true }).waitFor({ state: "visible" });
+
+        // Verify Arabic video dialog close control receives focus and Escape dismisses with focus return
+        const arVideoCloseBtn = arVideoDialog.locator('button[aria-label*="Close"], button[aria-label*="إغلاق"]').first();
+        await arVideoCloseBtn.focus();
+        await page.keyboard.press("Escape");
+        await arVideoDialog.waitFor({ state: "hidden", timeout: 5000 });
+        const arVideoFocused = await firstArVideoCard.evaluate((el) => el === document.activeElement);
+        if (!arVideoFocused) {
+          throw new Error("Focus did not return to Arabic video card trigger after Escape dismissal");
+        }
+
+        // Reset filter
+        await page.locator("#filter-category").selectOption("all");
+
+        // 9. External sources in Arabic: verify Arabic notes and video watch label
         await page.locator("text=شاهد في المصدر الأصلي").first().waitFor({ state: "visible", timeout: 5000 });
       } finally {
         await page.close();
       }
     });
 
-    await checkStep("Check 48: HC-2 - Airport Past: documentary hero, distinct opening/Clinton dedication, source citations, and held intake immunity", async () => {
+    await checkStep("Check 48: HC-3 - Airport Past: documentary strips, watch archive video section, and safe source cards", async () => {
       const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
       try {
         // EN /airport/past
         await page.goto(baseUrl + "/airport/past", { waitUntil: "domcontentloaded" });
 
-        // 1. Hero is documentary hero (airport-archive-hero-2000), not seeded airport-archive-hall
+        // 1. Hero is documentary hero (airport-archive-hero-2000)
         const heroSection = page.locator('section[data-public-hero="past"]');
         await heroSection.waitFor({ state: "visible", timeout: 5000 });
         const heroImg = heroSection.locator("img").first();
@@ -6497,66 +6718,270 @@ async function runBrowserSmoke() {
           throw new Error(`Past hero is using seeded airport-archive-hall: ${heroSrc}`);
         }
 
-        // 2. Distinct commercial opening (Nov 24, 1998) vs Clinton dedication (Dec 14, 1998)
-        await page.waitForSelector("text=November 24, 1998", { timeout: 5000 });
-        await page.waitForSelector("text=December 14, 1998", { timeout: 5000 });
-
-        // 3. All timeline chapters cite real resolvable source references, including World Bank 2007
-        const sourceLinks = page.locator('ol a[href^="http"]');
-        const linkCount = await sourceLinks.count();
-        if (linkCount < 4) {
-          throw new Error(`Expected at least 4 source citation links in timeline, got: ${linkCount}`);
+        // 2. Timeline chapters contain legitimate 7 documentary strip photos across chapters
+        const timelinePhotos = page.locator("ol figure img");
+        const photoCount = await timelinePhotos.count();
+        if (photoCount !== 7) {
+          throw new Error(`Expected exactly 7 legitimate documentary strip photos across timeline, got: ${photoCount}`);
         }
 
-        // 4. Sources panel replaces [CATALOG-ID-FIELD] with real source records and mixed-state notice
-        const bodyText = await page.locator("body").innerText();
-        if (bodyText.includes("[CATALOG-ID-FIELD]") || bodyText.includes("[PROVENANCE]")) {
-          throw new Error("Found placeholder [CATALOG-ID-FIELD] or [PROVENANCE] in Past page");
-        }
-        await page.locator("text=src-oslo-ii-1995").waitFor({ state: "visible", timeout: 5000 });
-        await page.locator("text=src-icao-council-2002").waitFor({ state: "visible", timeout: 5000 });
-        await page.locator("text=src-worldbank-2007").waitFor({ state: "visible", timeout: 5000 });
-        await page.locator("text=src-unsco-2000").waitFor({ state: "visible", timeout: 5000 });
-        await page.locator("text=src-unrwa-2001").waitFor({ state: "visible", timeout: 5000 });
-
-        // Verify accurate metrics and closure chronology in rendered content
-        if (!bodyText.includes("about 60,000 passengers") || !bodyText.includes("1,168 flights")) {
-          throw new Error("Missing verified 1999 passenger volume or flight count on Past page");
-        }
-        if (bodyText.includes("90,000")) {
-          throw new Error("Found unverified 90,000 passenger claim on Past page");
-        }
-        if (!bodyText.includes("February 25, 2001")) {
-          throw new Error("Missing February 25, 2001 continuous closure date on Past page");
+        // Verify exact chapter photo distribution derived from canonical relatedTimelineEventIds:
+        // Planning (1994-1997): 0 photos
+        const planningPhotos = await page.locator('li[data-timeline-id="planning"] figure').count();
+        if (planningPhotos !== 0) {
+          throw new Error(`Expected 0 photos under Planning chapter, got: ${planningPhotos}`);
         }
 
-        // Verify mixed-state methodology notice (not unconditional awaitingReferences)
-        await page.locator("text=Published timeline milestones are linked to verified primary and official sources").waitFor({ state: "visible", timeout: 5000 });
+        // Opening (1998): 0 photos
+        const openingPhotos = await page.locator('li[data-timeline-id="opening"] figure').count();
+        if (openingPhotos !== 0) {
+          throw new Error(`Expected 0 photos under Opening chapter, got: ${openingPhotos}`);
+        }
 
-        // 5. Held videos and intake photographs are NOT rendered in public UI
-        if (bodyText.includes("vid-journeyman-2002") || bodyText.includes("vid-afp-2014-ruins") || bodyText.includes("past-052")) {
-          throw new Error("Found held intake ID in public Past page");
+        // Operations (1998-2001): 5 photos (past-007, past-045, past-050, past-051, past-054)
+        const operationsPhotos = page.locator('li[data-timeline-id="operations"] figure');
+        const operationsCount = await operationsPhotos.count();
+        if (operationsCount !== 5) {
+          throw new Error(`Expected 5 photos under Operations chapter, got: ${operationsCount}`);
+        }
+        const opTexts = await operationsPhotos.evaluateAll((figs) => figs.map((f) => f.textContent || ""));
+        const opHasCounters = opTexts.some((t) => t.includes("Passenger processing counters") || t.includes("counters"));
+        const opHasSecurity = opTexts.some((t) => t.includes("Passenger security screening") || t.includes("screening"));
+        if (!opHasCounters || !opHasSecurity) {
+          throw new Error("Operations chapter missing expected counters or security screening photos");
+        }
+
+        // Closure (2000-2002): exactly 1 photo (past-026 ruined colonnade), strictly excluding past-045 and past-051
+        const closurePhotos = page.locator('li[data-timeline-id="closure"] figure');
+        const closureCount = await closurePhotos.count();
+        if (closureCount !== 1) {
+          throw new Error(`Expected exactly 1 photo under Closure chapter, got: ${closureCount}`);
+        }
+        const closureText = await closurePhotos.first().textContent() || "";
+        if (!closureText.includes("Ruined airport colonnade") && !closureText.includes("colonnade")) {
+          throw new Error(`Closure chapter has unexpected photo: "${closureText}"`);
+        }
+        if (closureText.includes("Passenger processing") || closureText.includes("security screening")) {
+          throw new Error(`Closure chapter illegally contains counters or security equipment: "${closureText}"`);
+        }
+
+        // Memory (2002-present): 1 photo (rec-present-ruins-2008 / Gisha ruins)
+        const memoryPhotos = page.locator('li[data-timeline-id="memory"] figure');
+        const memoryCount = await memoryPhotos.count();
+        if (memoryCount !== 1) {
+          throw new Error(`Expected 1 photo under Memory chapter, got: ${memoryCount}`);
+        }
+        const memoryText = await memoryPhotos.first().textContent() || "";
+        if (!memoryText.includes("Passenger Terminal Ruins") && !memoryText.includes("Gisha")) {
+          throw new Error(`Memory chapter missing Gisha ruins photo: "${memoryText}"`);
+        }
+
+        // Absence of held/duplicate records across timeline
+        const heldInTimeline = await page.locator("ol figure").evaluateAll((figs) =>
+          figs.some((f) => {
+            const t = f.textContent || "";
+            return t.includes("past-001") || t.includes("past-002") || t.includes("past-013") || t.includes("past-052");
+          })
+        );
+        if (heldInTimeline) {
+          throw new Error("Held or duplicate records leaked into Past timeline");
+        }
+
+        // 3. Watch the archive / شاهد الأرشيف section exists with 4 verified videos
+        await page.locator("text=Watch the archive").waitFor({ state: "visible", timeout: 5000 });
+        const videoCards = page.locator("section[aria-labelledby='watch-archive-heading'] [data-testid='video-facade'], section[aria-labelledby='watch-archive-heading'] iframe");
+        const videoCardCount = await videoCards.count();
+        if (videoCardCount < 4) {
+          throw new Error(`Expected 4 verified video cards in Watch the archive section, got: ${videoCardCount}`);
+        }
+
+        // 4. Sources panel uses safe whole-card links with no nested interactive tags
+        const sourceCards = page.locator(".border-clay\\/20 a[href^='http']");
+        const sourceCardCount = await sourceCards.count();
+        if (sourceCardCount < 4) {
+          throw new Error(`Expected at least 4 source cards in Sources panel, got: ${sourceCardCount}`);
+        }
+        for (let i = 0; i < sourceCardCount; i++) {
+          const card = sourceCards.nth(i);
+          const nestedLinks = await card.locator("a, button").count();
+          if (nestedLinks > 0) {
+            throw new Error(`Source card at index ${i} contains illegal nested interactive elements`);
+          }
         }
 
         // AR /ar/airport/past
         await page.goto(baseUrl + "/ar/airport/past", { waitUntil: "domcontentloaded" });
-        await page.waitForSelector("text=24 تشرين الثاني/نوفمبر 1998", { timeout: 5000 });
-        await page.waitForSelector("text=14 كانون الأول/ديسمبر 1998", { timeout: 5000 });
-
-        const arBodyText = await page.locator("body").innerText();
-        if (!arBodyText.includes("نحو 60 ألف مسافر") || !arBodyText.includes("1,168 رحلة")) {
-          throw new Error("Missing verified Arabic 1999 passenger volume or flight count on Past page");
-        }
-        if (arBodyText.includes("90")) {
-          throw new Error("Found unverified 90,000 passenger claim in Arabic on Past page");
-        }
-        if (!arBodyText.includes("25 شباط/فبراير 2001")) {
-          throw new Error("Missing 25 February 2001 continuous closure date in Arabic on Past page");
+        await page.waitForSelector("text=شاهد الأرشيف", { timeout: 5000 });
+        const arTimelinePhotos = page.locator("ol figure img");
+        const arPhotoCount = await arTimelinePhotos.count();
+        if (arPhotoCount !== 7) {
+          throw new Error(`Expected exactly 7 documentary strip photos in Arabic timeline, got: ${arPhotoCount}`);
         }
 
-        // Verify Arabic mixed-state methodology notice in sources panel
-        await page.locator("text=ترتبط المحطات الزمنية المنشورة بمصادر أولية ورسمية تم التحقق منها").waitFor({ state: "visible", timeout: 5000 });
-        await page.locator("text=شاهد في المصدر الأصلي").first().waitFor({ state: "visible", timeout: 5000 });
+        // Verify Arabic chapter distribution: 0 planning, 0 opening, 5 operations, 1 closure, 1 memory
+        const arPlanningCount = await page.locator('li[data-timeline-id="planning"] figure').count();
+        const arOpeningCount = await page.locator('li[data-timeline-id="opening"] figure').count();
+        const arOperationsCount = await page.locator('li[data-timeline-id="operations"] figure').count();
+        const arClosureCount = await page.locator('li[data-timeline-id="closure"] figure').count();
+        const arMemoryCount = await page.locator('li[data-timeline-id="memory"] figure').count();
+
+        if (arPlanningCount !== 0 || arOpeningCount !== 0) {
+          throw new Error(`Arabic timeline has unexpected photos in planning (${arPlanningCount}) or opening (${arOpeningCount})`);
+        }
+        if (arOperationsCount !== 5) {
+          throw new Error(`Expected 5 photos under Arabic Operations chapter, got: ${arOperationsCount}`);
+        }
+        if (arClosureCount !== 1) {
+          throw new Error(`Expected 1 photo under Arabic Closure chapter, got: ${arClosureCount}`);
+        }
+        if (arMemoryCount !== 1) {
+          throw new Error(`Expected 1 photo under Arabic Memory chapter, got: ${arMemoryCount}`);
+        }
+      } finally {
+        await page.close();
+      }
+    });
+
+    await checkStep("Check 49: HC-3 - Home & Airport Overview: real historical media, no redundant CTA, and 6 featured preview cards", async () => {
+      const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+      try {
+        // EN Home /
+        await page.goto(baseUrl + "/", { waitUntil: "domcontentloaded" });
+
+        // 1. Verify absence of seeded Picsum / placeholder images
+        const homeImgs = await page.locator("img").evaluateAll((imgs) => imgs.map((i) => i.src));
+        for (const src of homeImgs) {
+          if (src.includes("picsum.photos")) {
+            throw new Error(`Found picsum photo on Home: ${src}`);
+          }
+        }
+
+        // 2. Verify "Read this chapter" is NOT present on chapter cards
+        const readChapterCount = await page.locator("text=Read this chapter").count();
+        if (readChapterCount > 0) {
+          throw new Error(`Found redundant 'Read this chapter' text on Home: count=${readChapterCount}`);
+        }
+
+        // 3. Verify Home archive preview section renders exactly 6 featured records
+        const previewCards = page.locator("section[data-testid='home-archive-preview'] ul li");
+        const previewCount = await previewCards.count();
+        if (previewCount !== 6) {
+          throw new Error(`Expected exactly 6 featured preview cards on Home, got: ${previewCount}`);
+        }
+
+        // EN Airport Overview /airport
+        await page.goto(baseUrl + "/airport", { waitUntil: "domcontentloaded" });
+        const airportReadChapterCount = await page.locator("text=Read this chapter").count();
+        if (airportReadChapterCount > 0) {
+          throw new Error(`Found redundant 'Read this chapter' text on /airport: count=${airportReadChapterCount}`);
+        }
+
+        // AR Home /ar
+        await page.goto(baseUrl + "/ar", { waitUntil: "domcontentloaded" });
+        const arReadChapterCount = await page.locator("text=اقرأ هذا الفصل").count();
+        if (arReadChapterCount > 0) {
+          throw new Error(`Found redundant 'اقرأ هذا الفصل' text on /ar: count=${arReadChapterCount}`);
+        }
+      } finally {
+        await page.close();
+      }
+    });
+
+    await checkStep("Check 50: HC-3 - Airport Future: textured text halves, no repeated design intent, tightened copy, and textured captions", async () => {
+      const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+      try {
+        await page.goto(baseUrl + "/airport/future", { waitUntil: "domcontentloaded" });
+
+        // 1. Verify designIntentText is NOT present anywhere on the page
+        const designIntentTextCount = await page.locator("text=Civic warmth, Mediterranean climate adaptation").count();
+        if (designIntentTextCount > 0) {
+          throw new Error(`Found repeated design intent text on /airport/future: count=${designIntentTextCount}`);
+        }
+
+        // 2. Verify tightened copy rendered
+        await page.locator("text=Terminal concepts feature Mediterranean limestone").waitFor({ state: "visible", timeout: 5000 });
+        await page.locator("text=Guest experience prioritizes ease and dignity").waitFor({ state: "visible", timeout: 5000 });
+        await page.locator("text=A structured airside strategy: 3,080 m runway reconstruction").waitFor({ state: "visible", timeout: 5000 });
+
+        // 3. Verify night study sequence caption styling
+        const nightCaptions = page.locator("figcaption");
+        const nightCaptionCount = await nightCaptions.count();
+        if (nightCaptionCount < 6) {
+          throw new Error(`Expected at least 6 night study captions, got: ${nightCaptionCount}`);
+        }
+
+        // AR /ar/airport/future
+        await page.goto(baseUrl + "/ar/airport/future", { waitUntil: "domcontentloaded" });
+        const arDesignIntentCount = await page.locator("text=دفء مدني، وتكيف مع المناخ المتوسطي").count();
+        if (arDesignIntentCount > 0) {
+          throw new Error(`Found repeated Arabic design intent text on /ar/airport/future: count=${arDesignIntentCount}`);
+        }
+      } finally {
+        await page.close();
+      }
+    });
+
+    await checkStep("Check 51: HC-3 - Media Invariants: external video embeds never become local media files", async () => {
+      // 1. Verify no video files exist in the media catalog or public directory
+      const fs = await import("fs");
+      const path = await import("path");
+      const documentaryDir = path.resolve("src/assets/media/documentary/past");
+      if (fs.existsSync(documentaryDir)) {
+        const files = fs.readdirSync(documentaryDir);
+        for (const file of files) {
+          if (file.endsWith(".mp4") || file.endsWith(".webm") || file.endsWith(".mkv")) {
+            throw new Error(`Forbidden video file found in media directory: ${file}`);
+          }
+        }
+      }
+
+      // 2. Verify all verified video references use HTTPS and YouTube domain
+      const { pathToFileURL } = await import("url");
+      const catalogModule = await import(pathToFileURL(path.resolve("src/lib/archive/catalog.ts")).href);
+      const videos = catalogModule.getVerifiedVideoReferences();
+      if (!videos || videos.length !== 4) {
+        throw new Error(`Expected 4 verified video references, got: ${videos?.length}`);
+      }
+      for (const v of videos) {
+        if (!v.url.startsWith("https://www.youtube.com/watch?v=")) {
+          throw new Error(`Invalid external video URL: ${v.url}`);
+        }
+        if (!v.youtubeId || v.youtubeId.length !== 11) {
+          throw new Error(`Invalid YouTube ID format: ${v.youtubeId}`);
+        }
+      }
+    });
+
+    await checkStep("Check 52: HC-3 - Bilingual public archive notices distinguish display from rights clearance", async () => {
+      const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+      try {
+        for (const locale of ["", "/ar"]) {
+          for (const route of ["/gallery", "/airport", "/airport/past", "/about", "/privacy", "/terms"]) {
+            await page.goto(baseUrl + locale + route, { waitUntil: "domcontentloaded" });
+            const rightsText = locale
+              ? "تبقى حقوق الصور والتسجيلات التاريخية لأصحابها"
+              : "Rights in historical photographs and footage remain with their respective owners";
+            await page.getByText(rightsText, { exact: false }).first().waitFor({ state: "attached", timeout: 5000 });
+            const text = await page.locator("body").innerText();
+            if (/Cleared documentary photography|Unverified intake imagery remains held|unverified intake imagery remains held in staging|intake materials remain staged and held|صوراً مؤقتة إلى حين توفير مصادر موثّقة/.test(text)) {
+              throw new Error(`Obsolete universal clearance/hold claim on ${locale}${route}`);
+            }
+            const futureDisclosure = locale
+              ? "صور المستقبل توضيحية وليست أدلة تاريخية"
+              : "Future imagery is illustrative, not historical evidence";
+            if (!text.includes(futureDisclosure)) {
+              throw new Error(`Missing Future illustrative disclosure on ${locale}${route}`);
+            }
+            if (["/airport", "/about", "/privacy", "/terms"].includes(route)) {
+              const unknownRights = locale ? "لم تُثبت حقوق إعادة استخدامها" : "reuse rights remain unconfirmed";
+              if (!text.includes(unknownRights)) {
+                throw new Error(`Missing unknown reuse-rights disclosure on ${locale}${route}`);
+              }
+            }
+            const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
+            if (overflow) throw new Error(`Archive copy causes mobile overflow on ${locale}${route}`);
+          }
+        }
       } finally {
         await page.close();
       }

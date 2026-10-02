@@ -3,7 +3,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ArrowRight, BookOpen, Layers, ShieldAlert } from "lucide-react";
 import { ChapterNav } from "@/components/airport/chapter-nav";
 import { btnClass, Container, Panel } from "@/components/kit";
-import { img } from "@/lib/data";
 import { ResponsiveImage } from "@/components/responsive-image";
 import { PublicPhotoHero } from "@/components/media/public-photo-hero";
 import { useI18n } from "@/lib/i18n";
@@ -57,7 +56,7 @@ const chapterCards = [
     id: "past" as const,
     to: "/airport/past" as const,
     numeral: "01",
-    seed: "airport-archive-hall",
+    mediaId: "past-005" as const,
     titleKey: "airport.past" as const,
     horizonKey: "airport.pastHorizon" as const,
     summaryKey: "airport.pastSummary" as const,
@@ -68,7 +67,7 @@ const chapterCards = [
     id: "present" as const,
     to: "/airport/present" as const,
     numeral: "02",
-    seed: "airport-present-ground",
+    mediaId: "airport-present-ruins-2008" as const,
     titleKey: "airport.present" as const,
     horizonKey: "airport.presentHorizon" as const,
     summaryKey: "airport.presentSummary" as const,
@@ -79,7 +78,7 @@ const chapterCards = [
     id: "future" as const,
     to: "/airport/future" as const,
     numeral: "03",
-    seed: "airport-future-concept",
+    mediaId: "aerial-day" as const,
     titleKey: "airport.future" as const,
     horizonKey: "airport.futureHorizon" as const,
     summaryKey: "airport.futureSummary" as const,
@@ -131,20 +130,11 @@ function AirportPage() {
                 >
                   {/* Visual Anchor */}
                   <div className="relative aspect-16/10 w-full overflow-hidden bg-ink">
-                    {ch.isFuture ? (
-                      <ResponsiveImage
-                        entry="aerial-day"
-                        sizes="(min-width: 1024px) 33vw, 100vw"
-                        className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                    ) : (
-                      <img
-                        src={img(ch.seed, 900, 560)}
-                        alt=""
-                        loading="lazy"
-                        className="size-full object-cover opacity-75 transition-transform duration-500 group-hover:scale-105"
-                      />
-                    )}
+                    <ResponsiveImage
+                      entry={ch.mediaId}
+                      sizes="(min-width: 1024px) 33vw, 100vw"
+                      className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
                     <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/30 to-transparent" />
                     <div className="absolute bottom-3 start-4 end-4 flex items-center justify-between text-xs text-ink-muted">
                       <span className="inline-flex items-center gap-1.5 rounded-md bg-ink/70 px-2 py-0.5 font-mono text-[11px] text-ink-foreground backdrop-blur-xs">
@@ -183,11 +173,6 @@ function AirportPage() {
                       <p className="mt-3 flex-1 text-sm leading-relaxed text-ink-muted">
                         {t(ch.summaryKey)}
                       </p>
-
-                      <div className="mt-6 flex items-center gap-2 border-t border-ink-border pt-4 text-sm font-semibold text-sand transition-colors group-hover:text-sand-deep">
-                        <span>{t("airport.readChapter")}</span>
-                        <ArrowRight aria-hidden="true" className="size-4 rtl:rotate-180" />
-                      </div>
                     </div>
                   </div>
                 </GazaSurface>

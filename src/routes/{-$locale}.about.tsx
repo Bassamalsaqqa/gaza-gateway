@@ -39,8 +39,8 @@ function AboutPage() {
           <h2 className="text-xl font-bold">{t("brand.airport")}</h2>
           <p className="mt-2 text-base leading-relaxed text-muted-foreground">
             {pick(lang, {
-              en: "GZA opened in 1998 as the civil airport serving Gaza. This site presents its history, its present-day state, and the vision for its future, keeping verified documentary material clearly separated from illustrative concepts and unverified intake.",
-              ar: "افتُتح مطار غزة الدولي عام 1998 بصفته المطار المدني الذي يخدم غزة. يقدم هذا الموقع تاريخه، وواقعه الراهن، ورؤية مستقبله، مع الفصل الواضح بين المواد الوثائقية المعتمدة والتصورات التوضيحية والمواد قيد التحقق الأرشيفي.",
+              en: "GZA opened in 1998 as the civil airport serving Gaza. This site presents its history, its present-day state, and the vision for its future. Historical records identify their evidence status; future concepts are illustrative.",
+              ar: "افتُتح مطار غزة الدولي عام 1998 بصفته المطار المدني الذي يخدم غزة. يقدم هذا الموقع تاريخه وواقعه الراهن ورؤية مستقبله. وتبيّن السجلات التاريخية حالة أدلتها، بينما تُعرض تصورات المستقبل بوصفها توضيحية.",
             })}
           </p>
           <AppLink to="/airport" className={btnClass("outline", "md", "mt-5")}>
@@ -74,8 +74,8 @@ function AboutPage() {
           <h2 className="text-xl font-bold">{pick(lang, { en: "About the material", ar: "عن المواد المعروضة" })}</h2>
           <p className="mt-2 max-w-3xl text-base leading-relaxed text-muted-foreground">
             {pick(lang, {
-              en: "Imagery on this site is classified by purpose and evidentiary role: future-vision sections present owner-provided architectural visualizations labeled as illustrative; historical and present-day sections present verified documentary photography where cleared, while remaining intake records are held under rights and provenance review. Flight schedules, fares and bookings remain demonstration data held in your browser only.",
-              ar: "تُصنَّف المواد المرئية في هذا الموقع بحسب الغرض والدور التوثيقي: تقدم أقسام رؤية المستقبل تصورات معمارية مقدمة من المالك وموسومة بأنها توضيحية؛ بينما تقدم الأقسام التاريخية والراهنة صوراً توثيقية معتمدة حيثما تم إثبات حقوقها ومصادرها، مع إبقاء المواد الإضافية المستلمة قيد المراجعة والتحقق الأرشيفي. وتبقى جداول الرحلات والأسعار والحجوزات بيانات توضيحية محفوظة في متصفحك فقط.",
+              en: "Historical images include licensed material and selected owner-supplied copies whose reuse rights remain unconfirmed. Rights remain with their respective owners; credits are shown where known. Future concepts are illustrative, not evidence of historical or current conditions. Flight schedules, fares and bookings remain demonstration data held in your browser only.",
+              ar: "تشمل الصور التاريخية مواد مرخّصة ونسخاً مختارة قدّمها مالك المشروع ولم تُثبت حقوق إعادة استخدامها. وتبقى الحقوق لأصحابها، وتُذكر الاعتمادات حيثما كانت معروفة. تصورات المستقبل توضيحية وليست أدلة على الحالة التاريخية أو الراهنة. وتبقى جداول الرحلات والأسعار والحجوزات بيانات توضيحية محفوظة في متصفحك فقط.",
             })}
           </p>
           <img

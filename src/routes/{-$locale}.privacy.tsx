@@ -73,8 +73,8 @@ const sections: Section[] = [
     heading: { en: "Imagery and archive material", ar: "الصور ومواد الأرشيف" },
     body: [
       {
-        en: "Visual material is classified by purpose. Future-vision imagery includes owner-provided concept visualizations and is labeled as illustrative. Historical and present-day sections present verified documentary photography where rights and provenance are cleared, with remaining intake held in staging pending ongoing review.",
-        ar: "تُصنَّف المواد البصرية بحسب الغرض؛ تشمل مواد رؤية المستقبل تصورات معمارية مقدمة من المالك وموسومة بأنها توضيحية. بينما تقدم الأقسام التاريخية والراهنة صوراً توثيقية معتمدة حيثما تم إثبات حقوقها ومصادرها، مع إبقاء المواد الإضافية المستلمة في مرحلة الفحص الأرشيفي قيد المراجعة.",
+        en: "Historical images include licensed material and selected owner-supplied copies whose reuse rights remain unconfirmed. Rights remain with their respective owners; credits are shown where known. Future concepts are illustrative, not evidence of historical or current conditions.",
+        ar: "تشمل الصور التاريخية مواد مرخّصة ونسخاً مختارة قدّمها مالك المشروع ولم تُثبت حقوق إعادة استخدامها. وتبقى الحقوق لأصحابها، وتُذكر الاعتمادات حيثما كانت معروفة. تصورات المستقبل توضيحية وليست أدلة على الحالة التاريخية أو الراهنة.",
       },
     ],
   },

@@ -2,8 +2,8 @@
 
 > **Repository**: `Bassamalsaqqa/gaza-gateway`
 > **Production Domain**: `https://www.gazaairport.com`
-> **Engineering Status**: **Phase 5C and HC-2 (Historical Archive Publication & Documentary Foundation) ACCEPTED SOURCE on main.** Phase 5 overall remains in progress; Phase 5A, 5B, 5C, HC-0, HC-1, and HC-2 complete/accepted on `main`; Phase 5D (Public Contact Workflow Convergence) and HC-3 planned and unstarted. Packaging and pushing `hostpapa-deploy` does not constitute a live deployment; live deployment remains on Phase 5B.
-> **Immediate Next Step**: Phase 5D — Public Contact Workflow Convergence (planned/unstarted).
+> **Engineering Status**: **Phase 5C and HC-2 ACCEPTED SOURCE on main; HC-3 (Owner Archive Visual Integration & Media Experience) implemented on feature branch `hc3/archive-visual-integration` (awaiting independent review).** Phase 5 overall remains in progress; Phase 5A, 5B, 5C, HC-0, HC-1, and HC-2 complete/accepted on `main`; Phase 5D (Public Contact Workflow Convergence) and Phase 6 planned. Packaging and pushing `hostpapa-deploy` does not constitute a live deployment; the owner reports Phase 5C and HC-2 deployed; this run does not verify or change production.
+> **Immediate Next Step**: Independent review of HC-3, then Phase 5D — Public Contact Workflow Convergence.
 
 ---
 
@@ -66,7 +66,7 @@ Phase 4 resolved pre-existing public/admin state disconnects by introducing two 
 | **Staff Session** | `src/lib/admin-store.tsx` (`useAdmin`) | `gza.admin.v1` (`staffId`) | Admin Shell, permission guards, role switcher | **Preserved Legacy Key** | Phase 6 |
 | **OpsState (Simulation)**| `src/lib/admin-store.tsx` (`ops`, `patchOps`) | In-memory React state | Operations Dashboard, Turnaround timers | **Preserved Session Simulation** | Phase 6 |
 | **Published Home, Travel, Past, Present editorial** | `src/content/published/` | Compiled typed source | Public Home, Travel, Airport Past (5 source-backed verified chapters), Airport Present; selected Admin read panels | **Canonical Published Content** | Phase 7 broader coverage |
-| **Historical Archive & Source Registry (HC-2)** | `src/lib/archive/` (`catalog.ts`, `sources.ts`) | Compiled typed catalog & registry | Public Gallery (`/gallery`), Home archive spotlight, Airport Past sources panel (`/airport/past`) | **Canonical Archive Foundation** (`getPublishedArchiveRecords()`, `SOURCE_REGISTRY`) | Phase 7B (Provenance Admin) |
+| **Historical Archive & Source Registry (HC-2 / HC-3)** | `src/lib/archive/` (`catalog.ts`, `sources.ts`, `schema.ts`, `types.ts`) | Compiled typed catalog & registry | Public Gallery (`/gallery`), Home archive spotlight, Airport Past documentary strips & sources panel (`/airport/past`) | **Canonical Archive Foundation** (67 catalog records, 37 public photographs, 1 public document, 4 verified external video references, explicit publication basis: `rights-cleared`, `product-owner-directed-display`, `external-embed`) | Phase 7B (Provenance Admin) |
 | **Local editorial draft** | `ContentRepository` | `gza.content.draft.v1` | Explicit preview and Admin Travel editor | **Browser-local, not published** | Future backend publication |
 | **Other CMS & stories** | Route/i18n source and `src/lib/admin-mock.ts` | Compiled source and static fixtures | Future, About, Contact, destinations | **Not yet converged** | Phase 7 |
 | **Settings (Contact & Appearance)** | `SettingsRepository` (`src/lib/settings/`) | `gza.settings.draft.v1` | Public Contact (`?settingsPreview=1`), Appearance Studio (`?skinPreview=1`), Admin Settings | **Authoritative Settings Draft** | Phase 5D / 6 |
