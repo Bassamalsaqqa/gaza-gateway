@@ -397,6 +397,8 @@ export const en: Dict = {
     "This historical chapter presents source-backed chronological milestones grounded in verified diplomatic treaties, contemporary press coverage, and official aviation records. Additional intake imagery remains held pending rights verification.",
   "airport.awaitingReferences":
     "Awaiting primary archival references and verified records.",
+  "airport.sourcesNoticeMixed":
+    "Published timeline milestones are linked to verified primary and official sources. Additional archival photography, footage, and intake materials remain under active provenance and rights review.",
   "airport.methodologyBody":
     "This historical chapter is structured to support verified archival documentation. If primary records are provided and verified, milestones can be linked to authoritative references.",
   "airport.futureSubtitle":
@@ -459,10 +461,13 @@ export const en: Dict = {
   "gallery.externalSourcesSub":
     "Authoritative diplomatic treaties, contemporary press archives, official civil aviation resolutions, and licensed field documentation.",
   "gallery.viewSource": "View source document",
+  "gallery.watchSource": "Watch at original source",
+  "gallery.externalVideo": "External archival video",
   "gallery.historicalPhase": "Historical Phase",
   "gallery.medium": "Medium",
   "gallery.location": "Location",
   "gallery.license": "License",
+  "gallery.date": "Date",
   "gallery.sourceReferences": "Source Citations",
 
   // account / auth
@@ -1222,6 +1227,8 @@ export const ar: Dict = {
     "يعرض هذا الفصل التاريخي محطات زمنية موثقة تستند إلى معاهدات دبلوماسية وتقارير صحفية معاصرة وقرارات طيران مدني رسمية. وتظل الصور والمواد الإضافية قيد التحقق الأرشيفي.",
   "airport.awaitingReferences":
     "بانتظار المراجع الأرشيفية الأولية والسجلات الموثقة.",
+  "airport.sourcesNoticeMixed":
+    "ترتبط المحطات الزمنية المنشورة بمصادر أولية ورسمية تم التحقق منها. بينما تظل الصور الفوتوغرافية والتسجيلات المرئية الإضافية قيد التحقق الأرشيفي ومراجعة حقوق النشر.",
   "airport.methodologyBody":
     "صُمم هذا الفصل التاريخي ليدعم التوثيق الأرشيفي المعتمد. وإذا قُدمت سجلات أولية وتم التحقق منها، يمكن ربط المحطات بمراجع موثقة.",
   "airport.futureSubtitle":
@@ -1283,10 +1290,13 @@ export const ar: Dict = {
   "gallery.externalSourcesSub":
     "معاهدات دبلوماسية، وأرشيفات صحفية معاصرة، وقرارات رسمية للطيران المدني، ومسوحات ميدانية معتمدة.",
   "gallery.viewSource": "عرض وثيقة المصدر",
+  "gallery.watchSource": "شاهد في المصدر الأصلي",
+  "gallery.externalVideo": "تسجيل مرئي أرشيفي",
   "gallery.historicalPhase": "الحقبة التاريخية",
   "gallery.medium": "الوسيط",
   "gallery.location": "الموقع",
   "gallery.license": "الترخيص",
+  "gallery.date": "التاريخ",
   "gallery.sourceReferences": "المصادر المرجعية",
 
   "auth.signinTitle": "تسجيل الدخول",

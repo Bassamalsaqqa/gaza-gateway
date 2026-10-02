@@ -131,12 +131,12 @@ Future asset and copy drops must adhere to the following protocol:
 ### 4.4 Historical Archive Authority & Authoritative Source Registry (HC-2)
 
 - **Canonical Archive Authority (`src/lib/archive/`)**:
-  - `ARCHIVE_CATALOG`: Bounded repository of 10 records (1 published `rec-present-ruins-2008`, 7 staging, 1 held for provenance, 1 excluded duplicate).
+  - `ARCHIVE_CATALOG`: Bounded repository of 11 records (1 published `rec-present-ruins-2008`, 6 staging [5 video records + `past-050` photograph], 3 held for provenance, 1 excluded duplicate).
   - Public archive selector: `getPublishedArchiveRecords()` exposes only schema-valid published records with approved media references. Staging, held, excluded, or duplicate records are never exposed to public views.
-  - Public Gallery (`/gallery`, `/ar/gallery`): Entirely decoupled from legacy `galleryItems`. Renders responsive media cards from `getPublishedArchiveRecords()`, supports media type and historical phase filtering, and includes a singleton-safe lightbox (Escape key, focus trap/return, scroll lock, disabled prev/next buttons when a single record is present).
+  - Public Gallery (`/gallery`, `/ar/gallery`): Entirely decoupled from legacy `galleryItems`. Renders responsive media cards from `getPublishedArchiveRecords()`, supports dynamic media type and historical phase filtering, and includes a singleton-safe lightbox (Escape key, focus trap/return, scroll lock, disabled prev/next buttons when a single record is present).
   - Home Archive Spotlight: Uses `getPublishedArchiveRecords()` instead of legacy mock slices.
 - **Authoritative Source Registry (`SOURCE_REGISTRY`)**:
-  - Contains 6 verified contemporary external primary records (`src-oslo-ii-1995`, `src-ap-1998-opening`, `src-ap-1998-clinton`, `src-icao-council-2002`, `src-gisha-2008`, `src-saleh-hegab-airport`).
+  - Contains 11 verified contemporary external records (7 text/treaty/document/archive records: `src-oslo-ii-1995`, `src-ap-1998-opening`, `src-ap-1998-clinton`, `src-worldbank-2007`, `src-icao-council-2002`, `src-gisha-2008`, `src-saleh-hegab-airport`; 4 verified external video references: `src-video-ap-1998-opening`, `src-video-clinton-1998`, `src-video-aljazeera-2009`, `src-video-afp-2018`).
   - Public external references are curated outbound links (`getAllSourceRecords()`), cleanly separated from reusable archive media.
 - **Airport Past Chapter Architecture (`/airport/past`, `/ar/airport/past`)**:
   - Uses `PublicPhotoHero` with `airport-archive-hero-2000` (`routeKey="past"`).
@@ -179,7 +179,7 @@ Phase 3.9 and Phase 4 established a permanent, lightweight local test foundation
 3. **Public Workflows Convergence (Phase 5 in progress: Phase 5A, Phase 5B, and Phase 5C complete; Phase 5D planned)**:
    - Direct binding of passenger account management, saved companions, and public booking wizard state into repository queries and mutations. Phase 5A converged canonical passenger identity, account state, and saved travelers on `PassengerRepository` (`gza.passenger.v1`). Phase 5B converged booking wizard draft (`BookingDraftRepository` on `gza.booking.draft.v1`) and effective flight discovery (`FlightRepository`). Phase 5C converged Manage, Check-in, and Boarding Pass onto canonical repositories, typed commands, check-in eligibility window (24h to 60m), and live effective flights, accepted and merged into main. Phase 5D will converge public contact messaging and feedback.
 4. **Historical Archive Foundation & Publication (HC-2 implemented on feature branch)**:
-   - Decoupled public gallery from legacy fixtures, introduced canonical `getPublishedArchiveRecords()`, 6-record `SOURCE_REGISTRY`, source-backed Airport Past timeline across 5 chapters, singleton-safe lightbox, and 58-item intake audit. Awaiting independent review.
+   - Decoupled public gallery from legacy fixtures, introduced canonical `getPublishedArchiveRecords()`, 11-record `SOURCE_REGISTRY` (7 text/document sources, 4 verified external video references), source-backed Airport Past timeline across 5 chapters, singleton-safe lightbox, and 58-item intake audit. Awaiting independent review.
 5. **Admin Workflows Convergence (Phase 6)**:
    - Direct repository binding for operational flight dispatch, schedule master templates, check-in desk, customer CRM, and activity logs.
 6. **SEO & Head Metadata Parity (Phase 11)**:

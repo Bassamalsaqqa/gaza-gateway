@@ -47,6 +47,16 @@ export const Route = createFileRoute("/{-$locale}/gallery")({
 type CategoryFilter = Medium | "all";
 type PhaseFilter = HistoricalPhase | "all";
 
+const LOCATION_DISPLAY: Record<string, { en: string; ar: string }> = {
+  "Rafah, Gaza Strip": { en: "Rafah, Gaza Strip", ar: "رفح، قطاع غزة" },
+  "El Arish, Egypt": { en: "El Arish, Egypt", ar: "العريش، مصر" },
+};
+
+function formatLocation(loc: string | undefined, lang: "en" | "ar"): string {
+  if (!loc) return "—";
+  return LOCATION_DISPLAY[loc]?.[lang] ?? loc;
+}
+
 function GalleryPage() {
   const { t, lang } = useI18n();
   const [category, setCategory] = useState<CategoryFilter>("all");
@@ -60,6 +70,16 @@ function GalleryPage() {
   // Strictly source-cleared published documentary records only
   const publishedRecords = useMemo(() => getPublishedArchiveRecords(), []);
   const externalSources = useMemo(() => getAllSourceRecords(), []);
+
+  // Dynamically derive available medium and phase options from actual published records
+  const availableMediums = useMemo(
+    () => Array.from(new Set(publishedRecords.map((r) => r.medium))),
+    [publishedRecords],
+  );
+  const availablePhases = useMemo(
+    () => Array.from(new Set(publishedRecords.map((r) => r.phase))),
+    [publishedRecords],
+  );
 
   const items = useMemo(
     () =>
@@ -171,59 +191,65 @@ function GalleryPage() {
           />
           <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 w-full">
             <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-              {/* Category Dropdown */}
-              <div className="flex items-center gap-2">
-                <label htmlFor="filter-category" className="text-xs font-semibold text-white whitespace-nowrap">
-                  {t("gallery.filterCategory")}
-                </label>
-                <select
-                  id="filter-category"
-                  value={category}
-                  onChange={(e) => {
-                    setCategory(e.target.value as CategoryFilter);
-                    setOpenIndex(null);
-                  }}
-                  className="h-9 rounded-lg border border-input bg-card px-3 text-xs font-medium text-foreground transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
-                >
-                  <option value="all">{t("gallery.categoryAll")}</option>
-                  {(["photograph", "document", "video", "illustration"] as const).map((id) => (
-                    <option key={id} value={id}>
-                      {MEDIUM_LABELS[id][lang]}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {/* Category Dropdown (dynamically rendered when 2+ options exist) */}
+              {availableMediums.length >= 2 ? (
+                <div className="flex items-center gap-2">
+                  <label htmlFor="filter-category" className="text-xs font-semibold text-white whitespace-nowrap">
+                    {t("gallery.filterCategory")}
+                  </label>
+                  <select
+                    id="filter-category"
+                    value={category}
+                    onChange={(e) => {
+                      setCategory(e.target.value as CategoryFilter);
+                      setOpenIndex(null);
+                    }}
+                    className="h-9 rounded-lg border border-input bg-card px-3 text-xs font-medium text-foreground transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
+                  >
+                    <option value="all">{t("gallery.categoryAll")}</option>
+                    {availableMediums.map((id) => (
+                      <option key={id} value={id}>
+                        {MEDIUM_LABELS[id][lang]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
 
-              {/* Era Dropdown */}
-              <div className="flex items-center gap-2">
-                <label htmlFor="filter-era" className="text-xs font-semibold text-white whitespace-nowrap">
-                  {t("gallery.filterEra")}
-                </label>
-                <select
-                  id="filter-era"
-                  value={era}
-                  onChange={(e) => {
-                    setEra(e.target.value as PhaseFilter);
-                    setOpenIndex(null);
-                  }}
-                  className="h-9 rounded-lg border border-input bg-card px-3 text-xs font-medium text-foreground transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
-                >
-                  <option value="all">{t("gallery.eraAll")}</option>
-                  {(
-                    [
-                      "planning-construction",
-                      "opening-golden-era",
-                      "closure-destruction",
-                      "post-destruction-ruins",
-                      "contemporary-status",
-                    ] as const
-                  ).map((id) => (
-                    <option key={id} value={id}>
-                      {HISTORICAL_PHASE_LABELS[id][lang]}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {/* Era Dropdown (dynamically rendered when 2+ options exist) */}
+              {availablePhases.length >= 2 ? (
+                <div className="flex items-center gap-2">
+                  <label htmlFor="filter-era" className="text-xs font-semibold text-white whitespace-nowrap">
+                    {t("gallery.filterEra")}
+                  </label>
+                  <select
+                    id="filter-era"
+                    value={era}
+                    onChange={(e) => {
+                      setEra(e.target.value as PhaseFilter);
+                      setOpenIndex(null);
+                    }}
+                    className="h-9 rounded-lg border border-input bg-card px-3 text-xs font-medium text-foreground transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
+                  >
+                    <option value="all">{t("gallery.eraAll")}</option>
+                    {availablePhases.map((id) => (
+                      <option key={id} value={id}>
+                        {HISTORICAL_PHASE_LABELS[id][lang]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
+
+              {/* Non-interactive singleton scope indicator when fewer than two choices exist */}
+              {availableMediums.length < 2 && availablePhases.length < 2 && publishedRecords.length > 0 && publishedRecords[0] ? (
+                <div className="flex items-center gap-2 text-xs text-white/90">
+                  <span className="rounded-md bg-white/10 px-2.5 py-1 font-medium text-white">
+                    {MEDIUM_LABELS[publishedRecords[0].medium]?.[lang]} ·{" "}
+                    {HISTORICAL_PHASE_LABELS[publishedRecords[0].phase]?.[lang]}
+                  </span>
+                </div>
+              ) : null}
             </div>
 
             <div className="flex items-center gap-3">
@@ -359,11 +385,14 @@ function GalleryPage() {
                   <p className="mt-1 text-xs text-muted-foreground font-medium">
                     {source.publisher}
                   </p>
-                  {source.notes ? (
-                    <p className="mt-2 text-xs leading-relaxed text-muted-foreground line-clamp-3">
-                      {source.notes}
-                    </p>
-                  ) : null}
+                  {(() => {
+                    const note = lang === "ar" ? source.notesAr : source.notes;
+                    return note ? (
+                      <p className="mt-2 text-xs leading-relaxed text-muted-foreground line-clamp-3">
+                        {note}
+                      </p>
+                    ) : null;
+                  })()}
                 </div>
 
                 <div className="mt-4 pt-3 border-t border-border/60">
@@ -373,7 +402,9 @@ function GalleryPage() {
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 text-xs font-semibold text-clay hover:underline focus-visible:outline-2 focus-visible:outline-ring"
                   >
-                    <span>{t("gallery.viewSource")}</span>
+                    <span>
+                      {source.type === "video" ? t("gallery.watchSource") : t("gallery.viewSource")}
+                    </span>
                     <ExternalLink aria-hidden="true" className="size-3.5" />
                   </a>
                 </div>
@@ -492,7 +523,7 @@ function GalleryPage() {
                         {t("gallery.location")}
                       </dt>
                       <dd className="mt-1 font-medium text-foreground">
-                        {current.location ?? "—"}
+                        {formatLocation(current.location, lang)}
                       </dd>
                     </div>
                     <div>
@@ -508,7 +539,7 @@ function GalleryPage() {
                     {current.date ? (
                       <div>
                         <dt className="text-xs font-semibold text-muted-foreground">
-                          Date
+                          {t("gallery.date")}
                         </dt>
                         <dd className="mt-1 font-medium text-foreground code-id">
                           {current.date}

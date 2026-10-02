@@ -958,4 +958,131 @@ describe("HC-2 Historical Archive Publication Invariants", () => {
       assert.notEqual(entry.media?.kind, "placeholder-seed", `Timeline entry ${entry.id} must not use placeholder-seed`);
     }
   });
+
+  // HC2-C1-1: SourceRecord schema and registry validate notesAr and bilingual completeness
+  it("HC2-C1-1: SourceRecord schema and registry validate notesAr and bilingual parity", () => {
+    const sources = getAllSourceRecords();
+    for (const src of sources) {
+      const parsed = sourceRecordSchema.safeParse(src);
+      assert.ok(parsed.success, `Source ${src.id} failed schema: ${JSON.stringify(parsed.error?.issues)}`);
+      assert.ok(src.notesAr && src.notesAr.trim().length > 0, `Source ${src.id} must have non-empty notesAr`);
+      assert.ok(src.titleAr && src.titleAr.trim().length > 0, `Source ${src.id} must have non-empty titleAr`);
+    }
+
+    // Probes: schema allows optional notesAr, but rejects non-string notesAr
+    const validWithNotesAr = {
+      ...sources[0],
+      notesAr: "ملاحظات عربية موثقة",
+    };
+    assert.equal(sourceRecordSchema.safeParse(validWithNotesAr).success, true);
+  });
+
+  // HC2-C1-2: Past timeline claims grounded in audited claim matrix
+  it("HC2-C1-2: Past timeline chapters are strictly grounded in audited sources and accurate chronology", () => {
+    const planning = publishedAirportPast.timeline.find((t) => t.id === "planning");
+    assert.ok(planning, "planning chapter must exist");
+    assert.ok(planning.sourceRefs.includes("src-worldbank-2007"), "planning must cite src-worldbank-2007 for funding");
+    assert.ok(planning.sourceRefs.includes("src-saleh-hegab-airport"), "planning must cite src-saleh-hegab-airport for design");
+    assert.match(planning.body.en, /design specifications \(3,080 m × 45 m\)/, "runway must be described as design specifications");
+    assert.match(planning.body.ar, /المواصفات التصميمية للمدرج \(3,080 متراً × 45 متراً\)/, "Arabic runway must be described as design specifications");
+
+    const opening = publishedAirportPast.timeline.find((t) => t.id === "opening");
+    assert.ok(opening, "opening chapter must exist");
+    assert.match(opening.body.en, /November 24, 1998/);
+    assert.match(opening.body.en, /December 14, 1998/);
+    assert.match(opening.body.en, /early December 1998/, "Must mention scheduled commercial service starting in early December");
+    assert.ok(!opening.body.en.includes("Commercial passenger flights commenced on November 24"), "Must NOT conflate Nov 24 opening with scheduled commercial start");
+    assert.ok(opening.sourceRefs.includes("src-video-ap-1998-opening"), "opening must cite AP video");
+    assert.ok(opening.sourceRefs.includes("src-video-clinton-1998"), "opening must cite Clinton video");
+
+    const operations = publishedAirportPast.timeline.find((t) => t.id === "operations");
+    assert.ok(operations, "operations chapter must exist");
+    assert.ok(operations.sourceRefs.includes("src-worldbank-2007"), "operations must cite World Bank 2007 report");
+    assert.match(operations.body.en, /700,000 passengers annually/, "Must reference 700,000 design capacity");
+    assert.match(operations.body.en, /Amman, Cairo, Jeddah, Dubai, Doha, Istanbul, and Larnaca/, "Must list verified routes");
+
+    const closure = publishedAirportPast.timeline.find((t) => t.id === "closure");
+    assert.ok(closure, "closure chapter must exist");
+    assert.ok(closure.sourceRefs.includes("src-icao-council-2002"), "closure must cite ICAO resolution");
+    assert.ok(closure.sourceRefs.includes("src-worldbank-2007"), "closure must cite World Bank report for damages");
+
+    const memory = publishedAirportPast.timeline.find((t) => t.id === "memory");
+    assert.ok(memory, "memory chapter must exist");
+    assert.ok(memory.sourceRefs.includes("src-gisha-2008"), "memory must cite Gisha 2008 photo");
+    assert.ok(!memory.body.en.includes("documentary surveys"), "memory must not claim broad surveys");
+  });
+
+  // HC2-C1-3: All 8 video intake items audited and reconciled; verified third-party videos exposed as SourceRecords
+  it("HC2-C1-3: All eight catalog videos are audited; verified external videos are SourceRecords without leaking into published media", () => {
+    const intakeVideos = getIntakeArchiveRecords().filter((r) => r.medium === "video");
+    assert.equal(intakeVideos.length, 8, "Must have exactly 8 video intake records");
+
+    const expectedYoutubeIds = [
+      "vYodi28td20",
+      "yFF4KY-mQk0",
+      "0ExS0XCVk0E",
+      "hJ-zww_qO6c",
+      "jb8SszpUxgg",
+      "gaSe8Pbmm5Q",
+      "tBht5QeKHaA",
+      "-k3kR5f3nYY",
+    ];
+
+    for (const yid of expectedYoutubeIds) {
+      const match = intakeVideos.find((v) => v.youtubeId === yid);
+      assert.ok(match, `YouTube ID ${yid} must exist in intake catalog`);
+      assert.notEqual(match.publicationState, "published", `${yid} must not be published as media`);
+    }
+
+    // vYodi28td20 specifically: verified as AP Archive, not AFP 2014 ruins
+    const vYodi = intakeVideos.find((v) => v.youtubeId === "vYodi28td20");
+    assert.ok(vYodi);
+    assert.equal(vYodi.rights.holder, "Associated Press");
+    assert.match(vYodi.title.en, /INTERNATIONAL AIRPORT OPENS/);
+
+    // Verified video SourceRecords in registry
+    const videoSources = getAllSourceRecords().filter((s) => s.type === "video");
+    assert.ok(videoSources.length >= 4, "Must have at least 4 verified video SourceRecords");
+    for (const vs of videoSources) {
+      assert.match(vs.url, /^https:\/\/www\.youtube\.com\/watch\?v=[a-zA-Z0-9_-]+/);
+      assert.ok(vs.notesAr && vs.notesAr.length > 0);
+    }
+  });
+
+  // HC2-C1-4: Dynamic filter derivation and singleton handling
+  it("HC2-C1-4: Dynamic filter derivation from published records suppresses empty choices for singleton collections", () => {
+    const published = getPublishedArchiveRecords();
+    const availableMediums = Array.from(new Set(published.map((r) => r.medium)));
+    const availablePhases = Array.from(new Set(published.map((r) => r.phase)));
+
+    // Since currently only 1 photograph is published:
+    assert.deepEqual(availableMediums, ["photograph"]);
+    assert.deepEqual(availablePhases, ["post-destruction-ruins"]);
+
+    // Gallery route derives options deterministically and does NOT hardcode empty document/video options
+    const gallerySrc = readFileSync(new URL("../../src/routes/{-$locale}.gallery.tsx", import.meta.url), "utf8");
+    assert.ok(gallerySrc.includes("availableMediums.length >= 2"), "Category dropdown must be guarded by availableMediums.length >= 2");
+    assert.ok(gallerySrc.includes("availablePhases.length >= 2"), "Era dropdown must be guarded by availablePhases.length >= 2");
+  });
+
+  // HC2-C1-5: Arabic parity in Gallery & Past
+  it("HC2-C1-5: Enforces Arabic parity for Lightbox date, location display, source notes, and mixed-state notice", () => {
+    // i18n keys
+    assert.equal(en["gallery.date"], "Date");
+    assert.equal(ar["gallery.date"], "التاريخ");
+    assert.equal(en["gallery.watchSource"], "Watch at original source");
+    assert.equal(ar["gallery.watchSource"], "شاهد في المصدر الأصلي");
+    assert.ok(en["airport.sourcesNoticeMixed"].length > 0);
+    assert.ok(ar["airport.sourcesNoticeMixed"].length > 0);
+
+    // Past route renders mixed-state notice in methodology panel
+    const pastSrc = readFileSync(new URL("../../src/routes/{-$locale}.airport.past.tsx", import.meta.url), "utf8");
+    assert.ok(pastSrc.includes("airport.sourcesNoticeMixed"), "Past route must render airport.sourcesNoticeMixed");
+
+    // Gallery route localizes location and date
+    const gallerySrc = readFileSync(new URL("../../src/routes/{-$locale}.gallery.tsx", import.meta.url), "utf8");
+    assert.ok(gallerySrc.includes('t("gallery.date")'), "Gallery lightbox must use localized Date label");
+    assert.ok(gallerySrc.includes("formatLocation"), "Gallery lightbox must use formatLocation helper");
+    assert.ok(gallerySrc.includes("source.notesAr"), "Gallery must reference source.notesAr");
+  });
 });

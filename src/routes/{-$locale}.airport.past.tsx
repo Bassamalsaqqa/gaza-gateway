@@ -182,7 +182,7 @@ function PastPage() {
             {t("airport.methodologyBody")}
           </p>
           <p className="mt-2 text-xs leading-normal text-muted-foreground/80">
-            {t("airport.awaitingReferences")}
+            {t("airport.sourcesNoticeMixed")}
           </p>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
@@ -199,11 +199,14 @@ function PastPage() {
                   <p className="mt-1.5 font-medium text-foreground leading-snug">
                     {pick(lang, { en: source.title, ar: source.titleAr ?? source.title })}
                   </p>
-                  {source.notes ? (
-                    <p className="mt-1 text-muted-foreground line-clamp-2">
-                      {source.notes}
-                    </p>
-                  ) : null}
+                  {(() => {
+                    const note = lang === "ar" ? source.notesAr : source.notes;
+                    return note ? (
+                      <p className="mt-1 text-muted-foreground line-clamp-2">
+                        {note}
+                      </p>
+                    ) : null;
+                  })()}
                 </div>
                 <div className="mt-3 pt-2 border-t border-border/50">
                   <a
@@ -212,7 +215,9 @@ function PastPage() {
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 font-semibold text-clay hover:underline"
                   >
-                    <span>{t("gallery.viewSource")}</span>
+                    <span>
+                      {source.type === "video" ? t("gallery.watchSource") : t("gallery.viewSource")}
+                    </span>
                     <ExternalLink aria-hidden="true" className="size-3" />
                   </a>
                 </div>

@@ -404,10 +404,13 @@ async function runBrowserSmoke() {
         throw new Error("Roving tabindex did not update to 0 for selected browse radio");
       }
       // ArrowLeft moves back to inspect
+      await page.waitForTimeout(100);
       await page.keyboard.press("ArrowLeft", { delay: 50 });
-      if ((await inspectRadio.getAttribute("aria-checked")) !== "true") {
-        throw new Error("ArrowLeft in LTR did not select inspect radio");
-      }
+      await page.waitForFunction(
+        () => document.querySelector('[data-testid="toggle-inspect-mode"] button[value="inspect"]')?.getAttribute("aria-checked") === "true",
+        null,
+        { timeout: 5000 }
+      );
 
       // Material Proof 2: Preview radiogroup [Draft | Baseline]
       const draftRadio = page.locator('[data-testid="toggle-baseline-mode"] button[value="draft"]');
@@ -2377,17 +2380,24 @@ async function runBrowserSmoke() {
       await assertWebpImage(page, 'img[data-decorative-asset="gallery-filter-toolbar"]', "gallery-filter-toolbar");
       await assertWebpImage(page, 'img[data-decorative-asset="gallery-item-body"]', "gallery-item-body");
 
-      // Verify gallery filter interaction & reset
+      // Verify gallery filter interaction & reset (or dynamic singleton toolbar verification)
       const initialCountText = await page.locator(".code-id").first().textContent();
-      await page.selectOption("#filter-category", "document");
-      const filteredCountText = await page.locator(".code-id").first().textContent();
-      if (initialCountText === filteredCountText) {
-        throw new Error("Gallery category filter did not change displayed item count");
-      }
-      await page.getByRole("button", { name: /Clear filters|إزالة التصفية|Reset|إعادة الضبط/i }).first().click();
-      const resetCountText = await page.locator(".code-id").first().textContent();
-      if (resetCountText !== initialCountText) {
-        throw new Error("Gallery reset button did not restore item count");
+      const categoryFilter = page.locator("#filter-category");
+      if ((await categoryFilter.count()) > 0) {
+        await page.selectOption("#filter-category", "document");
+        const filteredCountText = await page.locator(".code-id").first().textContent();
+        if (initialCountText === filteredCountText) {
+          throw new Error("Gallery category filter did not change displayed item count");
+        }
+        await page.getByRole("button", { name: /Clear filters|إزالة التصفية|Reset|إعادة الضبط/i }).first().click();
+        const resetCountText = await page.locator(".code-id").first().textContent();
+        if (resetCountText !== initialCountText) {
+          throw new Error("Gallery reset button did not restore item count");
+        }
+      } else {
+        if (!initialCountText.includes("1")) {
+          throw new Error("Gallery item count expected 1 under singleton scope");
+        }
       }
 
       // Verify gallery lightbox open and close via Escape
@@ -4927,6 +4937,9 @@ async function runBrowserSmoke() {
         if (pastText.includes("airport.awaitingReferences")) {
           throw new Error(`Raw key 'airport.awaitingReferences' rendered on ${pastPath}`);
         }
+        if (pastText.includes("airport.sourcesNoticeMixed")) {
+          throw new Error(`Raw key 'airport.sourcesNoticeMixed' rendered on ${pastPath}`);
+        }
         if (pastText.includes("airport.methodologyBody")) {
           throw new Error(`Raw key 'airport.methodologyBody' rendered on ${pastPath}`);
         }
@@ -4936,15 +4949,21 @@ async function runBrowserSmoke() {
         }
 
         if (isAr) {
-          if (!pastText.includes("بانتظار المراجع الأرشيفية الأولية والسجلات الموثقة")) {
-            throw new Error(`Expected Arabic awaitingReferences text missing on ${pastPath}`);
+          if (
+            !pastText.includes("بانتظار المراجع الأرشيفية الأولية والسجلات الموثقة") &&
+            !pastText.includes("ترتبط المحطات الزمنية المنشورة بمصادر أولية ورسمية")
+          ) {
+            throw new Error(`Expected Arabic methodology notice text missing on ${pastPath}`);
           }
           if (!pastText.includes("صُمم هذا الفصل التاريخي ليدعم التوثيق الأرشيفي المعتمد")) {
             throw new Error(`Expected Arabic methodologyBody text missing on ${pastPath}`);
           }
         } else {
-          if (!pastText.includes("Awaiting primary archival references and verified records")) {
-            throw new Error(`Expected English awaitingReferences text missing on ${pastPath}`);
+          if (
+            !pastText.includes("Awaiting primary archival references and verified records") &&
+            !pastText.includes("Published timeline milestones are linked to verified primary")
+          ) {
+            throw new Error(`Expected English methodology notice text missing on ${pastPath}`);
           }
           if (!pastText.includes("This historical chapter is structured to support verified archival documentation")) {
             throw new Error(`Expected English methodologyBody text missing on ${pastPath}`);
@@ -6358,7 +6377,7 @@ async function runBrowserSmoke() {
       }
     });
 
-    await checkStep("Check 46: HC-2 - EN Gallery: canonical documentary records, filter behavior, and lightbox modal", async () => {
+    await checkStep("Check 46: HC-2 - EN Gallery: canonical documentary records, dynamic filter behavior, and lightbox modal", async () => {
       const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
       try {
         await page.goto(baseUrl + "/gallery", { waitUntil: "domcontentloaded" });
@@ -6378,17 +6397,12 @@ async function runBrowserSmoke() {
           throw new Error(`Expected 1 catalog item, got: ${countText}`);
         }
 
-        // 3. Verify filter interaction and empty state with reset
-        await page.selectOption("#filter-category", "document");
-        const emptyCount = await page.locator(".code-id").first().textContent();
-        if (!emptyCount.includes("0")) {
-          throw new Error(`Expected 0 items after filtering to document, got: ${emptyCount}`);
+        // 3. Verify dynamic filter derivation: singleton scope badge rendered, interactive select suppressed when < 2 options
+        const selectFilters = await page.locator("#filter-category, #filter-era").count();
+        if (selectFilters > 0) {
+          throw new Error(`Expected interactive filter select dropdowns to be suppressed when < 2 options, found ${selectFilters}`);
         }
-        await page.getByRole("button", { name: /Clear filters|Reset/i }).first().click();
-        const restoredCount = await page.locator(".code-id").first().textContent();
-        if (!restoredCount.includes("1")) {
-          throw new Error(`Expected count to restore to 1 after reset, got: ${restoredCount}`);
-        }
+        await page.locator('[data-testid="gallery-filter-toolbar"]').getByText("Photograph · Post-Destruction Ruins").waitFor({ state: "visible", timeout: 5000 });
 
         // 4. Open Lightbox
         const cardTrigger = page.locator("li button[aria-haspopup='dialog']").first();
@@ -6399,15 +6413,20 @@ async function runBrowserSmoke() {
         // Verify documentary metadata details in Lightbox
         await dialog.locator("text=Gisha Access").first().waitFor({ state: "visible", timeout: 5000 });
         await dialog.locator("text=CC BY-SA 2.0 Generic").waitFor({ state: "visible", timeout: 5000 });
+        await dialog.locator("text=Rafah, Gaza Strip").waitFor({ state: "visible", timeout: 5000 });
+        await dialog.locator("dt:has-text('Date')").waitFor({ state: "visible", timeout: 5000 });
+        await dialog.locator("dd:has-text('2008-06-13')").waitFor({ state: "visible", timeout: 5000 });
         await dialog.locator("text=src-gisha-2008").or(dialog.locator("text=Gisha Access")).first().waitFor({ state: "visible", timeout: 5000 });
 
         // Verify close with Escape key and focus return
         await page.keyboard.press("Escape");
         await dialog.waitFor({ state: "hidden", timeout: 5000 });
 
-        // 5. Curated external sources present on page
+        // 5. Curated external sources present on page, including verified video sources
         await page.locator("text=Primary Sources & Historical References").waitFor({ state: "visible", timeout: 5000 });
         await page.locator("text=Saleh & Hegab Engineering Consultants").waitFor({ state: "visible", timeout: 5000 });
+        await page.locator("text=AP Archive").first().waitFor({ state: "visible", timeout: 5000 });
+        await page.locator("text=Watch at original source").first().waitFor({ state: "visible", timeout: 5000 });
       } finally {
         await page.close();
       }
@@ -6424,9 +6443,10 @@ async function runBrowserSmoke() {
           throw new Error(`Expected dir="rtl" on /ar/gallery, got: ${htmlDir}`);
         }
 
-        // 2. Verify Arabic title and metadata
+        // 2. Verify Arabic title, scope badge, and metadata
         await page.waitForSelector("text=أطلال مبنى المسافرين بمطار غزة الدولي", { timeout: 5000 });
         await page.locator("text=المصادر الأولية والمراجع التاريخية").waitFor({ state: "visible", timeout: 5000 });
+        await page.locator('[data-testid="gallery-filter-toolbar"]').getByText("صورة فوتوغرافية · أطلال ما بعد التدمير").waitFor({ state: "visible", timeout: 5000 });
 
         // 3. Technical dates and identifiers remain LTR readable (Western Arabic numerals)
         const dateText = await page.locator("text=2008-06-13").or(page.locator("text=13 يونيو/حزيران 2008")).first().textContent();
@@ -6440,14 +6460,23 @@ async function runBrowserSmoke() {
         const dialog = page.locator("[role='dialog']");
         await dialog.waitFor({ state: "visible", timeout: 5000 });
 
-        // Verify Arabic labels inside modal
+        // Verify Arabic labels inside modal: no hardcoded English "Date"
         await dialog.locator("text=الوسيط").first().waitFor({ state: "visible", timeout: 5000 });
         await dialog.locator("text=الحقبة التاريخية").first().waitFor({ state: "visible", timeout: 5000 });
+        await dialog.getByText("التاريخ", { exact: true }).waitFor({ state: "visible", timeout: 5000 });
+        await dialog.locator("text=رفح، قطاع غزة").waitFor({ state: "visible", timeout: 5000 });
+        const englishDateLabelCount = await dialog.locator("dt:has-text('Date')").count();
+        if (englishDateLabelCount > 0) {
+          throw new Error("Found hardcoded English 'Date' label inside Arabic Lightbox modal");
+        }
 
         // Close via close button
         const closeBtn = dialog.locator('button[aria-label*="Close"], button[aria-label*="إغلاق"]').first();
         await closeBtn.click();
         await dialog.waitFor({ state: "hidden", timeout: 5000 });
+
+        // 5. External sources in Arabic: verify Arabic notes and video watch label
+        await page.locator("text=شاهد في المصدر الأصلي").first().waitFor({ state: "visible", timeout: 5000 });
       } finally {
         await page.close();
       }
@@ -6472,20 +6501,24 @@ async function runBrowserSmoke() {
         await page.waitForSelector("text=November 24, 1998", { timeout: 5000 });
         await page.waitForSelector("text=December 14, 1998", { timeout: 5000 });
 
-        // 3. All timeline chapters cite real resolvable source references
+        // 3. All timeline chapters cite real resolvable source references, including World Bank 2007
         const sourceLinks = page.locator('ol a[href^="http"]');
         const linkCount = await sourceLinks.count();
         if (linkCount < 4) {
           throw new Error(`Expected at least 4 source citation links in timeline, got: ${linkCount}`);
         }
 
-        // 4. Sources panel replaces [CATALOG-ID-FIELD] with real source records
+        // 4. Sources panel replaces [CATALOG-ID-FIELD] with real source records and mixed-state notice
         const bodyText = await page.locator("body").innerText();
         if (bodyText.includes("[CATALOG-ID-FIELD]") || bodyText.includes("[PROVENANCE]")) {
           throw new Error("Found placeholder [CATALOG-ID-FIELD] or [PROVENANCE] in Past page");
         }
         await page.locator("text=src-oslo-ii-1995").waitFor({ state: "visible", timeout: 5000 });
         await page.locator("text=src-icao-council-2002").waitFor({ state: "visible", timeout: 5000 });
+        await page.locator("text=src-worldbank-2007").waitFor({ state: "visible", timeout: 5000 });
+
+        // Verify mixed-state methodology notice (not unconditional awaitingReferences)
+        await page.locator("text=Published timeline milestones are linked to verified primary and official sources").waitFor({ state: "visible", timeout: 5000 });
 
         // 5. Held videos and intake photographs are NOT rendered in public UI
         if (bodyText.includes("vid-journeyman-2002") || bodyText.includes("vid-afp-2014-ruins") || bodyText.includes("past-052")) {
@@ -6496,6 +6529,10 @@ async function runBrowserSmoke() {
         await page.goto(baseUrl + "/ar/airport/past", { waitUntil: "domcontentloaded" });
         await page.waitForSelector("text=24 تشرين الثاني/نوفمبر 1998", { timeout: 5000 });
         await page.waitForSelector("text=14 كانون الأول/ديسمبر 1998", { timeout: 5000 });
+
+        // Verify Arabic mixed-state methodology notice in sources panel
+        await page.locator("text=ترتبط المحطات الزمنية المنشورة بمصادر أولية ورسمية تم التحقق منها").waitFor({ state: "visible", timeout: 5000 });
+        await page.locator("text=شاهد في المصدر الأصلي").first().waitFor({ state: "visible", timeout: 5000 });
       } finally {
         await page.close();
       }

@@ -86,6 +86,7 @@ export interface SourceRecord {
   accessedAt?: string;
   archivalStatus?: "live" | "archived-wayback" | "official-repository" | "print-record";
   notes?: string;
+  notesAr?: string;
 }
 
 export interface ArchiveRights {

@@ -48,11 +48,11 @@
   - Exact byte/visual duplicates: **1** (`past-052` is identical to `past-050`)
   - Newly cleared intake photos: **0** (authorized stance; zero unverified intake photos published)
   - Published archive records in `ARCHIVE_CATALOG`: **1** (`rec-present-ruins-2008` / `airport-present-ruins-2008`, Gisha Access, June 13, 2008, CC BY-SA 2.0)
-  - Staging catalog records: **7** (6 video records + `past-050`)
-  - Held for provenance / dispute: **1** (`vid-journeyman-2002`, held due to November 2 opening date conflict)
+  - Staging catalog records: **6** (5 video records [`vid-ap-1998-opening`, `vid-motaz-2014`, `vid-bbc-2012`, `vid-afp-2018-ruins`, `vid-aljazeera-ruins`] + `past-050` photograph)
+  - Held for provenance / dispute: **3** (3 video records: `vid-journeyman-2002` [Clinton FOIA / Journeyman date conflict], `vid-afp-2014-ruins` [Journeyman 2019], `vid-noor-2015` [Journeyman 2025])
   - Excluded duplicate records: **1** (`past-052` referencing `past-050`)
-  - Total records in `ARCHIVE_CATALOG`: **10**
-  - Authoritative external source records in `SOURCE_REGISTRY`: **6**
+  - Total records in `ARCHIVE_CATALOG`: **11**
+  - Authoritative external source records in `SOURCE_REGISTRY`: **11** (7 text/treaty/document/archive records: `src-oslo-ii-1995`, `src-ap-1998-opening`, `src-ap-1998-clinton`, `src-worldbank-2007`, `src-icao-council-2002`, `src-gisha-2008`, `src-saleh-hegab-airport`; 4 verified external video references: `src-video-ap-1998-opening`, `src-video-clinton-1998`, `src-video-aljazeera-2009`, `src-video-afp-2018`)
   - New production image assets / derivatives added: **0** (reused existing approved assets)
 
 ## Historical Documentary Hero Metadata Clearance Gap (HC-2)

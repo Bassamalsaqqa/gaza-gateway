@@ -83,6 +83,7 @@ export const sourceRecordSchema = z.object({
     "print-record",
   ]).optional(),
   notes: z.string().optional(),
+  notesAr: z.string().optional(),
 }).strict();
 
 export const archiveRightsSchema = z.object({
