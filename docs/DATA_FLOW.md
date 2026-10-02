@@ -1,8 +1,8 @@
 # Data Flow, State Management & Pretend-Action Inventory
 
 > **Document Purpose**: Complete audit of current data sources, state persistence, cross-screen entity splits, and enabled no-op actions across public and admin workspaces.
-> **Status**: **Phase 5C Manage, Check-in & Boarding Pass Convergence ACCEPTED SOURCE on main.** HC-2 (Historical Archive Publication & Documentary Foundation) implemented on feature branch `hc2/historical-archive-publication` awaiting independent acceptance (not merged to `main`, not deployed). Phase 5 overall remains in progress; Phase 5A, 5B, 5C, and HC-0/HC-1/Present complete; Phase 5D (Public Contact) and HC-3 planned and unstarted. Repository publication does not mean live cPanel deployment.
-> **Future Target**: Independent review of HC-2 on feature branch, followed by Phase 5D (Public Contact Workflow Convergence), then Phase 6 before any production backend.
+> **Status**: **Phase 5C and HC-2 (Historical Archive Publication & Documentary Foundation) ACCEPTED SOURCE on main.** Phase 5 overall remains in progress; Phase 5A, 5B, 5C, HC-0, HC-1, and HC-2 complete/accepted on `main`; Phase 5D (Public Contact Workflow Convergence) and HC-3 planned and unstarted. Packaging and pushing `hostpapa-deploy` does not constitute a live deployment; live deployment remains on Phase 5B.
+> **Future Target**: Phase 5D — Public Contact Workflow Convergence (planned/unstarted), then Phase 6 before any production backend.
 
 ---
 
@@ -220,7 +220,7 @@ The development program follows this strictly sequenced progression:
    - Established typed booking and flight domain models, asynchronous repository contracts, and the versioned `gza.repo.v1` mock browser store.
    - Migrated legacy public bookings and admin flight overrides into canonical records while retaining legacy keys for rollback. Representative public and admin booking/flight views now share repository identity. Admin desk fixtures and broader workflows remain for Phases 5 and 6.
 2. **Phase 4B — Typed Content & CMS Schema (complete)**:
-   - Compiled bilingual Home, Travel, Airport Past, and Airport Present records, runtime validation, local draft repository and explicit preview. Admin Travel editing is the real draft proof; global publishing and broader CMS work remain future phases. Gallery continues on its legacy placeholder system pending HC-2.
+   - Compiled bilingual Home, Travel, Airport Past, and Airport Present records, runtime validation, local draft repository and explicit preview. Admin Travel editing is the real draft proof; global publishing and broader CMS work remain future phases. Gallery renders canonical archive records (`getPublishedArchiveRecords()`) and source registry (`SOURCE_REGISTRY`) under HC-2.
 3. **Phase 4C — Settings & Appearance Store Convergence (complete)**:
    - Unified multi-document settings envelope (gza.settings.draft.v1) with independent Contact and Appearance drafts, one-time legacy migration with untouched legacy key, transactional failure resilience, and explicit preview immunity.
 4. **Phase 5 — Public Workflows Convergence (in progress: Phase 5A, Phase 5B, and Phase 5C complete; Phase 5D planned)**:

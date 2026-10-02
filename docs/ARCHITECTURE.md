@@ -2,8 +2,8 @@
 
 > **Repository**: `Bassamalsaqqa/gaza-gateway`
 > **Production Domain**: `https://www.gazaairport.com`
-> **Engineering Status**: **Phase 5C Manage, Check-in & Boarding Pass Convergence ACCEPTED SOURCE on main.** Phase 5 overall remains in progress; Phase 5A, 5B, 5C, and HC-0/HC-1/Present complete; Phase 5D (Public Contact) and HC-2/HC-3 planned and unstarted. Repository publication does not mean live cPanel deployment.
-> **Immediate Next Step**: Historical Archive Publication & Documentation Dossier (HC-2), followed by Phase 5D (Public Contact Convergence).
+> **Engineering Status**: **Phase 5C and HC-2 (Historical Archive Publication & Documentary Foundation) ACCEPTED SOURCE on main.** Phase 5 overall remains in progress; Phase 5A, 5B, 5C, HC-0, HC-1, and HC-2 complete/accepted on `main`; Phase 5D (Public Contact Workflow Convergence) and HC-3 planned and unstarted. Packaging and pushing `hostpapa-deploy` does not constitute a live deployment; live deployment remains on Phase 5B.
+> **Immediate Next Step**: Phase 5D — Public Contact Workflow Convergence (planned/unstarted).
 
 ---
 
@@ -178,8 +178,8 @@ Phase 3.9 and Phase 4 established a permanent, lightweight local test foundation
    - Unified multi-document settings envelope (`gza.settings.draft.v1`) with independent Contact and Appearance drafts, one-time legacy migration with untouched legacy key, transactional failure resilience, and explicit preview immunity.
 3. **Public Workflows Convergence (Phase 5 in progress: Phase 5A, Phase 5B, and Phase 5C complete; Phase 5D planned)**:
    - Direct binding of passenger account management, saved companions, and public booking wizard state into repository queries and mutations. Phase 5A converged canonical passenger identity, account state, and saved travelers on `PassengerRepository` (`gza.passenger.v1`). Phase 5B converged booking wizard draft (`BookingDraftRepository` on `gza.booking.draft.v1`) and effective flight discovery (`FlightRepository`). Phase 5C converged Manage, Check-in, and Boarding Pass onto canonical repositories, typed commands, check-in eligibility window (24h to 60m), and live effective flights, accepted and merged into main. Phase 5D will converge public contact messaging and feedback.
-4. **Historical Archive Foundation & Publication (HC-2 implemented on feature branch)**:
-   - Decoupled public gallery from legacy fixtures, introduced canonical `getPublishedArchiveRecords()`, 11-record `SOURCE_REGISTRY` (7 text/document sources, 4 verified external video references), source-backed Airport Past timeline across 5 chapters, singleton-safe lightbox, and 58-item intake audit. Awaiting independent review.
+4. **Historical Archive Foundation & Publication (HC-2 Complete / Accepted Source on main)**:
+   - Decoupled public gallery from legacy fixtures, introduced canonical `getPublishedArchiveRecords()`, 13-record `SOURCE_REGISTRY` (9 text/treaty/official/archive sources, 4 verified external video references), source-backed Airport Past timeline across 5 chapters citing Oslo II, The New York Times, The Washington Post, World Bank, UNSCO, UNRWA, ICAO, Gisha, and Saleh & Hegab, singleton-safe lightbox, and 58-item intake audit. Accepted and merged into main.
 5. **Admin Workflows Convergence (Phase 6)**:
    - Direct repository binding for operational flight dispatch, schedule master templates, check-in desk, customer CRM, and activity logs.
 6. **SEO & Head Metadata Parity (Phase 11)**:
