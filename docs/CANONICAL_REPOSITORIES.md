@@ -1,6 +1,6 @@
 # Canonical Mock Domain & Repository Architecture
 
-> **Document Status**: Active Reference (Phase 5A–5D Complete / Accepted Source; Phase 6 Planned / Unstarted)
+> **Document Status**: Active Reference (Phase 5A–5D Complete / Accepted Source; Phase 5D Deployed by Owner; Phase 6 Planned / Unstarted / Next Engineering Lane)
 > **Product**: Gaza Airport & Palestinian Airlines ([gazaairport.com](https://www.gazaairport.com))
 > **Phase 4 starting commits**: `9e36b869274830f84c97cbbefe3b3fb0a98c6d2e` (`main`); `92ad935f8477e1663eefa8282d2770c66b64b8b2` (`hostpapa-deploy`)
 > **Pre-operational Prototype Notice**: Gaza Gateway is an authentic, browser-local client-side prototype. It does not connect to a live backend database, payment gateway, GDS, or external server.
@@ -308,3 +308,7 @@ To guarantee that heavy admin fixtures and editor metadata do not leak into publ
 - **Canonical Pricing Recalculation**: `updateSeats` and `updateExtras` recalculate the booking total price using the canonical domain pricing formula (`bookingTotal` in `src/lib/domain/pricing.ts`), completely preventing caller-supplied or divergent UI price tampering.
 
 **Current hardening notes:** `RepositoryProvider`, individual query hooks, and mutation success handlers invalidate relevant query keys upon write. `BookingRepository.list()` returns a new array and `getByRef()` a shallow object copy. Current migrated readers do not mutate those values directly; mutations flow exclusively through typed repository commands.
+
+## Phase 5D production checkpoint
+
+Phase 5D is Complete / Accepted Source / Deployed by Owner. The owner manually deployed accepted HostPapa release `898adc36701f138b54787fa14caecf55321b453f`, built from production source `2e166ed815010728d25a891939b84db4109ae65e`. Current main includes that implementation plus this documentation-only production-truth reconciliation; the deployed source and release remain unchanged. No independent live browser verification is claimed.

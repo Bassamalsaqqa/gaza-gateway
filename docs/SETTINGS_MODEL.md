@@ -157,4 +157,8 @@ Key lifecycle behaviors:
 
 `gza.contact.v1` stores enquiries only in browser-local storage. Public submissions do not transmit data to airport staff. Admin Inbox shares those records only within the same browser/storage origin, with no cross-device synchronization or server persistence. There is no backend Contact service, SMTP service or email reply delivery; replies are locally saved drafts. User-entered enquiries may contain real PII, which remains browser-local. Contact settings remain independent in `gza.settings.draft.v1`.
 
-Phase 5D is Complete / Accepted Source. Phase 6 — Admin Workflows Convergence is the next engineering lane and remains Planned / Unstarted, as do Phase 7 and Phase 7B.
+Phase 5D is Complete / Accepted Source / Deployed by Owner. Phase 6 — Admin Workflows Convergence (Planned / Unstarted / Next Engineering Lane). Phase 7 and Phase 7B remain Planned / Unstarted.
+
+## Phase 5D production checkpoint
+
+Phase 5D is Complete / Accepted Source / Deployed by Owner. The owner manually deployed accepted HostPapa release `898adc36701f138b54787fa14caecf55321b453f`, built from production source `2e166ed815010728d25a891939b84db4109ae65e`. Current main includes that implementation plus this documentation-only production-truth reconciliation; the deployed source and release remain unchanged. No independent live browser verification is claimed.
