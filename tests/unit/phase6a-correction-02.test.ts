@@ -197,18 +197,19 @@ describe("Phase 6A Correction 02 — truthful commercial presentation", () => {
     assert.ok(!/Implemented \/ Awaiting Independent Review/.test(doc));
     assert.ok(doc.includes("Complete / Accepted Source"));
     assert.ok(doc.includes("59e2e0ce9b56bc492d7c7a2bfc5a0df15fd58fea"));
-    assert.ok(doc.includes("898adc36701f138b54787fa14caecf55321b453f"));
-    assert.ok(doc.includes("2e166ed815010728d25a891939b84db4109ae65e"));
+    assert.ok(doc.includes("b5cff4db4b6e087907a9733ffd841880439fbfdb"));
+    assert.ok(doc.includes("2ae1a876018992649074cbed1ebf0560e4da03ff"));
     // Phase 6B/6C/7/7B remain Planned / Unstarted
     assert.ok(/Phase 6B[^.]+Planned \/ Unstarted/.test(doc));
   });
-  test("authoritative current-status blocks consistently record accepted Phase 6A", () => {
+  test("authoritative current-status blocks record owner-deployed Phase 6A without stale candidate wording", () => {
     // Scope current metadata, status tables and checkpoint paragraphs, not historical audits.
     const currentBlocks = (doc: string) => doc.split(/\r?\n/).filter((line) =>
       /^> \*\*(?:Engineering Status|Current Status|Document Status|Status|Production \/ Source Checkpoint|Immediate Next Step)\*\*:/.test(line) ||
       /^\|.*Phase 6A/.test(line) ||
+      /^Phase 6A — Admin Commercial Desk Convergence — is Complete/.test(line) ||
       /^Phase 5D is Complete/.test(line) ||
-      /^- \*\*(?:Master Roadmap Progression|Accepted Phase 5D Production \/ Source Checkpoint)\*\*:/.test(line),
+      /^- \*\*(?:Master Roadmap Progression|Current Production \/ Source Checkpoint)\*\*:/.test(line),
     ).join("\n");
     const stale = [
       /Implemented \/ Awaiting Independent Review/i,
@@ -217,6 +218,14 @@ describe("Phase 6A Correction 02 — truthful commercial presentation", () => {
       /Independent review of Phase 6A/i,
       /Phase 6 (?:— Admin Workflows Convergence \()?Planned \/ Unstarted/i,
       /Phase 6 and Phase 7\/7B remain Planned \/ Unstarted/i,
+      /awaiting owner (?:review and )?deployment/i,
+      /no Phase 6A deployment/i,
+      /Phase 6A has not been deployed/i,
+      /production remains (?:the owner-deployed )?Phase 5D/i,
+      /owner-deployed production source and release remain (?:the )?Phase 5D checkpoint/i,
+      /Phase 6A HostPapa (?:deployment |release )?candidate/i,
+      /final Phase 6A HostPapa candidate review and owner deployment/i,
+      /deployment candidate has not been deployed/i,
     ];
     for (const path of [
       "README.md", "roadmap.md", "PRODUCT.md", "docs/ARCHITECTURE.md",
@@ -225,10 +234,14 @@ describe("Phase 6A Correction 02 — truthful commercial presentation", () => {
     ]) {
       const doc = source(path);
       const current = currentBlocks(doc);
-      assert.ok(current.includes("Complete / Accepted Source"), path);
+      assert.ok(current.includes("Complete / Accepted Source / Accepted Release / Deployed by Owner"), path);
       assert.ok(current.includes("59e2e0ce9b56bc492d7c7a2bfc5a0df15fd58fea"), path);
-      assert.ok(current.includes("898adc36701f138b54787fa14caecf55321b453f"), path);
-      assert.ok(current.includes("2e166ed815010728d25a891939b84db4109ae65e"), path);
+      assert.ok(current.includes("Current owner-deployed production release: `b5cff4db4b6e087907a9733ffd841880439fbfdb`"), path);
+      assert.ok(current.includes("deployed runtime source: `2ae1a876018992649074cbed1ebf0560e4da03ff`"), path);
+      assert.ok(current.includes("Deployment is confirmed by the product owner."), path);
+      assert.ok(current.includes("no independent live-browser verification from the ChatGPT environment is claimed"), path);
+      assert.ok(current.includes("Phase 5D is a historical completed phase"), path);
+      assert.ok(doc.includes("Phase 6B — Operations Configuration Persistence (Planned / Unstarted / Next Engineering Lane)"), path);
       for (const phrase of stale) assert.ok(!phrase.test(current), `${path}: ${phrase}`);
       assert.ok(doc.includes("Planned / Unstarted"), path);
     }
@@ -237,5 +250,6 @@ describe("Phase 6A Correction 02 — truthful commercial presentation", () => {
     assert.ok(!/Check-in desk, analytics, CRM and operational simulation/.test(inventory));
     // An explicitly historical paragraph is outside the current-status contract.
     assert.equal(currentBlocks("## Historical review\nIn the prior review, Phase 6A was Implemented / Awaiting Independent Review."), "");
+    assert.equal(currentBlocks("## Historical deployment review\nBefore deployment, the Phase 6A HostPapa release candidate was awaiting owner deployment."), "");
   });
 });
