@@ -152,3 +152,9 @@ Key lifecycle behaviors:
   The `SettingsRepository` interface (`getPublishedContact`, `getContactDraft`, `saveContactDraft`, `discardContactDraft`, `getPublishedAppearance`, `getAppearanceDraft`, `saveAppearanceDraft`, `discardAppearanceDraft`, `subscribe`) is designed as a drop-in seam:
   - Phase 4C provides `LocalSettingsRepository` backed by `localStorage`.
   - In a future phase with a real backend, a `RemoteSettingsRepository` implementing the identical interface can be wired in with REST/GraphQL endpoints (`GET /api/v1/settings`, `POST /api/v1/settings/draft`), without changing any UI consumers in Admin Settings, Appearance Studio, or the public Contact page.
+
+## Accepted Phase 5D boundary
+
+`gza.contact.v1` stores enquiries only in browser-local storage. Public submissions do not transmit data to airport staff. Admin Inbox shares those records only within the same browser/storage origin, with no cross-device synchronization or server persistence. There is no backend Contact service, SMTP service or email reply delivery; replies are locally saved drafts. User-entered enquiries may contain real PII, which remains browser-local. Contact settings remain independent in `gza.settings.draft.v1`.
+
+Phase 5D is Complete / Accepted Source. Phase 6 — Admin Workflows Convergence is the next engineering lane and remains Planned / Unstarted, as do Phase 7 and Phase 7B.

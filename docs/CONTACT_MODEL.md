@@ -1,6 +1,6 @@
 # Contact Domain & Administrative Inbox Model (Phase 5D)
 
-> **Document Status**: Active Architecture Specification (Implemented in Phase 5D on feature branch `phase5d/public-contact-workflow-convergence`, awaiting independent Codex review)
+> **Document Status**: Active Architecture Specification (Phase 5D Complete / Accepted Source; final release awaiting independent release acceptance)
 > **Product**: Gaza Airport (`GZA`) & Palestinian Airlines (`PS`) — [gazaairport.com](https://www.gazaairport.com)
 > **Domain Aggregate**: Customer Contact Messages (`ContactMessage`) & Administrative Inbox Workflow
 > **Canonical Storage Key**: `localStorage["gza.contact.v1"]`
@@ -175,4 +175,10 @@ To prevent accidental double-submissions while maintaining strict data integrity
 - Public field errors and save failures are localized, technical inputs stay LTR, invalid fields carry `aria-invalid`, and keyboard focus moves to the first invalid field or the success/preview heading.
 - Compiled seeds are synthetic. User-entered enquiries may contain real names/emails/text and remain local to that browser. No form payload is logged, transmitted, placed in URLs or baked into static output.
 
-Phase 5D remains implemented on its feature branch, awaiting independent acceptance. The correction changes no production/release refs and starts no later phase.
+Phase 5D is Complete / Accepted Source. Source reconciliation and a fresh final release package follow engineering acceptance; deployment remains pending independent release acceptance. Phase 6, Phase 7 and Phase 7B remain Planned / Unstarted.
+
+## Accepted Phase 5D boundary
+
+`gza.contact.v1` stores enquiries only in browser-local storage. Public submissions do not transmit data to airport staff. Admin Inbox shares those records only within the same browser/storage origin, with no cross-device synchronization or server persistence. There is no backend Contact service, SMTP service or email reply delivery; replies are locally saved drafts. User-entered enquiries may contain real PII, which remains browser-local. Contact settings remain independent in `gza.settings.draft.v1`.
+
+Phase 5D is Complete / Accepted Source. Phase 6 — Admin Workflows Convergence is the next engineering lane and remains Planned / Unstarted, as do Phase 7 and Phase 7B.
