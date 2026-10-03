@@ -330,6 +330,6 @@ To guarantee that heavy admin fixtures and editor metadata do not leak into publ
 
 **Current hardening notes:** `RepositoryProvider`, individual query hooks, and mutation success handlers invalidate relevant query keys upon write. `BookingRepository.list()` returns a new array and `getByRef()` a shallow object copy. Current migrated readers do not mutate those values directly; mutations flow exclusively through typed repository commands.
 
-## Phase 5D production checkpoint
+## Phase 5D production checkpoint and Phase 6A accepted source
 
-Phase 5D is Complete / Accepted Source / Deployed by Owner. The owner manually deployed accepted HostPapa release `898adc36701f138b54787fa14caecf55321b453f`, built from production source `2e166ed815010728d25a891939b84db4109ae65e`. Current main includes that implementation plus this documentation-only production-truth reconciliation; the deployed source and release remain unchanged. No independent live browser verification is claimed.
+Phase 5D is Complete / Accepted Source / Deployed by Owner. The owner manually deployed accepted HostPapa release `898adc36701f138b54787fa14caecf55321b453f`, built from production source `2e166ed815010728d25a891939b84db4109ae65e`. The owner-deployed production source and release remain unchanged. Phase 6A — Admin Commercial Desk Convergence — is Complete / Accepted Source (accepted engineering SHA: `59e2e0ce9b56bc492d7c7a2bfc5a0df15fd58fea`); it has been reconciled onto main via ff-only merge. A final Phase 6A HostPapa release candidate is prepared and awaiting owner deployment. No independent live browser verification is claimed.

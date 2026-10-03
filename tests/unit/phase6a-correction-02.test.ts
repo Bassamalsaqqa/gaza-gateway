@@ -191,11 +191,15 @@ describe("Phase 6A Correction 02 — truthful commercial presentation", () => {
       assert.ok(text.includes("commercialFieldErrors"));
     }
   });
-  test("Phase 6A documentation records feature publication without acceptance", () => {
+  test("Phase 6A documentation records accepted source status", () => {
     const doc = source("docs/DATA_FLOW.md");
     assert.ok(!/Phase 6A is uncommitted and unstaged/.test(doc));
-    assert.ok(doc.includes("Implemented / Awaiting Independent Review"));
+    assert.ok(!/Implemented \/ Awaiting Independent Review/.test(doc));
+    assert.ok(doc.includes("Complete / Accepted Source"));
+    assert.ok(doc.includes("59e2e0ce9b56bc492d7c7a2bfc5a0df15fd58fea"));
     assert.ok(doc.includes("898adc36701f138b54787fa14caecf55321b453f"));
     assert.ok(doc.includes("2e166ed815010728d25a891939b84db4109ae65e"));
+    // Phase 6B/6C/7/7B remain Planned / Unstarted
+    assert.ok(/Phase 6B[^.]+Planned \/ Unstarted/.test(doc));
   });
 });

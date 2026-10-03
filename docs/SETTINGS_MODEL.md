@@ -157,8 +157,8 @@ Key lifecycle behaviors:
 
 `gza.contact.v1` stores enquiries only in browser-local storage. Public submissions do not transmit data to airport staff. Admin Inbox shares those records only within the same browser/storage origin, with no cross-device synchronization or server persistence. There is no backend Contact service, SMTP service or email reply delivery; replies are locally saved drafts. User-entered enquiries may contain real PII, which remains browser-local. Contact settings remain independent in `gza.settings.draft.v1`.
 
-Phase 5D is Complete / Accepted Source / Deployed by Owner. Phase 6A — Admin Commercial Desk Convergence (Implemented / Awaiting Independent Review). Phase 6B (Operations Configuration Persistence), Phase 6C (Admin Directory Staff & Activity Convergence), Phase 7, and Phase 7B remain Planned / Unstarted.
+Phase 5D is Complete / Accepted Source / Deployed by Owner. Phase 6A — Admin Commercial Desk Convergence — is Complete / Accepted Source (accepted engineering SHA: `59e2e0ce9b56bc492d7c7a2bfc5a0df15fd58fea`). Phase 6B (Operations Configuration Persistence), Phase 6C (Admin Directory Staff & Activity Convergence), Phase 7, and Phase 7B remain Planned / Unstarted.
 
-## Phase 5D production checkpoint
+## Phase 5D production checkpoint and Phase 6A accepted source
 
-Phase 5D is Complete / Accepted Source / Deployed by Owner. The owner manually deployed accepted HostPapa release `898adc36701f138b54787fa14caecf55321b453f`, built from production source `2e166ed815010728d25a891939b84db4109ae65e`. Current main includes that implementation plus this documentation-only production-truth reconciliation; the deployed source and release remain unchanged. No independent live browser verification is claimed.
+Phase 5D is Complete / Accepted Source / Deployed by Owner. The owner manually deployed accepted HostPapa release `898adc36701f138b54787fa14caecf55321b453f`, built from production source `2e166ed815010728d25a891939b84db4109ae65e`. The owner-deployed production source and release remain unchanged. Phase 6A accepted source (`59e2e0ce9b56bc492d7c7a2bfc5a0df15fd58fea`) has been reconciled onto main via ff-only merge; a final Phase 6A HostPapa release candidate is prepared and awaiting owner deployment. No independent live browser verification is claimed.
