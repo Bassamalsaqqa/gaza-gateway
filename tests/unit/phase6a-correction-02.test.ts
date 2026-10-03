@@ -202,4 +202,40 @@ describe("Phase 6A Correction 02 — truthful commercial presentation", () => {
     // Phase 6B/6C/7/7B remain Planned / Unstarted
     assert.ok(/Phase 6B[^.]+Planned \/ Unstarted/.test(doc));
   });
+  test("authoritative current-status blocks consistently record accepted Phase 6A", () => {
+    // Scope current metadata, status tables and checkpoint paragraphs, not historical audits.
+    const currentBlocks = (doc: string) => doc.split(/\r?\n/).filter((line) =>
+      /^> \*\*(?:Engineering Status|Current Status|Document Status|Status|Production \/ Source Checkpoint|Immediate Next Step)\*\*:/.test(line) ||
+      /^\|.*Phase 6A/.test(line) ||
+      /^Phase 5D is Complete/.test(line) ||
+      /^- \*\*(?:Master Roadmap Progression|Accepted Phase 5D Production \/ Source Checkpoint)\*\*:/.test(line),
+    ).join("\n");
+    const stale = [
+      /Implemented \/ Awaiting Independent Review/i,
+      /Implemented \/ Awaiting Review/i,
+      /Phase 6A remains on its feature branch awaiting (?:independent )?review/i,
+      /Independent review of Phase 6A/i,
+      /Phase 6 (?:— Admin Workflows Convergence \()?Planned \/ Unstarted/i,
+      /Phase 6 and Phase 7\/7B remain Planned \/ Unstarted/i,
+    ];
+    for (const path of [
+      "README.md", "roadmap.md", "PRODUCT.md", "docs/ARCHITECTURE.md",
+      "docs/CANONICAL_REPOSITORIES.md", "docs/DATA_FLOW.md", "docs/SETTINGS_MODEL.md",
+      "docs/CONTACT_MODEL.md", "docs/CONTENT_MODEL.md",
+    ]) {
+      const doc = source(path);
+      const current = currentBlocks(doc);
+      assert.ok(current.includes("Complete / Accepted Source"), path);
+      assert.ok(current.includes("59e2e0ce9b56bc492d7c7a2bfc5a0df15fd58fea"), path);
+      assert.ok(current.includes("898adc36701f138b54787fa14caecf55321b453f"), path);
+      assert.ok(current.includes("2e166ed815010728d25a891939b84db4109ae65e"), path);
+      for (const phrase of stale) assert.ok(!phrase.test(current), `${path}: ${phrase}`);
+      assert.ok(doc.includes("Planned / Unstarted"), path);
+    }
+    const inventory = source("docs/CONTENT_MODEL.md");
+    assert.match(inventory, /Admin Check-in Desk[^\n]+Canonical repository-backed functionality/);
+    assert.ok(!/Check-in desk, analytics, CRM and operational simulation/.test(inventory));
+    // An explicitly historical paragraph is outside the current-status contract.
+    assert.equal(currentBlocks("## Historical review\nIn the prior review, Phase 6A was Implemented / Awaiting Independent Review."), "");
+  });
 });
