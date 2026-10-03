@@ -4,7 +4,8 @@ import {
   ServiceValue,
   CommercialSeatPicker,
 } from "@/components/admin/commercial-fields";
-import { commercialErrorKey } from "@/lib/domain/commercial-errors";
+import { commercialErrorKey, commercialFieldErrors } from "@/lib/domain/commercial-errors";
+import { validateUpdateSeatsAssignments } from "@/lib/domain/seat-validation";
 import { validateBookingContact } from "@/lib/domain/booking-validation";
 import { mealOptions, cabins, fares } from "@/lib/data";
 import {
@@ -104,6 +105,7 @@ function AdminBookingDetailPage() {
   const [editSeats, setEditSeats] = useState<Record<string, string>>({});
   const [editExtras, setEditExtras] = useState<PaxExtras[]>([]);
   const [sheetError, setSheetError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const booking = useMemo<AdaptedAdminBooking | undefined>(() => {
     if (canonicalBooking) return bookingToMockBooking(canonicalBooking);
     return undefined;
@@ -171,6 +173,7 @@ function AdminBookingDetailPage() {
             phone: canonicalBooking?.contact.phone || "",
           });
           setSheetError(null);
+          setFieldErrors({});
           setSheet("contact");
         }}
       >
@@ -189,6 +192,7 @@ function AdminBookingDetailPage() {
           });
           setEditSeats(s);
           setSheetError(null);
+          setFieldErrors({});
           setSheet("seat");
         }}
       >
@@ -204,6 +208,7 @@ function AdminBookingDetailPage() {
             ) ?? [],
           );
           setSheetError(null);
+          setFieldErrors({});
           setSheet("extras");
         }}
       >
@@ -669,10 +674,14 @@ function AdminBookingDetailPage() {
                     validateBookingContact(editContact);
                   } catch (error) {
                     setSheetError(t(commercialErrorKey(error)));
-                    requestAnimationFrame(() => document.getElementById("bd-email")?.focus());
+                    setFieldErrors(commercialFieldErrors(error));
+                    requestAnimationFrame(() =>
+                      document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus(),
+                    );
                     return;
                   }
                   setSheetError(null);
+                  setFieldErrors({});
                   updateContactMutation.mutate(
                     {
                       ref: canonicalBooking.ref,
@@ -689,12 +698,27 @@ function AdminBookingDetailPage() {
                       onError: (err) => {
                         const msg = t(commercialErrorKey(err));
                         setSheetError(msg);
+                        setFieldErrors(commercialFieldErrors(err));
                         toast(msg);
                       },
                     },
                   );
                 } else if (sheet === "seat") {
                   setSheetError(null);
+                  setFieldErrors({});
+                  try {
+                    validateUpdateSeatsAssignments(canonicalBooking, editSeats, {
+                      outbound: canonicalBooking.outbound,
+                      inbound: canonicalBooking.inbound,
+                    });
+                  } catch (error) {
+                    setSheetError(t(commercialErrorKey(error)));
+                    setFieldErrors(commercialFieldErrors(error));
+                    requestAnimationFrame(() =>
+                      document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus(),
+                    );
+                    return;
+                  }
                   updateSeatsMutation.mutate(
                     {
                       ref: canonicalBooking.ref,
@@ -708,12 +732,14 @@ function AdminBookingDetailPage() {
                       onError: (err) => {
                         const msg = t(commercialErrorKey(err));
                         setSheetError(msg);
+                        setFieldErrors(commercialFieldErrors(err));
                         toast(msg);
                       },
                     },
                   );
                 } else if (sheet === "extras") {
                   setSheetError(null);
+                  setFieldErrors({});
                   const canonicalPax = editExtras.map((px) => ({
                     extraBags:
                       Number.isInteger(px.extraBags) && px.extraBags >= 0
@@ -736,6 +762,7 @@ function AdminBookingDetailPage() {
                       onError: (err) => {
                         const msg = t(commercialErrorKey(err));
                         setSheetError(msg);
+                        setFieldErrors(commercialFieldErrors(err));
                         toast(msg);
                       },
                     },
@@ -765,7 +792,7 @@ function AdminBookingDetailPage() {
           <div className="space-y-3">
             <Field label={t("a2.cu.email")} htmlFor="bd-email">
               <CommercialInput
-                error={sheetError ? "a6.err.contact" : undefined}
+                error={fieldErrors["email"]}
                 id="bd-email"
                 dir="ltr"
                 type="email"
@@ -774,7 +801,8 @@ function AdminBookingDetailPage() {
               />
             </Field>
             <Field label={t("a2.cu.phone")} htmlFor="bd-phone">
-              <Input
+              <CommercialInput
+                error={fieldErrors["phone"]}
                 id="bd-phone"
                 dir="ltr"
                 value={editContact.phone}
@@ -816,7 +844,8 @@ function AdminBookingDetailPage() {
                           <AdminChip tone="brand">{t("a2.ci.st.done")}</AdminChip>
                         </div>
                       ) : (
-                        <Input
+                        <CommercialInput
+                          error={fieldErrors[`out-${pIdx}`]}
                           id={`bd-seat-out-${p.id}`}
                           dir="ltr"
                           value={editSeats[`out-${pIdx}`] || ""}
@@ -863,7 +892,8 @@ function AdminBookingDetailPage() {
                             <AdminChip tone="brand">{t("a2.ci.st.done")}</AdminChip>
                           </div>
                         ) : (
-                          <Input
+                          <CommercialInput
+                            error={fieldErrors[`in-${pIdx}`]}
                             id={`bd-seat-in-${p.id}`}
                             dir="ltr"
                             value={editSeats[`in-${pIdx}`] || ""}

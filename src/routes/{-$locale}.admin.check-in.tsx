@@ -15,7 +15,8 @@ import {
   ServiceValue,
   CommercialSeatPicker,
 } from "@/components/admin/commercial-fields";
-import { commercialErrorKey } from "@/lib/domain/commercial-errors";
+import { validateUpdateSeatsAssignments } from "@/lib/domain/seat-validation";
+import { commercialErrorKey, commercialFieldErrors } from "@/lib/domain/commercial-errors";
 import { Field, Input, btnClass } from "@/components/kit";
 import {
   AdminChip,
@@ -41,6 +42,7 @@ import {
 } from "@/lib/repositories/queries";
 import {
   buildAdminCheckInRows,
+  adminCheckInStatusKey,
   sanitizeAdminCheckInSearch,
   type AdminCheckInRow,
   type DeskPassengerStatus,
@@ -122,6 +124,7 @@ function AdminCheckInPage() {
   const [sheetDoc, setSheetDoc] = useState("");
   const [sheetSeat, setSheetSeat] = useState("");
   const [mutationError, setMutationError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   // Pure rows selector
   const allRows = useMemo(
@@ -165,6 +168,7 @@ function AdminCheckInPage() {
     setSheetDoc(r.document || "");
     setSheetSeat(r.seat || "");
     setMutationError(null);
+    setFieldErrors({});
   };
 
   const handleCompleteCheckIn = (
@@ -176,15 +180,45 @@ function AdminCheckInPage() {
     const seatToUse = seatOverride ?? r.seat;
 
     if (!docToUse || !docToUse.trim()) {
-      openSheetFor(r);
+      if (!sheetRow) openSheetFor(r);
+      setFieldErrors({ "sheet-ci-doc": "a6.err.passengers" });
+      requestAnimationFrame(() => document.getElementById("sheet-ci-doc")?.focus());
       return;
     }
     if (!seatToUse || !seatToUse.trim()) {
-      openSheetFor(r);
+      if (!sheetRow) openSheetFor(r);
+      setFieldErrors({ "sheet-ci-seat": "a6.err.seats" });
+      requestAnimationFrame(() => document.getElementById("sheet-ci-seat")?.focus());
       return;
     }
 
     setMutationError(null);
+    setFieldErrors({});
+    try {
+      validateUpdateSeatsAssignments(
+        r.booking,
+        {
+          ...r.booking.seats,
+          [`${r.leg}-${r.paxIndex}`]: seatToUse.trim().toUpperCase(),
+        },
+        {
+          outbound: r.leg === "out" ? currentFlight : r.booking.outbound,
+          inbound: r.leg === "in" ? currentFlight : r.booking.inbound,
+        },
+      );
+    } catch (error) {
+      setMutationError(t(commercialErrorKey(error)));
+      const fields = commercialFieldErrors(error);
+      setFieldErrors(
+        fields[`${r.leg}-${r.paxIndex}`]
+          ? { "sheet-ci-seat": fields[`${r.leg}-${r.paxIndex}`]! }
+          : {},
+      );
+      requestAnimationFrame(() =>
+        document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus(),
+      );
+      return;
+    }
     completeCheckInMutation.mutate(
       {
         ref: r.ref,
@@ -201,6 +235,12 @@ function AdminCheckInPage() {
         onError: (err) => {
           const msg = t(commercialErrorKey(err));
           setMutationError(msg);
+          const fields = commercialFieldErrors(err);
+          setFieldErrors(
+            fields[`${r.leg}-${r.paxIndex}`]
+              ? { "sheet-ci-seat": fields[`${r.leg}-${r.paxIndex}`]! }
+              : {},
+          );
           toast(msg);
         },
       },
@@ -225,13 +265,7 @@ function AdminCheckInPage() {
     );
   };
 
-  const statusLabel = (s: DeskPassengerStatus) => {
-    if (s === "done") return t("a2.ci.st.done");
-    if (s === "ready") return t("a2.ci.st.ready");
-    if (s === "docs") return t("a2.ci.st.docs");
-    if (s === "seat") return t("a2.ci.st.seat");
-    return t("a2.ci.st.closed");
-  };
+  const statusLabel = (row: AdminCheckInRow) => t(adminCheckInStatusKey(row));
 
   const actionsFor = (r: AdminCheckInRow) => (
     <div className="flex flex-wrap gap-1.5">
@@ -253,7 +287,7 @@ function AdminCheckInPage() {
           </AppLink>
         </>
       ) : r.status === "closed" ? (
-        <span className="text-xs text-muted-foreground self-center">{statusLabel(r.status)}</span>
+        <span className="text-xs text-muted-foreground self-center">{statusLabel(r)}</span>
       ) : (
         <PermissionButton
           allowed={mayEdit && !completeCheckInMutation.isPending}
@@ -305,10 +339,11 @@ function AdminCheckInPage() {
             />
             <div className="flex items-center gap-2 ms-auto">
               <label htmlFor="desk-date" className="text-xs font-semibold text-muted-foreground">
-                <Ltr>{t("flights.date")}</Ltr>
+                {t("flights.date")}
               </label>
               <Input
                 id="desk-date"
+                dir="ltr"
                 type="date"
                 value={date}
                 onChange={(e) => {
@@ -348,7 +383,10 @@ function AdminCheckInPage() {
                       <Ltr>{`${f.departTime} · ${f.number}`}</Ltr>
                     </span>
                     <span className="block text-muted-foreground">
-                      <Ltr>{`GZA → ${f.destinationCode} · ${t("a2.se.gates")} ${f.gate || "A1"}`}</Ltr>
+                      <Ltr>{`GZA → ${f.destinationCode}`}</Ltr> · {t("a2.se.gates")}{" "}
+                      <span data-testid={`desk-gate-${f.id}`}>
+                        <Ltr>{f.gate || "—"}</Ltr>
+                      </span>
                     </span>
                     <span className="block text-muted-foreground">
                       <Ltr>{`${counts.checkedIn}/${counts.booked}`}</Ltr>
@@ -425,7 +463,7 @@ function AdminCheckInPage() {
                         <ServiceValue value={r.assistance} kind="assistance" />
                       </GazaTableCell>
                       <GazaTableCell className="px-3 py-2">
-                        <AdminChip tone={statusTone(r.status)}>{statusLabel(r.status)}</AdminChip>
+                        <AdminChip tone={statusTone(r.status)}>{statusLabel(r)}</AdminChip>
                       </GazaTableCell>
                       <GazaTableCell className="px-3 py-2">{actionsFor(r)}</GazaTableCell>
                     </GazaTableRow>
@@ -446,7 +484,7 @@ function AdminCheckInPage() {
                       {r.name}
                     </button>
                     <Ltr className="text-xs text-muted-foreground">{r.ref}</Ltr>
-                    <AdminChip tone={statusTone(r.status)}>{statusLabel(r.status)}</AdminChip>
+                    <AdminChip tone={statusTone(r.status)}>{statusLabel(r)}</AdminChip>
                   </div>
                   <p className="text-xs text-muted-foreground">
                     <Ltr>{r.seat ?? "—"}</Ltr> · {t("a2.bd.bags")} <Ltr>{r.bags}</Ltr> ·{" "}
@@ -476,12 +514,7 @@ function AdminCheckInPage() {
             </button>
             {sheetRow && sheetRow.status !== "done" && sheetRow.status !== "closed" ? (
               <PermissionButton
-                allowed={
-                  mayEdit &&
-                  !completeCheckInMutation.isPending &&
-                  Boolean(sheetDoc.trim()) &&
-                  Boolean(sheetSeat.trim())
-                }
+                allowed={mayEdit && !completeCheckInMutation.isPending}
                 reason={t("adm.edit.readOnly")}
                 variant="primary"
                 onClick={() => {
@@ -517,9 +550,7 @@ function AdminCheckInPage() {
               <div>
                 <dt className="text-xs font-semibold text-muted-foreground">{t("a2.status")}</dt>
                 <dd>
-                  <AdminChip tone={statusTone(sheetRow.status)}>
-                    {statusLabel(sheetRow.status)}
-                  </AdminChip>
+                  <AdminChip tone={statusTone(sheetRow.status)}>{statusLabel(sheetRow)}</AdminChip>
                 </dd>
               </div>
               <div>
@@ -544,7 +575,7 @@ function AdminCheckInPage() {
               <div className="pt-3 border-t border-border space-y-3">
                 <Field label={t("a2.ci.docs")} htmlFor="sheet-ci-doc">
                   <CommercialInput
-                    error={mutationError ? "a6.err.passengers" : undefined}
+                    error={fieldErrors["sheet-ci-doc"]}
                     aria-required="true"
                     id="sheet-ci-doc"
                     dir="ltr"
@@ -555,7 +586,7 @@ function AdminCheckInPage() {
                 </Field>
                 <Field label={t("a2.bd.seat")} htmlFor="sheet-ci-seat">
                   <CommercialInput
-                    error={mutationError ? "a6.err.seats" : undefined}
+                    error={fieldErrors["sheet-ci-seat"]}
                     aria-required="true"
                     id="sheet-ci-seat"
                     dir="ltr"

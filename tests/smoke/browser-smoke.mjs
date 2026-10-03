@@ -1,4 +1,5 @@
 import {runCommercialChecks,counterTestFlight,availableSeat} from "./phase6a-commercial.mjs";
+import { runCommercialCorrection02Checks } from "./phase6a-correction-02.mjs";
 import {bookingTotal} from "../../src/lib/domain/pricing.ts";
 /**
  * Gaza Gateway — Browser Smoke Verification Script
@@ -7666,12 +7667,12 @@ async function runBrowserSmoke() {
         await page.fill("#pax-0-seat", availableSeat(counterFlight));
         await page.fill("#pax-0-bags", "1");
 
-        // Step 4 -> Step 5 (Review & Issue)
-        const nextToStep5 = page.getByRole("button", { name: /Next: Review & Issue|التالي: المراجعة والإصدار/i });
+        // Step 4 -> Step 5 (Review)
+        const nextToStep5 = page.getByRole("button", { name: /Next: Review$|التالي: المراجعة$/i });
         await nextToStep5.click();
 
         // Step 5: Review summary
-        const issueBtn = page.getByRole("button", { name: /Issue Ticket at Desk|إصدار التذكرة في المكتب/i });
+        const issueBtn = page.getByRole("button", { name: /Create desk booking|إنشاء حجز بالمكتب/i });
         await issueBtn.waitFor({ state: "visible", timeout: 8000 });
         await issueBtn.click();
 
@@ -7744,6 +7745,7 @@ async function runBrowserSmoke() {
     });
 
     await runCommercialChecks({checkStep,browser,baseUrl});
+    await runCommercialCorrection02Checks({checkStep,browser,baseUrl});
 
   } finally {
     await browser.close();

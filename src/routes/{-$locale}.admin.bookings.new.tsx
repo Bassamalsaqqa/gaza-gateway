@@ -6,13 +6,12 @@ import {
   CommercialSeatPicker,
 } from "@/components/admin/commercial-fields";
 import {
-  BookingInputError,
   validateBookingParty,
   validateBookingContact,
   validateBookingExtras,
 } from "@/lib/domain/booking-validation";
 import { validateUpdateSeatsAssignments } from "@/lib/domain/seat-validation";
-import { commercialErrorKey } from "@/lib/domain/commercial-errors";
+import { commercialErrorKey, commercialFieldErrors } from "@/lib/domain/commercial-errors";
 import { Check } from "lucide-react";
 import { AppLink } from "@/components/app-link";
 import { Field, Input, Select, btnClass } from "@/components/kit";
@@ -246,20 +245,34 @@ function AdminNewBookingPage() {
       return true;
     }
     setFormError(err);
-    if (index === 2) {
+    setFieldErrors({});
+    if (index === 2 || index === 3) {
       try {
-        validateBookingParty(passengers);
-        validateBookingContact(contact);
+        if (index === 2) {
+          validateBookingParty(passengers);
+          validateBookingContact(contact);
+        } else if (previewBooking && chosenFlight) {
+          validateBookingExtras({ pax: extrasPax }, passengers.length);
+          validateUpdateSeatsAssignments({ ...previewBooking, seats: {} }, seats, {
+            outbound: chosenFlight,
+            inbound: null,
+          });
+        }
       } catch (error) {
-        if (error instanceof BookingInputError)
-          setFieldErrors(
-            Object.fromEntries(
-              Object.entries(error.fields).map(([key, value]) => [
-                key === "email" ? "nb-contact-email" : key === "phone" ? "nb-contact-phone" : key,
-                value,
-              ]),
-            ),
-          );
+        setFieldErrors(
+          Object.fromEntries(
+            Object.entries(commercialFieldErrors(error)).map(([key, value]) => [
+              key === "email"
+                ? "nb-contact-email"
+                : key === "phone"
+                  ? "nb-contact-phone"
+                  : key.startsWith("out-")
+                    ? `pax-${key.slice(4)}-seat`
+                    : key,
+              value,
+            ]),
+          ),
+        );
       }
     }
     requestAnimationFrame(() => {
@@ -335,6 +348,7 @@ function AdminNewBookingPage() {
       onError: (e) => {
         const msg = t(commercialErrorKey(e));
         setFormError(msg);
+        setFieldErrors({});
         toast(msg);
       },
     });

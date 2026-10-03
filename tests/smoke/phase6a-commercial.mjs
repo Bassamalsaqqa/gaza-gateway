@@ -259,14 +259,18 @@ export async function runCommercialChecks({ checkStep, browser, baseUrl }) {
         assert.equal(await page.locator("#nb-contact-email").getAttribute("dir"), "ltr");
         await page.getByRole("button", { name: /التالي: المقاعد والإضافات/ }).click();
         await page.fill("#pax-0-seat", "1A");
-        await page.getByRole("button", { name: /التالي: المراجعة والإصدار/ }).click();
+        await page.getByRole("button", { name: /التالي: المراجعة/ }).click();
         await page.getByRole("alert").waitFor();
+        assert.equal(await page.locator("#pax-0-seat").getAttribute("aria-invalid"), "true");
+        assert.equal(await page.locator("#pax-0-seat").getAttribute("aria-describedby"), "pax-0-seat-error");
+        assert.ok((await page.locator("#pax-0-seat-error").innerText()).trim());
+        assert.equal(await page.locator("#pax-0-seat").evaluate(el => document.activeElement === el), true);
         assert.equal(
-          await page.getByRole("button", { name: /إصدار التذكرة في المكتب/ }).count(),
+          await page.getByRole("button", { name: /إنشاء حجز بالمكتب/ }).count(),
           0,
         );
         await page.fill("#pax-0-seat", availableSeat(f));
-        await page.getByRole("button", { name: /التالي: المراجعة والإصدار/ }).click();
+        await page.getByRole("button", { name: /التالي: المراجعة/ }).click();
         await page.evaluate(() => {
           window.__attempts = [];
           window.__failRepo = true;
@@ -280,7 +284,7 @@ export async function runCommercialChecks({ checkStep, browser, baseUrl }) {
             return original.call(this, k, v);
           };
         });
-        await page.getByRole("button", { name: /إصدار التذكرة في المكتب/ }).click();
+        await page.getByRole("button", { name: /إنشاء حجز بالمكتب/ }).click();
         await page.getByRole("alert").waitFor();
         assert.equal(
           (await page.evaluate(() => JSON.parse(localStorage.getItem("gza.repo.v1")).bookings))
@@ -290,7 +294,7 @@ export async function runCommercialChecks({ checkStep, browser, baseUrl }) {
         await page.evaluate(() => {
           window.__failRepo = false;
         });
-        await page.getByRole("button", { name: /إصدار التذكرة في المكتب/ }).click();
+        await page.getByRole("button", { name: /إنشاء حجز بالمكتب/ }).click();
         await page.locator("main .text-3xl").waitFor();
         const attempts = await page.evaluate(() => window.__attempts);
         assert.equal(attempts.length, 2);
@@ -345,8 +349,8 @@ export async function runCommercialChecks({ checkStep, browser, baseUrl }) {
         await page.fill("#pax-0-dob", "1980-01-01");
         await page.fill("#nb-contact-email", "viewer@example.com");
         await page.getByRole("button", { name: /Next: Seats & Extras/i }).click();
-        await page.getByRole("button", { name: /Next: Review & Issue/i }).click();
-        const create = page.getByRole("button", { name: /Issue Ticket/i });
+        await page.getByRole("button", { name: /Next: Review$/i }).click();
+        const create = page.getByRole("button", { name: /Create desk booking/i });
         await create.waitFor();
         assert.equal(await create.count(), 1);
         assert.equal(await create.isDisabled(), true);

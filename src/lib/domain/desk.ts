@@ -12,6 +12,16 @@ import { type CheckInEligibilityResult, getCheckInEligibility } from "./check-in
 
 export type DeskPassengerStatus = "done" | "closed" | "docs" | "seat" | "ready";
 
+/** Presentation only; timing and operational eligibility are supplied by the canonical policy. */
+export function adminCheckInStatusKey(
+  row: Pick<AdminCheckInRow, "status" | "eligibility">,
+): string {
+  if (row.status !== "closed") return `a2.ci.st.${row.status}`;
+  if (row.eligibility.reason === "too_early") return "a2.ci.st.early";
+  if (row.eligibility.reason === "closed") return "a2.ci.st.closed";
+  return "a2.ci.st.unavailable";
+}
+
 export function sanitizeAdminCheckInSearch(search: Record<string, unknown>): {
   date?: string | undefined;
   ref?: string | undefined;

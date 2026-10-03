@@ -1,5 +1,14 @@
 import { BookingCreationError } from "./booking.ts";
 import { BookingInputError } from "./booking-validation.ts";
+import { SeatValidationError } from "./seat-validation.ts";
+
+/** Only explicit domain validation carries field identity. Storage/general errors carry none. */
+export function commercialFieldErrors(error: unknown): Record<string, string> {
+  if (error instanceof BookingInputError) return error.fields;
+  if (error instanceof SeatValidationError)
+    return Object.fromEntries(error.seatKeys.map((key) => [key, commercialErrorKey(error)]));
+  return {};
+}
 
 /** Presentation mapping only: expected legacy command errors never leak English in AR. */
 export function commercialErrorKey(error: unknown): string {

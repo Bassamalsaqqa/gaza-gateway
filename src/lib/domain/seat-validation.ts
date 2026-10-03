@@ -17,14 +17,18 @@
  * 8. Leg preservation: unrelated leg assignments are preserved.
  */
 
-import {
-  SEAT_LETTERS,
-  SEAT_ROWS,
-  cabinZone,
-  isSeatAvailable,
-  type Flight,
-} from "../data.ts";
+import { SEAT_LETTERS, SEAT_ROWS, cabinZone, isSeatAvailable, type Flight } from "../data.ts";
 import type { Booking, Leg } from "./booking.ts";
+
+/** Field identity for presentation; existing seat rules and error messages remain authoritative. */
+export class SeatValidationError extends Error {
+  readonly seatKeys: string[];
+  constructor(message: string, seatKeys: string[]) {
+    super(message);
+    this.name = "SeatValidationError";
+    this.seatKeys = seatKeys;
+  }
+}
 
 export interface ParsedSeatCode {
   row: number;
@@ -108,58 +112,60 @@ export function validateSeatAssignment({
   flight: Flight;
   isSameOwnerExistingSeat: boolean;
 }): void {
-  // 1. Leg existence
-  if (leg === "in" && !booking.inbound) {
-    throw new Error(
-      `Cannot assign seat on inbound leg: booking ${booking.ref} is a one-way trip.`,
-    );
-  }
-
-  // 2. Passenger existence
-  if (paxIndex < 0 || paxIndex >= booking.passengers.length) {
-    throw new Error(
-      `Invalid passenger index ${paxIndex} on booking ${booking.ref}.`,
-    );
-  }
-
-  const pax = booking.passengers[paxIndex];
-  if (!pax) {
-    throw new Error(`Passenger ${paxIndex} does not exist on booking ${booking.ref}.`);
-  }
-
-  // 3. Infant check
-  if (pax.type === "infant") {
-    throw new Error(
-      `Cannot assign seat to infant passenger at index ${paxIndex}. Infants travel on an adult's lap.`,
-    );
-  }
-
-  // 4. Seat syntax
-  const parsed = parseSeatCode(seat);
-  if (!parsed) {
-    throw new Error(
-      `Invalid seat syntax '${seat}' for passenger ${paxIndex} on leg ${leg}. Must be row (1-${SEAT_ROWS}) followed by letter (${SEAT_LETTERS.join("")}).`,
-    );
-  }
-
-  // 5. Cabin zone
-  const bookedCabin = booking.criteria.cabin;
-  if (!isSeatInCabinZone(parsed.row, bookedCabin)) {
-    const zone = cabinZone(bookedCabin);
-    throw new Error(
-      `Seat ${seat} is outside booked cabin zone '${bookedCabin}' (rows ${zone.firstRow}–${zone.lastRow}).`,
-    );
-  }
-
-  // 6. Availability check
-  // Retaining the SAME passenger's EXISTING canonical seat bypasses availability,
-  // but another passenger cannot acquire that privilege.
-  if (!isSameOwnerExistingSeat) {
-    if (!isSeatAvailable(flight.id, parsed.row, parsed.letter)) {
+  try {
+    // 1. Leg existence
+    if (leg === "in" && !booking.inbound) {
       throw new Error(
-        `Seat ${seat} is not available on flight ${flight.id}.`,
+        `Cannot assign seat on inbound leg: booking ${booking.ref} is a one-way trip.`,
       );
     }
+
+    // 2. Passenger existence
+    if (paxIndex < 0 || paxIndex >= booking.passengers.length) {
+      throw new Error(`Invalid passenger index ${paxIndex} on booking ${booking.ref}.`);
+    }
+
+    const pax = booking.passengers[paxIndex];
+    if (!pax) {
+      throw new Error(`Passenger ${paxIndex} does not exist on booking ${booking.ref}.`);
+    }
+
+    // 3. Infant check
+    if (pax.type === "infant") {
+      throw new Error(
+        `Cannot assign seat to infant passenger at index ${paxIndex}. Infants travel on an adult's lap.`,
+      );
+    }
+
+    // 4. Seat syntax
+    const parsed = parseSeatCode(seat);
+    if (!parsed) {
+      throw new Error(
+        `Invalid seat syntax '${seat}' for passenger ${paxIndex} on leg ${leg}. Must be row (1-${SEAT_ROWS}) followed by letter (${SEAT_LETTERS.join("")}).`,
+      );
+    }
+
+    // 5. Cabin zone
+    const bookedCabin = booking.criteria.cabin;
+    if (!isSeatInCabinZone(parsed.row, bookedCabin)) {
+      const zone = cabinZone(bookedCabin);
+      throw new Error(
+        `Seat ${seat} is outside booked cabin zone '${bookedCabin}' (rows ${zone.firstRow}–${zone.lastRow}).`,
+      );
+    }
+
+    // 6. Availability check
+    // Retaining the SAME passenger's EXISTING canonical seat bypasses availability,
+    // but another passenger cannot acquire that privilege.
+    if (!isSameOwnerExistingSeat) {
+      if (!isSeatAvailable(flight.id, parsed.row, parsed.letter)) {
+        throw new Error(`Seat ${seat} is not available on flight ${flight.id}.`);
+      }
+    }
+  } catch (error) {
+    if (error instanceof Error)
+      throw new SeatValidationError(error.message, [`${leg}-${paxIndex}`]);
+    throw error;
   }
 }
 
@@ -196,9 +202,7 @@ export function validateUpdateSeatsAssignments(
     }
 
     if (parsedKey.paxIndex < 0 || parsedKey.paxIndex >= booking.passengers.length) {
-      throw new Error(
-        `Invalid passenger index ${parsedKey.paxIndex} on booking ${booking.ref}.`,
-      );
+      throw new Error(`Invalid passenger index ${parsedKey.paxIndex} on booking ${booking.ref}.`);
     }
 
     const pax = booking.passengers[parsedKey.paxIndex];
@@ -210,16 +214,18 @@ export function validateUpdateSeatsAssignments(
 
     const parsed = parseSeatCode(seat);
     if (!parsed) {
-      throw new Error(
+      throw new SeatValidationError(
         `Invalid seat syntax '${seat}' for passenger ${parsedKey.paxIndex} on leg ${parsedKey.leg}. Must be row (1-${SEAT_ROWS}) followed by letter (${SEAT_LETTERS.join("")}).`,
+        [key],
       );
     }
 
     const bookedCabin = booking.criteria.cabin;
     if (!isSeatInCabinZone(parsed.row, bookedCabin)) {
       const zone = cabinZone(bookedCabin);
-      throw new Error(
+      throw new SeatValidationError(
         `Seat ${seat} is outside booked cabin zone '${bookedCabin}' (rows ${zone.firstRow}–${zone.lastRow}).`,
+        [key],
       );
     }
   }
@@ -305,7 +311,8 @@ export function validateUpdateSeatsAssignments(
     const parsedKey = parseSeatKey(key)!;
     const flight = parsedKey.leg === "in" ? flights.inbound : flights.outbound;
     if (flight) {
-      const isSameOwnerExistingSeat = booking.seats[`${parsedKey.leg}-${parsedKey.paxIndex}`] === seat;
+      const isSameOwnerExistingSeat =
+        booking.seats[`${parsedKey.leg}-${parsedKey.paxIndex}`] === seat;
       validateSeatAssignment({
         seat,
         paxIndex: parsedKey.paxIndex,
@@ -325,8 +332,9 @@ export function validateUpdateSeatsAssignments(
       const currentSeat = booking.seats[key];
       const newSeat = nextSeats[key];
       if (currentSeat !== newSeat) {
-        throw new Error(
+        throw new SeatValidationError(
           `Cannot change seat for checked-in passenger ${paxIdx} on leg ${leg}. Current: ${currentSeat ?? "none"}, Requested: ${newSeat ?? "none"}`,
+          [key],
         );
       }
     }
@@ -343,8 +351,9 @@ export function validateUpdateSeatsAssignments(
         const canonicalCode = parsed ? `${parsed.row}${parsed.letter}` : s;
         const existingOwner = seen.get(canonicalCode);
         if (existingOwner !== undefined) {
-          throw new Error(
+          throw new SeatValidationError(
             `Duplicate seat assignment ${s} for passengers ${existingOwner} and ${i} on leg ${leg}.`,
+            [`${leg}-${existingOwner}`, `${leg}-${i}`],
           );
         }
         seen.set(canonicalCode, i);
@@ -379,7 +388,9 @@ export function validateCheckInSeats(
         throw new Error(`Invalid passenger index ${paxIndex} in check-in seats.`);
       }
       if (!selectedPaxIndexes.includes(paxIndex)) {
-        throw new Error(`Cannot assign seat for unselected passenger index ${paxIndex} during check-in.`);
+        throw new Error(
+          `Cannot assign seat for unselected passenger index ${paxIndex} during check-in.`,
+        );
       }
 
       const pax = booking.passengers[paxIndex];
