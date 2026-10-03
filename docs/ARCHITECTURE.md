@@ -2,9 +2,9 @@
 
 > **Repository**: `Bassamalsaqqa/gaza-gateway`
 > **Production Domain**: `https://www.gazaairport.com`
-> **Engineering Status**: **Phase 5C, HC-2 and HC-3 Complete / Accepted Source on `main`.** Phase 5 remains in progress; Phase 5A, 5B, 5C, HC-0, HC-1, HC-2 and HC-3 are complete/accepted. Phase 5D — Public Contact Workflow Convergence is the next engineering lane and remains Planned / Unstarted; Phase 6 and Phase 7/7B remain Planned / Unstarted.
+> **Engineering Status**: **Phase 5C, HC-2 and HC-3 Complete / Accepted Source on `main`.** Phase 5 remains in progress; Phase 5A, 5B, 5C, HC-0, HC-1, HC-2 and HC-3 are complete/accepted. Phase 5D — Public Contact Workflow Convergence is implemented on feature branch `phase5d/public-contact-workflow-convergence` awaiting independent review (not accepted/complete); Phase 6 and Phase 7/7B remain Planned / Unstarted.
 > **Production / Source Checkpoint**: The owner reports deployment of the verified HostPapa package `86bb9d7ff5d05279824ecb495140bd294558e499`, built from accepted HC-3 implementation `e99fefa62d1be76050ec11ee962e1ea524b21974`. Source `main` contains that same implementation plus this documentation reconciliation, intentionally one documentation-only commit ahead of production source. No independent live browser verification is claimed; the release and production are unchanged by this reconciliation.
-> **Immediate Next Step**: Phase 5D — Public Contact Workflow Convergence (Planned / Unstarted).
+> **Immediate Next Step**: Independent review of Phase 5D — Public Contact Workflow Convergence; next engineering lane is Phase 6 — Admin Workflows Convergence (Planned / Unstarted).
 
 ---
 
@@ -52,12 +52,18 @@ Phase 4 resolved pre-existing public/admin state disconnects by introducing two 
    - Backed by `gza.passenger.v1` (`{ schemaVersion: 1, account: PassengerAccount | null, travelers: Traveler[] }`) with one-time migration from `gza.store.v1` only when the canonical passenger key is absent.
    - Present empty/cleared passenger state is authoritative and never resurrects legacy store records.
    - Enforces normalized lowercase email identity, profile email immutability, and deterministic stable traveler IDs (`crypto.randomUUID()` with fallback).
-   - Storage coordinator (`PassengerStorageCoordinator`): transactional writes with rollback on `StorageCommitError`, cross-tab synchronization via `storage` events, and isolated in-memory preview repository for Appearance Studio.
+5. **`ContactRepository` (`src/lib/contact/repository.ts`)**:
+   - Single source of truth and single writer for public contact enquiries and administrative inbox state.
+   - Backed by `gza.contact.v1` (`{ schemaVersion: 1, revision, messages: ContactMessage[] }`).
+   - Transactional mutations via `ContactStorageCoordinator`: serialized mutex queue, rollback on `StorageCommitError`, anti-resurrection of demo seeds on valid empty storage (`messages: []`), fail-safe malformed recovery without clobbering disk, and cross-tab synchronization.
+   - Exposes query methods (`list`, `getById`, `countNew`) and mutation methods (`create`, `setStatus`, `addInternalNote`, `setAssignee`, `saveReplyDraft`).
+   - Decoupled from `SettingsRepository` (`gza.settings.draft.v1`) and `BookingRepository` (`gza.repo.v1`).
 
-### 2.2 Post-Phase-5C Ownership Matrix
+### 2.2 Post-Phase-5D Ownership Matrix
 
-| Aggregate / Entity | Primary Writer | Primary Storage Key | Consumers (Public & Admin) | Phase 5C Boundary | Future Target |
+| Aggregate / Entity | Primary Writer | Primary Storage Key | Consumers (Public & Admin) | Phase 5D Boundary | Future Target |
 | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Contact Enquiries & Inbox** | `ContactRepository` (`src/lib/contact/`) | `gza.contact.v1` (`schemaVersion: 1`) | Public Contact (`/contact`), Admin Inbox (`/admin/inbox`), Admin Shell badge, Dashboard attention items | **Canonical Repository** (real local mutations; no email delivery or backend transport) | Phase 13 (Backend Support Desk / CRM) |
 | **Booking Draft** | `BookingDraftRepository` (`src/lib/booking-draft/`) | `gza.booking.draft.v1` (`schemaVersion: 1`) | Public Booking Wizard (`/book`), Flight Detail CTA (`/flight/$flightId`), Flight Search Form (`FlightSearchForm`) | **Canonical Repository** | Phase 13 (Backend Cart/Session) |
 | **Passenger State (Account & Travelers)** | `PassengerRepository` (`src/lib/passenger/`) | `gza.passenger.v1` (`account`, `travelers`) | Site Header, `/account/*`, `/book` (saved traveler pickers), `/signin`, `/register`, `/verify-email`, `/account/security` | **Canonical Repository** | Phase 13 (Backend Auth & DB) |
 | **Booking** | `BookingRepository` | `gza.repo.v1` (`bookings[]`) | Public confirmation, Manage Booking (`/manage/*`), Check-in (`/check-in`, `/manage/:ref/check-in`), Boarding Pass (`/boarding-pass/*`), Account Trips (`/account/trips`), Admin Bookings table/detail/search | **Canonical Repository** (typed commands: cancel, updateContact, updateSeats, updateExtras, completeCheckIn) | Phase 6 |
@@ -69,8 +75,8 @@ Phase 4 resolved pre-existing public/admin state disconnects by introducing two 
 | **Published Home, Travel, Past, Present editorial** | `src/content/published/` | Compiled typed source | Public Home, Travel, Airport Past (5 source-backed verified chapters), Airport Present; selected Admin read panels | **Canonical Published Content** | Phase 7 broader coverage |
 | **Historical Archive & Source Registry (HC-2 / HC-3)** | `src/lib/archive/` (`catalog.ts`, `sources.ts`, `schema.ts`, `types.ts`) | Compiled typed catalog & registry | Public Gallery (`/gallery`), Home archive spotlight, Airport Past documentary strips & sources panel (`/airport/past`) | **Canonical Archive Foundation** (67 catalog records, 37 public photographs, 1 public document, 4 verified external video references, explicit publication basis: `rights-cleared`, `product-owner-directed-display`, `external-embed`) | Phase 7B (Provenance Admin) |
 | **Local editorial draft** | `ContentRepository` | `gza.content.draft.v1` | Explicit preview and Admin Travel editor | **Browser-local, not published** | Future backend publication |
-| **Other CMS & stories** | Route/i18n source and `src/lib/admin-mock.ts` | Compiled source and static fixtures | Future, About, Contact, destinations | **Not yet converged** | Phase 7 |
-| **Settings (Contact & Appearance)** | `SettingsRepository` (`src/lib/settings/`) | `gza.settings.draft.v1` | Public Contact (`?settingsPreview=1`), Appearance Studio (`?skinPreview=1`), Admin Settings | **Authoritative Settings Draft** | Phase 5D / 6 |
+| **Other CMS & stories** | Route/i18n source and `src/lib/admin-mock.ts` | Compiled source and static fixtures | Future, About, destinations | **Not yet converged** | Phase 7 |
+| **Settings (Contact & Appearance)** | `SettingsRepository` (`src/lib/settings/`) | `gza.settings.draft.v1` | Public Contact (`?settingsPreview=1`), Appearance Studio (`?skinPreview=1`), Admin Settings | **Authoritative Settings Draft** | Complete (Phase 4C) |
 | **Appearance Legacy Key** | Read once for migration | `gza.skin.preview.v1` | Migrated once to canonical `gza.settings.draft.v1`; untouched; no dual writes | **Dormant Legacy Key** | Deprecated |
 
 ### 2.3 Simulation Boundary & Security Declarations

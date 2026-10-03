@@ -19,8 +19,9 @@ import {
 import { AppLink, usePathname } from "@/components/app-link";
 import { pick, useI18n } from "@/lib/i18n";
 import { stripLocale } from "@/lib/locale";
-import { adminNav, unreadEnquiries, type AdminNavItem, type AdminRole } from "@/lib/admin";
+import { adminNav, type AdminNavItem, type AdminRole } from "@/lib/admin";
 import { useAdmin } from "@/lib/admin-store";
+import { useContactNewCount } from "@/lib/contact";
 import { MARK_DARK_SRC, MARK_DARK_1X_SRC, MARK_DARK_2X_SRC } from "@/lib/media";
 import { cn } from "@/lib/utils";
 import { AdminChip, AdminToasts, GazaSheet } from "./admin-kit";
@@ -70,8 +71,10 @@ function NavLink({
   const permitted = can(item.permission);
   const active =
     item.to === "/admin" ? pathname === "/admin" : item.to ? pathname.startsWith(item.to) : false;
-  const hasInboxBadge = item.id === "inbox" && unreadEnquiries > 0;
-  const fullLabel = hasInboxBadge ? `${label} (${unreadEnquiries})` : label;
+  const { data: newContactCount = 0 } = useContactNewCount();
+  const inboxCount = item.id === "inbox" ? newContactCount : 0;
+  const hasInboxBadge = inboxCount > 0;
+  const fullLabel = hasInboxBadge ? `${label} (${inboxCount})` : label;
 
   const base = cn(
     "relative flex items-center gap-3 rounded-md text-sm font-medium transition-colors duration-150 motion-reduce:transition-none",
@@ -169,7 +172,7 @@ function NavLink({
       <span className="min-w-0 flex-1 truncate">{label}</span>
       {hasInboxBadge ? (
         <span className="ms-auto inline-flex items-center justify-center rounded-full bg-white/10 px-1.5 py-0.5 text-[0.65rem] font-bold tabular-nums text-[var(--admin-nav-accent)]">
-          {unreadEnquiries}
+          {inboxCount}
         </span>
       ) : null}
     </AppLink>

@@ -1,6 +1,6 @@
 # Canonical Mock Domain & Repository Architecture
 
-> **Document Status**: Active Reference (Phase 5 in progress — Phase 5A, Phase 5B, and Phase 5C complete on main; Phase 5D planned)
+> **Document Status**: Active Reference (Phase 5 in progress — Phase 5A, Phase 5B, and Phase 5C complete on main; Phase 5D implemented on feature branch awaiting independent review)
 > **Product**: Gaza Airport & Palestinian Airlines ([gazaairport.com](https://www.gazaairport.com))
 > **Phase 4 starting commits**: `9e36b869274830f84c97cbbefe3b3fb0a98c6d2e` (`main`); `92ad935f8477e1663eefa8282d2770c66b64b8b2` (`hostpapa-deploy`)
 > **Pre-operational Prototype Notice**: Gaza Gateway is an authentic, browser-local client-side prototype. It does not connect to a live backend database, payment gateway, GDS, or external server.
@@ -25,12 +25,15 @@ Phase 5C converges public Manage Trip, Check-in, and Boarding Pass surfaces onto
 - Multi-query hook `useBookingEffectiveFlights(booking)` subscribing to `FlightRepository` invalidation to keep operational flight status, gates, terminals, and revised departure times reactive without polling.
 - Pure boarding-pass view model (`buildBoardingPassViewModel`) with scheduled vs revised departure distinction, policy-derived `boardingOpensTime` ("Boarding opens"), and non-active operational treatments (Cancelled, Departed, Landed, Unavailable).
 
+Phase 5D converges public contact submissions and administrative inbox workflows onto `ContactRepository` (`src/lib/contact/repository.ts`) backed by `gza.contact.v1`, with transactional coordinator serialization, seed anti-resurrection on empty storage, cross-tab synchronization, and central React Query hooks.
+
 ---
 
-## 2. Post-Phase-5C Ownership Matrix
+## 2. Post-Phase-5D Ownership Matrix
 
 | Aggregate / Entity | Primary Writer | Primary Storage Key | Consumers (Public & Admin) | Current State | Future Migration Target |
 | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Contact Enquiries & Inbox** | `ContactRepository` (`LocalContactRepository`) | `gza.contact.v1` (`schemaVersion: 1`) | Public Contact (`/contact`), Admin Inbox (`/admin/inbox`), Admin Shell badge, Dashboard attention items | **Converged (Phase 5D)** with serialized mutex coordinator, seed anti-resurrection on empty storage, truthful local save, and admin inbox workflow | Phase 13 (Backend Support Desk) |
 | **Booking Draft** | `BookingDraftRepository` (`src/lib/booking-draft/`) | `gza.booking.draft.v1` (`schemaVersion: 1`) | Public Booking Wizard (`/book`), Flight Detail CTA (`/flight/$flightId`), Flight Search Form (`FlightSearchForm`) | **Complete (Phase 5B)** with 5 storage states, serialized mutation queue, tombstone anti-resurrection, and multi-tab synchronization | Phase 13 (Backend Cart/Session) |
 | **Passenger State (Account & Travelers)** | `PassengerRepository` (`src/lib/passenger/`) | `gza.passenger.v1` (`account`, `travelers`) | Site Header, `/account/*`, `/book` (saved traveler pickers), `/signin`, `/register`, `/verify-email`, `/account/security` | **Migrated (Phase 5A)** to canonical `PassengerRepository` with transactional coordinator and zero password persistence | Phase 13 (Backend Auth & Database) |
 | **Booking** | `BookingRepository` (`LocalBookingRepository`) | `gza.repo.v1` (`bookings[]`) | Public Confirmation (`/booking-confirmation/$ref`), Manage Booking (`/manage/*`), Check-in (`/check-in`, `/manage/:ref/check-in`), Boarding Pass (`/boarding-pass/*`), Account Trips (`/account/trips`), Admin Dashboard, Admin Bookings (`/admin/bookings`), Admin Booking Detail (`/admin/bookings/$ref`), Admin Global Search (`AdminSearch`) | **Converged (Phase 4, 5B, 5C)** with single-writer pattern, React Query invalidation, typed passenger commands (`cancel`, `updateContact`, `updateSeats`, `updateExtras`, `completeCheckIn`), and checked-in seat protection | Phase 6 |

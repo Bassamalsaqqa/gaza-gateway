@@ -54,6 +54,7 @@ Every persistent domain has an authoritative, isolated storage key. No domain wr
 | Domain | Key | Authority & Lifecycle |
 | :--- | :--- | :--- |
 | **Settings (Contact & Appearance)** | `gza.settings.draft.v1` | **Authoritative Settings Draft Store**. Versioned envelope `{ schemaVersion: 1, site: { contact?, appearance? } }`. |
+| **Contact Enquiries & Inbox** | `gza.contact.v1` | **Canonical Contact Domain Store**. Governed by `ContactStorageCoordinator` / `ContactRepository`. Customer enquiries submitted via `/contact` and processed via `/admin/inbox`. Completely separate from settings draft (`gza.settings.draft.v1`). |
 | **Appearance (Legacy working copy)**| `gza.skin.preview.v1` | **Legacy Non-Authoritative**. Read once for deterministic migration when `site.appearance` is absent. Left byte-for-byte untouched; no dual writes. |
 | **Appearance (Export Artifact)** | `gza.appearance.v1` | **Export file format identifier**. Used for JSON export/import of skin configuration. |
 | **Bookings & Operational Flights** | `gza.repo.v1` | **Canonical Repository Store**. Governed by `RepoStorageCoordinator`. Bookings & overrides. |

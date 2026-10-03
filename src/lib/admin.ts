@@ -191,6 +191,3 @@ export const contentItems: ContentItem[] = [
   { id: "c4", titleKey: "adm.content.item4", module: "adm.nav.story", state: "published", updated: "3 d" },
   { id: "c5", titleKey: "adm.content.item5", module: "adm.nav.archive", state: "draft", missingAr: true, missingSource: true, updated: "5 d" },
 ];
-
-/** Mock unresolved contact enquiries (the real inbox arrives in a later batch). */
-export const unreadEnquiries = 4;

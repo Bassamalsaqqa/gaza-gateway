@@ -2,14 +2,17 @@
 
 > **Product**: Gaza International Airport (`GZA`) & Palestinian Airlines (`PS`)
 > **Production Domain**: [https://www.gazaairport.com](https://www.gazaairport.com)
-> **Engineering Status**: **Phase 5C, HC-2 and HC-3 Complete / Accepted Source on `main`.** Phase 5 remains in progress; Phase 5A, 5B, 5C, HC-0, HC-1, HC-2 and HC-3 are complete/accepted. Phase 5D — Public Contact Workflow Convergence is the next engineering lane and remains Planned / Unstarted; Phase 6 and Phase 7/7B remain Planned / Unstarted. HC-3 delivers canonical ingestion of 67 archive records (58 owner intake, 8 video intake, 1 Gisha ruins record), explicit publication basis (`rights-cleared`, `product-owner-directed-display`, `external-embed`), 37 published photographs (36 owner-directed + 1 licensed Gisha) and 1 owner-directed document, with 124 responsive WebP derivatives for the 37 owner records, 4 verified external video references via lightweight `ArchiveVideoPlayer`, authentic documentary imagery across Home and Airport Overview, documentary chapter strips and watch-archive section on Airport Past, and refined typography and text-half textures on Airport Future. See [roadmap.md](roadmap.md) for the full sequence.
+> **Engineering Status**: **Phase 5C, HC-2 and HC-3 Complete / Accepted Source on `main`.** Phase 5 remains in progress; Phase 5A, 5B, 5C, HC-0, HC-1, HC-2 and HC-3 are complete/accepted. Phase 5D — Public Contact Workflow Convergence is implemented on feature branch `phase5d/public-contact-workflow-convergence` awaiting independent review (not accepted/complete); Phase 6 and Phase 7/7B remain Planned / Unstarted. HC-3 delivers canonical ingestion of 67 archive records (58 owner intake, 8 video intake, 1 Gisha ruins record), explicit publication basis (`rights-cleared`, `product-owner-directed-display`, `external-embed`), 37 published photographs (36 owner-directed + 1 licensed Gisha) and 1 owner-directed document, with 124 responsive WebP derivatives for the 37 owner records, 4 verified external video references via lightweight `ArchiveVideoPlayer`, authentic documentary imagery across Home and Airport Overview, documentary chapter strips and watch-archive section on Airport Past, and refined typography and text-half textures on Airport Future. See [roadmap.md](roadmap.md) for the full sequence.
 > **Production / Source Checkpoint**: The owner reports deployment of the verified HostPapa package `86bb9d7ff5d05279824ecb495140bd294558e499`, built from accepted HC-3 implementation `e99fefa62d1be76050ec11ee962e1ea524b21974`. Source `main` contains that same implementation plus this documentation reconciliation, intentionally one documentation-only commit ahead of production source. No independent live browser verification is claimed; the release and production are unchanged by this reconciliation.
-> **Immediate Next Step**: Phase 5D — Public Contact Workflow Convergence (Planned / Unstarted).
+> **Immediate Next Step**: Independent review of Phase 5D — Public Contact Workflow Convergence; next engineering lane is Phase 6 — Admin Workflows Convergence (Planned / Unstarted).
 > **Documentation Index**:
 > - [Master Engineering Roadmap (Phases 0–12)](roadmap.md)
 > - [System Architecture Specification](docs/ARCHITECTURE.md)
 > - [Data Flow, State Stores & Pretend-Action Inventory](docs/DATA_FLOW.md)
 > - [Typed Editorial Content Model](docs/CONTENT_MODEL.md)
+> - [Contact Domain & Administrative Inbox Model](docs/CONTACT_MODEL.md)
+> - [Settings Model Architecture](docs/SETTINGS_MODEL.md)
+> - [Canonical Domain & Repository Architecture](docs/CANONICAL_REPOSITORIES.md)
 > - [HostPapa Deployment Architecture Guide](docs/HOSTPAPA_DEPLOYMENT.md)
 > - [Engineering Invariants & Agent Guidelines](AGENTS.md)
 > - [Routes Architecture & Conventions](src/routes/README.md)

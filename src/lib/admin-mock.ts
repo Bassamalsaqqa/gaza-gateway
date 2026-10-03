@@ -408,90 +408,12 @@ export const mockCustomers: MockCustomer[] = [
 export const mockCustomerById = (id: string): MockCustomer | undefined => mockCustomers.find((c) => c.id === id);
 
 /* --------------------------------- inbox --------------------------------- */
+/**
+ * Contact inbox data and workflow have migrated to the canonical Contact domain
+ * and repository (`src/lib/contact/`, storage key `gza.contact.v1`).
+ * Legacy static fixtures and unused types have been retired in Phase 5D.
+ */
 
-export type InboxTopic = "booking" | "archive" | "access" | "media" | "other";
-
-export type InboxMessage = {
-  id: string;
-  sender: string;
-  email: string;
-  topic: InboxTopic;
-  language: "en" | "ar";
-  received: string;
-  status: "new" | "open" | "resolved" | "spam";
-  ref: string | null;
-  body: Bi;
-};
-
-export const inboxMessages: InboxMessage[] = [
-  {
-    id: "m1",
-    sender: "Nadia Sabbagh",
-    email: "nadia.sabbagh@example.com",
-    topic: "booking",
-    language: "ar",
-    received: "2026-09-17 09:12",
-    status: "new",
-    ref: "GZA4TQ",
-    body: {
-      en: "I would like to move my return from Amman by two days. Which options are available?",
-      ar: "أرغب بتأخير عودتي من عمّان يومين. ما الخيارات المتاحة؟",
-    },
-  },
-  {
-    id: "m2",
-    sender: "Rami Barghouti",
-    email: "rami.barghouti@example.com",
-    topic: "access",
-    language: "en",
-    received: "2026-09-16 17:48",
-    status: "open",
-    ref: "GZA1QE",
-    body: {
-      en: "My father uses a wheelchair. How is assistance arranged at the airport?",
-      ar: "والدي يستخدم كرسيًا متحركًا. كيف تُنظَّم المساعدة في المطار؟",
-    },
-  },
-  {
-    id: "m3",
-    sender: "Layan Zurub",
-    email: "layan.zurub@example.com",
-    topic: "archive",
-    language: "ar",
-    received: "2026-09-15 11:05",
-    status: "open",
-    ref: null,
-    body: {
-      en: "I have family photographs of the airport terminal and would like to contribute them.",
-      ar: "لديّ صور عائلية لمبنى المطار وأرغب بمشاركتها.",
-    },
-  },
-  {
-    id: "m4",
-    sender: "Studio Press Desk",
-    email: "desk@example.com",
-    topic: "media",
-    language: "en",
-    received: "2026-09-14 08:20",
-    status: "resolved",
-    ref: null,
-    body: {
-      en: "We are preparing a feature on the airport and would like to request permission to use archive images.",
-      ar: "نعدّ تقريرًا عن المطار ونرغب بطلب إذن لاستخدام صور الأرشيف.",
-    },
-  },
-  {
-    id: "m5",
-    sender: "Unknown sender",
-    email: "no-reply@example.net",
-    topic: "other",
-    language: "en",
-    received: "2026-09-13 03:02",
-    status: "spam",
-    ref: null,
-    body: { en: "Promotional message.", ar: "رسالة ترويجية." },
-  },
-];
 
 /* --------------------------- website content mock ------------------------- */
 

@@ -1,8 +1,9 @@
 import { useMemo } from "react";
 import { arrivalsOn, departuresOn, todayISO, type Flight } from "@/lib/data";
-import { contentItems, unreadEnquiries, type Permission } from "@/lib/admin";
+import { contentItems, type Permission } from "@/lib/admin";
 import { useAdmin, type FlightOverride } from "@/lib/admin-store";
 import { useI18n } from "@/lib/i18n";
+import { useContactNewCount } from "@/lib/contact";
 import { checkedInPax, seatedPassengers, useStore, type Booking } from "@/lib/store";
 
 export type OpsFlight = Flight & { direction: "dep" | "arr"; note?: string; revisedDepart?: string };
@@ -22,6 +23,7 @@ export function useDashboardData() {
   const { t } = useI18n();
   const { bookings } = useStore();
   const { withOverride, can } = useAdmin();
+  const { data: newContactCount = 0 } = useContactNewCount();
   const today = todayISO();
 
   return useMemo(() => {
@@ -90,11 +92,11 @@ export function useDashboardData() {
         });
       }
     }
-    if (unreadEnquiries > 0) {
+    if (newContactCount > 0) {
       allAttention.push({
         id: "att-inbox",
         severity: "medium",
-        title: t("adm.attn.enquiry", { n: unreadEnquiries }),
+        title: t("adm.attn.enquiry", { n: newContactCount }),
         module: t("adm.nav.inbox"),
         next: t("adm.attn.enquiryNext"),
         permission: "engagement.view",
@@ -152,7 +154,7 @@ export function useDashboardData() {
         passengersCheckedIn,
         delayed: delayed.length,
         cancelled: cancelled.length,
-        enquiries: unreadEnquiries,
+        enquiries: newContactCount,
         contentAttention,
       },
       attention,
@@ -165,7 +167,7 @@ export function useDashboardData() {
         items: contentItems,
       },
     };
-  }, [today, bookings, withOverride, t, can]) satisfies { attention: AttentionItem[] } & Record<string, unknown>;
+  }, [today, bookings, withOverride, t, can, newContactCount]) satisfies { attention: AttentionItem[] } & Record<string, unknown>;
 }
 
 export type { FlightOverride };

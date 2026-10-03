@@ -17,18 +17,24 @@ import { PassengerStorageCoordinator, type PassengerStorageV1 } from "../passeng
 import { LocalBookingDraftRepository } from "../booking-draft/repository.ts";
 import { BookingDraftStorageCoordinator } from "../booking-draft/storage.ts";
 import type { Draft } from "../booking-draft/types.ts";
+import { LocalContactRepository } from "../contact/repository.ts";
+import { ContactStorageCoordinator } from "../contact/storage.ts";
+import type { ContactEnvelope } from "../contact/types.ts";
 import { isStudioPreviewActive } from "../studio-preview.ts";
 import { bookingDraftKeys, bookingKeys, flightKeys } from "./keys.ts";
 import { passengerKeys } from "../passenger/keys.ts";
+import { contactKeys } from "../contact/keys.ts";
 
 export interface CreateRepositoriesOptions {
   inMemoryOnly?: boolean | undefined;
   initialData?: RepoStorageV1 | undefined;
   initialPassengerData?: PassengerStorageV1 | undefined;
   initialDraftData?: Draft | undefined;
+  initialContactData?: ContactEnvelope | undefined;
   coordinator?: RepoStorageCoordinator | undefined;
   passengerCoordinator?: PassengerStorageCoordinator | undefined;
   bookingDraftCoordinator?: BookingDraftStorageCoordinator | undefined;
+  contactCoordinator?: ContactStorageCoordinator | undefined;
   storage?: Storage | null | undefined;
 }
 
@@ -37,6 +43,7 @@ export interface CreateRepositoriesOptions {
  * BookingRepository and FlightRepository share RepoStorageCoordinator.
  * PassengerRepository uses an independent PassengerStorageCoordinator.
  * BookingDraftRepository uses an independent BookingDraftStorageCoordinator.
+ * ContactRepository uses an independent ContactStorageCoordinator.
  */
 export function createRepositories(options?: CreateRepositoriesOptions): RepositoryRegistry {
   const coordinator =
@@ -63,16 +70,26 @@ export function createRepositories(options?: CreateRepositoriesOptions): Reposit
       storage: options?.storage,
     });
 
+  const contactCoordinator =
+    options?.contactCoordinator ??
+    new ContactStorageCoordinator({
+      inMemoryOnly: options?.inMemoryOnly,
+      initialData: options?.initialContactData,
+      storage: options?.storage,
+    });
+
   const booking = new LocalBookingRepository(coordinator);
   const flight = new LocalFlightRepository(coordinator);
   const passenger = new LocalPassengerRepository(passengerCoordinator);
   const bookingDraft = new LocalBookingDraftRepository(bookingDraftCoordinator);
+  const contact = new LocalContactRepository({ coordinator: contactCoordinator });
 
   return {
     booking,
     flight,
     passenger,
     bookingDraft,
+    contact,
   };
 }
 
@@ -146,11 +163,15 @@ export function RepositoryProvider({
     const unsubBookingDraft = value.bookingDraft.subscribe(() => {
       queryClient.invalidateQueries({ queryKey: bookingDraftKeys.all });
     });
+    const unsubContact = value.contact.subscribe(() => {
+      queryClient.invalidateQueries({ queryKey: contactKeys.all });
+    });
     return () => {
       unsubBooking();
       unsubFlight();
       unsubPassenger();
       unsubBookingDraft();
+      unsubContact();
     };
   }, [value, queryClient]);
 

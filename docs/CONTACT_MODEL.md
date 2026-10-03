@@ -1,0 +1,178 @@
+# Contact Domain & Administrative Inbox Model (Phase 5D)
+
+> **Document Status**: Active Architecture Specification (Implemented in Phase 5D on feature branch `phase5d/public-contact-workflow-convergence`, awaiting independent Codex review)
+> **Product**: Gaza Airport (`GZA`) & Palestinian Airlines (`PS`) — [gazaairport.com](https://www.gazaairport.com)
+> **Domain Aggregate**: Customer Contact Messages (`ContactMessage`) & Administrative Inbox Workflow
+> **Canonical Storage Key**: `localStorage["gza.contact.v1"]`
+> **Repository Interface**: `ContactRepository` (`src/lib/contact/types.ts`)
+> **Primary Implementation**: `LocalContactRepository` (`src/lib/contact/repository.ts`)
+> **Coordinator**: `ContactStorageCoordinator` (`src/lib/contact/storage.ts`)
+
+---
+
+## 1. Executive Summary & Architecture Boundary
+
+Prior to Phase 5D, public contact submissions and administrative inbox workflows suffered from two critical prototype disconnects:
+1. **Pretend Public Submission**: Submitting the public contact form at `/contact` updated a local component state flag (`setSent(true)`) to show an inline simulated success panel without writing data to any persistent store or performing domain validation.
+2. **Disconnected Admin Inbox**: The administrative staff inbox at `/admin/inbox` rendered static mock fixtures (`inboxMessages` in `src/lib/admin-mock.ts`). Actions (changing status, replying, adding notes) triggered toast notifications without persisting state changes or reflecting real public enquiries.
+
+Phase 5D converges both public submissions and administrative inbox management into a single, canonical, typed, asynchronous domain repository: `ContactRepository`.
+
+### Strict Domain Separation: Contact Settings vs. Contact Messages
+A vital invariant in Gaza Gateway's architecture is the strict separation between:
+- **Contact Settings** (`src/lib/settings/`): Managed by `SettingsRepository` under `localStorage["gza.settings.draft.v1"]`. Controls published airport contact coordinates (official telephone numbers, support email address, physical terminal addresses in EN and AR, and verified social media links).
+- **Contact Messages** (`src/lib/contact/`): Managed by `ContactRepository` under `localStorage["gza.contact.v1"]`. Stores customer enquiries, conversation language, operational topics, administrative lifecycle status, staff notes, and local reply drafts.
+
+Messages are never stored in settings, booking, passenger, legacy, or admin-session keys.
+
+---
+
+## 2. Storage Schema & Envelope (`gza.contact.v1`)
+
+The storage coordinator serializes an envelope conforming to schema version 1:
+
+```typescript
+export interface ContactEnvelope {
+  schemaVersion: 1;
+  revision: number;
+  messages: ContactMessage[];
+}
+```
+
+### Contact Message Aggregate (`ContactMessage`)
+```typescript
+export type ContactTopic =
+  | "booking"
+  | "baggage"
+  | "accessibility"
+  | "archive"
+  | "media"
+  | "other";
+
+export type ContactStatus = "new" | "open" | "resolved" | "spam";
+
+export type ContactLanguage = "en" | "ar";
+
+export interface InternalNote {
+  id: string;
+  body: string;
+  createdAt: string;       // ISO 8601
+  staffId: string;
+  staffName?: string | undefined;
+}
+
+export interface ContactMessage {
+  id: string;              // Deterministic or UUID (e.g. "cmsg-...")
+  submissionId: string;    // Client-generated idempotency key
+  senderName: string;      // Trimmed name (2-120 chars)
+  email: string;           // Normalized lowercase email
+  topic: ContactTopic;     // Canonical topic
+  message: string;         // Plain-text original body (10-5000 chars)
+  language: ContactLanguage; // "en" | "ar" (derived from route locale at submission)
+  bookingRef?: string | undefined; // Optional PNR reference (e.g. "GZA4TQ")
+  status: ContactStatus;   // "new" | "open" | "resolved" | "spam"
+  createdAt: string;       // ISO 8601
+  updatedAt: string;       // ISO 8601
+  source: "public-contact" | "seed";
+  assignedStaffId?: string | undefined;
+  replyDraft?: string | undefined;
+  internalNotes: InternalNote[];
+}
+```
+
+---
+
+## 3. Storage Coordinator & Persistence Invariants
+
+`ContactStorageCoordinator` manages read/write access to `localStorage["gza.contact.v1"]` with the following guarantees:
+
+1. **Deterministic Seeds on Missing Key**: When `gza.contact.v1` is absent (`null`), the coordinator exposes 5 canonical deterministic demo seeds in memory:
+   - `m1`: Arabic booking enquiry (raw Arabic message, no fake translation)
+   - `m2`: English accessibility enquiry (wheelchair assistance)
+   - `m3`: Arabic archive donation offer (photograph collection from 1999)
+   - `m4`: English media interview request
+   - `m5`: English promotional spam
+2. **Authority of Present Valid State (Anti-Resurrection)**: A valid stored envelope—including an empty array `{ schemaVersion: 1, revision: N, messages: [] }`—is authoritative. Seeds are never resurrected after explicit clearing.
+3. **Fail-Safe Malformed Handling**: If storage contains corrupt JSON or schema violations, the coordinator falls back to a clean in-memory state `{ schemaVersion: 1, revision: 0, messages: [] }` without clobbering or overwriting the disk. Reads never silently overwrite existing storage.
+4. **Mutex Queue & Transactional Serialization**: All mutations queue sequentially behind in-flight writes (`this.mutationQueue`). Each mutation:
+   - Acquires the origin-wide browser lock, reads current persisted state, then clones it and executes the mutator.
+   - Validates the candidate envelope against Zod schema.
+   - Persists to storage. If `setItem` throws (e.g., `QuotaExceededError`), rejects with `StorageCommitError`, rolls back memory, and emits no notification.
+   - Adopts candidate into memory and notifies subscribers only on successful disk commit.
+5. **Cross-Tab Synchronization**: Listens for window `storage` events on `gza.contact.v1`, validates the current stored envelope and updates subscribers. Reading foreign events does not write storage back. Mutations independently reread authority under the browser lock.
+
+---
+
+## 4. Submission Idempotency & Conflict Detection
+
+To prevent accidental double-submissions while maintaining strict data integrity:
+- Every public form mount generates a client-side `submissionId` (`sub_<timestamp>_<random>`).
+- If an enquiry is submitted with an identical `submissionId` and identical payload (name, email, topic, message, language, bookingRef), `ContactRepository.create` returns the existing message without creating a duplicate.
+- If a submission reuses an existing `submissionId` with conflicting data, the repository rejects with an explicit error: `"Conflicting submissionId: message exists with different content."`
+- The public UI disables the submit button while pending.
+
+---
+
+## 5. Public Contact Form Experience (`/contact` & `/ar/contact`)
+
+1. **Controlled Inputs & Bilingual Fields**: Controlled inputs for Name, Email, Subject/Topic select, optional Booking Reference, and Message Textarea. Labels and helper text follow the active route locale (`/contact` in English, `/ar/contact` in Arabic).
+2. **Accessible Form Semantics**: Field-level validation errors render with `aria-describedby` error references. Form submission failures render a high-priority `role="alert"`.
+3. **Storage Failure Resilience**: If local storage fails on submit (quota exceeded), the form retains all user-entered inputs and displays an error alert allowing immediate retry without losing data.
+4. **Settings Preview Immunity (`?settingsPreview=1`)**: When visiting `/contact?settingsPreview=1` or `/ar/contact?settingsPreview=1` to preview Contact Settings drafts:
+   - The form validates inputs normally.
+   - Preview is labeled even when no settings draft exists. Submission renders “Enquiry preview” / “معاينة الاستفسار” and explicitly says no enquiry was saved or transmitted.
+   - `gza.contact.v1` is **not mutated**; storage remains byte-for-byte identical.
+5. **Truthful Success Disclosure**: After a successful normal-route persistence commit, the form displays a truthful panel:
+   - EN: *"Enquiry saved. Your enquiry has been saved in this browser for workflow testing. This prototype does not transmit messages to an airport support team yet."*
+   - AR: *"تم حفظ الاستفسار. تم حفظ استفسارك في هذا المتصفح لاختبار سير العمل. هذا النموذج التجريبي لا يرسل رسائل إلى فريق دعم المطار بعد."*
+   - Offers a "Send another enquiry" button that generates a fresh `submissionId` and resets the form.
+
+---
+
+## 6. Administrative Inbox Workflow (`/admin/inbox` & `/ar/admin/inbox`)
+
+1. **Direct Repository Binding**: Bound directly to `useContactMessages()` and mutations. Static fixture arrays have been completely removed.
+2. **Language & Text Directionality**:
+   - The message body renders in its stored original language (`message.language`) with `dir="rtl"` for Arabic messages and `dir="ltr"` for English messages, regardless of the admin UI locale.
+   - Technical identifiers (email, booking ref, timestamp, message ID) always remain strictly LTR (`Ltr` component).
+   - No fake automated translations are generated or stored.
+3. **Workflow Mutations (Gated by `engagement.edit`)**:
+   - **Status Transitions**: `new` -> `open`, `open` -> `resolved` or `spam`, `resolved`/`spam` -> `open`.
+   - **Internal Staff Notes**: Append plain-text internal notes with staff attribution (`staffId`, `staffName`, `createdAt`). Internal notes are strictly administrative and never leaked to public surfaces.
+   - **Staff Assignment**: Assign enquiry to current staff member (`setAssignee`) or unassign.
+   - **Local Reply Draft**: Save and clear working reply drafts. Discloses explicitly that external email transport is not connected: *"Email delivery is not connected in this prototype. Saved drafts persist locally in this browser."*
+4. **View-Only Permissions (`engagement.view`)**: Staff with viewer role (e.g. Layla Odeh) can inspect messages, search, and filter, but mutation controls are disabled with permission tooltips.
+5. **Badge & Attention Convergence**:
+   - Nav badge count derives from `useContactNewCount()` (`status === "new"`).
+   - Admin Dashboard Attention item (`att-inbox`: *"Unresolved customer enquiries"*) renders dynamically only when `newCount > 0`, clearing completely when all messages are opened or resolved.
+
+---
+
+## 7. Quality Verification & Testing Matrix
+
+- **Unit Test Suite** (`tests/unit/contact-repository.test.ts`): 30 comprehensive unit tests verifying storage missing/valid/empty/corrupt authority, seed non-resurrection, schema normalization, idempotency, mutex serialization, rollback on quota failure, status transitions, staff notes, and assignment.
+- **Correction Regressions** (`tests/unit/contact-correction.test.ts`): 11 tests covering simultaneous identical/conflicting submission identities, independent stale coordinators, valid-empty replacement, unreadable/malformed write rejection, command rollback and retry, injected note IDs and persisted identity/date validation.
+- **Browser Smoke Suite** (`tests/smoke/browser-smoke.mjs`):
+  - Check 53: English public submission, truthful success, same-browser admin inbox workflow, mark open, note, assignment, reply draft persistence, and no public leak.
+  - Check 54: Arabic public submission, RTL directionality, raw Arabic storage without translation, and bilingual Admin rendering.
+  - Check 55: Settings Preview isolation and raw Contact storage immunity in both locales.
+  - Check 56: Domain validation errors, storage failure retention, and retry idempotency.
+  - Check 57: View-only role permissions, genuine empty inbox handling, and reactive dashboard attention convergence.
+  - Check 58: Real two-tab concurrent submissions/status/notes, canonical badges, Admin command failure retention and rapid retry without duplicate notes.
+  - Check 59: Arabic validation/save errors, focus and LTR inputs, no-draft preview immunity, and truthful preview results after returning to a normal URL.
+- **Visual Matrix**: 18 viewport combinations (390px, 768px, 1440px across 6 public and admin contact routes) verified zero horizontal overflow (`scrollWidth === clientWidth`).
+
+
+## Correction 01 — Transaction and failure guarantees
+
+- Persistent browser mutations require an origin-wide Web Lock named `gza.contact.v1`. Lock acquisition has a 5-second timeout. Unsupported coordination, inaccessible storage, and failed writes reject with `StorageCommitError`; there is no unsafe browser fallback. HostPapa HTTPS and localhost support this browser capability. Injected Node test storage commits synchronously within the process; Studio uses isolated in-memory state.
+- Every mutation reads and validates current storage inside the lock. Present valid empty state remains authoritative even for an old coordinator. This prevents stale tabs from overwriting other enquiries, notes or status changes.
+- Missing storage alone permits seeds. Malformed/unsupported startup storage exposes an empty safe view without modifying disk. Mutations reject until the envelope is repaired or deliberately removed; unreadable storage also rejects writes. A later valid storage event restores the canonical view.
+- Create replay/conflict decisions happen inside the transaction. Identical replay returns the existing record without a write, revision increment or subscriber notification. Conflicting identity reuse rejects. Note IDs use the injectable ID factory.
+- Persisted messages require meaningful IDs, valid timestamps/email and bounded content. Duplicate message/submission identities and duplicate note IDs are invalid. Message bodies remain original plain text.
+- Status commands accept canonical statuses; the Inbox presents the specified open/resolved/spam transitions. No additional domain transition policy is claimed.
+- Admin command failures show localized alerts, retain note/reply buffers and canonical badges, and allow retry. Command controls are disabled while pending; clearing a reply buffer happens only after persistence succeeds.
+- Public field errors and save failures are localized, technical inputs stay LTR, invalid fields carry `aria-invalid`, and keyboard focus moves to the first invalid field or the success/preview heading.
+- Compiled seeds are synthetic. User-entered enquiries may contain real names/emails/text and remain local to that browser. No form payload is logged, transmitted, placed in URLs or baked into static output.
+
+Phase 5D remains implemented on its feature branch, awaiting independent acceptance. The correction changes no production/release refs and starts no later phase.

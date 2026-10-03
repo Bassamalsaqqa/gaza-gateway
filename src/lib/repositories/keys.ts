@@ -37,3 +37,4 @@ export const bookingDraftKeys = {
 };
 
 export { passengerKeys } from "../passenger/keys.ts";
+export { contactKeys } from "../contact/keys.ts";

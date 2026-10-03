@@ -6987,6 +6987,479 @@ async function runBrowserSmoke() {
       }
     });
 
+    await checkStep("Check 53: Phase 5D — English public contact submission, storage verification, truthful prototype success, and same-browser admin inbox workflow", async () => {
+      const context = await browser.newContext();
+      try {
+        await context.addInitScript(() => {
+          localStorage.setItem("gza.admin.v1", JSON.stringify({ staffId: "adm-1", overrides: {} }));
+        });
+        const page = await context.newPage({ viewport: { width: 1440, height: 900 } });
+
+        // 1. Visit /contact
+        await page.goto(baseUrl + "/contact", { waitUntil: "domcontentloaded" });
+        await page.waitForSelector("#c-name", { timeout: 10000 });
+
+        // 2. Fill form
+        await page.fill("#c-name", "Aya Mansour");
+        await page.fill("#c-email", "aya.mansour@example.ps");
+        await page.selectOption("#c-subject", "booking");
+        await page.fill("#c-booking-ref", "gza7k8");
+        await page.fill("#c-message", "Inquiring about special assistance options for my upcoming journey from Gaza International Airport.");
+
+        // 3. Submit
+        await page.click('button[type="submit"]');
+
+        // 4. Verify truthful success
+        await page.getByText("Enquiry saved").waitFor({ state: "visible", timeout: 8000 });
+        await page.getByText("Your enquiry has been saved in this browser for workflow testing. This prototype does not transmit messages to an airport support team yet.").waitFor({ state: "visible", timeout: 5000 });
+
+        // Verify URL has no PII
+        const currentUrl = page.url();
+        if (currentUrl.includes("aya.mansour") || currentUrl.includes("Aya")) {
+          throw new Error("URL contains PII query parameters: " + currentUrl);
+        }
+
+        // 5. Inspect localStorage
+        const contactStorageRaw = await page.evaluate(() => localStorage.getItem("gza.contact.v1"));
+        if (!contactStorageRaw) {
+          throw new Error("Expected gza.contact.v1 to be populated in localStorage");
+        }
+        const contactEnvelope = JSON.parse(contactStorageRaw);
+        const submitted = contactEnvelope.messages.find((m) => m.senderName === "Aya Mansour");
+        if (!submitted) {
+          throw new Error("Submitted message not found in gza.contact.v1 envelope");
+        }
+        if (submitted.bookingRef !== "GZA7K8") {
+          throw new Error(`Expected uppercase bookingRef GZA7K8, got ${submitted.bookingRef}`);
+        }
+        if (submitted.status !== "new") {
+          throw new Error(`Expected status 'new', got ${submitted.status}`);
+        }
+
+        // 6. Navigate to Admin Inbox
+        await page.goto(baseUrl + "/admin/inbox", { waitUntil: "domcontentloaded" });
+        await page.waitForSelector("button:has-text('Aya Mansour')", { timeout: 10000 });
+
+        // Verify nav badge indicates new messages count
+        const badge = page.locator("a[href*='/admin/inbox'] span:has-text('2')"); // 1 seed (m1) + 1 new = 2
+        await badge.first().waitFor({ state: "visible", timeout: 5000 });
+
+        // Select the new message
+        await page.click("button:has-text('Aya Mansour')");
+        await page.getByText("GZA7K8").first().waitFor({ state: "visible", timeout: 5000 });
+
+        // 7. Workflow Actions: Mark Open
+        await page.getByRole("button", { name: "Mark open" }).click();
+        await page.locator("span.rounded-md:has-text('Open')").first().waitFor({ state: "visible", timeout: 5000 });
+
+        // Badge decrements to 1 (only m1 left as new)
+        const updatedBadge = page.locator("a[href*='/admin/inbox'] span:has-text('1')");
+        await updatedBadge.first().waitFor({ state: "visible", timeout: 5000 });
+
+        // 8. Add Internal Note
+        await page.fill('textarea[placeholder*="internal staff note"]', "Contacted passenger via phone.");
+        await page.getByRole("button", { name: "Add internal note" }).click();
+        await page.getByText("Contacted passenger via phone.").waitFor({ state: "visible", timeout: 5000 });
+
+        // 9. Assign staff
+        await page.getByRole("button", { name: "Assign to me" }).click();
+        await page.getByText("Assigned to:").first().waitFor({ state: "visible", timeout: 5000 });
+        await page.getByRole("button", { name: "Unassign" }).waitFor({ state: "visible", timeout: 5000 });
+
+        // 10. Reply Draft
+        await page.fill("#in-reply-draft", "Dear Aya, ramp assistance has been noted for your flight.");
+        await page.getByRole("button", { name: "Save reply draft" }).click();
+
+        // 11. Reload and verify persistence
+        await page.reload({ waitUntil: "domcontentloaded" });
+        await page.waitForSelector("button:has-text('Aya Mansour')", { timeout: 10000 });
+        await page.click("button:has-text('Aya Mansour')");
+
+        await page.getByText("Contacted passenger via phone.").waitFor({ state: "visible", timeout: 5000 });
+        const draftValue = await page.inputValue("#in-reply-draft");
+        if (!draftValue.includes("ramp assistance has been noted")) {
+          throw new Error(`Expected persisted reply draft, got: "${draftValue}"`);
+        }
+
+        // Clear reply draft
+        await page.getByRole("button", { name: "Clear draft" }).click();
+        await page.waitForFunction(() => document.getElementById("in-reply-draft")?.value === "");
+
+        // 12. Verify public /contact does NOT expose internal notes
+        await page.goto(baseUrl + "/contact", { waitUntil: "domcontentloaded" });
+        const publicBody = await page.innerText("body");
+        if (publicBody.includes("Contacted passenger via phone") || publicBody.includes("ramp assistance has been noted")) {
+          throw new Error("Internal note or draft reply leaked to public contact page!");
+        }
+      } finally {
+        await context.close();
+      }
+    });
+
+    await checkStep("Check 54: Phase 5D — Arabic public contact submission, RTL directionality, raw Arabic storage without translation, and bilingual Admin rendering", async () => {
+      const context = await browser.newContext();
+      try {
+        await context.addInitScript(() => {
+          localStorage.setItem("gza.admin.v1", JSON.stringify({ staffId: "adm-1", overrides: {} }));
+        });
+        const page = await context.newPage({ viewport: { width: 1440, height: 900 } });
+
+        // 1. Visit /ar/contact
+        await page.goto(baseUrl + "/ar/contact", { waitUntil: "domcontentloaded" });
+        await page.waitForSelector("#c-name", { timeout: 10000 });
+
+        // Check Arabic labels
+        await page.getByText("الاسم").first().waitFor({ state: "visible", timeout: 5000 });
+        await page.getByText("البريد الإلكتروني").first().waitFor({ state: "visible", timeout: 5000 });
+
+        // Fill Arabic enquiry
+        await page.fill("#c-name", "طارق النجار");
+        await page.fill("#c-email", "tariq.najjar@example.ps");
+        await page.selectOption("#c-subject", "accessibility");
+        await page.fill("#c-booking-ref", "GZA9B2");
+        await page.fill("#c-message", "أود الاستفسار عن كراسي الحركة المتاحة لكبار السن داخل صالة المغادرة.");
+
+        // Submit
+        await page.click('button[type="submit"]');
+
+        // Verify Arabic truthful success
+        await page.getByText("تم حفظ الاستفسار").waitFor({ state: "visible", timeout: 8000 });
+        await page.getByText("تم حفظ استفسارك في هذا المتصفح لاختبار سير العمل.").waitFor({ state: "visible", timeout: 5000 });
+
+        // 2. Check localStorage: message is raw Arabic, NO fake English translation
+        const rawStorage = await page.evaluate(() => localStorage.getItem("gza.contact.v1"));
+        const envelope = JSON.parse(rawStorage || "{}");
+        const arMsg = envelope.messages.find((m) => m.senderName === "طارق النجار");
+        if (!arMsg) {
+          throw new Error("Arabic message not found in localStorage");
+        }
+        if (arMsg.language !== "ar") {
+          throw new Error(`Expected language 'ar', got: ${arMsg.language}`);
+        }
+        if (!arMsg.message.includes("كراسي الحركة المتاحة")) {
+          throw new Error(`Expected raw Arabic body, got: ${arMsg.message}`);
+        }
+
+        // 3. Open English Admin Inbox /admin/inbox and verify Arabic message rendering
+        await page.goto(baseUrl + "/admin/inbox", { waitUntil: "domcontentloaded" });
+        await page.waitForSelector("button:has-text('طارق النجار')", { timeout: 10000 });
+        await page.click("button:has-text('طارق النجار')");
+
+        // Verify message body has dir="rtl"
+        const messageDir = await page.evaluate(() => {
+          const bodyEl = document.querySelector(".bg-sand");
+          return bodyEl ? bodyEl.getAttribute("dir") : null;
+        });
+        if (messageDir !== "rtl") {
+          throw new Error(`Expected message body in English Admin to have dir="rtl", got: "${messageDir}"`);
+        }
+
+        // Verify identifiers remain LTR
+        const emailEl = page.locator("text=tariq.najjar@example.ps");
+        await emailEl.first().waitFor({ state: "visible", timeout: 5000 });
+
+        // 4. Open Arabic Admin Inbox /ar/admin/inbox
+        await page.goto(baseUrl + "/ar/admin/inbox", { waitUntil: "domcontentloaded" });
+        await page.waitForSelector("button:has-text('طارق النجار')", { timeout: 10000 });
+        await page.getByText("صندوق الرسائل").first().waitFor({ state: "visible", timeout: 5000 });
+      } finally {
+        await context.close();
+      }
+    });
+
+    await checkStep("Check 55: Phase 5D — Settings Preview isolation and raw Contact storage immunity in both locales", async () => {
+      const context = await browser.newContext();
+      try {
+        const page = await context.newPage({ viewport: { width: 1440, height: 900 } });
+
+        // Seed a known contact storage
+        await page.goto(baseUrl + "/contact", { waitUntil: "domcontentloaded" });
+        const baselineStorage = await page.evaluate(() => {
+          const initial = {
+            schemaVersion: 1,
+            revision: 3,
+            messages: [
+              {
+                id: "imm-1",
+                submissionId: "imm-sub-1",
+                senderName: "Static Test",
+                email: "test@example.com",
+                topic: "other",
+                message: "This storage must remain untouched during preview.",
+                language: "en",
+                status: "open",
+                createdAt: "2026-09-20T10:00:00.000Z",
+                updatedAt: "2026-09-20T10:00:00.000Z",
+                source: "public-contact",
+                internalNotes: [],
+              },
+            ],
+          };
+          localStorage.setItem("gza.contact.v1", JSON.stringify(initial));
+          return localStorage.getItem("gza.contact.v1");
+        });
+
+        // 1. Visit /contact?settingsPreview=1
+        await page.goto(baseUrl + "/contact?settingsPreview=1", { waitUntil: "domcontentloaded" });
+        await page.waitForSelector("#c-name", { timeout: 10000 });
+
+        // Fill and submit preview contact form
+        await page.fill("#c-name", "Preview Submitter");
+        await page.fill("#c-email", "preview@example.com");
+        await page.selectOption("#c-subject", "media");
+        await page.fill("#c-message", "Testing contact submission during settings preview mode.");
+        await page.click('button[type="submit"]');
+
+        // Visual success displayed
+        await page.getByText("Enquiry preview", { exact: true }).waitFor({ state: "visible", timeout: 8000 });
+
+        // Verify localStorage gza.contact.v1 is byte-for-byte identical!
+        const afterEnStorage = await page.evaluate(() => localStorage.getItem("gza.contact.v1"));
+        if (afterEnStorage !== baselineStorage) {
+          throw new Error("gza.contact.v1 was mutated during English ?settingsPreview=1 submission!");
+        }
+
+        // 2. Visit /ar/contact?settingsPreview=1
+        await page.goto(baseUrl + "/ar/contact?settingsPreview=1", { waitUntil: "domcontentloaded" });
+        await page.waitForSelector("#c-name", { timeout: 10000 });
+
+        await page.fill("#c-name", "مجرّب المعاينة");
+        await page.fill("#c-email", "preview-ar@example.com");
+        await page.selectOption("#c-subject", "media");
+        await page.fill("#c-message", "تجربة إرسال النموذج في وضع معاينة الإعدادات.");
+        await page.click('button[type="submit"]');
+
+        await page.getByText("معاينة الاستفسار", { exact: true }).waitFor({ state: "visible", timeout: 8000 });
+
+        const afterArStorage = await page.evaluate(() => localStorage.getItem("gza.contact.v1"));
+        if (afterArStorage !== baselineStorage) {
+          throw new Error("gza.contact.v1 was mutated during Arabic ?settingsPreview=1 submission!");
+        }
+      } finally {
+        await context.close();
+      }
+    });
+
+    await checkStep("Check 56: Phase 5D — Domain validation errors, persistence failure retry, and submission idempotency", async () => {
+      const context = await browser.newContext();
+      try {
+        const page = await context.newPage({ viewport: { width: 1440, height: 900 } });
+        await page.goto(baseUrl + "/contact", { waitUntil: "domcontentloaded" });
+        await page.waitForSelector("#c-name", { timeout: 10000 });
+
+        // 1. Submit empty form -> check field validation errors
+        await page.click('button[type="submit"]');
+        const alertElements = page.locator('[role="alert"]');
+        const count = await alertElements.count();
+        if (count < 2) {
+          throw new Error(`Expected validation alerts for required fields, got: ${count}`);
+        }
+
+        // Fill form fields
+        await page.fill("#c-name", "Hala Shawa");
+        await page.fill("#c-email", "hala@example.ps");
+        await page.selectOption("#c-subject", "baggage");
+        await page.fill("#c-message", "My baggage arrived damaged on flight PS204.");
+
+        // 2. Simulate storage quota failure
+        await page.evaluate(() => {
+          window.__origSetItem = Storage.prototype.setItem;
+          Storage.prototype.setItem = () => {
+            throw new Error("QuotaExceededError: Local storage is full");
+          };
+        });
+
+        // Submit with failing storage
+        await page.click('button[type="submit"]');
+        await page.locator('[role="alert"]').first().waitFor({ state: "visible", timeout: 5000 });
+
+        // Verify fields are preserved after failed save!
+        const retainedName = await page.inputValue("#c-name");
+        const retainedMessage = await page.inputValue("#c-message");
+        if (retainedName !== "Hala Shawa" || !retainedMessage.includes("baggage arrived damaged")) {
+          throw new Error("Form input fields were cleared on storage save failure!");
+        }
+
+        // 3. Restore storage and retry
+        await page.evaluate(() => {
+          if (window.__origSetItem) {
+            Storage.prototype.setItem = window.__origSetItem;
+          }
+        });
+
+        await page.click('button[type="submit"]');
+        await page.getByText("Enquiry saved").waitFor({ state: "visible", timeout: 8000 });
+      } finally {
+        await context.close();
+      }
+    });
+
+    await checkStep("Check 57: Phase 5D — View-only permissions, genuine empty inbox handling, and reactive dashboard attention convergence", async () => {
+      const context = await browser.newContext();
+      try {
+        // 1. View-only staff (Layla Odeh, role: viewer)
+        await context.addInitScript(() => {
+          localStorage.setItem("gza.admin.v1", JSON.stringify({ staffId: "adm-3", overrides: {} }));
+        });
+        const page = await context.newPage({ viewport: { width: 1440, height: 900 } });
+
+        await page.goto(baseUrl + "/admin/inbox", { waitUntil: "domcontentloaded" });
+        await page.waitForSelector("button:has-text('Nadia Sabbagh')", { timeout: 10000 });
+        await page.click("button:has-text('Nadia Sabbagh')");
+
+        // Action buttons must have disabled or restricted permission state for viewer
+        const markOpenBtn = page.getByRole("button", { name: "Mark open" });
+        const isDisabled = await markOpenBtn.getAttribute("disabled");
+        const ariaDisabled = await markOpenBtn.getAttribute("aria-disabled");
+        if (isDisabled === null && ariaDisabled !== "true") {
+          throw new Error("Viewer role was allowed to click Mark open button!");
+        }
+
+        // 2. Authoritative Empty Inbox: Empty array must NOT resurrect demo seeds!
+        await page.evaluate(() => {
+          localStorage.setItem(
+            "gza.contact.v1",
+            JSON.stringify({
+              schemaVersion: 1,
+              revision: 5,
+              messages: [],
+            }),
+          );
+        });
+
+        await page.reload({ waitUntil: "domcontentloaded" });
+        await page.getByText("No messages match these filters.").waitFor({ state: "visible", timeout: 8000 });
+
+        // Verify inbox badge is 0 / absent
+        const inboxBadgeCount = await page.locator("a[href*='/admin/inbox'] span.tabular-nums").count();
+        if (inboxBadgeCount > 0) {
+          throw new Error(`Expected zero/no inbox badge on empty storage, got count=${inboxBadgeCount}`);
+        }
+
+        // 3. Check Dashboard: att-inbox attention item is absent when new count is 0
+        await page.goto(baseUrl + "/admin", { waitUntil: "domcontentloaded" });
+        await page.waitForSelector("h1", { timeout: 10000 });
+        const attnInboxCount = await page.locator("text=Unresolved customer enquiries").count();
+        if (attnInboxCount > 0) {
+          throw new Error("Dashboard attention item appeared when contact newCount is zero!");
+        }
+
+        // 4. Same-context / cross-tab reactive convergence: Add a new message to storage and dispatch storage event
+        await page.evaluate(() => {
+          const envelope = {
+            schemaVersion: 1,
+            revision: 6,
+            messages: [
+              {
+                id: "cmsg-cross-1",
+                submissionId: "cross-sub-1",
+                senderName: "Cross Tab User",
+                email: "crosstab@example.ps",
+                topic: "booking",
+                message: "New message arrived from another tab.",
+                language: "en",
+                status: "new",
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                source: "public-contact",
+                internalNotes: [],
+              },
+            ],
+          };
+          localStorage.setItem("gza.contact.v1", JSON.stringify(envelope));
+          window.dispatchEvent(
+            new StorageEvent("storage", {
+              key: "gza.contact.v1",
+              newValue: JSON.stringify(envelope),
+            }),
+          );
+        });
+
+        // Inbox badge immediately reacts and appears with '1'
+        const reactiveBadge = page.locator("a[href*='/admin/inbox'] span:has-text('1')");
+        await reactiveBadge.first().waitFor({ state: "visible", timeout: 8000 });
+      } finally {
+        await context.close();
+      }
+    });
+
+    await checkStep("Check 58: Phase 5D correction — real cross-tab transactions and Admin failure recovery", async () => {
+      const context = await browser.newContext();
+      try {
+        await context.addInitScript(() => localStorage.setItem("gza.admin.v1", JSON.stringify({ staffId: "adm-1", overrides: {} })));
+        const a = await context.newPage(), b = await context.newPage(), inbox = await context.newPage();
+        await Promise.all([a.goto(baseUrl + "/contact"), b.goto(baseUrl + "/contact"), inbox.goto(baseUrl + "/admin/inbox")]);
+        for (const [page, name] of [[a, "Cross Tab A"], [b, "Cross Tab B"]]) {
+          await page.fill("#c-name", name); await page.fill("#c-email", "audit@example.test");
+          await page.fill("#c-message", "A synthetic contact enquiry for cross-tab testing.");
+        }
+        await Promise.all([a.evaluate(() => { const f = document.querySelector("form"); f.requestSubmit(); f.requestSubmit(); }), b.evaluate(() => document.querySelector("form").requestSubmit())]);
+        await Promise.all([a.getByText("Enquiry saved", { exact: true }).waitFor(), b.getByText("Enquiry saved", { exact: true }).waitFor()]);
+        const publicCount = await a.evaluate(() => JSON.parse(localStorage.getItem("gza.contact.v1")).messages.filter(m => m.source === "public-contact").length);
+        if (publicCount !== 2) throw new Error(`Cross-tab enquiries lost/duplicated: ${publicCount}`);
+        await inbox.locator("button:has-text('Cross Tab A')").waitFor();
+        await inbox.locator("a[href*='/admin/inbox'] span:has-text('3')").first().waitFor();
+        await inbox.locator("button:has-text('Cross Tab A')").click();
+        await b.goto(baseUrl + "/admin/inbox"); await b.locator("button:has-text('Cross Tab A')").click();
+        await b.fill('textarea[placeholder*="internal staff note"]', "A note from the second tab.");
+        await Promise.all([inbox.getByRole("button", { name: "Mark open", exact: true }).click(), b.getByRole("button", { name: "Add internal note", exact: true }).click()]);
+        await inbox.getByText("A note from the second tab.", { exact: true }).waitFor();
+        const message = await inbox.evaluate(() => JSON.parse(localStorage.getItem("gza.contact.v1")).messages.find(m => m.senderName === "Cross Tab A"));
+        if (message.status !== "open" || message.internalNotes.length !== 1) throw new Error("Cross-tab status/note overwritten");
+        await inbox.locator("a[href*='/admin/inbox'] span:has-text('2')").first().waitFor();
+
+        const unhandled = []; inbox.on("pageerror", e => unhandled.push(e.message));
+        await inbox.fill("#in-reply-draft", "A persisted reply before failure.");
+        await inbox.getByRole("button", { name: "Save reply draft", exact: true }).click();
+        await inbox.waitForFunction(() => JSON.parse(localStorage.getItem("gza.contact.v1")).messages.find(m => m.senderName === "Cross Tab A").replyDraft === "A persisted reply before failure.");
+        await inbox.fill("#in-reply-draft", "Keep this unsaved reply through failed commands.");
+        await inbox.fill('textarea[placeholder*="internal staff note"]', "Keep this unsaved note.");
+        const before = await inbox.evaluate(() => localStorage.getItem("gza.contact.v1"));
+        await inbox.evaluate(() => {
+          window.__contactSetItem = Storage.prototype.setItem;
+          Storage.prototype.setItem = function (key, value) { if (key === "gza.contact.v1") throw new DOMException("Synthetic quota failure", "QuotaExceededError"); return window.__contactSetItem.call(this, key, value); };
+        });
+        for (const name of ["Resolve", "Add internal note", "Assign to me", "Save reply draft", "Clear draft"]) {
+          await inbox.getByRole("button", { name, exact: true }).click();
+          await inbox.getByRole("alert").filter({ hasText: "Unable to save this change" }).waitFor();
+          if (await inbox.inputValue("#in-reply-draft") !== "Keep this unsaved reply through failed commands.") throw new Error("Failed command discarded reply buffer");
+          if (await inbox.inputValue('textarea[placeholder*="internal staff note"]') !== "Keep this unsaved note.") throw new Error("Failed command discarded note buffer");
+          if (await inbox.evaluate(() => localStorage.getItem("gza.contact.v1")) !== before) throw new Error("Failed command mutated storage");
+        }
+        if (unhandled.length) throw new Error(`Unhandled command errors: ${unhandled.join(",")}`);
+        await inbox.evaluate(() => { Storage.prototype.setItem = window.__contactSetItem; delete window.__contactSetItem; });
+        await inbox.getByRole("button", { name: "Add internal note", exact: true }).evaluate(button => { button.click(); button.click(); });
+        await inbox.getByText("Keep this unsaved note.", { exact: true }).waitFor();
+        const notes = await inbox.evaluate(() => JSON.parse(localStorage.getItem("gza.contact.v1")).messages.find(m => m.senderName === "Cross Tab A").internalNotes);
+        if (notes.filter(n => n.body === "Keep this unsaved note.").length !== 1) throw new Error("Rapid note retry duplicated note");
+      } finally { await context.close(); }
+    });
+
+    await checkStep("Check 59: Phase 5D correction — Arabic errors, focus, LTR inputs and no-draft preview truth", async () => {
+      const context = await browser.newContext();
+      try {
+        const page = await context.newPage(); await page.goto(baseUrl + "/ar/contact");
+        await page.click('button[type="submit"]');
+        await page.waitForFunction(() => document.querySelector('#c-name').getAttribute('aria-invalid') === 'true');
+        const details = await page.evaluate(() => ({ alerts: [...document.querySelectorAll('[role="alert"]')].map(n => n.textContent), focused: document.activeElement.id, dirs: ['#c-email','#c-booking-ref'].map(s => getComputedStyle(document.querySelector(s)).direction) }));
+        if (details.alerts.some(t => /Name|Email|Message/.test(t)) || details.focused !== 'c-name' || details.dirs.some(d => d !== 'ltr')) throw new Error(`Arabic error/focus/direction regression: ${JSON.stringify(details)}`);
+        await page.fill('#c-name','مجرب النموذج'); await page.fill('#c-email','audit@example.test'); await page.fill('#c-message','رسالة تجريبية لاختبار حفظ البيانات محلياً.');
+        await page.evaluate(() => { Storage.prototype.setItem = () => { throw new Error('Synthetic English storage failure'); }; });
+        await page.click('button[type="submit"]'); await page.getByRole('alert').filter({hasText:'تعذر حفظ استفسارك'}).waitFor();
+        for (const [route, title, notice] of [['/contact?settingsPreview=1','Enquiry preview','Settings preview:'],['/ar/contact?settingsPreview=1','معاينة الاستفسار','معاينة الإعدادات:']]) {
+          await page.goto(baseUrl + route); await page.getByText(notice,{exact:false}).first().waitFor();
+          await page.fill('#c-name','Preview Person');await page.fill('#c-email','preview@example.test');await page.fill('#c-message','Preview only; no contact enquiry should be saved.');
+          await page.click('button[type="submit"]'); await page.getByRole('heading',{name:title,exact:true}).waitFor();
+          if (await page.evaluate(() => localStorage.getItem('gza.contact.v1')) !== null) throw new Error('No-draft preview persisted a message');
+          if (!(await page.getByRole('heading',{name:title,exact:true}).evaluate(h => h === document.activeElement))) throw new Error('Success heading did not receive focus');
+          const normalPath = route.split('?')[0];
+          await page.locator(`a[href="${normalPath}"]`).last().click();
+          await page.waitForURL(baseUrl + normalPath);
+          if (await page.getByRole('heading', { name: normalPath.startsWith('/ar') ? 'تم حفظ الاستفسار' : 'Enquiry saved', exact: true }).count()) throw new Error('Leaving preview falsely relabeled the result as persisted');
+        }
+      } finally { await context.close(); }
+    });
+
   } finally {
     await browser.close();
     if (server) {

@@ -1,18 +1,19 @@
 # Data Flow, State Management & Pretend-Action Inventory
 
 > **Document Purpose**: Complete audit of current data sources, state persistence, cross-screen entity splits, and enabled no-op actions across public and admin workspaces.
-> **Status**: **Phase 5C, HC-2 and HC-3 Complete / Accepted Source on `main`.** Phase 5 remains in progress; Phase 5A, 5B, 5C, HC-0, HC-1, HC-2 and HC-3 are complete/accepted. Phase 5D — Public Contact Workflow Convergence is the next engineering lane and remains Planned / Unstarted; Phase 6 and Phase 7/7B remain Planned / Unstarted.
+> **Status**: **Phase 5C, HC-2 and HC-3 Complete / Accepted Source on `main`.** Phase 5 remains in progress; Phase 5A, 5B, 5C, HC-0, HC-1, HC-2 and HC-3 are complete/accepted. Phase 5D — Public Contact Workflow Convergence is implemented on feature branch `phase5d/public-contact-workflow-convergence` awaiting independent review (not accepted/complete); Phase 6 and Phase 7/7B remain Planned / Unstarted.
 > **Production / Source Checkpoint**: The owner reports deployment of the verified HostPapa package `86bb9d7ff5d05279824ecb495140bd294558e499`, built from accepted HC-3 implementation `e99fefa62d1be76050ec11ee962e1ea524b21974`. Source `main` contains that same implementation plus this documentation reconciliation, intentionally one documentation-only commit ahead of production source. No independent live browser verification is claimed; the release and production are unchanged by this reconciliation.
-> **Future Target**: Phase 5D — Public Contact Workflow Convergence (Planned / Unstarted), then Phase 6 before any production backend.
+> **Immediate Next Step**: Independent review of Phase 5D — Public Contact Workflow Convergence; next engineering lane is Phase 6 — Admin Workflows Convergence (Planned / Unstarted).
 
 ---
 
 ## 1. Current State Stores & Persistence
 
-Following Phase 5C, the application coordinates persistence across canonical repositories and legacy boundary keys:
+Following Phase 5D, the application coordinates persistence across canonical repositories and legacy boundary keys:
 
 | Store / Source | Implementation Files | Persistence | Entities & Data Types Managed |
 | :--- | :--- | :--- | :--- |
+| **Canonical Contact State** (`ContactRepository`) | `src/lib/contact/` | `localStorage["gza.contact.v1"]` (schemaVersion: 1) | Customer contact enquiries (`ContactMessage[]`), status transitions (`new`, `open`, `resolved`, `spam`), internal notes, staff assignment, and local reply drafts. Serialized coordinator, seed anti-resurrection on empty storage, cross-tab synchronization. |
 | **Canonical Booking Draft** (`BookingDraftRepository`) | `src/lib/booking-draft/` | `localStorage["gza.booking.draft.v1"]` (schemaVersion: 1) | Active booking wizard draft (`BookingDraft`). 5 storage states, serialized mutation queue, tombstone anti-resurrection, cross-tab synchronization. |
 | **Canonical Repositories** (`BookingRepository`, `FlightRepository`) | `src/lib/repositories/`, `src/lib/domain/` | `localStorage["gza.repo.v1"]` (schemaVersion: 1) | Canonical bookings (`Booking[]`) and mutable operational flight overrides (`flightOverrides: Record<string, FlightOverride>`). Single source of truth for public and admin views. Synchronized across tabs via `subscribeToStorage()`. |
 | **Canonical Passenger State** (`PassengerRepository`) | `src/lib/passenger/` | `localStorage["gza.passenger.v1"]` (schemaVersion: 1) | Canonical passenger account (`PassengerAccount \| null`), profile preferences, and saved companions (`Traveler[]`). Migrated once from `gza.store.v1` only if absent; present empty state is authoritative. Synchronized across tabs via `subscribe()`. |
@@ -22,7 +23,7 @@ Following Phase 5C, the application coordinates persistence across canonical rep
 | **Legacy Store Key** | Preserved read-only migration source | `localStorage["gza.store.v1"]` | Closed legacy store. Migrated once to `gza.booking.draft.v1` if canonical draft is missing. ZERO active draft writers; original string preserved byte-for-byte; never resurrected once cleared. |
 | **Admin Store Façade** (`useAdmin`) | `src/lib/admin-store.tsx` | `localStorage["gza.admin.v1"]` (staffId) | Staff identity (`Staff \| null`), active role (`AdminRole`). Flight operational override mutations delegate directly to `flightRepo` (single writer). |
 | **Admin Operations State** (`useAdmin().ops`) | `src/lib/admin-ops.ts`, `src/lib/admin-store.tsx` | Session in-memory state in `AdminProvider` (`useState<OpsState>`). Resets to seed on reload. | Schedules (`Schedule[]`), aircraft fleet (`AircraftType[]`), seat maps (`Record<string, SeatMapConfig>`), fare products (`FareConfig[]`), baggage allowance (`BaggageConfig`), meals (`OptionItem[]`), assistance options (`OptionItem[]`), destination parameters (`DestinationConfig[]`). |
-| **Admin Static Mock Data** | `src/lib/admin-mock.ts` | In-memory static constants | Customer profiles (`mockCustomers`), check-in desk fixtures, staff inbox, staff directory, audit and analytics fixtures, and non-migrated CMS/story collections. Home, Travel and Past proof arrays now derive from `src/content/`. |
+| **Admin Static Mock Data** | `src/lib/admin-mock.ts` | In-memory static constants | Customer profiles (`mockCustomers`), check-in desk fixtures, staff directory, audit and analytics fixtures, and non-migrated CMS/story collections. Contact inbox fixtures migrated to canonical seeds. Home, Travel and Past proof arrays derive from `src/content/`. |
 | **Settings Draft Store** (Contact & Appearance) | `src/lib/settings/` | `localStorage["gza.settings.draft.v1"]` (schemaVersion: 1) | Multi-document envelope (`{ schemaVersion: 1, site: { contact?, appearance? } }`). Independent per-document save/discard. Active in Admin Settings and explicit `?settingsPreview=1` / `?skinPreview=1`. |
 | **Appearance Legacy Key** | `src/lib/skin.ts` | `localStorage["gza.skin.preview.v1"]` | Legacy working copy. Migrated deterministically into `gza.settings.draft.v1` on first load; left byte-for-byte untouched. No dual writes. |
 
@@ -106,9 +107,10 @@ Following Phase 4, bookings and operational flight overrides share canonical rep
 2. **Check-in — Converged on Public Side**:
    - Public Manage, Check-in, and Boarding Pass routes are 100% repository-native (`BookingRepository` + `FlightRepository`). When a passenger checks in via `/manage/:ref/check-in`, `useCompleteCheckInMutation` invokes `BookingRepository.completeCheckIn` which atomically persists passenger documents, leg seat assignments, and `checkedIn` indexes in a single coordinator transaction with full rollback on storage error.
    - The airport check-in desk monitor (`/admin/check-in`) still renders static `deskPassengers` from `src/lib/admin-mock.ts` and does not reflect public passenger check-in progress. Resolution: Phase 6.
-3. **Contact & Inbox Disconnect**:
-   - Submitting the public contact form (`src/routes/{-$locale}.contact.tsx`) updates local component state (`setSent(true)`) to display an inline prototype panel; it emits no toast and writes to no store.
-   - The admin staff inbox (`src/routes/{-$locale}.admin.inbox.tsx`) displays static `inboxMessages` and never receives public submissions.
+3. **Contact & Inbox — Converged in Phase 5D**:
+   - Public contact form submissions (`src/routes/{-$locale}.contact.tsx`) invoke `ContactRepository.create()` which validates input data, generates a client-side `submissionId`, and writes directly to canonical `localStorage["gza.contact.v1"]` via `ContactStorageCoordinator`.
+   - The admin staff inbox (`src/routes/{-$locale}.admin.inbox.tsx`) queries this same canonical `ContactRepository`. Public submissions appear immediately in the inbox in their original language. Staff can transition status (`new` -> `open` -> `resolved` / `spam`), append internal notes with staff attribution, assign staff, and save local reply drafts.
+   - The shell Inbox badge and Dashboard attention item (`att-inbox`) dynamically derive from `useContactNewCount()`, updating immediately across tabs and clearing when all messages are addressed.
 4. **Flight Operations Overrides — Converged**:
    - When staff edit flight status (gate change, delay) in `/admin` via `flight-quick-edit.tsx`, the change is saved to the canonical `FlightRepository` (`gza.repo.v1`) via `flightRepo.setOverride()`.
    - Both admin and public views can access effective flights through repository query hooks with operational overrides merged.
@@ -142,8 +144,6 @@ The following table catalogs user-facing controls that appear functional (button
 | **Admin Staff Management** | `src/routes/{-$locale}.admin.staff.tsx` | "Change Role" Save | Inside `AdminSheet`, Save calls `useAdmin().toast(t("a2.st.roleChanged"))` (no record updated) | Phase 6 |
 | **Admin Staff Management** | `src/routes/{-$locale}.admin.staff.tsx` | "Disable Staff" (`a2.st.disable`) | Calls `useAdmin().toast(t("a2.uiOnly"))` | Phase 6 |
 | **Admin Settings** | `src/routes/{-$locale}.admin.settings.tsx` | "Save Station Settings" | Calls `useAdmin().toast(t("a2.saved"))`; uncontrolled `defaultValue` form inputs reset on reload | Phase 6 |
-| **Admin Inbox** | `src/routes/{-$locale}.admin.inbox.tsx` | Reply / Add Note / Assign / Resolve / Reopen | Calls `useAdmin().toast()` with no state update; message selection uses page-local `useState(activeId)` | Phase 6 |
-| **Public Contact Form** | `src/routes/{-$locale}.contact.tsx` | "Send Message" | Toggles page-local `useState(sent = true)` displaying inline prototype notice; no toast, no store write | Phase 5 |
 
 ### 3.2 Session-Only Operations Mutations (Shared In-Memory State)
 
@@ -178,6 +178,11 @@ For engineering clarity, the following controls perform authentic data mutations
 7. **Public Manage Trip Edits (`src/routes/{-$locale}.manage.$ref_.*.tsx`)**:
    - Contact (`updateContact`), Seats (`updateSeats`), and Extras (`updateExtras`) invoke dedicated typed mutation hooks against `BookingRepository`.
    - Each command revalidates against latest canonical booking, rejects changes on cancelled bookings, enforces checked-in seat protection (cannot change seat of an already checked-in passenger on that leg), and canonically recalculates total price via pure `bookingTotal`.
+8. **Public Contact Form (`src/routes/{-$locale}.contact.tsx`)**:
+   - Submitting the form validates inputs against `contactCreateInputSchema`, assigns a client-side `submissionId`, and executes `createContactMutation.mutateAsync()`.
+   - Persists directly into `localStorage["gza.contact.v1"]` via `ContactStorageCoordinator`. On failure, catches error, retains all input fields, and renders an accessible `role="alert"` allowing retry. Renders truthful inline success panel stating the enquiry was saved locally for workflow testing. In `?settingsPreview=1`, validates normally without mutating storage.
+9. **Admin Inbox Actions (`src/routes/{-$locale}.admin.inbox.tsx`)**:
+   - Changing status (`setStatus`), adding internal notes (`addInternalNote`), assigning staff (`setAssignee`), and saving or clearing reply drafts (`saveReplyDraft`) execute real mutations against `ContactRepository` with immediate React Query invalidation and persistence in `gza.contact.v1`. Explicitly discloses that external email transport is not connected.
 
 ---
 
