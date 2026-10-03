@@ -1,6 +1,6 @@
 # Canonical Mock Domain & Repository Architecture
 
-> **Document Status**: Active Reference (Phase 5A–5D Complete / Accepted Source; Phase 5D Deployed by Owner; Phase 6 Planned / Unstarted / Next Engineering Lane)
+> **Document Status**: Active Reference (Phase 6A Implemented / Awaiting Independent Review; Phase 5D Deployed by Owner; Phase 6B/6C/7/7B Planned / Unstarted)
 > **Product**: Gaza Airport & Palestinian Airlines ([gazaairport.com](https://www.gazaairport.com))
 > **Phase 4 starting commits**: `9e36b869274830f84c97cbbefe3b3fb0a98c6d2e` (`main`); `92ad935f8477e1663eefa8282d2770c66b64b8b2` (`hostpapa-deploy`)
 > **Pre-operational Prototype Notice**: Gaza Gateway is an authentic, browser-local client-side prototype. It does not connect to a live backend database, payment gateway, GDS, or external server.
@@ -27,16 +27,23 @@ Phase 5C converges public Manage Trip, Check-in, and Boarding Pass surfaces onto
 
 Phase 5D converges public contact submissions and administrative inbox workflows onto `ContactRepository` (`src/lib/contact/repository.ts`) backed by `gza.contact.v1`, with transactional coordinator serialization, seed anti-resurrection on empty storage, cross-tab synchronization, and central React Query hooks.
 
+Phase 6A converges the Admin Commercial Desk surfaces (Admin Check-in Desk, Admin Booking Detail commercial mutations, and Counter Booking creation) onto canonical `BookingRepository` and `FlightRepository`:
+- **Canonical Stored Total Recalculation**: `BookingRepository.create()` calculates the stored total inside the transaction via `bookingTotal(created).total`, discarding or overriding caller-supplied totals. Both public `/book` and desk counter share this authority; client totals are strictly preview only.
+- **Channel Truth**: `BookingChannel = "web" | "desk"` on `Booking` and `BookingCreateInput`. Counter bookings supply `channel: "desk"` and `ownerEmail: null`; legacy unmigrated bookings safely normalize to `"web"`.
+- **Typed `undoCheckIn` Command**: `BookingRepository.undoCheckIn({ ref, leg, selectedPaxIndexes, now? })` safely undoes check-in for non-cancelled bookings. Implemented via `coordinator.conditionalMutate()`: bounds-checked, preserves documents/seats/Extras, and genuine no-op (`commit: false`, no write/notification) if passengers are already not checked in.
+- **Pure Desk Selectors & Zero Mock Fixtures**: Pure `buildAdminCheckInRows()` selector drives the desk monitor directly from canonical `FlightRepository` and `BookingRepository` with station gating (`originCode === "GZA"`), status precedence, and direct `/boarding-pass/$ref/$leg/$pax` links. Zero mock fixtures (`deskFlights`, `deskPassengers`, `mockFlights`, `GZA-NEW1`) in production runtime.
+- **Capacity Snapshot Boundary**: Effective `seatsLeft` is checked at flight selection and transactionally rechecked at `BookingRepository.create()`; documented as a frontend snapshot limit (no decrement/new inventory ledger).
+
 ---
 
-## 2. Post-Phase-5D Ownership Matrix
+## 2. Post-Phase-6A Ownership Matrix
 
 | Aggregate / Entity | Primary Writer | Primary Storage Key | Consumers (Public & Admin) | Current State | Future Migration Target |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Contact Enquiries & Inbox** | `ContactRepository` (`LocalContactRepository`) | `gza.contact.v1` (`schemaVersion: 1`) | Public Contact (`/contact`), Admin Inbox (`/admin/inbox`), Admin Shell badge, Dashboard attention items | **Converged (Phase 5D)** with serialized mutex coordinator, seed anti-resurrection on empty storage, truthful local save, and admin inbox workflow | Phase 13 (Backend Support Desk) |
 | **Booking Draft** | `BookingDraftRepository` (`src/lib/booking-draft/`) | `gza.booking.draft.v1` (`schemaVersion: 1`) | Public Booking Wizard (`/book`), Flight Detail CTA (`/flight/$flightId`), Flight Search Form (`FlightSearchForm`) | **Complete (Phase 5B)** with 5 storage states, serialized mutation queue, tombstone anti-resurrection, and multi-tab synchronization | Phase 13 (Backend Cart/Session) |
 | **Passenger State (Account & Travelers)** | `PassengerRepository` (`src/lib/passenger/`) | `gza.passenger.v1` (`account`, `travelers`) | Site Header, `/account/*`, `/book` (saved traveler pickers), `/signin`, `/register`, `/verify-email`, `/account/security` | **Migrated (Phase 5A)** to canonical `PassengerRepository` with transactional coordinator and zero password persistence | Phase 13 (Backend Auth & Database) |
-| **Booking** | `BookingRepository` (`LocalBookingRepository`) | `gza.repo.v1` (`bookings[]`) | Public Confirmation (`/booking-confirmation/$ref`), Manage Booking (`/manage/*`), Check-in (`/check-in`, `/manage/:ref/check-in`), Boarding Pass (`/boarding-pass/*`), Account Trips (`/account/trips`), Admin Dashboard, Admin Bookings (`/admin/bookings`), Admin Booking Detail (`/admin/bookings/$ref`), Admin Global Search (`AdminSearch`) | **Converged (Phase 4, 5B, 5C)** with single-writer pattern, React Query invalidation, typed passenger commands (`cancel`, `updateContact`, `updateSeats`, `updateExtras`, `completeCheckIn`), and checked-in seat protection | Phase 6 |
+| **Booking** | `BookingRepository` (`LocalBookingRepository`) | `gza.repo.v1` (`bookings[]`) | Public Confirmation (`/booking-confirmation/$ref`), Manage Booking (`/manage/*`), Check-in (`/check-in`, `/manage/:ref/check-in`), Boarding Pass (`/boarding-pass/*`), Account Trips (`/account/trips`), Admin Dashboard, Admin Bookings (`/admin/bookings`), Admin Booking Detail (`/admin/bookings/$ref`), Admin Check-in Desk (`/admin/check-in`), Admin Counter Booking (`/admin/bookings/new`), Admin Global Search (`AdminSearch`) | **Converged (Phase 4, 5B, 5C, 6A)** with single-writer pattern, React Query invalidation, typed commercial commands (`cancel`, `updateContact`, `updateSeats`, `updateExtras`, `completeCheckIn`, `undoCheckIn`), canonical stored total recalculation (`bookingTotal`), channel truth (`web`/`desk`), and checked-in seat protection | Phase 6A Implemented / Awaiting Review (Commercial Desk) |
 | **Flight Operations (Overrides)** | `FlightRepository` (`LocalFlightRepository`) | `gza.repo.v1` (`flightOverrides{}`) | Public Flights Board (`/flights`), Public Flight Detail (`/flight/$flightId`), Public Booking Discovery (`/book`), Calendar Date Picker (`AirlineDatePicker`), Admin Dashboard, Admin Flights (`/admin/flights`), Flight Operations Quick-Edit | **Migrated (Phase 4 & 5B)** with pure `getEffectiveFlight()` composition, bidirectional search, and batched monthly service map | Phase 6 (Admin dispatch & schedules) |
 | **Flight Schedules & Reference** | `src/lib/data.ts` (deterministic generator) | Static / In-memory | `FlightRepository`, flight search, route generation | **Preserved** as immutable baseline timetable and schedule generator | Phase 6 (Mutable schedules) |
 | **Legacy Store Key** | Preserved read-only migration source | `gza.store.v1` | One-time migration to `gza.booking.draft.v1` when draft key is missing | **Closed Legacy Key**: ZERO active draft writers; original string preserved byte-for-byte; never resurrected once cleared | Fully Deprecated |
@@ -66,9 +73,10 @@ export interface Booking {
   seats: Record<string, string>;           // Map of "out-0", "in-0" to seat codes (e.g. "12A")
   extras: Extras;                          // Per-passenger baggage, meal, and assistance
   contact: Contact;                        // Passenger contact email and telephone
-  total: number;                           // Total price in USD
+  total: number;                           // Total price in USD (canonical stored calculation)
   checkedIn: CheckedIn;                    // Leg check-in indexes { out: number[], in: number[] }
   ownerEmail: string | null;               // Associated account email if claimed
+  channel: BookingChannel;                 // "web" | "desk" (channel truth)
   account?: boolean;                       // Backward-compatibility flag
 }
 ```
@@ -76,7 +84,9 @@ export interface Booking {
 #### Key Architecture Decisions:
 1. **Stable Passenger IDs**: Every passenger receives a deterministic identifier formatted as `pax-${ref}-${index}` (e.g. `pax-GZA4TQ-0`), preserving pre-existing IDs if already assigned. This guarantees stable React keys, table row rendering, and seamless check-in tracking.
 2. **`outbound` / `inbound` Structure**: The model preserves explicit `outbound` and optional `inbound` flight instances rather than a generic array, directly matching aviation point-to-point and return trip semantics. The helper `bookingLegs(booking)` yields `["out"]` or `["out", "in"]`.
-3. **Presentation Adapter (`bookingToMockBooking`)**: Derives an `AdaptedAdminBooking` view for legacy admin tables and detail views, including lead passenger, route, cabin, fare, channel, and display status. Mutations use the canonical booking reference and repository rather than writing this view model.
+3. **Presentation Adapter (`bookingToMockBooking`)**: Derives an `AdaptedAdminBooking` view for legacy admin tables and detail views, including lead passenger, route, cabin, fare, channel, and display status. It does not fabricate dates of birth, document numbers, or fake timestamps. Mutations use the canonical booking reference and repository rather than writing this view model.
+4. **Channel Truth (`BookingChannel`)**: Declares whether a booking originated online (`web`) or at the Gaza terminal counter (`desk`). Counter bookings set `ownerEmail: null`.
+5. **Canonical Stored Total Recalculation**: `BookingRepository.create()` transactionally calculates the final stored total via `bookingTotal(created).total`, ensuring that neither public callers nor staff desks can persist incorrect pricing.
 
 ### 3.2 Flight Aggregate & Overrides (`src/lib/domain/flight.ts`)
 
@@ -119,6 +129,7 @@ export interface BookingRepository {
   updateSeats(ref: string, seats: Record<string, string>): Promise<Booking>;
   updateExtras(ref: string, extras: Extras): Promise<Booking>;
   completeCheckIn(input: CheckInCommandInput): Promise<Booking>;
+  undoCheckIn(input: UndoCheckInCommandInput): Promise<Booking>;
   checkIn(ref: string, leg: Leg, paxIndexes: number[]): Promise<Booking | null>;
   claim(ref: string, accountEmail: string): Promise<ClaimResult>;
   delete(ref: string): Promise<boolean>;
@@ -267,6 +278,16 @@ To prevent dual-write bugs, legacy store providers act as single-writer façades
    - Admin Global Search (`AdminSearch`): Consumes `useBookingsQuery()` to resolve matching PNRs and passenger names across both public and admin records.
 
 ---
+
+## Phase 6A creation and desk validation
+
+`BookingRepository.create()` validates canonical passenger composition, identity fields, contact, criteria, channel, effective flight bookability and capacity, leg-qualified seats, and Extras inside the coordinated mutation. Public and desk writers use the same transaction and `bookingTotal()`; any supplied total is only a preview. A missing legacy channel normalizes to `web`, while counter bookings use `desk` and null owner identity.
+
+Extras use canonical meal/assistance IDs, unique assistance entries and integer extra-bag counts from 0 through 5. For compatibility with existing bookings, missing trailing passenger entries are filled with zero services; surplus entries are rejected. An empty Extras array clears additional services. Seats use the existing cabin, availability, duplicate and checked-in protection policy.
+
+The Gaza desk derives rows for whichever booking leg matches the selected GZA-origin flight, including a GZA-origin return leg. It uses the canonical check-in eligibility policy. Undo preserves documents, seats, Extras, contact and pricing; a genuine no-op writes nothing and notifies nobody. No new operational Undo cutoff is introduced. Effective `seatsLeft` is a frontend snapshot, not an inventory ledger, and creation does not decrement a separate inventory store.
+
+Booking Detail history shows only the evidenced creation timestamp. Current seat, check-in and cancellation state are not rendered as invented timestamped events. Activity persistence remains Phase 6C. Existing legacy storage remains readable; stricter validation applies to new writers and typed mutations. Incomplete creation fixtures in repository tests have been updated to supply the required canonical identity and composition fields rather than relaxing production validation.
 
 ## 7. Fixture Inventory & Bundle Isolation
 

@@ -1,3 +1,4 @@
+import { canonicalCreateFixture } from "../helpers/booking-create-fixture.ts";
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import {
@@ -442,7 +443,7 @@ describe("Canonical Repositories & Domain Layer", () => {
       assert.equal(seed?.ref, "GZA4TQ");
 
       // Create new booking
-      const newBooking = await repo.create({
+      const newBooking = await repo.create(canonicalCreateFixture({
         ref: "GZANEW01",
         contact: { email: "new@example.com", phone: "+970599123456" },
         fareFamily: "essential",
@@ -452,7 +453,7 @@ describe("Canonical Repositories & Domain Layer", () => {
         ],
         outbound: createMockFlight(),
         total: 180,
-      });
+      }));
 
       assert.equal(newBooking.ref, "GZANEW01");
       assert.equal(newBooking.passengers[0]!.id, "pax-GZANEW01-0");
@@ -505,7 +506,7 @@ describe("Canonical Repositories & Domain Layer", () => {
 
       await assert.rejects(
         async () => {
-          await repo.create({
+          await repo.create(canonicalCreateFixture({
             ref: "GZAPROOF",
             contact: { email: "proof@example.com", phone: "+970599000000" },
             fareFamily: "essential",
@@ -513,7 +514,7 @@ describe("Canonical Repositories & Domain Layer", () => {
             passengers: [{ name: "Test Pax", type: "adult" }],
             outbound: testProofFlight,
             total: 180,
-          });
+          }));
         },
         /synthetic.*test.*fixture.*flight.*cannot be booked/i
       );
@@ -527,7 +528,7 @@ describe("Canonical Repositories & Domain Layer", () => {
         callCount++;
       });
 
-      await repo.create({
+      await repo.create(canonicalCreateFixture({
         ref: "GZANOTIFY",
         contact: { email: "notify@example.com", phone: "+970599000000" },
         fareFamily: "essential",
@@ -535,7 +536,7 @@ describe("Canonical Repositories & Domain Layer", () => {
         passengers: [{ name: "Test Pax", type: "adult" }],
         outbound: createMockFlight(),
         total: 180,
-      });
+      }));
 
       assert.ok(callCount >= 1);
       const all = await repo.list();
@@ -772,7 +773,7 @@ describe("Canonical Repositories & Domain Layer", () => {
       assert.equal(studioOverride, null);
 
       // 3. Mutate within Studio (create booking and set override)
-      const createdInStudio = await studioRepos.booking.create({
+      const createdInStudio = await studioRepos.booking.create(canonicalCreateFixture({
         ref: "GZASTUDIO1",
         contact: { email: "studio@example.com", phone: "+970599000000" },
         fareId: "classic",
@@ -781,7 +782,7 @@ describe("Canonical Repositories & Domain Layer", () => {
         extras: { pax: [] },
         outbound: createMockFlight(),
         total: 180,
-      });
+      }));
 
       assert.equal(createdInStudio.ref, "GZASTUDIO1");
       await studioRepos.flight.setOverride("PS100-2026-10-15-out", {
@@ -887,7 +888,7 @@ describe("Canonical Repositories & Domain Layer", () => {
       // Candidate PNR GZA4TQ is already an initial seed
       const candidatePnr = "GZA4TQ";
 
-      const created = await repo.create({
+      const created = await repo.create(canonicalCreateFixture({
         ref: candidatePnr,
         criteria: {
           tripType: "oneway",
@@ -906,7 +907,7 @@ describe("Canonical Repositories & Domain Layer", () => {
         extras: { pax: [] },
         contact: { email: "collision@example.com", phone: "+970599000000" },
         total: 180,
-      });
+      }));
 
       // The repository MUST NOT overwrite GZA4TQ; it must generate a new unique PNR
       assert.notEqual(created.ref, candidatePnr);
@@ -931,7 +932,7 @@ describe("Canonical Repositories & Domain Layer", () => {
 
       await assert.rejects(
         async () => {
-          await repo.create({
+          await repo.create(canonicalCreateFixture({
             criteria: {
               tripType: "oneway",
               origin: "GZA",
@@ -949,7 +950,7 @@ describe("Canonical Repositories & Domain Layer", () => {
             extras: { pax: [] },
             contact: { email: "unbookable@example.com", phone: "+970599000000" },
             total: 180,
-          });
+          }));
         },
         (err: unknown) => {
           assert.ok(err instanceof BookingCreationError);
@@ -970,7 +971,7 @@ describe("Canonical Repositories & Domain Layer", () => {
       // Plausible unknown outbound
       await assert.rejects(
         async () => {
-          await repo.create({
+          await repo.create(canonicalCreateFixture({
             criteria: {
               tripType: "oneway",
               origin: "GZA",
@@ -992,7 +993,7 @@ describe("Canonical Repositories & Domain Layer", () => {
             extras: { pax: [] },
             contact: { email: "unknown@example.com", phone: "+970599000000" },
             total: 180,
-          });
+          }));
         },
         (err: unknown) => {
           assert.ok(err instanceof BookingCreationError);
@@ -1005,7 +1006,7 @@ describe("Canonical Repositories & Domain Layer", () => {
       // Plausible unknown inbound on round trip
       await assert.rejects(
         async () => {
-          await repo.create({
+          await repo.create(canonicalCreateFixture({
             criteria: {
               tripType: "round",
               origin: "GZA",
@@ -1032,7 +1033,7 @@ describe("Canonical Repositories & Domain Layer", () => {
             extras: { pax: [] },
             contact: { email: "unknown-inbound@example.com", phone: "+970599000000" },
             total: 360,
-          });
+          }));
         },
         (err: unknown) => {
           assert.ok(err instanceof BookingCreationError);
@@ -1150,7 +1151,7 @@ describe("Canonical Repositories & Domain Layer", () => {
 
       await assert.rejects(
         async () => {
-          await repos.booking.create(input);
+          await repos.booking.create(canonicalCreateFixture(input));
         },
         (err: unknown) => {
           assert.ok(err instanceof StorageCommitError);
@@ -1167,7 +1168,7 @@ describe("Canonical Repositories & Domain Layer", () => {
 
       // Recovery on retry
       failingStorage.shouldFail = false;
-      const created = await repos.booking.create(input);
+      const created = await repos.booking.create(canonicalCreateFixture(input));
       assert.equal(created.ref, "GZAFAIL1");
       assert.equal(bookingNotified, 1, "Booking subscriber must be notified on successful retry");
 

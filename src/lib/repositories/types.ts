@@ -19,6 +19,12 @@ export interface CheckInCommandInput {
   now?: Date | string | number;
 }
 
+export interface UndoCheckInCommandInput {
+  ref: string;
+  leg: Leg;
+  selectedPaxIndexes: number[];
+}
+
 export interface BookingRepository {
   /** Retrieves all confirmed and cancelled bookings. */
   list(): Promise<Booking[]>;
@@ -43,6 +49,14 @@ export interface BookingRepository {
 
   /** Atomically completes check-in for selected passengers, validating window, flight status, duplicate indexes, passenger eligibility, documents, and seats. Returns idempotent booking if identical request is resubmitted. */
   completeCheckIn(input: CheckInCommandInput): Promise<Booking>;
+
+  /**
+   * Undoes check-in for selected passenger indexes on a given leg.
+   * Removes only selected checkedIn indexes; preserves documents, seats, Extras, other leg, contact and price.
+   * Rejects if booking is cancelled or leg invalid.
+   * No-op (no write/revision/notification) if selected passengers are already not checked in.
+   */
+  undoCheckIn(input: UndoCheckInCommandInput): Promise<Booking>;
 
   /** Updates fields on an existing booking (generic internal/admin method). */
   update(ref: string, patch: Partial<Booking>): Promise<Booking | null>;

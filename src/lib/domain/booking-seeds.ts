@@ -121,6 +121,7 @@ export const INITIAL_BOOKING_SEEDS: Booking[] = [
     total: 618,
     status: "confirmed",
     checkedIn: { out: [], in: [] },
+    channel: "web",
     ownerEmail: "nadia.sabbagh@example.com",
   },
   {
@@ -214,6 +215,7 @@ export const INITIAL_BOOKING_SEEDS: Booking[] = [
     total: 1284,
     status: "confirmed",
     checkedIn: { out: [0], in: [] },
+    channel: "web",
     ownerEmail: null,
   },
   {
@@ -269,6 +271,7 @@ export const INITIAL_BOOKING_SEEDS: Booking[] = [
     total: 296,
     status: "confirmed",
     checkedIn: { out: [0], in: [] },
+    channel: "web",
     ownerEmail: "omar.halabi@example.com",
   },
   {
@@ -375,6 +378,7 @@ export const INITIAL_BOOKING_SEEDS: Booking[] = [
     total: 1096,
     status: "confirmed",
     checkedIn: { out: [], in: [] },
+    channel: "web",
     ownerEmail: "salma.rayyan@example.com",
   },
   {
@@ -452,6 +456,7 @@ export const INITIAL_BOOKING_SEEDS: Booking[] = [
     total: 942,
     status: "cancelled",
     checkedIn: { out: [], in: [] },
+    channel: "web",
     ownerEmail: null,
   },
   {
@@ -538,6 +543,7 @@ export const INITIAL_BOOKING_SEEDS: Booking[] = [
     total: 704,
     status: "confirmed",
     checkedIn: { out: [], in: [] },
+    channel: "web",
     ownerEmail: null,
   },
 ];

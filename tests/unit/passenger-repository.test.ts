@@ -1,3 +1,4 @@
+import { canonicalCreateFixture } from "../helpers/booking-create-fixture.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
@@ -348,7 +349,7 @@ describe("Phase 5A Passenger Aggregate & Invariants", () => {
       const bookingRepo = new LocalBookingRepository(repoCoordinator);
 
       // Create an unowned guest booking
-      const guestBooking = await bookingRepo.create({
+      const guestBooking = await bookingRepo.create(canonicalCreateFixture({
         criteria: {
           tripType: "one-way",
           originCode: "GZA",
@@ -383,7 +384,7 @@ describe("Phase 5A Passenger Aggregate & Invariants", () => {
         contact: { email: "guest.owner@gza.ps", phone: "+970 8 000 0000" },
         total: 171,
         ownerEmail: null,
-      });
+      }));
 
       const ref = guestBooking.ref;
 

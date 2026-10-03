@@ -27,6 +27,9 @@ export function ConfirmDialog({
   confirmLabel,
   onConfirm,
   onClose,
+  pending = false,
+  error,
+  preserveOpenOnConfirm = false,
 }: {
   open: boolean;
   title: string;
@@ -34,6 +37,9 @@ export function ConfirmDialog({
   confirmLabel: string;
   onConfirm: () => void;
   onClose: () => void;
+  pending?: boolean;
+  error?: string | null;
+  preserveOpenOnConfirm?: boolean;
 }) {
   const { t } = useI18n();
   const triggerRef = React.useRef<HTMLElement | null>(null);
@@ -42,12 +48,15 @@ export function ConfirmDialog({
     <AlertDialog
       open={open}
       onOpenChange={(nextOpen) => {
-        if (!nextOpen) {
+        if (!nextOpen && !pending) {
           onClose();
         }
       }}
     >
       <AlertDialogContent
+        onEscapeKeyDown={(event) => {
+          if (pending) event.preventDefault();
+        }}
         onOpenAutoFocus={() => {
           if (
             document.activeElement instanceof HTMLElement &&
@@ -68,11 +77,23 @@ export function ConfirmDialog({
           <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription>{body}</AlertDialogDescription>
         </AlertDialogHeader>
+        {error ? (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
+        ) : null}
         <AlertDialogFooter>
-          <AlertDialogCancel autoFocus>
+          <AlertDialogCancel autoFocus disabled={pending}>
             {t("common.keep")}
           </AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm}>
+          <AlertDialogAction
+            disabled={pending}
+            aria-busy={pending}
+            onClick={(event) => {
+              if (preserveOpenOnConfirm) event.preventDefault();
+              onConfirm();
+            }}
+          >
             {confirmLabel}
           </AlertDialogAction>
         </AlertDialogFooter>

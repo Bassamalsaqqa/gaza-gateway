@@ -381,7 +381,7 @@ describe("Phase 5C: Manage, Check-in & Boarding Pass Convergence", () => {
     it("updateExtras rejects modification on cancelled booking", async () => {
       await repo.cancel("GZA-5C01");
       await assert.rejects(
-        () => repo.updateExtras("GZA-5C01", { pax: [{ bags: 1, meal: "standard", assistance: "none" }] }),
+        () => repo.updateExtras("GZA-5C01", { pax: [{ extraBags: 1, meal: "standard", assistance: [] }] }),
         /cancelled/i,
       );
     });
@@ -426,11 +426,11 @@ describe("Phase 5C: Manage, Check-in & Boarding Pass Convergence", () => {
     it("updateExtras updates extras and recalculates total canonically", async () => {
       const updated = await repo.updateExtras("GZA-5C01", {
         pax: [
-          { bags: 2, meal: "gourmet", assistance: "none" },
-          { bags: 0, meal: "standard", assistance: "none" },
+          { extraBags: 2, meal: "vegetarian", assistance: [] },
+          { extraBags: 0, meal: "standard", assistance: [] },
         ],
       });
-      assert.equal(updated.extras.pax[0]?.bags, 2);
+      assert.equal(updated.extras.pax[0]?.extraBags, 2);
       assert.ok(updated.total > 350);
     });
 
@@ -701,8 +701,8 @@ describe("Phase 5C: Manage, Check-in & Boarding Pass Convergence", () => {
         const execute = () =>
           repo.updateExtras("GZA-5C01", {
             pax: [
-              { bags: 2, meal: "gourmet", assistance: "none" },
-              { bags: 1, meal: "standard", assistance: "none" },
+              { extraBags: 2, meal: "vegetarian", assistance: [] },
+              { extraBags: 1, meal: "standard", assistance: [] },
             ],
           });
 
@@ -724,12 +724,12 @@ describe("Phase 5C: Manage, Check-in & Boarding Pass Convergence", () => {
         // 5. Retrying after storage recovery succeeds
         mockStorage.setFailWrites(false);
         const recovered = await execute();
-        assert.equal(recovered.extras.pax[0]?.bags, 2);
-        assert.equal(recovered.extras.pax[1]?.bags, 1);
+        assert.equal(recovered.extras.pax[0]?.extraBags, 2);
+        assert.equal(recovered.extras.pax[1]?.extraBags, 1);
         assert.equal(notifications, 1);
 
         const persisted = await repo.getByRef("GZA-5C01");
-        assert.equal(persisted?.extras.pax[0]?.bags, 2);
+        assert.equal(persisted?.extras.pax[0]?.extraBags, 2);
       });
     });
   });

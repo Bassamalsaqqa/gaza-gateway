@@ -1,3 +1,5 @@
+import {runCommercialChecks,counterTestFlight,availableSeat} from "./phase6a-commercial.mjs";
+import {bookingTotal} from "../../src/lib/domain/pricing.ts";
 /**
  * Gaza Gateway — Browser Smoke Verification Script
  *
@@ -3061,6 +3063,9 @@ async function runBrowserSmoke() {
     await checkStep("Check 29: Console one-way/round-trip toggle, traveller stepper, cabin selection, and /book search flow", async () => {
       await page.setViewportSize({ width: 1440, height: 900 });
       await page.goto(baseUrl + "/", { waitUntil: "domcontentloaded" });
+      // Static HTML can be visible before the client handlers are established.
+      await page.waitForLoadState("load");
+      await page.waitForTimeout(350);
 
       // 1. Round-trip is default
       const roundTripBtn = page.locator('[aria-pressed]').first();
@@ -5939,6 +5944,8 @@ async function runBrowserSmoke() {
         // 1. Navigate to Arabic Manage: /ar/manage
         await testPage.goto(`${baseUrl}/ar/manage`, { waitUntil: "domcontentloaded" });
         await testPage.waitForSelector('#pnr', { timeout: 10000 });
+        await testPage.waitForLoadState("load");
+        await testPage.waitForTimeout(350);
 
         // Verify document direction is RTL
         const isRtl = await testPage.evaluate(() => document.documentElement.dir === "rtl");
@@ -6536,7 +6543,12 @@ async function runBrowserSmoke() {
         await closeBtn.focus();
         await page.keyboard.press("Escape");
         await videoDialog.waitFor({ state: "hidden", timeout: 5000 });
-        const videoFocused = await firstVideoCard.evaluate((el) => el === document.activeElement);
+        let videoFocused = false;
+        // Exit animation and Radix focus restoration need not finish on the same frame.
+        for (let attempt=0; attempt<40 && !videoFocused; attempt++) {
+          videoFocused = await firstVideoCard.evaluate((el) => el === document.activeElement);
+          if (!videoFocused) await page.waitForTimeout(50);
+        }
         if (!videoFocused) {
           throw new Error("Focus did not return to video card trigger after Escape dismissal");
         }
@@ -7202,6 +7214,8 @@ async function runBrowserSmoke() {
         // 1. Visit /contact?settingsPreview=1
         await page.goto(baseUrl + "/contact?settingsPreview=1", { waitUntil: "domcontentloaded" });
         await page.waitForSelector("#c-name", { timeout: 10000 });
+        await page.waitForLoadState("load");
+        await page.waitForTimeout(350);
 
         // Fill and submit preview contact form
         await page.fill("#c-name", "Preview Submitter");
@@ -7222,6 +7236,8 @@ async function runBrowserSmoke() {
         // 2. Visit /ar/contact?settingsPreview=1
         await page.goto(baseUrl + "/ar/contact?settingsPreview=1", { waitUntil: "domcontentloaded" });
         await page.waitForSelector("#c-name", { timeout: 10000 });
+        await page.waitForLoadState("load");
+        await page.waitForTimeout(350);
 
         await page.fill("#c-name", "مجرّب المعاينة");
         await page.fill("#c-email", "preview-ar@example.com");
@@ -7459,6 +7475,275 @@ async function runBrowserSmoke() {
         }
       } finally { await context.close(); }
     });
+
+    await checkStep("Check 60: Phase 6A — Admin Check-in Desk: real repository queries, status precedence, check-in completion, boarding pass navigation, and undo check-in", async () => {
+      const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+      const clockMs = Date.parse("2026-10-10T04:00:00+03:00");
+      const checkInRepo = {
+        schemaVersion: 1,
+        bookings: [
+          {
+            ref: "GZA-CK60",
+            createdAt: "2026-10-01T10:00:00Z",
+            status: "confirmed",
+            channel: "web",
+            ownerEmail: "khalil@example.ps",
+            total: 350,
+            contact: { email: "khalil@example.ps", phone: "+970 8 282 0000" },
+            criteria: {
+              tripType: "oneway",
+              origin: "GZA",
+              destination: "AMM",
+              departDate: "2026-10-10",
+              returnDate: "",
+              adults: 2,
+              children: 0,
+              infants: 0,
+              cabin: "economy",
+            },
+            outbound: {
+              id: "PS100-2026-10-10-out",
+              number: "PS100",
+              originCode: "GZA",
+              destinationCode: "AMM",
+              date: "2026-10-10",
+              departTime: "07:15",
+              arriveTime: "08:10",
+              durationMinutes: 55,
+              aircraft: "Airbus A320neo",
+              status: "Scheduled",
+              gate: "A1",
+              terminal: "1",
+              basePrice: 129,
+              seatsLeft: 18,
+            },
+            inbound: null,
+            fareId: "classic",
+            passengers: [
+              { id: "pax-GZA-CK60-0", firstName: "Ahmad", lastName: "Khalil", type: "adult", dob: "1985-05-15", nationality: "PS", document: "PAL-SMOKE-99" },
+              { id: "pax-GZA-CK60-1", firstName: "Fatima", lastName: "Khalil", type: "adult", dob: "1988-08-20", nationality: "PS", document: "" },
+            ],
+            seats: { "out-0": "12A", "out-1": "12B" },
+            extras: { pax: [{ extraBags: 1, meal: "standard", assistance: [] }] },
+            checkedIn: { out: [], in: [] },
+          },
+        ],
+        flightOverrides: {},
+      };
+
+      await context.addInitScript(({ checkInRepo, clockMs }) => {
+        try {
+          localStorage.setItem("gza.admin.v1", JSON.stringify({ staffId: "adm-1", overrides: {} }));
+          localStorage.setItem("gza.repo.v1", JSON.stringify(checkInRepo));
+          const RealDate = Date;
+          class MockDate extends RealDate {
+            constructor(...args) {
+              if (args.length === 0) super(clockMs);
+              else super(...args);
+            }
+            static now() {
+              return clockMs;
+            }
+          }
+          window.Date = MockDate;
+        } catch { }
+      }, { checkInRepo, clockMs });
+
+      try {
+        const page = await context.newPage();
+
+        // 1. Visit /admin/check-in
+        await page.goto(baseUrl + "/admin/check-in", { waitUntil: "domcontentloaded" });
+        await page.waitForSelector("table", { timeout: 10000 });
+
+        // Verify page header
+        const title = await page.textContent("h1, h2, [data-slot='page-header']");
+        if (!title?.toLowerCase().includes("check-in")) {
+          throw new Error("Admin Check-in page did not load correctly: " + title);
+        }
+
+        // Verify that table rows are rendered
+        const rowCount = await page.locator("tbody tr").count();
+        if (rowCount === 0) {
+          throw new Error("Check-in desk has no passenger rows");
+        }
+
+        // Find a row with Check in button (ready state for Ahmad Khalil)
+        const checkInButton = page.locator("tbody tr button").filter({ hasText: /Check in|تسجيل الوصول/i }).first();
+        if (await checkInButton.count() === 0) {
+          throw new Error("Expected Check in button on ready row");
+        }
+        await checkInButton.click();
+
+        // Verify row transitions to "Checked in"
+        const doneBadge = page.locator("tbody tr").filter({ hasText: /Checked in|تم تسجيل الوصول/i }).first();
+        await doneBadge.waitFor({ state: "visible", timeout: 8000 });
+
+        // Verify Boarding Pass button is visible on the checked-in row
+        const bpButton = doneBadge.locator("a, button").filter({ hasText: /Boarding Pass|بطاقة الصعود/i });
+        if (await bpButton.count() === 0) {
+          throw new Error("Boarding pass action missing on checked-in row");
+        }
+
+        // Verify Undo Check-in button is present
+        const undoButton = doneBadge.locator("button").filter({ hasText: /Undo|تراجع/i });
+        if (await undoButton.count() === 0) {
+          throw new Error("Undo check-in button missing on checked-in row");
+        }
+
+        // Test Undo Check-in
+        await undoButton.click();
+        await page.waitForTimeout(600);
+
+        // Verify passenger is no longer in checked in state
+        const remainingCheckedIn = await page.locator("tbody tr").filter({ hasText: /Checked in|تم تسجيل الوصول/i }).count();
+        if (remainingCheckedIn !== 0) {
+          throw new Error("Undo check-in failed to revert passenger status");
+        }
+
+        // Verify Arabic view /ar/admin/check-in
+        await page.goto(baseUrl + "/ar/admin/check-in", { waitUntil: "domcontentloaded" });
+        await page.waitForSelector("table", { timeout: 10000 });
+        const arTitle = await page.textContent("h1, h2, [data-slot='page-header']");
+        if (!arTitle?.includes("تسجيل الوصول")) {
+          throw new Error("Arabic check-in desk title mismatch: " + arTitle);
+        }
+      } finally {
+        await context.close();
+      }
+    });
+
+    await checkStep("Check 61: Phase 6A — Counter Booking: 5-step wizard, canonical pricing, channel 'desk', Admin Detail and Public Manage cross-surface convergence", async () => {
+      const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+      await context.addInitScript(() => {
+        try {
+          localStorage.setItem("gza.admin.v1", JSON.stringify({ staffId: "adm-1", overrides: {} }));
+        } catch { }
+      });
+      try {
+        const page = await context.newPage();
+
+        // 1. Visit /admin/bookings/new
+        await page.goto(baseUrl + "/admin/bookings/new", { waitUntil: "domcontentloaded" });
+        await page.waitForSelector("input, select", { timeout: 10000 });
+
+        const counterFlight=counterTestFlight();
+        await page.fill("#nb-date",counterFlight.date);
+        await page.selectOption("#nb-dest",counterFlight.destinationCode);
+        // Step 1: Flight & Route
+        await page.waitForSelector("input[name='nb-flight-choice']", { timeout: 10000 });
+        const firstFlightRadio = page.locator("input[name='nb-flight-choice']").first();
+        await firstFlightRadio.check();
+
+        // Step 1 -> Step 2 (Fare)
+        const nextToStep2 = page.getByRole("button", { name: /Next: Fare Selection|التالي: اختيار الأجرة/i });
+        await nextToStep2.click();
+
+        // Step 2: Select Fare (Classic)
+        await page.waitForSelector("input[name='nb-fare-choice']", { timeout: 8000 });
+        const classicFareRadio = page.locator("input[name='nb-fare-choice'][value='classic'], input[name='nb-fare-choice']").nth(1);
+        await classicFareRadio.check();
+
+        // Step 2 -> Step 3 (Passengers & Contact)
+        const nextToStep3 = page.getByRole("button", { name: /Next: Passenger Details|التالي: بيانات المسافرين/i });
+        await nextToStep3.click();
+
+        // Step 3: Enter passenger details and contact
+        await page.waitForSelector("#pax-0-fn", { timeout: 8000 });
+        await page.fill("#pax-0-fn", "Hassan");
+        await page.fill("#pax-0-ln", "Al-Quds");
+        await page.fill("#pax-0-dob", "1988-07-20");
+        await page.fill("#pax-0-doc", "PAL-887766");
+        await page.fill("#nb-contact-email", "hassan.quds@example.com");
+        await page.fill("#nb-contact-phone", "+970599112233");
+
+        // Step 3 -> Step 4 (Seats & Extras)
+        const nextToStep4 = page.getByRole("button", { name: /Next: Seats & Extras|التالي: المقاعد والإضافات/i });
+        await nextToStep4.click();
+
+        // Step 4: Seat & Extras
+        await page.waitForSelector("#pax-0-seat", { timeout: 8000 });
+        await page.fill("#pax-0-seat", availableSeat(counterFlight));
+        await page.fill("#pax-0-bags", "1");
+
+        // Step 4 -> Step 5 (Review & Issue)
+        const nextToStep5 = page.getByRole("button", { name: /Next: Review & Issue|التالي: المراجعة والإصدار/i });
+        await nextToStep5.click();
+
+        // Step 5: Review summary
+        const issueBtn = page.getByRole("button", { name: /Issue Ticket at Desk|إصدار التذكرة في المكتب/i });
+        await issueBtn.waitFor({ state: "visible", timeout: 8000 });
+        await issueBtn.click();
+
+        // Verify success view appears with generated PNR
+        const successTitle = page.locator("text=/Booking created|تم إنشاء الحجز/i").first();
+        await successTitle.waitFor({ state: "visible", timeout: 10000 });
+        const successText = await page.textContent("body");
+        if (!successText?.toLowerCase().includes("booking created") && !successText?.includes("تم إنشاء الحجز")) {
+          throw new Error("Counter booking success screen not displayed");
+        }
+
+        // Extract PNR directly from success display
+        const createdPnr = (await page.locator("main .text-3xl").first().textContent())?.trim();
+        if (!createdPnr) {
+          throw new Error("Could not extract generated PNR from counter booking: " + successText.slice(0, 300));
+        }
+
+        // Verify channel 'desk' in canonical local storage
+        const repoState = await page.evaluate(() => JSON.parse(localStorage.getItem("gza.repo.v1") || "{}"));
+        const storedBooking = repoState.bookings?.find(b => b.ref === createdPnr);
+        if (!storedBooking) {
+          throw new Error(`Booking ${createdPnr} was not persisted to gza.repo.v1`);
+        }
+        if (storedBooking.channel !== "desk") {
+          throw new Error(`Booking channel expected 'desk', got: ${storedBooking.channel}`);
+        }
+        if (storedBooking.ownerEmail !== null) {
+          throw new Error(`Desk booking ownerEmail expected null, got: ${storedBooking.ownerEmail}`);
+        }
+        if (storedBooking.total !== bookingTotal(storedBooking).total) throw new Error("Stored booking total differs from canonical pricing");
+
+        // 2. Cross-surface convergence: View in Admin Detail
+        await page.goto(baseUrl + `/admin/bookings/${createdPnr}`, { waitUntil: "domcontentloaded" });
+        await page.waitForSelector("h1, h2, [data-slot='page-header']", { timeout: 10000 });
+        const detailText = await page.textContent("body");
+        if (!detailText?.includes(createdPnr) || !detailText?.includes("Hassan Al-Quds")) {
+          throw new Error(`Admin booking detail does not show created booking ${createdPnr}`);
+        }
+
+        // 3. Sequential two-tab proof: Public Manage Convergence
+        const publicTab = await context.newPage();
+        await publicTab.goto(baseUrl + `/manage/${createdPnr}`, { waitUntil: "domcontentloaded" });
+        await publicTab.waitForSelector(`text=${createdPnr}`, { timeout: 10000 });
+        const publicText = await publicTab.textContent("body");
+        if (!publicText?.includes(createdPnr)) {
+          throw new Error(`Public manage view failed to load desk booking ${createdPnr}`);
+        }
+        await publicTab.close();
+
+        // 4. Permission guard check: staff with commercial.view only cannot edit
+        const currentRepoState = await page.evaluate(() => localStorage.getItem("gza.repo.v1"));
+        const viewerContext = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+        await viewerContext.addInitScript((repo) => {
+          try {
+            localStorage.setItem("gza.admin.v1", JSON.stringify({ staffId: "adm-3", overrides: {} }));
+            if (repo) localStorage.setItem("gza.repo.v1", repo);
+          } catch { }
+        }, currentRepoState);
+        const viewerPage = await viewerContext.newPage();
+        await viewerPage.goto(baseUrl + `/admin/bookings/${createdPnr}`, { waitUntil: "domcontentloaded" });
+        await viewerPage.waitForSelector(`text=${createdPnr}`, { timeout: 10000 });
+        const editContactBtn = viewerPage.locator("button").filter({ hasText: /Edit Contact|تعديل بيانات الاتصال/i });
+        if (await editContactBtn.count() !== 1 || await editContactBtn.isEnabled()) {
+          throw new Error("Viewer staff with no commercial.edit permission was able to click edit contact button");
+        }
+        await viewerContext.close();
+      } finally {
+        await context.close();
+      }
+    });
+
+    await runCommercialChecks({checkStep,browser,baseUrl});
 
   } finally {
     await browser.close();

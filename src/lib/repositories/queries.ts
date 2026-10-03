@@ -18,7 +18,7 @@ import {
 } from "@tanstack/react-query";
 import type { Booking, BookingCreateInput, Leg } from "../domain/booking.ts";
 import type { Flight, FlightOverride } from "../domain/flight.ts";
-import type { CheckInCommandInput, ClaimResult, MonthlyServiceMap } from "./types.ts";
+import type { CheckInCommandInput, UndoCheckInCommandInput, ClaimResult, MonthlyServiceMap } from "./types.ts";
 import type { BookingDraftState, Draft, Extras, SearchCriteria } from "../booking-draft/types.ts";
 import { emptyPaxExtras, passengersFor } from "../booking-draft/factories.ts";
 import { bookingDraftKeys, bookingKeys, flightKeys } from "./keys.ts";
@@ -215,6 +215,25 @@ export function useCompleteCheckInMutation(): UseMutationResult<
 
   return useMutation({
     mutationFn: (input: CheckInCommandInput) => bookingRepo.completeCheckIn(input),
+    onSuccess: (updated) => {
+      queryClient.invalidateQueries({ queryKey: bookingKeys.all });
+      if (updated?.ref) {
+        queryClient.setQueryData(bookingKeys.detail(updated.ref), updated);
+      }
+    },
+  });
+}
+
+export function useUndoCheckInMutation(): UseMutationResult<
+  Booking,
+  Error,
+  UndoCheckInCommandInput
+> {
+  const { booking: bookingRepo } = useRepositories();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: UndoCheckInCommandInput) => bookingRepo.undoCheckIn(input),
     onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: bookingKeys.all });
       if (updated?.ref) {

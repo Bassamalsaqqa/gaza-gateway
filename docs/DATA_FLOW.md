@@ -1,9 +1,9 @@
 # Data Flow, State Management & Pretend-Action Inventory
 
 > **Document Purpose**: Complete audit of current data sources, state persistence, cross-screen entity splits, and enabled no-op actions across public and admin workspaces.
-> **Status**: **Phase 5A–5D and HC-0–HC-3 Complete / Accepted Source.** Phase 5 public workflow convergence is complete; Phase 5A, 5B, 5C, HC-0, HC-1, HC-2 and HC-3 are complete/accepted. Phase 5D — Public Contact Workflow Convergence is Complete / Accepted Source / Deployed by Owner (engineering acceptance: `05f0e97982f47b18e40b93d1cb3f2e29b548eff2`); Phase 6 and Phase 7/7B remain Planned / Unstarted.
-> **Production / Source Checkpoint**: Phase 5D is Complete / Accepted Source / Deployed by Owner. The owner manually deployed accepted HostPapa release `898adc36701f138b54787fa14caecf55321b453f`, built from production source `2e166ed815010728d25a891939b84db4109ae65e`. Current main includes that implementation plus this documentation-only production-truth reconciliation; the deployed source and release remain unchanged. No independent live browser verification is claimed.
-> **Immediate Next Step**: Phase 6 — Admin Workflows Convergence (Planned / Unstarted / Next Engineering Lane). Phase 7 and Phase 7B remain Planned / Unstarted.
+> **Status**: **Phase 6A Implemented / Awaiting Independent Review.** Phase 5A–5D and HC-0–HC-3 are Complete / Accepted Source. Phase 5D — Public Contact Workflow Convergence is Complete / Accepted Source / Deployed by Owner (engineering acceptance: `05f0e97982f47b18e40b93d1cb3f2e29b548eff2`); Phase 6A — Admin Commercial Desk Convergence is Implemented / Awaiting Independent Review. Phase 6B (Operations Configuration Persistence), Phase 6C (Admin Directory Staff & Activity Convergence), Phase 7, and Phase 7B remain Planned / Unstarted.
+> **Production / Source Checkpoint**: Phase 5D is Complete / Accepted Source / Deployed by Owner. The owner manually deployed accepted HostPapa release `898adc36701f138b54787fa14caecf55321b453f`, built from production source `2e166ed815010728d25a891939b84db4109ae65e`. Current main includes that implementation plus documentation-only production-truth reconciliation; the deployed source and release remain unchanged. Phase 6A is uncommitted and unstaged on feature branch awaiting independent review. No independent live browser verification is claimed.
+> **Immediate Next Step**: Independent review of Phase 6A. Phase 6B — Operations Configuration Persistence (Planned / Unstarted), Phase 6C — Admin Directory Staff & Activity Convergence (Planned / Unstarted), Phase 7 and Phase 7B remain Planned / Unstarted.
 
 ---
 
@@ -104,9 +104,9 @@ Following Phase 4, bookings and operational flight overrides share canonical rep
    - A passenger booking completed on `/book` writes to the canonical `BookingRepository` (`gza.repo.v1`).
    - The admin booking list (`/admin/bookings`), detail (`/admin/bookings/:ref`), and global search all query the same canonical `BookingRepository`. A public-created PNR appears immediately in the admin booking table and detail view. An empty repository correctly shows an empty list; a missing PNR correctly shows a not-found state.
    - `mockBookings` in `src/lib/admin-mock.ts` remains for non-migrated customer detail fixture references and migration-era sample data. It is never a fallback for a successfully resolved canonical booking list, detail, or global search.
-2. **Check-in — Converged on Public Side**:
+2. **Check-in — Converged on Public Side & Admin Desk (Phase 6A)**:
    - Public Manage, Check-in, and Boarding Pass routes are 100% repository-native (`BookingRepository` + `FlightRepository`). When a passenger checks in via `/manage/:ref/check-in`, `useCompleteCheckInMutation` invokes `BookingRepository.completeCheckIn` which atomically persists passenger documents, leg seat assignments, and `checkedIn` indexes in a single coordinator transaction with full rollback on storage error.
-   - The airport check-in desk monitor (`/admin/check-in`) still renders static `deskPassengers` from `src/lib/admin-mock.ts` and does not reflect public passenger check-in progress. Resolution: Phase 6.
+   - The airport check-in desk monitor (`/admin/check-in`) converged in Phase 6A onto canonical `FlightRepository` and `BookingRepository`. It queries Gaza station departures (`originCode === "GZA"`), computes pure `buildAdminCheckInRows()` view models, enforces status precedence (`done` -> `closed` -> `docs` -> `seat` -> `ready`), performs real `completeCheckIn` and `undoCheckIn` mutations via the storage coordinator, and provides direct navigation to `/boarding-pass/$ref/$leg/$pax`.
 3. **Contact & Inbox — Converged in Phase 5D**:
    - Public contact form submissions (`src/routes/{-$locale}.contact.tsx`) invoke `ContactRepository.create()` which validates input data, generates a client-side `submissionId`, and writes directly to canonical `localStorage["gza.contact.v1"]` via `ContactStorageCoordinator`.
    - The admin staff inbox (`src/routes/{-$locale}.admin.inbox.tsx`) queries this same canonical `ContactRepository`. Public submissions appear immediately in the inbox in their original language. Staff can transition status (`new` -> `open` -> `resolved` / `spam`), append internal notes with staff attribution, assign staff, and save local reply drafts.
@@ -114,8 +114,8 @@ Following Phase 4, bookings and operational flight overrides share canonical rep
 4. **Flight Operations Overrides — Converged**:
    - When staff edit flight status (gate change, delay) in `/admin` via `flight-quick-edit.tsx`, the change is saved to the canonical `FlightRepository` (`gza.repo.v1`) via `flightRepo.setOverride()`.
    - Both admin and public views can access effective flights through repository query hooks with operational overrides merged.
-5. **New Booking at Counter (`src/routes/{-$locale}.admin.bookings.new.tsx`)**:
-   - Staff booking creation sets page-local state and triggers a toast with a hardcoded reference `GZA-NEW1`. It does not commit to the canonical repository. Resolution: Phase 6.
+5. **New Booking at Counter (`src/routes/{-$locale}.admin.bookings.new.tsx`) — Converged in Phase 6A**:
+   - Staff counter booking creation converged in Phase 6A into a real 5-step commercial creation wizard without mock fixtures. Staff search effective flights, select fares, enter validated passenger and contact identities, choose seats and Extras, review dynamically calculated totals, and commit via `BookingRepository.create()` with `channel: "desk"`, `ownerEmail: null`, and canonical stored pricing recalculation (`bookingTotal()`). A real PNR is generated and persists immediately into `gza.repo.v1`.
 
 ---
 
@@ -127,13 +127,11 @@ The following table catalogs user-facing controls that appear functional (button
 
 | Route / Component | Exact File Path | Action / Element | Current Implementation & State Effect | Resolution Phase |
 | :--- | :--- | :--- | :--- | :--- |
-| **Admin Check-in Desk** | `src/routes/{-$locale}.admin.check-in.tsx` | "Check-in" / "Undo" | Calls `useAdmin().toast(t("a2.ci.checkedInToast"))` (no mutation to `deskPassengers`) | Phase 6 |
-| **Admin Check-in Desk** | `src/routes/{-$locale}.admin.check-in.tsx` | "Issue Boarding Pass" | Calls `useAdmin().toast(t("a2.ci.issuedToast"))` (no mutation to `deskPassengers`) | Phase 6 |
-| **Admin Check-in Desk** | `src/routes/{-$locale}.admin.check-in.tsx` | "Check-in" in Sheet Footer | Closes sheet (`setSelected(null)`) and calls `useAdmin().toast(...)` | Phase 6 |
-| **Admin Create Booking** | `src/routes/{-$locale}.admin.bookings.new.tsx` | "Create Booking" (`a2.nb.create`) | Sets page-local `done = true` and `useAdmin().toast()`; displays static `GZA-NEW1` (no record saved) | Phase 6 |
-| **Admin Booking Detail** | `src/routes/{-$locale}.admin.bookings.$ref.tsx` | "Edit Contact" / "Seat" / "Extras" Save | Inside `AdminSheet`, Save button calls `useAdmin().toast(t("a2.saved"))` without mutating booking | Phase 6 |
-| **Admin Booking Detail** | `src/routes/{-$locale}.admin.bookings.$ref.tsx` | "Re-send" / "Print Manifest" / "Boarding Pass" | Calls `useAdmin().toast(t("a2.uiOnly"))` (no action performed) | Phase 6 |
-| **Admin Customer Detail** | `src/routes/{-$locale}.admin.customers.$id.tsx` | "Edit Contact" Save | Inside `AdminSheet`, Save calls `useAdmin().toast(t("a2.saved"))` without updating `mockCustomers` | Phase 6 |
+| **Admin Check-in Desk** | `src/routes/{-$locale}.admin.check-in.tsx` | "Check-in" / "Undo" | Real `completeCheckIn` & `undoCheckIn` mutations via `gza.repo.v1`; direct Boarding Pass navigation | Complete (Phase 6A) |
+| **Admin Create Booking** | `src/routes/{-$locale}.admin.bookings.new.tsx` | "Create Booking" (`a2.nb.create`) | Real `createBooking` mutation with `channel: 'desk'`, `ownerEmail: null`, stored pricing recalculation, and generated PNR | Complete (Phase 6A) |
+| **Admin Booking Detail** | `src/routes/{-$locale}.admin.bookings.$ref.tsx` | "Edit Contact" / "Seat" / "Extras" Save | Real mutations (`updateBookingContact`, `updateBookingSeats`, `updateBookingExtras`, `cancelBooking`) on `gza.repo.v1`; checked-in seats protected from edit | Complete (Phase 6A) |
+| **Admin Booking Detail** | `src/routes/{-$locale}.admin.bookings.$ref.tsx` | "Re-send" / "Print Manifest" / "Boarding Pass" | Calls `useAdmin().toast(t("a2.uiOnly"))` (no action performed) | Phase 6B / 6C |
+| **Admin Customer Detail** | `src/routes/{-$locale}.admin.customers.$id.tsx` | "Edit Contact" Save | Inside `AdminSheet`, Save calls `useAdmin().toast(t("a2.saved"))` without updating `mockCustomers` | Phase 6C |
 | **Admin Customer Detail** | `src/routes/{-$locale}.admin.customers.$id.tsx` | "Attach Booking" / "Reset Password" | Calls `useAdmin().toast(t("a2.uiOnly"))` | Phase 6 |
 | **Admin Customer Detail** | `src/routes/{-$locale}.admin.customers.$id.tsx` | "Disable Account" (`a2.cu.disable`) | Opens bespoke `ConfirmDialog`; onConfirm calls `useAdmin().toast(t("a2.uiOnly"))` | Phase 6 |
 | **Admin Website CMS** | `src/routes/{-$locale}.admin.website.tsx` | Travel Save Draft / Preview / Discard | Real `ContentRepository` mutation to `gza.content.draft.v1`; explicit preview only. No global Publish button for this module. | Phase 4B complete |

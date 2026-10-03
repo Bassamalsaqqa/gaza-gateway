@@ -1,4 +1,21 @@
-import { GazaTable, GazaTableBody, GazaTableCaption, GazaTableCell, GazaTableHead, GazaTableHeader, GazaTableRow } from "@/components/gaza-table";
+import {
+  CommercialInput,
+  AssistanceChoices,
+  ServiceValue,
+  CommercialSeatPicker,
+} from "@/components/admin/commercial-fields";
+import { commercialErrorKey } from "@/lib/domain/commercial-errors";
+import { validateBookingContact } from "@/lib/domain/booking-validation";
+import { mealOptions, cabins, fares } from "@/lib/data";
+import {
+  GazaTable,
+  GazaTableBody,
+  GazaTableCaption,
+  GazaTableCell,
+  GazaTableHead,
+  GazaTableHeader,
+  GazaTableRow,
+} from "@/components/gaza-table";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { AppLink } from "@/components/app-link";
@@ -20,16 +37,35 @@ import { pick, useI18n } from "@/lib/i18n";
 import { money } from "@/lib/format";
 import { type MockBookingStatus, type MockPassenger } from "@/lib/admin-mock";
 import { pageHead } from "@/lib/head";
-import { useBookingQuery, useUpdateBookingMutation } from "@/lib/repositories";
-import { bookingToMockBooking, type AdaptedAdminBooking, type AdaptedAdminPassenger } from "@/lib/domain/booking";
+import {
+  useBookingQuery,
+  useCancelBookingMutation,
+  useUpdateBookingContactMutation,
+  useUpdateBookingSeatsMutation,
+  useUpdateBookingExtrasMutation,
+} from "@/lib/repositories/queries";
+import {
+  bookingToMockBooking,
+  isPaxCheckedIn,
+  type AdaptedAdminBooking,
+  type AdaptedAdminPassenger,
+} from "@/lib/domain/booking";
+import type { PaxExtras } from "@/lib/booking-draft";
+import { emptyPaxExtras } from "@/lib/booking-draft";
 
 export const Route = createFileRoute("/{-$locale}/admin/bookings/$ref")({
   head: ({ params }) =>
     pageHead({
       locale: params.locale,
       path: `/admin/bookings/${params.ref}`,
-      en: { title: `Booking ${params.ref} — Gaza International Airport administration`, description: "Booking record, passengers, seats, extras and check-in." },
-      ar: { title: `الحجز ${params.ref} — إدارة مطار غزة الدولي`, description: "سجل الحجز والمسافرون والمقاعد والإضافات وتسجيل الوصول." },
+      en: {
+        title: `Booking ${params.ref} — Gaza International Airport administration`,
+        description: "Booking record, passengers, seats, extras and check-in.",
+      },
+      ar: {
+        title: `الحجز ${params.ref} — إدارة مطار غزة الدولي`,
+        description: "سجل الحجز والمسافرون والمقاعد والإضافات وتسجيل الوصول.",
+      },
       noindex: true,
     }),
   component: AdminBookingDetailPage,
@@ -39,7 +75,15 @@ type Tab = "overview" | "passengers" | "seats" | "checkin" | "history";
 type SheetKind = "contact" | "seat" | "extras" | null;
 
 function statusTone(status: MockBookingStatus) {
-  return status === "cancelled" ? "danger" : status === "partial" ? "warn" : status === "checkedin" ? "brand" : status === "upcoming" ? "info" : "neutral";
+  return status === "cancelled"
+    ? "danger"
+    : status === "partial"
+      ? "warn"
+      : status === "checkedin"
+        ? "brand"
+        : status === "upcoming"
+          ? "info"
+          : "neutral";
 }
 
 function AdminBookingDetailPage() {
@@ -48,11 +92,18 @@ function AdminBookingDetailPage() {
   const { can, toast } = useAdmin();
   const [tab, setTab] = useState<Tab>("overview");
   const [sheet, setSheet] = useState<SheetKind>(null);
+  const [cancelError, setCancelError] = useState<string | null>(null);
   const [confirmCancel, setConfirmCancel] = useState(false);
-  const [cancelled, setCancelled] = useState(false);
 
   const { data: canonicalBooking, isPending, isError } = useBookingQuery(ref);
-  const updateBookingMutation = useUpdateBookingMutation();
+  const cancelBookingMutation = useCancelBookingMutation();
+  const updateContactMutation = useUpdateBookingContactMutation();
+  const updateSeatsMutation = useUpdateBookingSeatsMutation();
+  const updateExtrasMutation = useUpdateBookingExtrasMutation();
+  const [editContact, setEditContact] = useState({ email: "", phone: "" });
+  const [editSeats, setEditSeats] = useState<Record<string, string>>({});
+  const [editExtras, setEditExtras] = useState<PaxExtras[]>([]);
+  const [sheetError, setSheetError] = useState<string | null>(null);
   const booking = useMemo<AdaptedAdminBooking | undefined>(() => {
     if (canonicalBooking) return bookingToMockBooking(canonicalBooking);
     return undefined;
@@ -60,18 +111,25 @@ function AdminBookingDetailPage() {
 
   const mayEdit = can("commercial.edit");
 
-  if (!can("commercial.view")) return <AdminDenied area={t("a2.bk.title")} permission="commercial.view" />;
+  if (!can("commercial.view"))
+    return <AdminDenied area={t("a2.bk.title")} permission="commercial.view" />;
 
   if (isPending) {
     return (
       <AdminPanel>
-        <div role="status" className="p-8 text-center text-muted-foreground">{t("a2.bk.loading")}</div>
+        <div role="status" className="p-8 text-center text-muted-foreground">
+          {t("a2.bk.loading")}
+        </div>
       </AdminPanel>
     );
   }
 
   if (isError) {
-    return <AdminPanel><AdminEmpty title={t("a2.bk.loadError")} body={t("a2.bk.loadErrorBody")} /></AdminPanel>;
+    return (
+      <AdminPanel>
+        <AdminEmpty title={t("a2.bk.loadError")} body={t("a2.bk.loadErrorBody")} />
+      </AdminPanel>
+    );
   }
 
   if (!booking) {
@@ -90,27 +148,92 @@ function AdminBookingDetailPage() {
     );
   }
 
-  const status: MockBookingStatus = cancelled ? "cancelled" : booking.status;
+  const status: MockBookingStatus = booking.status;
   const eligible = booking.passengers.filter((p) => p.type !== "infant");
   const paxType = (p: MockPassenger | AdaptedAdminPassenger) => t(`a2.bd.type.${p.type}`);
 
+  const deskFlight =
+    canonicalBooking?.outbound.originCode === "GZA"
+      ? canonicalBooking.outbound
+      : canonicalBooking?.inbound?.originCode === "GZA"
+        ? canonicalBooking.inbound
+        : null;
+  const isNotCancelled = status !== "cancelled";
+
   const actions = (
     <>
-      <PermissionButton allowed={mayEdit} reason={t("adm.edit.readOnly")} onClick={() => setSheet("contact")}>
+      <PermissionButton
+        allowed={mayEdit && isNotCancelled}
+        reason={!isNotCancelled ? t("a2.bd.cancelled") : t("adm.edit.readOnly")}
+        onClick={() => {
+          setEditContact({
+            email: canonicalBooking?.contact.email || "",
+            phone: canonicalBooking?.contact.phone || "",
+          });
+          setSheetError(null);
+          setSheet("contact");
+        }}
+      >
         {t("a2.bd.editContact")}
       </PermissionButton>
-      <PermissionButton allowed={mayEdit} reason={t("adm.edit.readOnly")} onClick={() => setSheet("seat")}>
+      <PermissionButton
+        allowed={mayEdit && isNotCancelled}
+        reason={!isNotCancelled ? t("a2.bd.cancelled") : t("adm.edit.readOnly")}
+        onClick={() => {
+          const s: Record<string, string> = {};
+          canonicalBooking?.passengers.forEach((_, i) => {
+            if (canonicalBooking.seats[`out-${i}`])
+              s[`out-${i}`] = canonicalBooking.seats[`out-${i}`] || "";
+            if (canonicalBooking.seats[`in-${i}`])
+              s[`in-${i}`] = canonicalBooking.seats[`in-${i}`] || "";
+          });
+          setEditSeats(s);
+          setSheetError(null);
+          setSheet("seat");
+        }}
+      >
         {t("a2.bd.changeSeat")}
       </PermissionButton>
-      <PermissionButton allowed={mayEdit} reason={t("adm.edit.readOnly")} onClick={() => setSheet("extras")}>
+      <PermissionButton
+        allowed={mayEdit && isNotCancelled}
+        reason={!isNotCancelled ? t("a2.bd.cancelled") : t("adm.edit.readOnly")}
+        onClick={() => {
+          setEditExtras(
+            canonicalBooking?.passengers.map(
+              (_, index) => canonicalBooking.extras?.pax?.[index] ?? emptyPaxExtras(),
+            ) ?? [],
+          );
+          setSheetError(null);
+          setSheet("extras");
+        }}
+      >
         {t("a2.bd.editExtras")}
       </PermissionButton>
-      <PermissionButton allowed={mayEdit} reason={t("adm.edit.readOnly")} onClick={() => toast(t("a2.uiOnly"))}>
-        {t("a2.bd.checkIn")}
-      </PermissionButton>
-      <PermissionButton allowed={mayEdit} reason={t("adm.edit.readOnly")} onClick={() => setConfirmCancel(true)}>
-        {t("a2.bd.cancel")}
-      </PermissionButton>
+      {deskFlight && isNotCancelled && canonicalBooking ? (
+        <AppLink
+          to="/admin/check-in"
+          search={{
+            ref: canonicalBooking.ref,
+            flightId: deskFlight.id,
+            date: deskFlight.date,
+          }}
+          className={btnClass("primary", "sm")}
+        >
+          {t("a2.bd.checkIn")}
+        </AppLink>
+      ) : null}
+      {isNotCancelled ? (
+        <PermissionButton
+          allowed={mayEdit}
+          reason={t("adm.edit.readOnly")}
+          onClick={() => {
+            setCancelError(null);
+            setConfirmCancel(true);
+          }}
+        >
+          {t("a2.bd.cancel")}
+        </PermissionButton>
+      ) : null}
     </>
   );
 
@@ -118,7 +241,7 @@ function AdminBookingDetailPage() {
     <div className="space-y-4">
       <AdminPageHeader
         title={t("a2.bk.title")}
-        description={t("a2.mock")}
+        description={t("a6.detail.local")}
         meta={
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <Ltr className="text-base font-bold">{booking.ref}</Ltr>
@@ -129,8 +252,20 @@ function AdminBookingDetailPage() {
             <span className="text-muted-foreground">
               {t("a2.bk.pax")}: <Ltr>{booking.paxCount}</Ltr>
             </span>
-            <span className="text-muted-foreground">{`${booking.cabin} · ${booking.fare}`}</span>
-            <AdminChip tone="muted">{booking.account ? t("a2.bd.account") : t("a2.bd.guest")}</AdminChip>
+            <span className="text-muted-foreground">
+              {t(
+                cabins.find((c) => c.id === booking.canonical.criteria.cabin)?.label ??
+                  "cabin.economy",
+              )}{" "}
+              ·{" "}
+              {pick(
+                lang,
+                fares.find((f) => f.id === booking.canonical.fareId)?.name ?? { en: "—", ar: "—" },
+              )}
+            </span>
+            <AdminChip tone="muted">
+              {booking.account ? t("a2.bd.account") : t("a2.bd.guest")}
+            </AdminChip>
           </div>
         }
         action={actions}
@@ -143,7 +278,11 @@ function AdminBookingDetailPage() {
           onChange={setTab}
           tabs={[
             { id: "overview", label: t("a2.bd.tab.overview") },
-            { id: "passengers", label: t("a2.bd.tab.passengers"), count: booking.passengers.length },
+            {
+              id: "passengers",
+              label: t("a2.bd.tab.passengers"),
+              count: booking.passengers.length,
+            },
             { id: "seats", label: t("a2.bd.tab.seats") },
             { id: "checkin", label: t("a2.bd.tab.checkin") },
             { id: "history", label: t("a2.bd.tab.history") },
@@ -154,7 +293,9 @@ function AdminBookingDetailPage() {
           {tab === "overview" ? (
             <div className="grid gap-4 lg:grid-cols-3">
               <section className="lg:col-span-2 rounded-md border border-border">
-                <h3 className="border-b border-border px-3 py-2 text-sm font-bold">{t("a2.bd.itinerary")}</h3>
+                <h3 className="border-b border-border px-3 py-2 text-sm font-bold">
+                  {t("a2.bd.itinerary")}
+                </h3>
                 <ul className="divide-y divide-border">
                   <li className="px-3 py-2.5 text-sm">
                     <p className="font-semibold">{t("a2.bd.out")}</p>
@@ -174,20 +315,28 @@ function AdminBookingDetailPage() {
               </section>
 
               <section className="rounded-md border border-border">
-                <h3 className="border-b border-border px-3 py-2 text-sm font-bold">{t("a2.bd.contact")}</h3>
+                <h3 className="border-b border-border px-3 py-2 text-sm font-bold">
+                  {t("a2.bd.contact")}
+                </h3>
                 <dl className="space-y-2 px-3 py-2.5 text-sm">
                   <div>
-                    <dt className="text-xs font-semibold text-muted-foreground">{t("a2.bk.lead")}</dt>
+                    <dt className="text-xs font-semibold text-muted-foreground">
+                      {t("a2.bk.lead")}
+                    </dt>
                     <dd className="font-medium text-foreground">{booking.lead}</dd>
                   </div>
                   <div>
-                    <dt className="text-xs font-semibold text-muted-foreground">{t("a2.cu.email")}</dt>
+                    <dt className="text-xs font-semibold text-muted-foreground">
+                      {t("a2.cu.email")}
+                    </dt>
                     <dd>
                       <Ltr>{booking.email}</Ltr>
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs font-semibold text-muted-foreground">{t("a2.cu.phone")}</dt>
+                    <dt className="text-xs font-semibold text-muted-foreground">
+                      {t("a2.cu.phone")}
+                    </dt>
                     <dd>
                       <Ltr>{booking.phone}</Ltr>
                     </dd>
@@ -196,24 +345,47 @@ function AdminBookingDetailPage() {
               </section>
 
               <section className="rounded-md border border-border lg:col-span-3">
-                <h3 className="border-b border-border px-3 py-2 text-sm font-bold">{t("a2.bd.summary")}</h3>
+                <h3 className="border-b border-border px-3 py-2 text-sm font-bold">
+                  {t("a2.bd.summary")}
+                </h3>
                 <dl className="grid gap-3 px-3 py-2.5 text-sm sm:grid-cols-4">
                   <div>
-                    <dt className="text-xs font-semibold text-muted-foreground">{t("a2.bd.fare")}</dt>
-                    <dd>{`${booking.cabin} · ${booking.fare}`}</dd>
+                    <dt className="text-xs font-semibold text-muted-foreground">
+                      {t("a2.bd.fare")}
+                    </dt>
+                    <dd>
+                      {t(
+                        cabins.find((c) => c.id === booking.canonical.criteria.cabin)?.label ??
+                          "cabin.economy",
+                      )}{" "}
+                      ·{" "}
+                      {pick(
+                        lang,
+                        fares.find((f) => f.id === booking.canonical.fareId)?.name ?? {
+                          en: "—",
+                          ar: "—",
+                        },
+                      )}
+                    </dd>
                   </div>
                   <div>
-                    <dt className="text-xs font-semibold text-muted-foreground">{t("a2.bd.booked")}</dt>
+                    <dt className="text-xs font-semibold text-muted-foreground">
+                      {t("a2.bd.booked")}
+                    </dt>
                     <dd>
                       <Ltr>{booking.booked}</Ltr>
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs font-semibold text-muted-foreground">{t("a2.bd.channel")}</dt>
+                    <dt className="text-xs font-semibold text-muted-foreground">
+                      {t("a2.bd.channel")}
+                    </dt>
                     <dd>{t(`a2.bd.channel.${booking.channel}`)}</dd>
                   </div>
                   <div>
-                    <dt className="text-xs font-semibold text-muted-foreground">{t("a2.bk.total")}</dt>
+                    <dt className="text-xs font-semibold text-muted-foreground">
+                      {t("a2.bk.total")}
+                    </dt>
                     <dd className="font-bold">
                       <Ltr>{money(booking.total, lang)}</Ltr>
                     </dd>
@@ -229,28 +401,34 @@ function AdminBookingDetailPage() {
                 <li key={p.id} className="rounded-md border border-border px-3 py-2.5">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-sm font-semibold">{p.name}</p>
-                    <AdminChip tone={p.type === "infant" ? "info" : "muted"}>{paxType(p)}</AdminChip>
+                    <AdminChip tone={p.type === "infant" ? "info" : "muted"}>
+                      {paxType(p)}
+                    </AdminChip>
                   </div>
                   <dl className="mt-2 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
                     <div>
                       <dt className="font-semibold text-muted-foreground">{t("a2.bd.dob")}</dt>
                       <dd>
-                        <Ltr>{p.dob}</Ltr>
+                        <Ltr>{p.dob || "—"}</Ltr>
                       </dd>
                     </div>
                     <div>
-                      <dt className="font-semibold text-muted-foreground">{t("a2.bd.nationality")}</dt>
-                      <dd>{p.nationality}</dd>
+                      <dt className="font-semibold text-muted-foreground">
+                        {t("a2.bd.nationality")}
+                      </dt>
+                      <dd>{p.nationality || "—"}</dd>
                     </div>
                     <div>
                       <dt className="font-semibold text-muted-foreground">{t("a2.bd.document")}</dt>
                       <dd>
-                        <Ltr>{p.document}</Ltr>
+                        <Ltr>{p.document || "—"}</Ltr>
                       </dd>
                     </div>
                     {p.companion ? (
                       <div>
-                        <dt className="font-semibold text-muted-foreground">{t("a2.bd.companion")}</dt>
+                        <dt className="font-semibold text-muted-foreground">
+                          {t("a2.bd.companion")}
+                        </dt>
                         <dd>{p.companion}</dd>
                       </div>
                     ) : null}
@@ -266,25 +444,55 @@ function AdminBookingDetailPage() {
                 <GazaTableCaption className="sr-only">{t("a2.bd.tab.seats")}</GazaTableCaption>
                 <GazaTableHeader>
                   <GazaTableRow className="border-b border-border type-th">
-                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bd.passenger")}</GazaTableHead>
-                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{`${t("a2.bd.out")} · ${t("a2.bd.seat")}`}</GazaTableHead>
-                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{`${t("a2.bd.in")} · ${t("a2.bd.seat")}`}</GazaTableHead>
-                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bd.bags")}</GazaTableHead>
-                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bd.meal")}</GazaTableHead>
-                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bd.assistance")}</GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">
+                      {t("a2.bd.passenger")}
+                    </GazaTableHead>
+                    <GazaTableHead
+                      scope="col"
+                      className="px-3 py-2 text-start font-bold"
+                    >{`${t("a2.bd.out")} · ${t("a2.bd.seat")}`}</GazaTableHead>
+                    <GazaTableHead
+                      scope="col"
+                      className="px-3 py-2 text-start font-bold"
+                    >{`${t("a2.bd.in")} · ${t("a2.bd.seat")}`}</GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">
+                      {t("a2.bd.bags")}
+                    </GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">
+                      {t("a2.bd.meal")}
+                    </GazaTableHead>
+                    <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">
+                      {t("a2.bd.assistance")}
+                    </GazaTableHead>
                   </GazaTableRow>
                 </GazaTableHeader>
                 <GazaTableBody>
                   {booking.passengers.map((p) => (
                     <GazaTableRow key={p.id} className="border-b border-border last:border-0">
                       <GazaTableCell className="px-3 py-2">{p.name}</GazaTableCell>
-                      <GazaTableCell className="px-3 py-2">{p.seatOut ? <Ltr>{p.seatOut}</Ltr> : <span className="text-muted-foreground">—</span>}</GazaTableCell>
-                      <GazaTableCell className="px-3 py-2">{p.seatIn ? <Ltr>{p.seatIn}</Ltr> : <span className="text-muted-foreground">—</span>}</GazaTableCell>
+                      <GazaTableCell className="px-3 py-2">
+                        {p.seatOut ? (
+                          <Ltr>{p.seatOut}</Ltr>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </GazaTableCell>
+                      <GazaTableCell className="px-3 py-2">
+                        {p.seatIn ? (
+                          <Ltr>{p.seatIn}</Ltr>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </GazaTableCell>
                       <GazaTableCell className="px-3 py-2">
                         <Ltr>{p.bags}</Ltr>
                       </GazaTableCell>
-                      <GazaTableCell className="px-3 py-2">{p.meal}</GazaTableCell>
-                      <GazaTableCell className="px-3 py-2 text-muted-foreground">{p.assistance ?? t("a2.none")}</GazaTableCell>
+                      <GazaTableCell className="px-3 py-2">
+                        <ServiceValue value={p.meal} kind="meal" />
+                      </GazaTableCell>
+                      <GazaTableCell className="px-3 py-2 text-muted-foreground">
+                        <ServiceValue value={p.assistance} kind="assistance" />
+                      </GazaTableCell>
                     </GazaTableRow>
                   ))}
                 </GazaTableBody>
@@ -295,20 +503,39 @@ function AdminBookingDetailPage() {
           {tab === "checkin" ? (
             <div className="space-y-3">
               <div className="flex flex-wrap gap-2 text-xs">
-                <AdminChip tone="muted">{`${t("a2.bd.passenger")}: `}<Ltr>{eligible.length}</Ltr></AdminChip>
-                <AdminChip tone="brand">{`${t("a2.ci.st.done")}: `}<Ltr>{eligible.filter((p) => p.checkedOut).length}</Ltr></AdminChip>
-                <AdminChip tone="warn">{`${t("a2.ci.st.not")}: `}<Ltr>{eligible.filter((p) => !p.checkedOut).length}</Ltr></AdminChip>
+                <AdminChip tone="muted">
+                  {`${t("a2.bd.passenger")}: `}
+                  <Ltr>{eligible.length}</Ltr>
+                </AdminChip>
+                <AdminChip tone="brand">
+                  {`${t("a2.ci.st.done")}: `}
+                  <Ltr>{eligible.filter((p) => p.checkedOut).length}</Ltr>
+                </AdminChip>
+                <AdminChip tone="warn">
+                  {`${t("a2.ci.st.not")}: `}
+                  <Ltr>{eligible.filter((p) => !p.checkedOut).length}</Ltr>
+                </AdminChip>
               </div>
               <div className="overflow-x-auto">
                 <GazaTable className="w-full min-w-[40rem] text-sm">
                   <GazaTableCaption className="sr-only">{t("a2.bd.tab.checkin")}</GazaTableCaption>
                   <GazaTableHeader>
                     <GazaTableRow className="border-b border-border type-th">
-                      <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bd.passenger")}</GazaTableHead>
-                      <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bd.out")}</GazaTableHead>
-                      <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bd.in")}</GazaTableHead>
-                      <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bd.seat")}</GazaTableHead>
-                      <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">{t("a2.bd.boardingPass")}</GazaTableHead>
+                      <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">
+                        {t("a2.bd.passenger")}
+                      </GazaTableHead>
+                      <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">
+                        {t("a2.bd.out")}
+                      </GazaTableHead>
+                      <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">
+                        {t("a2.bd.in")}
+                      </GazaTableHead>
+                      <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">
+                        {t("a2.bd.seat")}
+                      </GazaTableHead>
+                      <GazaTableHead scope="col" className="px-3 py-2 text-start font-bold">
+                        {t("a2.bd.boardingPass")}
+                      </GazaTableHead>
                     </GazaTableRow>
                   </GazaTableHeader>
                   <GazaTableBody>
@@ -316,32 +543,56 @@ function AdminBookingDetailPage() {
                       <GazaTableRow key={p.id} className="border-b border-border last:border-0">
                         <GazaTableCell className="px-3 py-2">
                           {p.name}
-                          {p.type === "infant" ? <AdminChip tone="info" className="ms-2">{t("a2.ci.infant")}</AdminChip> : null}
+                          {p.type === "infant" ? (
+                            <AdminChip tone="info" className="ms-2">
+                              {t("a2.ci.infant")}
+                            </AdminChip>
+                          ) : null}
                         </GazaTableCell>
                         <GazaTableCell className="px-3 py-2">
                           {p.type === "infant" ? (
                             <span className="text-muted-foreground">—</span>
                           ) : (
-                            <AdminChip tone={p.checkedOut ? "brand" : "muted"}>{t(p.checkedOut ? "a2.ci.st.done" : "a2.ci.st.not")}</AdminChip>
+                            <AdminChip tone={p.checkedOut ? "brand" : "muted"}>
+                              {t(p.checkedOut ? "a2.ci.st.done" : "a2.ci.st.not")}
+                            </AdminChip>
                           )}
                         </GazaTableCell>
                         <GazaTableCell className="px-3 py-2">
                           {p.type === "infant" || !booking.flightIn ? (
                             <span className="text-muted-foreground">—</span>
                           ) : (
-                            <AdminChip tone={p.checkedIn ? "brand" : "muted"}>{t(p.checkedIn ? "a2.ci.st.done" : "a2.ci.st.not")}</AdminChip>
+                            <AdminChip tone={p.checkedIn ? "brand" : "muted"}>
+                              {t(p.checkedIn ? "a2.ci.st.done" : "a2.ci.st.not")}
+                            </AdminChip>
                           )}
                         </GazaTableCell>
-                        <GazaTableCell className="px-3 py-2">{p.seatOut ? <Ltr>{p.seatOut}</Ltr> : <span className="text-muted-foreground">—</span>}</GazaTableCell>
+                        <GazaTableCell className="px-3 py-2">
+                          {p.seatOut ? (
+                            <Ltr>{p.seatOut}</Ltr>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </GazaTableCell>
                         <GazaTableCell className="px-3 py-2">
                           {p.type === "infant" ? (
                             <span className="text-muted-foreground">—</span>
                           ) : p.checkedOut ? (
-                            <button type="button" onClick={() => toast(t("a2.uiOnly"))} className={btnClass("outline", "sm")}>
+                            <AppLink
+                              to="/boarding-pass/$ref/$leg/$pax"
+                              params={{
+                                ref: booking.ref,
+                                leg: "out",
+                                pax: String(booking.passengers.indexOf(p)),
+                              }}
+                              className={btnClass("outline", "sm")}
+                            >
                               {t("a2.bd.bp.issued")}
-                            </button>
+                            </AppLink>
                           ) : (
-                            <span className="text-xs text-muted-foreground">{t("a2.bd.bp.notIssued")}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {t("a2.bd.bp.notIssued")}
+                            </span>
                           )}
                         </GazaTableCell>
                       </GazaTableRow>
@@ -356,7 +607,10 @@ function AdminBookingDetailPage() {
             <ol className="space-y-3">
               {booking.history.map((h) => (
                 <li key={h.id} className="flex gap-3">
-                  <span aria-hidden="true" className="mt-1.5 size-2 shrink-0 rounded-full bg-brand" />
+                  <span
+                    aria-hidden="true"
+                    className="mt-1.5 size-2 shrink-0 rounded-full bg-brand"
+                  />
                   <div>
                     <p className="text-sm">{pick(lang, h.what)}</p>
                     <p className="text-xs text-muted-foreground">
@@ -367,7 +621,10 @@ function AdminBookingDetailPage() {
               ))}
               {status === "cancelled" ? (
                 <li className="flex gap-3">
-                  <span aria-hidden="true" className="mt-1.5 size-2 shrink-0 rounded-full bg-status-cancelled" />
+                  <span
+                    aria-hidden="true"
+                    className="mt-1.5 size-2 shrink-0 rounded-full bg-status-cancelled"
+                  />
                   <p className="text-sm">{t("a2.bd.cancelled")}</p>
                 </li>
               ) : null}
@@ -378,73 +635,328 @@ function AdminBookingDetailPage() {
 
       <GazaSheet
         open={sheet !== null}
-        title={sheet === "contact" ? t("a2.bd.editContact") : sheet === "seat" ? t("a2.bd.changeSeat") : t("a2.bd.editExtras")}
+        title={
+          sheet === "contact"
+            ? t("a2.bd.editContact")
+            : sheet === "seat"
+              ? t("a2.bd.changeSeat")
+              : t("a2.bd.editExtras")
+        }
         description={booking.ref}
         onClose={() => setSheet(null)}
         footer={
           <>
-            <button type="button" onClick={() => setSheet(null)} className={btnClass("outline", "sm")}>
+            <button
+              type="button"
+              onClick={() => setSheet(null)}
+              className={btnClass("outline", "sm")}
+            >
               {t("a2.cancel")}
             </button>
             <PermissionButton
-              allowed={mayEdit}
+              allowed={
+                mayEdit &&
+                !updateContactMutation.isPending &&
+                !updateSeatsMutation.isPending &&
+                !updateExtrasMutation.isPending
+              }
               reason={t("adm.edit.readOnly")}
               variant="primary"
               onClick={() => {
-                setSheet(null);
-                toast(t("a2.saved"));
+                if (!canonicalBooking) return;
+                if (sheet === "contact") {
+                  try {
+                    validateBookingContact(editContact);
+                  } catch (error) {
+                    setSheetError(t(commercialErrorKey(error)));
+                    requestAnimationFrame(() => document.getElementById("bd-email")?.focus());
+                    return;
+                  }
+                  setSheetError(null);
+                  updateContactMutation.mutate(
+                    {
+                      ref: canonicalBooking.ref,
+                      contact: {
+                        email: editContact.email.trim(),
+                        phone: editContact.phone.trim(),
+                      },
+                    },
+                    {
+                      onSuccess: () => {
+                        toast(t("a6.saved"));
+                        setSheet(null);
+                      },
+                      onError: (err) => {
+                        const msg = t(commercialErrorKey(err));
+                        setSheetError(msg);
+                        toast(msg);
+                      },
+                    },
+                  );
+                } else if (sheet === "seat") {
+                  setSheetError(null);
+                  updateSeatsMutation.mutate(
+                    {
+                      ref: canonicalBooking.ref,
+                      seats: editSeats,
+                    },
+                    {
+                      onSuccess: () => {
+                        toast(t("a6.saved"));
+                        setSheet(null);
+                      },
+                      onError: (err) => {
+                        const msg = t(commercialErrorKey(err));
+                        setSheetError(msg);
+                        toast(msg);
+                      },
+                    },
+                  );
+                } else if (sheet === "extras") {
+                  setSheetError(null);
+                  const canonicalPax = editExtras.map((px) => ({
+                    extraBags:
+                      Number.isInteger(px.extraBags) && px.extraBags >= 0
+                        ? Math.min(5, px.extraBags)
+                        : 0,
+                    meal: (px.meal || "standard").toLowerCase() as
+                      "standard" | "vegetarian" | "diabetic" | "child",
+                    assistance: Array.isArray(px.assistance) ? px.assistance : [],
+                  }));
+                  updateExtrasMutation.mutate(
+                    {
+                      ref: canonicalBooking.ref,
+                      extras: { pax: canonicalPax },
+                    },
+                    {
+                      onSuccess: () => {
+                        toast(t("a6.saved"));
+                        setSheet(null);
+                      },
+                      onError: (err) => {
+                        const msg = t(commercialErrorKey(err));
+                        setSheetError(msg);
+                        toast(msg);
+                      },
+                    },
+                  );
+                }
               }}
             >
-              {t("a2.save")}
+              {updateContactMutation.isPending ||
+              updateSeatsMutation.isPending ||
+              updateExtrasMutation.isPending
+                ? t("a2.bk.loading")
+                : t("a2.save")}
             </PermissionButton>
           </>
         }
       >
+        {sheetError ? (
+          <div
+            role="alert"
+            className="p-3 rounded-md bg-status-cancelled/15 text-status-cancelled text-xs mb-3"
+          >
+            {sheetError}
+          </div>
+        ) : null}
+
         {sheet === "contact" ? (
           <div className="space-y-3">
             <Field label={t("a2.cu.email")} htmlFor="bd-email">
-              <Input id="bd-email" dir="ltr" defaultValue={booking.email} />
+              <CommercialInput
+                error={sheetError ? "a6.err.contact" : undefined}
+                id="bd-email"
+                dir="ltr"
+                type="email"
+                value={editContact.email}
+                onChange={(e) => setEditContact({ ...editContact, email: e.target.value })}
+              />
             </Field>
             <Field label={t("a2.cu.phone")} htmlFor="bd-phone">
-              <Input id="bd-phone" dir="ltr" defaultValue={booking.phone} />
+              <Input
+                id="bd-phone"
+                dir="ltr"
+                value={editContact.phone}
+                onChange={(e) => setEditContact({ ...editContact, phone: e.target.value })}
+              />
             </Field>
           </div>
         ) : null}
 
-        {sheet === "seat" ? (
-          <div className="space-y-3">
-            {booking.passengers
+        {sheet === "seat" && canonicalBooking ? (
+          <div className="space-y-4">
+            {canonicalBooking.passengers
               .filter((p) => p.type !== "infant")
-              .map((p) => (
-                <Field key={p.id} label={`${p.name} · ${t("a2.bd.out")}`} htmlFor={`bd-seat-${p.id}`}>
-                  <Input id={`bd-seat-${p.id}`} dir="ltr" defaultValue={p.seatOut ?? ""} placeholder="12A" />
-                </Field>
-              ))}
+              .map((p) => {
+                const pIdx = canonicalBooking.passengers.indexOf(p);
+                const isOutChecked = isPaxCheckedIn(canonicalBooking, "out", pIdx);
+                const isInChecked = canonicalBooking.inbound
+                  ? isPaxCheckedIn(canonicalBooking, "in", pIdx)
+                  : false;
+
+                return (
+                  <div key={p.id} className="space-y-2 rounded-md border border-border p-3">
+                    <p className="text-sm font-semibold">
+                      {p.firstName} {p.lastName}
+                    </p>
+                    <Field
+                      label={`${t("a2.bd.out")} (${canonicalBooking.outbound.originCode} → ${canonicalBooking.outbound.destinationCode})`}
+                      htmlFor={`bd-seat-out-${p.id}`}
+                    >
+                      {isOutChecked ? (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            id={`bd-seat-out-${p.id}`}
+                            dir="ltr"
+                            value={editSeats[`out-${pIdx}`] || ""}
+                            disabled
+                            className="opacity-70 bg-muted"
+                          />
+                          <AdminChip tone="brand">{t("a2.ci.st.done")}</AdminChip>
+                        </div>
+                      ) : (
+                        <Input
+                          id={`bd-seat-out-${p.id}`}
+                          dir="ltr"
+                          value={editSeats[`out-${pIdx}`] || ""}
+                          onChange={(e) =>
+                            setEditSeats({
+                              ...editSeats,
+                              [`out-${pIdx}`]: e.target.value.trim().toUpperCase(),
+                            })
+                          }
+                          placeholder="12A"
+                        />
+                      )}
+                    </Field>
+
+                    {!isOutChecked ? (
+                      <CommercialSeatPicker
+                        flight={canonicalBooking.outbound}
+                        cabin={canonicalBooking.criteria.cabin}
+                        seats={editSeats}
+                        leg="out"
+                        paxIndex={pIdx}
+                        passengerLabels={canonicalBooking.passengers.map(
+                          (p) => `${p.firstName} ${p.lastName}`,
+                        )}
+                        onSelect={(seat) =>
+                          setEditSeats((current) => ({ ...current, [`out-${pIdx}`]: seat }))
+                        }
+                      />
+                    ) : null}
+                    {canonicalBooking.inbound ? (
+                      <Field
+                        label={`${t("a2.bd.in")} (${canonicalBooking.inbound.originCode} → ${canonicalBooking.inbound.destinationCode})`}
+                        htmlFor={`bd-seat-in-${p.id}`}
+                      >
+                        {isInChecked ? (
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id={`bd-seat-in-${p.id}`}
+                              dir="ltr"
+                              value={editSeats[`in-${pIdx}`] || ""}
+                              disabled
+                              className="opacity-70 bg-muted"
+                            />
+                            <AdminChip tone="brand">{t("a2.ci.st.done")}</AdminChip>
+                          </div>
+                        ) : (
+                          <Input
+                            id={`bd-seat-in-${p.id}`}
+                            dir="ltr"
+                            value={editSeats[`in-${pIdx}`] || ""}
+                            onChange={(e) =>
+                              setEditSeats({
+                                ...editSeats,
+                                [`in-${pIdx}`]: e.target.value.trim().toUpperCase(),
+                              })
+                            }
+                            placeholder="12A"
+                          />
+                        )}
+                      </Field>
+                    ) : null}
+                    {canonicalBooking.inbound && !isInChecked ? (
+                      <CommercialSeatPicker
+                        flight={canonicalBooking.inbound}
+                        cabin={canonicalBooking.criteria.cabin}
+                        seats={editSeats}
+                        leg="in"
+                        paxIndex={pIdx}
+                        passengerLabels={canonicalBooking.passengers.map(
+                          (p) => `${p.firstName} ${p.lastName}`,
+                        )}
+                        onSelect={(seat) =>
+                          setEditSeats((current) => ({ ...current, [`in-${pIdx}`]: seat }))
+                        }
+                      />
+                    ) : null}
+                  </div>
+                );
+              })}
           </div>
         ) : null}
 
-        {sheet === "extras" ? (
+        {sheet === "extras" && canonicalBooking ? (
           <div className="space-y-4">
-            {booking.passengers.map((p) => (
-              <div key={p.id} className="rounded-md border border-border p-2.5">
-                <p className="text-sm font-semibold">{p.name}</p>
-                <div className="mt-2 grid grid-cols-2 gap-2">
+            {canonicalBooking.passengers.map((p, i) => (
+              <div key={p.id} className="rounded-md border border-border p-3 space-y-2">
+                <p className="text-sm font-semibold">
+                  {p.firstName} {p.lastName}
+                </p>
+                <div className="grid grid-cols-2 gap-2">
                   <Field label={t("a2.bd.bags")} htmlFor={`bd-bags-${p.id}`}>
-                    <Input id={`bd-bags-${p.id}`} dir="ltr" type="number" min={0} max={5} defaultValue={p.bags} />
+                    <Input
+                      id={`bd-bags-${p.id}`}
+                      dir="ltr"
+                      type="number"
+                      min={0}
+                      max={5}
+                      value={editExtras[i]?.extraBags ?? 0}
+                      onChange={(e) => {
+                        const next = [...editExtras];
+                        const cur = next[i] ?? emptyPaxExtras();
+                        next[i] = {
+                          ...cur,
+                          extraBags: Math.max(0, Math.min(5, parseInt(e.target.value, 10) || 0)),
+                        };
+                        setEditExtras(next);
+                      }}
+                    />
                   </Field>
                   <Field label={t("a2.bd.meal")} htmlFor={`bd-meal-${p.id}`}>
-                    <Select id={`bd-meal-${p.id}`} defaultValue={p.meal}>
-                      {["Standard", "Vegetarian", "Diabetic", "Child"].map((m) => (
-                        <option key={m} value={m}>
-                          {m}
+                    <Select
+                      id={`bd-meal-${p.id}`}
+                      value={editExtras[i]?.meal ?? "standard"}
+                      onChange={(e) => {
+                        const next = [...editExtras];
+                        const cur = next[i] ?? emptyPaxExtras();
+                        next[i] = { ...cur, meal: e.target.value.toLowerCase() };
+                        setEditExtras(next);
+                      }}
+                    >
+                      {mealOptions.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {pick(lang, m.label)}
                         </option>
                       ))}
                     </Select>
                   </Field>
                 </div>
-                <Field label={t("a2.bd.assistance")} htmlFor={`bd-assist-${p.id}`} className="mt-2">
-                  <Input id={`bd-assist-${p.id}`} defaultValue={p.assistance ?? ""} />
-                </Field>
+                <AssistanceChoices
+                  value={editExtras[i]?.assistance ?? []}
+                  onChange={(assistance) =>
+                    setEditExtras((current) =>
+                      canonicalBooking.passengers.map((_, index) =>
+                        index === i
+                          ? { ...(current[index] ?? emptyPaxExtras()), assistance }
+                          : (current[index] ?? emptyPaxExtras()),
+                      ),
+                    )
+                  }
+                />
               </div>
             ))}
           </div>
@@ -456,20 +968,21 @@ function AdminBookingDetailPage() {
         title={t("a2.bd.cancelTitle")}
         body={t("a2.bd.cancelBody")}
         confirmLabel={t("a2.bd.cancelConfirm")}
+        pending={cancelBookingMutation.isPending}
+        error={cancelError}
+        preserveOpenOnConfirm
         onConfirm={() => {
-          setConfirmCancel(false);
-          updateBookingMutation.mutate(
-            { ref: booking.ref, patch: { status: "cancelled" } },
+          if (!mayEdit || cancelBookingMutation.isPending) return;
+          setCancelError(null);
+          cancelBookingMutation.mutate(
+            { ref: booking.ref },
             {
               onSuccess: () => {
-                setCancelled(true);
+                setConfirmCancel(false);
                 toast(t("a2.bd.cancelled"));
               },
-              onError: (err) => {
-                setCancelled(false);
-                toast(err instanceof Error ? err.message : String(err));
-              },
-            }
+              onError: (error) => setCancelError(t(commercialErrorKey(error))),
+            },
           );
         }}
         onClose={() => setConfirmCancel(false)}

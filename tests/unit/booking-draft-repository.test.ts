@@ -1,3 +1,4 @@
+import { canonicalCreateFixture } from "../helpers/booking-create-fixture.ts";
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import {
@@ -606,7 +607,7 @@ describe("Phase 5B: Canonical Booking Draft Repository & Invariants", () => {
       // Attempt to create booking
       await assert.rejects(
         async () => {
-          await bookingRepo.create({
+          await bookingRepo.create(canonicalCreateFixture({
             criteria: {
               tripType: "oneway",
               origin: flight!.originCode,
@@ -624,7 +625,7 @@ describe("Phase 5B: Canonical Booking Draft Repository & Invariants", () => {
             extras: { pax: [] },
             contact: { email: "ahmad@example.com", phone: "+970" },
             total: 180,
-          });
+          }));
         },
         (err: unknown) => {
           assert.ok(err instanceof BookingCreationError);
@@ -666,11 +667,11 @@ describe("Phase 5B: Canonical Booking Draft Repository & Invariants", () => {
         total: 180,
       };
 
-      const booking1 = await bookingRepo.create(createData);
+      const booking1 = await bookingRepo.create(canonicalCreateFixture(createData));
       assert.ok(booking1.ref);
 
       // Repeat with same submissionId
-      const booking2 = await bookingRepo.create(createData);
+      const booking2 = await bookingRepo.create(canonicalCreateFixture(createData));
       assert.equal(booking2.ref, booking1.ref);
 
       // Ensure total count in repo increased by exactly 1 (6 initial seeds + 1 created)
@@ -686,7 +687,7 @@ describe("Phase 5B: Canonical Booking Draft Repository & Invariants", () => {
 
       await assert.rejects(
         async () => {
-          await bookingRepo.create({
+          await bookingRepo.create(canonicalCreateFixture({
             criteria: {
               tripType: "oneway",
               origin: "GZA",
@@ -704,7 +705,7 @@ describe("Phase 5B: Canonical Booking Draft Repository & Invariants", () => {
             extras: { pax: [] },
             contact: { email: "test@example.com", phone: "" },
             total: 100,
-          });
+          }));
         },
         (err: unknown) => {
           assert.ok(err instanceof BookingCreationError);

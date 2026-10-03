@@ -1,24 +1,61 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import {
+  CommercialInput,
+  AssistanceChoices,
+  CommercialSeatPicker,
+} from "@/components/admin/commercial-fields";
+import {
+  BookingInputError,
+  validateBookingParty,
+  validateBookingContact,
+  validateBookingExtras,
+} from "@/lib/domain/booking-validation";
+import { validateUpdateSeatsAssignments } from "@/lib/domain/seat-validation";
+import { commercialErrorKey } from "@/lib/domain/commercial-errors";
 import { Check } from "lucide-react";
 import { AppLink } from "@/components/app-link";
 import { Field, Input, Select, btnClass } from "@/components/kit";
-import { AdminChip, AdminPageHeader, AdminPanel, Ltr, PermissionButton } from "@/components/admin/admin-kit";
+import {
+  AdminChip,
+  AdminPageHeader,
+  AdminPanel,
+  Ltr,
+  PermissionButton,
+} from "@/components/admin/admin-kit";
 import { AdminDenied } from "@/components/admin/admin-denied";
 import { useAdmin } from "@/lib/admin-store";
 import { pick, useI18n } from "@/lib/i18n";
-import { destinations, fares } from "@/lib/data";
+import {
+  destinations,
+  fares,
+  todayISO,
+  addDaysISO,
+  farePrice,
+  mealOptions,
+  type Flight,
+} from "@/lib/data";
+import { getFlightBookability } from "@/lib/booking-rules";
+import { bookingTotal } from "@/lib/domain/pricing";
 import { money } from "@/lib/format";
 import { pageHead } from "@/lib/head";
 import { cn } from "@/lib/utils";
+import { useFlightSearchQuery, useCreateBookingMutation } from "@/lib/repositories/queries";
+import type { Booking, BookingCreateInput } from "@/lib/domain/booking";
 
 export const Route = createFileRoute("/{-$locale}/admin/bookings/new")({
   head: ({ params }) =>
     pageHead({
       locale: params.locale,
       path: "/admin/bookings/new",
-      en: { title: "Create booking — Gaza International Airport administration", description: "Staff booking shell for helping a passenger at the desk." },
-      ar: { title: "إنشاء حجز — إدارة مطار غزة الدولي", description: "نموذج حجز للموظفين لمساعدة المسافر على المكتب." },
+      en: {
+        title: "Create booking — Gaza International Airport administration",
+        description: "Staff booking shell for helping a passenger at the desk.",
+      },
+      ar: {
+        title: "إنشاء حجز — إدارة مطار غزة الدولي",
+        description: "نموذج حجز للموظفين لمساعدة المسافر على المكتب.",
+      },
       noindex: true,
     }),
   component: AdminNewBookingPage,
@@ -26,55 +63,334 @@ export const Route = createFileRoute("/{-$locale}/admin/bookings/new")({
 
 const STEPS = ["a2.nb.step1", "a2.nb.step2", "a2.nb.step3", "a2.nb.step4", "a2.nb.step5"] as const;
 
-const mockFlights = [
-  { id: "n1", number: "PS100", dest: "AMM", depart: "08:10", arrive: "09:25", price: 289 },
-  { id: "n2", number: "PS106", dest: "IST", depart: "11:35", arrive: "14:40", price: 412 },
-  { id: "n3", number: "PS108", dest: "DOH", depart: "14:50", arrive: "19:05", price: 468 },
-];
+interface PassengerFormState {
+  type: "adult" | "child" | "infant";
+  firstName: string;
+  lastName: string;
+  dob: string;
+  nationality: string;
+  document: string;
+  withAdult?: number | undefined;
+}
+
+function initialPassenger(): PassengerFormState {
+  return {
+    type: "adult",
+    firstName: "",
+    lastName: "",
+    dob: "",
+    nationality: "Palestinian",
+    document: "",
+  };
+}
 
 function AdminNewBookingPage() {
   const { t, lang } = useI18n();
   const { can, toast } = useAdmin();
   const [step, setStep] = useState(0);
-  const [flight, setFlight] = useState(mockFlights[0]!.id);
-  const [fare, setFare] = useState(fares[0]?.id ?? "essential");
-  const [paxCount, setPaxCount] = useState(1);
+
+  // Stable client submission identity per active attempt
+  const [submissionId, setSubmissionId] = useState(
+    () => `sub-desk-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+  );
+
+  // Flight search & selection state
+  const [date, setDate] = useState(() => addDaysISO(todayISO(), 2));
+  const [destinationCode, setDestinationCode] = useState("AMM");
+  const [selectedFlightId, setSelectedFlightId] = useState<string>("");
+
+  // Fare selection
+  const [fare, setFare] = useState<"essential" | "classic" | "flex">("essential");
+
+  // Passengers & Contact state
+  const [passengers, setPassengers] = useState<PassengerFormState[]>([initialPassenger()]);
+  const [contact, setContact] = useState({ email: "", phone: "" });
+
+  // Seats & Extras state
+  const [seats, setSeats] = useState<Record<string, string>>({});
+  const [extrasPax, setExtrasPax] = useState<
+    Array<{ extraBags: number; meal: string; assistance: string[] }>
+  >([{ extraBags: 0, meal: "standard", assistance: [] }]);
+
+  // Submission & Success state
+  const [createdBooking, setCreatedBooking] = useState<Booking | null>(null);
   const [done, setDone] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [formError, setFormError] = useState<string | null>(null);
 
   const mayEdit = can("commercial.edit");
-  const chosen = mockFlights.find((f) => f.id === flight)!;
-  const chosenFare = fares.find((f) => f.id === fare);
+  const createBooking = useCreateBookingMutation();
 
-  if (!can("commercial.view")) return <AdminDenied area={t("a2.nb.title")} permission="commercial.view" />;
+  // Departures query for Gaza origin
+  const { data: availableFlights = [], isLoading: flightsLoading } = useFlightSearchQuery(
+    "GZA",
+    destinationCode,
+    date,
+  );
+  const chosenFlight: Flight | null =
+    availableFlights.find((f) => f.id === selectedFlightId) ?? null;
 
-  if (done) {
+  // Seat-requiring passengers count (adults + children)
+  const seatRequiredCount = useMemo(() => {
+    return passengers.filter((p) => p.type !== "infant").length || 1;
+  }, [passengers]);
+
+  // Evaluate bookability of chosen flight
+  const flightBookability = useMemo(() => {
+    if (!chosenFlight) return { bookable: false, reason: "flight_missing" };
+    return getFlightBookability(chosenFlight, { paxCount: seatRequiredCount });
+  }, [chosenFlight, seatRequiredCount]);
+
+  // Candidate booking object for preview pricing
+  const previewBooking: Booking | null = useMemo(() => {
+    if (!chosenFlight) return null;
+    return {
+      ref: "PREVIEW",
+      createdAt: new Date().toISOString(),
+      criteria: {
+        tripType: "oneway",
+        origin: "GZA",
+        destination: chosenFlight.destinationCode,
+        departDate: chosenFlight.date,
+        returnDate: "",
+        adults: passengers.filter((p) => p.type === "adult").length || 1,
+        children: passengers.filter((p) => p.type === "child").length,
+        infants: passengers.filter((p) => p.type === "infant").length,
+        cabin: "economy",
+      },
+      outbound: chosenFlight,
+      inbound: null,
+      fareId: fare,
+      passengers: passengers.map((p, i) => ({
+        ...p,
+        id: `pax-PREVIEW-${i}`,
+      })),
+      seats,
+      extras: {
+        pax: extrasPax.map((px) => ({
+          extraBags: px.extraBags,
+          meal: px.meal as "standard" | "vegetarian" | "diabetic" | "child",
+          assistance: px.assistance,
+        })),
+      },
+      contact,
+      total: 0,
+      status: "confirmed",
+      checkedIn: { out: [], in: [] },
+      channel: "desk",
+      ownerEmail: null,
+    };
+  }, [chosenFlight, fare, passengers, seats, extrasPax, contact]);
+
+  const previewTotal = useMemo(() => {
+    if (!previewBooking) return 0;
+    return bookingTotal(previewBooking).total;
+  }, [previewBooking]);
+
+  if (!can("commercial.view")) {
+    return <AdminDenied area={t("a2.nb.title")} permission="commercial.view" />;
+  }
+
+  // Step validation helpers
+  const validateStep0 = (): string | null => {
+    if (!chosenFlight) return t("a6.err.flight") || "Please select a flight.";
+    if (!flightBookability.bookable) {
+      return t(
+        flightBookability.reason === "insufficient_seats" || flightBookability.reason === "sold_out"
+          ? "a6.err.capacity"
+          : "a6.err.flight",
+      );
+    }
+    return null;
+  };
+
+  const validateStep2 = (): string | null => {
+    try {
+      validateBookingParty(passengers);
+      validateBookingContact(contact);
+      return null;
+    } catch (error) {
+      return t(commercialErrorKey(error));
+    }
+  };
+  const validateStep3 = (): string | null => {
+    try {
+      if (!previewBooking || !chosenFlight) return t("a6.err.flight");
+      validateBookingExtras({ pax: extrasPax }, passengers.length);
+      validateUpdateSeatsAssignments({ ...previewBooking, seats: {} }, seats, {
+        outbound: chosenFlight,
+        inbound: null,
+      });
+      return null;
+    } catch (error) {
+      return t(commercialErrorKey(error));
+    }
+  };
+  const validationForStep = (index: number) =>
+    index === 0
+      ? validateStep0()
+      : index === 1
+        ? ["essential", "classic", "flex"].includes(fare)
+          ? null
+          : t("a6.err.criteria")
+        : index === 2
+          ? validateStep2()
+          : index === 3
+            ? validateStep3()
+            : null;
+  const showValidation = (index: number) => {
+    const err = validationForStep(index);
+    if (!err) {
+      setFormError(null);
+      setFieldErrors({});
+      return true;
+    }
+    setFormError(err);
+    if (index === 2) {
+      try {
+        validateBookingParty(passengers);
+        validateBookingContact(contact);
+      } catch (error) {
+        if (error instanceof BookingInputError)
+          setFieldErrors(
+            Object.fromEntries(
+              Object.entries(error.fields).map(([key, value]) => [
+                key === "email" ? "nb-contact-email" : key === "phone" ? "nb-contact-phone" : key,
+                value,
+              ]),
+            ),
+          );
+      }
+    }
+    requestAnimationFrame(() => {
+      const node =
+        document.querySelector<HTMLElement>('[aria-invalid="true"]') ??
+        document.getElementById("nb-errors");
+      node?.focus();
+    });
+    return false;
+  };
+  const handleNext = () => {
+    if (showValidation(step)) setStep((s) => Math.min(STEPS.length - 1, s + 1));
+  };
+
+  const handleCreate = () => {
+    if (!mayEdit || createBooking.isPending) return;
+    for (let index = 0; index < 4; index++) {
+      if (!showValidation(index)) {
+        setStep(index);
+        return;
+      }
+    }
+
+    if (!chosenFlight) return;
+    const input: BookingCreateInput = {
+      criteria: {
+        tripType: "oneway",
+        origin: "GZA",
+        destination: chosenFlight.destinationCode,
+        departDate: chosenFlight.date,
+        returnDate: "",
+        adults: passengers.filter((p) => p.type === "adult").length,
+        children: passengers.filter((p) => p.type === "child").length,
+        infants: passengers.filter((p) => p.type === "infant").length,
+        cabin: "economy",
+      },
+      outbound: chosenFlight,
+      inbound: null,
+      fareId: fare,
+      passengers: passengers.map((p) => ({
+        type: p.type,
+        firstName: p.firstName.trim(),
+        lastName: p.lastName.trim(),
+        dob: p.dob.trim(),
+        nationality: p.nationality.trim() || "Palestinian",
+        document: p.document.trim(),
+        withAdult: p.withAdult,
+      })),
+      seats,
+      extras: {
+        pax: extrasPax.map((px) => ({
+          extraBags: px.extraBags,
+          meal: px.meal as "standard" | "vegetarian" | "diabetic" | "child",
+          assistance: px.assistance,
+        })),
+      },
+      contact: {
+        email: contact.email.trim(),
+        phone: contact.phone.trim(),
+      },
+      total: previewTotal,
+      channel: "desk",
+      ownerEmail: null,
+      submissionId,
+    };
+
+    createBooking.mutate(input, {
+      onSuccess: (res) => {
+        setCreatedBooking(res);
+        setDone(true);
+        toast(t("a2.nb.successTitle"));
+      },
+      onError: (e) => {
+        const msg = t(commercialErrorKey(e));
+        setFormError(msg);
+        toast(msg);
+      },
+    });
+  };
+
+  const handleReset = () => {
+    setDone(false);
+    setCreatedBooking(null);
+    setStep(0);
+    setSubmissionId(`sub-desk-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+    setPassengers([initialPassenger()]);
+    setContact({ email: "", phone: "" });
+    setSelectedFlightId("");
+    setFieldErrors({});
+    setSeats({});
+    setExtrasPax([{ extraBags: 0, meal: "standard", assistance: [] }]);
+    setFormError(null);
+  };
+
+  if (done && createdBooking) {
     return (
       <div className="space-y-4">
-        <AdminPageHeader title={t("a2.nb.title")} description={t("a2.mock")} />
-        <AdminPanel>
-          <div className="mx-auto max-w-md text-center">
-            <span className="inline-flex size-10 items-center justify-center rounded-md bg-brand-soft text-brand-deep">
-              <Check aria-hidden="true" className="size-5" />
-            </span>
-            <h2 className="mt-3 text-lg font-bold">{t("a2.nb.successTitle")}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">{t("a2.nb.successBody")}</p>
-            <p className="mt-3">
-              <Ltr className="text-xl font-bold">GZA-NEW1</Ltr>
-            </p>
-            <div className="mt-4 flex flex-wrap justify-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setDone(false);
-                  setStep(0);
-                }}
+        <AdminPageHeader title={t("a2.nb.title")} description={t("a2.nb.sub")} />
+        <AdminPanel title={t("a2.nb.successTitle")}>
+          <div className="space-y-4 text-center sm:py-6">
+            <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-brand-soft text-brand-deep">
+              <Check className="size-6" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">{t("a2.nb.pnrCreated")}</p>
+              <Ltr className="text-3xl font-extrabold tracking-wider">{createdBooking.ref}</Ltr>
+              <div className="mt-2 flex items-center justify-center gap-2">
+                <AdminChip tone="brand">{t("a2.channel.desk") || "Desk"}</AdminChip>
+                <span className="text-xs text-muted-foreground">
+                  <Ltr>{`${createdBooking.outbound.number} · GZA → ${createdBooking.outbound.destinationCode}`}</Ltr>
+                </span>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-4">
+              <AppLink
+                to="/admin/bookings/$ref"
+                params={{ ref: createdBooking.ref }}
                 className={btnClass("primary", "sm")}
               >
+                {t("a2.nb.viewBooking")}
+              </AppLink>
+              <AppLink
+                to="/manage/$ref"
+                params={{ ref: createdBooking.ref }}
+                className={btnClass("outline", "sm")}
+              >
+                {t("nav.manage")}
+              </AppLink>
+              <button type="button" onClick={handleReset} className={btnClass("ghost", "sm")}>
                 {t("a2.nb.another")}
               </button>
-              <AppLink to="/admin/bookings" className={btnClass("outline", "sm")}>
-                {t("a2.bk.title")}
-              </AppLink>
             </div>
           </div>
         </AdminPanel>
@@ -84,182 +400,633 @@ function AdminNewBookingPage() {
 
   return (
     <div className="space-y-4">
-      <AdminPageHeader title={t("a2.nb.title")} description={t("a2.nb.sub")} meta={<p className="text-xs text-muted-foreground">{t("a2.mock")}</p>} />
+      <AdminPageHeader
+        title={t("a2.nb.title")}
+        description={t("a2.nb.sub")}
+        meta={
+          <div className="flex items-center gap-2">
+            <AdminChip tone="brand">{t("a2.channel.desk") || "Desk"}</AdminChip>
+            <span className="text-xs text-muted-foreground">
+              {t("search.oneWay")} · {t("a6.counter.economy")}
+            </span>
+          </div>
+        }
+      />
 
-      <AdminPanel bodyClassName="p-0">
-        <ol className="flex flex-wrap gap-1 border-b border-border px-3 py-2 text-xs">
-          {STEPS.map((key, i) => (
-            <li key={key}>
-              <button
-                type="button"
-                onClick={() => setStep(i)}
-                aria-current={i === step ? "step" : undefined}
-                className={cn(
-                  "rounded-md px-2 py-1 font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-                  i === step ? "bg-brand-soft text-brand-deep" : "text-muted-foreground hover:bg-secondary",
-                )}
-              >
-                <Ltr className="me-1">{i + 1}</Ltr>
-                {t(key)}
-              </button>
-            </li>
-          ))}
-        </ol>
-
-        <div className="space-y-4 p-4">
-          {step === 0 ? (
-            <fieldset className="space-y-2">
-              <legend className="text-sm font-bold">{t("a2.nb.chooseFlight")}</legend>
-              {mockFlights.map((f) => (
-                <label
-                  key={f.id}
+      <AdminPanel title={t("a6.counter.form")} bodyClassName="p-0">
+        <ol className="grid grid-cols-2 gap-px border-b border-border bg-border sm:grid-cols-5">
+          {STEPS.map((k, i) => {
+            const isCurrent = step === i;
+            const isCompleted = step > i;
+            return (
+              <li key={k} className="bg-card">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (i < step) {
+                      setStep(i);
+                    } else if (i > step) {
+                      handleNext();
+                    }
+                  }}
                   className={cn(
-                    "flex cursor-pointer flex-wrap items-center gap-3 rounded-md border px-3 py-2.5 text-sm",
-                    flight === f.id ? "border-brand bg-brand-soft/40" : "border-border hover:bg-secondary",
+                    "flex w-full items-center gap-2 p-3 text-start text-xs font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                    isCurrent
+                      ? "text-brand"
+                      : isCompleted
+                        ? "text-foreground hover:bg-secondary/40"
+                        : "text-muted-foreground opacity-60",
                   )}
                 >
-                  <input type="radio" name="nb-flight" checked={flight === f.id} onChange={() => setFlight(f.id)} className="size-4 accent-[var(--brand)]" />
-                  <Ltr className="font-bold">{f.number}</Ltr>
-                  <Ltr>{`GZA → ${f.dest}`}</Ltr>
-                  <Ltr className="text-muted-foreground">{`${f.depart} – ${f.arrive}`}</Ltr>
-                  <Ltr className="ms-auto font-semibold">{money(f.price, lang)}</Ltr>
-                </label>
-              ))}
-              <p className="text-xs text-muted-foreground">
-                {t("a2.bk.route")}: <Ltr>{destinations.length}</Ltr>
-              </p>
-            </fieldset>
+                  <span
+                    className={cn(
+                      "flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold",
+                      isCurrent
+                        ? "bg-brand text-brand-foreground"
+                        : isCompleted
+                          ? "bg-brand-soft text-brand-deep"
+                          : "bg-secondary text-muted-foreground",
+                    )}
+                  >
+                    {isCompleted ? <Check className="size-3" /> : i + 1}
+                  </span>
+                  <span className="truncate">{t(k)}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+
+        <div className="p-4">
+          {formError ? (
+            <div
+              id="nb-errors"
+              tabIndex={-1}
+              role="alert"
+              className="mb-4 rounded-md bg-status-cancelled/15 p-3 text-xs text-status-cancelled"
+            >
+              {formError}
+            </div>
+          ) : null}
+
+          {step === 0 ? (
+            <div className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label={t("flights.date")} htmlFor="nb-date">
+                  <Input
+                    id="nb-date"
+                    type="date"
+                    dir="ltr"
+                    value={date}
+                    onChange={(e) => {
+                      setDate(e.target.value || todayISO());
+                      setSelectedFlightId("");
+                    }}
+                  />
+                </Field>
+                <Field label={t("search.to")} htmlFor="nb-dest">
+                  <Select
+                    id="nb-dest"
+                    value={destinationCode}
+                    onChange={(e) => {
+                      setDestinationCode(e.target.value);
+                      setSelectedFlightId("");
+                    }}
+                  >
+                    {destinations
+                      .filter((d) => d.code !== "GZA")
+                      .map((d) => (
+                        <option key={d.code} value={d.code}>
+                          {d.code} · {pick(lang, d.city)}
+                        </option>
+                      ))}
+                  </Select>
+                </Field>
+              </div>
+
+              {flightsLoading ? (
+                <div className="p-8 text-center text-sm text-muted-foreground">
+                  {t("a2.bk.loading")}
+                </div>
+              ) : availableFlights.length === 0 ? (
+                <div className="rounded-md border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                  {t("a2.none")}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground">
+                    {t("adm.fl.title")}: <Ltr>GZA → {destinationCode}</Ltr> (
+                    {availableFlights.length})
+                  </p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {availableFlights.map((f) => {
+                      const bookability = getFlightBookability(f, { paxCount: seatRequiredCount });
+                      const isSelected = chosenFlight?.id === f.id;
+                      return (
+                        <label
+                          key={f.id}
+                          className={cn(
+                            "flex cursor-pointer items-center gap-3 rounded-md border p-3 text-xs transition",
+                            isSelected
+                              ? "border-brand bg-brand-soft/30 shadow-xs"
+                              : "border-border hover:bg-secondary/40",
+                            !bookability.bookable && "opacity-50 cursor-not-allowed",
+                          )}
+                        >
+                          <input
+                            type="radio"
+                            name="nb-flight-choice"
+                            checked={isSelected}
+                            disabled={!bookability.bookable}
+                            onChange={() => setSelectedFlightId(f.id)}
+                            className="size-4 text-brand focus:ring-brand"
+                          />
+                          <div className="min-w-0">
+                            <span className="block font-bold">
+                              <Ltr>{`${f.number} · ${f.departTime} → ${f.arriveTime}`}</Ltr>
+                            </span>
+                            <span className="block text-muted-foreground">
+                              {f.aircraft} · {t("a2.se.gates")} {f.gate || "—"}
+                            </span>
+                            {!bookability.bookable ? (
+                              <span className="block text-status-cancelled font-semibold">
+                                {t(
+                                  bookability.reason === "insufficient_seats" ||
+                                    bookability.reason === "sold_out"
+                                    ? "a6.err.capacity"
+                                    : "a6.err.flight",
+                                )}
+                              </span>
+                            ) : null}
+                          </div>
+                          <Ltr className="ms-auto font-semibold">
+                            {money(farePrice(f.basePrice, "essential", "economy"), lang)}
+                          </Ltr>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
           ) : null}
 
           {step === 1 ? (
-            <fieldset className="grid gap-2 sm:grid-cols-3">
-              <legend className="mb-1 text-sm font-bold sm:col-span-3">{t("a2.nb.chooseFare")}</legend>
-              {fares.map((f) => (
-                <label
-                  key={f.id}
-                  className={cn(
-                    "cursor-pointer rounded-md border px-3 py-2.5 text-sm",
-                    fare === f.id ? "border-brand bg-brand-soft/40" : "border-border hover:bg-secondary",
-                  )}
-                >
-                  <input type="radio" name="nb-fare" checked={fare === f.id} onChange={() => setFare(f.id)} className="me-2 size-4 accent-[var(--brand)]" />
-                  <span className="font-semibold">{pick(lang, f.name)}</span>
-                  <p className="mt-1 text-xs text-muted-foreground">{pick(lang, f.flexibility)}</p>
-                </label>
-              ))}
-            </fieldset>
+            <div className="space-y-3">
+              <p className="text-xs font-semibold text-muted-foreground">{t("a2.nb.step2")}</p>
+              <div className="grid gap-3 sm:grid-cols-3">
+                {fares.map((f) => {
+                  const base = chosenFlight?.basePrice ?? 180;
+                  const price = farePrice(base, f.id, "economy");
+                  const isSelected = fare === f.id;
+                  return (
+                    <label
+                      key={f.id}
+                      className={cn(
+                        "flex cursor-pointer flex-col justify-between rounded-md border p-3 text-xs transition",
+                        isSelected
+                          ? "border-brand bg-brand-soft/30 shadow-xs ring-1 ring-brand"
+                          : "border-border hover:bg-secondary/40",
+                      )}
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <input
+                            type="radio"
+                            name="nb-fare-choice"
+                            checked={isSelected}
+                            onChange={() => setFare(f.id)}
+                            className="size-4 text-brand focus:ring-brand"
+                          />
+                          <span className="font-bold">{pick(lang, f.name)}</span>
+                        </div>
+                        <p className="text-muted-foreground text-[11px]">
+                          {pick(lang, f.flexibility)}
+                        </p>
+                      </div>
+                      <div className="mt-3 pt-2 border-t border-border flex items-baseline justify-between font-bold">
+                        <span className="text-muted-foreground text-[11px]">
+                          {t("a6.counter.economy")}
+                        </span>
+                        <Ltr>{money(price, lang)}</Ltr>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
           ) : null}
 
           {step === 2 ? (
-            <div className="space-y-3">
-              <Field label={t("a2.nb.paxCount")} htmlFor="nb-pax">
-                <Select id="nb-pax" value={String(paxCount)} onChange={(e) => setPaxCount(Number(e.target.value))}>
-                  {[1, 2, 3, 4].map((n) => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-              {Array.from({ length: paxCount }).map((_, i) => (
-                <div key={i} className="grid gap-2 rounded-md border border-border p-2.5 sm:grid-cols-3">
-                  <Field label={`${t("a2.bd.passenger")} ${i + 1}`} htmlFor={`nb-name-${i}`}>
-                    <Input id={`nb-name-${i}`} placeholder="Given name Family name" />
-                  </Field>
-                  <Field label={t("a2.bd.dob")} htmlFor={`nb-dob-${i}`}>
-                    <Input id={`nb-dob-${i}`} dir="ltr" type="date" />
-                  </Field>
-                  <Field label={t("a2.bd.document")} htmlFor={`nb-doc-${i}`}>
-                    <Input id={`nb-doc-${i}`} dir="ltr" />
-                  </Field>
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
+                <p className="text-xs font-semibold text-muted-foreground">
+                  {t("a2.bd.tab.passengers")} ({passengers.length})
+                </p>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    className={btnClass("outline", "sm")}
+                    onClick={() => {
+                      if (passengers.length < 9) {
+                        setPassengers([...passengers, initialPassenger()]);
+                        setExtrasPax([
+                          ...extrasPax,
+                          { extraBags: 0, meal: "standard", assistance: [] },
+                        ]);
+                      }
+                    }}
+                  >
+                    + {t("a2.bd.passenger")}
+                  </button>
+                  {passengers.length > 1 ? (
+                    <button
+                      type="button"
+                      className={btnClass("ghost", "sm")}
+                      onClick={() => {
+                        const next = passengers.slice(0, -1);
+                        setPassengers(next);
+                        setExtrasPax(extrasPax.slice(0, -1));
+                        setSeats((current) =>
+                          Object.fromEntries(
+                            Object.entries(current).filter(
+                              ([key]) => key !== `out-${passengers.length - 1}`,
+                            ),
+                          ),
+                        );
+                      }}
+                    >
+                      - {t("a2.cancel")}
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+
+              {passengers.map((p, i) => (
+                <div key={i} className="space-y-3 rounded-md border border-border p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-muted-foreground">
+                      {`${t("a2.bd.passenger")} ${i + 1}`}
+                    </span>
+                    <Select
+                      value={p.type}
+                      onChange={(e) => {
+                        const next = [...passengers];
+                        const newType = e.target.value as "adult" | "child" | "infant";
+                        next[i] = {
+                          ...next[i]!,
+                          type: newType,
+                          withAdult: newType === "infant" ? 0 : undefined,
+                        };
+                        setPassengers(next);
+                      }}
+                      className="w-auto text-xs py-1"
+                    >
+                      <option value="adult">{t("a2.bd.type.adult")}</option>
+                      <option value="child">{t("a2.bd.type.child")}</option>
+                      <option value="infant">{t("a2.bd.type.infant")}</option>
+                    </Select>
+                  </div>
+
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <Field label={t("book.firstName")} htmlFor={`pax-${i}-fn`}>
+                      <CommercialInput
+                        aria-required="true"
+                        id={`pax-${i}-fn`}
+                        error={fieldErrors[`pax-${i}-fn`]}
+                        value={p.firstName}
+                        onChange={(e) => {
+                          const next = [...passengers];
+                          next[i] = { ...next[i]!, firstName: e.target.value };
+                          setPassengers(next);
+                        }}
+                        placeholder={t("book.firstName")}
+                      />
+                    </Field>
+                    <Field label={t("book.lastName")} htmlFor={`pax-${i}-ln`}>
+                      <CommercialInput
+                        aria-required="true"
+                        id={`pax-${i}-ln`}
+                        error={fieldErrors[`pax-${i}-ln`]}
+                        value={p.lastName}
+                        onChange={(e) => {
+                          const next = [...passengers];
+                          next[i] = { ...next[i]!, lastName: e.target.value };
+                          setPassengers(next);
+                        }}
+                        placeholder={t("book.lastName")}
+                      />
+                    </Field>
+                  </div>
+
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    <Field label={t("a2.bd.dob")} htmlFor={`pax-${i}-dob`}>
+                      <CommercialInput
+                        aria-required="true"
+                        id={`pax-${i}-dob`}
+                        error={fieldErrors[`pax-${i}-dob`]}
+                        dir="ltr"
+                        type="date"
+                        value={p.dob}
+                        onChange={(e) => {
+                          const next = [...passengers];
+                          next[i] = { ...next[i]!, dob: e.target.value };
+                          setPassengers(next);
+                        }}
+                      />
+                    </Field>
+                    <Field label={t("a2.bd.document")} htmlFor={`pax-${i}-doc`}>
+                      <CommercialInput
+                        id={`pax-${i}-doc`}
+                        error={fieldErrors[`pax-${i}-doc`]}
+                        dir="ltr"
+                        value={p.document}
+                        onChange={(e) => {
+                          const next = [...passengers];
+                          next[i] = { ...next[i]!, document: e.target.value.trim().toUpperCase() };
+                          setPassengers(next);
+                        }}
+                        placeholder="P1234567"
+                      />
+                    </Field>
+                    <Field label={t("book.nationality")} htmlFor={`pax-${i}-nat`}>
+                      <CommercialInput
+                        id={`pax-${i}-nat`}
+                        error={fieldErrors[`pax-${i}-nat`]}
+                        value={p.nationality}
+                        onChange={(e) => {
+                          const next = [...passengers];
+                          next[i] = { ...next[i]!, nationality: e.target.value };
+                          setPassengers(next);
+                        }}
+                        placeholder="Palestinian"
+                      />
+                    </Field>
+                  </div>
+
+                  {p.type === "infant" ? (
+                    <Field label={t("a2.ci.infant")} htmlFor={`pax-${i}-adult`}>
+                      <Select
+                        id={`pax-${i}-adult`}
+                        aria-invalid={Boolean(fieldErrors[`pax-${i}-adult`])}
+                        aria-describedby={
+                          fieldErrors[`pax-${i}-adult`] ? `pax-${i}-adult-error` : undefined
+                        }
+                        value={p.withAdult ?? 0}
+                        onChange={(e) => {
+                          const next = [...passengers];
+                          next[i] = { ...next[i]!, withAdult: parseInt(e.target.value, 10) || 0 };
+                          setPassengers(next);
+                        }}
+                      >
+                        {passengers.map((ap, aIdx) => {
+                          if (ap.type !== "adult") return null;
+                          return (
+                            <option key={aIdx} value={aIdx}>
+                              {ap.firstName || ap.lastName
+                                ? `${ap.firstName} ${ap.lastName}`
+                                : `${t("a2.bd.type.adult")} ${aIdx + 1}`}
+                            </option>
+                          );
+                        })}
+                      </Select>
+                      {fieldErrors[`pax-${i}-adult`] ? (
+                        <p id={`pax-${i}-adult-error`} className="mt-1 text-xs text-destructive">
+                          {t(fieldErrors[`pax-${i}-adult`]!)}
+                        </p>
+                      ) : null}
+                    </Field>
+                  ) : null}
                 </div>
               ))}
-              <div className="grid gap-2 sm:grid-cols-2">
-                <Field label={t("a2.nb.contactEmail")} htmlFor="nb-email">
-                  <Input id="nb-email" dir="ltr" type="email" />
-                </Field>
-                <Field label={t("a2.nb.contactPhone")} htmlFor="nb-phone">
-                  <Input id="nb-phone" dir="ltr" />
-                </Field>
+
+              <div className="space-y-2 pt-2 border-t border-border">
+                <p className="text-xs font-semibold text-muted-foreground">{t("a2.bd.contact")}</p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <Field label={t("a2.nb.contactEmail")} htmlFor="nb-contact-email">
+                    <CommercialInput
+                      error={fieldErrors["nb-contact-email"]}
+                      id="nb-contact-email"
+                      dir="ltr"
+                      type="email"
+                      value={contact.email}
+                      onChange={(e) => setContact({ ...contact, email: e.target.value })}
+                      placeholder="passenger@example.com"
+                    />
+                  </Field>
+                  <Field label={t("a2.nb.contactPhone")} htmlFor="nb-contact-phone">
+                    <CommercialInput
+                      error={fieldErrors["nb-contact-phone"]}
+                      id="nb-contact-phone"
+                      dir="ltr"
+                      value={contact.phone}
+                      onChange={(e) => setContact({ ...contact, phone: e.target.value })}
+                      placeholder="+970 59 000 0000"
+                    />
+                  </Field>
+                </div>
               </div>
             </div>
           ) : null}
 
           {step === 3 ? (
-            <div className="space-y-3">
-              {Array.from({ length: paxCount }).map((_, i) => (
-                <div key={i} className="grid gap-2 rounded-md border border-border p-2.5 sm:grid-cols-4">
-                  <Field label={`${t("a2.bd.seat")} ${i + 1}`} htmlFor={`nb-seat-${i}`}>
-                    <Input id={`nb-seat-${i}`} dir="ltr" placeholder="12A" />
-                  </Field>
-                  <Field label={t("a2.bd.bags")} htmlFor={`nb-bags-${i}`}>
-                    <Input id={`nb-bags-${i}`} dir="ltr" type="number" min={0} max={5} defaultValue={1} />
-                  </Field>
-                  <Field label={t("a2.bd.meal")} htmlFor={`nb-meal-${i}`}>
-                    <Select id={`nb-meal-${i}`}>
-                      {["Standard", "Vegetarian", "Diabetic", "Child"].map((m) => (
-                        <option key={m}>{m}</option>
-                      ))}
-                    </Select>
-                  </Field>
-                  <Field label={t("a2.bd.assistance")} htmlFor={`nb-assist-${i}`}>
-                    <Input id={`nb-assist-${i}`} />
-                  </Field>
+            <div className="space-y-4">
+              <p className="text-xs font-semibold text-muted-foreground">{t("a2.bd.tab.seats")}</p>
+              {passengers.map((p, i) => (
+                <div key={i} className="space-y-3 rounded-md border border-border p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold">
+                      {p.firstName || p.lastName
+                        ? `${p.firstName} ${p.lastName}`
+                        : `${t("book.passenger")} ${i + 1}`}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {t(`a2.bd.type.${p.type}`)}
+                    </span>
+                  </div>
+
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    {p.type !== "infant" ? (
+                      <Field label={t("a2.bd.seat")} htmlFor={`pax-${i}-seat`}>
+                        <CommercialInput
+                          id={`pax-${i}-seat`}
+                          error={fieldErrors[`pax-${i}-seat`]}
+                          dir="ltr"
+                          placeholder="12A"
+                          value={seats[`out-${i}`] || ""}
+                          onChange={(e) =>
+                            setSeats({
+                              ...seats,
+                              [`out-${i}`]: e.target.value.trim().toUpperCase(),
+                            })
+                          }
+                        />
+                      </Field>
+                    ) : (
+                      <div className="text-xs text-muted-foreground flex items-center">
+                        {t("a2.ci.infant")}
+                      </div>
+                    )}
+                    <Field label={t("a2.bd.bags")} htmlFor={`pax-${i}-bags`}>
+                      <CommercialInput
+                        id={`pax-${i}-bags`}
+                        error={fieldErrors[`pax-${i}-bags`]}
+                        dir="ltr"
+                        type="number"
+                        min={0}
+                        max={5}
+                        value={extrasPax[i]?.extraBags ?? 0}
+                        onChange={(e) => {
+                          const next = [...extrasPax];
+                          next[i] = {
+                            ...next[i]!,
+                            extraBags: Math.max(0, Math.min(5, parseInt(e.target.value, 10) || 0)),
+                          };
+                          setExtrasPax(next);
+                        }}
+                      />
+                    </Field>
+                    <Field label={t("a2.bd.meal")} htmlFor={`nb-meal-${i}`}>
+                      <Select
+                        id={`nb-meal-${i}`}
+                        value={extrasPax[i]?.meal ?? "standard"}
+                        onChange={(e) => {
+                          const next = [...extrasPax];
+                          next[i] = { ...next[i]!, meal: e.target.value };
+                          setExtrasPax(next);
+                        }}
+                      >
+                        {mealOptions.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {pick(lang, m.label)}
+                          </option>
+                        ))}
+                      </Select>
+                    </Field>
+                  </div>
+                  {p.type !== "infant" ? (
+                    <CommercialSeatPicker
+                      flight={chosenFlight}
+                      cabin="economy"
+                      seats={seats}
+                      leg="out"
+                      paxIndex={i}
+                      passengerLabels={passengers.map((p) => `${p.firstName} ${p.lastName}`)}
+                      onSelect={(seat) =>
+                        setSeats((current) => ({ ...current, [`out-${i}`]: seat }))
+                      }
+                    />
+                  ) : null}
+                  <AssistanceChoices
+                    value={extrasPax[i]?.assistance ?? []}
+                    onChange={(assistance) =>
+                      setExtrasPax((current) =>
+                        current.map((x, index) => (index === i ? { ...x, assistance } : x)),
+                      )
+                    }
+                  />
                 </div>
               ))}
             </div>
           ) : null}
 
-          {step === 4 ? (
-            <dl className="grid gap-3 text-sm sm:grid-cols-2">
-              <div>
-                <dt className="text-xs font-semibold text-muted-foreground">{t("a2.nb.step1")}</dt>
-                <dd>
-                  <Ltr>{`${chosen.number} · GZA → ${chosen.dest} · ${chosen.depart}`}</Ltr>
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs font-semibold text-muted-foreground">{t("a2.nb.step2")}</dt>
-                <dd>{chosenFare ? pick(lang, chosenFare.name) : fare}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-semibold text-muted-foreground">{t("a2.nb.paxCount")}</dt>
-                <dd>
-                  <Ltr>{paxCount}</Ltr>
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs font-semibold text-muted-foreground">{t("a2.bk.total")}</dt>
-                <dd className="font-bold">
-                  <Ltr>{money(chosen.price * paxCount, lang)}</Ltr>
-                </dd>
-              </div>
-              <div className="sm:col-span-2">
-                <AdminChip tone="muted">{t("a2.mock")}</AdminChip>
-              </div>
-            </dl>
+          {step === 4 && chosenFlight ? (
+            <div className="space-y-4">
+              <p className="text-xs font-semibold text-muted-foreground">{t("a2.nb.step5")}</p>
+              <dl className="grid gap-3 rounded-md border border-border p-4 text-xs sm:grid-cols-2">
+                <div>
+                  <dt className="text-muted-foreground font-semibold">{t("adm.fl.title")}</dt>
+                  <dd className="font-bold text-sm">
+                    <Ltr>{`${chosenFlight.number} · GZA → ${chosenFlight.destinationCode}`}</Ltr>
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground font-semibold">{t("flights.date")}</dt>
+                  <dd>
+                    <Ltr>{`${chosenFlight.date} · ${chosenFlight.departTime}`}</Ltr>
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground font-semibold">{t("a2.nb.step2")}</dt>
+                  <dd>
+                    {pick(lang, fares.find((f) => f.id === fare)?.name ?? { en: fare, ar: fare })}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground font-semibold">
+                    {t("a2.bd.tab.passengers")}
+                  </dt>
+                  <dd>
+                    {passengers.map((p, idx) => (
+                      <span key={idx} className="block">
+                        {p.firstName} {p.lastName} ({t(`a2.bd.type.${p.type}`)})
+                        {seats[`out-${idx}`] ? ` · ${t("a2.bd.seat")}: ${seats[`out-${idx}`]}` : ""}
+                      </span>
+                    ))}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground font-semibold">{t("a2.bd.contact")}</dt>
+                  <dd>
+                    <Ltr>{contact.email || "—"}</Ltr>
+                    {contact.phone ? (
+                      <span className="block">
+                        <Ltr>{contact.phone}</Ltr>
+                      </span>
+                    ) : null}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground font-semibold">
+                    {t("a2.channel.desk") || "Channel"}
+                  </dt>
+                  <dd>
+                    <AdminChip tone="brand">{t("a2.channel.desk") || "Desk"}</AdminChip>
+                  </dd>
+                </div>
+                <div className="sm:col-span-2 pt-3 border-t border-border flex items-baseline justify-between">
+                  <dt className="text-sm font-bold">{t("a2.bk.total")}</dt>
+                  <dd className="text-lg font-extrabold text-brand">
+                    <Ltr>{money(previewTotal, lang)}</Ltr>
+                  </dd>
+                </div>
+              </dl>
+            </div>
           ) : null}
         </div>
 
         <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border px-4 py-3">
-          <button type="button" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0} className={btnClass("outline", "sm")}>
-            {t("a2.back")}
+          <button
+            type="button"
+            onClick={() => setStep((s) => Math.max(0, s - 1))}
+            disabled={step === 0}
+            className={btnClass("outline", "sm")}
+          >
+            {t("a2.nb.prev")}
           </button>
           {step < STEPS.length - 1 ? (
-            <button type="button" onClick={() => setStep((s) => s + 1)} className={btnClass("primary", "sm")}>
-              {t("a2.next")}
+            <button
+              type="button"
+              onClick={handleNext}
+              disabled={createBooking.isPending}
+              className={btnClass("primary", "sm")}
+            >
+              {step === 0
+                ? t("a2.nb.nextFare")
+                : step === 1
+                  ? t("a2.nb.nextPax")
+                  : step === 2
+                    ? t("a2.nb.nextSeats")
+                    : t("a2.nb.nextReview")}
             </button>
           ) : (
             <PermissionButton
-              allowed={mayEdit}
+              allowed={mayEdit && !createBooking.isPending}
               reason={t("adm.edit.readOnly")}
               variant="primary"
-              onClick={() => {
-                setDone(true);
-                toast(t("a2.nb.successTitle"));
-              }}
+              onClick={handleCreate}
             >
-              {t("a2.nb.create")}
+              {createBooking.isPending ? t("a2.bk.loading") : t("a2.nb.issueDesk")}
             </PermissionButton>
           )}
         </div>

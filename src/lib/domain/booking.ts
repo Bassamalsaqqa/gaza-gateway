@@ -24,7 +24,7 @@
  *    status ("confirmed", "cancelled", "checkedin", "partial", "upcoming") deterministically.
  */
 
-import type { Flight } from "../data.ts";
+import { type Flight, todayISO } from "../data.ts";
 import type {
   Contact,
   Extras,
@@ -36,6 +36,7 @@ import { makePnr } from "../format.ts";
 import { isFlightBookable } from "../booking-rules.ts";
 
 export type Leg = "out" | "in";
+export type BookingChannel = "web" | "desk";
 export type { SearchCriteria };
 
 /** Per-leg check-in: the passenger indexes that completed check-in on that leg. */
@@ -62,6 +63,7 @@ export interface Booking {
   total: number;
   status: "confirmed" | "cancelled";
   checkedIn: CheckedIn;
+  channel: BookingChannel;
   /** Local-only ownership: the account email this booking is linked to. */
   ownerEmail: string | null;
   /** Stable client submission identity for duplicate prevention. */
@@ -81,6 +83,7 @@ export interface BookingCreateInput {
   extras: Extras;
   contact: Contact;
   total: number;
+  channel?: BookingChannel;
   ownerEmail?: string | null;
   submissionId?: string | undefined;
   account?: boolean;
@@ -102,7 +105,12 @@ export type BookingCreationFailureReason =
   | "insufficient_seats"
   | "route_mismatch"
   | "date_mismatch"
-  | "unavailable";
+  | "unavailable"
+  | "invalid_passengers"
+  | "invalid_infant"
+  | "invalid_contact"
+  | "invalid_seats"
+  | "invalid_extras";
 
 export class BookingCreationError extends Error {
   public override readonly name = "BookingCreationError";
@@ -396,6 +404,7 @@ export function normalizeBooking(raw: unknown): Booking | null {
     ownerEmail,
     submissionId:
       typeof b.submissionId === "string" && b.submissionId.trim() ? b.submissionId.trim() : undefined,
+    channel: (b as Record<string, unknown>)["channel"] === "desk" ? "desk" : "web",
   };
 }
 
@@ -491,7 +500,7 @@ export function bookingToMockBooking(booking: Booking): AdaptedAdminBooking {
     status = "partial";
   } else {
     // Check if flight is in the future
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayISO();
     if (booking.outbound.date > today) {
       status = "upcoming";
     } else {
@@ -515,14 +524,14 @@ export function bookingToMockBooking(booking: Booking): AdaptedAdminBooking {
       id: p.id || `p${i + 1}`,
       name: `${p.firstName} ${p.lastName}`.trim() || `Passenger ${i + 1}`,
       type: p.type,
-      dob: p.dob || "1990-01-01",
-      nationality: p.nationality || "Palestinian",
-      document: p.document || `P ${p.id.toUpperCase()}`,
+      dob: p.dob || "",
+      nationality: p.nationality || "",
+      document: p.document || "",
       ...(companion ? { companion } : {}),
       seatOut: booking.seats?.[`out-${i}`] ?? null,
       seatIn: booking.seats?.[`in-${i}`] ?? null,
-      bags: paxExtra?.extraBags ?? 1,
-      meal: paxExtra?.meal ?? "Standard",
+      bags: paxExtra?.extraBags ?? 0,
+      meal: paxExtra?.meal ?? "standard",
       assistance: assistanceList.length > 0 ? assistanceList.join(", ") : null,
       checkedOut: isPaxCheckedIn(booking, "out", i),
       checkedIn: booking.inbound ? isPaxCheckedIn(booking, "in", i) : false,
@@ -530,49 +539,14 @@ export function bookingToMockBooking(booking: Booking): AdaptedAdminBooking {
   });
 
   const bookedDate = (booking.createdAt ?? "").slice(0, 10);
-  const bookedTime = (booking.createdAt ?? "").slice(11, 16);
-  const history: { id: string; when: string; what: { en: string; ar: string } }[] = [
-    {
-      id: "h1",
-      when: `${bookedDate} ${bookedTime || "10:00"}`,
-      what: {
-        en: "Booking created on the website.",
-        ar: "أُنشئ الحجز من الموقع.",
-      },
-    },
-  ];
-
-  if (Object.keys(booking.seats).length > 0) {
-    history.push({
-      id: "h2",
-      when: `${bookedDate} ${bookedTime || "10:05"}`,
-      what: {
-        en: "Seats selected.",
-        ar: "تم اختيار المقاعد.",
-      },
-    });
-  }
-
-  if (isCheckedIn(booking, "out")) {
-    history.push({
-      id: "h3",
-      when: `${date} 08:00`,
-      what: {
-        en: "Passenger(s) checked in for the outbound flight.",
-        ar: "تم تسجيل وصول المسافر(ين) لرحلة الذهاب.",
-      },
-    });
-  }
-
-  if (booking.status === "cancelled") {
-    history.push({
-      id: "h-cancel",
-      when: `${bookedDate} 12:00`,
-      what: {
-        en: "Booking cancelled.",
-        ar: "أُلغي الحجز.",
-      },
-    });
+  // Only creation has a canonical event timestamp. Seats/check-in/cancellation are
+  // current state, not evidence of when a mutation happened (activity log: Phase 6C).
+  const history: { id: string; when: string; what: { en: string; ar: string } }[] = [];
+  if (booking.createdAt && Number.isFinite(Date.parse(booking.createdAt))) {
+    history.push({id:"h1", when:booking.createdAt, what:{
+      en:booking.channel === "desk" ? "Booking created at the desk." : "Booking created on the website.",
+      ar:booking.channel === "desk" ? "أُنشئ الحجز من المكتب." : "أُنشئ الحجز من الموقع.",
+    }});
   }
 
   return {
@@ -589,7 +563,7 @@ export function bookingToMockBooking(booking: Booking): AdaptedAdminBooking {
     cabin,
     total: booking.total,
     status,
-    channel: "web",
+    channel: booking.channel || "web",
     account: Boolean(booking.ownerEmail || (booking as { account?: boolean }).account),
     email: booking.contact?.email ?? "",
     phone: booking.contact?.phone ?? "",

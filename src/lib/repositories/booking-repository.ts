@@ -12,7 +12,7 @@ import { isSyntheticFlightId, getEffectiveFlight, type Flight } from "../domain/
 import { isFlightBookable, getFlightBookability } from "../booking-rules.ts";
 import { flightById, SEAT_ROWS, SEAT_LETTERS } from "../data.ts";
 import { makePnr } from "../format.ts";
-import type { BookingRepository, CheckInCommandInput, ClaimResult } from "./types.ts";
+import type { BookingRepository, CheckInCommandInput, UndoCheckInCommandInput, ClaimResult } from "./types.ts";
 import type { Extras } from "../booking-draft/types.ts";
 import { getCheckInEligibility } from "../domain/check-in.ts";
 import { bookingTotal } from "../domain/pricing.ts";
@@ -21,6 +21,7 @@ import {
   validateCheckInSeats,
   isValidSeatSyntax,
 } from "../domain/seat-validation.ts";
+import { validateBookingParty, validateBookingContact, validateBookingExtras, validateCreationComposition } from "../domain/booking-validation.ts";
 import { normalizeEmailIdentity } from "../passenger/domain.ts";
 import {
   RepoStorageCoordinator,
@@ -88,7 +89,7 @@ export class LocalBookingRepository implements BookingRepository {
 
   public async create(data: BookingCreateInput): Promise<Booking> {
     const seatPaxCount =
-      (data.passengers ?? []).filter((p) => p.type !== "infant").length || 1;
+      (Array.isArray(data.passengers) ? data.passengers : []).filter((p) => p?.type !== "infant").length || 1;
 
     // Atomically mutate coordinator: validates inside transaction against CURRENT shared coordinator flightOverrides
     return this.coordinator.mutate((state) => {
@@ -99,6 +100,11 @@ export class LocalBookingRepository implements BookingRepository {
           return { ...existing };
         }
       }
+
+      const normalizedPassengers = validateBookingParty(data.passengers);
+      validateCreationComposition(data, normalizedPassengers);
+      const normalizedContact = validateBookingContact(data.contact);
+      const normalizedExtras = validateBookingExtras(data.extras, normalizedPassengers.length);
 
       // 2. Studio & synthetic flight fixture isolation
       if (
@@ -197,7 +203,7 @@ export class LocalBookingRepository implements BookingRepository {
       }
 
       // 6. Assign deterministic, stable passenger IDs: `pax-${ref}-${index}`
-      const passengers: BookingPassenger[] = (data.passengers || []).map((p, idx) => {
+      const passengers: BookingPassenger[] = normalizedPassengers.map((p, idx) => {
         let firstName = p.firstName ?? "";
         let lastName = p.lastName ?? "";
         const looseP = p as unknown as Record<string, unknown>;
@@ -207,7 +213,7 @@ export class LocalBookingRepository implements BookingRepository {
           lastName = parts.slice(1).join(" ");
         }
         return {
-          id: "id" in p && p.id && !p.id.startsWith("pax-TEMP") ? p.id : makePassengerId(pnr, idx),
+          id: "id" in p && typeof p.id === "string" && !p.id.startsWith("pax-TEMP") ? p.id : makePassengerId(pnr, idx),
           type: p.type ?? "adult",
           firstName,
           lastName,
@@ -230,8 +236,8 @@ export class LocalBookingRepository implements BookingRepository {
         departDate: data.criteria?.departDate ?? effectiveOutbound.date,
         returnDate: typeof looseCriteria?.["returnDate"] === "string" ? (looseCriteria["returnDate"] as string) : (effectiveInbound?.date ?? ""),
         cabin:
-          (typeof looseCriteria?.["cabin"] === "string" ? (looseCriteria["cabin"] as "economy" | "business" | "first") : null) ??
-          (typeof looseData["cabin"] === "string" ? (looseData["cabin"] as "economy" | "business" | "first") : null) ??
+          (typeof looseCriteria?.["cabin"] === "string" ? (looseCriteria["cabin"] as "economy" | "business" | "premium") : null) ??
+          (typeof looseData["cabin"] === "string" ? (looseData["cabin"] as "economy" | "business" | "premium") : null) ??
           "economy",
         adults:
           (typeof looseCriteria?.["adults"] === "number" ? (looseCriteria["adults"] as number) : null) ??
@@ -246,7 +252,6 @@ export class LocalBookingRepository implements BookingRepository {
 
       const fareId = ((data.fareId ?? looseData["fareFamily"] ?? "essential") as unknown) as "essential" | "classic" | "flex";
 
-      // Store the accepted effective snapshot
       const created: Booking = {
         ref: pnr,
         createdAt: data.createdAt ?? new Date().toISOString(),
@@ -255,15 +260,25 @@ export class LocalBookingRepository implements BookingRepository {
         inbound: effectiveInbound,
         fareId,
         passengers,
-        seats: { ...(data.seats ?? {}) },
-        extras: data.extras ? { ...data.extras } : { pax: [] },
-        contact: { ...data.contact },
-        total: data.total,
+        seats: {},
+        extras: normalizedExtras,
+        contact: normalizedContact,
+        total: 0,
         status: data.status ?? "confirmed",
         checkedIn: data.checkedIn ?? { out: [], in: [] },
-        ownerEmail: data.ownerEmail ? normalizeEmailIdentity(data.ownerEmail) : null,
+        channel: data.channel === "desk" ? "desk" : "web",
+        ownerEmail: data.channel === "desk" ? null : (data.ownerEmail ? normalizeEmailIdentity(data.ownerEmail) : null),
         submissionId: data.submissionId,
       };
+
+      // A new booking has no seat ownership privileges, even if a caller supplies checkedIn.
+      try {
+        if (!data.seats || typeof data.seats !== "object" || Array.isArray(data.seats)) throw new Error("Invalid seat map.");
+        created.seats = validateUpdateSeatsAssignments({...created, status:"confirmed", checkedIn:{out:[],in:[]}}, data.seats, {outbound:effectiveOutbound, inbound:effectiveInbound});
+      } catch (error) {
+        throw new BookingCreationError("invalid_seats", error instanceof Error ? error.message : "Invalid seats.");
+      }
+      created.total = bookingTotal(created).total;
 
       state.bookings = [created, ...state.bookings];
       return { ...created };
@@ -442,6 +457,7 @@ export class LocalBookingRepository implements BookingRepository {
         throw new Error(`Cannot update extras: booking ${clean} is cancelled.`);
       }
 
+      extras = validateBookingExtras(extras, existing.passengers.length);
       // Invariant: Canonical pricing recalculation using latest booking facts
       const nextTotal = bookingTotal({
         outbound: existing.outbound,
@@ -649,6 +665,78 @@ export class LocalBookingRepository implements BookingRepository {
 
       state.bookings[index] = updated;
       return { ...updated };
+    });
+  }
+
+  public async undoCheckIn(input: UndoCheckInCommandInput): Promise<Booking> {
+    if (!input || !input.ref || typeof input.ref !== "string") {
+      throw new Error("Cannot undo check-in: reference is required.");
+    }
+    if (input.leg !== "out" && input.leg !== "in") {
+      throw new Error("Cannot undo check-in: leg must be 'out' or 'in'.");
+    }
+    if (!Array.isArray(input.selectedPaxIndexes) || input.selectedPaxIndexes.length === 0) {
+      throw new Error("Cannot undo check-in: selectedPaxIndexes array must not be empty.");
+    }
+
+    const seenIndexes = new Set<number>();
+    for (const idx of input.selectedPaxIndexes) {
+      if (typeof idx !== "number" || !Number.isInteger(idx) || idx < 0) {
+        throw new Error(`Invalid passenger index: ${idx}. Must be a non-negative integer.`);
+      }
+      if (seenIndexes.has(idx)) {
+        throw new Error(`Duplicate passenger index in undo check-in: ${idx}.`);
+      }
+      seenIndexes.add(idx);
+    }
+
+    const clean = input.ref.trim().toUpperCase();
+
+    return this.coordinator.conditionalMutate((state) => {
+      const index = state.bookings.findIndex((b) => b.ref.toUpperCase() === clean);
+      if (index === -1) {
+        throw new Error(`Booking ${clean} not found.`);
+      }
+
+      const existing = state.bookings[index];
+      if (!existing) {
+        throw new Error(`Booking ${clean} not found.`);
+      }
+      if (existing.status === "cancelled") {
+        throw new Error("Cannot undo check-in for a cancelled booking.");
+      }
+      if (input.leg === "in" && !existing.inbound) {
+        throw new Error("Cannot undo check-in: inbound leg does not exist on this booking.");
+      }
+
+      for (const idx of input.selectedPaxIndexes) {
+        if (idx >= existing.passengers.length) {
+          throw new Error(`Passenger index ${idx} is out of range.`);
+        }
+        if (existing.passengers[idx]?.type === "infant") {
+          throw new Error(`Passenger at index ${idx} is an infant. Infants cannot be independently undone.`);
+        }
+      }
+
+      const currentChecked = existing.checkedIn?.[input.leg] ?? [];
+      const toRemove = input.selectedPaxIndexes.filter((i) => currentChecked.includes(i));
+
+      // Already not checked in -> genuine no-op, commit: false (no write, no notification)
+      if (toRemove.length === 0) {
+        return { commit: false, result: { ...existing } };
+      }
+
+      const nextChecked = currentChecked.filter((i) => !toRemove.includes(i));
+      const updated: Booking = {
+        ...existing,
+        checkedIn: {
+          ...existing.checkedIn,
+          [input.leg]: nextChecked,
+        },
+      };
+
+      state.bookings[index] = updated;
+      return { commit: true, result: { ...updated } };
     });
   }
 
