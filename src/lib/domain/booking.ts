@@ -1,3 +1,5 @@
+import type { BookingPricingSnapshotV1 } from "../commercial/types.ts";
+import { parsePricingSnapshot } from "../commercial/schema.ts";
 /**
  * Gaza Gateway — Canonical Booking Domain Model
  *
@@ -61,6 +63,7 @@ export interface Booking {
   extras: Extras;
   contact: Contact;
   total: number;
+  pricingSnapshot?: BookingPricingSnapshotV1 | undefined;
   status: "confirmed" | "cancelled";
   checkedIn: CheckedIn;
   channel: BookingChannel;
@@ -273,6 +276,7 @@ interface RawBookingShape {
   extras?: unknown;
   contact?: unknown;
   total?: unknown;
+  pricingSnapshot?: unknown;
   status?: unknown;
   checkedIn?: unknown;
   ownerEmail?: unknown;
@@ -387,9 +391,12 @@ export function normalizeBooking(raw: unknown): Booking | null {
         cabin: "economy",
       }) as SearchCriteria;
 
+  const pricingSnapshot = b.pricingSnapshot === undefined ? undefined : parsePricingSnapshot(b.pricingSnapshot);
+  if (b.pricingSnapshot !== undefined && (!pricingSnapshot || pricingSnapshot.fareId !== fareId || pricingSnapshot.cabinId !== criteria.cabin)) return null;
   return {
     ref,
     createdAt,
+    pricingSnapshot: pricingSnapshot ?? undefined,
     criteria,
     outbound,
     inbound,

@@ -1,8 +1,10 @@
+import { useCommercialOptions } from "@/lib/commercial/queries";
+import { CommercialCatalogState } from "@/components/commercial-catalog-state";
 import { Plane } from "lucide-react";
 import ticketWorldMapImg from "@/assets/media/decorative/cards/ticket-world-map.webp";
 import { StatusBadge } from "@/components/flight-status";
 import { Code, Pill } from "@/components/kit";
-import { airportByCode, fares } from "@/lib/data";
+import { airportByCode } from "@/lib/data";
 import { dateShort } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
 import { checkedInPax, isPaxCheckedIn, type Booking, type Leg } from "@/lib/domain/booking";
@@ -47,6 +49,8 @@ export function passFor(
 
 export function BoardingPassCard({ item, compact = false }: { item: BoardingPassItem; compact?: boolean }) {
   const { t, lang } = useI18n();
+  const commercial = useCommercialOptions();
+  const { fares } = commercial;
   const {
     ref,
     leg,
@@ -138,7 +142,7 @@ export function BoardingPassCard({ item, compact = false }: { item: BoardingPass
               <StatusBadge status={flight.status} />
             )}
             <Pill tone="brand">{t("ci.paxDone")}</Pill>
-            {fare ? <Pill>{pick(lang, fare.name)}</Pill> : null}
+            <Pill>{fare ? pick(lang, fare.name) : <span dir="ltr">{fareId}</span>}</Pill>
           </div>
 
           <p className="eyebrow mt-4 text-muted-foreground">{t("bp.passenger")}</p>

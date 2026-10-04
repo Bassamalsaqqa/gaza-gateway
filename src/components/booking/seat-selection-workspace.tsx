@@ -1,10 +1,11 @@
+import { useCommercialOptions } from "@/lib/commercial/queries";
+import { pricingSnapshot, snapshotSeatFee } from "@/lib/commercial/pricing";
+import { CommercialCatalogState } from "@/components/commercial-catalog-state";
 import { Check, Sparkles, User } from "lucide-react";
 import { Eyebrow } from "@/components/kit";
 import { BookingLegSwitcher } from "@/components/booking/booking-leg-switcher";
 import { SeatMap } from "@/components/booking/seat-map";
 import {
-  EXTRA_LEGROOM_ROWS,
-  seatFee,
   suggestSeat,
   type Flight,
 } from "@/lib/data";
@@ -45,6 +46,10 @@ export function SeatSelectionWorkspace({
   stepNav,
 }: SeatSelectionWorkspaceProps) {
   const { t, lang } = useI18n();
+  const commercial = useCommercialOptions();
+  if (!commercial.catalogSnapshot || commercial.query.isError) return <CommercialCatalogState />;
+  const basis=pricingSnapshot(commercial.catalogSnapshot,draft.fareId,draft.criteria.cabin);
+  const seatFee=(row:number)=>snapshotSeatFee(`${row}A`,basis);
   const isOneWay = !draft.inbound;
 
   const currentFlight =
@@ -61,7 +66,7 @@ export function SeatSelectionWorkspace({
   const activeSeat = currentAssignments[activePassenger];
 
   const activeRow = activeSeat ? Number.parseInt(activeSeat.replace(/\D/g, ""), 10) : 0;
-  const isActiveExtra = activeRow > 0 && EXTRA_LEGROOM_ROWS.includes(activeRow);
+  const isActiveExtra = activeRow > 0 && basis.seatPricing.extraLegroomRows.includes(activeRow);
   const activeFee = activeRow > 0 ? seatFee(activeRow) : 0;
 
   // Calculate total seat fees across all passengers and legs
@@ -121,7 +126,7 @@ export function SeatSelectionWorkspace({
                 const isCurrent = activePassenger === position;
                 const assigned = currentAssignments[position];
                 const row = assigned ? Number.parseInt(assigned.replace(/\D/g, ""), 10) : 0;
-                const isExtra = row > 0 && EXTRA_LEGROOM_ROWS.includes(row);
+                const isExtra = row > 0 && basis.seatPricing.extraLegroomRows.includes(row);
                 const fee = row > 0 ? seatFee(row) : 0;
                 const label = passengerLabels[position] || `${t("book.passenger")} ${position + 1}`;
 

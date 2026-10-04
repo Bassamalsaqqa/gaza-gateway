@@ -1,3 +1,7 @@
+import { validateBookingExtras } from "@/lib/domain/booking-validation";
+import { serviceOptions } from "@/lib/commercial/pricing";
+import { useCommercialOptions } from "@/lib/commercial/queries";
+import { CommercialCatalogState } from "@/components/commercial-catalog-state";
 import {
   CommercialInput,
   AssistanceChoices,
@@ -7,7 +11,7 @@ import {
 import { commercialErrorKey, commercialFieldErrors } from "@/lib/domain/commercial-errors";
 import { validateUpdateSeatsAssignments } from "@/lib/domain/seat-validation";
 import { validateBookingContact } from "@/lib/domain/booking-validation";
-import { mealOptions, cabins, fares } from "@/lib/data";
+import { cabins } from "@/lib/data";
 import {
   GazaTable,
   GazaTableBody,
@@ -90,6 +94,8 @@ function statusTone(status: MockBookingStatus) {
 function AdminBookingDetailPage() {
   const { ref } = Route.useParams();
   const { t, lang } = useI18n();
+  const commercial = useCommercialOptions();
+  const { fares, mealOptions } = commercial;
   const { can, toast } = useAdmin();
   const [tab, setTab] = useState<Tab>("overview");
   const [sheet, setSheet] = useState<SheetKind>(null);
@@ -244,6 +250,7 @@ function AdminBookingDetailPage() {
 
   return (
     <div className="space-y-4">
+      <CommercialCatalogState />
       <AdminPageHeader
         title={t("a2.bk.title")}
         description={t("a6.detail.local")}
@@ -741,14 +748,14 @@ function AdminBookingDetailPage() {
                   setSheetError(null);
                   setFieldErrors({});
                   const canonicalPax = editExtras.map((px) => ({
-                    extraBags:
-                      Number.isInteger(px.extraBags) && px.extraBags >= 0
-                        ? Math.min(5, px.extraBags)
-                        : 0,
-                    meal: (px.meal || "standard").toLowerCase() as
-                      "standard" | "vegetarian" | "diabetic" | "child",
+                    extraBags: px.extraBags,
+                    meal: px.meal,
                     assistance: Array.isArray(px.assistance) ? px.assistance : [],
                   }));
+                  try {
+                    if (!commercial.catalog || commercial.query.isError) { setSheetError(t("commercial.error.catalog_unavailable")); return; }
+                    validateBookingExtras({pax:canonicalPax}, canonicalBooking.passengers.length, commercial.catalog, canonicalBooking.extras);
+                  } catch (error) { setSheetError(t(commercialErrorKey(error)));setFieldErrors(commercialFieldErrors(error));requestAnimationFrame(()=>document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus());return; }
                   updateExtrasMutation.mutate(
                     {
                       ref: canonicalBooking.ref,
@@ -956,20 +963,22 @@ function AdminBookingDetailPage() {
                       }}
                     />
                   </Field>
-                  <Field label={t("a2.bd.meal")} htmlFor={`bd-meal-${p.id}`}>
+                  <Field label={t("a2.bd.meal")} htmlFor={`bd-meal-${p.id}`} error={fieldErrors[`pax.${i}.meal`] ? t(fieldErrors[`pax.${i}.meal`]!) : undefined} errorId={`bd-meal-${p.id}-error`}>
                     <Select
                       id={`bd-meal-${p.id}`}
+                      aria-invalid={fieldErrors[`pax.${i}.meal`] ? true : undefined}
+                      aria-describedby={fieldErrors[`pax.${i}.meal`] ? `bd-meal-${p.id}-error` : undefined}
                       value={editExtras[i]?.meal ?? "standard"}
                       onChange={(e) => {
                         const next = [...editExtras];
                         const cur = next[i] ?? emptyPaxExtras();
-                        next[i] = { ...cur, meal: e.target.value.toLowerCase() };
+                        next[i] = { ...cur, meal: e.target.value };
                         setEditExtras(next);
                       }}
                     >
-                      {mealOptions.map((m) => (
+                      {serviceOptions(mealOptions, [canonicalBooking.extras.pax[i]?.meal ?? ""]).map((m) => (
                         <option key={m.id} value={m.id}>
-                          {pick(lang, m.label)}
+                          {pick(lang, m.label)}{!m.active ? ` · ${t("commercial.retired")}` : ""}
                         </option>
                       ))}
                     </Select>
@@ -977,6 +986,7 @@ function AdminBookingDetailPage() {
                 </div>
                 <AssistanceChoices
                   value={editExtras[i]?.assistance ?? []}
+                  retained={canonicalBooking.extras.pax[i]?.assistance ?? []}
                   onChange={(assistance) =>
                     setEditExtras((current) =>
                       canonicalBooking.passengers.map((_, index) =>

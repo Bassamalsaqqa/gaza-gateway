@@ -1,3 +1,7 @@
+import { commercialErrorKey, commercialFieldErrors } from "@/lib/domain/commercial-errors";
+import { resolveBookingPricing, serviceOptions } from "@/lib/commercial/pricing";
+import { useCommercialOptions } from "@/lib/commercial/queries";
+import { CommercialCatalogState } from "@/components/commercial-catalog-state";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select as UiSelect, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
@@ -5,7 +9,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppLink, useAppNavigate } from "@/components/app-link";
 import { Container, EmptyState, Field, GazaLoadingState, PageHeader, Panel, btnClass } from "@/components/kit";
-import { EXTRA_BAG_PRICE, assistanceOptions, mealOptions } from "@/lib/data";
+
 import { money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
 import { pageHead } from "@/lib/head";
@@ -36,11 +40,14 @@ export const Route = createFileRoute("/{-$locale}/manage/$ref_/extras")({
 function ManageExtrasPage() {
   const { ref } = Route.useParams();
   const { t, lang } = useI18n();
+  const commercial = useCommercialOptions();
+  const { mealOptions, assistanceOptions } = commercial;
   const navigate = useAppNavigate();
   const { data: booking, isLoading } = useBookingQuery(ref);
   const updateExtrasMutation = useUpdateBookingExtrasMutation();
 
   const [extras, setExtras] = useState<Extras>({ pax: [emptyPaxExtras()] });
+  const [fieldErrors, setFieldErrors] = useState<Record<string,string>>({});
   const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -89,6 +96,8 @@ function ManageExtrasPage() {
     );
   }
 
+  if (!commercial.catalog || commercial.query.isError) return <CommercialCatalogState />;
+  const basis = resolveBookingPricing(booking);
   const totals = bookingTotal({
     outbound: booking.outbound,
     inbound: booking.inbound,
@@ -96,7 +105,7 @@ function ManageExtrasPage() {
     criteria: booking.criteria,
     seats: booking.seats,
     extras,
-  });
+  }, basis);
 
   const setPax = (index: number, patch: Partial<PaxExtras>) =>
     setExtras((prev) => ({
@@ -105,11 +114,13 @@ function ManageExtrasPage() {
 
   const save = async () => {
     try {
-      setSaveError(null);
+      setSaveError(null); setFieldErrors({});
       await updateExtrasMutation.mutateAsync({ ref: booking.ref, extras });
       void navigate({ to: "/manage/$ref", params: { ref: booking.ref } });
-    } catch {
-      setSaveError(t("error.saveFailed"));
+    } catch (error) {
+      setSaveError(t(commercialErrorKey(error)));
+      setFieldErrors(commercialFieldErrors(error));
+      requestAnimationFrame(()=>document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus());
     }
   };
 
@@ -136,7 +147,7 @@ function ManageExtrasPage() {
                 <div className="mt-3 grid gap-4 sm:grid-cols-2">
                   <fieldset>
                     <legend className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      {t("book.bagsFor")} · {money(EXTRA_BAG_PRICE, lang)}
+                      {t("book.bagsFor")} · {money(basis.extraBagPrice, lang)}
                     </legend>
                     <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label={`${t("book.extraBag")} — ${label}`}>
                       {[0, 1, 2, 3, 4].map((count) => {
@@ -162,19 +173,19 @@ function ManageExtrasPage() {
                     </div>
                   </fieldset>
 
-                  <Field label={t("book.meal")} htmlFor={`meal-${index}`}>
+                  <Field label={t("book.meal")} htmlFor={`meal-${index}`} error={fieldErrors[`pax.${index}.meal`] ? t(fieldErrors[`pax.${index}.meal`]!) : undefined} errorId={`meal-${index}-error`}>
                     <UiSelect
                       value={value.meal}
                       onValueChange={(m) => setPax(index, { meal: m })}
                       dir={lang === "ar" ? "rtl" : "ltr"}
                     >
-                      <SelectTrigger id={`meal-${index}`} className="h-11 rounded-lg bg-card">
+                      <SelectTrigger aria-invalid={fieldErrors[`pax.${index}.meal`] ? true : undefined} aria-describedby={fieldErrors[`pax.${index}.meal`] ? `meal-${index}-error` : undefined} id={`meal-${index}`} className="h-11 rounded-lg bg-card">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {mealOptions.map((option) => (
+                        {serviceOptions(mealOptions, [booking.extras.pax[index]?.meal ?? ""]).map((option) => (
                           <SelectItem key={option.id} value={option.id}>
-                            {pick(lang, option.label)}
+                            {pick(lang, option.label)}{!option.active ? ` ? ${t("commercial.retired")}` : ""}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -187,7 +198,7 @@ function ManageExtrasPage() {
                     {t("book.assistance")}
                   </legend>
                   <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                    {assistanceOptions.map((option) => {
+                    {serviceOptions(assistanceOptions, booking.extras.pax[index]?.assistance ?? []).map((option) => {
                       const checked = value.assistance.includes(option.id);
                       const checkId = `assistance-${index}-${option.id}`;
                       return (
@@ -214,7 +225,7 @@ function ManageExtrasPage() {
                               })
                             }
                           />
-                          <span>{pick(lang, option.label)}</span>
+                          <span>{pick(lang, option.label)}{!option.active ? ` ? ${t("commercial.retired")}` : ""}</span>
                         </label>
                       );
                     })}

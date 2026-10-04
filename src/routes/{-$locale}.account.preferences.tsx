@@ -1,9 +1,11 @@
+import { useCommercialOptions } from "@/lib/commercial/queries";
+import { CommercialCatalogState } from "@/components/commercial-catalog-state";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { btnClass, Field, Notice, Panel } from "@/components/kit";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { mealOptions } from "@/lib/data";
+
 import { pick, useI18n } from "@/lib/i18n";
 import { usePassengerAccount, useUpdateAccountMutation } from "@/lib/passenger";
 
@@ -21,6 +23,8 @@ export const Route = createFileRoute("/{-$locale}/account/preferences")({
 
 function PreferencesPage() {
   const { t, lang } = useI18n();
+  const commercial = useCommercialOptions();
+  const { mealOptions } = commercial;
   const { data: account } = usePassengerAccount();
   const updateMutation = useUpdateAccountMutation();
   const [saved, setSaved] = useState(false);
@@ -44,6 +48,9 @@ function PreferencesPage() {
     setError(null);
     setSaved(false);
     try {
+      if (!commercial.catalog || commercial.query.isError) throw new Error("catalog unavailable");
+      const selected = mealOptions.find(m=>m.id===form.meal);
+      if (!selected?.active && form.meal !== account?.mealPreference) { setError(t("commercial.error.service_unavailable")); return; }
       await updateMutation.mutateAsync({
         seatPreference: form.seat,
         mealPreference: form.meal,
@@ -54,6 +61,9 @@ function PreferencesPage() {
     }
   };
 
+  if (!commercial.catalog || commercial.query.isError) return <CommercialCatalogState />;
+  const preferenceOptions = mealOptions.filter(m=>m.active || m.id===account?.mealPreference).sort((a,b)=>a.order-b.order);
+  const unknownPreference = form.meal && !mealOptions.some(m=>m.id===form.meal);
   return (
     <Panel>
       <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">{t("account.preferences")}</h2>
@@ -92,7 +102,7 @@ function PreferencesPage() {
             }}
           >
             <SelectTrigger id="pref-meal" className="h-11"><SelectValue /></SelectTrigger>
-            <SelectContent>{mealOptions.map((meal) => <SelectItem key={meal.id} value={meal.id}>{pick(lang, meal.label)}</SelectItem>)}</SelectContent>
+            <SelectContent>{unknownPreference ? <SelectItem value={form.meal}><span dir="ltr">{form.meal}</span></SelectItem> : null}{preferenceOptions.map((meal) => <SelectItem key={meal.id} value={meal.id}>{pick(lang, meal.label)}{!meal.active ? ` · ${t("commercial.retired")}` : ""}</SelectItem>)}</SelectContent>
           </Select>
         </Field>
         <div className="sm:col-span-2">

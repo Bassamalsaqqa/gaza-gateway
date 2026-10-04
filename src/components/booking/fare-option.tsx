@@ -1,3 +1,4 @@
+import { useCommercialOptions } from "@/lib/commercial/queries";
 import * as RadioGroupPrimitive from "@radix-ui/react-radio-group";
 import { ArrowRight, Check, ChevronDown, ChevronUp, Luggage, Ticket } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -23,6 +24,7 @@ export interface FareOptionProps {
 
 export function FareOption({ fare, price, selected = false, className }: FareOptionProps) {
   const { t, lang } = useI18n();
+  const {catalog} = useCommercialOptions();
   const [mobileExpanded, setMobileExpanded] = useState(false);
 
   const accessibleName = useMemo(() => {
@@ -33,7 +35,7 @@ export function FareOption({ fare, price, selected = false, className }: FareOpt
     const bagsStr =
       fare.checkedBags === 0
         ? t("book.cabinBagOnly")
-        : t("book.checkedBagsCount", { n: fare.checkedBags });
+        : t("book.checkedBagsCount", { n: fare.checkedBags, kg: catalog?.baggage.checkedKg ?? "—" });
     const seatSelectionStr = pick(lang, fare.seatSelection);
     const changesStr = pick(lang, fare.changes);
     const refundStr = pick(lang, fare.refund);
@@ -48,12 +50,12 @@ export function FareOption({ fare, price, selected = false, className }: FareOpt
       changes: changesStr,
       refund: refundStr,
     });
-  }, [fare, price, lang, t]);
+  }, [fare, price, lang, t, catalog?.baggage.checkedKg]);
 
   const bagsLabel =
     fare.checkedBags === 0
       ? t("book.cabinBagOnly")
-      : t("book.checkedBagsCount", { n: fare.checkedBags });
+      : t("book.checkedBagsCount", { n: fare.checkedBags, kg: catalog?.baggage.checkedKg ?? "—" });
 
   const { active, recipe } = useSurfaceRecipe("fare", "booking.fare-option");
   const fareIndex = fare.id === "essential" ? "01" : fare.id === "classic" ? "02" : "03";

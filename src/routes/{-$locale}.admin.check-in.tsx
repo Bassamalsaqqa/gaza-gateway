@@ -31,7 +31,7 @@ import {
 import { AdminDenied } from "@/components/admin/admin-denied";
 import { useAdmin } from "@/lib/admin-store";
 import { pick, useI18n } from "@/lib/i18n";
-import { todayISO, mealOptions, assistanceOptions, type Flight } from "@/lib/data";
+import { todayISO, type Flight } from "@/lib/data";
 import { pageHead } from "@/lib/head";
 import { cn } from "@/lib/utils";
 import {

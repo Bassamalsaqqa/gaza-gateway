@@ -1,7 +1,10 @@
+import { serviceOptions } from "@/lib/commercial/pricing";
+import { useCommercialOptions } from "@/lib/commercial/queries";
+import { CommercialCatalogState } from "@/components/commercial-catalog-state";
 import type { ComponentProps } from "react";
 import { Input } from "@/components/kit";
 import { useI18n, pick } from "@/lib/i18n";
-import { assistanceOptions, mealOptions, type Flight } from "@/lib/data";
+import { type Flight } from "@/lib/data";
 import { SeatMap } from "@/components/booking/seat-map";
 
 export function CommercialInput({
@@ -28,16 +31,20 @@ export function CommercialInput({
 
 export function AssistanceChoices({
   value,
+  retained = [],
   onChange,
 }: {
   value: string[];
+  retained?: string[];
   onChange: (value: string[]) => void;
 }) {
   const { lang, t } = useI18n();
+  const { assistanceOptions, query } = useCommercialOptions();
+  if (!query.data || query.isError) return <CommercialCatalogState />;
   return (
     <fieldset className="space-y-2">
       <legend className="mb-2 text-xs font-semibold">{t("a2.bd.assistance")}</legend>
-      {assistanceOptions.map((a) => (
+      {serviceOptions(assistanceOptions, retained).map((a) => (
         <label key={a.id} className="flex items-center gap-2 text-xs">
           <input
             type="checkbox"
@@ -48,7 +55,7 @@ export function AssistanceChoices({
             }
             className="size-4 accent-primary focus-visible:outline-2 focus-visible:outline-ring"
           />
-          {pick(lang, a.label)}
+          {pick(lang, a.label)}{!a.active ? ` · ${t("commercial.retired")}` : ""}
         </label>
       ))}
     </fieldset>
@@ -63,6 +70,7 @@ export function ServiceValue({
   kind: "meal" | "assistance";
 }) {
   const { lang, t } = useI18n();
+  const { mealOptions, assistanceOptions } = useCommercialOptions();
   const options = kind === "meal" ? mealOptions : assistanceOptions;
   return (
     <>
@@ -71,7 +79,7 @@ export function ServiceValue({
             .split(", ")
             .map((id) => {
               const option = options.find((x) => x.id === id);
-              return option ? pick(lang, option.label) : "—";
+              return option ? pick(lang, option.label) : id;
             })
             .join(" · ")
         : t("a2.none")}

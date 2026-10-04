@@ -1,5 +1,8 @@
 import { z } from "zod";
-import { mealOptions, assistanceOptions, cabins, todayISO } from "../data.ts";
+import { seedCommercialCatalog } from "../commercial/seed.ts";
+import { validateServiceSelections } from "../commercial/pricing.ts";
+import { CommercialCatalogError, type CommercialCatalog } from "../commercial/types.ts";
+import { cabins, todayISO } from "../data.ts";
 import { emptyPaxExtras, type Extras, type Passenger, type Contact } from "../booking-draft.ts";
 import { BookingCreationError, type BookingCreateInput } from "./booking.ts";
 import { normalizeEmailIdentity } from "../passenger/domain.ts";
@@ -89,16 +92,16 @@ export function validateBookingParty(input: unknown): Passenger[] {
 }
 
 /** Missing trailing Extras entries mean no added services; surplus entries are rejected. */
-export function validateBookingExtras(input: unknown, passengerCount: number): Extras {
+export function validateBookingExtras(input: unknown, passengerCount: number, catalog: CommercialCatalog = seedCommercialCatalog(), previous?: Extras): Extras {
   const schema = z
     .object({
       pax: z.array(
         z
           .object({
             extraBags: z.number().int().min(0).max(5),
-            meal: z.string().refine((id) => mealOptions.some((m) => m.id === id)),
+            meal: z.string().min(1).max(100),
             assistance: z
-              .array(z.string().refine((id) => assistanceOptions.some((a) => a.id === id)))
+              .array(z.string().min(1).max(100))
               .refine((ids) => new Set(ids).size === ids.length),
           })
           .strict(),
@@ -108,12 +111,14 @@ export function validateBookingExtras(input: unknown, passengerCount: number): E
   const result = schema.safeParse(input);
   if (!result.success || result.data.pax.length > passengerCount)
     throw new BookingInputError("invalid_extras", { extras: "a6.err.extras" });
-  return {
+  const normalized = {
     pax: Array.from(
       { length: passengerCount },
-      (_, index) => result.data.pax[index] ?? emptyPaxExtras(),
+      (_, index) => result.data.pax[index] ?? emptyPaxExtras(catalog.defaultMealId),
     ),
   };
+  validateServiceSelections(normalized, catalog, previous);
+  return normalized;
 }
 
 export function validateCreationComposition(
@@ -148,7 +153,7 @@ export function validateCreationComposition(
       throw new BookingInputError("invalid_passengers", { criteria: "a6.err.criteria" });
   }
   if (!["essential", "classic", "flex"].includes(data.fareId))
-    throw new BookingInputError("invalid_passengers", { fare: "a6.err.criteria" });
+    throw new CommercialCatalogError("fare_unavailable", { fare: "commercial.error.fare_unavailable" });
   if (data.channel !== undefined && data.channel !== "web" && data.channel !== "desk")
     throw new BookingInputError("invalid_passengers", { channel: "a6.err.criteria" });
 }

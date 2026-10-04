@@ -1,9 +1,10 @@
+import { resolveBookingPricing, snapshotSeatFee } from "@/lib/commercial/pricing";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { AppLink, useAppNavigate } from "@/components/app-link";
 import { SeatMap } from "@/components/booking/seat-map";
 import { Code, Container, EmptyState, GazaLoadingState, PageHeader, Panel, btnClass } from "@/components/kit";
-import { airportByCode, seatFee } from "@/lib/data";
+import { airportByCode } from "@/lib/data";
 import { dateLong, money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
 import { bookingLegs, isCheckedIn, type Leg } from "@/lib/domain/booking";
@@ -110,7 +111,7 @@ function ManageSeatsPage() {
   };
 
   const seatCharges = Object.values(seats).reduce(
-    (sum, seat) => sum + seatFee(Number(seat.replace(/\D/g, ""))),
+    (sum, seat) => sum + snapshotSeatFee(seat, resolveBookingPricing(booking)),
     0,
   );
 

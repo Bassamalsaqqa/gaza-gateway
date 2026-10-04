@@ -1,3 +1,4 @@
+import { useCommercialOptions } from "@/lib/commercial/queries";
 import { GazaTable, GazaTableBody, GazaTableCaption, GazaTableCell, GazaTableHead, GazaTableHeader, GazaTableRow } from "@/components/gaza-table";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
@@ -14,7 +15,7 @@ import {
 } from "@/components/admin/admin-kit";
 import { AdminDenied } from "@/components/admin/admin-denied";
 import { useAdmin } from "@/lib/admin-store";
-import { useI18n } from "@/lib/i18n";
+import { pick, useI18n } from "@/lib/i18n";
 import { money } from "@/lib/format";
 import { type MockBookingStatus } from "@/lib/admin-mock";
 import { bookingToMockBooking, type AdaptedAdminBooking } from "@/lib/domain/booking";
@@ -43,6 +44,8 @@ export function bookingStatusChip(status: MockBookingStatus) {
 function AdminBookingsPage() {
   const { t, lang } = useI18n();
   const { can } = useAdmin();
+  const { fares } = useCommercialOptions();
+  const fareName = (id: string) => {const value=fares.find(f=>f.id===id);return value ? pick(lang,value.name) : id;};
   const [query, setQuery] = useState("");
   const [date, setDate] = useState("");
   const [route, setRoute] = useState("all");
@@ -65,7 +68,7 @@ function AdminBookingsPage() {
       if (date && b.date !== date) return false;
       if (route !== "all" && b.destination !== route) return false;
       if (status !== "all" && b.status !== status) return false;
-      if (fare !== "all" && b.fare !== fare) return false;
+      if (fare !== "all" && b.canonical.fareId !== fare) return false;
       if (checkin === "done" && b.status !== "checkedin") return false;
       if (checkin === "partial" && b.status !== "partial") return false;
       if (checkin === "none" && (b.status === "checkedin" || b.status === "partial")) return false;
@@ -150,9 +153,9 @@ function AdminBookingsPage() {
           </Select>
           <Select value={fare} onChange={(e) => setFare(e.target.value)} aria-label={t("a2.bk.cabin")} className="h-9 w-auto text-sm">
             <option value="all">{t("a2.bk.allCabin")}</option>
-            {["Essential", "Classic", "Flex"].map((f) => (
+            {["essential", "classic", "flex"].map((f) => (
               <option key={f} value={f}>
-                {f}
+                {fareName(f)}
               </option>
             ))}
           </Select>
@@ -205,7 +208,7 @@ function AdminBookingsPage() {
                       <GazaTableCell className="px-3 py-2">
                         <Ltr>{b.paxCount}</Ltr>
                       </GazaTableCell>
-                      <GazaTableCell className="px-3 py-2 text-muted-foreground">{`${b.cabin} · ${b.fare}`}</GazaTableCell>
+                      <GazaTableCell className="px-3 py-2 text-muted-foreground">{`${t(`cabin.${b.canonical.criteria.cabin}`)} · ${fareName(b.canonical.fareId)}`}</GazaTableCell>
                       <GazaTableCell className="px-3 py-2">
                         <Ltr>{money(b.total, lang)}</Ltr>
                       </GazaTableCell>
@@ -245,7 +248,7 @@ function AdminBookingsPage() {
                     </div>
                     <div>
                       <dt className="font-semibold text-muted-foreground">{t("a2.bk.cabin")}</dt>
-                      <dd>{`${b.cabin} · ${b.fare}`}</dd>
+                      <dd>{`${t(`cabin.${b.canonical.criteria.cabin}`)} · ${fareName(b.canonical.fareId)}`}</dd>
                     </div>
                     <div>
                       <dt className="font-semibold text-muted-foreground">{t("a2.bk.total")}</dt>

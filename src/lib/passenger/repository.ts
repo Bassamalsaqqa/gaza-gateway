@@ -1,3 +1,5 @@
+import { LocalCommercialCatalogRepository } from "../commercial/repository.ts";
+import { CommercialCatalogError, type CommercialCatalogRepository } from "../commercial/types.ts";
 /**
  * Gaza Gateway — Passenger Repository & Local Implementation (Phase 5A)
  *
@@ -28,7 +30,9 @@ export interface PassengerRepository {
 export class LocalPassengerRepository implements PassengerRepository {
   private readonly coordinator: PassengerStorageCoordinator;
 
-  constructor(coordinator: PassengerStorageCoordinator) {
+  private readonly commercial: CommercialCatalogRepository;
+  constructor(coordinator: PassengerStorageCoordinator, commercial: CommercialCatalogRepository = new LocalCommercialCatalogRepository()) {
+    this.commercial = commercial;
     this.coordinator = coordinator;
   }
 
@@ -50,6 +54,7 @@ export class LocalPassengerRepository implements PassengerRepository {
       throw new Error("Invalid email address for passenger identity.");
     }
 
+    const catalog = await this.commercial.get();
     return this.coordinator.mutate((state) => {
       const existing = state.account;
 
@@ -71,7 +76,7 @@ export class LocalPassengerRepository implements PassengerRepository {
         lastName: lastName ? lastName.trim() : "",
         phone: "",
         seatPreference: "none",
-        mealPreference: "standard",
+        mealPreference: catalog.catalog.defaultMealId,
         newsletter: false,
       };
 
@@ -89,8 +94,10 @@ export class LocalPassengerRepository implements PassengerRepository {
   public async updateAccount(
     patch: Partial<Omit<PassengerAccount, "email">>,
   ): Promise<PassengerAccount | null> {
+    const catalog = patch.mealPreference !== undefined ? await this.commercial.get() : null;
     return this.coordinator.mutate((state) => {
       if (!state.account) return null;
+      if (patch.mealPreference !== undefined && patch.mealPreference !== state.account.mealPreference && !catalog?.catalog.meals.some(m => m.id === patch.mealPreference && m.active)) throw new CommercialCatalogError("service_unavailable");
 
       // Identity invariant: Email is read-only and immutable in profile updates
       const updated: PassengerAccount = {

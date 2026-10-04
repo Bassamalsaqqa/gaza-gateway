@@ -93,7 +93,8 @@ export function sanitizePassengerAccount(raw: unknown): PassengerAccount | null 
   const seatPreference = VALID_SEAT_PREFERENCES.includes(seatRaw as SeatPreference) ? seatRaw : "none";
 
   const mealRaw = typeof candidate["mealPreference"] === "string" ? candidate["mealPreference"].trim() : "";
-  const mealPreference = VALID_MEAL_PREFERENCES.includes(mealRaw as MealPreference) ? mealRaw : "standard";
+  // Stable catalog IDs (including retired/unknown history) must survive reload.
+  const mealPreference = /^[a-zA-Z0-9_-]{1,100}$/.test(mealRaw) ? mealRaw : "standard";
 
   const newsletter = candidate["newsletter"] === true;
 

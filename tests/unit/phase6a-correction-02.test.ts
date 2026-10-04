@@ -241,7 +241,7 @@ describe("Phase 6A Correction 02 — truthful commercial presentation", () => {
       assert.ok(current.includes("Deployment is confirmed by the product owner."), path);
       assert.ok(current.includes("no independent live-browser verification from the ChatGPT environment is claimed"), path);
       assert.ok(current.includes("Phase 5D is a historical completed phase"), path);
-      assert.ok(doc.includes("Phase 6B2 — Network, Fleet & Sellable Product Authority (Planned / Unstarted)"), path);
+      assert.ok(doc.includes("Phase 6B2B — Fleet & Seat Layout Authority (Planned / Unstarted)"), path);
       for (const phrase of stale) assert.ok(!phrase.test(current), `${path}: ${phrase}`);
       assert.ok(doc.includes("Planned / Unstarted"), path);
     }

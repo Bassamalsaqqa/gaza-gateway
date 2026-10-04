@@ -93,7 +93,7 @@ describe("Phase 5A Passenger Aggregate & Invariants", () => {
       const invalidSeat = sanitizePassengerAccount({
         email: "pilot@gza.ps",
         seatPreference: "cockpit",
-        mealPreference: "unknown",
+        mealPreference: "invalid / id",
       });
       assert.ok(invalidSeat);
       assert.equal(invalidSeat.seatPreference, "none");

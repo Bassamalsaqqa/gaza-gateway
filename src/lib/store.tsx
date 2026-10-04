@@ -9,9 +9,7 @@ import {
 } from "react";
 import type { Flight } from "./data";
 import {
-  EXTRA_BAG_PRICE,
   destinationByCode,
-  farePrice,
   isFlightBookable,
   seatFee,
 } from "./data";

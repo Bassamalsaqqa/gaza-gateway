@@ -1,8 +1,11 @@
+import { resolveBookingPricing } from "@/lib/commercial/pricing";
+import { useCommercialOptions } from "@/lib/commercial/queries";
+import { CommercialCatalogState } from "@/components/commercial-catalog-state";
 import { AppLink } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
 import { Check, Ticket, UserPlus } from "lucide-react";
 import { useEffect, useState } from "react";
-import { EXTRA_BAG_PRICE, airportByCode, fares, mealOptions } from "@/lib/data";
+import { airportByCode } from "@/lib/data";
 import { Code, Container, EmptyState, GazaLoadingState, Notice, Panel, Pill, btnClass } from "@/components/kit";
 import { StatusBadge } from "@/components/flight-status";
 import { dateLong, money } from "@/lib/format";
@@ -39,6 +42,8 @@ function ConfirmationPage() {
   const { ref } = Route.useParams();
   const normalizedRef = (ref || "").trim().toUpperCase();
   const { t, lang } = useI18n();
+  const commercial = useCommercialOptions();
+  const { fares, mealOptions } = commercial;
   const { data: account } = usePassengerAccount();
   const normalizedAccountEmail = account?.email ? normalizeEmailIdentity(account.email) : null;
   const claimMutation = useClaimBookingMutation();
@@ -118,12 +123,14 @@ function ConfirmationPage() {
     );
   }
 
+  const basis = resolveBookingPricing(booking);
   const fare = fares.find((f) => f.id === booking.fareId);
   const extraBags = totalExtraBags(booking.extras);
 
   return (
     <Container className="py-10 sm:py-14">
       <div className="mx-auto max-w-3xl space-y-5">
+        <CommercialCatalogState />
         <div className="rounded-xl border border-primary/30 bg-brand-soft/60 p-6">
           <span className="grid size-11 place-items-center rounded-full bg-primary text-primary-foreground">
             <Check aria-hidden="true" className="size-5" />
@@ -221,12 +228,13 @@ function ConfirmationPage() {
             <dl className="mt-2 space-y-1.5 text-sm">
               <div className="flex justify-between gap-3">
                 <dt className="text-muted-foreground">{t("book.fareTotal")}</dt>
-                <dd className="font-medium">{fare ? pick(lang, fare.name) : "—"}</dd>
+                <dd className="font-medium">{fare ? pick(lang, fare.name) : <span dir="ltr">{booking.fareId}</span>}</dd>
               </div>
               <div className="flex justify-between gap-3">
+                <dt className="text-muted-foreground">{t("book.included")}</dt><dd dir="ltr">{basis.checkedBags} × {basis.checkedBagKg} kg</dd></div><div className="flex justify-between gap-3">
                 <dt className="text-muted-foreground">{t("book.extraBag")}</dt>
                 <dd className="numeral font-medium">
-                  {extraBags > 0 ? `${extraBags} · ${money(extraBags * EXTRA_BAG_PRICE, lang)}` : "—"}
+                  {extraBags > 0 ? `${extraBags} · ${money(extraBags * basis.extraBagPrice, lang)}` : "—"}
                 </dd>
               </div>
               <div className="flex flex-col gap-1">
@@ -240,7 +248,7 @@ function ConfirmationPage() {
                         <span className="text-muted-foreground">
                           {`${p.firstName} ${p.lastName}`.trim() || `${t("book.passenger")} ${i + 1}`}
                         </span>
-                        <span>{paxMeal ? pick(lang, paxMeal.label) : "—"}</span>
+                        <span>{paxMeal ? pick(lang, paxMeal.label) : paxExtras.meal}</span>
                       </span>
                     );
                   })}

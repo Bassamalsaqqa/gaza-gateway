@@ -1,13 +1,9 @@
+import { useCommercialOptions } from "@/lib/commercial/queries";
+import { CommercialCatalogState } from "@/components/commercial-catalog-state";
 import { ArrowLeft, ArrowRight, Check, Luggage, Plane, ShieldCheck, Ticket, User, UtensilsCrossed } from "lucide-react";
 import { AppLink } from "@/components/app-link";
 import { btnClass, Code, Eyebrow, Notice } from "@/components/kit";
-import {
-  airportByCode,
-  assistanceOptions,
-  fares,
-  mealOptions,
-  type Flight,
-} from "@/lib/data";
+import { airportByCode, type Flight } from "@/lib/data";
 import { dateLong, money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
 import {
@@ -44,6 +40,8 @@ export function ReviewStep({
   isConfirming,
 }: ReviewStepProps) {
   const { t, lang } = useI18n();
+  const commercial = useCommercialOptions();
+  const { fares, mealOptions, assistanceOptions } = commercial;
 
   const isFixtureFlight = Boolean(
     isTestFixture ||
@@ -58,6 +56,7 @@ export function ReviewStep({
 
   const fareObj = fares.find((f) => f.id === draft.fareId);
 
+  if (!commercial.catalog || commercial.query.isError) return <CommercialCatalogState />;
   return (
     <section aria-labelledby="review-title" className="space-y-6">
       {/* Step Header */}
@@ -283,7 +282,7 @@ export function ReviewStep({
                     <span>
                       {t("book.meal")}:{" "}
                       <strong className="text-foreground font-medium">
-                        {mealObj ? pick(lang, mealObj.label) : "—"}
+                        {mealObj ? pick(lang, mealObj.label) : extras.meal}
                       </strong>
                     </span>
 

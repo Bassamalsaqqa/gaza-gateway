@@ -1,3 +1,5 @@
+import type { CommercialCatalogRepository } from "../commercial/types.ts";
+import { LocalCommercialCatalogRepository } from "../commercial/repository.ts";
 /**
  * Gaza Gateway — Canonical Booking Draft Repository Implementation
  *
@@ -25,11 +27,14 @@ import type {
 } from "./types.ts";
 
 export class LocalBookingDraftRepository implements BookingDraftRepository {
+  private readonly commercial: CommercialCatalogRepository;
   private coordinator: BookingDraftStorageCoordinator;
 
   constructor(
     coordinatorOrOptions?: BookingDraftStorageCoordinator | BookingDraftCoordinatorOptions,
+    commercial: CommercialCatalogRepository = new LocalCommercialCatalogRepository(),
   ) {
+    this.commercial = commercial;
     if (coordinatorOrOptions instanceof BookingDraftStorageCoordinator) {
       this.coordinator = coordinatorOrOptions;
     } else {
@@ -76,9 +81,10 @@ export class LocalBookingDraftRepository implements BookingDraftRepository {
     criteria: SearchCriteria,
     options?: { meal?: string; email?: string; phone?: string },
   ): Promise<Draft> {
+    const catalog = (await this.commercial.get()).catalog;
     return this.coordinator.mutate(() => {
       const passengers = passengersFor(criteria);
-      const meal = options?.meal ?? "standard";
+      const meal = options?.meal ?? catalog.defaultMealId;
       const resetDraftData: Draft = {
         entry: "results",
         criteria,

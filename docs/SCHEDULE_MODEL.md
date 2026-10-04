@@ -22,10 +22,20 @@ Async list/getById/create/update/remove/subscribe. Reads return detached snapsho
 
 ## Remaining boundaries
 
-Only Schedules were extracted from mixed OpsState. Aircraft/seat maps/fares/baggage/meals/assistance/destinations remain session-only. Public product/destination data remain compiled reference authority. No gza.ops.v1, backend, database, SMTP, payment or GDS. No booking migration or flight-ID change.
+Phase 6B1 extracted Schedules from mixed OpsState. On the Phase 6B2A feature branch, fares, cabin pricing, baggage, meals and assistance have their separate CommercialCatalogRepository authority. Aircraft/seat maps/destinations remain session-only; public seat geometry and destination data remain compiled reference authority. No gza.ops.v1, backend, database, SMTP, payment or GDS. No booking migration or flight-ID change.
 
-Phase 6B2 — Network, Fleet & Sellable Product Authority — Planned / Unstarted. Phase 6C/7/7B — Planned / Unstarted. Historical owner-deployed Phase 6A release was `b5cff4db4b6e087907a9733ffd841880439fbfdb`, runtime source `2ae1a876018992649074cbed1ebf0560e4da03ff`.
+Phase 6B2A is Implemented / Awaiting Independent Review. Phase 6B2B — Fleet & Seat Layout Authority and Phase 6B2C — Network & Dated-Service Materialization are Planned / Unstarted. Phase 6C/7/7B — Planned / Unstarted. Historical owner-deployed Phase 6A release was `b5cff4db4b6e087907a9733ffd841880439fbfdb`, runtime source `2ae1a876018992649074cbed1ebf0560e4da03ff`.
 
 AdminProvider owns staff session / RBAC simulation and the remaining session-only mixed product/destination OpsState. It does not own or proxy canonical flight overrides. Admin Flight List, Flight Detail, Dashboard and shared Quick Edit use FlightRepository query/mutation hooks directly; FlightRepository is the dated/effective-flight authority. ScheduleRepository is separate planning-only authority.
 
 Dashboard operational and commercial repository loading/errors remain unavailable states, not successful empty metrics; independently healthy content/flight/booking panels remain usable. Quick Edit shares gate/time validation and separates field errors from storage failures. Responsive gate editors associate their own visible field errors with unique variant/flight IDs.
+
+## Phase 6B2A — Sellable Commercial Catalog & Pricing Authority
+
+**Implemented / Awaiting Independent Review** on `phase6b2a/commercial-catalog-authority`, based on `7586666fd4b65a6077ce9f1fa99581b61c6c532e`. Phase 6B1 remains Complete / Accepted Source / Accepted Release / Deployed by Owner, the current production checkpoint (release `f8c0d0bdc579c5c2719670c8387fa543d8d6a170`, deployed runtime source `bcf284df3f0d7b24ec59372bb038ed9ae1e8c934`). This feature is not accepted or deployed.
+
+`CommercialCatalogRepository` owns fares, cabin pricing, baggage, meals and assistance on browser-local `gza.commercial.v1`. Public booking, Manage, account meal preferences and the commercial Admin Products tabs share its query/mutation path. Fixed fare/cabin IDs and Essential/Economy multiplier anchors remain structural. Retired services remain resolvable; new selections require active options. BookingRepository independently reads the catalog at command time and commits a versioned pricing snapshot with its calculated total. Existing PNR mutations use their historical snapshot; snapshotless PNRs resolve a literal frozen legacy basis and seal it only on a real mutation. Catalog and booking stores are separate aggregates, not a server-grade multi-store ACID transaction. See [COMMERCIAL_MODEL.md](COMMERCIAL_MODEL.md) for the complete contract.
+
+AdminProvider owns staff/RBAC simulation and session-only `OpsState` containing aircraft, seat maps and destinations. It does not own commercial catalog state or proxy flight overrides. Aircraft/seat maps remain session-only and do not control passenger seat geometry. FlightRepository IDs, capacity/geometry and ScheduleRepository planning-only semantics remain unchanged. Phase 6B is incomplete. Phase 6B2B — Fleet & Seat Layout Authority, Phase 6B2C — Network & Dated-Service Materialization, Phase 6C, Phase 7 and Phase 7B are Planned / Unstarted. No backend, payment, GDS or deployment.
+
+Phase 6B2B — Fleet & Seat Layout Authority (Planned / Unstarted). Phase 6B2C — Network & Dated-Service Materialization (Planned / Unstarted).

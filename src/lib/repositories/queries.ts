@@ -20,7 +20,6 @@ import type { Booking, BookingCreateInput, Leg } from "../domain/booking.ts";
 import type { Flight, FlightOverride } from "../domain/flight.ts";
 import type { CheckInCommandInput, UndoCheckInCommandInput, ClaimResult, MonthlyServiceMap } from "./types.ts";
 import type { BookingDraftState, Draft, Extras, SearchCriteria } from "../booking-draft/types.ts";
-import { emptyPaxExtras, passengersFor } from "../booking-draft/factories.ts";
 import { bookingDraftKeys, bookingKeys, flightKeys } from "./keys.ts";
 export { bookingDraftKeys, bookingKeys, flightKeys } from "./keys.ts";
 import { useRepositories } from "./registry.ts";
@@ -520,31 +519,10 @@ export function useResetBookingDraftMutation(): UseMutationResult<
 
   return useMutation({
     mutationFn: ({ criteria, options }) => draftRepo.resetDraft(criteria, options),
-    onMutate: async ({ criteria, options }) => {
+    onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: bookingDraftKeys.all });
       const previousState = queryClient.getQueryData<BookingDraftState>(bookingDraftKeys.state());
-      if (previousState) {
-        const passengers = passengersFor(criteria);
-        const meal = options?.meal ?? "standard";
-        const resetDraftData: Draft = {
-          entry: "results",
-          criteria,
-          outbound: null,
-          inbound: null,
-          fareId: "classic",
-          passengers,
-          seats: {},
-          extras: { pax: passengers.map(() => emptyPaxExtras(meal)) },
-          contact: {
-            email: options?.email ?? "",
-            phone: options?.phone ?? "",
-          },
-        };
-        queryClient.setQueryData<BookingDraftState>(bookingDraftKeys.state(), {
-          ...previousState,
-          draft: resetDraftData,
-        });
-      }
+      // The repository chooses the live catalog default; do not preview a compiled meal.
       return { previousState };
     },
     onError: (_err, _vars, context) => {
@@ -553,6 +531,7 @@ export function useResetBookingDraftMutation(): UseMutationResult<
       }
     },
     onSettled: () => {
+      queryClient.setQueryData<BookingDraftState>(bookingDraftKeys.state(), draftRepo.getState());
       queryClient.invalidateQueries({ queryKey: bookingDraftKeys.all });
     },
   });

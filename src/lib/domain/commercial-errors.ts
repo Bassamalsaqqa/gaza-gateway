@@ -1,9 +1,11 @@
+import { CommercialCatalogError, catalogErrorKey } from "../commercial/types.ts";
 import { BookingCreationError } from "./booking.ts";
 import { BookingInputError } from "./booking-validation.ts";
 import { SeatValidationError } from "./seat-validation.ts";
 
 /** Only explicit domain validation carries field identity. Storage/general errors carry none. */
 export function commercialFieldErrors(error: unknown): Record<string, string> {
+  if (error instanceof CommercialCatalogError) return error.fields;
   if (error instanceof BookingInputError) return error.fields;
   if (error instanceof SeatValidationError)
     return Object.fromEntries(error.seatKeys.map((key) => [key, commercialErrorKey(error)]));
@@ -12,6 +14,7 @@ export function commercialFieldErrors(error: unknown): Record<string, string> {
 
 /** Presentation mapping only: expected legacy command errors never leak English in AR. */
 export function commercialErrorKey(error: unknown): string {
+  if (error instanceof CommercialCatalogError) return catalogErrorKey(error);
   if (error instanceof BookingInputError) return Object.values(error.fields)[0] ?? "a6.err.retry";
   if (error instanceof BookingCreationError) {
     const reason = error.reason;

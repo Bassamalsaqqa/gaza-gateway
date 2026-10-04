@@ -1,3 +1,6 @@
+import { LocalCommercialCatalogRepository } from "../commercial/repository.ts";
+import { CommercialStorageCoordinator } from "../commercial/storage.ts";
+import { commercialCatalogKeys } from "../commercial/keys.ts";
 /**
  * Gaza Gateway — Repository Registry & Provider
  *
@@ -41,6 +44,8 @@ export interface CreateRepositoriesOptions {
   initialSchedules?: import("../schedules/types.ts").Schedule[] | undefined;
   scheduleCoordinator?: ScheduleStorageCoordinator | undefined;
   storage?: Storage | null | undefined;
+  commercialCoordinator?: CommercialStorageCoordinator | undefined;
+  initialCommercialCatalog?: import("../commercial/types.ts").CommercialCatalog | undefined;
 }
 
 /**
@@ -92,14 +97,16 @@ export function createRepositories(options?: CreateRepositoriesOptions): Reposit
       ...(options?.initialSchedules !== undefined ? { initialSchedules: options.initialSchedules } : {}),
     });
 
-  const booking = new LocalBookingRepository(coordinator);
+  const commercial = new LocalCommercialCatalogRepository(options?.commercialCoordinator ?? new CommercialStorageCoordinator({ inMemoryOnly: options?.inMemoryOnly, storage: options?.storage, initialCatalog: options?.initialCommercialCatalog }));
+  const booking = new LocalBookingRepository(coordinator, { commercial });
   const flight = new LocalFlightRepository(coordinator);
-  const passenger = new LocalPassengerRepository(passengerCoordinator);
-  const bookingDraft = new LocalBookingDraftRepository(bookingDraftCoordinator);
+  const passenger = new LocalPassengerRepository(passengerCoordinator, commercial);
+  const bookingDraft = new LocalBookingDraftRepository(bookingDraftCoordinator, commercial);
   const contact = new LocalContactRepository({ coordinator: contactCoordinator });
   const schedule = new LocalScheduleRepository(scheduleCoordinator);
 
   return {
+    commercial,
     booking,
     flight,
     passenger,
@@ -182,6 +189,7 @@ export function RepositoryProvider({
     const unsubContact = value.contact.subscribe(() => {
       queryClient.invalidateQueries({ queryKey: contactKeys.all });
     });
+    const unsubCommercial = value.commercial.subscribe(() => { queryClient.invalidateQueries({ queryKey: commercialCatalogKeys.all }); });
     const unsubSchedule = value.schedule.subscribe(() => {
       queryClient.invalidateQueries({ queryKey: scheduleKeys.all });
     });
@@ -192,6 +200,7 @@ export function RepositoryProvider({
       unsubBookingDraft();
       unsubContact();
       unsubSchedule();
+      unsubCommercial();
     };
   }, [value, queryClient]);
 

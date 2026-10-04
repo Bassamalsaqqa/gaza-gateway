@@ -1,3 +1,6 @@
+import type { CommercialCatalogRepository } from "../commercial/types.ts";
+import { LocalCommercialCatalogRepository } from "../commercial/repository.ts";
+import { pricingSnapshot, resolveBookingPricing } from "../commercial/pricing.ts";
 /**
  * Gaza Gateway — Canonical Booking Repository Implementation
  *
@@ -29,14 +32,16 @@ import {
 } from "./storage.ts";
 
 export class LocalBookingRepository implements BookingRepository {
+  private readonly commercial: CommercialCatalogRepository;
   private coordinator: RepoStorageCoordinator;
   private listeners: Set<() => void> = new Set();
   private unsubscribeCoordinator: (() => void) | null = null;
 
   constructor(
     coordinatorOrInitial?: RepoStorageCoordinator | RepoStorageV1,
-    options?: { storage?: Storage | null },
+    options?: { storage?: Storage | null; commercial?: CommercialCatalogRepository },
   ) {
+    this.commercial = options?.commercial ?? new LocalCommercialCatalogRepository();
     if (coordinatorOrInitial instanceof RepoStorageCoordinator) {
       this.coordinator = coordinatorOrInitial;
     } else {
@@ -88,6 +93,8 @@ export class LocalBookingRepository implements BookingRepository {
   }
 
   public async create(data: BookingCreateInput): Promise<Booking> {
+    // Catalog is sampled at command time; booking snapshot and price commit atomically together.
+    const catalog = await this.commercial.get();
     const seatPaxCount =
       (Array.isArray(data.passengers) ? data.passengers : []).filter((p) => p?.type !== "infant").length || 1;
 
@@ -104,7 +111,7 @@ export class LocalBookingRepository implements BookingRepository {
       const normalizedPassengers = validateBookingParty(data.passengers);
       validateCreationComposition(data, normalizedPassengers);
       const normalizedContact = validateBookingContact(data.contact);
-      const normalizedExtras = validateBookingExtras(data.extras, normalizedPassengers.length);
+      const normalizedExtras = validateBookingExtras(data.extras, normalizedPassengers.length, catalog.catalog);
 
       // 2. Studio & synthetic flight fixture isolation
       if (
@@ -278,7 +285,8 @@ export class LocalBookingRepository implements BookingRepository {
       } catch (error) {
         throw new BookingCreationError("invalid_seats", error instanceof Error ? error.message : "Invalid seats.");
       }
-      created.total = bookingTotal(created).total;
+      created.pricingSnapshot = pricingSnapshot(catalog, data.fareId, data.criteria.cabin);
+      created.total = bookingTotal(created, created.pricingSnapshot).total;
 
       state.bookings = [created, ...state.bookings];
       return { ...created };
@@ -309,6 +317,7 @@ export class LocalBookingRepository implements BookingRepository {
 
       const updated: Booking = {
         ...existing,
+        pricingSnapshot: resolveBookingPricing(existing),
         status: "cancelled",
       };
 
@@ -348,6 +357,7 @@ export class LocalBookingRepository implements BookingRepository {
 
       const updated: Booking = {
         ...existing,
+        pricingSnapshot: resolveBookingPricing(existing),
         contact: {
           email: cleanEmail,
           phone: cleanPhone,
@@ -420,10 +430,11 @@ export class LocalBookingRepository implements BookingRepository {
         criteria: existing.criteria,
         seats: nextSeats,
         extras: existing.extras,
-      }).total;
+      }, resolveBookingPricing(existing)).total;
 
       const updated: Booking = {
         ...existing,
+        pricingSnapshot: resolveBookingPricing(existing),
         seats: nextSeats,
         total: nextTotal,
       };
@@ -440,9 +451,10 @@ export class LocalBookingRepository implements BookingRepository {
     if (!ref || typeof ref !== "string") {
       throw new Error("Cannot update extras: reference is required.");
     }
+    const catalog = await this.commercial.get();
     const clean = ref.trim().toUpperCase();
 
-    return this.coordinator.mutate((state) => {
+    return this.coordinator.conditionalMutate((state) => {
       const index = state.bookings.findIndex((b) => b.ref.toUpperCase() === clean);
       if (index === -1) {
         throw new Error(`Booking ${clean} not found.`);
@@ -457,7 +469,8 @@ export class LocalBookingRepository implements BookingRepository {
         throw new Error(`Cannot update extras: booking ${clean} is cancelled.`);
       }
 
-      extras = validateBookingExtras(extras, existing.passengers.length);
+      extras = validateBookingExtras(extras, existing.passengers.length, catalog.catalog, existing.extras);
+      if (JSON.stringify(extras) === JSON.stringify(existing.extras)) return { commit: false, result: { ...existing } };
       // Invariant: Canonical pricing recalculation using latest booking facts
       const nextTotal = bookingTotal({
         outbound: existing.outbound,
@@ -466,16 +479,17 @@ export class LocalBookingRepository implements BookingRepository {
         criteria: existing.criteria,
         seats: existing.seats,
         extras,
-      }).total;
+      }, resolveBookingPricing(existing)).total;
 
       const updated: Booking = {
         ...existing,
+        pricingSnapshot: resolveBookingPricing(existing),
         extras: { ...extras },
         total: nextTotal,
       };
 
       state.bookings[index] = updated;
-      return { ...updated };
+      return { commit: true, result: { ...updated } };
     });
   }
 
@@ -653,10 +667,11 @@ export class LocalBookingRepository implements BookingRepository {
         criteria: existing.criteria,
         seats: nextSeats,
         extras: existing.extras,
-      }).total;
+      }, resolveBookingPricing(existing)).total;
 
       const updated: Booking = {
         ...existing,
+        pricingSnapshot: resolveBookingPricing(existing),
         passengers: nextPassengers,
         seats: nextSeats,
         checkedIn: nextCheckedIn,
@@ -729,6 +744,7 @@ export class LocalBookingRepository implements BookingRepository {
       const nextChecked = currentChecked.filter((i) => !toRemove.includes(i));
       const updated: Booking = {
         ...existing,
+        pricingSnapshot: resolveBookingPricing(existing),
         checkedIn: {
           ...existing.checkedIn,
           [input.leg]: nextChecked,
@@ -754,6 +770,7 @@ export class LocalBookingRepository implements BookingRepository {
       const updated: Booking = {
         ...existing,
         ...patch,
+        pricingSnapshot: resolveBookingPricing(existing),
         ref: existing.ref, // PNR is immutable
       };
 
@@ -778,6 +795,7 @@ export class LocalBookingRepository implements BookingRepository {
 
       const updated: Booking = {
         ...existing,
+        pricingSnapshot: resolveBookingPricing(existing),
         checkedIn: {
           ...existing.checkedIn,
           [leg]: merged,

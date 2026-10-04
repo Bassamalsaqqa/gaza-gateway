@@ -1,5 +1,11 @@
+import { previewBookingTotal, pricingSnapshot, serviceOptions } from "@/lib/commercial/pricing";
+import { CommercialCatalogError } from "@/lib/commercial/types";
+import { useCommercialOptions } from "@/lib/commercial/queries";
+import { CommercialCatalogState } from "@/components/commercial-catalog-state";
+import { commercialFarePrice } from "@/lib/commercial/pricing";
+import type { FareId } from "@/lib/commercial/types";
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CommercialInput,
   AssistanceChoices,
@@ -25,15 +31,7 @@ import {
 import { AdminDenied } from "@/components/admin/admin-denied";
 import { useAdmin } from "@/lib/admin-store";
 import { pick, useI18n } from "@/lib/i18n";
-import {
-  destinations,
-  fares,
-  todayISO,
-  addDaysISO,
-  farePrice,
-  mealOptions,
-  type Flight,
-} from "@/lib/data";
+import { destinations, todayISO, addDaysISO, type Flight } from "@/lib/data";
 import { getFlightBookability } from "@/lib/booking-rules";
 import { bookingTotal } from "@/lib/domain/pricing";
 import { money } from "@/lib/format";
@@ -85,6 +83,9 @@ function initialPassenger(): PassengerFormState {
 
 function AdminNewBookingPage() {
   const { t, lang } = useI18n();
+  const commercial = useCommercialOptions();
+  const { fares, mealOptions } = commercial;
+  const farePrice = (base: number, fare: FareId, cabin: string) => commercial.catalogSnapshot ? commercialFarePrice(commercial.catalogSnapshot, base, fare, cabin) : NaN;
   const { can, toast } = useAdmin();
   const [step, setStep] = useState(0);
 
@@ -109,7 +110,12 @@ function AdminNewBookingPage() {
   const [seats, setSeats] = useState<Record<string, string>>({});
   const [extrasPax, setExtrasPax] = useState<
     Array<{ extraBags: number; meal: string; assistance: string[] }>
-  >([{ extraBags: 0, meal: "standard", assistance: [] }]);
+  >([{ extraBags: 0, meal: commercial.catalog?.defaultMealId ?? "standard", assistance: [] }]);
+
+  const initializedCommercial = useRef(false);
+  useEffect(() => {
+    if (commercial.catalog && !initializedCommercial.current) { initializedCommercial.current = true; setExtrasPax([{extraBags:0,meal:commercial.catalog.defaultMealId,assistance:[]}]); }
+  }, [commercial.catalog]);
 
   // Submission & Success state
   const [createdBooking, setCreatedBooking] = useState<Booking | null>(null);
@@ -168,7 +174,7 @@ function AdminNewBookingPage() {
       extras: {
         pax: extrasPax.map((px) => ({
           extraBags: px.extraBags,
-          meal: px.meal as "standard" | "vegetarian" | "diabetic" | "child",
+          meal: px.meal,
           assistance: px.assistance,
         })),
       },
@@ -183,13 +189,14 @@ function AdminNewBookingPage() {
 
   const previewTotal = useMemo(() => {
     if (!previewBooking) return 0;
-    return bookingTotal(previewBooking).total;
-  }, [previewBooking]);
+    return previewBookingTotal(previewBooking, commercial.catalogSnapshot)?.total ?? NaN;
+  }, [previewBooking, commercial.catalogSnapshot]);
 
   if (!can("commercial.view")) {
     return <AdminDenied area={t("a2.nb.title")} permission="commercial.view" />;
   }
 
+  if (!commercial.catalog || commercial.query.isError) return <CommercialCatalogState />;
   // Step validation helpers
   const validateStep0 = (): string | null => {
     if (!chosenFlight) return t("a6.err.flight") || "Please select a flight.";
@@ -203,6 +210,9 @@ function AdminNewBookingPage() {
     return null;
   };
 
+  const validateStep1 = (): string | null => {
+    try { pricingSnapshot(commercial.catalogSnapshot!,fare,"economy");return null; }catch(error){return t(commercialErrorKey(error));}
+  };
   const validateStep2 = (): string | null => {
     try {
       validateBookingParty(passengers);
@@ -215,7 +225,7 @@ function AdminNewBookingPage() {
   const validateStep3 = (): string | null => {
     try {
       if (!previewBooking || !chosenFlight) return t("a6.err.flight");
-      validateBookingExtras({ pax: extrasPax }, passengers.length);
+      validateBookingExtras({ pax: extrasPax }, passengers.length, commercial.catalog!);
       validateUpdateSeatsAssignments({ ...previewBooking, seats: {} }, seats, {
         outbound: chosenFlight,
         inbound: null,
@@ -229,9 +239,7 @@ function AdminNewBookingPage() {
     index === 0
       ? validateStep0()
       : index === 1
-        ? ["essential", "classic", "flex"].includes(fare)
-          ? null
-          : t("a6.err.criteria")
+        ? validateStep1()
         : index === 2
           ? validateStep2()
           : index === 3
@@ -252,7 +260,7 @@ function AdminNewBookingPage() {
           validateBookingParty(passengers);
           validateBookingContact(contact);
         } else if (previewBooking && chosenFlight) {
-          validateBookingExtras({ pax: extrasPax }, passengers.length);
+          validateBookingExtras({ pax: extrasPax }, passengers.length, commercial.catalog!);
           validateUpdateSeatsAssignments({ ...previewBooking, seats: {} }, seats, {
             outbound: chosenFlight,
             inbound: null,
@@ -268,7 +276,7 @@ function AdminNewBookingPage() {
                   ? "nb-contact-phone"
                   : key.startsWith("out-")
                     ? `pax-${key.slice(4)}-seat`
-                    : key,
+                    : key.replace(/^pax\.(\d+)\.meal$/, "nb-meal-$1").replace(/^pax\.(\d+)\.extraBags$/, "nb-bags-$1"),
               value,
             ]),
           ),
@@ -325,7 +333,7 @@ function AdminNewBookingPage() {
       extras: {
         pax: extrasPax.map((px) => ({
           extraBags: px.extraBags,
-          meal: px.meal as "standard" | "vegetarian" | "diabetic" | "child",
+          meal: px.meal,
           assistance: px.assistance,
         })),
       },
@@ -346,6 +354,7 @@ function AdminNewBookingPage() {
         toast(t("a2.nb.successTitle"));
       },
       onError: (e) => {
+        if (e instanceof CommercialCatalogError) setStep(e.reason === "service_unavailable" ? 3 : 1);
         const msg = t(commercialErrorKey(e));
         setFormError(msg);
         setFieldErrors({});
@@ -364,7 +373,7 @@ function AdminNewBookingPage() {
     setSelectedFlightId("");
     setFieldErrors({});
     setSeats({});
-    setExtrasPax([{ extraBags: 0, meal: "standard", assistance: [] }]);
+    setExtrasPax([{ extraBags: 0, meal: commercial.catalog?.defaultMealId ?? "standard", assistance: [] }]);
     setFormError(null);
   };
 
@@ -589,7 +598,7 @@ function AdminNewBookingPage() {
             <div className="space-y-3">
               <p className="text-xs font-semibold text-muted-foreground">{t("a2.nb.step2")}</p>
               <div className="grid gap-3 sm:grid-cols-3">
-                {fares.map((f) => {
+                {fares.filter(f=>f.active && f.allowedCabins.includes("economy")).sort((a,b)=>a.order-b.order).map((f) => {
                   const base = chosenFlight?.basePrice ?? 180;
                   const price = farePrice(base, f.id, "economy");
                   const isSelected = fare === f.id;
@@ -608,6 +617,7 @@ function AdminNewBookingPage() {
                           <input
                             type="radio"
                             name="nb-fare-choice"
+                            value={f.id}
                             checked={isSelected}
                             onChange={() => setFare(f.id)}
                             className="size-4 text-brand focus:ring-brand"
@@ -646,7 +656,7 @@ function AdminNewBookingPage() {
                         setPassengers([...passengers, initialPassenger()]);
                         setExtrasPax([
                           ...extrasPax,
-                          { extraBags: 0, meal: "standard", assistance: [] },
+                          { extraBags: 0, meal: commercial.catalog?.defaultMealId ?? "standard", assistance: [] },
                         ]);
                       }
                     }}
@@ -846,6 +856,7 @@ function AdminNewBookingPage() {
           {step === 3 ? (
             <div className="space-y-4">
               <p className="text-xs font-semibold text-muted-foreground">{t("a2.bd.tab.seats")}</p>
+              <p className="text-xs text-muted-foreground">{t("commercial.baggageInfo",{kg:commercial.catalog.baggage.cabinKg,dims:commercial.catalog.baggage.cabinDims,checked:commercial.catalog.baggage.checkedKg})} · {money(commercial.catalog.baggage.extraBagPrice,lang)} · {pick(lang,commercial.catalog.baggage.note)}</p>
               {passengers.map((p, i) => (
                 <div key={i} className="space-y-3 rounded-md border border-border p-3">
                   <div className="flex items-center justify-between">
@@ -900,9 +911,11 @@ function AdminNewBookingPage() {
                         }}
                       />
                     </Field>
-                    <Field label={t("a2.bd.meal")} htmlFor={`nb-meal-${i}`}>
+                    <Field label={t("a2.bd.meal")} htmlFor={`nb-meal-${i}`} error={fieldErrors[`nb-meal-${i}`] ? t(fieldErrors[`nb-meal-${i}`]!) : undefined} errorId={`nb-meal-${i}-error`}>
                       <Select
                         id={`nb-meal-${i}`}
+                        aria-invalid={fieldErrors[`nb-meal-${i}`] ? true : undefined}
+                        aria-describedby={fieldErrors[`nb-meal-${i}`] ? `nb-meal-${i}-error` : undefined}
                         value={extrasPax[i]?.meal ?? "standard"}
                         onChange={(e) => {
                           const next = [...extrasPax];
@@ -910,9 +923,9 @@ function AdminNewBookingPage() {
                           setExtrasPax(next);
                         }}
                       >
-                        {mealOptions.map((m) => (
-                          <option key={m.id} value={m.id}>
-                            {pick(lang, m.label)}
+                        {serviceOptions(mealOptions,[extrasPax[i]?.meal ?? ""]).map((m) => (
+                          <option key={m.id} value={m.id} disabled={!m.active}>
+                            {pick(lang, m.label)}{!m.active ? ` · ${t("commercial.retired")}` : ""}
                           </option>
                         ))}
                       </Select>
@@ -932,6 +945,7 @@ function AdminNewBookingPage() {
                     />
                   ) : null}
                   <AssistanceChoices
+                      retained={extrasPax[i]?.assistance ?? []}
                     value={extrasPax[i]?.assistance ?? []}
                     onChange={(assistance) =>
                       setExtrasPax((current) =>
@@ -1001,7 +1015,7 @@ function AdminNewBookingPage() {
                 <div className="sm:col-span-2 pt-3 border-t border-border flex items-baseline justify-between">
                   <dt className="text-sm font-bold">{t("a2.bk.total")}</dt>
                   <dd className="text-lg font-extrabold text-brand">
-                    <Ltr>{money(previewTotal, lang)}</Ltr>
+                    <Ltr>{Number.isFinite(previewTotal) ? money(previewTotal, lang) : t("commercial.noFare")}</Ltr>
                   </dd>
                 </div>
               </dl>

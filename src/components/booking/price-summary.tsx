@@ -1,16 +1,22 @@
+import { previewBookingTotal } from "@/lib/commercial/pricing";
+import { useCommercialOptions } from "@/lib/commercial/queries";
+import { CommercialCatalogState } from "@/components/commercial-catalog-state";
 import { ArrowRight } from "lucide-react";
 import { Code } from "@/components/kit";
-import { airportByCode, fares, type Flight } from "@/lib/data";
+import { airportByCode, type Flight } from "@/lib/data";
 import { money, dateShort } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
-import { bookingTotal, paxCount, type Draft } from "@/lib/store";
+import { paxCount, type Draft } from "@/lib/store";
 import { useSurfaceRecipe, GazaSurface, SurfaceIndex } from "@/design/surfaces";
 
 export function PriceSummary({ draft, compact = false }: { draft: Draft; compact?: boolean }) {
   const { t, lang } = useI18n();
-  const totals = bookingTotal(draft);
-  const fare = fares.find((f) => f.id === draft.fareId);
+  const commercial = useCommercialOptions();
+  const { fares } = commercial;
   const { active } = useSurfaceRecipe("dossier");
+  const totals = previewBookingTotal(draft, commercial.catalogSnapshot);
+  if (!totals || commercial.query.isError) return <><CommercialCatalogState />{commercial.catalog ? <p role="alert">{t("commercial.error.fare_unavailable")}</p> : null}</>;
+  const fare = fares.find((f) => f.id === draft.fareId);
 
   return (
     <GazaSurface

@@ -5,12 +5,8 @@
  */
 
 import {
-  EXTRA_BAG_PRICE,
   addDaysISO,
-  farePrice,
-  seatFee,
   todayISO,
-  type Flight,
 } from "../data.ts";
 import type {
   Contact,
@@ -113,25 +109,4 @@ export function createFreshDraft(
   };
 }
 
-export function bookingTotal(draft: {
-  outbound: Flight | null;
-  inbound: Flight | null;
-  fareId: "essential" | "classic" | "flex";
-  criteria: SearchCriteria;
-  seats: Record<string, string>;
-  extras: Extras;
-}): { fare: number; taxes: number; extras: number; total: number } {
-  const pax = Math.max(1, draft.criteria.adults + draft.criteria.children);
-  const legs = [draft.outbound, draft.inbound].filter((f): f is Flight => Boolean(f));
-  const fare = legs.reduce(
-    (sum, leg) => sum + farePrice(leg.basePrice, draft.fareId, draft.criteria.cabin) * pax,
-    0,
-  );
-  const taxes = Math.round(fare * 0.14);
-  const seatCharges = Object.values(draft.seats).reduce(
-    (sum, seat) => sum + seatFee(Number(seat.replace(/\D/g, ""))),
-    0,
-  );
-  const extras = seatCharges + totalExtraBags(draft.extras) * EXTRA_BAG_PRICE;
-  return { fare, taxes, extras, total: fare + taxes + extras };
-}
+export { bookingTotal } from "../domain/pricing.ts";

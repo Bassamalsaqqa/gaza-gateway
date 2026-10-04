@@ -1,14 +1,11 @@
-import { useState } from "react";
+import { useCommercialOptions } from "@/lib/commercial/queries";
+import { CommercialCatalogState } from "@/components/commercial-catalog-state";
+import { useEffect, useState } from "react";
 import { Baby, ChevronDown, ChevronUp, Luggage, Plus, Minus, User, UtensilsCrossed, Check } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Eyebrow, Field } from "@/components/kit";
-import {
-  EXTRA_BAG_PRICE,
-  assistanceOptions,
-  fares,
-  mealOptions,
-} from "@/lib/data";
+
 import { money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
 import {
@@ -26,6 +23,7 @@ export interface ExtrasStepProps {
   paxList: Passenger[];
   headingRef?: React.RefObject<HTMLHeadingElement | null>;
   stepNav: React.ReactNode;
+  serviceErrors?: Record<string,string> | undefined;
 }
 
 export function ExtrasStep({
@@ -34,11 +32,16 @@ export function ExtrasStep({
   paxList,
   headingRef,
   stepNav,
+  serviceErrors,
 }: ExtrasStepProps) {
   const { t, lang } = useI18n();
+  const commercial = useCommercialOptions();
+  const { fares, mealOptions, assistanceOptions } = commercial;
   const [activePaxIndex, setActivePaxIndex] = useState(0);
+  useEffect(()=>{const first=Object.keys(serviceErrors ?? {})[0];const index=first?.match(/^pax\.(\d+)\./)?.[1];if(index !== undefined){setActivePaxIndex(Number(index));requestAnimationFrame(()=>document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus());}},[serviceErrors]);
   const [assistanceOpen, setAssistanceOpen] = useState<Record<number, boolean>>({});
 
+  const extraBagPrice = commercial.catalog?.baggage.extraBagPrice ?? NaN;
   const fareObj = fares.find((f) => f.id === draft.fareId);
   const includedBags = fareObj?.checkedBags ?? 0;
 
@@ -69,14 +72,16 @@ export function ExtrasStep({
     : `${t("book.passenger")} 1`;
 
   const totalBags = totalExtraBags(draft.extras);
-  const totalBagsFee = totalBags * EXTRA_BAG_PRICE;
+  const totalBagsFee = totalBags * extraBagPrice;
 
+  if (!commercial.catalog || commercial.query.isError) return <CommercialCatalogState />;
   return (
     <section
       aria-labelledby="extras-title"
       data-surface-target="booking.extras"
       className="space-y-6"
     >
+      <p className="text-xs text-muted-foreground">{t("commercial.baggageInfo", {kg:commercial.catalog.baggage.cabinKg,dims:commercial.catalog.baggage.cabinDims,checked:commercial.catalog.baggage.checkedKg})} {pick(lang,commercial.catalog.baggage.note)}</p>
       {/* Step Header */}
       <div>
         <Eyebrow>{t("step.extras")}</Eyebrow>
@@ -184,7 +189,7 @@ export function ExtrasStep({
           <div className="text-end">
             <span className="text-xs text-muted-foreground block">{t("book.extrasTotal")}</span>
             <span className="text-base font-bold text-foreground tabular-nums">
-              {money(currentExtras.extraBags * EXTRA_BAG_PRICE, lang)}
+              {money(currentExtras.extraBags * extraBagPrice, lang)}
             </span>
           </div>
         </div>
@@ -199,7 +204,7 @@ export function ExtrasStep({
           <p className="text-xs text-muted-foreground">
             {t("book.included")}:{" "}
             <span className="font-semibold text-foreground">
-              {includedBags === 0 ? t("book.cabinBagOnly") : `${includedBags} × 23 kg`}
+              {includedBags === 0 ? t("book.cabinBagOnly") : `${includedBags} × ${commercial.catalog.baggage.checkedKg} kg`}
             </span>
           </p>
 
@@ -209,7 +214,7 @@ export function ExtrasStep({
                 {t("book.extraBag")}
               </span>
               <span className="text-xs text-muted-foreground">
-                {money(EXTRA_BAG_PRICE, lang)} {t("book.perPassenger")}
+                {money(extraBagPrice, lang)} {t("book.perPassenger")}
               </span>
             </div>
 
@@ -262,19 +267,22 @@ export function ExtrasStep({
             >
               <SelectTrigger
                 id={`meal-${activePaxIndex}`}
+                aria-invalid={serviceErrors?.[`pax.${activePaxIndex}.meal`] ? true : undefined}
+                aria-describedby={serviceErrors?.[`pax.${activePaxIndex}.meal`] ? `meal-${activePaxIndex}-error` : undefined}
                 className="h-11 rounded-lg bg-card"
                 aria-label={`${t("book.meal")} - ${currentPassengerLabel}`}
               >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {mealOptions.map((option) => (
-                  <SelectItem key={option.id} value={option.id}>
-                    {pick(lang, option.label)}
+                {mealOptions.filter(option => option.active || option.id === currentExtras.meal).map((option) => (
+                  <SelectItem key={option.id} value={option.id} disabled={!option.active}>
+                    {pick(lang, option.label)}{!option.active ? ` · ${t("commercial.retired")}` : ""}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {serviceErrors?.[`pax.${activePaxIndex}.meal`] ? <p id={`meal-${activePaxIndex}-error`} className="mt-1 text-xs text-destructive">{serviceErrors[`pax.${activePaxIndex}.meal`]}</p> : null}
           </div>
         </div>
 
@@ -307,7 +315,7 @@ export function ExtrasStep({
           ) : (
             <div className="space-y-3 pt-1">
               <div className="grid gap-2.5 sm:grid-cols-2">
-                {assistanceOptions.map((option) => {
+                {assistanceOptions.filter(option => option.active || currentExtras.assistance.includes(option.id)).map((option) => {
                   const checked = currentExtras.assistance.includes(option.id);
                   return (
                     <label
@@ -333,7 +341,7 @@ export function ExtrasStep({
                           })
                         }
                       />
-                      <span>{pick(lang, option.label)}</span>
+                      <span>{pick(lang, option.label)}{!option.active ? ` · ${t("commercial.retired")}` : ""}</span>
                     </label>
                   );
                 })}

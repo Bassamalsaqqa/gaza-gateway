@@ -1,3 +1,5 @@
+import { CommercialCatalogError } from "../../src/lib/commercial/types.ts";
+import { resolveBookingPricing } from "../../src/lib/commercial/pricing.ts";
 import { readFileSync } from "node:fs";
 import { en, ar } from "../../src/lib/i18n-public.ts";
 import { adminEn, adminAr } from "../../src/lib/i18n-admin.ts";
@@ -282,7 +284,7 @@ describe("Phase 6A Correction: canonical writer invariants", () => {
         d = input();
       change(d);
       const raw = r.storage.getItem(REPO_STORAGE_KEY);
-      await assert.rejects(r.repo.create(d), BookingCreationError);
+      await assert.rejects(r.repo.create(d), name === "unknown fare" || name === "unknown meal" || name === "unknown assistance" ? CommercialCatalogError : BookingCreationError);
       assert.deepEqual(await r.repo.list(), []);
       assert.equal(r.storage.getItem(REPO_STORAGE_KEY), raw);
       assert.deepEqual(r.counts(), { writes: 0, notifications: 0 });
@@ -421,7 +423,8 @@ describe("Phase 6A Correction: undo, station selectors and presentation truth", 
         after.checkedIn.out,
         [0, 1].filter((i) => !indexes.includes(i)),
       );
-      assert.deepEqual({ ...after, checkedIn: before.checkedIn }, before);
+      assert.deepEqual(after.pricingSnapshot, resolveBookingPricing(before));
+      assert.deepEqual({ ...after, pricingSnapshot: before.pricingSnapshot, checkedIn: before.checkedIn }, before);
       assert.deepEqual(r.counts(), { writes: 1, notifications: 1 });
       const loaded = new LocalBookingRepository(new RepoStorageCoordinator({ storage: r.storage }));
       assert.deepEqual(await loaded.getByRef(b.ref), after);

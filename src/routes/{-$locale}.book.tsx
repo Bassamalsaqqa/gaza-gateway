@@ -1,3 +1,7 @@
+import { useCommercialOptions } from "@/lib/commercial/queries";
+import { previewBookingTotal, pricingSnapshot, validateServiceSelections } from "@/lib/commercial/pricing";
+import { CommercialCatalogError, catalogErrorKey } from "@/lib/commercial/types";
+import { CommercialCatalogState } from "@/components/commercial-catalog-state";
 import { useAppNavigate } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
@@ -116,6 +120,7 @@ export const Route = createFileRoute("/{-$locale}/book")({
 
 function BookPage() {
   const { t, lang } = useI18n();
+  const commercial = useCommercialOptions();
   const navigate = useAppNavigate();
   const search = Route.useSearch();
   const { bookingDraft: draftRepo, booking: bookingRepo } = useRepositories();
@@ -372,6 +377,12 @@ function BookPage() {
   }, [currentStep]);
 
   const goToStep = (next: BookingStep, replace = false) => {
+    if (["passengers","seats","extras","review"].includes(next)) {
+      try { if (!commercial.catalogSnapshot || commercial.query.isError) throw new CommercialCatalogError("catalog_unavailable"); pricingSnapshot(commercial.catalogSnapshot,draft.fareId,draft.criteria.cabin); }
+      catch(e) { setReconciliationNotice(t(catalogErrorKey(e))); if (next !== "fare") goToStep("fare"); return; }
+    }
+    if (next === "review" && commercial.catalog) { try { validateServiceSelections(draft.extras,commercial.catalog); } catch(e) { setReconciliationNotice(t(catalogErrorKey(e))); goToStep("extras"); return; } }
+
     setFieldErrors({});
     setConfirmError(null);
     void navigate({
@@ -490,7 +501,8 @@ function BookPage() {
       // Safety rule: test inventory cannot create a persistent booking or PNR
       return;
     }
-    const totals = bookingTotal(draft);
+    const totals = previewBookingTotal(draft, commercial.catalogSnapshot);
+    if (!totals || commercial.query.isError) { setReconciliationNotice(t(commercial.catalog ? "commercial.error.fare_unavailable" : "commercial.error.catalog_unavailable")); goToStep("fare"); return; }
     setIsConfirming(true);
     try {
       const submissionId = draftRepo.getSubmissionId();
@@ -525,7 +537,11 @@ function BookPage() {
       console.error("Booking confirmation error:", err);
       setIsConfirming(false);
 
-      if (err instanceof BookingCreationError) {
+      if (err instanceof CommercialCatalogError) {
+        setReconciliationNotice(t(catalogErrorKey(err)));
+        goToStep(err.reason === "service_unavailable" ? "extras" : "fare");
+        setFieldErrors(Object.fromEntries(Object.entries(err.fields).map(([key,value])=>[key,t(value)])));
+      } else if (err instanceof BookingCreationError) {
         const reason = err.reason;
         const localizedReason =
           reason === "cancelled"
@@ -552,7 +568,10 @@ function BookPage() {
     }
   };
 
-  const totals = bookingTotal(draft);
+  const totals = previewBookingTotal(draft, commercial.catalogSnapshot);
+
+  if (currentStep !== "search" && (!commercial.catalog || commercial.query.isError)) return <Container className="py-10"><CommercialCatalogState /></Container>;
+  if (["passengers","seats","extras","review"].includes(currentStep) && !totals) return <Container className="py-10"><p role="alert">{t("commercial.error.fare_unavailable")}</p><button type="button" className={btnClass("primary","md")} onClick={()=>goToStep("fare")}>{t("step.fare")}</button></Container>;
 
   /* -------------------------------- search -------------------------------- */
   if (currentStep === "search") {
@@ -581,6 +600,7 @@ function BookPage() {
     <>
       <Stepper current={currentStep} maxStep={maxStep} onStepClick={(s) => goToStep(s)} />
       <Container className="py-8 pb-28 lg:pb-12">
+        {currentStep !== "results" && reconciliationNotice ? <Notice role="alert" className="mb-4 border-destructive/40 bg-destructive/10 text-destructive">{reconciliationNotice}</Notice> : null}
         {currentStep === "seats" ? (
           <SeatSelectionWorkspace
             draft={draft}
@@ -592,7 +612,7 @@ function BookPage() {
             seatable={seatable}
             passengerLabels={passengerLabels}
             seatAssignments={seatAssignments}
-            totals={totals}
+            totals={totals!}
             seatPreference={account?.seatPreference ?? "none"}
             headingRef={headingRef}
             stepNav={
@@ -616,7 +636,7 @@ function BookPage() {
             <ReviewStep
               draft={draft}
               paxList={paxList}
-              totals={totals}
+              totals={totals!}
               onGoToStep={(step) => goToStep(step)}
               onConfirm={confirm}
               headingRef={headingRef}
@@ -1089,6 +1109,7 @@ function BookPage() {
               {/* -------------------------------- extras ------------------------------ */}
               {currentStep === "extras" ? (
                 <ExtrasStep
+                  serviceErrors={fieldErrors}
                   draft={draft}
                   onUpdateDraft={setDraft}
                   paxList={paxList}
@@ -1112,7 +1133,7 @@ function BookPage() {
       </Container>
 
       {/* Mobile Booking Bar with Instant Total and Sheet Drawer */}
-      <MobileBookingBar draft={draft} totals={totals} />
+      <MobileBookingBar draft={draft} totals={totals!} />
     </>
   );
 }

@@ -1,6 +1,6 @@
 /**
- * Operations & commercial configuration model for the staff workspace.
- * Remaining session-only product/destination configuration; schedules live in ScheduleRepository.
+ * Remaining operations configuration model for the staff workspace.
+ * Session-only aircraft/seat maps/destinations. Schedules and commercial catalogs have separate repositories.
  */
 import {
   SEAT_LETTERS,
@@ -8,10 +8,6 @@ import {
   EXTRA_LEGROOM_ROWS,
   cabinZones,
   destinations,
-  fares,
-  mealOptions,
-  assistanceOptions,
-  EXTRA_BAG_PRICE,
   type CabinId,
 } from "./data";
 
@@ -99,76 +95,6 @@ export function seedSeatMaps(): Record<string, SeatMapConfig> {
   };
 }
 
-/* ----------------------------------- fares --------------------------------- */
-
-export type FareConfig = {
-  id: string;
-  nameEn: string;
-  nameAr: string;
-  cabins: CabinId[];
-  checkedBags: number;
-  seatEn: string;
-  seatAr: string;
-  changesEn: string;
-  changesAr: string;
-  refundEn: string;
-  refundAr: string;
-  featured: boolean;
-  order: number;
-};
-
-export function seedFares(): FareConfig[] {
-  return fares.map((f, i) => ({
-    id: f.id,
-    nameEn: f.name.en,
-    nameAr: f.name.ar,
-    cabins: (f.id === "essential" ? ["economy"] : ["economy", "premium", "business"]) as CabinId[],
-    checkedBags: f.checkedBags,
-    seatEn: f.seatSelection.en,
-    seatAr: f.seatSelection.ar,
-    changesEn: f.changes.en,
-    changesAr: f.changes.ar,
-    refundEn: f.refund.en,
-    refundAr: f.refund.ar,
-    featured: Boolean(f.highlight),
-    order: i + 1,
-  }));
-}
-
-/* ---------------------------------- baggage -------------------------------- */
-
-export type BaggageConfig = {
-  cabinKg: number;
-  cabinDims: string;
-  checkedKg: number;
-  extraBagPrice: number;
-  noteEn: string;
-  noteAr: string;
-};
-
-export function seedBaggage(): BaggageConfig {
-  return {
-    cabinKg: 7,
-    cabinDims: "55 × 40 × 20 cm",
-    checkedKg: 23,
-    extraBagPrice: EXTRA_BAG_PRICE,
-    noteEn: "Every fare includes one cabin bag. Checked allowance depends on the fare chosen.",
-    noteAr: "تشمل كل أجرة حقيبة كابينة واحدة. يعتمد الوزن المسجّل على الأجرة المختارة.",
-  };
-}
-
-/* -------------------------- meals / assistance options -------------------- */
-
-export type OptionItem = { id: string; en: string; ar: string; enabled: boolean };
-
-export function seedMeals(): OptionItem[] {
-  return mealOptions.map((m) => ({ id: m.id, en: m.label.en, ar: m.label.ar, enabled: true }));
-}
-
-export function seedAssistance(): OptionItem[] {
-  return assistanceOptions.map((a) => ({ id: a.id, en: a.label.en, ar: a.label.ar, enabled: true }));
-}
-
 export function moveItem<T>(list: T[], index: number, delta: number): T[] {
   const next = [...list];
   const target = index + delta;
@@ -238,10 +164,6 @@ export function seedDestinationConfigs(): DestinationConfig[] {
 export type OpsState = {
   aircraft: AircraftType[];
   seatMaps: Record<string, SeatMapConfig>;
-  fares: FareConfig[];
-  baggage: BaggageConfig;
-  meals: OptionItem[];
-  assistance: OptionItem[];
   destinations: DestinationConfig[];
 };
 
@@ -249,10 +171,6 @@ export function seedOpsState(): OpsState {
   return {
     aircraft: seedAircraft(),
     seatMaps: seedSeatMaps(),
-    fares: seedFares(),
-    baggage: seedBaggage(),
-    meals: seedMeals(),
-    assistance: seedAssistance(),
     destinations: seedDestinationConfigs(),
   };
 }

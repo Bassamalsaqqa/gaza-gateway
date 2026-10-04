@@ -1,10 +1,13 @@
+import { resolveBookingPricing } from "@/lib/commercial/pricing";
+import { useCommercialOptions } from "@/lib/commercial/queries";
+import { CommercialCatalogState } from "@/components/commercial-catalog-state";
 import { useState } from "react";
 import { AppLink } from "@/components/app-link";
 import { Armchair, Luggage, Mail, Ticket, XCircle } from "lucide-react";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { StatusBadge } from "@/components/flight-status";
 import { btnClass, Code, Panel, Pill } from "@/components/kit";
-import { EXTRA_BAG_PRICE, airportByCode, assistanceOptions, fares, mealOptions } from "@/lib/data";
+import { airportByCode } from "@/lib/data";
 import { dateLong, money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
 import {
@@ -30,8 +33,11 @@ export function BookingDetail({
   onCancel?: () => Promise<void> | void;
 }) {
   const { t, lang } = useI18n();
+  const commercial = useCommercialOptions();
+  const { fares, mealOptions, assistanceOptions } = commercial;
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
+  const basis = resolveBookingPricing(booking);
   const fare = fares.find((f) => f.id === booking.fareId);
   const legs = bookingLegs(booking);
   const remainingLegs = openLegs(booking);
@@ -52,6 +58,7 @@ export function BookingDetail({
 
   return (
     <div className="space-y-4">
+      <CommercialCatalogState />
       <Panel>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -70,7 +77,7 @@ export function BookingDetail({
             ) : (
               <Pill tone="ink">{t("bp.operationalUnavailable")}</Pill>
             )}
-            {fare ? <Pill>{pick(lang, fare.name)}</Pill> : null}
+            <Pill>{fare ? pick(lang, fare.name) : <span dir="ltr">{booking.fareId}</span>}</Pill>
           </div>
         </div>
 
@@ -255,14 +262,14 @@ export function BookingDetail({
         <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">{t("book.baggage")}</h2>
         <p className="mt-2 text-sm text-muted-foreground">
           <span className="numeral">
-            {(fare?.checkedBags ?? 0) === 0 ? "—" : `${fare?.checkedBags} × 23 kg`}
+            {basis.checkedBags === 0 ? "—" : `${basis.checkedBags} × ${basis.checkedBagKg} kg`}
           </span>
           {totalExtraBags(booking.extras) > 0 ? (
             <>
               {" · "}
               <span className="numeral">
                 +{totalExtraBags(booking.extras)} {t("book.extraBag")} (
-                {money(totalExtraBags(booking.extras) * EXTRA_BAG_PRICE, lang)})
+                {money(totalExtraBags(booking.extras) * basis.extraBagPrice, lang)})
               </span>
             </>
           ) : null}

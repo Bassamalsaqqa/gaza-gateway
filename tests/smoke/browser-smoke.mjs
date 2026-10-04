@@ -1,3 +1,4 @@
+import { runPhase6B2AChecks } from "./phase6b2a-commercial.mjs";
 import { runPhase6B1Correction01Checks } from "./phase6b1-correction-01.mjs";
 import {runCommercialChecks,counterTestFlight,availableSeat} from "./phase6a-commercial.mjs";
 import { runPhase6B1Checks } from "./phase6b1-operations.mjs";
@@ -45,6 +46,36 @@ async function startServer(port = 4173) {
     };
   } catch (err) {
     throw new Error(`Failed to start Vite preview server: ${err.message}`);
+  }
+}
+
+// A visible SSR input may precede React hydration. Wait for its controlled handler
+// before synthetic typing; this does not replace the journey's URL/domain assertions.
+async function waitForInteractiveInput(page, selector) {
+  await page.waitForFunction(selector => {
+    const input = document.querySelector(selector);
+    return input && Object.keys(input).some(key =>
+      key.startsWith("__reactProps") && typeof input[key]?.onChange === "function");
+  }, selector, { timeout: 8000 });
+}
+
+// Failure-only journey diagnostics; no form payload or storage contents are logged.
+async function waitForJourneyURL(page, predicate, options) {
+  try {
+    await page.waitForURL(predicate, options);
+  } catch (error) {
+    console.error("Journey navigation diagnostics:", await page.evaluate(() => ({
+      pathname: location.pathname,
+      readyState: document.readyState,
+      fields: [...document.querySelectorAll("input")].map(input => ({
+        id: input.id,
+        filled: input.value.length > 0,
+        handlerAttached: Object.keys(input).some(key => key.startsWith("__reactProps") && typeof input[key]?.onChange === "function"),
+      })),
+      alertCount: document.querySelectorAll('[role="alert"]').length,
+      lookupNotFound: !!document.querySelector("main")?.textContent?.includes("We couldn't find"),
+    })));
+    throw error;
   }
 }
 
@@ -4403,13 +4434,14 @@ async function runBrowserSmoke() {
       // Test registration with sentinel password
       await page.goto(baseUrl + "/register", { waitUntil: "domcontentloaded" });
       await page.waitForSelector("#r-first", { timeout: 8000 });
+      await waitForInteractiveInput(page, "#r-first");
       const regSecret = "SentinelRegisterSecret999!#";
       await page.fill("#r-first", "SentinelFirst");
       await page.fill("#r-last", "SentinelLast");
       await page.fill("#r-email", "sentinel@gza.ps");
       await page.fill("#r-password", regSecret);
       await page.click('button[type="submit"]');
-      await page.waitForURL(/\/verify-email/, { timeout: 8000 });
+      await waitForJourneyURL(page, /\/verify-email/, { waitUntil: "domcontentloaded", timeout: 8000 });
 
       // Assert regSecret is absent from ALL localStorage keys and values
       let allStorage = await page.evaluate(() => {
@@ -4458,11 +4490,12 @@ async function runBrowserSmoke() {
       // Sign in test secret verification (preserved proof)
       await page.goto(baseUrl + "/signin", { waitUntil: "domcontentloaded" });
       await page.waitForSelector("#email", { timeout: 8000 });
+      await waitForInteractiveInput(page, "#email");
       const signinSecret = "SuperSecretPassword123!@#";
       await page.fill("#email", "pilot.truth@gza.ps");
       await page.fill("#password", signinSecret);
       await page.click('button[type="submit"]');
-      await page.waitForURL(/\/account/, { timeout: 5000 });
+      await waitForJourneyURL(page, /\/account/, { waitUntil: "domcontentloaded", timeout: 5000 });
 
       allStorage = await page.evaluate(() => {
         const out = {};
@@ -5707,11 +5740,12 @@ async function runBrowserSmoke() {
         // 1. Navigate to /manage and retrieve booking
         await testPage.goto(`${baseUrl}/manage`, { waitUntil: "domcontentloaded" });
         await testPage.waitForSelector('#pnr', { timeout: 10000 });
+        await waitForInteractiveInput(testPage, '#pnr');
         await testPage.fill('#pnr', bookingRef);
         await testPage.fill('#identifier', 'khalil');
         await testPage.click('button[type="submit"]');
 
-        await testPage.waitForURL((url) => url.pathname.includes(`/manage/${bookingRef}`), { timeout: 8000 });
+        await waitForJourneyURL(testPage, (url) => url.pathname.includes(`/manage/${bookingRef}`), { waitUntil: "domcontentloaded", timeout: 8000 });
         if (!testPage.url().includes(`/manage/${bookingRef}`)) {
           throw new Error(`Expected navigation to /manage/${bookingRef}, got ${testPage.url()}`);
         }
@@ -5729,7 +5763,7 @@ async function runBrowserSmoke() {
           throw new Error("Check-in link not found on booking detail");
         }
         await checkinLink.click();
-        await testPage.waitForURL((url) => url.pathname.includes("check-in"), { timeout: 8000 });
+        await waitForJourneyURL(testPage, (url) => url.pathname.includes("check-in"), { waitUntil: "domcontentloaded", timeout: 8000 });
 
         // Step: Choose Leg (if leg selection step is active)
         const legBtn = testPage.locator('button:has-text("Outbound"), button:has-text("PS100")').first();
@@ -6263,16 +6297,17 @@ async function runBrowserSmoke() {
         // 1. Navigate to /manage and retrieve booking
         await testPage.goto(`${baseUrl}/manage`, { waitUntil: "domcontentloaded" });
         await testPage.waitForSelector('#pnr', { timeout: 10000 });
+        await waitForInteractiveInput(testPage, '#pnr');
         await testPage.fill('#pnr', bookingRef);
         await testPage.fill('#identifier', 'hamdan');
         await testPage.click('button[type="submit"]');
 
-        await testPage.waitForURL((url) => url.pathname.includes(`/manage/${bookingRef}`), { timeout: 8000 });
+        await waitForJourneyURL(testPage, (url) => url.pathname.includes(`/manage/${bookingRef}`), { waitUntil: "domcontentloaded", timeout: 8000 });
 
         // 2. Navigate to check-in
         const checkinLink = testPage.locator(`a[href*="/manage/${bookingRef}/check-in"]`).first();
         await checkinLink.click();
-        await testPage.waitForURL((url) => url.pathname.includes("check-in"), { timeout: 8000 });
+        await waitForJourneyURL(testPage, (url) => url.pathname.includes("check-in"), { waitUntil: "domcontentloaded", timeout: 8000 });
 
         // Step: Choose Leg (if leg selection step is active)
         const legBtn = testPage.locator('button:has-text("Outbound"), button:has-text("PS100")').first();
@@ -7750,6 +7785,7 @@ async function runBrowserSmoke() {
     await runCommercialCorrection02Checks({checkStep,browser,baseUrl});
     await runPhase6B1Checks({checkStep,browser,baseUrl});
     await runPhase6B1Correction01Checks({ checkStep, browser, baseUrl });
+    await runPhase6B2AChecks({ checkStep, browser, baseUrl });
 
   } finally {
     await browser.close();

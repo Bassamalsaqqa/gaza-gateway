@@ -1,3 +1,7 @@
+import { useCommercialOptions } from "@/lib/commercial/queries";
+import { CommercialCatalogState } from "@/components/commercial-catalog-state";
+import { commercialFarePrice } from "@/lib/commercial/pricing";
+import type { FareId } from "@/lib/commercial/types";
 import { useMemo } from "react";
 import { AppLink, useAppNavigate } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
@@ -5,19 +9,7 @@ import { ArrowRight, Ban, Plane } from "lucide-react";
 import { StatusBadge } from "@/components/flight-status";
 import { btnClass, Code, Container, EmptyState, Notice, Panel, Pill } from "@/components/kit";
 import { useFlightQuery } from "@/lib/repositories";
-import {
-  AIRLINE,
-  addDaysISO,
-  airportByCode,
-  farePrice,
-  flightById,
-  getFlightBookability,
-  isFlightBookable,
-  GZA,
-  minutesToLabel,
-  unbookableReasonLabelKey,
-  type Flight,
-} from "@/lib/data";
+import { AIRLINE, addDaysISO, airportByCode, flightById, getFlightBookability, isFlightBookable, GZA, minutesToLabel, unbookableReasonLabelKey, type Flight } from "@/lib/data";
 import { dateLong, money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
 import { defaultCriteria } from "@/lib/booking-draft";
@@ -82,10 +74,13 @@ function FlightDetail({
   lang: "en" | "ar";
   t: (key: string, vars?: Record<string, string | number>) => string;
 }) {
+  const commercial = useCommercialOptions();
+  const farePrice = (base: number, fare: FareId, cabin: string) => commercial.catalogSnapshot ? commercialFarePrice(commercial.catalogSnapshot, base, fare, cabin) : NaN;
   const navigate = useAppNavigate();
   const { bookingDraft: draftRepo } = useRepositories();
   const from = airportByCode(flight.originCode) ?? GZA;
   const to = airportByCode(flight.destinationCode) ?? GZA;
+  if (!commercial.catalog || commercial.query.isError) return <CommercialCatalogState />;
   const price = farePrice(flight.basePrice, "essential", "economy");
   const routeCode = flight.originCode === GZA.code ? flight.destinationCode : flight.originCode;
 

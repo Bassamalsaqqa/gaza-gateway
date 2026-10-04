@@ -1,16 +1,13 @@
+import { useCommercialOptions } from "@/lib/commercial/queries";
+import { CommercialCatalogState } from "@/components/commercial-catalog-state";
+import { commercialFarePrice } from "@/lib/commercial/pricing";
+import type { FareId } from "@/lib/commercial/types";
 import * as RadioGroupPrimitive from "@radix-ui/react-radio-group";
 import { ArrowRight, Ban, Plane } from "lucide-react";
 import { useMemo } from "react";
 import { Code } from "@/components/kit";
 import { StatusBadge } from "@/components/flight-status";
-import {
-  airportByCode,
-  farePrice,
-  getFlightBookability,
-  minutesToLabel,
-  type Flight,
-  type FlightUnbookableReason,
-} from "@/lib/data";
+import { airportByCode, getFlightBookability, minutesToLabel, type Flight, type FlightUnbookableReason } from "@/lib/data";
 import { unbookableReasonLabelKey } from "@/lib/booking-rules";
 import { money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
@@ -42,6 +39,8 @@ export function FlightOption({
   className,
 }: FlightOptionProps) {
   const { t, lang } = useI18n();
+  const commercial = useCommercialOptions();
+  const farePrice = (base: number, fare: FareId, cabin: string) => commercial.catalogSnapshot ? commercialFarePrice(commercial.catalogSnapshot, base, fare, cabin) : NaN;
   const from = airportByCode(flight.originCode);
   const to = airportByCode(flight.destinationCode);
   const price = farePrice(flight.basePrice, "essential", cabin);
@@ -78,6 +77,7 @@ export function FlightOption({
 
   const { active, recipe } = useSurfaceRecipe("operational", "booking.flight-option");
 
+  if (!commercial.catalog || commercial.query.isError) return <CommercialCatalogState />;
   return (
     <RadioGroupPrimitive.Item
       value={flight.id}
