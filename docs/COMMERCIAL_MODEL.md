@@ -1,6 +1,6 @@
 # Commercial catalog and booking pricing — Phase 6B2A
 
-**Implemented / Awaiting Independent Review**. Production remains owner-deployed Phase 6B1: release `f8c0d0bdc579c5c2719670c8387fa543d8d6a170`, source `bcf284df3f0d7b24ec59372bb038ed9ae1e8c934`.
+**Complete / Accepted Source** (accepted engineering SHA: `1c5e6b6259add7b59199725f6b23324e8d1c58eb`; not deployed yet). Production remains owner-deployed Phase 6B1: release `f8c0d0bdc579c5c2719670c8387fa543d8d6a170`, source `bcf284df3f0d7b24ec59372bb038ed9ae1e8c934`.
 
 ## Authority and persistence
 

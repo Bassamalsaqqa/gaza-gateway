@@ -739,6 +739,12 @@ describe("6B2A integration, preferences and source authority guards", () => {
     assert.doesNotMatch(source, /data\.pricingSnapshot|data\.total\s*[,;]/);
   });
   test("feature docs retain deployed 6B1 truth and explicitly subdivide 6B2", () => {
+    const stalePhrases = [
+      "This feature is not accepted or deployed",
+      "Independent review of Phase 6B2A",
+      "6B2A awaiting review",
+      "commercial product configuration is now repository-backed on the Phase 6B2A feature branch",
+    ];
     for (const file of [
       "README.md",
       "PRODUCT.md",
@@ -747,14 +753,31 @@ describe("6B2A integration, preferences and source authority guards", () => {
       "docs/CANONICAL_REPOSITORIES.md",
       "docs/DATA_FLOW.md",
       "docs/COMMERCIAL_MODEL.md",
+      "docs/SCHEDULE_MODEL.md",
+      "docs/CONTACT_MODEL.md",
+      "docs/CONTENT_MODEL.md",
+      "docs/SETTINGS_MODEL.md",
     ]) {
       const doc = readFileSync(file, "utf8");
-      assert.match(doc, /Phase 6B2A[^]*Implemented \/ Awaiting Independent Review/);
+      assert.match(doc, /Phase 6B2A[^]*Complete \/ Accepted Source/);
+      assert.ok(doc.includes("1c5e6b6259add7b59199725f6b23324e8d1c58eb"));
       assert.ok(doc.includes("gza.commercial.v1"));
       assert.ok(doc.includes("f8c0d0bdc579c5c2719670c8387fa543d8d6a170"));
       assert.ok(doc.includes("bcf284df3f0d7b24ec59372bb038ed9ae1e8c934"));
       assert.match(doc, /Phase 6B2B[^]*Planned \/ Unstarted/);
       assert.match(doc, /Phase 6B2C[^]*Planned \/ Unstarted/);
+      // Scope current acceptance checks to 6B2A status statements. Later phases
+      // and explicitly historical descriptions may still await their own review.
+      const currentStatusLines = doc.split("\n").filter(line =>
+        /Phase 6B2A|Commercial catalog|CommercialCatalogRepository/.test(line) &&
+        !/\bhistorical\b/i.test(line));
+      for (const line of currentStatusLines) {
+        assert.doesNotMatch(line, /Implemented \/ Awaiting (?:Independent )?Review/);
+        for (const phrase of stalePhrases) {
+          assert.ok(!line.includes(phrase), `Expected "${file}" to reconcile current 6B2A status: "${phrase}"`);
+        }
+      }
+      assert.doesNotMatch(doc, /^#{1,6} [^\n]*Phase 6B2A[^\n]*\n\s*\n\*\*Implemented \/ Awaiting (?:Independent )?Review/m);
     }
   });
 });
