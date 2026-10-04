@@ -1,1 +1,0 @@
-import{A as e}from"./index-CrK75LOj.js";var t=e;export{t as component};

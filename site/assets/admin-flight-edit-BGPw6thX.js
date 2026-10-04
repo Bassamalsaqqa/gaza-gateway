@@ -1,0 +1,1 @@
+var e=/^[A-Za-z0-9]{1,10}$/;function t(t){return t.gate.trim()&&!e.test(t.gate.trim())?`gate`:t.revised.trim()&&!/^([01]\d|2[0-3]):[0-5]\d$/.test(t.revised.trim())?`revised`:null}export{t as n,e as t};
