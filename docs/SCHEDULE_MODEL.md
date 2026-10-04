@@ -1,6 +1,6 @@
 # Schedule Model — Phase 6B1
 
-Status: **Implemented / Awaiting Independent Review** on `phase6b1/flight-ops-schedule-persistence`.
+Status: **Complete / Accepted Source** (accepted engineering SHA: `b2e37ba4f7d2b0ae66a444747340acfe818a3832`). This finalization reconciles accepted source onto main and prepares a fresh HostPapa deployment candidate for independent release review and owner deployment. Phase 6B1 is not yet deployed; Phase 6B as a whole remains incomplete.
 
 ## Planning authority
 

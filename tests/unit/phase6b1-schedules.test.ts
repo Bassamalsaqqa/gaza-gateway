@@ -321,7 +321,7 @@ describe("Phase 6B1 — integration and truth boundaries", () => {
     assert.match(route, /aria-describedby/);
     assert.doesNotMatch(route, /err\.message/);
   });
-  it("feature docs preserve production provenance and classify 6B1 as pending review", () => {
+  it("accepted-source docs preserve production provenance and reject stale 6B1 status", () => {
     for (const file of [
       "README.md",
       "roadmap.md",
@@ -329,9 +329,16 @@ describe("Phase 6B1 — integration and truth boundaries", () => {
       "docs/ARCHITECTURE.md",
       "docs/CANONICAL_REPOSITORIES.md",
       "docs/DATA_FLOW.md",
+      "docs/CONTENT_MODEL.md",
+      "docs/SETTINGS_MODEL.md",
+      "docs/CONTACT_MODEL.md",
+      "docs/SCHEDULE_MODEL.md",
     ]) {
       const doc = source(file);
-      assert.match(doc, /Phase 6B1[^]*Implemented \/ Awaiting Independent Review/);
+      assert.match(doc, /Phase 6B1[^]*Complete \/ Accepted Source/);
+      assert.ok(doc.includes("b2e37ba4f7d2b0ae66a444747340acfe818a3832"));
+      assert.doesNotMatch(doc, /Implemented \/ Awaiting (?:Independent )?Review/);
+      assert.doesNotMatch(doc, /6B1 awaiting independent review|no new release or deployment is performed/);
       assert.match(doc, /Phase 6B2[^]*Planned \/ Unstarted/);
       assert.ok(doc.includes("b5cff4db4b6e087907a9733ffd841880439fbfdb"));
       assert.ok(doc.includes("2ae1a876018992649074cbed1ebf0560e4da03ff"));
