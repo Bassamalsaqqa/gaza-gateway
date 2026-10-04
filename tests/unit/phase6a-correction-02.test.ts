@@ -202,12 +202,12 @@ describe("Phase 6A Correction 02 — truthful commercial presentation", () => {
     // Phase 6B/6C/7/7B remain Planned / Unstarted
     assert.ok(/Phase 6B2[^.]+Planned \/ Unstarted/.test(doc));
   });
-  test("authoritative current-status blocks record owner-deployed Phase 6A without stale candidate wording", () => {
+  test("authoritative current-status blocks preserve historical Phase 6A and current owner deployment", () => {
     // Scope current metadata, status tables and checkpoint paragraphs, not historical audits.
     const currentBlocks = (doc: string) => doc.split(/\r?\n/).filter((line) =>
       /^> \*\*(?:Engineering Status|Current Status|Document Status|Status|Production \/ Source Checkpoint|Immediate Next Step)\*\*:/.test(line) ||
       /^\|.*Phase 6A/.test(line) ||
-      /^Phase 6A — Admin Commercial Desk Convergence — is Complete/.test(line) ||
+      /^Phase 6(?:A — Admin Commercial Desk Convergence|B1 — Dated Flight Operations & Recurring Schedule Persistence) — is Complete/.test(line) ||
       /^Phase 5D is Complete/.test(line) ||
       /^- \*\*(?:Master Roadmap Progression|Current Production \/ Source Checkpoint)\*\*:/.test(line),
     ).join("\n");
@@ -236,8 +236,8 @@ describe("Phase 6A Correction 02 — truthful commercial presentation", () => {
       const current = currentBlocks(doc);
       assert.ok(current.includes("Complete / Accepted Source / Accepted Release / Deployed by Owner"), path);
       assert.ok(current.includes("59e2e0ce9b56bc492d7c7a2bfc5a0df15fd58fea"), path);
-      assert.ok(current.includes("Current owner-deployed production release: `b5cff4db4b6e087907a9733ffd841880439fbfdb`"), path);
-      assert.ok(current.includes("deployed runtime source: `2ae1a876018992649074cbed1ebf0560e4da03ff`"), path);
+      assert.ok(current.includes("Current owner-deployed production release: `f8c0d0bdc579c5c2719670c8387fa543d8d6a170`"), path);
+      assert.ok(current.includes("deployed runtime source: `bcf284df3f0d7b24ec59372bb038ed9ae1e8c934`"), path);
       assert.ok(current.includes("Deployment is confirmed by the product owner."), path);
       assert.ok(current.includes("no independent live-browser verification from the ChatGPT environment is claimed"), path);
       assert.ok(current.includes("Phase 5D is a historical completed phase"), path);

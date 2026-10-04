@@ -1,6 +1,6 @@
 # Schedule Model — Phase 6B1
 
-Status: **Complete / Accepted Source** (accepted engineering SHA: `b2e37ba4f7d2b0ae66a444747340acfe818a3832`). This finalization reconciles accepted source onto main and prepares a fresh HostPapa deployment candidate for independent release review and owner deployment. Phase 6B1 is not yet deployed; Phase 6B as a whole remains incomplete.
+Status: **Complete / Accepted Source / Accepted Release / Deployed by Owner** (accepted engineering SHA: `b2e37ba4f7d2b0ae66a444747340acfe818a3832`). Phase 6B1 is the current owner-confirmed production checkpoint: release `f8c0d0bdc579c5c2719670c8387fa543d8d6a170`, deployed source `bcf284df3f0d7b24ec59372bb038ed9ae1e8c934`. Git/source/release provenance was independently reviewed before deployment; no independent ChatGPT live-browser verification is claimed. Phase 6B as a whole remains incomplete.
 
 ## Planning authority
 
@@ -24,7 +24,7 @@ Async list/getById/create/update/remove/subscribe. Reads return detached snapsho
 
 Only Schedules were extracted from mixed OpsState. Aircraft/seat maps/fares/baggage/meals/assistance/destinations remain session-only. Public product/destination data remain compiled reference authority. No gza.ops.v1, backend, database, SMTP, payment or GDS. No booking migration or flight-ID change.
 
-Phase 6B2 — Network, Fleet & Sellable Product Authority — Planned / Unstarted. Phase 6C/7/7B — Planned / Unstarted. Owner-deployed Phase 6A release remains `b5cff4db4b6e087907a9733ffd841880439fbfdb`, runtime source `2ae1a876018992649074cbed1ebf0560e4da03ff`.
+Phase 6B2 — Network, Fleet & Sellable Product Authority — Planned / Unstarted. Phase 6C/7/7B — Planned / Unstarted. Historical owner-deployed Phase 6A release was `b5cff4db4b6e087907a9733ffd841880439fbfdb`, runtime source `2ae1a876018992649074cbed1ebf0560e4da03ff`.
 
 AdminProvider owns staff session / RBAC simulation and the remaining session-only mixed product/destination OpsState. It does not own or proxy canonical flight overrides. Admin Flight List, Flight Detail, Dashboard and shared Quick Edit use FlightRepository query/mutation hooks directly; FlightRepository is the dated/effective-flight authority. ScheduleRepository is separate planning-only authority.
 

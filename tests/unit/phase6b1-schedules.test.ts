@@ -321,7 +321,7 @@ describe("Phase 6B1 — integration and truth boundaries", () => {
     assert.match(route, /aria-describedby/);
     assert.doesNotMatch(route, /err\.message/);
   });
-  it("accepted-source docs preserve production provenance and reject stale 6B1 status", () => {
+  it("owner-deployed docs preserve production provenance and reject stale 6B1 status", () => {
     for (const file of [
       "README.md",
       "roadmap.md",
@@ -335,10 +335,13 @@ describe("Phase 6B1 — integration and truth boundaries", () => {
       "docs/SCHEDULE_MODEL.md",
     ]) {
       const doc = source(file);
-      assert.match(doc, /Phase 6B1[^]*Complete \/ Accepted Source/);
+      assert.match(doc, /Phase 6B1[^]*Complete \/ Accepted Source \/ Accepted Release \/ Deployed by Owner/);
       assert.ok(doc.includes("b2e37ba4f7d2b0ae66a444747340acfe818a3832"));
       assert.doesNotMatch(doc, /Implemented \/ Awaiting (?:Independent )?Review/);
       assert.doesNotMatch(doc, /6B1 awaiting independent review|no new release or deployment is performed/);
+      assert.doesNotMatch(doc, /not yet deployed|then owner deployment|production remains Phase 6A|Phase 6B1 (?:HostPapa )?deployment candidate/i);
+      assert.ok(doc.includes("f8c0d0bdc579c5c2719670c8387fa543d8d6a170"));
+      assert.ok(doc.includes("bcf284df3f0d7b24ec59372bb038ed9ae1e8c934"));
       assert.match(doc, /Phase 6B2[^]*Planned \/ Unstarted/);
       assert.ok(doc.includes("b5cff4db4b6e087907a9733ffd841880439fbfdb"));
       assert.ok(doc.includes("2ae1a876018992649074cbed1ebf0560e4da03ff"));
