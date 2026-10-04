@@ -4,7 +4,7 @@ import { BookingDetail } from "@/components/booking/booking-detail";
 import { btnClass, EmptyState, GazaLoadingState } from "@/components/kit";
 import { useI18n } from "@/lib/i18n";
 import { bookingBelongsToAccount, usePassengerAccount } from "@/lib/passenger";
-import { useBookingQuery, useUpdateBookingMutation } from "@/lib/repositories/queries";
+import { useBookingQuery, useCancelBookingMutation } from "@/lib/repositories/queries";
 
 export const Route = createFileRoute("/{-$locale}/account/trips/$ref")({
   head: ({ params }) => ({
@@ -23,7 +23,7 @@ function TripDetailPage() {
   const { t } = useI18n();
   const { data: account, isLoading: accountLoading } = usePassengerAccount();
   const { data: booking, isLoading: bookingLoading } = useBookingQuery(ref);
-  const updateMutation = useUpdateBookingMutation();
+  const cancelMutation = useCancelBookingMutation();
 
   if (accountLoading || bookingLoading) {
     return <GazaLoadingState />;
@@ -56,7 +56,7 @@ function TripDetailPage() {
       <BookingDetail
         booking={booking}
         onCancel={async () => {
-          await updateMutation.mutateAsync({ ref: booking.ref, patch: { status: "cancelled" } });
+          await cancelMutation.mutateAsync({ ref: booking.ref });
         }}
       />
     </div>

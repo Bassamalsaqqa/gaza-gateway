@@ -58,9 +58,6 @@ export interface BookingRepository {
    */
   undoCheckIn(input: UndoCheckInCommandInput): Promise<Booking>;
 
-  /** Updates fields on an existing booking (generic internal/admin method). */
-  update(ref: string, patch: Partial<Booking>): Promise<Booking | null>;
-
   /** Marks specific passenger indices as checked in on the given leg (generic internal method). */
   checkIn(ref: string, leg: Leg, paxIndexes: number[]): Promise<Booking | null>;
 

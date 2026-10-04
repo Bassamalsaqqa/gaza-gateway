@@ -54,7 +54,10 @@ export class LocalPassengerRepository implements PassengerRepository {
       throw new Error("Invalid email address for passenger identity.");
     }
 
-    const catalog = await this.commercial.get();
+    // Existing identity adoption must not depend on current catalog health.
+    const account = this.coordinator.getAccount();
+    const sameAccount = account && normalizeEmailIdentity(account.email) === cleanEmail;
+    const catalog = sameAccount ? null : await this.commercial.get();
     return this.coordinator.mutate((state) => {
       const existing = state.account;
 
@@ -69,6 +72,9 @@ export class LocalPassengerRepository implements PassengerRepository {
         return { ...updated };
       }
 
+      // If identity changed while this command was pending, retry rather than
+      // invent a default or mutate the replacement account without a catalog.
+      if (!catalog) throw new CommercialCatalogError("catalog_unavailable");
       // New local account creation
       const created: PassengerAccount = {
         email: cleanEmail,

@@ -29,3 +29,11 @@ Names and service labels resolve through the current catalog including retired r
 Admin Products Fares/Baggage/Meals/Assistance and cabin pricing are commercial.edit mutations; commercial.view can inspect. Field validation is localized/associated; storage failure is a general alert and preserves editor input. Aircraft and seat maps remain session-only OpsState, with disclosure that they reset on reload and do not govern passenger geometry. Destinations remain session-only. No gza.ops.v1, backend, network changes, schedule materialization, flight-ID changes, release or deployment. Phase 6B2B/6B2C/6C/7/7B remain Planned / Unstarted.
 
 Phase 6B2B — Fleet & Seat Layout Authority (Planned / Unstarted). Phase 6B2C — Network & Dated-Service Materialization (Planned / Unstarted).
+
+## Correction 01 command boundaries
+
+Committed submission replay is checked against canonical booking state before any catalog dependency, and repeated inside the conditional transaction. Both replay paths avoid writes and notifications. First-time submissions still require a healthy current catalog.
+
+Booking exposes typed product commands; the generic Partial<Booking> update, React Query hook and StoreProvider writer are removed. Account Trip cancellation uses cancel() while preserving account ownership checks. A successful legacy claim seals its frozen pricing basis; rejected/idempotent claims remain no-write.
+
+Existing normalized passenger identity adoption preserves meal preference without requiring the commercial catalog. New account creation still requires its active default meal. Home/standard flight search catches draft-reset failures, preserves criteria and prior draft, shows localized catalog/storage retry feedback and navigates only after success. No compiled default is substituted.

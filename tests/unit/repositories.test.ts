@@ -468,7 +468,7 @@ describe("Canonical Repositories & Domain Layer", () => {
       assert.equal(isPaxCheckedIn(checked, "out", 0), true);
 
       // Update booking to cancelled
-      const updated = await repo.update("GZANEW01", { status: "cancelled" });
+      const updated = await repo.cancel("GZANEW01");
       assert.equal(updated.status, "cancelled");
 
       // Verify check-in is rejected when booking is cancelled
@@ -643,9 +643,7 @@ describe("Canonical Repositories & Domain Layer", () => {
       assert.equal(overrideBefore?.gate, "B2");
 
       // 2. Update seed booking GZA4TQ
-      const updatedBooking = await repos.booking.update("GZA4TQ", {
-        contact: { email: "updated-email@example.com", phone: "+970599112233" },
-      });
+      const updatedBooking = await repos.booking.updateContact("GZA4TQ", { email: "updated-email@example.com", phone: "+970599112233" });
       assert.ok(updatedBooking);
       assert.equal(updatedBooking?.contact.email, "updated-email@example.com");
 
@@ -674,9 +672,7 @@ describe("Canonical Repositories & Domain Layer", () => {
       const flightId = "PS100-2026-10-15-out";
 
       // 1. Update seed booking GZA4TQ
-      const updatedBooking = await repos.booking.update("GZA4TQ", {
-        status: "cancelled",
-      });
+      const updatedBooking = await repos.booking.cancel("GZA4TQ");
       assert.ok(updatedBooking);
       assert.equal(updatedBooking?.status, "cancelled");
 
@@ -727,7 +723,7 @@ describe("Canonical Repositories & Domain Layer", () => {
       assert.ok(flightNotified >= 1);
 
       // Mutate booking
-      await repos.booking.update("GZA4TQ", { seats: { "out-0": "1A" } });
+      await repos.booking.updateContact("GZA4TQ", { email: "notification@example.ps", phone: "" });
       assert.ok(bookingNotified >= 1);
     });
   });
@@ -1197,7 +1193,7 @@ describe("Canonical Repositories & Domain Layer", () => {
 
       await assert.rejects(
         async () => {
-          await repos.booking.update("GZA4TQ", { status: "cancelled" });
+          await repos.booking.cancel("GZA4TQ");
         },
         (err: unknown) => {
           assert.ok(err instanceof StorageCommitError);
@@ -1212,7 +1208,7 @@ describe("Canonical Repositories & Domain Layer", () => {
 
       // Recovery on retry
       failingStorage.shouldFail = false;
-      const updated = await repos.booking.update("GZA4TQ", { status: "cancelled" });
+      const updated = await repos.booking.cancel("GZA4TQ");
       assert.equal(updated?.status, "cancelled");
       assert.equal(bookingNotified, 1);
 

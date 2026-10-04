@@ -1,5 +1,5 @@
 import { LocalPassengerRepository } from "../../src/lib/passenger/repository.ts";
-import { PassengerStorageCoordinator } from "../../src/lib/passenger/storage.ts";
+import { PassengerStorageCoordinator, StorageCommitError as PassengerStorageCommitError } from "../../src/lib/passenger/storage.ts";
 import { commercialCatalogKeys } from "../../src/lib/commercial/keys.ts";
 import { LocalBookingDraftRepository } from "../../src/lib/booking-draft/repository.ts";
 import { describe, test } from "node:test";
@@ -722,19 +722,15 @@ describe("6B2A integration, preferences and source authority guards", () => {
       .split("export function useClearBookingDraftMutation")[0]!;
     assert.doesNotMatch(resetQuery, /"standard"|emptyPaxExtras/);
   });
-  test("legacy generic update cannot replace a committed historical pricing snapshot", async () => {
+  test("no generic writer can replace a committed historical pricing snapshot", async () => {
     const r = bookingRig();
     const created = await r.booking.create(candidate());
-    const forged = { ...created.pricingSnapshot!, fareMultiplier: 7, extraBagPrice: 999 };
-    const updated = await r.booking.update(created.ref, {
-      pricingSnapshot: forged,
-      contact: { email: "changed@example.ps", phone: "" },
-    });
-    assert.deepEqual(updated?.pricingSnapshot, created.pricingSnapshot);
-    assert.deepEqual(
-      (await r.booking.getByRef(created.ref))?.pricingSnapshot,
-      created.pricingSnapshot,
-    );
+    const before = r.storage.getItem(REPO_STORAGE_KEY);
+    const api = r.booking as unknown as { update?: (ref: string, patch: unknown) => unknown };
+    assert.equal(api.update, undefined);
+    assert.throws(() => api.update!(created.ref, { pricingSnapshot: { ...created.pricingSnapshot!, fareMultiplier: 7 } }), TypeError);
+    assert.equal(r.storage.getItem(REPO_STORAGE_KEY), before);
+    assert.deepEqual((await r.booking.getByRef(created.ref))?.pricingSnapshot, created.pricingSnapshot);
   });
   test("booking mutations resolve historical basis and never trust caller pricing snapshot", () => {
     const source = readFileSync("src/lib/repositories/booking-repository.ts", "utf8");
@@ -760,5 +756,150 @@ describe("6B2A integration, preferences and source authority guards", () => {
       assert.match(doc, /Phase 6B2B[^]*Planned \/ Unstarted/);
       assert.match(doc, /Phase 6B2C[^]*Planned \/ Unstarted/);
     }
+  });
+});
+
+
+describe("6B2A Correction 01 command failure isolation", () => {
+  test("committed submission replay survives corrupt catalog without writes, events or another PNR", async () => {
+    const r = bookingRig();
+    let bookingEvents = 0;
+    r.booking.subscribe(() => bookingEvents++);
+    const input = candidate();
+    const created = await r.booking.create(input);
+    const bookingRaw = r.storage.getItem(REPO_STORAGE_KEY);
+    r.storage.setItem(COMMERCIAL_STORAGE_KEY, "{corrupt");
+    const baseline = r.counts();
+    const events = bookingEvents;
+    const replay = await r.booking.create(input);
+    assert.deepEqual(replay, created);
+    assert.equal(r.storage.getItem(REPO_STORAGE_KEY), bookingRaw);
+    assert.deepEqual(r.counts(), baseline);
+    assert.equal(bookingEvents, events);
+    assert.equal((await r.booking.list()).length, 1);
+    assert.equal(r.storage.getItem(COMMERCIAL_STORAGE_KEY), "{corrupt");
+  });
+  test("committed replay reads fresh canonical state even in a stale repository instance", async () => {
+    const r = bookingRig();
+    const stale = new LocalBookingRepository(new RepoStorageCoordinator({ storage: r.storage }), { commercial: r.repo });
+    const created = await r.booking.create(candidate());
+    r.storage.setItem(COMMERCIAL_STORAGE_KEY, "{corrupt");
+    const before = r.counts();
+    assert.deepEqual(await stale.create(candidate()), created);
+    assert.deepEqual(r.counts(), before);
+  });
+  test("new submission with corrupt catalog fails closed without booking writes or events", async () => {
+    const r = bookingRig();
+    await r.booking.create(candidate());
+    r.storage.setItem(COMMERCIAL_STORAGE_KEY, "{corrupt");
+    let events = 0; r.booking.subscribe(() => events++);
+    const raw = r.storage.getItem(REPO_STORAGE_KEY), counts = r.counts();
+    await assert.rejects(r.booking.create({ ...candidate(), submissionId: "brand-new" }),
+      e => e instanceof CommercialCatalogError && e.reason === "catalog_unavailable");
+    assert.equal(r.storage.getItem(REPO_STORAGE_KEY), raw);
+    assert.deepEqual(r.counts(), counts); assert.equal(events, 0);
+  });
+  test("transactional guard keeps concurrent first submissions to one write/event and PNR", async () => {
+    const r = bookingRig(); let events = 0; r.booking.subscribe(() => events++);
+    const before = r.counts();
+    const [a,b] = await Promise.all([r.booking.create(candidate()), r.booking.create(candidate())]);
+    assert.deepEqual(a,b); assert.equal((await r.booking.list()).length,1);
+    assert.equal(r.counts().writes-before.writes,1); assert.equal(events,1);
+  });
+  test("generic booking patch APIs are absent and cannot alter any canonical commercial facts", async () => {
+    const r = bookingRig(); const created = await r.booking.create(candidate());
+    const raw = r.storage.getItem(REPO_STORAGE_KEY); let events = 0; r.booking.subscribe(() => events++);
+    const api = r.booking as unknown as {update?: (ref:string, patch:unknown)=>unknown};
+    for (const field of ["total","fareId","criteria","pricingSnapshot","seats","extras","checkedIn","outbound","inbound","status","channel","createdAt"]) {
+      assert.equal(api.update,undefined);
+      assert.throws(()=>api.update!(created.ref,{[field]:"forged"}),TypeError);
+    }
+    assert.equal(r.storage.getItem(REPO_STORAGE_KEY),raw); assert.equal(events,0);
+    assert.deepEqual(await r.booking.getByRef(created.ref),created);
+    for (const file of ["src/lib/repositories/types.ts","src/lib/repositories/booking-repository.ts","src/lib/repositories/queries.ts","src/lib/store.tsx"]) {
+      const source = readFileSync(file,"utf8");
+      assert.doesNotMatch(source,/Partial<Booking>|useUpdateBookingMutation|updateBooking:/);
+    }
+    const trip = readFileSync("src/routes/{-$locale}.account.trips.$ref.tsx","utf8");
+    assert.match(trip,/useCancelBookingMutation/); assert.match(trip,/bookingBelongsToAccount/);
+    assert.doesNotMatch(trip,/useUpdateBookingMutation|patch:\s*\{/);
+  });
+  test("existing normalized passenger sign-in preserves preference/names without a catalog read", async () => {
+    const r = storageRig();
+    await r.repo.setDefaultMeal("vegetarian");
+    const coordinator = new PassengerStorageCoordinator({ storage: r.storage });
+    let reads=0;
+    const commercial = Object.create(r.repo) as typeof r.repo;
+    commercial.get=async()=>{reads++;return r.repo.get();};
+    const passenger = new LocalPassengerRepository(coordinator,commercial);
+    const first = await passenger.signIn("Existing@Example.ps","First","Last");
+    assert.equal(first.mealPreference,"vegetarian"); const initialReads=reads;
+    r.storage.setItem(COMMERCIAL_STORAGE_KEY,"{corrupt");
+    const again = await passenger.signIn("  EXISTING@example.ps  "," Renamed ");
+    assert.equal(again.email,"existing@example.ps"); assert.equal(again.firstName,"Renamed");
+    assert.equal(again.lastName,"Last"); assert.equal(again.mealPreference,"vegetarian");
+    assert.equal(reads,initialReads); assert.equal(r.storage.getItem(COMMERCIAL_STORAGE_KEY),"{corrupt");
+  });
+  test("genuinely new passenger identity still fails closed on unavailable catalog", async () => {
+    const r=storageRig();const coordinator=new PassengerStorageCoordinator({storage:r.storage});
+    const passenger=new LocalPassengerRepository(coordinator,r.repo);
+    const old=await passenger.signIn("existing@example.ps");
+    r.storage.setItem(COMMERCIAL_STORAGE_KEY,"{corrupt");
+    const raw=r.storage.getItem("gza.passenger.v1");let events=0;passenger.subscribe(()=>events++);
+    await assert.rejects(passenger.signIn("different@example.ps"),e=>e instanceof CommercialCatalogError && e.reason==="catalog_unavailable");
+    assert.deepEqual(await passenger.getAccount(),old);assert.equal(r.storage.getItem("gza.passenger.v1"),raw);assert.equal(events,0);
+    const source=readFileSync("src/routes/{-$locale}.signin.tsx","utf8");
+    assert.match(source,/catch\s*\{\s*setError\(t\("error.saveFailed"\)\)/);
+    assert.doesNotMatch(source,/setError\([^)]*\.message/);
+  });
+  test("existing account adoption retains storage rollback semantics", async()=>{
+    const r=storageRig();const passenger=new LocalPassengerRepository(new PassengerStorageCoordinator({storage:r.storage}),r.repo);
+    const old=await passenger.signIn("existing@example.ps","Original");
+    r.storage.setItem(COMMERCIAL_STORAGE_KEY,"{corrupt");r.fail();let events=0;passenger.subscribe(()=>events++);
+    await assert.rejects(passenger.signIn("existing@example.ps","Changed"),PassengerStorageCommitError);
+    assert.deepEqual(await passenger.getAccount(),old);assert.equal(events,0);
+  });
+  test("draft reset catalog failure preserves canonical draft, identity and no-notification state", async()=>{
+    const r=storageRig();const draft=new LocalBookingDraftRepository({storage:r.storage},r.repo);
+    await draft.resetDraft(candidate().criteria);const previous=draft.getState();
+    const raw=r.storage.getItem("gza.booking.draft.v1");let events=0;draft.subscribe(()=>events++);
+    r.storage.setItem(COMMERCIAL_STORAGE_KEY,"{corrupt");
+    await assert.rejects(draft.resetDraft({...candidate().criteria,adults:2}),e=>e instanceof CommercialCatalogError && e.reason==="catalog_unavailable");
+    assert.deepEqual(draft.getState(),previous);assert.equal(r.storage.getItem("gza.booking.draft.v1"),raw);assert.equal(events,0);
+    const source=readFileSync("src/components/flight-search-form.tsx","utf8");
+    assert.match(source,/catch \(failure\) \{\s*setSubmissionError\(t\(catalogErrorKey\(failure\)\)\);\s*return;/);
+    assert.match(source,/error \?\? submissionError/);assert.match(source,/role="alert"/);
+  });
+  test("successful legacy claim seals frozen basis without repricing; repeated claim is no-write",async()=>{
+    const r=bookingRig();const created=await r.booking.create(candidate());
+    const legacy={...created};delete legacy.pricingSnapshot;
+    r.storage.setItem(REPO_STORAGE_KEY,JSON.stringify({schemaVersion:1,bookings:[legacy],flightOverrides:{}}));
+    const booking=new LocalBookingRepository(new RepoStorageCoordinator({storage:r.storage}),{commercial:r.repo});
+    assert.equal((await booking.getByRef(created.ref))?.pricingSnapshot,undefined);
+    const counts=r.counts();let events=0;booking.subscribe(()=>events++);
+    const claimed=await booking.claim(created.ref,created.contact.email);
+    assert.equal(claimed.status,"claimed");if(claimed.status!=="claimed")throw new Error("expected claim");
+    assert.equal(claimed.booking.total,created.total);
+    assert.deepEqual(claimed.booking.pricingSnapshot,legacyPricingBasis(created.fareId,created.criteria.cabin));
+    assert.equal(r.counts().writes-counts.writes,1);assert.equal(events,1);
+    const raw=r.storage.getItem(REPO_STORAGE_KEY),after=r.counts();
+    assert.equal((await booking.claim(created.ref,created.contact.email)).status,"already-owned-by-user");
+    assert.equal(r.storage.getItem(REPO_STORAGE_KEY),raw);assert.deepEqual(r.counts(),after);assert.equal(events,1);
+  });
+  test("unsuccessful legacy claim outcomes never seal or write a snapshot",async()=>{
+    const r=bookingRig();const created=await r.booking.create(candidate());
+    const legacy={...created};delete legacy.pricingSnapshot;
+    r.storage.setItem(REPO_STORAGE_KEY,JSON.stringify({schemaVersion:1,bookings:[legacy],flightOverrides:{}}));
+    const booking=new LocalBookingRepository(new RepoStorageCoordinator({storage:r.storage}),{commercial:r.repo});
+    let events=0;booking.subscribe(()=>events++);let raw=r.storage.getItem(REPO_STORAGE_KEY),counts=r.counts();
+    assert.equal((await booking.claim(created.ref,"other@example.ps")).status,"contact-mismatch");
+    assert.equal((await booking.claim("missing",created.contact.email)).status,"not-found");
+    assert.equal(r.storage.getItem(REPO_STORAGE_KEY),raw);assert.deepEqual(r.counts(),counts);assert.equal(events,0);
+    legacy.ownerEmail="owner@example.ps";
+    r.storage.setItem(REPO_STORAGE_KEY,JSON.stringify({schemaVersion:1,bookings:[legacy],flightOverrides:{}}));
+    raw=r.storage.getItem(REPO_STORAGE_KEY);counts=r.counts();
+    assert.equal((await booking.claim(created.ref,"other@example.ps")).status,"owned-by-another");
+    assert.equal((await booking.claim(created.ref,"owner@example.ps")).status,"already-owned-by-user");
+    assert.equal(r.storage.getItem(REPO_STORAGE_KEY),raw);assert.deepEqual(r.counts(),counts);assert.equal(events,0);
   });
 });

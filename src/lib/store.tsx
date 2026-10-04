@@ -101,7 +101,6 @@ type StoreValue = {
     },
   ) => Promise<Booking>;
   checkInLeg: (ref: string, leg: Leg, paxIndexes: number[]) => Promise<void>;
-  updateBooking: (ref: string, patch: Partial<Booking>) => Promise<void>;
   findBooking: (ref: string) => Booking | undefined;
 };
 
@@ -221,20 +220,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [bookingRepo],
   );
 
-  const updateBooking = useCallback(
-    async (ref: string, patch: Partial<Booking>) => {
-      const updated = await bookingRepo.update(ref, patch);
-      if (updated) {
-        setBookings((prev) =>
-          prev.map((b) =>
-            b.ref.toUpperCase() === updated.ref.toUpperCase() ? updated : b,
-          ),
-        );
-      }
-    },
-    [bookingRepo],
-  );
-
   const findBooking = useCallback(
     (ref: string) => bookings.find((b) => b.ref.toUpperCase() === ref.trim().toUpperCase()),
     [bookings],
@@ -245,7 +230,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       ready,
       bookings,
       addBooking,
-      updateBooking,
       checkInLeg,
       findBooking,
     }),
@@ -253,7 +237,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       ready,
       bookings,
       addBooking,
-      updateBooking,
       checkInLeg,
       findBooking,
     ],

@@ -93,18 +93,27 @@ export class LocalBookingRepository implements BookingRepository {
   }
 
   public async create(data: BookingCreateInput): Promise<Booking> {
+    // A committed submission is replayed independently of today's commercial catalog.
+    // Read through the coordinator's fresh canonical snapshot without writing/notifying.
+    if (data.submissionId?.trim()) {
+      const committed = this.coordinator.conditionalMutate((state) => ({
+        commit: false,
+        result: state.bookings.find((b) => b.submissionId === data.submissionId),
+      }));
+      if (committed) return structuredClone(committed);
+    }
     // Catalog is sampled at command time; booking snapshot and price commit atomically together.
     const catalog = await this.commercial.get();
     const seatPaxCount =
       (Array.isArray(data.passengers) ? data.passengers : []).filter((p) => p?.type !== "infant").length || 1;
 
     // Atomically mutate coordinator: validates inside transaction against CURRENT shared coordinator flightOverrides
-    return this.coordinator.mutate((state) => {
+    return this.coordinator.conditionalMutate<Booking>((state) => {
       // 1. Idempotency guard: if submissionId was previously committed, return existing booking
-      if (data.submissionId) {
+      if (data.submissionId?.trim()) {
         const existing = state.bookings.find((b) => b.submissionId === data.submissionId);
         if (existing) {
-          return { ...existing };
+          return { commit: false, result: structuredClone(existing) };
         }
       }
 
@@ -289,7 +298,7 @@ export class LocalBookingRepository implements BookingRepository {
       created.total = bookingTotal(created, created.pricingSnapshot).total;
 
       state.bookings = [created, ...state.bookings];
-      return { ...created };
+      return { commit: true, result: { ...created } };
     });
   }
 
@@ -756,29 +765,6 @@ export class LocalBookingRepository implements BookingRepository {
     });
   }
 
-  public async update(ref: string, patch: Partial<Booking>): Promise<Booking | null> {
-    if (!ref || typeof ref !== "string") return null;
-    const clean = ref.trim().toUpperCase();
-
-    return this.coordinator.mutate((state) => {
-      const index = state.bookings.findIndex((b) => b.ref.toUpperCase() === clean);
-      if (index === -1) return null;
-
-      const existing = state.bookings[index];
-      if (!existing) return null;
-
-      const updated: Booking = {
-        ...existing,
-        ...patch,
-        pricingSnapshot: resolveBookingPricing(existing),
-        ref: existing.ref, // PNR is immutable
-      };
-
-      state.bookings[index] = updated;
-      return { ...updated };
-    });
-  }
-
   public async checkIn(ref: string, leg: Leg, paxIndexes: number[]): Promise<Booking | null> {
     if (!ref || typeof ref !== "string") return null;
     const clean = ref.trim().toUpperCase();
@@ -844,6 +830,7 @@ export class LocalBookingRepository implements BookingRepository {
 
       const updated: Booking = {
         ...candidate,
+        pricingSnapshot: resolveBookingPricing(candidate),
         account: true,
         ownerEmail: normalizedClaimEmail,
       };

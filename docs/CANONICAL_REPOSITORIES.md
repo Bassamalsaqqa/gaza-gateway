@@ -124,7 +124,6 @@ export interface BookingRepository {
   list(): Promise<Booking[]>;
   getByRef(ref: string): Promise<Booking | null>;
   create(input: BookingCreateInput): Promise<Booking>;
-  update(ref: string, patch: Partial<Booking>): Promise<Booking | null>;
   cancel(ref: string): Promise<Booking>;
   updateContact(ref: string, contact: Contact): Promise<Booking>;
   updateSeats(ref: string, seats: Record<string, string>): Promise<Booking>;
@@ -263,7 +262,7 @@ Centralized hierarchical query keys in `src/lib/repositories/keys.ts`:
 Canonical repositories own mutations. StoreProvider retains booking compatibility; AdminProvider is a staff/session and permission simulation boundary, not a flight writer or proxy.
 
 1. **`StoreProvider` (`src/lib/store.tsx`)**:
-   - Delegates all booking mutations (`addBooking`, `claimBooking`, `checkInLeg`, `updateBooking`) to `bookingRepo`.
+   - Delegates all booking mutations (`addBooking`, `checkInLeg`; claim and product edits use typed repository commands) to `bookingRepo`.
    - Listens to `bookingRepo.subscribe()` to maintain backward-compatible `bookings` state.
    - Draft, account and saved companion authority belongs to BookingDraftRepository and PassengerRepository; `gza.store.v1` is a read-only migration source.
 2. **`AdminProvider` (`src/lib/admin-store.tsx`)**:

@@ -399,10 +399,10 @@ describe("Phase 5C: Manage, Check-in & Boarding Pass Convergence", () => {
     });
 
     it("updateSeats prevents altering seat of an already checked-in passenger on that leg", async () => {
-      // First check in passenger 0 on outbound leg (currently in 11A)
+      // Set up checked-in passenger 0 on outbound leg (currently in 11A)
       const booking = (await repo.getByRef("GZA-5C01"))!;
       booking.checkedIn.out = [0];
-      await repo.update("GZA-5C01", { checkedIn: booking.checkedIn });
+      coordinator.mutate(state => { state.bookings[0]!.checkedIn = booking.checkedIn; });
 
       // Attempt to change passenger 0's seat on outbound leg to "12B" -> MUST REJECT
       await assert.rejects(
@@ -1682,11 +1682,14 @@ describe("Phase 5C: Manage, Check-in & Boarding Pass Convergence", () => {
 
     it("outbound missing -> new/reassigned seat rejected, complete memory/storage unchanged", async () => {
       // Point the booking to a non-existent flight ID in the catalog
-      await repo.update("GZA-5C01", {
-        outbound: {
-          ...mockOutboundFlight,
-          id: "PS999-2026-10-10-out",
-        },
+      coordinator.mutate(state => {
+        // Fixture setup only: production booking mutations use typed commands.
+        Object.assign(state.bookings[0]!, {
+          outbound: {
+            ...mockOutboundFlight,
+            id: "PS999-2026-10-10-out",
+          },
+        });
       });
 
       const baselineBooking = structuredClone(await repo.getByRef("GZA-5C01"));
@@ -1711,11 +1714,14 @@ describe("Phase 5C: Manage, Check-in & Boarding Pass Convergence", () => {
 
     it("actual removal on missing leg also rejected", async () => {
       // Point the booking to a non-existent flight ID in the catalog
-      await repo.update("GZA-5C01", {
-        outbound: {
-          ...mockOutboundFlight,
-          id: "PS999-2026-10-10-out",
-        },
+      coordinator.mutate(state => {
+        // Fixture setup only: production booking mutations use typed commands.
+        Object.assign(state.bookings[0]!, {
+          outbound: {
+            ...mockOutboundFlight,
+            id: "PS999-2026-10-10-out",
+          },
+        });
       });
 
       const baselineBooking = structuredClone(await repo.getByRef("GZA-5C01"));
@@ -1737,17 +1743,20 @@ describe("Phase 5C: Manage, Check-in & Boarding Pass Convergence", () => {
 
     it("round trip with resolvable outbound and missing inbound -> outbound-only mutation succeeds and inbound stays unchanged; inbound mutation rejects", async () => {
       // Outbound PS100 is in catalog; inbound PS999 is missing from catalog
-      await repo.update("GZA-5C01", {
-        inbound: {
-          ...mockInboundFlight,
-          id: "PS999-2026-10-15-in",
-        },
-        seats: {
-          "out-0": "11A",
-          "out-1": "11B",
-          "in-0": "14A",
-          "in-1": "14B",
-        },
+      coordinator.mutate(state => {
+        // Fixture setup only: production booking mutations use typed commands.
+        Object.assign(state.bookings[0]!, {
+          inbound: {
+            ...mockInboundFlight,
+            id: "PS999-2026-10-15-in",
+          },
+          seats: {
+            "out-0": "11A",
+            "out-1": "11B",
+            "in-0": "14A",
+            "in-1": "14B",
+          },
+        });
       });
 
       // 1. Outbound-only mutation succeeds
@@ -1773,11 +1782,14 @@ describe("Phase 5C: Manage, Check-in & Boarding Pass Convergence", () => {
 
     it("genuine unchanged request on missing leg is non-destructive under the chosen documented rule", async () => {
       // Point the booking to a non-existent flight ID
-      await repo.update("GZA-5C01", {
-        outbound: {
-          ...mockOutboundFlight,
-          id: "PS999-2026-10-10-out",
-        },
+      coordinator.mutate(state => {
+        // Fixture setup only: production booking mutations use typed commands.
+        Object.assign(state.bookings[0]!, {
+          outbound: {
+            ...mockOutboundFlight,
+            id: "PS999-2026-10-10-out",
+          },
+        });
       });
 
       const baselineBooking = structuredClone(await repo.getByRef("GZA-5C01"));
@@ -1851,12 +1863,15 @@ describe("Phase 5C: Manage, Check-in & Boarding Pass Convergence", () => {
 
     it("1. repository-level update with missing canonical outbound and out-00 rejects; complete booking and backing storage unchanged; zero successful notification/write", async () => {
       // Point outbound to missing flight ID in catalog and clear seats
-      await repo.update("GZA-5C01", {
-        outbound: {
-          ...mockOutboundFlight,
-          id: "PS999-2026-10-10-out",
-        },
-        seats: {},
+      coordinator.mutate(state => {
+        // Fixture setup only: production booking mutations use typed commands.
+        Object.assign(state.bookings[0]!, {
+          outbound: {
+            ...mockOutboundFlight,
+            id: "PS999-2026-10-10-out",
+          },
+          seats: {},
+        });
       });
 
       const baselineBooking = structuredClone(await repo.getByRef("GZA-5C01"));

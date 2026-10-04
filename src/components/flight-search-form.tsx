@@ -35,6 +35,7 @@ import {
 import { isSkinPreviewActive } from "@/lib/skin";
 import { isStudioPreviewActive, getStudioScenarioParam } from "@/lib/studio-preview";
 import { cn } from "@/lib/utils";
+import { catalogErrorKey } from "@/lib/commercial/types";
 import ticketWorldMapImg from "@/assets/media/decorative/cards/ticket-world-map.webp";
 
 /* -------------------------------------------------------------------------- */
@@ -78,6 +79,7 @@ export function FlightSearchForm({
   );
   const [minDate, setMinDate] = useState<string>(() => criteria.departDate || "");
   const [error, setError] = useState<string | null>(null);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
 
   useEffect(() => {
     const today = todayISO();
@@ -272,15 +274,21 @@ export function FlightSearchForm({
     if (error) setError(validate(criteria));
   }, [error, criteria, validate]);
 
-  const isSubmitDisabled = isResolving;
+  const isSubmitDisabled = isResolving || resetDraftMutation.isPending;
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (isSubmitDisabled) return;
+    setSubmissionError(null);
     const problem = validate(criteria);
     setError(problem);
     if (problem) return;
-    await resetDraftMutation.mutateAsync({ criteria });
+    try {
+      await resetDraftMutation.mutateAsync({ criteria });
+    } catch (failure) {
+      setSubmissionError(t(catalogErrorKey(failure)));
+      return;
+    }
     const isPreview = isSkinPreviewActive();
     const isStudio = isStudioPreviewActive();
     const scenario = getStudioScenarioParam();
@@ -553,7 +561,7 @@ export function FlightSearchForm({
           </div>
 
           {/* ─── Validation Banner (high contrast over red shell) ─── */}
-          {error ? (
+          {error || submissionError ? (
             <div
               role="alert"
               aria-live="polite"
@@ -562,7 +570,7 @@ export function FlightSearchForm({
                 "flex items-center gap-2 rounded-lg border border-destructive/40 bg-card/95 px-3.5 py-2.5 text-sm font-medium text-destructive shadow-xs",
               )}
             >
-              <span>{error}</span>
+              <span>{error ?? submissionError}</span>
             </div>
           ) : null}
         </div>

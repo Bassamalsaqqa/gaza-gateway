@@ -82,29 +82,6 @@ export function useCreateBookingMutation(): UseMutationResult<Booking, Error, Bo
 }
 
 /**
- * Mutation hook for updating a booking.
- */
-export function useUpdateBookingMutation(): UseMutationResult<
-  Booking | null,
-  Error,
-  { ref: string; patch: Partial<Booking> }
-> {
-  const { booking: bookingRepo } = useRepositories();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ ref, patch }: { ref: string; patch: Partial<Booking> }) =>
-      bookingRepo.update(ref, patch),
-    onSuccess: (updated, variables) => {
-      queryClient.invalidateQueries({ queryKey: bookingKeys.all });
-      if (variables.ref) {
-        queryClient.invalidateQueries({ queryKey: bookingKeys.detail(variables.ref) });
-      }
-    },
-  });
-}
-
-/**
  * Mutation hook for cancelling a booking through the canonical repository.
  */
 export function useCancelBookingMutation(): UseMutationResult<
