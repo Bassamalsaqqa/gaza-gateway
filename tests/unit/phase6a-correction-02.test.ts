@@ -207,7 +207,7 @@ describe("Phase 6A Correction 02 — truthful commercial presentation", () => {
     const currentBlocks = (doc: string) => doc.split(/\r?\n/).filter((line) =>
       /^> \*\*(?:Engineering Status|Current Status|Document Status|Status|Production \/ Source Checkpoint|Immediate Next Step)\*\*:/.test(line) ||
       /^\|.*Phase 6A/.test(line) ||
-      /^Phase 6(?:A — Admin Commercial Desk Convergence|B1 — Dated Flight Operations & Recurring Schedule Persistence) — is Complete/.test(line) ||
+      /^Phase 6(?:A — Admin Commercial Desk Convergence|B1 — Dated Flight Operations & Recurring Schedule Persistence|B2A — Sellable Commercial Catalog & Pricing Authority) — is Complete/.test(line) ||
       /^Phase 5D is Complete/.test(line) ||
       /^- \*\*(?:Master Roadmap Progression|Current Production \/ Source Checkpoint)\*\*:/.test(line),
     ).join("\n");
@@ -236,12 +236,12 @@ describe("Phase 6A Correction 02 — truthful commercial presentation", () => {
       const current = currentBlocks(doc);
       assert.ok(current.includes("Complete / Accepted Source / Accepted Release / Deployed by Owner"), path);
       assert.ok(current.includes("59e2e0ce9b56bc492d7c7a2bfc5a0df15fd58fea"), path);
-      assert.ok(current.includes("Current owner-deployed production release: `f8c0d0bdc579c5c2719670c8387fa543d8d6a170`"), path);
-      assert.ok(current.includes("deployed runtime source: `bcf284df3f0d7b24ec59372bb038ed9ae1e8c934`"), path);
+      assert.ok(current.includes("Current owner-deployed production release: `2751e22be91ad74eacc9213489a57a21baf04807`"), path);
+      assert.ok(current.includes("deployed runtime source: `ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`"), path);
       assert.ok(current.includes("Deployment is confirmed by the product owner."), path);
-      assert.ok(current.includes("no independent live-browser verification from the ChatGPT environment is claimed"), path);
+      assert.ok(/no independent live-browser verification from the ChatGPT/.test(current), path);
       assert.ok(current.includes("Phase 5D is a historical completed phase"), path);
-      assert.ok(doc.includes("Phase 6B2B — Fleet & Seat Layout Authority (Planned / Unstarted)"), path);
+      assert.ok(doc.includes("Phase 6B2B — Fleet Identity, Seat Layout & Booking Seat Authority"), path);
       for (const phrase of stale) assert.ok(!phrase.test(current), `${path}: ${phrase}`);
       assert.ok(doc.includes("Planned / Unstarted"), path);
     }

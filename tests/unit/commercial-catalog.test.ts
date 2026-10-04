@@ -738,12 +738,21 @@ describe("6B2A integration, preferences and source authority guards", () => {
     assert.match(source, /resolveBookingPricing\(existing\)/);
     assert.doesNotMatch(source, /data\.pricingSnapshot|data\.total\s*[,;]/);
   });
-  test("feature docs retain deployed 6B1 truth and explicitly subdivide 6B2", () => {
+  test("feature docs retain deployed 6B2A truth and record 6B2B as next engineering lane", () => {
     const stalePhrases = [
       "This feature is not accepted or deployed",
       "Independent review of Phase 6B2A",
       "6B2A awaiting review",
       "commercial product configuration is now repository-backed on the Phase 6B2A feature branch",
+      "not deployed yet",
+      "not yet deployed",
+      "production remains Phase 6B1",
+      "Phase 6B1, the current production checkpoint",
+      "Phase 6B1 is the current owner-confirmed production checkpoint",
+      "awaiting owner deployment",
+      "The finalized source is the basis for the HostPapa candidate, which requires independent release review and owner deployment",
+      "Final source/release review and owner deployment",
+      "Phase 6B2B — Fleet & Seat Layout Authority",
     ];
     for (const file of [
       "README.md",
@@ -759,18 +768,30 @@ describe("6B2A integration, preferences and source authority guards", () => {
       "docs/SETTINGS_MODEL.md",
     ]) {
       const doc = readFileSync(file, "utf8");
-      assert.match(doc, /Phase 6B2A[^]*Complete \/ Accepted Source/);
-      assert.ok(doc.includes("1c5e6b6259add7b59199725f6b23324e8d1c58eb"));
-      assert.ok(doc.includes("gza.commercial.v1"));
-      assert.ok(doc.includes("f8c0d0bdc579c5c2719670c8387fa543d8d6a170"));
-      assert.ok(doc.includes("bcf284df3f0d7b24ec59372bb038ed9ae1e8c934"));
-      assert.match(doc, /Phase 6B2B[^]*Planned \/ Unstarted/);
+      const productionParagraph = doc.match(/^#{1,6} [^\r\n]*Phase 6B2A[^\r\n]*\r?\n\s*\r?\n([^\r\n]+)/m)?.[1];
+      assert.ok(productionParagraph, `${file}: missing current Phase 6B2A status paragraph`);
+      const currentProduction = productionParagraph.split(/\. Phase 6B1/)[0]!;
+      assert.match(currentProduction, /Complete \/ Accepted Source \/ Accepted Release \/ Deployed by Owner/);
+      for (const sha of [
+        "1c5e6b6259add7b59199725f6b23324e8d1c58eb",
+        "ae8c1e8071cf7f6412247f043e16a3ec2c88bd73",
+        "2751e22be91ad74eacc9213489a57a21baf04807",
+      ]) assert.ok(currentProduction.includes(sha), `${file}: current production provenance missing ${sha}`);
+      assert.ok(doc.includes("1c5e6b6259add7b59199725f6b23324e8d1c58eb"), `Expected "${file}" to cite accepted engineering SHA 1c5e6b6259add7b59199725f6b23324e8d1c58eb`);
+      assert.ok(doc.includes("ae8c1e8071cf7f6412247f043e16a3ec2c88bd73"), `Expected "${file}" to cite deployed runtime source ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`);
+      assert.ok(doc.includes("2751e22be91ad74eacc9213489a57a21baf04807"), `Expected "${file}" to cite owner-deployed release 2751e22be91ad74eacc9213489a57a21baf04807`);
+      assert.ok(doc.includes("gza.commercial.v1"), `Expected "${file}" to cite gza.commercial.v1`);
+      assert.ok(doc.includes("f8c0d0bdc579c5c2719670c8387fa543d8d6a170"), `Expected "${file}" to preserve historical 6B1 release`);
+      assert.ok(doc.includes("bcf284df3f0d7b24ec59372bb038ed9ae1e8c934"), `Expected "${file}" to preserve historical 6B1 runtime source`);
+      assert.ok(doc.includes("Phase 6B2B — Fleet Identity, Seat Layout & Booking Seat Authority"), `Expected "${file}" to record next lane name`);
+      assert.match(doc, /Phase 6B2B[^]*Planned \/ Unstarted \/ Next Engineering Lane/);
       assert.match(doc, /Phase 6B2C[^]*Planned \/ Unstarted/);
       // Scope current acceptance checks to 6B2A status statements. Later phases
       // and explicitly historical descriptions may still await their own review.
-      const currentStatusLines = doc.split("\n").filter(line =>
-        /Phase 6B2A|Commercial catalog|CommercialCatalogRepository/.test(line) &&
-        !/\bhistorical\b/i.test(line));
+      const currentStatusLines = doc.split(/\r?\n/)
+        .filter(line => /Phase 6B2A|Commercial catalog|CommercialCatalogRepository|Current Status|Engineering Status|Production \/ Source Checkpoint|Immediate Next Step/.test(line))
+        .flatMap(line => line.split(/(?<=\.)\s+/))
+        .filter(statement => !/^(?:Phase 6B1 (?:is|remains) a historical|.*\bhistorical (?:record|checkpoint|note):)/i.test(statement));
       for (const line of currentStatusLines) {
         assert.doesNotMatch(line, /Implemented \/ Awaiting (?:Independent )?Review/);
         for (const phrase of stalePhrases) {
@@ -778,6 +799,7 @@ describe("6B2A integration, preferences and source authority guards", () => {
         }
       }
       assert.doesNotMatch(doc, /^#{1,6} [^\n]*Phase 6B2A[^\n]*\n\s*\n\*\*Implemented \/ Awaiting (?:Independent )?Review/m);
+      assert.doesNotMatch(currentProduction, /(?:candidate|awaiting).*?(?:deployment|2751e22)/i);
     }
   });
 });

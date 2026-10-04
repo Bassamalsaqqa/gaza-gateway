@@ -1,6 +1,6 @@
 # Commercial catalog and booking pricing — Phase 6B2A
 
-**Complete / Accepted Source** (accepted engineering SHA: `1c5e6b6259add7b59199725f6b23324e8d1c58eb`; not deployed yet). Production remains owner-deployed Phase 6B1: release `f8c0d0bdc579c5c2719670c8387fa543d8d6a170`, source `bcf284df3f0d7b24ec59372bb038ed9ae1e8c934`.
+**Complete / Accepted Source / Accepted Release / Deployed by Owner**, the current production checkpoint (accepted engineering SHA: `1c5e6b6259add7b59199725f6b23324e8d1c58eb`; deployed runtime source: `ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`; owner-deployed release: `2751e22be91ad74eacc9213489a57a21baf04807`). Phase 6B1 remains a historical completed phase (release `f8c0d0bdc579c5c2719670c8387fa543d8d6a170`, runtime source `bcf284df3f0d7b24ec59372bb038ed9ae1e8c934`).
 
 ## Authority and persistence
 
@@ -26,9 +26,9 @@ Names and service labels resolve through the current catalog including retired r
 
 ## Boundaries
 
-Admin Products Fares/Baggage/Meals/Assistance and cabin pricing are commercial.edit mutations; commercial.view can inspect. Field validation is localized/associated; storage failure is a general alert and preserves editor input. Aircraft and seat maps remain session-only OpsState, with disclosure that they reset on reload and do not govern passenger geometry. Destinations remain session-only. No gza.ops.v1, backend, network changes, schedule materialization, flight-ID changes, release or deployment. Phase 6B2B/6B2C/6C/7/7B remain Planned / Unstarted.
+Admin Products Fares/Baggage/Meals/Assistance and cabin pricing are commercial.edit mutations; commercial.view can inspect. Field validation is localized/associated; storage failure is a general alert and preserves editor input. Aircraft and seat maps remain session-only OpsState, with disclosure that they reset on reload and do not govern passenger geometry. Destinations remain session-only. No gza.ops.v1, backend, network changes, schedule materialization or flight-ID changes; deployment is owner-confirmed. Phase 6B2B is Planned / Unstarted / Next Engineering Lane; Phase 6B2C/6C/7/7B remain Planned / Unstarted.
 
-Phase 6B2B — Fleet & Seat Layout Authority (Planned / Unstarted). Phase 6B2C — Network & Dated-Service Materialization (Planned / Unstarted).
+Phase 6B2B — Fleet Identity, Seat Layout & Booking Seat Authority (Planned / Unstarted / Next Engineering Lane). Phase 6B2C — Network & Dated-Service Materialization (Planned / Unstarted).
 
 ## Correction 01 command boundaries
 
