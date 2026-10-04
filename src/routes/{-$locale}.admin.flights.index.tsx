@@ -331,7 +331,7 @@ function AdminFlightsPage() {
                                   autoFocus
                                   dir="ltr"
                                   value={editingGate.value}
-                                  onChange={(e) => setEditingGate({ ...editingGate, value: e.target.value, error: undefined })}
+                                  onChange={(e) => setEditingGate({ ...editingGate, value: e.target.value, error: undefined, invalid: false })}
                                   onKeyDown={(e) => {
                                     if (e.key === "Enter") handleSaveGate(f.id);
                                     if (e.key === "Escape") setEditingGate(null);
@@ -339,7 +339,7 @@ function AdminFlightsPage() {
                                   className="h-7 w-20 px-1.5 text-xs font-semibold"
                                   aria-label={t("adm.flight.inlineGate", { flight: f.number })}
                                   aria-invalid={editingGate.invalid || undefined}
-                                  aria-describedby={editingGate.invalid ? "gate-validation-error" : undefined}
+                                  aria-describedby={editingGate.invalid ? "gate-error-desktop-" + f.id : undefined}
                                 />
                                 <button
                                   type="button"
@@ -358,7 +358,7 @@ function AdminFlightsPage() {
                                 </button>
                               </div>
                               {editingGate.error ? (
-                                <span id="gate-validation-error" role="alert" className="text-[10px] font-semibold text-status-cancelled">
+                                <span id={"gate-error-desktop-" + f.id} role="alert" className="text-[10px] font-semibold text-status-cancelled">
                                   {editingGate.error}
                                 </span>
                               ) : null}
@@ -496,13 +496,15 @@ function AdminFlightsPage() {
                                   autoFocus
                                   dir="ltr"
                                   value={editingGate.value}
-                                  onChange={(e) => setEditingGate({ ...editingGate, value: e.target.value, error: undefined })}
+                                  onChange={(e) => setEditingGate({ ...editingGate, value: e.target.value, error: undefined, invalid: false })}
                                   onKeyDown={(e) => {
                                     if (e.key === "Enter") handleSaveGate(f.id);
                                     if (e.key === "Escape") setEditingGate(null);
                                   }}
                                   className="h-11 w-20 px-1.5 text-xs font-semibold"
                                   aria-label={t("adm.flight.inlineGate", { flight: f.number })}
+                                  aria-invalid={editingGate.invalid || undefined}
+                                  aria-describedby={editingGate.invalid ? "gate-error-mobile-" + f.id : undefined}
                                 />
                                 <button
                                   type="button"
@@ -520,7 +522,7 @@ function AdminFlightsPage() {
                                 </button>
                               </div>
                               {editingGate.error ? (
-                                <span role="alert" className="text-[10px] font-semibold text-status-cancelled">
+                                <span id={"gate-error-mobile-" + f.id} role="alert" className="text-[10px] font-semibold text-status-cancelled">
                                   {editingGate.error}
                                 </span>
                               ) : null}

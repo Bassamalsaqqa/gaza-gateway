@@ -1,3 +1,4 @@
+import { runPhase6B1Correction01Checks } from "./phase6b1-correction-01.mjs";
 import {runCommercialChecks,counterTestFlight,availableSeat} from "./phase6a-commercial.mjs";
 import { runPhase6B1Checks } from "./phase6b1-operations.mjs";
 import { runCommercialCorrection02Checks } from "./phase6a-correction-02.mjs";
@@ -7748,6 +7749,7 @@ async function runBrowserSmoke() {
     await runCommercialChecks({checkStep,browser,baseUrl});
     await runCommercialCorrection02Checks({checkStep,browser,baseUrl});
     await runPhase6B1Checks({checkStep,browser,baseUrl});
+    await runPhase6B1Correction01Checks({ checkStep, browser, baseUrl });
 
   } finally {
     await browser.close();

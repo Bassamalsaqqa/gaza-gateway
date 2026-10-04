@@ -40,11 +40,11 @@ import { useI18n } from "@/lib/i18n";
 import { dateLong, dateShort } from "@/lib/format";
 import { SEAT_ROWS, SEAT_LETTERS, type FlightStatus } from "@/lib/data";
 import { checkedInPax, seatedPassengers, type Booking } from "@/lib/domain/booking";
-import { useBookingsQuery, useUpdateFlightOverrideMutation } from "@/lib/repositories";
+import { useUpdateFlightOverrideMutation } from "@/lib/repositories";
 import { flightBookingMetrics } from "@/lib/admin-flight-metrics";
 import { pageHead } from "@/lib/head";
 import { cn } from "@/lib/utils";
-import { GATE_IDENTIFIER_PATTERN } from "@/components/admin/flight-quick-edit";
+import { validateFlightEdit } from "@/lib/admin-flight-edit";
 
 const STATUSES: FlightStatus[] = [
   "Scheduled",
@@ -95,7 +95,8 @@ function AdminDashboardPage() {
   const [invalidField, setInvalidField] = useState<"gate" | "revised" | null>(null);
   const data = useDashboardData();
   const [edit, setEdit] = useState<EditState | null>(null);
-  const { data: bookings = [] } = useBookingsQuery();
+  const bookings = data.bookings;
+  const commercialReady = data.commercialStatus === "ready";
 
   const mayOps = can("ops.view");
   const mayCommercial = can("commercial.view");
@@ -119,7 +120,9 @@ function AdminDashboardPage() {
     return { checked, total };
   };
 
-  const openEdit = (flight: OpsFlight) =>
+  const openEdit = (flight: OpsFlight) => {
+    setSaveError(null);
+    setInvalidField(null);
     setEdit({
       flight,
       status: flight.status,
@@ -128,16 +131,25 @@ function AdminDashboardPage() {
       revised: flight.revisedDepart ?? "",
       note: flight.note ?? "",
     });
+  };
 
   const save = async () => {
     if (!edit || !mayEditOps || overrideMutation.isPending) return;
     setSaveError(null);
+    setInvalidField(null);
+    const invalid = validateFlightEdit(edit);
+    if (invalid) {
+      setInvalidField(invalid);
+      setSaveError(t(invalid === "gate" ? "adm.flight.gateError" : "adm.flight.revisedError"));
+      document.getElementById(invalid === "gate" ? "qe-gate" : "qe-revised")?.focus();
+      return;
+    }
     try {
       await overrideMutation.mutateAsync({ flightId: edit.flight.id, patch: {
         status: edit.status,
-        gate: edit.gate,
+        gate: edit.gate.trim(),
         terminal: edit.terminal,
-        revisedDepart: edit.revised,
+        revisedDepart: edit.revised.trim(),
         note: edit.note,
       } });
       toast(t("adm.edit.saved", { flight: edit.flight.number }));
@@ -186,9 +198,11 @@ function AdminDashboardPage() {
     [mayOps, mayCommercial, data.metrics, t],
   );
 
-  const hasIrregularity = (data.metrics.delayed > 0 || data.metrics.cancelled > 0) && mayOps;
+  const hasIrregularity = ((data.metrics.delayed ?? 0) > 0 || (data.metrics.cancelled ?? 0) > 0) && mayOps;
 
-  const operationPanel = (
+  const operationPanel = data.operationsStatus !== "ready" ? (
+    <AdminPanel title={t("adm.dash.operation")}><AdminEmpty title={t(data.operationsStatus === "error" ? "adm.dash.opsError" : "adm.ops.loading")} /></AdminPanel>
+  ) : (
     <AdminPanel
       title={t("adm.dash.operation")}
       description={t("adm.dash.operationSub")}
@@ -278,7 +292,7 @@ function AdminDashboardPage() {
                   )}
                 </GazaTableCell>
                 <GazaTableCell className="px-3 py-2">
-                  <span className="flex items-center gap-2">
+                  {!commercialReady ? <span className="text-xs text-muted-foreground">{t("adm.dash.unavailable")}</span> : <span className="flex items-center gap-2">
                     <span
                       aria-hidden="true"
                       className="h-2 w-16 overflow-hidden rounded-full bg-secondary/80 border border-border/40"
@@ -289,13 +303,13 @@ function AdminDashboardPage() {
                       />
                     </span>
                     <Ltr className="text-xs font-medium text-muted-foreground tabular-nums">{`${loadOf(f, bookings)}/${CAPACITY}`}</Ltr>
-                  </span>
-                  <span className="sr-only">
+                  </span>}
+                  {commercialReady ? <span className="sr-only">
                     {t("adm.flight.loadOf", { n: loadOf(f, bookings), total: CAPACITY })}
-                  </span>
+                  </span> : null}
                 </GazaTableCell>
                 <GazaTableCell className="px-3 py-2">
-                  {checkinFor(f).total === 0 ? (
+                  {!commercialReady ? <span className="text-xs text-muted-foreground">{t("adm.dash.unavailable")}</span> : checkinFor(f).total === 0 ? (
                     <span className="text-xs text-muted-foreground">—</span>
                   ) : (
                     <AdminChip
@@ -357,8 +371,8 @@ function AdminDashboardPage() {
                 ) : (
                   <AdminChip tone="warn">{t("adm.flight.noGate")}</AdminChip>
                 )}
-                <Ltr>{`${loadOf(f, bookings)}/${CAPACITY}`}</Ltr>
-                {ci.total > 0 ? (
+                {commercialReady ? <Ltr>{`${loadOf(f, bookings)}/${CAPACITY}`}</Ltr> : <span>{t("adm.dash.unavailable")}</span>}
+                {commercialReady && ci.total > 0 ? (
                   <AdminChip tone={ci.checked === ci.total ? "brand" : "neutral"}>
                     {t("adm.flight.checkedOf", { n: ci.checked, total: ci.total })}
                   </AdminChip>
@@ -395,7 +409,10 @@ function AdminDashboardPage() {
       className="rounded-xl border border-border bg-card shadow-xs"
       bodyClassName="p-0"
     >
-      {data.attention.length === 0 ? (
+      {(mayOps && data.operationsStatus !== "ready") || (mayCommercial && !commercialReady) ? (
+        <p className="px-3 py-2 text-sm text-muted-foreground">{t("adm.dash.attentionPartial")}</p>
+      ) : null}
+      {data.attention.length === 0 && (!(mayOps && data.operationsStatus !== "ready") && !(mayCommercial && !commercialReady)) ? (
         <AdminEmpty title={t("adm.attn.none")} />
       ) : (
         <ul className="max-h-[26rem] overflow-y-auto divide-y divide-border">
@@ -480,7 +497,9 @@ function AdminDashboardPage() {
     </AdminPanel>
   );
 
-  const recentBookingsPanel = (
+  const recentBookingsPanel = !commercialReady ? (
+    <AdminPanel title={t("adm.dash.recent")}><AdminEmpty title={t(data.commercialStatus === "error" ? "adm.dash.commercialError" : "adm.ops.loading")} /></AdminPanel>
+  ) : (
     <AdminPanel
       title={t("adm.dash.recent")}
       icon={<Ticket className="size-4 text-clay-deep" />}
@@ -677,6 +696,9 @@ function AdminDashboardPage() {
         }
       />
 
+      {mayOps && data.operationsStatus !== "ready" ? <p data-testid="dashboard-ops-state" data-state={data.operationsStatus} role={data.operationsStatus === "error" ? "alert" : "status"} className="rounded-lg border border-border bg-card p-3 text-sm">{t(data.operationsStatus === "error" ? "adm.dash.opsError" : "adm.ops.loading")}</p> : null}
+      {mayCommercial && !commercialReady ? <p data-testid="dashboard-commercial-state" data-state={data.commercialStatus} role={data.commercialStatus === "error" ? "alert" : "status"} className="rounded-lg border border-border bg-card p-3 text-sm">{t(data.commercialStatus === "error" ? "adm.dash.commercialError" : "adm.ops.loading")}</p> : null}
+
       {/* D1. Single operational summary surface (Departures, Arrivals, Bookings, Passengers) */}
       {summaryMetrics.length > 0 ? (
         <section
@@ -699,14 +721,15 @@ function AdminDashboardPage() {
               return (
                 <div
                   key={m.key}
+                  data-testid={"dashboard-metric-" + m.key}
                   className="flex items-center justify-between gap-2.5 p-3 sm:px-5 sm:py-3.5"
                 >
                   <div className="min-w-0 flex-1">
                     <span className="block text-xs font-medium text-muted-foreground leading-snug">
                       {m.label}
                     </span>
-                    <span className="code-id mt-0.5 block text-2xl sm:text-3xl font-bold tracking-tight text-foreground tabular-nums">
-                      {m.value}
+                    <span data-testid={"dashboard-value-" + m.key} className={cn("mt-0.5 block font-bold text-foreground", m.value === null ? "text-sm" : "code-id text-2xl sm:text-3xl tracking-tight tabular-nums")}>
+                      {m.value ?? t((m.key === "dep" || m.key === "arr" ? data.operationsStatus : data.commercialStatus) === "error" ? "adm.dash.unavailable" : "adm.dash.loading")}
                     </span>
                   </div>
                   <div
@@ -727,19 +750,19 @@ function AdminDashboardPage() {
           {hasIrregularity ? (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border bg-sand/30 px-4 py-2 text-xs">
               <span className="font-semibold text-muted-foreground">{t("adm.dash.today")}:</span>
-              {data.metrics.delayed > 0 ? (
+              {(data.metrics.delayed ?? 0) > 0 ? (
                 <span className="inline-flex items-center gap-1 font-medium text-status-delayed">
                   <span className="size-1.5 rounded-full bg-status-delayed" aria-hidden="true" />
                   <span className="tabular-nums">{data.metrics.delayed}</span>{" "}
                   {t("adm.dash.delayed")}
                 </span>
               ) : null}
-              {data.metrics.delayed > 0 && data.metrics.cancelled > 0 ? (
+              {(data.metrics.delayed ?? 0) > 0 && (data.metrics.cancelled ?? 0) > 0 ? (
                 <span aria-hidden="true" className="text-muted-foreground/40">
                   ·
                 </span>
               ) : null}
-              {data.metrics.cancelled > 0 ? (
+              {(data.metrics.cancelled ?? 0) > 0 ? (
                 <span className="inline-flex items-center gap-1 font-medium text-status-cancelled">
                   <span className="size-1.5 rounded-full bg-status-cancelled" aria-hidden="true" />
                   <span className="tabular-nums">{data.metrics.cancelled}</span>{" "}

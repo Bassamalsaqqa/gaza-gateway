@@ -25,3 +25,7 @@ Async list/getById/create/update/remove/subscribe. Reads return detached snapsho
 Only Schedules were extracted from mixed OpsState. Aircraft/seat maps/fares/baggage/meals/assistance/destinations remain session-only. Public product/destination data remain compiled reference authority. No gza.ops.v1, backend, database, SMTP, payment or GDS. No booking migration or flight-ID change.
 
 Phase 6B2 — Network, Fleet & Sellable Product Authority — Planned / Unstarted. Phase 6C/7/7B — Planned / Unstarted. Owner-deployed Phase 6A release remains `b5cff4db4b6e087907a9733ffd841880439fbfdb`, runtime source `2ae1a876018992649074cbed1ebf0560e4da03ff`.
+
+AdminProvider owns staff session / RBAC simulation and the remaining session-only mixed product/destination OpsState. It does not own or proxy canonical flight overrides. Admin Flight List, Flight Detail, Dashboard and shared Quick Edit use FlightRepository query/mutation hooks directly; FlightRepository is the dated/effective-flight authority. ScheduleRepository is separate planning-only authority.
+
+Dashboard operational and commercial repository loading/errors remain unavailable states, not successful empty metrics; independently healthy content/flight/booking panels remain usable. Quick Edit shares gate/time validation and separates field errors from storage failures. Responsive gate editors associate their own visible field errors with unique variant/flight IDs.

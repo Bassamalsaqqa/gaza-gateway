@@ -7,6 +7,7 @@ import { useContactNewCount } from "@/lib/contact";
 import { checkedInPax, seatedPassengers, type Booking } from "@/lib/domain/booking";
 import { dailyBookingMetrics } from "@/lib/admin-flight-metrics";
 import { useFlightsQuery, useBookingsQuery } from "@/lib/repositories";
+import { dashboardReadState, dashboardMetric } from "@/lib/admin-dashboard-state";
 
 export type OpsFlight = Flight & { direction: "dep" | "arr"; note?: string; revisedDepart?: string };
 
@@ -23,16 +24,22 @@ export type AttentionItem = {
 /** Canonical flights/bookings/contact, with explicitly unmigrated compiled content fixtures. */
 export function useDashboardData() {
   const { t } = useI18n();
-  const { data: rawBookings = [] } = useBookingsQuery();
+  const bookingsQuery = useBookingsQuery();
+  const commercialStatus = dashboardReadState(bookingsQuery);
   const { can } = useAdmin();
   const { data: newContactCount = 0 } = useContactNewCount();
   const today = todayISO();
 
   // Canonical flights from FlightRepository (overrides already composed)
-  const { data: depFlights = [] } = useFlightsQuery(today, "dep");
-  const { data: arrFlights = [] } = useFlightsQuery(today, "arr");
+  const departuresQuery = useFlightsQuery(today, "dep");
+  const arrivalsQuery = useFlightsQuery(today, "arr");
+  const operationsStatus = dashboardReadState(departuresQuery, arrivalsQuery);
 
   return useMemo(() => {
+    // Unavailable arrays are only internal iteration guards, never successful zero metrics.
+    const depFlights = operationsStatus === "ready" ? departuresQuery.data ?? [] : [];
+    const arrFlights = operationsStatus === "ready" ? arrivalsQuery.data ?? [] : [];
+    const rawBookings = commercialStatus === "ready" ? bookingsQuery.data ?? [] : [];
     const departures: OpsFlight[] = depFlights.map((f) => ({ ...f, direction: "dep" as const }));
     const arrivals: OpsFlight[] = arrFlights.map((f) => ({ ...f, direction: "arr" as const }));
     const operation = [...departures, ...arrivals].sort((a, b) =>
@@ -145,19 +152,22 @@ export function useDashboardData() {
 
     return {
       today,
+      operationsStatus,
+      commercialStatus,
+      bookings,
       operation,
       departures,
       arrivals,
       delayed,
       cancelled,
       metrics: {
-        departures: departures.length,
-        arrivals: arrivals.length,
-        bookingsToday: daily.bookingsToday,
-        passengersTravelling: daily.passengersTravelling,
-        passengersCheckedIn: daily.passengersCheckedIn,
-        delayed: delayed.length,
-        cancelled: cancelled.length,
+        departures: dashboardMetric(operationsStatus, departures.length),
+        arrivals: dashboardMetric(operationsStatus, arrivals.length),
+        bookingsToday: dashboardMetric(commercialStatus, daily.bookingsToday),
+        passengersTravelling: dashboardMetric(commercialStatus, daily.passengersTravelling),
+        passengersCheckedIn: dashboardMetric(commercialStatus, daily.passengersCheckedIn),
+        delayed: dashboardMetric(operationsStatus, delayed.length),
+        cancelled: dashboardMetric(operationsStatus, cancelled.length),
         enquiries: newContactCount,
         contentAttention,
       },
@@ -171,7 +181,7 @@ export function useDashboardData() {
         items: contentItems,
       },
     };
-  }, [today, rawBookings, depFlights, arrFlights, t, can, newContactCount]) satisfies { attention: AttentionItem[] } & Record<string, unknown>;
+  }, [today, bookingsQuery.data, departuresQuery.data, arrivalsQuery.data, operationsStatus, commercialStatus, t, can, newContactCount]) satisfies { attention: AttentionItem[] } & Record<string, unknown>;
 }
 
 export type { FlightOverride };

@@ -5,6 +5,8 @@ import { useAdmin } from "@/lib/admin-store";
 import { useI18n } from "@/lib/i18n";
 import { useUpdateFlightOverrideMutation } from "@/lib/repositories";
 import type { Flight, FlightStatus } from "@/lib/data";
+import { validateFlightEdit } from "@/lib/admin-flight-edit";
+export { GATE_IDENTIFIER_PATTERN } from "@/lib/admin-flight-edit";
 
 export const FLIGHT_STATUSES: FlightStatus[] = [
   "Scheduled",
@@ -16,7 +18,6 @@ export const FLIGHT_STATUSES: FlightStatus[] = [
   "Cancelled",
 ];
 
-export const GATE_IDENTIFIER_PATTERN = /^[A-Za-z0-9]{1,10}$/;
 
 export type QuickEditFlight = Flight & { note?: string; revisedDepart?: string };
 
@@ -56,21 +57,11 @@ export function FlightQuickEdit({
     setInvalidField(null);
     setValidationError(null);
 
-    // Validate revised time if provided
-    if (form.revised && form.revised.trim()) {
-      const timeMatch = /^([01]\d|2[0-3]):[0-5]\d$/.test(form.revised.trim());
-      if (!timeMatch) {
-        setValidationError(t("adm.flight.revisedError"));
-        setInvalidField("revised");
-        document.getElementById("fq-revised")?.focus();
-        return;
-      }
-    }
-
-    if (form.gate && !GATE_IDENTIFIER_PATTERN.test(form.gate.trim())) {
-      setValidationError(t("adm.flight.gateError"));
-      setInvalidField("gate");
-      document.getElementById("fq-gate")?.focus();
+    const invalid = validateFlightEdit(form);
+    if (invalid) {
+      setValidationError(t(invalid === "gate" ? "adm.flight.gateError" : "adm.flight.revisedError"));
+      setInvalidField(invalid);
+      document.getElementById(invalid === "gate" ? "fq-gate" : "fq-revised")?.focus();
       return;
     }
 

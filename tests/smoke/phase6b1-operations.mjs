@@ -4,7 +4,7 @@ import { flightDepartureEpoch } from "../../src/lib/booking-rules.ts";
 import { adminEn, adminAr } from "../../src/lib/i18n-admin.ts";
 import { departuresOn, todayISO, addDaysISO, SEAT_ROWS, SEAT_LETTERS } from "../../src/lib/data.ts";
 
-function operationsFixture() {
+export function operationsFixture() {
   const b = commercialFixture(),
     f = departuresOn(b.criteria.departDate).find(
       (f) =>

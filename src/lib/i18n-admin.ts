@@ -1,5 +1,10 @@
 /** Admin-only strings, kept apart from the passenger dictionary. */
 export const adminEn: Record<string, string> = {
+  "adm.dash.opsError": "Flight operations are unavailable. Repository data could not be loaded.",
+  "adm.dash.commercialError": "Booking information is unavailable. Repository data could not be loaded.",
+  "adm.dash.unavailable": "Unavailable",
+  "adm.dash.loading": "Loading…",
+  "adm.dash.attentionPartial": "Attention is incomplete while repository data is unavailable.",
   "adm.ops.retry": "Retry",
   "adm.ops.loading": "Loading repository data…",
   "adm.ops.loadError": "Could not load the local repository. Please retry.",
@@ -491,6 +496,11 @@ export const adminEn: Record<string, string> = {
 };
 
 export const adminAr: Record<string, string> = {
+  "adm.dash.opsError": "بيانات تشغيل الرحلات غير متاحة. تعذّر تحميل بيانات المستودع.",
+  "adm.dash.commercialError": "معلومات الحجوزات غير متاحة. تعذّر تحميل بيانات المستودع.",
+  "adm.dash.unavailable": "غير متاح",
+  "adm.dash.loading": "جارٍ التحميل…",
+  "adm.dash.attentionPartial": "قائمة التنبيهات غير مكتملة ما دامت بيانات المستودع غير متاحة.",
   "adm.ops.retry": "حاول مجددًا",
   "adm.ops.loading": "جارٍ تحميل بيانات المستودع…",
   "adm.ops.loadError": "تعذّر تحميل المستودع المحلي. يرجى المحاولة مجددًا.",

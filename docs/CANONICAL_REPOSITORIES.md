@@ -258,18 +258,18 @@ Centralized hierarchical query keys in `src/lib/repositories/keys.ts`:
 
 ---
 
-## 6. Single-Writer Façades & Wired Views
+## 6. Canonical Writers & Wired Views
 
-To prevent dual-write bugs, legacy store providers act as single-writer façades:
+Canonical repositories own mutations. StoreProvider retains booking compatibility; AdminProvider is a staff/session and permission simulation boundary, not a flight writer or proxy.
 
 1. **`StoreProvider` (`src/lib/store.tsx`)**:
    - Delegates all booking mutations (`addBooking`, `claimBooking`, `checkInLeg`, `updateBooking`) to `bookingRepo`.
    - Listens to `bookingRepo.subscribe()` to maintain backward-compatible `bookings` state.
-   - Manages non-migrated entities (`draft`, `account`, `travelers`) in `gza.store.v1`.
+   - Draft, account and saved companion authority belongs to BookingDraftRepository and PassengerRepository; `gza.store.v1` is a read-only migration source.
 2. **`AdminProvider` (`src/lib/admin-store.tsx`)**:
    - Flight operations use canonical FlightRepository queries and mutations directly.
    - RepositoryProvider centrally invalidates flight queries; AdminProvider has no local override state.
-   - Manages staff session (`staffId`) and in-memory `OpsState`.
+   - Owns staff session / RBAC simulation and the remaining session-only mixed product/destination OpsState; it does not own or proxy canonical flight overrides.
 3. **Wired Views**:
    - Public Flight Status (`/flights`): Consumes `useFlightsQuery(date, dir)`.
    - Public Flight Detail (`/flight/$flightId`): Consumes `useFlightQuery(flightId)`.

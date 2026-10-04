@@ -21,7 +21,7 @@ Following Phase 5D, the application coordinates persistence across canonical rep
 | **Historical Archive & Source Registry (HC-2 / HC-3)** | `src/lib/archive/` | Compiled typed catalog (`catalog.ts`), schema (`schema.ts`), and registry (`sources.ts`) | Canonical archive records (`getPublishedArchiveRecords()`) for public Gallery (`/gallery`), Home archive spotlight (6 featured cards), Airport Past documentary strips (`getPublishedArchiveRecordsForTimelineEvent()`) and watch archive section (`getVerifiedVideoReferences()`). Curated external primary sources (`SOURCE_REGISTRY`). Zero local video files. |
 | **Local Editorial Drafts** | `src/content/repository.ts` | `localStorage["gza.content.draft.v1"]` (schemaVersion: 1) | Admin Travel draft and explicit `?contentPreview=1` overlay only. Save errors reject; corrupt data falls back to published. |
 | **Legacy Store Key** | Preserved read-only migration source | `localStorage["gza.store.v1"]` | Closed legacy store. Migrated once to `gza.booking.draft.v1` if canonical draft is missing. ZERO active draft writers; original string preserved byte-for-byte; never resurrected once cleared. |
-| **Admin Store Façade** (`useAdmin`) | `src/lib/admin-store.tsx` | `localStorage["gza.admin.v1"]` (staffId) | Staff identity (`Staff \| null`), active role (`AdminRole`). Flight operational override mutations delegate directly to `flightRepo` (single writer). |
+| **Admin Staff Session / RBAC Simulation** (`useAdmin`) | `src/lib/admin-store.tsx` | `localStorage["gza.admin.v1"]` (staffId) | Staff identity (`Staff \| null`), active role (`AdminRole`). AdminProvider owns staff session / RBAC simulation and the remaining session-only mixed product/destination OpsState. It does not own or proxy canonical flight overrides. |
 | **Recurring schedule planning** | `src/lib/schedules/` | `gza.schedule.v1`; version 1, revision, schedules; queued Web Lock commits | Admin Schedule Manager and related destination schedules; no public dated-flight materialization. |
 | **Admin Operations State** (`useAdmin().ops`) | `src/lib/admin-ops.ts`, `src/lib/admin-store.tsx` | Session in-memory state in `AdminProvider` (`useState<OpsState>`). Resets to seed on reload. | Aircraft fleet (`AircraftType[]`), seat maps (`Record<string, SeatMapConfig>`), fare products (`FareConfig[]`), baggage allowance (`BaggageConfig`), meals (`OptionItem[]`), assistance options (`OptionItem[]`), destination parameters (`DestinationConfig[]`). |
 | **Admin Static Mock Data** | `src/lib/admin-mock.ts` | In-memory static constants | Customer profiles (`mockCustomers`), check-in desk fixtures, staff directory, audit and analytics fixtures, and non-migrated CMS/story collections. Contact inbox fixtures migrated to canonical seeds. Home, Travel and Past proof arrays derive from `src/content/`. |
@@ -30,18 +30,18 @@ Following Phase 5D, the application coordinates persistence across canonical rep
 
 ### 1.1 Admin Flight Overrides Implementation Reality
 
-In `src/lib/repositories/flight-repository.ts` and `src/lib/admin-store.tsx`:
+In `src/lib/repositories/flight-repository.ts` and the migrated query/mutation consumers:
 - Canonical flight overrides are stored in `gza.repo.v1` as `flightOverrides: Record<string, FlightOverride>` via `FlightRepository.setOverride(flightId, patch)`.
 - Overrides are applied using the pure `getEffectiveFlight(baseFlight, override?)` helper in `src/lib/domain/flight.ts`, which merges base flight objects with active overrides.
 - Overrides are sanitized on load (`sanitizeFlightOverride()`) to validate flight statuses and trim string fields while allowing intentional clears.
 - Legacy `gza.admin.v1` overrides are migrated into `gza.repo.v1` on first load. A sentinel protection ensures canonical flight operations do not modify `gza.admin.v1`, and staff changes preserve legacy overrides.
-- Migrated admin flight views and public flight board/detail views can access effective flights through repository query hooks. The booking wizard still uses its legacy schedule search pending Phase 5.
+- Admin Flight List, Flight Detail, Dashboard and shared Quick Edit use FlightRepository query/mutation hooks directly. Public boards/detail and booking discovery use the same effective-flight authority. AdminProvider has no override mutation facade or mirrored override state.
 
 ### 1.2 Public Booking Draft & Date Synchronization Reality
 
-In `src/lib/store.tsx` and `src/lib/booking-draft.ts`:
+In `src/lib/booking-draft/` and its draft factories:
 - Search criteria in `createFreshDraft()` computes departure date using station timezone policy (`todayISO(now, "Asia/Gaza")` from `src/lib/data.ts`).
-- Active draft mutations persist to `localStorage["gza.store.v1"]` and are restored on load via `validateAndSanitizeDraft()`:
+- Active draft mutations persist through BookingDraftRepository to `gza.booking.draft.v1` and are sanitized by the canonical draft coordinator:
   - If departure date is in the past relative to station date, rolls forward to `todayISO()`.
   - Re-evaluates bookability via `isFlightBookable(outboundFlight)`: if unbookable, clears flight selection and dependent seat selections.
   - Preserves entered passenger names, dates of birth, and contact information even if flight criteria roll forward.
@@ -52,7 +52,7 @@ In `src/lib/store.tsx` and `src/lib/booking-draft.ts`:
 In `src/lib/passenger/`:
 - **Single Source of Truth**: `PassengerRepository` manages canonical passenger identity (`PassengerAccount | null`) and saved companions (`Traveler[]`) stored under `localStorage["gza.passenger.v1"]`.
 - **Anti-Resurrection Rule**: Migration from `gza.store.v1` occurs **only** when `gza.passenger.v1` is completely absent (`null`). If `gza.passenger.v1` is present (even with a null account or empty travelers), legacy values are never resurrected.
-- **No Dual Writer**: `StoreProvider` in `src/lib/store.tsx` retains the legacy envelope in memory solely to re-serialize `gza.store.v1` semantically on draft edits, keeping absent fields absent. It never writes canonical passenger mutations back to legacy storage.
+- **No Dual Writer**: StoreProvider is a booking compatibility reader/writer facade over BookingRepository; it does not own passenger/draft persistence. Canonical draft and passenger repositories never write their mutations back to `gza.store.v1`.
 - **Identity Normalization & Email Immutability**: All email inputs are trimmed and lowercased (`normalizeEmailIdentity`). Updating profile preferences preserves the original identity email; email cannot be changed through profile save.
 - **Transactional Persistence**: `PassengerStorageCoordinator` builds state candidates, writes to storage, and only adopts and notifies subscribers if storage succeeds. Quota errors reject with `StorageCommitError` and roll back memory.
 - **Auth Truth & Privacy**: There is no live backend, database, or authentication API. Sign-in and register adopt local identity on this device. Password fields are never compared, persisted, hashed, logged, or placed in URLs. Near-form disclosure states that password authentication is not connected.

@@ -22,10 +22,12 @@ export function counterTestFlight() {
   return departuresOn(addDaysISO(todayISO(), 5))[0];
 }
 export function commercialFixture() {
-  const f = counterTestFlight(),
-    date = addDaysISO(f.date, 1),
-    inbound = arrivalsOn(date).find((x) => x.originCode === f.destinationCode);
+  const f = counterTestFlight();
+  // A route need not operate its return on the following weekday. Select a real compiled service.
+  const inbound = Array.from({ length: 7 }, (_, i) => arrivalsOn(addDaysISO(f.date, i + 1)))
+    .flat().find((x) => x.originCode === f.destinationCode && x.status !== "Cancelled" && x.seatsLeft > 0);
   assert.ok(inbound);
+  const date = inbound.date;
   return {
     ref: "GZA-C601",
     createdAt: "2026-01-01T10:13:00Z",
