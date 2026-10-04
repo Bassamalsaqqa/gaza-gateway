@@ -18,6 +18,7 @@ import { AdminDenied } from "@/components/admin/admin-denied";
 import { useAdmin } from "@/lib/admin-store";
 import { pick, useI18n } from "@/lib/i18n";
 import type { DestinationConfig } from "@/lib/admin-ops";
+import { useSchedulesQuery } from "@/lib/schedules";
 import { pageHead } from "@/lib/head";
 import { contentRepository } from "@/content/repository";
 import { publishedDestinationsPresentation } from "@/content/published/destinations-presentation";
@@ -56,6 +57,7 @@ function AdminDestinationEditorPage() {
   const { t, lang } = useI18n();
   const { code } = Route.useParams();
   const { can, ops, patchOps, toast } = useAdmin();
+  const { data: schedules = [], isPending: schedulesLoading, isError: schedulesError } = useSchedulesQuery();
 
   const current = useMemo(() => ops.destinations.find((d) => d.code === code) ?? null, [ops.destinations, code]);
   const [draft, setDraft] = useState<DestinationConfig | null>(current);
@@ -562,11 +564,12 @@ function AdminDestinationEditorPage() {
 
               <div className="border-t border-border pt-3">
                 <h3 className="text-sm font-bold">{t("adm.dest.related")}</h3>
-                {ops.schedules.filter((s) => s.destination === draft.code).length === 0 ? (
+                <p className="mt-1 text-xs text-muted-foreground">{t("adm.sch.planningNote")}</p>
+                {schedulesLoading ? <p role="status">{t("adm.ops.loading")}</p> : schedulesError ? <p role="alert">{t("adm.ops.loadError")}</p> : schedules.filter((s) => s.destination === draft.code).length === 0 ? (
                   <p className="mt-1 text-xs text-muted-foreground">{t("adm.dest.relatedEmpty")}</p>
                 ) : (
                   <ul className="mt-2 divide-y divide-border rounded-md border border-border text-sm">
-                    {ops.schedules
+                    {schedules
                       .filter((s) => s.destination === draft.code)
                       .map((s) => (
                         <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">

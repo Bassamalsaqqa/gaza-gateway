@@ -1,10 +1,12 @@
 import { useMemo } from "react";
-import { arrivalsOn, departuresOn, todayISO, type Flight } from "@/lib/data";
+import { todayISO, type Flight } from "@/lib/data";
 import { contentItems, type Permission } from "@/lib/admin";
 import { useAdmin, type FlightOverride } from "@/lib/admin-store";
 import { useI18n } from "@/lib/i18n";
 import { useContactNewCount } from "@/lib/contact";
-import { checkedInPax, seatedPassengers, useStore, type Booking } from "@/lib/store";
+import { checkedInPax, seatedPassengers, type Booking } from "@/lib/domain/booking";
+import { dailyBookingMetrics } from "@/lib/admin-flight-metrics";
+import { useFlightsQuery, useBookingsQuery } from "@/lib/repositories";
 
 export type OpsFlight = Flight & { direction: "dep" | "arr"; note?: string; revisedDepart?: string };
 
@@ -18,17 +20,21 @@ export type AttentionItem = {
   permission: Permission;
 };
 
-/** Everything the dashboard and the top-bar indicator derive from mock data. */
+/** Canonical flights/bookings/contact, with explicitly unmigrated compiled content fixtures. */
 export function useDashboardData() {
   const { t } = useI18n();
-  const { bookings } = useStore();
-  const { withOverride, can } = useAdmin();
+  const { data: rawBookings = [] } = useBookingsQuery();
+  const { can } = useAdmin();
   const { data: newContactCount = 0 } = useContactNewCount();
   const today = todayISO();
 
+  // Canonical flights from FlightRepository (overrides already composed)
+  const { data: depFlights = [] } = useFlightsQuery(today, "dep");
+  const { data: arrFlights = [] } = useFlightsQuery(today, "arr");
+
   return useMemo(() => {
-    const departures: OpsFlight[] = departuresOn(today).map((f) => ({ ...withOverride(f), direction: "dep" as const }));
-    const arrivals: OpsFlight[] = arrivalsOn(today).map((f) => ({ ...withOverride(f), direction: "arr" as const }));
+    const departures: OpsFlight[] = depFlights.map((f) => ({ ...f, direction: "dep" as const }));
+    const arrivals: OpsFlight[] = arrFlights.map((f) => ({ ...f, direction: "arr" as const }));
     const operation = [...departures, ...arrivals].sort((a, b) =>
       (a.direction === "dep" ? a.departTime : a.arriveTime).localeCompare(
         b.direction === "dep" ? b.departTime : b.arriveTime,
@@ -39,10 +45,8 @@ export function useDashboardData() {
     const cancelled = operation.filter((f) => f.status === "Cancelled");
     const missingGate = operation.filter((f) => !f.gate || f.gate.trim() === "");
 
-    const bookingsToday = bookings.filter((b) => b.createdAt.slice(0, 10) === today);
-    const travellingToday = bookings.filter((b) => b.status !== "cancelled" && b.outbound.date === today);
-    const passengersTravelling = travellingToday.reduce((n, b) => n + seatedPassengers(b).length, 0);
-    const passengersCheckedIn = travellingToday.reduce((n, b) => n + checkedInPax(b, "out").length, 0);
+    const bookings = rawBookings;
+    const daily = dailyBookingMetrics(bookings, today);
 
     const contentAttention = contentItems.filter((c) => c.state === "draft" || c.missingAr || c.missingSource).length;
 
@@ -80,12 +84,12 @@ export function useDashboardData() {
         permission: "ops.view",
       });
     }
-    for (const b of travellingToday) {
-      if (checkedInPax(b, "out").length < seatedPassengers(b).length) {
+    for (const { booking: b, leg, flight } of daily.travelling) {
+      if (checkedInPax(b, leg).length < seatedPassengers(b).length) {
         allAttention.push({
-          id: `att-ci-${b.ref}`,
+          id: `att-ci-${b.ref}-${leg}`,
           severity: "medium",
-          title: t("adm.attn.checkin", { flight: b.outbound.number }),
+          title: t("adm.attn.checkin", { flight: flight.number }),
           module: t("adm.nav.checkin"),
           next: t("adm.attn.checkinNext"),
           permission: "commercial.view",
@@ -137,7 +141,7 @@ export function useDashboardData() {
 
     const attention = allAttention.filter((item) => can(item.permission));
 
-    const recent: Booking[] = [...bookings].slice(0, 6);
+    const recent: Booking[] = daily.recent;
 
     return {
       today,
@@ -149,9 +153,9 @@ export function useDashboardData() {
       metrics: {
         departures: departures.length,
         arrivals: arrivals.length,
-        bookingsToday: bookingsToday.length,
-        passengersTravelling,
-        passengersCheckedIn,
+        bookingsToday: daily.bookingsToday,
+        passengersTravelling: daily.passengersTravelling,
+        passengersCheckedIn: daily.passengersCheckedIn,
         delayed: delayed.length,
         cancelled: cancelled.length,
         enquiries: newContactCount,
@@ -167,7 +171,7 @@ export function useDashboardData() {
         items: contentItems,
       },
     };
-  }, [today, bookings, withOverride, t, can, newContactCount]) satisfies { attention: AttentionItem[] } & Record<string, unknown>;
+  }, [today, rawBookings, depFlights, arrFlights, t, can, newContactCount]) satisfies { attention: AttentionItem[] } & Record<string, unknown>;
 }
 
 export type { FlightOverride };

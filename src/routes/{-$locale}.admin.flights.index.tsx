@@ -27,14 +27,14 @@ import { dateLong } from "@/lib/format";
 import {
   SEAT_LETTERS,
   SEAT_ROWS,
-  arrivalsOn,
-  departuresOn,
   destinationByCode,
   destinations,
   todayISO,
   type FlightStatus,
 } from "@/lib/data";
-import { checkedInPax, seatedPassengers, useStore } from "@/lib/store";
+import { checkedInPax, seatedPassengers } from "@/lib/domain/booking";
+import { useFlightsQuery, useBookingsQuery, useUpdateFlightOverrideMutation } from "@/lib/repositories";
+import { flightBookingMetrics } from "@/lib/admin-flight-metrics";
 import { pageHead } from "@/lib/head";
 
 const CAPACITY = SEAT_ROWS * SEAT_LETTERS.length;
@@ -61,8 +61,9 @@ type Direction = "all" | "dep" | "arr";
 
 function AdminFlightsPage() {
   const { t, lang } = useI18n();
-  const { can, withOverride, applyOverride, toast } = useAdmin();
-  const { bookings } = useStore();
+  const { can, toast } = useAdmin();
+  const [statusError, setStatusError] = useState<string | null>(null);
+  const [failedStatus, setFailedStatus] = useState<{ flightId: string; status: FlightStatus } | null>(null);
   const urlSearch = useRouterState({
     select: (s) => (s.location.search as Record<string, string | undefined>) || {},
   });
@@ -73,11 +74,13 @@ function AdminFlightsPage() {
   const [status, setStatus] = useState<FlightStatus | "all">("all");
   const [route, setRoute] = useState("all");
   const [edit, setEdit] = useState<QuickEditFlight | null>(null);
-  const [editingGate, setEditingGate] = useState<{ flightId: string; value: string; error?: string | undefined } | null>(null);
+  const [editingGate, setEditingGate] = useState<{ flightId: string; value: string; error?: string | undefined; invalid?: boolean } | null>(null);
 
   useEffect(() => {
     const dir = urlSearch["dir"];
     const st = urlSearch["status"];
+    const selectedDate = urlSearch["date"];
+    if (selectedDate && /^\d{4}-\d{2}-\d{2}$/.test(selectedDate) && Number.isFinite(Date.parse(selectedDate + "T00:00:00Z")) && new Date(selectedDate + "T00:00:00Z").toISOString().slice(0, 10) === selectedDate) setDate(selectedDate);
     if (dir === "dep" || dir === "arr" || dir === "all") {
       setDirection(dir);
     }
@@ -85,34 +88,48 @@ function AdminFlightsPage() {
       st &&
       ["scheduled", "boarding", "delayed", "departed", "arrived", "cancelled", "all"].includes(st)
     ) {
-      setStatus(st as FlightStatus | "all");
+      setStatus(st === "all" ? "all" : st === "arrived" ? "Landed" : FLIGHT_STATUSES.find(value => value.toLowerCase() === st) ?? "all");
     }
   }, [urlSearch]);
 
   const mayEdit = can("ops.edit");
 
+  // Canonical repository hooks
+  const { data: repoFlights = [], isPending, isError } = useFlightsQuery(date, direction === "all" ? undefined : direction);
+  const { data: bookings = [] } = useBookingsQuery();
+  const setFlightOverride = useUpdateFlightOverrideMutation();
+
+  const handleSaveStatus = async (flightId: string, nextStatus: FlightStatus) => {
+    if (!mayEdit || setFlightOverride.isPending) return;
+    setStatusError(null);
+    setFailedStatus({ flightId, status: nextStatus });
+    try {
+      await setFlightOverride.mutateAsync({ flightId, patch: { status: nextStatus } });
+      setFailedStatus(null);
+      toast(t("adm.edit.saved", { flight: flightId }));
+    } catch { setStatusError(t("adm.ops.saveError")); }
+  };
+
   const handleSaveGate = async (flightId: string) => {
-    if (!editingGate) return;
+    if (!editingGate || !mayEdit || setFlightOverride.isPending) return;
     const trimmed = editingGate.value.trim();
-    if (!GATE_IDENTIFIER_PATTERN.test(trimmed)) {
-      setEditingGate({ ...editingGate, error: t("adm.flight.gateError") });
+    if (trimmed && !GATE_IDENTIFIER_PATTERN.test(trimmed)) {
+      setEditingGate({ ...editingGate, error: t("adm.flight.gateError"), invalid: true });
       return;
     }
     try {
-      await applyOverride(flightId, { gate: trimmed });
+      await setFlightOverride.mutateAsync({ flightId, patch: { gate: trimmed } });
       const fl = rows.find((r) => r.id === flightId);
       toast(t("adm.edit.saved", { flight: fl?.number ?? flightId }));
       setEditingGate(null);
     } catch (err) {
-      setEditingGate({ ...editingGate, error: err instanceof Error ? err.message : String(err) });
+      setEditingGate({ ...editingGate, error: t("adm.ops.saveError"), invalid: false });
     }
   };
 
   const rows = useMemo(() => {
-    const dep = departuresOn(date).map((f) => ({ ...withOverride(f), direction: "dep" as const }));
-    const arr = arrivalsOn(date).map((f) => ({ ...withOverride(f), direction: "arr" as const }));
-    let list = direction === "dep" ? dep : direction === "arr" ? arr : [...dep, ...arr];
-    list = list.sort((a, b) =>
+    const list = repoFlights.map((flight) => ({ ...flight, direction: flight.originCode === "GZA" ? "dep" as const : "arr" as const }));
+    list.sort((a, b) =>
       (a.direction === "dep" ? a.departTime : a.arriveTime).localeCompare(
         b.direction === "dep" ? b.departTime : b.arriveTime,
       ),
@@ -129,7 +146,7 @@ function AdminFlightsPage() {
         .toLowerCase();
       return haystack.includes(q);
     });
-  }, [date, direction, query, status, route, withOverride]);
+  }, [repoFlights, query, status, route]);
 
   if (!can("ops.view")) return <AdminDenied area={t("adm.fl.title")} permission="ops.view" />;
 
@@ -168,6 +185,7 @@ function AdminFlightsPage() {
         meta={<p className="text-xs text-muted-foreground">{dateLong(date, lang)}</p>}
       />
 
+      {statusError ? <div role="alert" className="text-sm text-destructive">{statusError} {failedStatus ? <button type="button" className={btnClass("outline", "sm")} disabled={setFlightOverride.isPending} onClick={() => void handleSaveStatus(failedStatus.flightId, failedStatus.status)}>{t("adm.ops.retry")}</button> : null}</div> : null}
       <AdminPanel bodyClassName="p-0">
         <Toolbar>
           <label className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
@@ -250,7 +268,7 @@ function AdminFlightsPage() {
           </span>
         </Toolbar>
 
-        {rows.length === 0 ? (
+        {isPending ? <p role="status" className="p-4">{t("adm.ops.loading")}</p> : isError ? <p role="alert" className="p-4">{t("adm.ops.loadError")}</p> : rows.length === 0 ? (
           <AdminEmpty title={t("adm.fl.empty")} body={t("adm.fl.emptyBody")} />
         ) : (
           <>
@@ -273,7 +291,7 @@ function AdminFlightsPage() {
                 </GazaTableHeader>
                 <GazaTableBody>
                   {rows.map((f) => {
-                    const sold = Math.max(0, CAPACITY - f.seatsLeft);
+                    const sold = flightBookingMetrics(f.id, bookings).total;
                     const p = progress(f.id);
                     const isEditingThisGate = editingGate?.flightId === f.id;
 
@@ -320,9 +338,12 @@ function AdminFlightsPage() {
                                   }}
                                   className="h-7 w-20 px-1.5 text-xs font-semibold"
                                   aria-label={t("adm.flight.inlineGate", { flight: f.number })}
+                                  aria-invalid={editingGate.invalid || undefined}
+                                  aria-describedby={editingGate.invalid ? "gate-validation-error" : undefined}
                                 />
                                 <button
                                   type="button"
+                                  disabled={setFlightOverride.isPending}
                                   onClick={() => handleSaveGate(f.id)}
                                   className="rounded bg-primary px-1.5 py-1 text-[11px] font-semibold text-primary-foreground hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-ring"
                                 >
@@ -337,7 +358,7 @@ function AdminFlightsPage() {
                                 </button>
                               </div>
                               {editingGate.error ? (
-                                <span role="alert" className="text-[10px] font-semibold text-status-cancelled">
+                                <span id="gate-validation-error" role="alert" className="text-[10px] font-semibold text-status-cancelled">
                                   {editingGate.error}
                                 </span>
                               ) : null}
@@ -376,16 +397,9 @@ function AdminFlightsPage() {
                           {mayEdit ? (
                             <select
                               aria-label={t("adm.flight.inlineStatus", { flight: f.number })}
-                              value={f.status}
-                              onChange={async (e) => {
-                                const newStatus = e.target.value as FlightStatus;
-                                try {
-                                  await applyOverride(f.id, { status: newStatus });
-                                  toast(t("adm.edit.saved", { flight: f.number }));
-                                } catch (err) {
-                                  toast(err instanceof Error ? err.message : String(err));
-                                }
-                              }}
+                              value={failedStatus?.flightId === f.id ? failedStatus.status : f.status}
+                              onChange={(e) => void handleSaveStatus(f.id, e.target.value as FlightStatus)}
+                              disabled={setFlightOverride.isPending}
                               className="h-8 rounded-md border border-border bg-card px-2 text-xs font-semibold text-foreground hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                             >
                               {FLIGHT_STATUSES.map((s) => (
@@ -426,7 +440,7 @@ function AdminFlightsPage() {
             {/* Narrow screens: stacked operational records */}
             <ul className="divide-y divide-border xl:hidden">
               {rows.map((f) => {
-                const sold = Math.max(0, CAPACITY - f.seatsLeft);
+                const sold = flightBookingMetrics(f.id, bookings).total;
                 const p = progress(f.id);
                 const isEditingThisGate = editingGate?.flightId === f.id;
 
@@ -454,12 +468,9 @@ function AdminFlightsPage() {
                         {mayEdit ? (
                           <select
                             aria-label={t("adm.flight.inlineStatus", { flight: f.number })}
-                            value={f.status}
-                            onChange={(e) => {
-                              const newStatus = e.target.value as FlightStatus;
-                              applyOverride(f.id, { status: newStatus });
-                              toast(t("adm.edit.saved", { flight: f.number }));
-                            }}
+                            value={failedStatus?.flightId === f.id ? failedStatus.status : f.status}
+                            onChange={(e) => void handleSaveStatus(f.id, e.target.value as FlightStatus)}
+                            disabled={setFlightOverride.isPending}
                             className="h-11 min-h-11 rounded-md border border-border bg-card px-2 text-xs font-semibold text-foreground hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                           >
                             {FLIGHT_STATUSES.map((s) => (

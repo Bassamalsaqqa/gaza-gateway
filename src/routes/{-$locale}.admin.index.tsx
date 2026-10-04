@@ -39,9 +39,12 @@ import { useAdmin } from "@/lib/admin-store";
 import { useI18n } from "@/lib/i18n";
 import { dateLong, dateShort } from "@/lib/format";
 import { SEAT_ROWS, SEAT_LETTERS, type FlightStatus } from "@/lib/data";
-import { checkedInPax, seatedPassengers, useStore } from "@/lib/store";
+import { checkedInPax, seatedPassengers, type Booking } from "@/lib/domain/booking";
+import { useBookingsQuery, useUpdateFlightOverrideMutation } from "@/lib/repositories";
+import { flightBookingMetrics } from "@/lib/admin-flight-metrics";
 import { pageHead } from "@/lib/head";
 import { cn } from "@/lib/utils";
+import { GATE_IDENTIFIER_PATTERN } from "@/components/admin/flight-quick-edit";
 
 const STATUSES: FlightStatus[] = [
   "Scheduled",
@@ -82,16 +85,17 @@ type EditState = {
   note: string;
 };
 
-function loadOf(flight: OpsFlight): number {
-  return Math.max(0, CAPACITY - flight.seatsLeft);
-}
+function loadOf(flight: OpsFlight, bookings: Booking[]): number { return flightBookingMetrics(flight.id, bookings).total; }
 
 function AdminDashboardPage() {
   const { t, lang } = useI18n();
-  const { can, applyOverride, toast } = useAdmin();
+  const { can, toast } = useAdmin();
+  const overrideMutation = useUpdateFlightOverrideMutation();
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [invalidField, setInvalidField] = useState<"gate" | "revised" | null>(null);
   const data = useDashboardData();
   const [edit, setEdit] = useState<EditState | null>(null);
-  const { bookings } = useStore();
+  const { data: bookings = [] } = useBookingsQuery();
 
   const mayOps = can("ops.view");
   const mayCommercial = can("commercial.view");
@@ -126,19 +130,20 @@ function AdminDashboardPage() {
     });
 
   const save = async () => {
-    if (!edit) return;
+    if (!edit || !mayEditOps || overrideMutation.isPending) return;
+    setSaveError(null);
     try {
-      await applyOverride(edit.flight.id, {
+      await overrideMutation.mutateAsync({ flightId: edit.flight.id, patch: {
         status: edit.status,
         gate: edit.gate,
         terminal: edit.terminal,
         revisedDepart: edit.revised,
         note: edit.note,
-      });
+      } });
       toast(t("adm.edit.saved", { flight: edit.flight.number }));
       setEdit(null);
     } catch (err) {
-      toast(err instanceof Error ? err.message : String(err));
+      setSaveError(t("adm.ops.saveError"));
     }
   };
 
@@ -280,13 +285,13 @@ function AdminDashboardPage() {
                     >
                       <span
                         className="block h-full rounded-full bg-brand"
-                        style={{ width: `${Math.round((loadOf(f) / CAPACITY) * 100)}%` }}
+                        style={{ width: `${Math.round((loadOf(f, bookings) / CAPACITY) * 100)}%` }}
                       />
                     </span>
-                    <Ltr className="text-xs font-medium text-muted-foreground tabular-nums">{`${loadOf(f)}/${CAPACITY}`}</Ltr>
+                    <Ltr className="text-xs font-medium text-muted-foreground tabular-nums">{`${loadOf(f, bookings)}/${CAPACITY}`}</Ltr>
                   </span>
                   <span className="sr-only">
-                    {t("adm.flight.loadOf", { n: loadOf(f), total: CAPACITY })}
+                    {t("adm.flight.loadOf", { n: loadOf(f, bookings), total: CAPACITY })}
                   </span>
                 </GazaTableCell>
                 <GazaTableCell className="px-3 py-2">
@@ -352,7 +357,7 @@ function AdminDashboardPage() {
                 ) : (
                   <AdminChip tone="warn">{t("adm.flight.noGate")}</AdminChip>
                 )}
-                <Ltr>{`${loadOf(f)}/${CAPACITY}`}</Ltr>
+                <Ltr>{`${loadOf(f, bookings)}/${CAPACITY}`}</Ltr>
                 {ci.total > 0 ? (
                   <AdminChip tone={ci.checked === ci.total ? "brand" : "neutral"}>
                     {t("adm.flight.checkedOf", { n: ci.checked, total: ci.total })}
@@ -798,7 +803,9 @@ function AdminDashboardPage() {
               allowed={mayEditOps}
               reason={t("adm.edit.readOnly")}
               variant="primary"
-              onClick={save}
+              disabled={overrideMutation.isPending}
+            aria-busy={overrideMutation.isPending}
+            onClick={save}
             >
               {t("adm.edit.save")}
             </PermissionButton>
@@ -811,6 +818,7 @@ function AdminDashboardPage() {
               <Ltr className="font-bold">{edit.flight.number}</Ltr>{" "}
               <Ltr className="text-muted-foreground">{`${edit.flight.originCode} → ${edit.flight.destinationCode}`}</Ltr>
             </p>
+            {saveError ? <p id="qe-error" role="alert" className="text-sm text-destructive">{saveError}</p> : null}
             <Field label={t("adm.edit.status")} htmlFor="qe-status">
               <Select
                 id="qe-status"
@@ -836,6 +844,8 @@ function AdminDashboardPage() {
               <Field label={t("adm.edit.gate")} htmlFor="qe-gate">
                 <Input
                   id="qe-gate"
+                  aria-invalid={invalidField === "gate" || undefined}
+                  aria-describedby={invalidField === "gate" ? "qe-error" : undefined}
                   dir="ltr"
                   value={edit.gate}
                   onChange={(e) => setEdit({ ...edit, gate: e.target.value })}
@@ -845,6 +855,8 @@ function AdminDashboardPage() {
             <Field label={t("adm.edit.revised")} htmlFor="qe-revised">
               <Input
                 id="qe-revised"
+                aria-invalid={invalidField === "revised" || undefined}
+                aria-describedby={invalidField === "revised" ? "qe-error" : undefined}
                 type="time"
                 dir="ltr"
                 value={edit.revised}

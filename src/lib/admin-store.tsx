@@ -8,17 +8,12 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { Flight, FlightStatus } from "./data";
 import { MOCK_PASSPHRASE, staffAccounts, staffByRole, type AdminRole, type Permission, type Staff, can } from "./admin";
 import { seedOpsState, type OpsState } from "./admin-ops";
-import type { FlightOverride } from "./domain/flight";
-import { getEffectiveFlight, sanitizeFlightOverride } from "./domain/flight";
-import { useRepositories } from "./repositories";
 import { isStudioPreviewActive } from "./studio-preview";
 
-export type { FlightOverride };
+export type { FlightOverride } from "./domain/flight";
 
-type Persisted = { staffId: string | null; overrides?: Record<string, FlightOverride> };
 
 type Toast = { id: number; message: string };
 
@@ -30,9 +25,6 @@ type AdminValue = {
   signOut: () => void;
   setRole: (role: AdminRole) => void;
   can: (permission: Permission) => boolean;
-  overrides: Record<string, FlightOverride>;
-  applyOverride: (flightId: string, patch: FlightOverride) => Promise<void>;
-  withOverride: (flight: Flight) => Flight;
   /** Operations & commercial configuration held in local state for this session. */
   ops: OpsState;
   patchOps: <K extends keyof OpsState>(key: K, value: OpsState[K]) => void;
@@ -43,91 +35,13 @@ type AdminValue = {
 
 const AdminContext = createContext<AdminValue | null>(null);
 
-const VALID_FLIGHT_STATUSES = new Set<FlightStatus>([
-  "Scheduled",
-  "OnTime",
-  "Boarding",
-  "Delayed",
-  "Departed",
-  "Landed",
-  "Cancelled",
-]);
-
-type RawOverrideShape = {
-  status?: unknown;
-  gate?: unknown;
-  terminal?: unknown;
-  revisedDepart?: unknown;
-  aircraft?: unknown;
-  note?: unknown;
-};
-
-function sanitizeOverride(raw: unknown): FlightOverride | null {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
-  const entry = raw as RawOverrideShape;
-  const clean: FlightOverride = {};
-
-  if (typeof entry.status === "string" && VALID_FLIGHT_STATUSES.has(entry.status as FlightStatus)) {
-    clean.status = entry.status as FlightStatus;
-  }
-  if (typeof entry.gate === "string") {
-    clean.gate = entry.gate.trim();
-  }
-  if (typeof entry.terminal === "string") {
-    clean.terminal = entry.terminal.trim();
-  }
-  if (typeof entry.revisedDepart === "string") {
-    clean.revisedDepart = entry.revisedDepart.trim();
-  }
-  if (typeof entry.aircraft === "string" && entry.aircraft.trim() !== "") {
-    clean.aircraft = entry.aircraft.trim();
-  }
-  if (typeof entry.note === "string") {
-    clean.note = entry.note.trim();
-  }
-
-  return Object.keys(clean).length > 0 ? clean : null;
-}
-
-function sanitizeOverrides(raw: unknown): Record<string, FlightOverride> {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
-  const clean: Record<string, FlightOverride> = {};
-  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
-    if (typeof key !== "string" || !key) continue;
-    const sanitized = sanitizeOverride(value);
-    if (sanitized) clean[key] = sanitized;
-  }
-  return clean;
-}
-
 export function AdminProvider({ children }: { children: ReactNode }) {
-  const { flight: flightRepo } = useRepositories();
   const [ready, setReady] = useState(false);
   const [staff, setStaff] = useState<Staff | null>(null);
-  const [overrides, setOverrides] = useState<Record<string, FlightOverride>>({});
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [ops, setOps] = useState<OpsState>(() => seedOpsState());
   const initialLegacyAdminRef = useRef<Record<string, unknown>>({});
   const hasStaffMutatedRef = useRef(false);
-
-  // Synchronize overrides with canonical FlightRepository
-  useEffect(() => {
-    let mounted = true;
-    flightRepo.getOverrides().then((ovs) => {
-      if (mounted) setOverrides(ovs);
-    });
-
-    const unsubscribe = flightRepo.subscribe(() => {
-      flightRepo.getOverrides().then((ovs) => {
-        if (mounted) setOverrides(ovs);
-      });
-    });
-
-    return () => {
-      mounted = false;
-      unsubscribe();
-    };
-  }, [flightRepo]);
 
   const patchOps = useCallback(<K extends keyof OpsState>(key: K, value: OpsState[K]) => {
     setOps((prev) => ({ ...prev, [key]: value }));
@@ -192,31 +106,6 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     setStaff(staffByRole(role));
   }, []);
 
-  const applyOverride = useCallback(
-    async (flightId: string, patch: FlightOverride): Promise<void> => {
-      if (!flightId || typeof flightId !== "string") return;
-      const cleanPatch = sanitizeFlightOverride(patch);
-      if (!cleanPatch) return;
-
-      // Authoritative transactional commit through canonical FlightRepository
-      await flightRepo.setOverride(flightId, cleanPatch);
-
-      // On successful commit, refresh local state from repository
-      const refreshed = await flightRepo.getOverrides();
-      setOverrides(refreshed);
-    },
-    [flightRepo],
-  );
-
-  const withOverride = useCallback(
-    (flight: Flight) => {
-      if (!flight || typeof flight !== "object") return flight;
-      const o = overrides?.[flight.id];
-      return getEffectiveFlight(flight, o);
-    },
-    [overrides],
-  );
-
   const toast = useCallback((message: string) => {
     const id = Date.now() + Math.random();
     setToasts((prev) => [...prev, { id, message }]);
@@ -234,9 +123,6 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       signOut,
       setRole,
       can: (permission: Permission) => can(staff?.role, permission),
-      overrides,
-      applyOverride,
-      withOverride,
       ops,
       patchOps,
       toasts,
@@ -249,9 +135,6 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       signIn,
       signOut,
       setRole,
-      overrides,
-      applyOverride,
-      withOverride,
       ops,
       patchOps,
       toasts,

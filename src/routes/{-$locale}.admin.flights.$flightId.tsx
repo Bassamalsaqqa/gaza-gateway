@@ -24,10 +24,11 @@ import {
   SEAT_LETTERS,
   SEAT_ROWS,
   airportByCode,
-  flightById,
   minutesToLabel,
 } from "@/lib/data";
-import { checkedInPax, isPaxCheckedIn, seatedPassengers, useStore } from "@/lib/store";
+import { checkedInPax, isPaxCheckedIn, seatedPassengers } from "@/lib/domain/booking";
+import { useFlightQuery, useBookingsQuery } from "@/lib/repositories";
+import { flightBookingMetrics } from "@/lib/admin-flight-metrics";
 import { pageHead } from "@/lib/head";
 
 const CAPACITY = SEAT_ROWS * SEAT_LETTERS.length;
@@ -55,13 +56,12 @@ type Tab = "overview" | "passengers" | "checkin" | "history";
 function AdminFlightDetailPage() {
   const { t, lang } = useI18n();
   const { flightId } = Route.useParams();
-  const { can, withOverride } = useAdmin();
-  const { bookings } = useStore();
+  const { can } = useAdmin();
+  const { data: flight, isPending, isError } = useFlightQuery(flightId);
+  const { data: bookings = [] } = useBookingsQuery();
   const [tab, setTab] = useState<Tab>("overview");
   const [edit, setEdit] = useState<QuickEditFlight | null>(null);
 
-  const base = flightById(flightId);
-  const flight = base ? withOverride(base) : null;
   const mayEdit = can("ops.edit");
 
   const pax = useMemo(() => {
@@ -130,6 +130,8 @@ function AdminFlightDetailPage() {
 
   if (!can("ops.view")) return <AdminDenied area={t("adm.fl.title")} permission="ops.view" />;
 
+  if (isPending || isError) return <p role={isError ? "alert" : "status"}>{t(isError ? "adm.ops.loadError" : "adm.ops.loading")}</p>;
+
   if (!flight) {
     return (
       <div className="space-y-4">
@@ -147,7 +149,7 @@ function AdminFlightDetailPage() {
 
   const origin = airportByCode(flight.originCode);
   const destination = airportByCode(flight.destinationCode);
-  const sold = Math.max(0, CAPACITY - flight.seatsLeft);
+  const sold = flightBookingMetrics(flight.id, bookings).total;
 
   return (
     <div className="space-y-4">

@@ -145,4 +145,5 @@ export interface RepositoryRegistry {
   passenger: import("../passenger/repository.ts").PassengerRepository;
   bookingDraft: import("../booking-draft/types.ts").BookingDraftRepository;
   contact: import("../contact/types.ts").ContactRepository;
+  schedule: import("../schedules/types.ts").ScheduleRepository;
 }

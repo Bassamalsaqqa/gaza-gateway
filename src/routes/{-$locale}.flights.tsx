@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { FlightTable } from "@/components/flight-table";
 import { Container, Field, Input, Select } from "@/components/kit";
 import { PublicPhotoHero } from "@/components/media/public-photo-hero";
-import { addDaysISO, airportByCode, arrivalsOn, departuresOn, todayISO } from "@/lib/data";
+import { addDaysISO, airportByCode, todayISO } from "@/lib/data";
 import { useFlightsQuery } from "@/lib/repositories";
 import { dateShort } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
@@ -38,13 +38,10 @@ function FlightsPage() {
   const [status, setStatus] = useState("all");
 
   const dates = useMemo(() => Array.from({ length: 7 }, (_, i) => addDaysISO(today, i)), [today]);
-  const { data: repoFlights } = useFlightsQuery(date, mode === "departures" ? "dep" : "arr");
+  const { data: repoFlights = [], isPending, isError } = useFlightsQuery(date, mode === "departures" ? "dep" : "arr");
 
   const flights = useMemo(() => {
-    const list = repoFlights && repoFlights.length > 0
-      ? repoFlights
-      : (mode === "departures" ? departuresOn(date) : arrivalsOn(date));
-    return list.filter((f) => {
+    return repoFlights.filter((f) => {
       if (status !== "all" && f.status !== status) return false;
       if (!query.trim()) return true;
       const other = airportByCode(mode === "departures" ? f.destinationCode : f.originCode);
@@ -59,7 +56,7 @@ function FlightsPage() {
         .toLowerCase();
       return haystack.includes(query.trim().toLowerCase());
     });
-  }, [repoFlights, mode, date, query, status]);
+  }, [repoFlights, mode, query, status]);
 
   // Spatial transition direction calculations
   const slideDistance = 30;
@@ -246,7 +243,7 @@ function FlightsPage() {
                 }
                 className="w-full overflow-x-auto"
               >
-                <FlightTable flights={flights} mode={mode} />
+                {isPending ? <p role="status">{t("adm.ops.loading")}</p> : isError ? <p role="alert">{t("adm.ops.loadError")}</p> : <FlightTable flights={flights} mode={mode} />}
               </motion.div>
             </AnimatePresence>
           </div>

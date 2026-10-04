@@ -356,6 +356,8 @@ export function PermissionButton({
   variant = "outline",
   size = "sm",
   className,
+  disabled = false,
+  "aria-busy": busy,
 }: {
   allowed: boolean;
   reason: string;
@@ -364,13 +366,16 @@ export function PermissionButton({
   variant?: "primary" | "secondary" | "outline" | "ghost" | "ink";
   size?: "sm" | "md";
   className?: string;
+  disabled?: boolean;
+  "aria-busy"?: boolean;
 }) {
   return (
     <button
       type="button"
-      onClick={allowed ? onClick : undefined}
-      disabled={!allowed}
-      aria-disabled={!allowed}
+      onClick={allowed && !disabled ? onClick : undefined}
+      disabled={!allowed || disabled}
+      aria-disabled={!allowed || disabled}
+      aria-busy={busy}
       title={allowed ? undefined : reason}
       className={btnClass(variant, size, className)}
     >

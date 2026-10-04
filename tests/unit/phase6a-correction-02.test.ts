@@ -194,13 +194,13 @@ describe("Phase 6A Correction 02 — truthful commercial presentation", () => {
   test("Phase 6A documentation records accepted source status", () => {
     const doc = source("docs/DATA_FLOW.md");
     assert.ok(!/Phase 6A is uncommitted and unstaged/.test(doc));
-    assert.ok(!/Implemented \/ Awaiting Independent Review/.test(doc));
+    assert.ok(!/Phase 6A(?:(?!Phase 6B)[^.\n])*Implemented \/ Awaiting Independent Review/.test(doc));
     assert.ok(doc.includes("Complete / Accepted Source"));
     assert.ok(doc.includes("59e2e0ce9b56bc492d7c7a2bfc5a0df15fd58fea"));
     assert.ok(doc.includes("b5cff4db4b6e087907a9733ffd841880439fbfdb"));
     assert.ok(doc.includes("2ae1a876018992649074cbed1ebf0560e4da03ff"));
     // Phase 6B/6C/7/7B remain Planned / Unstarted
-    assert.ok(/Phase 6B[^.]+Planned \/ Unstarted/.test(doc));
+    assert.ok(/Phase 6B2[^.]+Planned \/ Unstarted/.test(doc));
   });
   test("authoritative current-status blocks record owner-deployed Phase 6A without stale candidate wording", () => {
     // Scope current metadata, status tables and checkpoint paragraphs, not historical audits.
@@ -212,8 +212,8 @@ describe("Phase 6A Correction 02 — truthful commercial presentation", () => {
       /^- \*\*(?:Master Roadmap Progression|Current Production \/ Source Checkpoint)\*\*:/.test(line),
     ).join("\n");
     const stale = [
-      /Implemented \/ Awaiting Independent Review/i,
-      /Implemented \/ Awaiting Review/i,
+      /Phase 6A(?:(?!Phase 6B)[^.\n])*Implemented \/ Awaiting Independent Review/i,
+      /Phase 6A(?:(?!Phase 6B)[^.\n])*Implemented \/ Awaiting Review/i,
       /Phase 6A remains on its feature branch awaiting (?:independent )?review/i,
       /Independent review of Phase 6A/i,
       /Phase 6 (?:— Admin Workflows Convergence \()?Planned \/ Unstarted/i,
@@ -241,7 +241,7 @@ describe("Phase 6A Correction 02 — truthful commercial presentation", () => {
       assert.ok(current.includes("Deployment is confirmed by the product owner."), path);
       assert.ok(current.includes("no independent live-browser verification from the ChatGPT environment is claimed"), path);
       assert.ok(current.includes("Phase 5D is a historical completed phase"), path);
-      assert.ok(doc.includes("Phase 6B — Operations Configuration Persistence (Planned / Unstarted / Next Engineering Lane)"), path);
+      assert.ok(doc.includes("Phase 6B2 — Network, Fleet & Sellable Product Authority (Planned / Unstarted)"), path);
       for (const phrase of stale) assert.ok(!phrase.test(current), `${path}: ${phrase}`);
       assert.ok(doc.includes("Planned / Unstarted"), path);
     }

@@ -1,9 +1,9 @@
 # Data Flow, State Management & Pretend-Action Inventory
 
 > **Document Purpose**: Complete audit of current data sources, state persistence, cross-screen entity splits, and enabled no-op actions across public and admin workspaces.
-> **Status**: **Phase 6A Complete / Accepted Source / Accepted Release / Deployed by Owner.** Phase 5A–5D and HC-0–HC-3 are Complete / Accepted Source. Phase 5D — Public Contact Workflow Convergence is Complete / Accepted Source / Deployed by Owner (engineering acceptance: `05f0e97982f47b18e40b93d1cb3f2e29b548eff2`); Phase 6A — Admin Commercial Desk Convergence is Complete / Accepted Source / Accepted Release / Deployed by Owner (accepted engineering SHA: `59e2e0ce9b56bc492d7c7a2bfc5a0df15fd58fea`). Phase 6B (Operations Configuration Persistence), Phase 6C (Admin Directory Staff & Activity Convergence), Phase 7, and Phase 7B remain Planned / Unstarted.
+> **Status**: **Phase 6A Complete / Accepted Source / Accepted Release / Deployed by Owner.** Phase 5A–5D and HC-0–HC-3 are Complete / Accepted Source. Phase 5D — Public Contact Workflow Convergence is Complete / Accepted Source / Deployed by Owner (engineering acceptance: `05f0e97982f47b18e40b93d1cb3f2e29b548eff2`); Phase 6A — Admin Commercial Desk Convergence is Complete / Accepted Source / Accepted Release / Deployed by Owner (accepted engineering SHA: `59e2e0ce9b56bc492d7c7a2bfc5a0df15fd58fea`). Phase 6B1 is Implemented / Awaiting Independent Review on its feature branch. Phase 6B2 (Network, Fleet & Sellable Product Authority), Phase 6C (Admin Directory Staff & Activity Convergence), Phase 7, and Phase 7B remain Planned / Unstarted.
 > **Production / Source Checkpoint**: Phase 6A — Admin Commercial Desk Convergence — is Complete / Accepted Source / Accepted Release / Deployed by Owner. Current owner-deployed production release: `b5cff4db4b6e087907a9733ffd841880439fbfdb`; deployed runtime source: `2ae1a876018992649074cbed1ebf0560e4da03ff`; accepted engineering SHA: `59e2e0ce9b56bc492d7c7a2bfc5a0df15fd58fea`. Deployment is confirmed by the product owner. Git/release provenance and the package were independently verified before deployment; no independent live-browser verification from the ChatGPT environment is claimed. Main may advance through documentation-only commits while the deployed runtime source remains unchanged. Phase 5D is a historical completed phase: Complete / Accepted Source / Deployed by Owner (release `898adc36701f138b54787fa14caecf55321b453f`, source `2e166ed815010728d25a891939b84db4109ae65e`).
-> **Immediate Next Step**: Phase 6B — Operations Configuration Persistence (Planned / Unstarted / Next Engineering Lane). Phase 6C — Admin Directory Staff & Activity Convergence, Phase 7 and Phase 7B remain Planned / Unstarted.
+> **Immediate Next Step**: Phase 6B1 — Dated Flight Operations & Recurring Schedule Persistence (Implemented / Awaiting Independent Review). Phase 6B2 — Network, Fleet & Sellable Product Authority (Planned / Unstarted). Phase 6C — Admin Directory Staff & Activity Convergence, Phase 7 and Phase 7B remain Planned / Unstarted.
 
 ---
 
@@ -22,7 +22,8 @@ Following Phase 5D, the application coordinates persistence across canonical rep
 | **Local Editorial Drafts** | `src/content/repository.ts` | `localStorage["gza.content.draft.v1"]` (schemaVersion: 1) | Admin Travel draft and explicit `?contentPreview=1` overlay only. Save errors reject; corrupt data falls back to published. |
 | **Legacy Store Key** | Preserved read-only migration source | `localStorage["gza.store.v1"]` | Closed legacy store. Migrated once to `gza.booking.draft.v1` if canonical draft is missing. ZERO active draft writers; original string preserved byte-for-byte; never resurrected once cleared. |
 | **Admin Store Façade** (`useAdmin`) | `src/lib/admin-store.tsx` | `localStorage["gza.admin.v1"]` (staffId) | Staff identity (`Staff \| null`), active role (`AdminRole`). Flight operational override mutations delegate directly to `flightRepo` (single writer). |
-| **Admin Operations State** (`useAdmin().ops`) | `src/lib/admin-ops.ts`, `src/lib/admin-store.tsx` | Session in-memory state in `AdminProvider` (`useState<OpsState>`). Resets to seed on reload. | Schedules (`Schedule[]`), aircraft fleet (`AircraftType[]`), seat maps (`Record<string, SeatMapConfig>`), fare products (`FareConfig[]`), baggage allowance (`BaggageConfig`), meals (`OptionItem[]`), assistance options (`OptionItem[]`), destination parameters (`DestinationConfig[]`). |
+| **Recurring schedule planning** | `src/lib/schedules/` | `gza.schedule.v1`; version 1, revision, schedules; queued Web Lock commits | Admin Schedule Manager and related destination schedules; no public dated-flight materialization. |
+| **Admin Operations State** (`useAdmin().ops`) | `src/lib/admin-ops.ts`, `src/lib/admin-store.tsx` | Session in-memory state in `AdminProvider` (`useState<OpsState>`). Resets to seed on reload. | Aircraft fleet (`AircraftType[]`), seat maps (`Record<string, SeatMapConfig>`), fare products (`FareConfig[]`), baggage allowance (`BaggageConfig`), meals (`OptionItem[]`), assistance options (`OptionItem[]`), destination parameters (`DestinationConfig[]`). |
 | **Admin Static Mock Data** | `src/lib/admin-mock.ts` | In-memory static constants | Customer profiles (`mockCustomers`), check-in desk fixtures, staff directory, audit and analytics fixtures, and non-migrated CMS/story collections. Contact inbox fixtures migrated to canonical seeds. Home, Travel and Past proof arrays derive from `src/content/`. |
 | **Settings Draft Store** (Contact & Appearance) | `src/lib/settings/` | `localStorage["gza.settings.draft.v1"]` (schemaVersion: 1) | Multi-document envelope (`{ schemaVersion: 1, site: { contact?, appearance? } }`). Independent per-document save/discard. Active in Admin Settings and explicit `?settingsPreview=1` / `?skinPreview=1`. |
 | **Appearance Legacy Key** | `src/lib/skin.ts` | `localStorage["gza.skin.preview.v1"]` | Legacy working copy. Migrated deterministically into `gza.settings.draft.v1` on first load; left byte-for-byte untouched. No dual writes. |
@@ -149,13 +150,14 @@ These controls perform real, functional mutations across shared state within the
 
 | Route / Component | Exact File Path | Action / Element | State Mutation & Scope | Persistence |
 | :--- | :--- | :--- | :--- | :--- |
-| **Admin Schedules** | `src/routes/{-$locale}.admin.schedules.tsx` | Create / Edit / Delete Schedule | Mutates shared session `ops.schedules` via `patchOps("schedules", next)`; updates schedules timetable immediately | In-memory session only (resets on reload) |
 | **Admin Destinations** | `src/routes/{-$locale}.admin.destinations.$code.tsx` | Save Destination Route | Mutates shared session `ops.destinations` via `patchOps("destinations", next)`; updates destination configuration immediately | In-memory session only (resets on reload) |
 | **Admin Products** | `src/routes/{-$locale}.admin.products.tsx` | Save Aircraft / Seat Map / Fare / Baggage / Option | Mutates shared session `ops` via `patchOps(...)`; updates fleet, cabin maps, fares, and ancillaries immediately | In-memory session only (resets on reload) |
 
-### 3.3 Verified Working Persistent Actions (For Contrast)
+### 3.3 Working Persistent Actions
 
-For engineering clarity, the following controls perform authentic data mutations that persist across browser reloads:
+The following controls persist across browser reloads. Schedule Manager create/edit/delete uses ScheduleRepository (`gza.schedule.v1`), with planning-only scope, commit-before-success, authoritative empty storage, corrupt write protection and same-origin storage events. Destination-related schedule reads share that repository.
+
+Other persistent actions:
 
 1. **Public Cancel Booking (`src/routes/{-$locale}.manage.$ref.tsx`)**:
    - Opens `ConfirmDialog`; on confirmation, invokes `await cancelBooking(ref)` via `useCancelBookingMutation()`.
@@ -164,7 +166,7 @@ For engineering clarity, the following controls perform authentic data mutations
    - Performs a single atomic `await completeCheckIn(input)` via `useCompleteCheckInMutation()`.
    - Delegates directly to `bookingRepo.completeCheckIn(input)` which revalidates eligibility, non-infant passengers, unique required documents, and non-duplicate valid seat assignments, persisting seats, passenger documents, and `checkedIn` indexes together in `gza.repo.v1`. On failure, rolls back and UI does not advance to success state.
 3. **Public Booking Creation (`src/routes/{-$locale}.book.tsx`)**:
-   - Submitting the multi-step booking engine invokes `addBooking(...)` on `useStore()`.
+   - Submitting the multi-step booking engine invokes `useCreateBookingMutation()`; BookingRepository revalidates and calculates stored pricing.
    - Generates a persistent PNR (e.g. `GZA-7K8P`) via `bookingRepo.create()` and persists to `gza.repo.v1`.
 4. **Public Saved Travelers & Profile (`src/routes/{-$locale}.account.*.tsx`)**:
    - Adding, editing, or deleting saved passenger profiles persists to `localStorage["gza.passenger.v1"]`.
@@ -172,7 +174,7 @@ For engineering clarity, the following controls perform authentic data mutations
    - Editing flight status, gate, terminal, revised departure time, or operational note invokes `flightRepo.setOverride(flightId, patch)`.
    - Persists to `gza.repo.v1` via `RepoStorageCoordinator.mutate()` and merges with base flights via effective flight queries.
 6. **Admin Booking Cancellation (`src/routes/{-$locale}.admin.bookings.$ref.tsx`)**:
-   - Confirmation invokes `useUpdateBookingMutation()` with `status: "cancelled"`. The canonical booking record changes in `gza.repo.v1`; the local cancelled flag is only immediate presentation state.
+   - Confirmation invokes `useCancelBookingMutation()`. Status is canonical query state; failures preserve the previous booking.
 7. **Public Manage Trip Edits (`src/routes/{-$locale}.manage.$ref_.*.tsx`)**:
    - Contact (`updateContact`), Seats (`updateSeats`), and Extras (`updateExtras`) invoke dedicated typed mutation hooks against `BookingRepository`.
    - Each command revalidates against latest canonical booking, rejects changes on cancelled bookings, enforces checked-in seat protection (cannot change seat of an already checked-in passenger on that leg), and canonically recalculates total price via pure `bookingTotal`.
@@ -249,3 +251,9 @@ The development program follows this strictly sequenced progression:
     - Implement persistent server infrastructure, database, secure authentication, and payment processing.
 14. **Phase 14+ — Optional Ecosystem Integrations**:
     - GDS flight data feeds, external loyalty programs, cargo logistics, and external partner APIs.
+
+## Phase 6B1 feature candidate
+
+Phase 6B1 — Dated Flight Operations & Recurring Schedule Persistence — is **Implemented / Awaiting Independent Review** on `phase6b1/flight-ops-schedule-persistence`, based on source `43369c032ae9f7c3b08b5997dae35957050c6bb4`. Admin dated-flight reads and booking/check-in metrics use canonical repository queries; override writers commit through FlightRepository. Recurring planning schedules have a separate `ScheduleRepository` / `gza.schedule.v1` authority, independent of dated-flight generation. Schedule edits do not change Public Flights, booking search or persisted flight IDs. Products and destination configuration remain session-only; there is no monolithic durable OpsState. See [Schedule model](SCHEDULE_MODEL.md) for the storage and planning boundary.
+
+Phase 6B2 — Network, Fleet & Sellable Product Authority — is Planned / Unstarted. Phase 6C, Phase 7 and Phase 7B remain Planned / Unstarted. Phase 6B as a whole is not complete. The owner-deployed Phase 6A release/source checkpoint recorded above is unchanged. Local HostPapa commands validate this candidate only; no new release or deployment is performed.

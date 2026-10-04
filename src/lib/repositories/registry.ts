@@ -20,10 +20,13 @@ import type { Draft } from "../booking-draft/types.ts";
 import { LocalContactRepository } from "../contact/repository.ts";
 import { ContactStorageCoordinator } from "../contact/storage.ts";
 import type { ContactEnvelope } from "../contact/types.ts";
+import { LocalScheduleRepository } from "../schedules/repository.ts";
+import { ScheduleStorageCoordinator } from "../schedules/storage.ts";
 import { isStudioPreviewActive } from "../studio-preview.ts";
 import { bookingDraftKeys, bookingKeys, flightKeys } from "./keys.ts";
 import { passengerKeys } from "../passenger/keys.ts";
 import { contactKeys } from "../contact/keys.ts";
+import { scheduleKeys } from "../schedules/keys.ts";
 
 export interface CreateRepositoriesOptions {
   inMemoryOnly?: boolean | undefined;
@@ -35,6 +38,8 @@ export interface CreateRepositoriesOptions {
   passengerCoordinator?: PassengerStorageCoordinator | undefined;
   bookingDraftCoordinator?: BookingDraftStorageCoordinator | undefined;
   contactCoordinator?: ContactStorageCoordinator | undefined;
+  initialSchedules?: import("../schedules/types.ts").Schedule[] | undefined;
+  scheduleCoordinator?: ScheduleStorageCoordinator | undefined;
   storage?: Storage | null | undefined;
 }
 
@@ -44,6 +49,7 @@ export interface CreateRepositoriesOptions {
  * PassengerRepository uses an independent PassengerStorageCoordinator.
  * BookingDraftRepository uses an independent BookingDraftStorageCoordinator.
  * ContactRepository uses an independent ContactStorageCoordinator.
+ * ScheduleRepository uses an independent ScheduleStorageCoordinator.
  */
 export function createRepositories(options?: CreateRepositoriesOptions): RepositoryRegistry {
   const coordinator =
@@ -78,11 +84,20 @@ export function createRepositories(options?: CreateRepositoriesOptions): Reposit
       storage: options?.storage,
     });
 
+  const scheduleCoordinator =
+    options?.scheduleCoordinator ??
+    new ScheduleStorageCoordinator({
+      ...(options?.inMemoryOnly !== undefined ? { inMemoryOnly: options.inMemoryOnly } : {}),
+      ...(options?.storage !== undefined ? { storage: options.storage } : {}),
+      ...(options?.initialSchedules !== undefined ? { initialSchedules: options.initialSchedules } : {}),
+    });
+
   const booking = new LocalBookingRepository(coordinator);
   const flight = new LocalFlightRepository(coordinator);
   const passenger = new LocalPassengerRepository(passengerCoordinator);
   const bookingDraft = new LocalBookingDraftRepository(bookingDraftCoordinator);
   const contact = new LocalContactRepository({ coordinator: contactCoordinator });
+  const schedule = new LocalScheduleRepository(scheduleCoordinator);
 
   return {
     booking,
@@ -90,6 +105,7 @@ export function createRepositories(options?: CreateRepositoriesOptions): Reposit
     passenger,
     bookingDraft,
     contact,
+    schedule,
   };
 }
 
@@ -99,7 +115,7 @@ let studioRepositories: RepositoryRegistry | null = null;
 
 /**
  * Returns an isolated in-memory repository registry for Studio frames.
- * Never touches persistent localStorage (`gza.repo.v1`, `gza.store.v1`, or `gza.admin.v1`).
+ * Never touches persistent localStorage (`gza.repo.v1`, `gza.store.v1`, `gza.admin.v1`, or `gza.schedule.v1`).
  */
 export function getIsolatedStudioRepositories(): RepositoryRegistry {
   if (!studioRepositories) {
@@ -166,12 +182,16 @@ export function RepositoryProvider({
     const unsubContact = value.contact.subscribe(() => {
       queryClient.invalidateQueries({ queryKey: contactKeys.all });
     });
+    const unsubSchedule = value.schedule.subscribe(() => {
+      queryClient.invalidateQueries({ queryKey: scheduleKeys.all });
+    });
     return () => {
       unsubBooking();
       unsubFlight();
       unsubPassenger();
       unsubBookingDraft();
       unsubContact();
+      unsubSchedule();
     };
   }, [value, queryClient]);
 

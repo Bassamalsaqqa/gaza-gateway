@@ -32,13 +32,7 @@ import { useRepositories } from "./registry.ts";
  */
 export function useBookingsQuery(): UseQueryResult<Booking[], Error> {
   const { booking: bookingRepo } = useRepositories();
-  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    return bookingRepo.subscribe(() => {
-      queryClient.invalidateQueries({ queryKey: bookingKeys.all });
-    });
-  }, [bookingRepo, queryClient]);
 
   return useQuery({
     queryKey: bookingKeys.lists(),
@@ -364,13 +358,7 @@ export function useFlightsQuery(
   direction?: "dep" | "arr",
 ): UseQueryResult<Flight[], Error> {
   const { flight: flightRepo } = useRepositories();
-  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    return flightRepo.subscribe(() => {
-      queryClient.invalidateQueries({ queryKey: flightKeys.all });
-    });
-  }, [flightRepo, queryClient]);
 
   return useQuery({
     queryKey: flightKeys.list(date, direction),
@@ -385,15 +373,8 @@ export function useFlightsQuery(
  */
 export function useFlightQuery(id: string | null | undefined): UseQueryResult<Flight | null, Error> {
   const { flight: flightRepo } = useRepositories();
-  const queryClient = useQueryClient();
   const cleanId = id?.trim() ?? "";
 
-  useEffect(() => {
-    if (!cleanId) return;
-    return flightRepo.subscribe(() => {
-      queryClient.invalidateQueries({ queryKey: flightKeys.detail(cleanId) });
-    });
-  }, [flightRepo, queryClient, cleanId]);
 
   return useQuery({
     queryKey: flightKeys.detail(cleanId),
