@@ -339,7 +339,9 @@ describe("Phase 6B1 — integration and truth boundaries", () => {
       assert.ok(doc.includes("b2e37ba4f7d2b0ae66a444747340acfe818a3832"));
       assert.doesNotMatch(doc, /Phase 6B1(?:(?!Phase 6B2)[^\n])*Implemented \/ Awaiting (?:Independent )?Review/);
       assert.doesNotMatch(doc, /6B1 awaiting independent review|no new release or deployment is performed/);
-      assert.doesNotMatch(doc, /not yet deployed|then owner deployment|production remains Phase 6A|Phase 6B1 (?:HostPapa )?deployment candidate/i);
+      // Deployment assertions concern 6B1; a later accepted-source phase may await deployment.
+      assert.doesNotMatch(doc, /Phase 6B1(?:(?!Phase 6[A-Z0-9])[^.\n])*(?:not yet deployed|then owner deployment)/i);
+      assert.doesNotMatch(doc, /production remains Phase 6A|Phase 6B1 (?:HostPapa )?deployment candidate/i);
       assert.ok(doc.includes("f8c0d0bdc579c5c2719670c8387fa543d8d6a170"));
       assert.ok(doc.includes("bcf284df3f0d7b24ec59372bb038ed9ae1e8c934"));
       assert.match(doc, /Phase 6B2[^]*Planned \/ Unstarted/);

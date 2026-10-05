@@ -1,6 +1,6 @@
 # Fleet identity and booking seat authority — Phase 6B2B
 
-Status: Implemented / Awaiting Independent Review. Production remains owner-deployed Phase 6B2A: release `2751e22be91ad74eacc9213489a57a21baf04807`, source `ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`.
+Status: Complete / Accepted Source. Production remains owner-deployed Phase 6B2A: release `2751e22be91ad74eacc9213489a57a21baf04807`, source `ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`.
 
 `FleetRepository` owns physical airframes and layouts in `gza.fleet.v1`: `{ schemaVersion: 1, revision, aircraft, layouts }`. Aircraft IDs are immutable; registrations are normalized uppercase and unique. There is no deletion command. Inactive aircraft cannot receive new assignments but remain resolvable on existing flights and schedules.
 
@@ -21,3 +21,15 @@ Physical flight identity, not booking leg role, defines seat occupancy. The publ
 Occupancy has four distinct sources: nonexistent geometry, structural unavailable seats, deterministic flight-specific prototype occupancy and confirmed PNR seats derived from `gza.repo.v1`. Booking writers share the `gza.repo.v1` origin Web Lock and reread inside it; create/seat/check-in commands reject newly introduced cross-PNR collisions on either matching flight leg. Existing legacy collisions can retain their own seats; cancelled PNRs release derived occupancy. No seat inventory key, automatic `seatsLeft` decrement or server inventory exists.
 
 AdminProvider retains only session-only destination configuration in OpsState. Phase 6B2C — Network & Dated-Service Materialization remains Planned / Unstarted; Phase 6C/7/7B remain unstarted.
+
+## Phase 6B2B accepted-source checkpoint
+
+**Phase 6B2B — Fleet Identity, Seat Layout & Booking Seat Authority: Complete / Accepted Source.** ChatGPT independently accepted engineering at `7f8a2bef613fa0cd37af4f05684c98aebe94d23e` (Correction 01 parent: `1463dee30782d0cc35514c5af55d3f0abfbe32a8`).
+
+Accepted Source is the source-finalization commit containing this acceptance record. Its exact SHA is reported as `PHASE_6B2B_ACCEPTED_SOURCE` after commit and verified against main/feature local/origin parity; it is not embedded in its own commit.
+
+Release status: **Not yet Accepted Release**. Deployment status: **Not yet Deployed**. No Phase 6B2B HostPapa release has been created. Independent accepted-source review precedes any release construction.
+
+Production remains **Phase 6B2A — Complete / Accepted Source / Accepted Release / Deployed by Owner**: release `2751e22be91ad74eacc9213489a57a21baf04807`, runtime source `ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`. Deployment is owner-confirmed; no independent live-browser verification is claimed.
+
+Phase 6B2C — Network & Dated-Service Materialization remains **Planned / Unstarted**. Phase 6C, Phase 7 and Phase 7B remain Planned / Unstarted. Phase 6B as a whole remains incomplete.

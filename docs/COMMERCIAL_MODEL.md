@@ -26,9 +26,9 @@ Names and service labels resolve through the current catalog including retired r
 
 ## Boundaries
 
-Admin Products Fares/Baggage/Meals/Assistance and cabin pricing are commercial.edit mutations; commercial.view can inspect. Field validation is localized/associated; storage failure is a general alert and preserves editor input. In Phase 6B2B, aircraft and seat maps are canonicalized under `FleetRepository` (`gza.fleet.v1`) with booking seat layout snapshots (`BookingSeatLayoutsV1`). Destinations remain session-only until Phase 6B2C. No gza.ops.v1, backend, network changes, schedule materialization or flight-ID changes; deployment is owner-confirmed. Phase 6B2B is Implemented / Awaiting Independent Review; Phase 6B2C/6C/7/7B remain Planned / Unstarted.
+Admin Products Fares/Baggage/Meals/Assistance and cabin pricing are commercial.edit mutations; commercial.view can inspect. Field validation is localized/associated; storage failure is a general alert and preserves editor input. In Phase 6B2B, aircraft and seat maps are canonicalized under `FleetRepository` (`gza.fleet.v1`) with booking seat layout snapshots (`BookingSeatLayoutsV1`). Destinations remain session-only until Phase 6B2C. No gza.ops.v1, backend, network changes, schedule materialization or flight-ID changes; deployment is owner-confirmed. Phase 6B2B is Complete / Accepted Source; Phase 6B2C/6C/7/7B remain Planned / Unstarted.
 
-Phase 6B2B — Fleet Identity, Seat Layout & Booking Seat Authority (Implemented / Awaiting Independent Review). Phase 6B2C — Network & Dated-Service Materialization (Planned / Unstarted).
+Phase 6B2B — Fleet Identity, Seat Layout & Booking Seat Authority (Complete / Accepted Source). Phase 6B2C — Network & Dated-Service Materialization (Planned / Unstarted).
 
 ## Correction 01 command boundaries
 
@@ -37,3 +37,15 @@ Committed submission replay is checked against canonical booking state before an
 Booking exposes typed product commands; the generic Partial<Booking> update, React Query hook and StoreProvider writer are removed. Account Trip cancellation uses cancel() while preserving account ownership checks. A successful legacy claim seals its frozen pricing basis; rejected/idempotent claims remain no-write.
 
 Existing normalized passenger identity adoption preserves meal preference without requiring the commercial catalog. New account creation still requires its active default meal. Home/standard flight search catches draft-reset failures, preserves criteria and prior draft, shows localized catalog/storage retry feedback and navigates only after success. No compiled default is substituted.
+
+## Phase 6B2B accepted-source checkpoint
+
+**Phase 6B2B — Fleet Identity, Seat Layout & Booking Seat Authority: Complete / Accepted Source.** ChatGPT independently accepted engineering at `7f8a2bef613fa0cd37af4f05684c98aebe94d23e` (Correction 01 parent: `1463dee30782d0cc35514c5af55d3f0abfbe32a8`).
+
+Accepted Source is the source-finalization commit containing this acceptance record. Its exact SHA is reported as `PHASE_6B2B_ACCEPTED_SOURCE` after commit and verified against main/feature local/origin parity; it is not embedded in its own commit.
+
+Release status: **Not yet Accepted Release**. Deployment status: **Not yet Deployed**. No Phase 6B2B HostPapa release has been created. Independent accepted-source review precedes any release construction.
+
+Production remains **Phase 6B2A — Complete / Accepted Source / Accepted Release / Deployed by Owner**: release `2751e22be91ad74eacc9213489a57a21baf04807`, runtime source `ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`. Deployment is owner-confirmed; no independent live-browser verification is claimed.
+
+Phase 6B2C — Network & Dated-Service Materialization remains **Planned / Unstarted**. Phase 6C, Phase 7 and Phase 7B remain Planned / Unstarted. Phase 6B as a whole remains incomplete.

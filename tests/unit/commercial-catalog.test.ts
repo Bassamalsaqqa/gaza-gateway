@@ -738,14 +738,12 @@ describe("6B2A integration, preferences and source authority guards", () => {
     assert.match(source, /resolveBookingPricing\(existing\)/);
     assert.doesNotMatch(source, /data\.pricingSnapshot|data\.total\s*[,;]/);
   });
-  test("feature docs retain deployed 6B2A truth and record 6B2B as next engineering lane", () => {
+  test("docs retain deployed 6B2A truth and accepted 6B2B source", () => {
     const stalePhrases = [
       "This feature is not accepted or deployed",
       "Independent review of Phase 6B2A",
       "6B2A awaiting review",
       "commercial product configuration is now repository-backed on the Phase 6B2A feature branch",
-      "not deployed yet",
-      "not yet deployed",
       "production remains Phase 6B1",
       "Phase 6B1, the current production checkpoint",
       "Phase 6B1 is the current owner-confirmed production checkpoint",
@@ -768,6 +766,7 @@ describe("6B2A integration, preferences and source authority guards", () => {
       "docs/SETTINGS_MODEL.md",
     ]) {
       const doc = readFileSync(file, "utf8");
+      assert.doesNotMatch(doc, /Phase 6B2A(?:(?!Phase 6[A-Z0-9])[^.\n])*(?:not deployed yet|not yet deployed)/i);
       const productionParagraph = doc.match(/^#{1,6} [^\r\n]*Phase 6B2A[^\r\n]*\r?\n\s*\r?\n([^\r\n]+)/m)?.[1];
       assert.ok(productionParagraph, `${file}: missing current Phase 6B2A status paragraph`);
       const currentProduction = productionParagraph.split(/\. Phase 6B1/)[0]!;
@@ -783,8 +782,9 @@ describe("6B2A integration, preferences and source authority guards", () => {
       assert.ok(doc.includes("gza.commercial.v1"), `Expected "${file}" to cite gza.commercial.v1`);
       assert.ok(doc.includes("f8c0d0bdc579c5c2719670c8387fa543d8d6a170"), `Expected "${file}" to preserve historical 6B1 release`);
       assert.ok(doc.includes("bcf284df3f0d7b24ec59372bb038ed9ae1e8c934"), `Expected "${file}" to preserve historical 6B1 runtime source`);
-      assert.ok(doc.includes("Phase 6B2B — Fleet Identity, Seat Layout & Booking Seat Authority"), `Expected "${file}" to record next lane name`);
-      assert.match(doc, /Phase 6B2B[^]*Implemented \/ Awaiting Independent Review/);
+      assert.ok(doc.includes("Phase 6B2B — Fleet Identity, Seat Layout & Booking Seat Authority"), `Expected "${file}" to record accepted phase name`);
+      assert.match(doc, /Phase 6B2B[^\n]*Complete \/ Accepted Source/);
+      assert.ok(doc.includes("7f8a2bef613fa0cd37af4f05684c98aebe94d23e"), file);
       assert.match(doc, /Phase 6B2C[^]*Planned \/ Unstarted/);
       // Scope current acceptance checks to 6B2A status statements. Later phases
       // and explicitly historical descriptions may still await their own review.
