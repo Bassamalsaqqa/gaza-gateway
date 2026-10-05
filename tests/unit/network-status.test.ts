@@ -2,13 +2,18 @@ import { it } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-it("C1 authoritative docs preserve production/B2B acceptance and Network preparation boundaries", () => {
+it("C1 accepted-source docs preserve engineering provenance, production and deferred phase boundaries", () => {
   const files = ["README.md", "PRODUCT.md", "roadmap.md", ...["ARCHITECTURE", "CANONICAL_REPOSITORIES", "DATA_FLOW", "FLEET_MODEL", "COMMERCIAL_MODEL", "SCHEDULE_MODEL", "CONTACT_MODEL", "CONTENT_MODEL", "SETTINGS_MODEL"].map(name => `docs/${name}.md`)];
   for (const file of files) {
     const content = readFileSync(file, "utf8");
     const current = content.split("## Phase 6B2C1 - Network Reference Authority & Destination Operations Convergence")[1];
     assert.ok(current, file);
-    assert.match(current, /Implemented \/ Awaiting Independent Review/);
+    assert.match(current, /Complete \/ Accepted Source/);
+    assert.ok(current.includes("9846f9ad90760a5e47ca231a838d146c4d7096a0"), `${file}: accepted engineering SHA`);
+    assert.match(current, /C1 has no Accepted Release and is not deployed/);
+    assert.match(content, /(?:Status|Progression)[^\n]*Phase 6B2C1[^\n]*Complete \/ Accepted Source/);
+    assert.doesNotMatch(content, /Implemented\s*\/\s*Awaiting\s+Independent\s+Review/);
+    assert.doesNotMatch(content, /Independent engineering review of Phase 6B2C1/);
     assert.match(current, /Phase 6B2B is Complete \/ Accepted Source/);
     assert.match(current, /release\/deployment is intentionally pending/);
     assert.match(current, /Production remains \*\*Phase 6B2A[^\n]*Complete \/ Accepted Source \/ Accepted Release \/ Deployed by Owner/);
@@ -17,6 +22,14 @@ it("C1 authoritative docs preserve production/B2B acceptance and Network prepara
     assert.doesNotMatch(content, /remaining session-only destination OpsState|session-only `OpsState` containing destinations|Destinations remain session-only until|useAdmin\(\)\.patchOps/);
   }
   const model = readFileSync("docs/NETWORK_MODEL.md", "utf8");
+  assert.match(model, /Status: \*\*Phase 6B2C1 Complete \/ Accepted Source\*\*/);
+  assert.ok(model.includes("9846f9ad90760a5e47ca231a838d146c4d7096a0"));
+  assert.match(model, /C1 has no Accepted Release and is not deployed/);
+  assert.match(model, /Phase 6B2B is Complete \/ Accepted Source[^\n]*release\/deployment is intentionally pending/);
+  assert.match(model, /Production remains owner-deployed Phase 6B2A/);
+  for (const truth of ["2751e22be91ad74eacc9213489a57a21baf04807", "ae8c1e8071cf7f6412247f043e16a3ec2c88bd73"]) assert.ok(model.includes(truth));
+  assert.match(model, /Phase 6B2C2[^\n]*Planned \/ Unstarted/);
+  assert.doesNotMatch(model, /Implemented\s*\/\s*Awaiting\s+Independent\s+Review/);
   assert.match(model, /persist before adopting or notifying/);
   assert.match(model, /inactive destinations are permitted/);
   assert.match(model, /never silently repaired or replaced/);

@@ -1,5 +1,7 @@
 # Fleet identity and booking seat authority — Phase 6B2B
 
+> **Current Source Status**: **Phase 6B2C1 Complete / Accepted Source.** Production remains owner-deployed Phase 6B2A; Phase 6B2B release/deployment is intentionally pending. Phase 6B2C2 remains Planned / Unstarted.
+
 Status: Complete / Accepted Source. Production remains owner-deployed Phase 6B2A: release `2751e22be91ad74eacc9213489a57a21baf04807`, source `ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`.
 
 `FleetRepository` owns physical airframes and layouts in `gza.fleet.v1`: `{ schemaVersion: 1, revision, aircraft, layouts }`. Aircraft IDs are immutable; registrations are normalized uppercase and unique. There is no deletion command. Inactive aircraft cannot receive new assignments but remain resolvable on existing flights and schedules.
@@ -36,7 +38,7 @@ Phase 6B2C2 — Network & Dated-Service Materialization remains **Planned / Unst
 
 ## Phase 6B2C1 - Network Reference Authority & Destination Operations Convergence
 
-**Implemented / Awaiting Independent Review.** Engineering baseline: `d0a411cb8a882298eb32a3222478fbc782ba5556`. NetworkRepository owns fixed AMM/CAI/IST/DOH/DXB/JED/RUH airport names, city/country names, timezone, block duration and active lifecycle in `gza.network.v1`. No product-domain OpsState remains in AdminProvider.
+**Complete / Accepted Source.** Independently accepted engineering SHA: `9846f9ad90760a5e47ca231a838d146c4d7096a0`. C1 has no Accepted Release and is not deployed. The accepted-source checkpoint is the source-finalization commit on main following this engineering SHA; its immutable SHA is recorded in the finalization handback. Engineering baseline: `d0a411cb8a882298eb32a3222478fbc782ba5556`. NetworkRepository owns fixed AMM/CAI/IST/DOH/DXB/JED/RUH airport names, city/country names, timezone, block duration and active lifecycle in `gza.network.v1`. No product-domain OpsState remains in AdminProvider.
 
 Admin Destination Basics persist operational fields; planning frequency and Route summaries come from ScheduleRepository. Compiled starting fares, public copy and SEO remain read-only. ContentRepository photograph/focal-point preview drafts remain independent and unpublished. First-time Schedule creation validates known Network identity, including inactive destinations. Exact committed replay consults neither Network nor Fleet. Schedule id, destination and direction are immutable; safe non-route edits and stored history remain usable during Network failure.
 
