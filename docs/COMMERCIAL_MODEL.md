@@ -26,9 +26,9 @@ Names and service labels resolve through the current catalog including retired r
 
 ## Boundaries
 
-Admin Products Fares/Baggage/Meals/Assistance and cabin pricing are commercial.edit mutations; commercial.view can inspect. Field validation is localized/associated; storage failure is a general alert and preserves editor input. Aircraft and seat maps remain session-only OpsState, with disclosure that they reset on reload and do not govern passenger geometry. Destinations remain session-only. No gza.ops.v1, backend, network changes, schedule materialization or flight-ID changes; deployment is owner-confirmed. Phase 6B2B is Planned / Unstarted / Next Engineering Lane; Phase 6B2C/6C/7/7B remain Planned / Unstarted.
+Admin Products Fares/Baggage/Meals/Assistance and cabin pricing are commercial.edit mutations; commercial.view can inspect. Field validation is localized/associated; storage failure is a general alert and preserves editor input. In Phase 6B2B, aircraft and seat maps are canonicalized under `FleetRepository` (`gza.fleet.v1`) with booking seat layout snapshots (`BookingSeatLayoutsV1`). Destinations remain session-only until Phase 6B2C. No gza.ops.v1, backend, network changes, schedule materialization or flight-ID changes; deployment is owner-confirmed. Phase 6B2B is Implemented / Awaiting Independent Review; Phase 6B2C/6C/7/7B remain Planned / Unstarted.
 
-Phase 6B2B — Fleet Identity, Seat Layout & Booking Seat Authority (Planned / Unstarted / Next Engineering Lane). Phase 6B2C — Network & Dated-Service Materialization (Planned / Unstarted).
+Phase 6B2B — Fleet Identity, Seat Layout & Booking Seat Authority (Implemented / Awaiting Independent Review). Phase 6B2C — Network & Dated-Service Materialization (Planned / Unstarted).
 
 ## Correction 01 command boundaries
 

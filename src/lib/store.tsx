@@ -11,7 +11,6 @@ import type { Flight } from "./data";
 import {
   destinationByCode,
   isFlightBookable,
-  seatFee,
 } from "./data";
 import { makePnr } from "./format";
 import type {

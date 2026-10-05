@@ -9,6 +9,15 @@
 import type { Flight } from "../data.ts";
 import { getSeatRequiredPaxCount } from "../booking-rules.ts";
 import { getFlightBookability } from "../booking-rules.ts";
+import {
+  layoutSupportsCabin,
+  seatExists,
+  seatStructurallyAvailable,
+  cabinOfLayoutRow,
+  parseSeatCode,
+  type LayoutGeometry,
+} from "../fleet/layout.ts";
+import type { CabinId } from "../fleet/types.ts";
 import type {
   Draft,
   DraftReconciliationResult,
@@ -22,6 +31,7 @@ function haveFlightDisplayFieldsChanged(stored: Flight, effective: Flight): bool
     stored.gate !== effective.gate ||
     stored.terminal !== effective.terminal ||
     stored.aircraft !== effective.aircraft ||
+    stored.aircraftId !== effective.aircraftId ||
     stored.departTime !== effective.departTime ||
     stored.arriveTime !== effective.arriveTime ||
     stored.seatsLeft !== effective.seatsLeft ||
@@ -41,7 +51,11 @@ function reconcileLeg(
   expectedDest: string,
   expectedDate: string,
   seatPaxCount: number,
-  options?: { now?: Date | string | number },
+  options?: {
+    now?: Date | string | number | undefined;
+    cabin?: string | undefined;
+    layout?: LayoutGeometry | null | undefined;
+  },
 ): LegReconciliationResult {
   if (!storedFlight) {
     return {
@@ -109,7 +123,21 @@ function reconcileLeg(
     };
   }
 
-  // 5. Valid flight: check if operational display fields need refreshing
+  // 5. Cabin support validation (Finding 4)
+  if (options?.cabin && options?.layout) {
+    if (!layoutSupportsCabin(options.layout, options.cabin as CabinId)) {
+      return {
+        leg,
+        status: "unsupported_cabin",
+        originalFlight: storedFlight,
+        effectiveFlight,
+        reason: "cabin_unavailable",
+        seatsCleared: [],
+      };
+    }
+  }
+
+  // 6. Valid flight: check if operational display fields need refreshing
   if (haveFlightDisplayFieldsChanged(storedFlight, effectiveFlight)) {
     return {
       leg,
@@ -132,25 +160,42 @@ function reconcileLeg(
 /**
  * Reconciles the complete booking draft against provided effective flight instances.
  *
- * If a leg is invalidated (unbookable, missing, or criteria mismatch):
+ * If a leg is invalidated (unbookable, missing, criteria mismatch, or unsupported cabin):
  * - Clears ONLY that leg (`outbound = null` or `inbound = null`).
  * - Clears ONLY prefix-matching seat keys (`out-*` or `in-*`) via real key iteration.
  * - Preserves surviving leg, passenger form data, contact info, extras, and fare tier.
  *
  * If a leg is valid but has updated operational display info (gate, delay status, aircraft):
  * - Refreshes the stored snapshot to the latest effective flight data.
+ * - Prunes any individual seats that are no longer valid in the layout (wrong cabin, unavailable, or non-existent).
  */
 export type ReconcileDraftInputOptions = {
   outboundEffective?: Flight | null | undefined;
   inboundEffective?: Flight | null | undefined;
   now?: Date | string | number | undefined;
+  cabin?: string | undefined;
+  outboundLayout?: LayoutGeometry | null | undefined;
+  inboundLayout?: LayoutGeometry | null | undefined;
+  layouts?: {
+    out?: LayoutGeometry | null | undefined;
+    in?: LayoutGeometry | null | undefined;
+  };
 };
 
 export function reconcileDraft(
   draft: Draft,
   effectiveOutboundOrOptions?: Flight | null | ReconcileDraftInputOptions,
   effectiveInbound?: Flight | null,
-  options?: { now?: Date | string | number },
+  options?: {
+    now?: Date | string | number | undefined;
+    cabin?: string | undefined;
+    outboundLayout?: LayoutGeometry | null | undefined;
+    inboundLayout?: LayoutGeometry | null | undefined;
+    layouts?: {
+      out?: LayoutGeometry | null | undefined;
+      in?: LayoutGeometry | null | undefined;
+    } | undefined;
+  },
 ): DraftReconciliationResult {
   let realEffectiveOut: Flight | null | undefined;
   let realEffectiveIn: Flight | null | undefined;
@@ -164,11 +209,29 @@ export function reconcileDraft(
     const opts = effectiveOutboundOrOptions as ReconcileDraftInputOptions;
     realEffectiveOut = opts.outboundEffective;
     realEffectiveIn = opts.inboundEffective;
-    realOptions = opts.now !== undefined ? { now: opts.now } : options;
+    realOptions = {
+      ...(opts.now !== undefined ? { now: opts.now } : {}),
+      ...(opts.cabin !== undefined ? { cabin: opts.cabin } : {}),
+      ...(opts.outboundLayout !== undefined ? { outboundLayout: opts.outboundLayout } : {}),
+      ...(opts.inboundLayout !== undefined ? { inboundLayout: opts.inboundLayout } : {}),
+      ...(opts.layouts !== undefined ? { layouts: opts.layouts } : {}),
+    };
   } else {
     realEffectiveOut = effectiveOutboundOrOptions as Flight | null | undefined;
     realEffectiveIn = effectiveInbound;
   }
+
+  const realOutLayout =
+    realOptions?.outboundLayout ??
+    realOptions?.layouts?.out ??
+    undefined;
+
+  const realInLayout =
+    realOptions?.inboundLayout ??
+    realOptions?.layouts?.in ??
+    undefined;
+
+  const cabin = realOptions?.cabin ?? draft.criteria.cabin;
 
   const seatPaxCount = getSeatRequiredPaxCount(draft.passengers);
 
@@ -180,7 +243,7 @@ export function reconcileDraft(
     draft.criteria.destination,
     draft.criteria.departDate,
     seatPaxCount,
-    realOptions,
+    { ...realOptions, cabin, layout: realOutLayout },
   );
 
   const inResult =
@@ -193,7 +256,7 @@ export function reconcileDraft(
           draft.criteria.origin,
           draft.criteria.returnDate,
           seatPaxCount,
-          realOptions,
+          { ...realOptions, cabin, layout: realInLayout },
         )
       : undefined;
 
@@ -204,7 +267,13 @@ export function reconcileDraft(
   const invalidatedLegs: ("out" | "in")[] = [];
 
   // Outbound reconciliation resolution
-  if (outResult.status === "unbookable" || outResult.status === "missing" || outResult.status === "route_mismatch" || outResult.status === "date_mismatch") {
+  if (
+    outResult.status === "unbookable" ||
+    outResult.status === "missing" ||
+    outResult.status === "route_mismatch" ||
+    outResult.status === "date_mismatch" ||
+    outResult.status === "unsupported_cabin"
+  ) {
     invalidatedLegs.push("out");
     nextOutbound = null;
     changed = true;
@@ -217,14 +286,44 @@ export function reconcileDraft(
       }
     }
     outResult.seatsCleared = cleared;
-  } else if (outResult.status === "refreshed" && outResult.effectiveFlight) {
-    nextOutbound = outResult.effectiveFlight;
-    changed = true;
+  } else {
+    if (outResult.status === "refreshed" && outResult.effectiveFlight) {
+      nextOutbound = outResult.effectiveFlight;
+      changed = true;
+    }
+    // Prune invalid seats if layout changed
+    if (realOutLayout) {
+      const cleared: string[] = [];
+      for (const [key, seatCode] of Object.entries(nextSeats)) {
+        if (key.startsWith("out-") && seatCode) {
+          const parsed = parseSeatCode(seatCode);
+          const valid =
+            parsed &&
+            seatExists(realOutLayout, seatCode) &&
+            seatStructurallyAvailable(realOutLayout, seatCode) &&
+            cabinOfLayoutRow(realOutLayout, parsed.row) === cabin;
+          if (!valid) {
+            delete nextSeats[key];
+            cleared.push(key);
+            changed = true;
+          }
+        }
+      }
+      if (cleared.length > 0) {
+        outResult.seatsCleared = cleared;
+      }
+    }
   }
 
   // Inbound reconciliation resolution
   if (inResult) {
-    if (inResult.status === "unbookable" || inResult.status === "missing" || inResult.status === "route_mismatch" || inResult.status === "date_mismatch") {
+    if (
+      inResult.status === "unbookable" ||
+      inResult.status === "missing" ||
+      inResult.status === "route_mismatch" ||
+      inResult.status === "date_mismatch" ||
+      inResult.status === "unsupported_cabin"
+    ) {
       invalidatedLegs.push("in");
       nextInbound = null;
       changed = true;
@@ -237,9 +336,33 @@ export function reconcileDraft(
         }
       }
       inResult.seatsCleared = cleared;
-    } else if (inResult.status === "refreshed" && inResult.effectiveFlight) {
-      nextInbound = inResult.effectiveFlight;
-      changed = true;
+    } else {
+      if (inResult.status === "refreshed" && inResult.effectiveFlight) {
+        nextInbound = inResult.effectiveFlight;
+        changed = true;
+      }
+      // Prune invalid seats if layout changed
+      if (realInLayout) {
+        const cleared: string[] = [];
+        for (const [key, seatCode] of Object.entries(nextSeats)) {
+          if (key.startsWith("in-") && seatCode) {
+            const parsed = parseSeatCode(seatCode);
+            const valid =
+              parsed &&
+              seatExists(realInLayout, seatCode) &&
+              seatStructurallyAvailable(realInLayout, seatCode) &&
+              cabinOfLayoutRow(realInLayout, parsed.row) === cabin;
+            if (!valid) {
+              delete nextSeats[key];
+              cleared.push(key);
+              changed = true;
+            }
+          }
+        }
+        if (cleared.length > 0) {
+          inResult.seatsCleared = cleared;
+        }
+      }
     }
   }
 

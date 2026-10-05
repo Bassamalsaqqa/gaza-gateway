@@ -35,6 +35,8 @@ export type Schedule = {
   arriveTime: string;
   /** Aircraft type name, e.g. "Airbus A320neo" */
   aircraft: string;
+  /** Optional Fleet aircraft ID, e.g. "a320neo" */
+  aircraftId?: string | undefined;
   /** Schedule effective from, ISO date YYYY-MM-DD */
   from: string;
   /** Schedule effective until, ISO date YYYY-MM-DD (>= from) */
@@ -55,6 +57,7 @@ export interface ScheduleUpdateInput {
   departTime?: string;
   arriveTime?: string;
   aircraft?: string;
+  aircraftId?: string | undefined;
   from?: string;
   until?: string;
   active?: boolean;

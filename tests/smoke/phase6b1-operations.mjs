@@ -3,6 +3,8 @@ import { commercialContext, commercialFixture, availableSeat } from "./phase6a-c
 import { flightDepartureEpoch } from "../../src/lib/booking-rules.ts";
 import { adminEn, adminAr } from "../../src/lib/i18n-admin.ts";
 import { departuresOn, todayISO, addDaysISO, SEAT_ROWS, SEAT_LETTERS } from "../../src/lib/data.ts";
+import { resolveFlightCapacity } from "../../src/lib/fleet/layout.ts";
+import { seedFleetEnvelope } from "../../src/lib/fleet/seed.ts";
 
 export function operationsFixture() {
   const b = commercialFixture(),
@@ -260,7 +262,8 @@ export async function runPhase6B1Checks({ checkStep, browser, baseUrl }) {
         await a.goto(baseUrl + "/admin/flights?date=" + f.date);
         await b.goto(baseUrl + "/flight/" + f.id);
         const row = await flightRow(a, f.number);
-        await row.getByText("1/" + SEAT_ROWS * SEAT_LETTERS.length, { exact: true }).waitFor();
+        const capacity = resolveFlightCapacity(f, seedFleetEnvelope()) ?? (SEAT_ROWS * SEAT_LETTERS.length);
+        await row.getByText("1/" + capacity, { exact: true }).waitFor();
         await row.getByRole("button", { name: "Quick edit", exact: true }).click();
         await a.locator("#fq-gate").fill("C9");
         await a.locator("#fq-status").selectOption("Delayed");
@@ -344,8 +347,9 @@ export async function runPhase6B1Checks({ checkStep, browser, baseUrl }) {
           dashboard = await context.newPage();
         await dashboard.goto(baseUrl + "/admin");
         await dashboard.getByText("Check-in incomplete on " + f.number, { exact: true }).waitFor();
+        const capacity = resolveFlightCapacity(f, seedFleetEnvelope()) ?? (SEAT_ROWS * SEAT_LETTERS.length);
         await mainRow(dashboard, f.number)
-          .getByText("1/" + SEAT_ROWS * SEAT_LETTERS.length, { exact: true })
+          .getByText("1/" + capacity, { exact: true })
           .waitFor();
         await detail.goto(baseUrl + "/admin/flights/" + f.id);
         await detail.getByRole("tab", { name: "Passengers", exact: false }).click();

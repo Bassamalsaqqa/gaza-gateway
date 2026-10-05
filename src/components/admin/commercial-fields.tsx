@@ -6,6 +6,8 @@ import { Input } from "@/components/kit";
 import { useI18n, pick } from "@/lib/i18n";
 import { type Flight } from "@/lib/data";
 import { SeatMap } from "@/components/booking/seat-map";
+import { type LayoutGeometry } from "@/lib/fleet/layout";
+import { type LegSeatLayoutSnapshot } from "@/lib/domain/booking";
 
 export function CommercialInput({
   error,
@@ -95,6 +97,9 @@ export function CommercialSeatPicker({
   leg,
   paxIndex,
   passengerLabels,
+  layout,
+  occupiedSeats,
+  extraLegroomPrice,
   onSelect,
 }: {
   flight: Flight | null;
@@ -103,6 +108,9 @@ export function CommercialSeatPicker({
   leg: "out" | "in";
   paxIndex: number;
   passengerLabels: string[];
+  layout?: LayoutGeometry | LegSeatLayoutSnapshot | undefined;
+  occupiedSeats?: Set<string> | undefined;
+  extraLegroomPrice?: number | undefined;
   onSelect: (seat: string) => void;
 }) {
   const { t } = useI18n();
@@ -126,6 +134,9 @@ export function CommercialSeatPicker({
         passengerLabels={passengerLabels}
         onActivePassengerChange={() => {}}
         onSelect={(_, seat) => onSelect(seat)}
+        layout={layout}
+        occupiedSeats={occupiedSeats}
+        extraLegroomPrice={extraLegroomPrice}
       />
     </details>
   );

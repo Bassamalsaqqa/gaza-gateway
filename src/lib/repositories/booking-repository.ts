@@ -1,6 +1,11 @@
 import type { CommercialCatalogRepository } from "../commercial/types.ts";
 import { LocalCommercialCatalogRepository } from "../commercial/repository.ts";
 import { pricingSnapshot, resolveBookingPricing } from "../commercial/pricing.ts";
+import type { FleetRepository, Aircraft, SeatZone, CabinId } from "../fleet/types.ts";
+import { LocalFleetRepository } from "../fleet/repository.ts";
+import { FleetStorageCoordinator } from "../fleet/storage.ts";
+import type { FleetSnapshot } from "../fleet/types.ts";
+import { layoutCapacity, layoutSupportsCabin, parseSeatCode } from "../fleet/layout.ts";
 /**
  * Gaza Gateway — Canonical Booking Repository Implementation
  *
@@ -9,11 +14,11 @@ import { pricingSnapshot, resolveBookingPricing } from "../commercial/pricing.ts
  * Studio/capacity fixture isolation, and reactive subscriber notifications.
  */
 
-import type { Booking, BookingCreateInput, BookingPassenger, Leg, SearchCriteria } from "../domain/booking.ts";
-import { makePassengerId, BookingCreationError } from "../domain/booking.ts";
+import type { Booking, BookingCreateInput, BookingPassenger, Leg, SearchCriteria, BookingSeatLayoutsV1, LegSeatLayoutSnapshot } from "../domain/booking.ts";
+import { makePassengerId, BookingCreationError, FROZEN_LEGACY_SEAT_LAYOUT, resolveBookingLegLayout } from "../domain/booking.ts";
 import { isSyntheticFlightId, getEffectiveFlight, type Flight } from "../domain/flight.ts";
 import { isFlightBookable, getFlightBookability } from "../booking-rules.ts";
-import { flightById, SEAT_ROWS, SEAT_LETTERS } from "../data.ts";
+import { flightById } from "../data.ts";
 import { makePnr } from "../format.ts";
 import type { BookingRepository, CheckInCommandInput, UndoCheckInCommandInput, ClaimResult } from "./types.ts";
 import type { Extras } from "../booking-draft/types.ts";
@@ -31,17 +36,74 @@ import {
   type RepoStorageV1,
 } from "./storage.ts";
 
+/**
+ * Pure helper to derive canonical occupied seats on a flight from confirmed bookings.
+ * Excludes cancelled bookings and optionally excludes a current booking reference.
+ */
+export function getCanonicalOccupiedSeats(
+  bookings: Booking[],
+  flightId: string,
+  excludeRef?: string,
+  _filterLeg?: Leg,
+): Set<string> {
+  const occupied = new Set<string>();
+  const cleanExclude = excludeRef?.trim().toUpperCase();
+
+  for (const b of bookings) {
+    if (b.status !== "confirmed") continue;
+    if (cleanExclude && b.ref.toUpperCase() === cleanExclude) continue;
+
+    // A physical flight can be either outbound or inbound on another PNR;
+    // all seats booked on that physical flight are occupied.
+    if (b.outbound.id === flightId) {
+      for (const [key, seat] of Object.entries(b.seats)) {
+        if (key.startsWith("out-") && seat) {
+          const parsed = parseSeatCode(seat);
+          if (parsed) {
+            occupied.add(`${parsed.row}${parsed.letter}`);
+          }
+        }
+      }
+    }
+
+    if (b.inbound && b.inbound.id === flightId) {
+      for (const [key, seat] of Object.entries(b.seats)) {
+        if (key.startsWith("in-") && seat) {
+          const parsed = parseSeatCode(seat);
+          if (parsed) {
+            occupied.add(`${parsed.row}${parsed.letter}`);
+          }
+        }
+      }
+    }
+  }
+
+  return occupied;
+}
+
 export class LocalBookingRepository implements BookingRepository {
   private readonly commercial: CommercialCatalogRepository;
+  private readonly fleet: FleetRepository;
   private coordinator: RepoStorageCoordinator;
   private listeners: Set<() => void> = new Set();
   private unsubscribeCoordinator: (() => void) | null = null;
 
   constructor(
     coordinatorOrInitial?: RepoStorageCoordinator | RepoStorageV1,
-    options?: { storage?: Storage | null; commercial?: CommercialCatalogRepository },
+    options?: {
+      storage?: Storage | null;
+      commercial?: CommercialCatalogRepository;
+      fleet?: FleetRepository;
+    },
   ) {
     this.commercial = options?.commercial ?? new LocalCommercialCatalogRepository();
+    this.fleet =
+      options?.fleet ??
+      new LocalFleetRepository(
+        new FleetStorageCoordinator({
+          ...(options?.storage !== undefined ? { storage: options.storage } : {}),
+        }),
+      );
     if (coordinatorOrInitial instanceof RepoStorageCoordinator) {
       this.coordinator = coordinatorOrInitial;
     } else {
@@ -92,6 +154,15 @@ export class LocalBookingRepository implements BookingRepository {
     return found ? { ...found } : null;
   }
 
+  public async getOccupiedSeats(
+    flightId: string,
+    options?: { leg?: Leg; excludeRef?: string },
+  ): Promise<string[]> {
+    const bookings = this.coordinator.getState().bookings;
+    const occupied = getCanonicalOccupiedSeats(bookings, flightId, options?.excludeRef, options?.leg);
+    return Array.from(occupied);
+  }
+
   public async create(data: BookingCreateInput): Promise<Booking> {
     // A committed submission is replayed independently of today's commercial catalog.
     // Read through the coordinator's fresh canonical snapshot without writing/notifying.
@@ -102,13 +173,22 @@ export class LocalBookingRepository implements BookingRepository {
       }));
       if (committed) return structuredClone(committed);
     }
-    // Catalog is sampled at command time; booking snapshot and price commit atomically together.
+    // Catalog and Fleet are sampled at command time; booking snapshot and price commit atomically together.
     const catalog = await this.commercial.get();
+    let fleetState: FleetSnapshot;
+    try {
+      fleetState = await this.fleet.get();
+    } catch {
+      throw new BookingCreationError(
+        "fleet_unavailable",
+        "Fleet layout unavailable. Please try again.",
+      );
+    }
     const seatPaxCount =
       (Array.isArray(data.passengers) ? data.passengers : []).filter((p) => p?.type !== "infant").length || 1;
 
     // Atomically mutate coordinator: validates inside transaction against CURRENT shared coordinator flightOverrides
-    return this.coordinator.conditionalMutate<Booking>((state) => {
+    return this.coordinator.conditionalMutateAsync<Booking>((state) => {
       // 1. Idempotency guard: if submissionId was previously committed, return existing booking
       if (data.submissionId?.trim()) {
         const existing = state.bookings.find((b) => b.submissionId === data.submissionId);
@@ -268,6 +348,105 @@ export class LocalBookingRepository implements BookingRepository {
 
       const fareId = ((data.fareId ?? looseData["fareFamily"] ?? "essential") as unknown) as "essential" | "classic" | "flex";
 
+      // 7. Resolve authoritative per-leg layout snapshots from sampled Fleet state
+      const outAircraftId = effectiveOutbound.aircraftId;
+      const outAircraft = outAircraftId ? fleetState.aircraft.find((a: Aircraft) => a.id === outAircraftId) : undefined;
+      const outLayout = outAircraftId ? fleetState.layouts[outAircraftId] : undefined;
+
+      if (outAircraftId && !outLayout) {
+        throw new BookingCreationError(
+          "fleet_unavailable",
+          `Seat layout for aircraft ${outAircraftId} is unavailable.`,
+          "out",
+        );
+      }
+
+      const outSnapshot: LegSeatLayoutSnapshot = outLayout
+        ? {
+            basis: "fleet",
+            fleetRevision: fleetState.revision,
+            aircraftId: outAircraft?.id ?? outAircraftId,
+            model: outAircraft?.model ?? effectiveOutbound.aircraft,
+            registration: outAircraft?.registration,
+            rows: outLayout.rows,
+            letters: [...outLayout.letters],
+            aisleAfter: outLayout.aisleAfter,
+            zones: outLayout.zones.map((z: SeatZone) => ({ ...z })),
+            extraLegroomRows: [...outLayout.extraLegroomRows],
+            unavailable: [...outLayout.unavailable],
+            capacity: layoutCapacity(outLayout),
+          }
+        : {
+            ...FROZEN_LEGACY_SEAT_LAYOUT,
+            aircraftId: effectiveOutbound.aircraftId,
+            model: effectiveOutbound.aircraft,
+          };
+
+      let inSnapshot: LegSeatLayoutSnapshot | undefined = undefined;
+      if (effectiveInbound) {
+        const inAircraftId = effectiveInbound.aircraftId;
+        const inAircraft = inAircraftId ? fleetState.aircraft.find((a: Aircraft) => a.id === inAircraftId) : undefined;
+        const inLayout = inAircraftId ? fleetState.layouts[inAircraftId] : undefined;
+
+        if (inAircraftId && !inLayout) {
+          throw new BookingCreationError(
+            "fleet_unavailable",
+            `Seat layout for aircraft ${inAircraftId} is unavailable.`,
+            "in",
+          );
+        }
+
+        inSnapshot = inLayout
+          ? {
+              basis: "fleet",
+              fleetRevision: fleetState.revision,
+              aircraftId: inAircraft?.id ?? inAircraftId,
+              model: inAircraft?.model ?? effectiveInbound.aircraft,
+              registration: inAircraft?.registration,
+              rows: inLayout.rows,
+              letters: [...inLayout.letters],
+              aisleAfter: inLayout.aisleAfter,
+              zones: inLayout.zones.map((z: SeatZone) => ({ ...z })),
+              extraLegroomRows: [...inLayout.extraLegroomRows],
+              unavailable: [...inLayout.unavailable],
+              capacity: layoutCapacity(inLayout),
+            }
+          : {
+              ...FROZEN_LEGACY_SEAT_LAYOUT,
+              aircraftId: effectiveInbound.aircraftId,
+              model: effectiveInbound.aircraft,
+            };
+      }
+
+      // Invariant: New cabin selection requires effective layout has cabin on BOTH legs
+      const reqCabin = (criteria.cabin?.toLowerCase() || "economy") as CabinId;
+      if (!layoutSupportsCabin(outSnapshot, reqCabin)) {
+        throw new BookingCreationError(
+          "cabin_unavailable",
+          `Cabin ${criteria.cabin} is not available on outbound flight ${effectiveOutbound.number}.`,
+          "out",
+        );
+      }
+      if (inSnapshot && !layoutSupportsCabin(inSnapshot, reqCabin)) {
+        throw new BookingCreationError(
+          "cabin_unavailable",
+          `Cabin ${criteria.cabin} is not available on inbound flight ${effectiveInbound!.number}.`,
+          "in",
+        );
+      }
+
+      const seatLayouts: BookingSeatLayoutsV1 = {
+        version: 1,
+        out: outSnapshot,
+        ...(inSnapshot ? { in: inSnapshot } : {}),
+      };
+
+      // 8. Derive transactional cross-PNR occupied seats on effective flights
+      const occupiedOut = getCanonicalOccupiedSeats(state.bookings, effectiveOutbound.id);
+      const occupiedIn = effectiveInbound
+        ? getCanonicalOccupiedSeats(state.bookings, effectiveInbound.id)
+        : new Set<string>();
+
       const created: Booking = {
         ref: pnr,
         createdAt: data.createdAt ?? new Date().toISOString(),
@@ -280,6 +459,7 @@ export class LocalBookingRepository implements BookingRepository {
         extras: normalizedExtras,
         contact: normalizedContact,
         total: 0,
+        seatLayouts,
         status: data.status ?? "confirmed",
         checkedIn: data.checkedIn ?? { out: [], in: [] },
         channel: data.channel === "desk" ? "desk" : "web",
@@ -290,7 +470,18 @@ export class LocalBookingRepository implements BookingRepository {
       // A new booking has no seat ownership privileges, even if a caller supplies checkedIn.
       try {
         if (!data.seats || typeof data.seats !== "object" || Array.isArray(data.seats)) throw new Error("Invalid seat map.");
-        created.seats = validateUpdateSeatsAssignments({...created, status:"confirmed", checkedIn:{out:[],in:[]}}, data.seats, {outbound:effectiveOutbound, inbound:effectiveInbound});
+        created.seats = validateUpdateSeatsAssignments(
+          { ...created, status: "confirmed", checkedIn: { out: [], in: [] }, seatLayouts },
+          data.seats,
+          { outbound: effectiveOutbound, inbound: effectiveInbound },
+          undefined,
+          {
+            layoutOut: outSnapshot,
+            layoutIn: inSnapshot,
+            occupiedSeatsOut: occupiedOut,
+            occupiedSeatsIn: occupiedIn,
+          },
+        );
       } catch (error) {
         throw new BookingCreationError("invalid_seats", error instanceof Error ? error.message : "Invalid seats.");
       }
@@ -308,7 +499,7 @@ export class LocalBookingRepository implements BookingRepository {
     }
     const clean = ref.trim().toUpperCase();
 
-    return this.coordinator.mutate((state) => {
+    return this.coordinator.mutateAsync((state) => {
       const index = state.bookings.findIndex((b) => b.ref.toUpperCase() === clean);
       if (index === -1) {
         throw new Error(`Booking ${clean} not found.`);
@@ -349,7 +540,7 @@ export class LocalBookingRepository implements BookingRepository {
     }
     const cleanPhone = (contact?.phone ?? "").trim();
 
-    return this.coordinator.mutate((state) => {
+    return this.coordinator.mutateAsync((state) => {
       const index = state.bookings.findIndex((b) => b.ref.toUpperCase() === clean);
       if (index === -1) {
         throw new Error(`Booking ${clean} not found.`);
@@ -387,7 +578,7 @@ export class LocalBookingRepository implements BookingRepository {
     }
     const clean = ref.trim().toUpperCase();
 
-    return this.coordinator.mutate((state) => {
+    return this.coordinator.conditionalMutateAsync((state) => {
       const index = state.bookings.findIndex((b) => b.ref.toUpperCase() === clean);
       if (index === -1) {
         throw new Error(`Booking ${clean} not found.`);
@@ -416,11 +607,35 @@ export class LocalBookingRepository implements BookingRepository {
           : null;
       }
 
+      // Resolve sealed layout snapshot: preserve stored snapshot or seal frozen legacy fallback
+      const sealedLayouts: BookingSeatLayoutsV1 = existing.seatLayouts ?? {
+        version: 1,
+        out: FROZEN_LEGACY_SEAT_LAYOUT,
+        in: existing.inbound ? FROZEN_LEGACY_SEAT_LAYOUT : undefined,
+      };
+
+      // Derive transactional cross-PNR occupied seats excluding current booking
+      const occupiedOut = getCanonicalOccupiedSeats(state.bookings, existing.outbound.id, existing.ref);
+      const occupiedIn = existing.inbound
+        ? getCanonicalOccupiedSeats(state.bookings, existing.inbound.id, existing.ref)
+        : new Set<string>();
+
       // Pure domain validation for seat syntax, cabin zone, availability, immutability, duplicates, leg preservation
-      const nextSeats = validateUpdateSeatsAssignments(existing, seats, {
-        outbound: effectiveOutbound,
-        inbound: effectiveInbound,
-      });
+      const nextSeats = validateUpdateSeatsAssignments(
+        { ...existing, seatLayouts: sealedLayouts },
+        seats,
+        {
+          outbound: effectiveOutbound,
+          inbound: effectiveInbound,
+        },
+        undefined,
+        {
+          layoutOut: sealedLayouts.out,
+          layoutIn: sealedLayouts.in,
+          occupiedSeatsOut: occupiedOut,
+          occupiedSeatsIn: occupiedIn,
+        },
+      );
 
       // Genuine no-op: if prospective seats are identical to existing seats, return existing booking unchanged
       const isNoOp =
@@ -428,10 +643,10 @@ export class LocalBookingRepository implements BookingRepository {
         Object.entries(existing.seats).every(([k, v]) => nextSeats[k] === v);
 
       if (isNoOp) {
-        return { ...existing };
+        return { commit: false, result: { ...existing } };
       }
 
-      // Invariant: Canonical pricing recalculation using latest booking facts
+      // Invariant: Canonical pricing recalculation using latest booking facts and leg-aware extra legroom
       const nextTotal = bookingTotal({
         outbound: existing.outbound,
         inbound: existing.inbound,
@@ -439,17 +654,19 @@ export class LocalBookingRepository implements BookingRepository {
         criteria: existing.criteria,
         seats: nextSeats,
         extras: existing.extras,
+        seatLayouts: sealedLayouts,
       }, resolveBookingPricing(existing)).total;
 
       const updated: Booking = {
         ...existing,
         pricingSnapshot: resolveBookingPricing(existing),
+        seatLayouts: sealedLayouts,
         seats: nextSeats,
         total: nextTotal,
       };
 
       state.bookings[index] = updated;
-      return { ...updated };
+      return { commit: true, result: { ...updated } };
     });
   }
 
@@ -463,7 +680,7 @@ export class LocalBookingRepository implements BookingRepository {
     const catalog = await this.commercial.get();
     const clean = ref.trim().toUpperCase();
 
-    return this.coordinator.conditionalMutate((state) => {
+    return this.coordinator.conditionalMutateAsync((state) => {
       const index = state.bookings.findIndex((b) => b.ref.toUpperCase() === clean);
       if (index === -1) {
         throw new Error(`Booking ${clean} not found.`);
@@ -488,6 +705,7 @@ export class LocalBookingRepository implements BookingRepository {
         criteria: existing.criteria,
         seats: existing.seats,
         extras,
+        seatLayouts: existing.seatLayouts,
       }, resolveBookingPricing(existing)).total;
 
       const updated: Booking = {
@@ -508,7 +726,7 @@ export class LocalBookingRepository implements BookingRepository {
     }
     const clean = input.ref.trim().toUpperCase();
 
-    return this.coordinator.mutate((state) => {
+    return this.coordinator.mutateAsync((state) => {
       const index = state.bookings.findIndex((b) => b.ref.toUpperCase() === clean);
       if (index === -1) {
         throw new Error(`Booking ${clean} not found.`);
@@ -583,7 +801,7 @@ export class LocalBookingRepository implements BookingRepository {
           }
           if (!isValidSeatSyntax(seat)) {
             throw new Error(
-              `Invalid seat syntax '${seat}' for passenger ${paxIdx} on leg ${input.leg}. Must be row (1-${SEAT_ROWS}) followed by letter (${SEAT_LETTERS.join("")}).`,
+              `Invalid seat syntax '${seat}' for passenger ${paxIdx} on leg ${input.leg}. Must be row (1-60) followed by letter (A-Z).`,
             );
           }
         }
@@ -640,13 +858,23 @@ export class LocalBookingRepository implements BookingRepository {
         }
       }
 
-      // Step 5: Pure domain seat allocation and validation (Finding 1)
+      // Step 5: Pure domain seat allocation and validation with layout and cross-PNR occupancy
+      const sealedLayouts: BookingSeatLayoutsV1 = existing.seatLayouts ?? {
+        version: 1,
+        out: FROZEN_LEGACY_SEAT_LAYOUT,
+        in: existing.inbound ? FROZEN_LEGACY_SEAT_LAYOUT : undefined,
+      };
+
+      const occupied = getCanonicalOccupiedSeats(state.bookings, bookedFlight.id, existing.ref);
+      const legLayout = input.leg === "in" ? sealedLayouts.in : sealedLayouts.out;
+
       const nextSeats = validateCheckInSeats(
-        existing,
+        { ...existing, seatLayouts: sealedLayouts },
         input.leg,
         input.selectedPaxIndexes,
         input.seats,
         effectiveFlight,
+        { layout: legLayout, occupiedSeats: occupied },
       );
 
       // Prepare updated passenger documents
@@ -668,7 +896,7 @@ export class LocalBookingRepository implements BookingRepository {
         [input.leg]: mergedCheckedIn,
       };
 
-      // Recalculate total if seat charges changed
+      // Recalculate total if seat charges changed (leg-aware extra legroom)
       const nextTotal = bookingTotal({
         outbound: existing.outbound,
         inbound: existing.inbound,
@@ -676,11 +904,13 @@ export class LocalBookingRepository implements BookingRepository {
         criteria: existing.criteria,
         seats: nextSeats,
         extras: existing.extras,
+        seatLayouts: sealedLayouts,
       }, resolveBookingPricing(existing)).total;
 
       const updated: Booking = {
         ...existing,
         pricingSnapshot: resolveBookingPricing(existing),
+        seatLayouts: sealedLayouts,
         passengers: nextPassengers,
         seats: nextSeats,
         checkedIn: nextCheckedIn,
@@ -716,7 +946,7 @@ export class LocalBookingRepository implements BookingRepository {
 
     const clean = input.ref.trim().toUpperCase();
 
-    return this.coordinator.conditionalMutate((state) => {
+    return this.coordinator.conditionalMutateAsync((state) => {
       const index = state.bookings.findIndex((b) => b.ref.toUpperCase() === clean);
       if (index === -1) {
         throw new Error(`Booking ${clean} not found.`);
@@ -769,7 +999,7 @@ export class LocalBookingRepository implements BookingRepository {
     if (!ref || typeof ref !== "string") return null;
     const clean = ref.trim().toUpperCase();
 
-    return this.coordinator.mutate((state) => {
+    return this.coordinator.mutateAsync((state) => {
       const index = state.bookings.findIndex((b) => b.ref.toUpperCase() === clean);
       if (index === -1) return null;
 
@@ -804,7 +1034,7 @@ export class LocalBookingRepository implements BookingRepository {
     }
 
     // Evaluate against the freshest transactional snapshot: all no-op outcomes commit=false (0 writes, 0 notifications)
-    return this.coordinator.conditionalMutate<ClaimResult>((state) => {
+    return this.coordinator.conditionalMutateAsync<ClaimResult>((state) => {
       const index = state.bookings.findIndex((b) => b.ref.toUpperCase() === clean);
       if (index === -1) {
         return { commit: false, result: { status: "not-found" } };
@@ -844,7 +1074,7 @@ export class LocalBookingRepository implements BookingRepository {
     if (!ref || typeof ref !== "string") return false;
     const clean = ref.trim().toUpperCase();
 
-    return this.coordinator.mutate((state) => {
+    return this.coordinator.mutateAsync((state) => {
       const beforeCount = state.bookings.length;
       state.bookings = state.bookings.filter((b) => b.ref.toUpperCase() !== clean);
       return state.bookings.length !== beforeCount;

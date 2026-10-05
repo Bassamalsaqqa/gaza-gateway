@@ -49,7 +49,7 @@ class MemoryStorage implements Storage {
     return [...this.values.keys()][index] ?? null;
   }
 }
-const entry = (id = "new-schedule"): Schedule => ({ ...structuredClone(seedSchedules()[0]!), id });
+const entry = (id = "new-schedule"): Schedule => ({ ...structuredClone(seedSchedules()[0]!), aircraftId: "a320neo", id });
 function setup() {
   const storage = new MemoryStorage();
   const coordinator = new ScheduleStorageCoordinator({ storage });
@@ -397,5 +397,40 @@ describe("Phase 6B1 — canonical booking metrics", () => {
     const metrics = dailyBookingMetrics([older, newer], "2026-10-03");
     assert.equal(metrics.recent[0]?.ref, "NEW");
     assert.equal(metrics.travelling.length, 2);
+  });
+});
+
+describe("Phase 6B2B — Schedule Fleet Identity & Source Guard", () => {
+  it("parses schedule with optional aircraftId and preserves backwards compatibility", () => {
+    const rawLegacy = {
+      id: "legacy-sched-1",
+      number: "PS100",
+      direction: "out",
+      destination: "AMM",
+      days: [1, 3, 5],
+      departTime: "08:00",
+      arriveTime: "09:00",
+      aircraft: "Airbus A320neo",
+      from: "2026-01-01",
+      until: "2026-12-31",
+      active: true,
+      exceptions: [],
+    };
+    const parsedLegacy = parseSchedule(rawLegacy);
+    assert.equal(parsedLegacy.aircraft, "Airbus A320neo");
+    assert.equal(parsedLegacy.aircraftId, undefined);
+
+    const withFleetId = {
+      ...rawLegacy,
+      id: "new-sched-1",
+      aircraftId: "a320neo",
+    };
+    const parsedWithFleet = parseSchedule(withFleetId);
+    assert.equal(parsedWithFleet.aircraftId, "a320neo");
+  });
+
+  it("source guard: admin schedules route does NOT use ops.aircraft", () => {
+    const schedulesSource = readFileSync(new URL("../../src/routes/{-$locale}.admin.schedules.tsx", import.meta.url), "utf8");
+    assert.equal(schedulesSource.includes("ops.aircraft"), false, "Admin schedules must not reference ops.aircraft");
   });
 });

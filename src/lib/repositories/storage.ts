@@ -289,6 +289,7 @@ function cloneRepoStorage(source: RepoStorageV1): RepoStorageV1 {
  */
 export class RepoStorageCoordinator {
   private state: RepoStorageV1;
+  private queue: Promise<unknown> = Promise.resolve();
   private readonly inMemoryOnly: boolean;
   private readonly customStorage?: Storage | null | undefined;
   private listeners: Set<() => void> = new Set();
@@ -391,6 +392,29 @@ export class RepoStorageCoordinator {
     this.state = tentative;
     this.notifyListeners();
     return result;
+  }
+
+  /** All production writers share an origin-wide lock and reread inside it. */
+  public conditionalMutateAsync<T>(
+    mutator: (state: RepoStorageV1) => { commit: boolean; result: T },
+  ): Promise<T> {
+    const run = async () => {
+      if (this.isInMemory()) return this.conditionalMutate(mutator);
+      const locks = typeof navigator !== "undefined" ? navigator.locks : undefined;
+      if (!locks) {
+        if (typeof window === "undefined") return this.conditionalMutate(mutator);
+        throw new StorageCommitError("Repository write coordination unavailable.");
+      }
+      return locks.request(REPO_STORAGE_KEY, { signal: AbortSignal.timeout(5000) },
+        () => this.conditionalMutate(mutator));
+    };
+    const pending = this.queue.then(run, run);
+    this.queue = pending.catch(() => {});
+    return pending;
+  }
+
+  public mutateAsync<T>(mutator: (state: RepoStorageV1) => T): Promise<T> {
+    return this.conditionalMutateAsync(state => ({ commit: true, result: mutator(state) }));
   }
 
   public subscribe(listener: () => void): () => void {

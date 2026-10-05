@@ -5,7 +5,9 @@ import { useAdmin } from "@/lib/admin-store";
 import { useI18n } from "@/lib/i18n";
 import { useUpdateFlightOverrideMutation } from "@/lib/repositories";
 import type { Flight, FlightStatus } from "@/lib/data";
+import { aircraftNameToId } from "@/lib/data";
 import { validateFlightEdit } from "@/lib/admin-flight-edit";
+import { useFleetQuery } from "@/lib/fleet";
 export { GATE_IDENTIFIER_PATTERN } from "@/lib/admin-flight-edit";
 
 export const FLIGHT_STATUSES: FlightStatus[] = [
@@ -17,7 +19,6 @@ export const FLIGHT_STATUSES: FlightStatus[] = [
   "Landed",
   "Cancelled",
 ];
-
 
 export type QuickEditFlight = Flight & { note?: string; revisedDepart?: string };
 
@@ -33,8 +34,9 @@ export function FlightQuickEdit({
   onClose: () => void;
 }) {
   const { t } = useI18n();
-  const { can, toast, ops } = useAdmin();
+  const { can, toast } = useAdmin();
   const mutation = useUpdateFlightOverrideMutation();
+  const { data: fleetData, isError: fleetError } = useFleetQuery();
   const mayEdit = can("ops.edit");
 
   const [form, setForm] = useState(() => blank(flight));
@@ -66,23 +68,67 @@ export function FlightQuickEdit({
     }
 
     try {
-      await mutation.mutateAsync({ flightId: flight.id, patch: {
+      const patch: Parameters<typeof mutation.mutateAsync>[0]["patch"] = {
         status: form.status,
         gate: form.gate.trim(),
         terminal: form.terminal.trim(),
-        aircraft: form.aircraft.trim(),
         revisedDepart: form.revised.trim(),
         note: form.note.trim(),
-      } });
+      };
+
+      // Only reassign aircraft if Fleet query is healthy and user selected a valid different aircraft
+      if (!fleetError && form.aircraftId && form.aircraftId !== flight.aircraftId) {
+        const chosen = fleetData?.aircraft.find((a) => a.id === form.aircraftId);
+        if (chosen) {
+          patch.aircraftId = chosen.id;
+          patch.aircraft = chosen.model;
+        }
+      }
+
+      await mutation.mutateAsync({ flightId: flight.id, patch });
       toast(t("adm.edit.saved", { flight: flight.number }));
       onClose();
-    } catch (err) {
+    } catch {
       setValidationError(t("adm.ops.saveError"));
     }
   };
 
-  const aircraftNames = ops.aircraft.map((a) => a.name);
-  if (flight && !aircraftNames.includes(flight.aircraft)) aircraftNames.unshift(flight.aircraft);
+  type AircraftOption = { id: string; label: string };
+  const aircraftOptions: AircraftOption[] = [];
+
+  if (fleetData?.aircraft) {
+    for (const a of fleetData.aircraft) {
+      if (a.active) {
+        aircraftOptions.push({
+          id: a.id,
+          label: `${a.model} (${a.registration})`,
+        });
+      }
+    }
+
+    const currentPlane = flight
+      ? fleetData.aircraft.find((a) => a.id === (flight.aircraftId ?? aircraftNameToId(flight.aircraft)))
+      : undefined;
+
+    if (currentPlane && !currentPlane.active) {
+      if (!aircraftOptions.some((o) => o.id === currentPlane.id)) {
+        aircraftOptions.unshift({
+          id: currentPlane.id,
+          label: `${currentPlane.model} (${currentPlane.registration}) [${t("adm.common.inactive")}]`,
+        });
+      }
+    } else if (flight?.aircraft && !currentPlane) {
+      aircraftOptions.unshift({
+        id: flight.aircraftId ?? aircraftNameToId(flight.aircraft) ?? "__legacy__",
+        label: `${flight.aircraft} [${t("fleet.legacy")}]`,
+      });
+    }
+  } else if (flight) {
+    aircraftOptions.push({
+      id: flight.aircraftId ?? aircraftNameToId(flight.aircraft) ?? "__legacy__",
+      label: flight.aircraft,
+    });
+  }
 
   return (
     <GazaSheet
@@ -160,15 +206,29 @@ export function FlightQuickEdit({
             <Select
               id="fq-aircraft"
               dir="ltr"
-              value={form.aircraft}
-              onChange={(e) => setForm({ ...form, aircraft: e.target.value })}
+              disabled={fleetError}
+              value={form.aircraftId || (flight ? (flight.aircraftId ?? "__legacy__") : "")}
+              onChange={(e) => {
+                const selectedId = e.target.value;
+                const chosen = fleetData?.aircraft.find((a) => a.id === selectedId);
+                setForm({
+                  ...form,
+                  aircraftId: selectedId,
+                  aircraft: chosen ? chosen.model : form.aircraft,
+                });
+              }}
             >
-              {aircraftNames.map((name) => (
-                <option key={name} value={name}>
-                  {name}
+              {aircraftOptions.map((opt) => (
+                <option key={opt.id} value={opt.id}>
+                  {opt.label}
                 </option>
               ))}
             </Select>
+            {fleetError ? (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {t("adm.flight.fleetUnavailable") || "Fleet configuration is unavailable; aircraft reassignment is disabled."}
+              </p>
+            ) : null}
           </Field>
           <Field label={t("adm.edit.revised")} htmlFor="fq-revised">
             <Input
@@ -199,10 +259,12 @@ export function FlightQuickEdit({
 }
 
 function blank(flight: QuickEditFlight | null) {
+  const currentAircraftId = flight?.aircraftId ?? (flight?.aircraft ? aircraftNameToId(flight.aircraft) : undefined) ?? (flight ? "__legacy__" : "");
   return {
     status: (flight?.status ?? "Scheduled") as FlightStatus,
     gate: flight?.gate ?? "",
     terminal: flight?.terminal ?? "",
+    aircraftId: currentAircraftId,
     aircraft: flight?.aircraft ?? "",
     revised: flight?.revisedDepart ?? "",
     note: flight?.note ?? "",

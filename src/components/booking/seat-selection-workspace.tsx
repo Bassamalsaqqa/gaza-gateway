@@ -1,14 +1,18 @@
 import { useCommercialOptions } from "@/lib/commercial/queries";
 import { pricingSnapshot, snapshotSeatFee } from "@/lib/commercial/pricing";
 import { CommercialCatalogState } from "@/components/commercial-catalog-state";
-import { Check, Sparkles, User } from "lucide-react";
-import { Eyebrow } from "@/components/kit";
+import { AlertCircle, Sparkles, User } from "lucide-react";
+import { Eyebrow, GazaLoadingState } from "@/components/kit";
 import { BookingLegSwitcher } from "@/components/booking/booking-leg-switcher";
 import { SeatMap } from "@/components/booking/seat-map";
 import {
   suggestSeat,
+  aircraftNameToId,
+  type CabinId,
   type Flight,
 } from "@/lib/data";
+import { useFleetQuery, layoutSupportsCabin, seatIsExtraLegroom } from "@/lib/fleet";
+import { useBookingsQuery, getCanonicalOccupiedSeats } from "@/lib/repositories";
 import { money } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 import type { Draft } from "@/lib/store";
@@ -47,14 +51,36 @@ export function SeatSelectionWorkspace({
 }: SeatSelectionWorkspaceProps) {
   const { t, lang } = useI18n();
   const commercial = useCommercialOptions();
+  const fleetQuery = useFleetQuery();
+  const bookingsQuery = useBookingsQuery();
+
   if (!commercial.catalogSnapshot || commercial.query.isError) return <CommercialCatalogState />;
-  const basis=pricingSnapshot(commercial.catalogSnapshot,draft.fareId,draft.criteria.cabin);
-  const seatFee=(row:number)=>snapshotSeatFee(`${row}A`,basis);
-  const isOneWay = !draft.inbound;
+  const basis = pricingSnapshot(commercial.catalogSnapshot, draft.fareId, draft.criteria.cabin);
+  const isOneWay = draft.criteria.tripType !== "round" || !draft.inbound;
+  const outAircraftId =
+    draft.outbound?.aircraftId ||
+    (draft.outbound?.aircraft ? aircraftNameToId(draft.outbound.aircraft) : undefined);
+  const outLayout =
+    fleetQuery.data && outAircraftId ? fleetQuery.data.layouts[outAircraftId] : undefined;
+
+  const inAircraftId =
+    draft.inbound?.aircraftId ||
+    (draft.inbound?.aircraft ? aircraftNameToId(draft.inbound.aircraft) : undefined);
+  const inLayout =
+    fleetQuery.data && inAircraftId ? fleetQuery.data.layouts[inAircraftId] : undefined;
 
   const currentFlight =
     (seatLeg === "out" ? draft.outbound : draft.inbound) ?? draft.outbound;
   const currentFlightId = currentFlight?.id ?? "unknown";
+
+  const layout = seatLeg === "out" ? outLayout : inLayout;
+
+  const isCabinSupported =
+    layout ? layoutSupportsCabin(layout, draft.criteria.cabin as CabinId) : true;
+
+  const occupiedSeats = bookingsQuery.data
+    ? getCanonicalOccupiedSeats(bookingsQuery.data, currentFlightId)
+    : new Set<string>();
 
   const outboundAssignments = seatAssignments("out");
   const inboundAssignments = seatAssignments("in");
@@ -66,13 +92,21 @@ export function SeatSelectionWorkspace({
   const activeSeat = currentAssignments[activePassenger];
 
   const activeRow = activeSeat ? Number.parseInt(activeSeat.replace(/\D/g, ""), 10) : 0;
-  const isActiveExtra = activeRow > 0 && basis.seatPricing.extraLegroomRows.includes(activeRow);
-  const activeFee = activeRow > 0 ? seatFee(activeRow) : 0;
+  const isActiveExtra =
+    activeSeat && layout
+      ? seatIsExtraLegroom(layout, activeSeat)
+      : activeRow > 0 && basis.seatPricing.extraLegroomRows.includes(activeRow);
 
-  // Calculate total seat fees across all passengers and legs
-  const totalSeatFees = Object.values(draft.seats).reduce((sum, seat) => {
-    const row = Number.parseInt(seat.replace(/\D/g, ""), 10);
-    return sum + (row ? seatFee(row) : 0);
+  const getSeatFee = (seatCode: string, leg: "out" | "in" = seatLeg) =>
+    snapshotSeatFee(seatCode, basis, leg === "in" ? inLayout : outLayout);
+
+  const activeFee = activeSeat ? getSeatFee(activeSeat, seatLeg) : 0;
+
+  // Calculate total seat fees across all passengers and legs using per-leg layouts
+  const totalSeatFees = Object.entries(draft.seats).reduce((sum, [key, seat]) => {
+    if (!seat) return sum;
+    const leg = key.startsWith("in-") ? "in" : "out";
+    return sum + getSeatFee(seat, leg);
   }, 0);
 
   return (
@@ -126,8 +160,11 @@ export function SeatSelectionWorkspace({
                 const isCurrent = activePassenger === position;
                 const assigned = currentAssignments[position];
                 const row = assigned ? Number.parseInt(assigned.replace(/\D/g, ""), 10) : 0;
-                const isExtra = row > 0 && basis.seatPricing.extraLegroomRows.includes(row);
-                const fee = row > 0 ? seatFee(row) : 0;
+                const isExtra =
+                  assigned && layout
+                    ? seatIsExtraLegroom(layout, assigned)
+                    : row > 0 && (layout?.extraLegroomRows ?? basis.seatPricing.extraLegroomRows).includes(row);
+                const fee = assigned ? getSeatFee(assigned, seatLeg) : 0;
                 const label = passengerLabels[position] || `${t("book.passenger")} ${position + 1}`;
 
                 return (
@@ -265,21 +302,70 @@ export function SeatSelectionWorkspace({
           tabIndex={0}
           className="w-full min-w-0 outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-xl"
         >
-          <SeatMap
-            flightId={currentFlightId}
-            assignments={currentAssignments}
-            activePassenger={activePassenger}
-            onActivePassengerChange={onActivePassengerChange}
-            onSelect={onSelectSeat}
-            passengerLabels={passengerLabels}
-            cabin={draft.criteria.cabin}
-            suggestedSeat={suggestSeat(
-              currentFlightId,
-              draft.criteria.cabin,
-              seatPreference,
-              Object.values(draft.seats),
-            )}
-          />
+          {fleetQuery.isLoading ? (
+            <div className="flex min-h-64 items-center justify-center rounded-xl border border-border bg-card p-8">
+              <GazaLoadingState />
+            </div>
+          ) : fleetQuery.isError ? (
+            <div
+              role="alert"
+              className="rounded-xl border border-destructive/40 bg-destructive/10 p-6 text-center space-y-3"
+            >
+              <AlertCircle className="mx-auto size-6 text-destructive" />
+              <p className="text-sm font-semibold text-foreground">{t("error.title")}</p>
+              <p className="text-xs text-muted-foreground">
+                {t("commercial.error.catalog_unavailable")}
+              </p>
+              <button
+                type="button"
+                onClick={() => fleetQuery.refetch()}
+                className="inline-flex items-center justify-center rounded-md border border-input bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary/40"
+              >
+                {t("error.tryAgain")}
+              </button>
+            </div>
+          ) : !layout ? (
+            <div
+              role="alert"
+              className="rounded-xl border border-border bg-card p-6 text-center space-y-2"
+            >
+              <AlertCircle className="mx-auto size-6 text-muted-foreground" />
+              <p className="text-sm font-semibold text-foreground">{t("book.seatUnavailable")}</p>
+              <p className="text-xs text-muted-foreground">
+                {t("fleet.error.unavailable")}
+              </p>
+            </div>
+          ) : !isCabinSupported ? (
+            <div
+              role="alert"
+              className="rounded-xl border border-clay/40 bg-sand p-6 text-center space-y-2"
+            >
+              <AlertCircle className="mx-auto size-6 text-clay" />
+              <p className="text-sm font-semibold text-foreground">
+                {t("book.flightCabinUnavailable")}
+              </p>
+            </div>
+          ) : (
+            <SeatMap
+              flightId={currentFlightId}
+              assignments={currentAssignments}
+              activePassenger={activePassenger}
+              onActivePassengerChange={onActivePassengerChange}
+              onSelect={onSelectSeat}
+              passengerLabels={passengerLabels}
+              cabin={draft.criteria.cabin}
+              layout={layout}
+              occupiedSeats={occupiedSeats}
+              extraLegroomPrice={basis.seatPricing.extraLegroomPrice}
+              suggestedSeat={suggestSeat(
+                currentFlightId,
+                layout,
+                draft.criteria.cabin,
+                seatPreference,
+                [...Object.values(draft.seats), ...Array.from(occupiedSeats)],
+              )}
+            />
+          )}
 
           {/* Navigation on mobile beneath seat map */}
           <div className="block lg:hidden mt-6">{stepNav}</div>

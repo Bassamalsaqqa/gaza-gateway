@@ -1,4 +1,4 @@
-import { previewBookingTotal } from "@/lib/commercial/pricing";
+import { previewBookingTotal, resolvePreviewSeatLayouts } from "@/lib/commercial/pricing";
 import { useCommercialOptions } from "@/lib/commercial/queries";
 import { CommercialCatalogState } from "@/components/commercial-catalog-state";
 import { ArrowRight } from "lucide-react";
@@ -8,14 +8,26 @@ import { money, dateShort } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
 import { paxCount, type Draft } from "@/lib/store";
 import { useSurfaceRecipe, GazaSurface, SurfaceIndex } from "@/design/surfaces";
+import { useFleetQuery } from "@/lib/fleet";
+import { useMemo } from "react";
 
 export function PriceSummary({ draft, compact = false }: { draft: Draft; compact?: boolean }) {
   const { t, lang } = useI18n();
   const commercial = useCommercialOptions();
+  const fleetQuery = useFleetQuery();
   const { fares } = commercial;
   const { active } = useSurfaceRecipe("dossier");
-  const totals = previewBookingTotal(draft, commercial.catalogSnapshot);
+
+  const seatLayouts = useMemo(
+    () => resolvePreviewSeatLayouts(draft.outbound, draft.inbound, fleetQuery.isError ? undefined : fleetQuery.data),
+    [draft.outbound, draft.inbound, fleetQuery.data, fleetQuery.isError],
+  );
+
+  const totals = previewBookingTotal(draft, commercial.catalogSnapshot, seatLayouts);
   if (!totals || commercial.query.isError) return <><CommercialCatalogState />{commercial.catalog ? <p role="alert">{t("commercial.error.fare_unavailable")}</p> : null}</>;
+  if (draft.outbound && (fleetQuery.isPending || fleetQuery.isError || !seatLayouts)) {
+    return <p role={fleetQuery.isPending ? "status" : "alert"} className="p-4 text-sm text-muted-foreground">{t(fleetQuery.isPending ? "common.loading" : "fleet.error.unavailable")}</p>;
+  }
   const fare = fares.find((f) => f.id === draft.fareId);
 
   return (

@@ -1,4 +1,4 @@
-import { previewBookingTotal, pricingSnapshot, serviceOptions } from "@/lib/commercial/pricing";
+import { previewBookingTotal, pricingSnapshot, serviceOptions, resolvePreviewSeatLayouts } from "@/lib/commercial/pricing";
 import { CommercialCatalogError } from "@/lib/commercial/types";
 import { useCommercialOptions } from "@/lib/commercial/queries";
 import { CommercialCatalogState } from "@/components/commercial-catalog-state";
@@ -31,13 +31,19 @@ import {
 import { AdminDenied } from "@/components/admin/admin-denied";
 import { useAdmin } from "@/lib/admin-store";
 import { pick, useI18n } from "@/lib/i18n";
-import { destinations, todayISO, addDaysISO, type Flight } from "@/lib/data";
+import { destinations, todayISO, addDaysISO, aircraftNameToId, type Flight } from "@/lib/data";
 import { getFlightBookability } from "@/lib/booking-rules";
 import { bookingTotal } from "@/lib/domain/pricing";
 import { money } from "@/lib/format";
 import { pageHead } from "@/lib/head";
 import { cn } from "@/lib/utils";
-import { useFlightSearchQuery, useCreateBookingMutation } from "@/lib/repositories/queries";
+import { useFleetQuery, layoutSupportsCabin, parseSeatCode, seatStructurallyAvailable, cabinOfLayoutRow } from "@/lib/fleet";
+import {
+  useFlightSearchQuery,
+  useCreateBookingMutation,
+  useBookingsQuery,
+  getCanonicalOccupiedSeats,
+} from "@/lib/repositories";
 import type { Booking, BookingCreateInput } from "@/lib/domain/booking";
 
 export const Route = createFileRoute("/{-$locale}/admin/bookings/new")({
@@ -125,6 +131,8 @@ function AdminNewBookingPage() {
 
   const mayEdit = can("commercial.edit");
   const createBooking = useCreateBookingMutation();
+  const fleetQuery = useFleetQuery();
+  const { data: allBookings = [] } = useBookingsQuery();
 
   // Departures query for Gaza origin
   const { data: availableFlights = [], isLoading: flightsLoading } = useFlightSearchQuery(
@@ -132,6 +140,19 @@ function AdminNewBookingPage() {
     destinationCode,
     date,
   );
+  useEffect(() => {
+    if (fleetQuery.isPending || fleetQuery.isError || !fleetQuery.data || !selectedFlightId) return;
+    const flight = availableFlights.find(f => f.id === selectedFlightId);
+    const layout = flight?.aircraftId ? fleetQuery.data.layouts[flight.aircraftId] : undefined;
+    if (!layout || !layoutSupportsCabin(layout, "economy")) {
+      setSelectedFlightId(""); setSeats({}); setStep(0); setFormError(t("book.flightCabinUnavailable"));
+      return;
+    }
+    setSeats(previous => Object.fromEntries(Object.entries(previous).filter(([, seat]) => {
+      const parsed = parseSeatCode(seat);
+      return parsed && seatStructurallyAvailable(layout, seat) && cabinOfLayoutRow(layout, parsed.row) === "economy";
+    })));
+  }, [fleetQuery.data, fleetQuery.isPending, fleetQuery.isError, selectedFlightId, availableFlights, t]);
   const chosenFlight: Flight | null =
     availableFlights.find((f) => f.id === selectedFlightId) ?? null;
 
@@ -187,18 +208,25 @@ function AdminNewBookingPage() {
     };
   }, [chosenFlight, fare, passengers, seats, extrasPax, contact]);
 
+  const previewSeatLayouts = useMemo(
+    () => resolvePreviewSeatLayouts(chosenFlight, null, fleetQuery.data),
+    [chosenFlight, fleetQuery.data],
+  );
+
   const previewTotal = useMemo(() => {
     if (!previewBooking) return 0;
-    return previewBookingTotal(previewBooking, commercial.catalogSnapshot)?.total ?? NaN;
-  }, [previewBooking, commercial.catalogSnapshot]);
+    return previewBookingTotal(previewBooking, commercial.catalogSnapshot, previewSeatLayouts)?.total ?? NaN;
+  }, [previewBooking, commercial.catalogSnapshot, previewSeatLayouts]);
 
   if (!can("commercial.view")) {
     return <AdminDenied area={t("a2.nb.title")} permission="commercial.view" />;
   }
 
   if (!commercial.catalog || commercial.query.isError) return <CommercialCatalogState />;
+  if (fleetQuery.isError) return <p role="alert" className="text-sm text-status-cancelled">{t("fleet.error.unavailable")}</p>;
   // Step validation helpers
   const validateStep0 = (): string | null => {
+    if (fleetQuery.isError || !fleetQuery.data) return t("fleet.error.unavailable");
     if (!chosenFlight) return t("a6.err.flight") || "Please select a flight.";
     if (!flightBookability.bookable) {
       return t(
@@ -206,6 +234,12 @@ function AdminNewBookingPage() {
           ? "a6.err.capacity"
           : "a6.err.flight",
       );
+    }
+    if (fleetQuery.data?.layouts) {
+      const layout = fleetQuery.data.layouts[chosenFlight.aircraftId ?? ""];
+      if (!layout || !layoutSupportsCabin(layout, "economy")) {
+        return t("book.flightCabinUnavailable") || "The selected cabin class is unavailable on this flight.";
+      }
     }
     return null;
   };
@@ -544,6 +578,9 @@ function AdminNewBookingPage() {
                   <div className="grid gap-2 sm:grid-cols-2">
                     {availableFlights.map((f) => {
                       const bookability = getFlightBookability(f, { paxCount: seatRequiredCount });
+                      const layout = f.aircraftId && !fleetQuery.isError && fleetQuery.data?.layouts ? fleetQuery.data.layouts[f.aircraftId] : undefined;
+                      const supportsCabin = Boolean(layout && layoutSupportsCabin(layout, "economy"));
+                      const isBookable = bookability.bookable && supportsCabin;
                       const isSelected = chosenFlight?.id === f.id;
                       return (
                         <label
@@ -553,14 +590,14 @@ function AdminNewBookingPage() {
                             isSelected
                               ? "border-brand bg-brand-soft/30 shadow-xs"
                               : "border-border hover:bg-secondary/40",
-                            !bookability.bookable && "opacity-50 cursor-not-allowed",
+                            !isBookable && "opacity-50 cursor-not-allowed",
                           )}
                         >
                           <input
                             type="radio"
                             name="nb-flight-choice"
                             checked={isSelected}
-                            disabled={!bookability.bookable}
+                            disabled={!isBookable}
                             onChange={() => setSelectedFlightId(f.id)}
                             className="size-4 text-brand focus:ring-brand"
                           />
@@ -571,14 +608,16 @@ function AdminNewBookingPage() {
                             <span className="block text-muted-foreground">
                               {f.aircraft} · {t("a2.se.gates")} {f.gate || "—"}
                             </span>
-                            {!bookability.bookable ? (
+                            {!isBookable ? (
                               <span className="block text-status-cancelled font-semibold">
-                                {t(
-                                  bookability.reason === "insufficient_seats" ||
-                                    bookability.reason === "sold_out"
-                                    ? "a6.err.capacity"
-                                    : "a6.err.flight",
-                                )}
+                                {!supportsCabin
+                                  ? (t("book.flightCabinUnavailable") || "Cabin unavailable")
+                                  : t(
+                                      bookability.reason === "insufficient_seats" ||
+                                        bookability.reason === "sold_out"
+                                        ? "a6.err.capacity"
+                                        : "a6.err.flight",
+                                    )}
                               </span>
                             ) : null}
                           </div>
@@ -939,6 +978,19 @@ function AdminNewBookingPage() {
                       leg="out"
                       paxIndex={i}
                       passengerLabels={passengers.map((p) => `${p.firstName} ${p.lastName}`)}
+                      layout={
+                        fleetQuery.data && chosenFlight
+                          ? fleetQuery.data.layouts[
+                              chosenFlight.aircraftId ||
+                                (chosenFlight.aircraft ? aircraftNameToId(chosenFlight.aircraft) ?? "" : "")
+                            ]
+                          : undefined
+                      }
+                      occupiedSeats={
+                        chosenFlight
+                          ? getCanonicalOccupiedSeats(allBookings, chosenFlight.id)
+                          : undefined
+                      }
                       onSelect={(seat) =>
                         setSeats((current) => ({ ...current, [`out-${i}`]: seat }))
                       }

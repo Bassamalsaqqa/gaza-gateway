@@ -6,7 +6,7 @@
  *
  * Enforces:
  * 1. Assignment keys resolve real, seat-requiring passengers on existing booking legs.
- * 2. Strict syntax: row number (1-28) followed by valid seat letter (A-F).
+ * 2. Canonical row/letter syntax, followed by explicit layout geometry validation.
  * 3. In-cabin enforcement: seat must fall within the booked cabin zone.
  * 4. Deterministic availability: new/reassigned seats must be available on the canonical flight.
  * 5. Same-owner privilege: a passenger retaining their existing canonical seat bypasses
@@ -17,8 +17,15 @@
  * 8. Leg preservation: unrelated leg assignments are preserved.
  */
 
-import { SEAT_LETTERS, SEAT_ROWS, cabinZone, isSeatAvailable, type Flight } from "../data.ts";
-import type { Booking, Leg } from "./booking.ts";
+import { isSeatAvailable, cabinZone, type Flight } from "../data.ts";
+import { resolveBookingLegLayout, type Booking, type Leg, type LegSeatLayoutSnapshot } from "./booking.ts";
+import {
+  type LayoutGeometry,
+  seatExists,
+  seatStructurallyAvailable,
+  layoutZone,
+  parseSeatCode as parseGenericSeatCode,
+} from "../fleet/layout.ts";
 
 /** Field identity for presentation; existing seat rules and error messages remain authoritative. */
 export class SeatValidationError extends Error {
@@ -32,7 +39,7 @@ export class SeatValidationError extends Error {
 
 export interface ParsedSeatCode {
   row: number;
-  letter: (typeof SEAT_LETTERS)[number];
+  letter: string;
 }
 
 export interface ParsedSeatKey {
@@ -40,8 +47,15 @@ export interface ParsedSeatKey {
   paxIndex: number;
 }
 
+export interface SeatValidationContext {
+  layoutOut?: LayoutGeometry | LegSeatLayoutSnapshot | undefined;
+  layoutIn?: LayoutGeometry | LegSeatLayoutSnapshot | undefined;
+  occupiedSeatsOut?: Set<string> | undefined;
+  occupiedSeatsIn?: Set<string> | undefined;
+}
+
 /**
- * Validates canonical seat code syntax: 1-28 followed by A-F (e.g. "12A", "1B").
+ * Validates generic seat code syntax: 1-60 followed by single uppercase letter A-Z (e.g. "12A", "1B").
  */
 export function isValidSeatSyntax(seat: unknown): boolean {
   return parseSeatCode(seat) !== null;
@@ -49,24 +63,23 @@ export function isValidSeatSyntax(seat: unknown): boolean {
 
 /**
  * Parses a seat string into row and letter, returning null if malformed.
- * Strictly requires canonical syntax: row (1-28) followed by uppercase letter (A-F)
+ * Strictly requires generic syntax: row (1-60) followed by uppercase letter (A-Z)
  * with no leading zeros and no leading/trailing whitespace.
  */
 export function parseSeatCode(seat: unknown): ParsedSeatCode | null {
   if (typeof seat !== "string") return null;
-  const match = /^([1-9]|[12]\d)([A-F])$/.exec(seat);
-  if (!match) return null;
-  const row = Number.parseInt(match[1] as string, 10);
-  const letter = match[2] as (typeof SEAT_LETTERS)[number];
-  if (row < 1 || row > SEAT_ROWS) return null;
-  if (!SEAT_LETTERS.includes(letter)) return null;
-  return { row, letter };
+  return parseGenericSeatCode(seat);
 }
 
 /**
  * Checks whether a given row or seat string is inside the booked cabin zone.
+ * Uses layout geometry if provided, otherwise falls back to baseline cabinZone.
  */
-export function isSeatInCabinZone(rowOrSeat: number | string, cabin: string): boolean {
+export function isSeatInCabinZone(
+  rowOrSeat: number | string,
+  cabin: string,
+  layout?: LayoutGeometry | LegSeatLayoutSnapshot | undefined,
+): boolean {
   let row: number;
   if (typeof rowOrSeat === "number") {
     row = rowOrSeat;
@@ -74,6 +87,10 @@ export function isSeatInCabinZone(rowOrSeat: number | string, cabin: string): bo
     const parsed = parseSeatCode(rowOrSeat);
     if (!parsed) return false;
     row = parsed.row;
+  }
+  if (layout) {
+    const zone = layout.zones.find((z) => z.id === cabin);
+    return zone ? row >= zone.firstRow && row <= zone.lastRow : false;
   }
   const zone = cabinZone(cabin);
   return row >= zone.firstRow && row <= zone.lastRow;
@@ -95,7 +112,8 @@ export function parseSeatKey(key: unknown): ParsedSeatKey | null {
 }
 
 /**
- * Validates a single proposed seat assignment against booking, passenger, cabin, and flight availability.
+ * Validates a single proposed seat assignment against booking, passenger, cabin,
+ * layout existence, structural availability, and flight / cross-PNR availability.
  */
 export function validateSeatAssignment({
   seat,
@@ -104,6 +122,8 @@ export function validateSeatAssignment({
   booking,
   flight,
   isSameOwnerExistingSeat,
+  layout,
+  occupiedSeats,
 }: {
   seat: string;
   paxIndex: number;
@@ -111,6 +131,8 @@ export function validateSeatAssignment({
   booking: Booking;
   flight: Flight;
   isSameOwnerExistingSeat: boolean;
+  layout?: LayoutGeometry | LegSeatLayoutSnapshot | undefined;
+  occupiedSeats?: Set<string> | undefined;
 }): void {
   try {
     // 1. Leg existence
@@ -141,25 +163,46 @@ export function validateSeatAssignment({
     const parsed = parseSeatCode(seat);
     if (!parsed) {
       throw new Error(
-        `Invalid seat syntax '${seat}' for passenger ${paxIndex} on leg ${leg}. Must be row (1-${SEAT_ROWS}) followed by letter (${SEAT_LETTERS.join("")}).`,
+        `Invalid seat syntax '${seat}' for passenger ${paxIndex} on leg ${leg}. Must be row (1-60) followed by letter (A-Z).`,
       );
     }
 
-    // 5. Cabin zone
-    const bookedCabin = booking.criteria.cabin;
-    if (!isSeatInCabinZone(parsed.row, bookedCabin)) {
-      const zone = cabinZone(bookedCabin);
+    const effectiveLayout = layout ?? resolveBookingLegLayout(booking, leg);
+
+    // 5. Layout existence
+    if (!seatExists(effectiveLayout, seat)) {
       throw new Error(
-        `Seat ${seat} is outside booked cabin zone '${bookedCabin}' (rows ${zone.firstRow}–${zone.lastRow}).`,
+        `Seat ${seat} does not exist in aircraft layout for flight ${flight.id}.`,
       );
     }
 
-    // 6. Availability check
-    // Retaining the SAME passenger's EXISTING canonical seat bypasses availability,
+    // 6. Structural availability (blocked / missing physical seats)
+    if (!seatStructurallyAvailable(effectiveLayout, seat)) {
+      throw new Error(
+        `Seat ${seat} is not structurally available on aircraft for flight ${flight.id}.`,
+      );
+    }
+
+    // 7. Cabin zone
+    const bookedCabin = booking.criteria.cabin;
+    const zone = layoutZone(effectiveLayout, parsed.row);
+    if (!zone || zone.id !== bookedCabin) {
+      const expectedZone = effectiveLayout.zones.find((z) => z.id === bookedCabin);
+      const rangeText = expectedZone ? ` (rows ${expectedZone.firstRow}–${expectedZone.lastRow})` : "";
+      throw new Error(
+        `Seat ${seat} is outside booked cabin zone '${bookedCabin}'${rangeText}.`,
+      );
+    }
+
+    // 8. Availability check
+    // Retaining the SAME passenger's EXISTING canonical seat bypasses availability and cross-PNR check,
     // but another passenger cannot acquire that privilege.
     if (!isSameOwnerExistingSeat) {
       if (!isSeatAvailable(flight.id, parsed.row, parsed.letter)) {
         throw new Error(`Seat ${seat} is not available on flight ${flight.id}.`);
+      }
+      if (occupiedSeats && occupiedSeats.has(`${parsed.row}${parsed.letter}`)) {
+        throw new Error(`Seat ${seat} is already occupied on flight ${flight.id}.`);
       }
     }
   } catch (error) {
@@ -178,6 +221,7 @@ export function validateUpdateSeatsAssignments(
   proposedSeats: Record<string, string>,
   flightsOrOutbound: { outbound: Flight | null; inbound: Flight | null } | Flight | null,
   inboundArg?: Flight | null,
+  context?: SeatValidationContext,
 ): Record<string, string> {
   const flights: { outbound: Flight | null; inbound: Flight | null } =
     flightsOrOutbound && typeof flightsOrOutbound === "object" && "outbound" in flightsOrOutbound
@@ -215,16 +259,35 @@ export function validateUpdateSeatsAssignments(
     const parsed = parseSeatCode(seat);
     if (!parsed) {
       throw new SeatValidationError(
-        `Invalid seat syntax '${seat}' for passenger ${parsedKey.paxIndex} on leg ${parsedKey.leg}. Must be row (1-${SEAT_ROWS}) followed by letter (${SEAT_LETTERS.join("")}).`,
+        `Invalid seat syntax '${seat}' for passenger ${parsedKey.paxIndex} on leg ${parsedKey.leg}. Must be row (1-60) followed by letter (A-Z).`,
+        [key],
+      );
+    }
+
+    const layout = parsedKey.leg === "in"
+      ? (context?.layoutIn ?? resolveBookingLegLayout(booking, "in"))
+      : (context?.layoutOut ?? resolveBookingLegLayout(booking, "out"));
+
+    if (!seatExists(layout, seat)) {
+      throw new SeatValidationError(
+        `Seat ${seat} does not exist in aircraft layout for passenger ${parsedKey.paxIndex} on leg ${parsedKey.leg}.`,
+        [key],
+      );
+    }
+
+    if (!seatStructurallyAvailable(layout, seat)) {
+      throw new SeatValidationError(
+        `Seat ${seat} is not structurally available on aircraft for passenger ${parsedKey.paxIndex} on leg ${parsedKey.leg}.`,
         [key],
       );
     }
 
     const bookedCabin = booking.criteria.cabin;
-    if (!isSeatInCabinZone(parsed.row, bookedCabin)) {
-      const zone = cabinZone(bookedCabin);
+    if (!isSeatInCabinZone(parsed.row, bookedCabin, layout)) {
+      const expectedZone = layout.zones.find((z) => z.id === bookedCabin);
+      const rangeText = expectedZone ? ` (rows ${expectedZone.firstRow}–${expectedZone.lastRow})` : "";
       throw new SeatValidationError(
-        `Seat ${seat} is outside booked cabin zone '${bookedCabin}' (rows ${zone.firstRow}–${zone.lastRow}).`,
+        `Seat ${seat} is outside booked cabin zone '${bookedCabin}'${rangeText}.`,
         [key],
       );
     }
@@ -310,6 +373,10 @@ export function validateUpdateSeatsAssignments(
   for (const [key, seat] of Object.entries(proposedSeats)) {
     const parsedKey = parseSeatKey(key)!;
     const flight = parsedKey.leg === "in" ? flights.inbound : flights.outbound;
+    const layout = parsedKey.leg === "in"
+      ? (context?.layoutIn ?? resolveBookingLegLayout(booking, "in"))
+      : (context?.layoutOut ?? resolveBookingLegLayout(booking, "out"));
+    const occupiedSeats = parsedKey.leg === "in" ? context?.occupiedSeatsIn : context?.occupiedSeatsOut;
     if (flight) {
       const isSameOwnerExistingSeat =
         booking.seats[`${parsedKey.leg}-${parsedKey.paxIndex}`] === seat;
@@ -320,6 +387,8 @@ export function validateUpdateSeatsAssignments(
         booking,
         flight,
         isSameOwnerExistingSeat,
+        layout,
+        occupiedSeats,
       });
     }
   }
@@ -374,8 +443,10 @@ export function validateCheckInSeats(
   selectedPaxIndexes: number[],
   proposedSeats: Record<number, string> | undefined,
   flight: Flight,
+  context?: { layout?: LayoutGeometry | LegSeatLayoutSnapshot | undefined; occupiedSeats?: Set<string> | undefined },
 ): Record<string, string> {
   const nextSeats: Record<string, string> = { ...booking.seats };
+  const effectiveLayout = context?.layout ?? resolveBookingLegLayout(booking, leg);
 
   // 1. If explicit seats were provided in check-in input, validate them
   if (proposedSeats) {
@@ -419,6 +490,8 @@ export function validateCheckInSeats(
         booking,
         flight,
         isSameOwnerExistingSeat,
+        layout: effectiveLayout,
+        occupiedSeats: context?.occupiedSeats,
       });
 
       nextSeats[key] = seat;
@@ -439,6 +512,8 @@ export function validateCheckInSeats(
           booking,
           flight,
           isSameOwnerExistingSeat: true,
+          layout: effectiveLayout,
+          occupiedSeats: context?.occupiedSeats,
         });
         nextSeats[key] = existingSeat;
       }

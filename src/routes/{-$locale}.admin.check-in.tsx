@@ -34,12 +34,15 @@ import { pick, useI18n } from "@/lib/i18n";
 import { todayISO, type Flight } from "@/lib/data";
 import { pageHead } from "@/lib/head";
 import { cn } from "@/lib/utils";
+import { resolveBookingLegLayout } from "@/lib/domain/booking";
+import { resolveBookingPricing } from "@/lib/commercial/pricing";
 import {
   useFlightsQuery,
   useBookingsQuery,
   useCompleteCheckInMutation,
   useUndoCheckInMutation,
-} from "@/lib/repositories/queries";
+  getCanonicalOccupiedSeats,
+} from "@/lib/repositories";
 import {
   buildAdminCheckInRows,
   adminCheckInStatusKey,
@@ -607,6 +610,20 @@ function AdminCheckInPage() {
                   passengerLabels={sheetRow.booking.passengers.map(
                     (p) => `${p.firstName} ${p.lastName}`,
                   )}
+                  layout={resolveBookingLegLayout(sheetRow.booking, sheetRow.leg)}
+                  occupiedSeats={
+                    currentFlight
+                      ? getCanonicalOccupiedSeats(
+                          bookings,
+                          currentFlight.id,
+                          sheetRow.booking.ref,
+                          sheetRow.leg,
+                        )
+                      : undefined
+                  }
+                  extraLegroomPrice={
+                    resolveBookingPricing(sheetRow.booking).seatPricing.extraLegroomPrice
+                  }
                   onSelect={setSheetSeat}
                 />
               </div>

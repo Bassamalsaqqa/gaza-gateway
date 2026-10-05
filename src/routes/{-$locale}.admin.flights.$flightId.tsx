@@ -21,17 +21,14 @@ import { useAdmin } from "@/lib/admin-store";
 import { useI18n, pick } from "@/lib/i18n";
 import { dateLong } from "@/lib/format";
 import {
-  SEAT_LETTERS,
-  SEAT_ROWS,
   airportByCode,
   minutesToLabel,
 } from "@/lib/data";
 import { checkedInPax, isPaxCheckedIn, seatedPassengers } from "@/lib/domain/booking";
 import { useFlightQuery, useBookingsQuery } from "@/lib/repositories";
+import { useFleetQuery, resolveFlightCapacity, resolveFlightAircraftDisplay } from "@/lib/fleet";
 import { flightBookingMetrics } from "@/lib/admin-flight-metrics";
 import { pageHead } from "@/lib/head";
-
-const CAPACITY = SEAT_ROWS * SEAT_LETTERS.length;
 
 export const Route = createFileRoute("/{-$locale}/admin/flights/$flightId")({
   head: ({ params }) =>
@@ -57,6 +54,7 @@ function AdminFlightDetailPage() {
   const { t, lang } = useI18n();
   const { flightId } = Route.useParams();
   const { can } = useAdmin();
+  const fleetQuery = useFleetQuery();
   const { data: flight, isPending, isError } = useFlightQuery(flightId);
   const { data: bookings = [] } = useBookingsQuery();
   const [tab, setTab] = useState<Tab>("overview");
@@ -150,6 +148,8 @@ function AdminFlightDetailPage() {
   const origin = airportByCode(flight.originCode);
   const destination = airportByCode(flight.destinationCode);
   const sold = flightBookingMetrics(flight.id, bookings).total;
+  const capacity = resolveFlightCapacity(flight, fleetQuery.isError ? null : fleetQuery.data);
+  const aircraftDisplay = resolveFlightAircraftDisplay(flight, fleetQuery.isError ? null : fleetQuery.data);
 
   return (
     <div className="space-y-4">
@@ -200,7 +200,7 @@ function AdminFlightDetailPage() {
                 <Metric label={t("adm.fd.arrive")} value={flight.arriveTime} emphasis />
                 <Metric label={t("adm.fd.duration")} value={minutesToLabel(flight.durationMinutes, lang)} />
                 <Metric label={t("adm.col.gate")} value={flight.gate ? `${flight.terminal} · ${flight.gate}` : "—"} />
-                <Metric label={t("adm.col.load")} value={`${sold}/${CAPACITY}`} />
+                <Metric label={t("adm.col.load")} value={`${sold}/${capacity ?? "—"}`} />
                 <Metric
                   label={t("adm.col.checkin")}
                   value={`${checkin.checked}/${checkin.eligible}`}
@@ -212,7 +212,7 @@ function AdminFlightDetailPage() {
                 <div>
                   <dt className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("adm.col.aircraft")}</dt>
                   <dd className="mt-0.5">
-                    <Ltr>{flight.aircraft}</Ltr>
+                    <Ltr>{aircraftDisplay.registration ? `${aircraftDisplay.model} · ${aircraftDisplay.registration}` : aircraftDisplay.model}</Ltr>
                   </dd>
                 </div>
                 <div>

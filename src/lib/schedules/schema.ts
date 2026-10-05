@@ -38,6 +38,7 @@ export const scheduleSchema = z
     departTime: time,
     arriveTime: time,
     aircraft: z.string().trim().min(1).max(120),
+    aircraftId: z.string().trim().min(1).max(64).optional(),
     from: isoDate,
     until: isoDate,
     active: z.boolean(),
@@ -50,10 +51,21 @@ export const scheduleSchema = z
   .refine((schedule) => schedule.from <= schedule.until, { path: ["until"] });
 export class ScheduleValidationError extends Error {
   public readonly issues: z.ZodIssue[];
-  constructor(issues: z.ZodIssue[]) {
-    super("Invalid schedule planning configuration.");
+  constructor(issuesOrMessage: z.ZodIssue[] | string) {
+    if (typeof issuesOrMessage === "string") {
+      super(issuesOrMessage);
+      this.issues = [
+        {
+          code: z.ZodIssueCode.custom,
+          message: issuesOrMessage,
+          path: ["aircraftId"],
+        },
+      ];
+    } else {
+      super("Invalid schedule planning configuration.");
+      this.issues = issuesOrMessage;
+    }
     this.name = "ScheduleValidationError";
-    this.issues = issues;
   }
 }
 export function parseSchedule(input: unknown): Schedule {

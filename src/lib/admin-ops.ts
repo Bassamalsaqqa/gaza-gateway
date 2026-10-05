@@ -1,99 +1,10 @@
 /**
- * Remaining operations configuration model for the staff workspace.
- * Session-only aircraft/seat maps/destinations. Schedules and commercial catalogs have separate repositories.
+ * Operations configuration model for the staff workspace.
+ * Session destinations configuration. Fleet, aircraft, seat maps, schedules, and commercial catalogs have separate canonical repositories.
  */
-import {
-  SEAT_LETTERS,
-  SEAT_ROWS,
-  EXTRA_LEGROOM_ROWS,
-  cabinZones,
-  destinations,
-  type CabinId,
-} from "./data";
-
-/* --------------------------------- schedules ------------------------------- */
+import { destinations } from "./data";
 
 export const AIRCRAFT_NAMES = ["Airbus A320neo", "Airbus A321neo", "Boeing 737-800"] as const;
-
-/* --------------------------------- aircraft -------------------------------- */
-
-export type AircraftType = {
-  id: string;
-  name: string;
-  registration: string;
-  capacity: number;
-  cabins: CabinId[];
-  active: boolean;
-};
-
-export function seedAircraft(): AircraftType[] {
-  return [
-    {
-      id: "a320neo",
-      name: "Airbus A320neo",
-      registration: "PS-GZA",
-      capacity: 168,
-      cabins: ["economy", "premium", "business"],
-      active: true,
-    },
-    {
-      id: "a321neo",
-      name: "Airbus A321neo",
-      registration: "PS-GZB",
-      capacity: 196,
-      cabins: ["economy", "premium", "business"],
-      active: true,
-    },
-    {
-      id: "b737800",
-      name: "Boeing 737-800",
-      registration: "PS-GZC",
-      capacity: 162,
-      cabins: ["economy", "business"],
-      active: false,
-    },
-  ];
-}
-
-/* -------------------------------- seat maps -------------------------------- */
-
-export type SeatZone = { id: CabinId; firstRow: number; lastRow: number };
-
-export type SeatMapConfig = {
-  aircraftId: string;
-  rows: number;
-  letters: string[];
-  /** Aisle sits after this many seat letters (3 = A B C | D E F). */
-  aisleAfter: number;
-  zones: SeatZone[];
-  extraLegroomRows: number[];
-  /** Seats that do not exist or are blocked, e.g. "12B". */
-  unavailable: string[];
-  feeLabelEn: string;
-  feeLabelAr: string;
-};
-
-export function defaultSeatMap(aircraftId: string, rows = SEAT_ROWS): SeatMapConfig {
-  return {
-    aircraftId,
-    rows,
-    letters: [...SEAT_LETTERS],
-    aisleAfter: 3,
-    zones: cabinZones.map((z) => ({ id: z.id, firstRow: z.firstRow, lastRow: Math.min(z.lastRow, rows) })),
-    extraLegroomRows: [...EXTRA_LEGROOM_ROWS],
-    unavailable: [],
-    feeLabelEn: "Extra legroom — $18",
-    feeLabelAr: "مساحة أرجل أوسع — 18 دولاراً",
-  };
-}
-
-export function seedSeatMaps(): Record<string, SeatMapConfig> {
-  return {
-    a320neo: defaultSeatMap("a320neo", 28),
-    a321neo: { ...defaultSeatMap("a321neo", 33), unavailable: ["33B", "33E"] },
-    b737800: { ...defaultSeatMap("b737800", 27), extraLegroomRows: [1, 11, 12] },
-  };
-}
 
 export function moveItem<T>(list: T[], index: number, delta: number): T[] {
   const next = [...list];
@@ -162,15 +73,11 @@ export function seedDestinationConfigs(): DestinationConfig[] {
 /* ----------------------------------- state --------------------------------- */
 
 export type OpsState = {
-  aircraft: AircraftType[];
-  seatMaps: Record<string, SeatMapConfig>;
   destinations: DestinationConfig[];
 };
 
 export function seedOpsState(): OpsState {
   return {
-    aircraft: seedAircraft(),
-    seatMaps: seedSeatMaps(),
     destinations: seedDestinationConfigs(),
   };
 }

@@ -71,6 +71,12 @@ export interface BookingRepository {
    */
   claim(ref: string, accountEmail: string): Promise<ClaimResult>;
 
+  /**
+   * Retrieves canonical occupied seat codes on a flight across confirmed, non-cancelled bookings.
+   * Can optionally filter by leg and exclude a specific booking reference (e.g. for re-selection).
+   */
+  getOccupiedSeats(flightId: string, options?: { leg?: Leg; excludeRef?: string }): Promise<string[]>;
+
   /** Removes a booking by reference (used for smoke test isolation / cleanup). */
   delete(ref: string): Promise<boolean>;
 
@@ -144,4 +150,5 @@ export interface RepositoryRegistry {
   bookingDraft: import("../booking-draft/types.ts").BookingDraftRepository;
   contact: import("../contact/types.ts").ContactRepository;
   schedule: import("../schedules/types.ts").ScheduleRepository;
+  fleet: import("../fleet/types.ts").FleetRepository;
 }

@@ -1,5 +1,7 @@
 import type { CommercialCatalogRepository } from "../commercial/types.ts";
 import { LocalCommercialCatalogRepository } from "../commercial/repository.ts";
+import type { FleetRepository } from "../fleet/types.ts";
+import { LocalFleetRepository } from "../fleet/repository.ts";
 /**
  * Gaza Gateway — Canonical Booking Draft Repository Implementation
  *
@@ -28,13 +30,16 @@ import type {
 
 export class LocalBookingDraftRepository implements BookingDraftRepository {
   private readonly commercial: CommercialCatalogRepository;
+  private readonly fleet?: FleetRepository | undefined;
   private coordinator: BookingDraftStorageCoordinator;
 
   constructor(
     coordinatorOrOptions?: BookingDraftStorageCoordinator | BookingDraftCoordinatorOptions,
     commercial: CommercialCatalogRepository = new LocalCommercialCatalogRepository(),
+    fleet?: FleetRepository,
   ) {
     this.commercial = commercial;
+    this.fleet = fleet;
     if (coordinatorOrOptions instanceof BookingDraftStorageCoordinator) {
       this.coordinator = coordinatorOrOptions;
     } else {
@@ -113,14 +118,44 @@ export class LocalBookingDraftRepository implements BookingDraftRepository {
   public async reconcile(
     effectiveOutbound: Flight | null | undefined,
     effectiveInbound: Flight | null | undefined,
-    options?: { now?: Date | string | number },
+    options?: {
+      now?: Date | string | number;
+      cabin?: string;
+      outboundLayout?: import("../fleet/types.ts").AircraftLayout | null;
+      inboundLayout?: import("../fleet/types.ts").AircraftLayout | null;
+      layouts?: {
+        out?: import("../fleet/types.ts").AircraftLayout | null;
+        in?: import("../fleet/types.ts").AircraftLayout | null;
+      };
+    },
   ): Promise<DraftReconciliationResult> {
     const currentDraft = this.coordinator.getDraft();
+
+    let outboundLayout = options?.outboundLayout ?? options?.layouts?.out;
+    let inboundLayout = options?.inboundLayout ?? options?.layouts?.in;
+
+    if (this.fleet && (!outboundLayout || !inboundLayout)) {
+      {
+        const fleetSnapshot = await this.fleet.get();
+        if (!outboundLayout && effectiveOutbound?.aircraftId) {
+          outboundLayout = fleetSnapshot.layouts[effectiveOutbound.aircraftId] ?? null;
+        }
+        if (!inboundLayout && effectiveInbound?.aircraftId) {
+          inboundLayout = fleetSnapshot.layouts[effectiveInbound.aircraftId] ?? null;
+        }
+      }
+    }
+
     const result = reconcileDraft(
       currentDraft,
       effectiveOutbound,
       effectiveInbound,
-      options,
+      {
+        ...options,
+        outboundLayout,
+        inboundLayout,
+        cabin: options?.cabin ?? currentDraft.criteria.cabin,
+      },
     );
 
     if (result.changed) {

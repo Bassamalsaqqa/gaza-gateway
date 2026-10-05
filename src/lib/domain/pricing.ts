@@ -9,7 +9,7 @@ import type { Flight } from "../data.ts";
 import type { Extras, SearchCriteria } from "../booking-draft/types.ts";
 import { calculateBookingTotal, resolveBookingPricing } from "../commercial/pricing.ts";
 import type { BookingPricingSnapshotV1 } from "../commercial/types.ts";
-import type { Booking } from "./booking.ts";
+import type { Booking, BookingSeatLayoutsV1 } from "./booking.ts";
 
 export interface BookingTotalInput {
   outbound: Flight | null;
@@ -18,6 +18,7 @@ export interface BookingTotalInput {
   criteria: SearchCriteria;
   seats: Record<string, string>;
   extras: Extras;
+  seatLayouts?: BookingSeatLayoutsV1 | undefined;
 }
 
 export interface BookingTotalResult {

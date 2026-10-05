@@ -85,14 +85,15 @@ export type LegReconciliationStatus =
   | "missing"
   | "route_mismatch"
   | "date_mismatch"
-  | "unbookable";
+  | "unbookable"
+  | "unsupported_cabin";
 
 export interface LegReconciliationResult {
   leg: "out" | "in";
   status: LegReconciliationStatus;
   originalFlight: Flight | null;
   effectiveFlight: Flight | null;
-  reason?: FlightUnbookableReason | "flight_missing" | "route_mismatch" | "date_mismatch" | undefined;
+  reason?: FlightUnbookableReason | "flight_missing" | "route_mismatch" | "date_mismatch" | "cabin_unavailable" | undefined;
   seatsCleared: string[];
 }
 
@@ -133,7 +134,16 @@ export interface BookingDraftRepository {
   reconcile(
     effectiveOutbound: Flight | null | undefined,
     effectiveInbound: Flight | null | undefined,
-    options?: { now?: Date | string | number },
+    options?: {
+      now?: Date | string | number | undefined;
+      cabin?: string | undefined;
+      outboundLayout?: import("../fleet/types.ts").AircraftLayout | null | undefined;
+      inboundLayout?: import("../fleet/types.ts").AircraftLayout | null | undefined;
+      layouts?: {
+        out?: import("../fleet/types.ts").AircraftLayout | null | undefined;
+        in?: import("../fleet/types.ts").AircraftLayout | null | undefined;
+      } | undefined;
+    },
   ): Promise<DraftReconciliationResult>;
 
   /** Subscribes to draft state changes (local and cross-tab) */

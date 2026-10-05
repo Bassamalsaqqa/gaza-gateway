@@ -46,6 +46,7 @@ export type Flight = {
   arriveTime: string;
   durationMinutes: number;
   aircraft: string;
+  aircraftId?: string | undefined;
   status: FlightStatus;
   gate: string;
   terminal: string;
@@ -327,6 +328,20 @@ function addMinutesToTime(time: string, minutes: number): string {
 const departureSlots = ["07:15", "10:40", "13:05", "16:20", "19:45", "22:10"];
 const aircraftTypes = ["Airbus A320neo", "Airbus A321neo", "Boeing 737-800"];
 
+export function aircraftNameToId(name: string): string | undefined {
+  if (name === "Airbus A320neo") return "a320neo";
+  if (name === "Airbus A321neo") return "a321neo";
+  if (name === "Boeing 737-800") return "b737800";
+  return undefined;
+}
+
+export function aircraftIdToName(id: string): string | undefined {
+  if (id === "a320neo") return "Airbus A320neo";
+  if (id === "a321neo") return "Airbus A321neo";
+  if (id === "b737800") return "Boeing 737-800";
+  return undefined;
+}
+
 export function statusFor(flightId: string, date: string, now?: Date | string | number): FlightStatus {
   const today = todayISO(now, "Asia/Gaza");
   if (date > today) return "Scheduled";
@@ -358,6 +373,8 @@ export function departuresOn(date: string, now?: Date | string | number): Flight
       const slot = rotation === 0 ? baseSlot : addMinutesToTime(baseSlot, 320);
       const number = `PS${100 + index * 2 + (weekday % 2) + rotation * 40}`;
       const id = `${number}-${date}-out`;
+      const aircraftName = aircraftTypes[seed % aircraftTypes.length] ?? "Airbus A320neo";
+      const aircraftId = aircraftNameToId(aircraftName) ?? "a320neo";
       list.push({
         id,
         number,
@@ -367,7 +384,8 @@ export function departuresOn(date: string, now?: Date | string | number): Flight
         departTime: slot,
         arriveTime: addMinutesToTime(slot, dest.flightMinutes),
         durationMinutes: dest.flightMinutes,
-        aircraft: aircraftTypes[seed % aircraftTypes.length] ?? "Airbus A320neo",
+        aircraft: aircraftName,
+        aircraftId,
         status: statusFor(id, date, now),
         gate: `A${(seed % 8) + 1}`,
         terminal: "1",
@@ -393,6 +411,8 @@ export function arrivalsOn(date: string, now?: Date | string | number): Flight[]
       const slot = rotation === 0 ? baseSlot : addMinutesToTime(baseSlot, 320);
       const number = `PS${101 + index * 2 + (weekday % 2) + rotation * 40}`;
       const id = `${number}-${date}-in`;
+      const aircraftName = aircraftTypes[seed % aircraftTypes.length] ?? "Airbus A321neo";
+      const aircraftId = aircraftNameToId(aircraftName) ?? "a321neo";
       list.push({
         id,
         number,
@@ -402,7 +422,8 @@ export function arrivalsOn(date: string, now?: Date | string | number): Flight[]
         departTime: slot,
         arriveTime: addMinutesToTime(slot, dest.flightMinutes),
         durationMinutes: dest.flightMinutes,
-        aircraft: aircraftTypes[seed % aircraftTypes.length] ?? "Airbus A321neo",
+        aircraft: aircraftName,
+        aircraftId,
         status: statusFor(id, date, now),
         gate: `A${(seed % 8) + 1}`,
         terminal: "1",
@@ -480,20 +501,87 @@ export const AISLE_LETTERS = ["C", "D"] as const;
  */
 export function suggestSeat(
   flightId: string,
-  cabin: string,
-  preference: string,
-  taken: string[] = [],
+  layoutOrCabin: {
+    rows: number;
+    letters: string[];
+    aisleAfter: number;
+    zones: { id: string; firstRow: number; lastRow: number }[];
+    unavailable: string[];
+  } | string,
+  cabinOrPreference?: string,
+  preferenceOrTaken?: string | string[] | Set<string>,
+  takenOrOccupied?: string[] | Set<string>,
 ): string | undefined {
-  const letters =
-    preference === "window" ? WINDOW_LETTERS : preference === "aisle" ? AISLE_LETTERS : [];
-  if (letters.length === 0) return undefined;
-  const zone = cabinZone(cabin);
+  let layout: {
+    rows: number;
+    letters: string[];
+    aisleAfter: number;
+    zones: { id: string; firstRow: number; lastRow: number }[];
+    unavailable: string[];
+  };
+  let cabin: string;
+  let preference: string;
+  let taken: string[] | Set<string>;
+
+  if (typeof layoutOrCabin === "object" && layoutOrCabin !== null) {
+    layout = layoutOrCabin;
+    cabin = typeof cabinOrPreference === "string" ? cabinOrPreference : "economy";
+    preference = typeof preferenceOrTaken === "string" ? preferenceOrTaken : "none";
+    taken = (takenOrOccupied instanceof Set || Array.isArray(takenOrOccupied))
+      ? takenOrOccupied
+      : (Array.isArray(preferenceOrTaken) || preferenceOrTaken instanceof Set ? preferenceOrTaken : []);
+  } else {
+    cabin = typeof layoutOrCabin === "string" ? layoutOrCabin : "economy";
+    preference = typeof cabinOrPreference === "string" ? cabinOrPreference : "none";
+    taken = Array.isArray(preferenceOrTaken) || preferenceOrTaken instanceof Set ? preferenceOrTaken : [];
+    layout = {
+      rows: SEAT_ROWS,
+      letters: [...SEAT_LETTERS],
+      aisleAfter: 3,
+      zones: cabinZones.map((z) => ({ ...z })),
+      unavailable: [],
+    };
+  }
+
+  const isTaken = (seat: string): boolean => {
+    if (taken instanceof Set) return taken.has(seat);
+    return taken.includes(seat);
+  };
+
+  const zone = layout.zones.find((z) => z.id === cabin);
+  if (!zone) return undefined;
+
+  let candidateLetters: string[] = [];
+  if (preference === "window") {
+    candidateLetters = layout.letters.filter((_, idx) => idx === 0 || idx === layout.letters.length - 1);
+  } else if (preference === "aisle") {
+    candidateLetters = layout.letters.filter(
+      (_, idx) => idx === layout.aisleAfter - 1 || idx === layout.aisleAfter,
+    );
+  } else if (preference === "middle") {
+    candidateLetters = layout.letters.filter(
+      (_, idx) => idx > 0 && idx < layout.letters.length - 1 && idx !== layout.aisleAfter - 1 && idx !== layout.aisleAfter,
+    );
+  } else {
+    candidateLetters = [...layout.letters];
+  }
+
+  if (candidateLetters.length === 0) {
+    candidateLetters = [...layout.letters];
+  }
+
+  const unavailSet = new Set(layout.unavailable);
+
   for (let row = zone.firstRow; row <= zone.lastRow; row += 1) {
-    for (const letter of letters) {
+    for (const letter of candidateLetters) {
       const seat = `${row}${letter}`;
-      if (isSeatAvailable(flightId, row, letter) && !taken.includes(seat)) return seat;
+      if (unavailSet.has(seat)) continue;
+      if (!isSeatAvailable(flightId, row, letter)) continue;
+      if (isTaken(seat)) continue;
+      return seat;
     }
   }
+
   return undefined;
 }
 

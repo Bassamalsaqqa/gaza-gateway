@@ -5,6 +5,15 @@
 export type Dict = Record<string, string>;
 
 export const en: Dict = {
+  "fleet.error.unavailable": "Fleet seat configuration is unavailable. Please retry when it is restored.",
+  "fleet.validation.registration": "Use a registration such as PS-GZA.",
+  "fleet.validation.registrationTaken": "This registration is already in use.",
+  "fleet.remoteConflict": "The layout changed in another tab. Your edits are preserved; reload the current layout before saving.",
+  "fleet.reloadLayout": "Reload layout",
+  "fleet.legacy": "Legacy assignment",
+  "adm.flight.fleetUnavailable": "Fleet configuration is unavailable; aircraft reassignment is disabled.",
+  "book.seatsReconciled": "The aircraft layout changed. Unavailable draft seats have been cleared; please review your seats.",
+
   "conf.manageNotice": "This prototype booking is saved in this browser. Use your booking reference to manage it here; payment and ticketing services are not connected.",
   "content.previewTitle": "Draft content preview",
   "content.previewLocal": "Stored in this browser",
@@ -841,6 +850,7 @@ export const en: Dict = {
   "book.stepOf": "Step {n} of {total}",
   "book.summaryToggle": "Trip summary",
   "book.cabinZone": "{cabin} · rows {from}–{to}",
+  "book.flightCabinUnavailable": "The selected cabin class is unavailable on this flight.",
   "book.seatZoneNote": "Seats shown are the ones in the cabin you selected.",
   "book.suggested": "Suggested",
   "book.useSuggested": "Use suggested seat",
@@ -878,6 +888,7 @@ export const en: Dict = {
   "commercial.error.catalog_unavailable": "Commercial options are unavailable. Retry before continuing.",
   "commercial.error.invalid_catalog": "Check this value and the catalog requirements.",
   "commercial.error.fare_unavailable": "This fare is no longer available for your cabin. Choose another fare.",
+  "commercial.error.cabin_unavailable": "The selected cabin is not available on this aircraft. Please select another cabin.",
   "commercial.error.service_unavailable": "A selected service is no longer offered. Review your Extras selection.",
   "commercial.error.identity_conflict": "This option identity already exists.",
   "commercial.error.storage": "Could not save in this browser. Your edits are preserved; retry.",
@@ -902,6 +913,15 @@ export const en: Dict = {
 };
 
 export const ar: Dict = {
+  "fleet.error.unavailable": "إعداد مقاعد الأسطول غير متاح. يرجى إعادة المحاولة بعد استعادته.",
+  "fleet.validation.registration": "استخدم رقم تسجيل مثل PS-GZA.",
+  "fleet.validation.registrationTaken": "رقم التسجيل هذا مستخدم بالفعل.",
+  "fleet.remoteConflict": "تغيرت الخريطة في علامة تبويب أخرى. تم حفظ تعديلاتك؛ أعد تحميل الخريطة الحالية قبل الحفظ.",
+  "fleet.reloadLayout": "إعادة تحميل الخريطة",
+  "fleet.legacy": "تعيين قديم",
+  "adm.flight.fleetUnavailable": "إعداد الأسطول غير متاح؛ تغيير تعيين الطائرة معطل.",
+  "book.seatsReconciled": "تغيرت خريطة الطائرة. أزيلت المقاعد غير المتاحة من مسودة الحجز؛ يرجى مراجعة المقاعد.",
+
   "conf.manageNotice": "يُحفظ حجز هذا النموذج في هذا المتصفح. استخدم مرجع الحجز لإدارته هنا؛ خدمات الدفع وإصدار التذاكر غير متصلة.",
   "content.previewTitle": "معاينة مسودة المحتوى",
   "content.previewLocal": "محفوظة في هذا المتصفح",
@@ -1718,6 +1738,7 @@ export const ar: Dict = {
   "book.stepOf": "الخطوة {n} من {total}",
   "book.summaryToggle": "ملخص الرحلة",
   "book.cabinZone": "{cabin} · الصفوف {from}–{to}",
+  "book.flightCabinUnavailable": "درجة السفر المختارة غير متاحة على هذه الرحلة.",
   "book.seatZoneNote": "المقاعد المعروضة هي مقاعد الدرجة التي اخترتها.",
   "book.suggested": "مقترح",
   "book.useSuggested": "استخدام المقعد المقترح",
@@ -1755,6 +1776,7 @@ export const ar: Dict = {
   "commercial.error.catalog_unavailable": "تعذّر تحميل خيارات الحجز. أعد المحاولة قبل المتابعة.",
   "commercial.error.invalid_catalog": "تحقق من هذه القيمة ومتطلبات الكتالوج.",
   "commercial.error.fare_unavailable": "لم تعد هذه الأجرة متاحة لدرجة سفرك. اختر أجرة أخرى.",
+  "commercial.error.cabin_unavailable": "درجة السفر المختارة غير متاحة على هذه الطائرة. يرجى اختيار درجة أخرى.",
   "commercial.error.service_unavailable": "لم تعد إحدى الخدمات المختارة متاحة. راجع اختيار الإضافات.",
   "commercial.error.identity_conflict": "معرّف هذا الخيار موجود بالفعل.",
   "commercial.error.storage": "تعذّر الحفظ في هذا المتصفح. تعديلاتك محفوظة في النموذج؛ أعد المحاولة.",

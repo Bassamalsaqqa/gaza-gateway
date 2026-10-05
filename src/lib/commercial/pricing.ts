@@ -1,5 +1,8 @@
 import type { Extras } from "../booking-draft/types.ts";
 import type { BookingTotalInput, BookingTotalResult } from "../domain/pricing.ts";
+import type { LegSeatLayoutSnapshot, BookingSeatLayoutsV1 } from "../domain/booking.ts";
+import { type LayoutGeometry, seatIsExtraLegroom, layoutCapacity } from "../fleet/layout.ts";
+import { aircraftNameToId, type Flight } from "../data.ts";
 import { legacyPricingBasis } from "./seed.ts";
 import {
   CommercialCatalogError,
@@ -42,6 +45,7 @@ export function resolveBookingPricing(booking: {
 export function pricePerPassenger(base: number, basis: BookingPricingSnapshotV1): number {
   return Math.round(base * basis.fareMultiplier * basis.cabinMultiplier);
 }
+
 export function calculateBookingTotal(
   facts: BookingTotalInput,
   basis: BookingPricingSnapshotV1,
@@ -52,10 +56,12 @@ export function calculateBookingTotal(
     0,
   );
   const taxes = Math.round(fare * basis.taxRate);
-  const seats = Object.values(facts.seats ?? {}).reduce(
-    (sum, seat) => sum + (seat ? snapshotSeatFee(seat, basis) : 0),
-    0,
-  );
+  const seats = Object.entries(facts.seats ?? {}).reduce((sum, [key, seat]) => {
+    if (!seat) return sum;
+    const leg = key.startsWith("in-") ? "in" : "out";
+    const layout = leg === "in" ? facts.seatLayouts?.in : facts.seatLayouts?.out;
+    return sum + snapshotSeatFee(seat, basis, layout);
+  }, 0);
   const extras =
     seats + facts.extras.pax.reduce((sum, p) => sum + (p?.extraBags ?? 0) * basis.extraBagPrice, 0);
   return { fare, taxes, extras, total: fare + taxes + extras };
@@ -107,11 +113,15 @@ export function commercialFarePrice(
 export function previewBookingTotal(
   facts: BookingTotalInput,
   snapshot: CommercialCatalogSnapshot | undefined,
+  seatLayouts?: BookingSeatLayoutsV1 | undefined,
 ): BookingTotalResult | null {
   if (!snapshot) return null;
   try {
+    const effectiveFacts = seatLayouts && !facts.seatLayouts
+      ? { ...facts, seatLayouts }
+      : facts;
     return calculateBookingTotal(
-      facts,
+      effectiveFacts,
       pricingSnapshot(snapshot, facts.fareId, facts.criteria.cabin),
     );
   } catch {
@@ -119,8 +129,64 @@ export function previewBookingTotal(
   }
 }
 
-export function snapshotSeatFee(seat: string, basis: BookingPricingSnapshotV1): number {
-  return basis.seatPricing.extraLegroomRows.includes(Number(seat.replace(/\D/g, "")))
+export function resolvePreviewSeatLayouts(
+  outbound: Flight | null,
+  inbound: Flight | null,
+  fleet?: { layouts: Record<string, LayoutGeometry>; revision?: number } | null,
+): BookingSeatLayoutsV1 | undefined {
+  if (!fleet || !outbound) return undefined;
+  const outAircraftId = outbound.aircraftId || (outbound.aircraft ? aircraftNameToId(outbound.aircraft) : undefined);
+  const outLayout = outAircraftId ? fleet.layouts[outAircraftId] : undefined;
+  if (!outLayout) return undefined;
+
+  let inSnapshot: LegSeatLayoutSnapshot | undefined = undefined;
+  if (inbound) {
+    const inAircraftId = inbound.aircraftId || (inbound.aircraft ? aircraftNameToId(inbound.aircraft) : undefined);
+    const inLayout = inAircraftId ? fleet.layouts[inAircraftId] : undefined;
+    if (!inLayout) return undefined;
+    if (inLayout) {
+      inSnapshot = {
+        basis: "fleet",
+        ...(fleet.revision !== undefined ? { fleetRevision: fleet.revision } : {}),
+        aircraftId: inAircraftId,
+        rows: inLayout.rows,
+        letters: [...inLayout.letters],
+        aisleAfter: inLayout.aisleAfter,
+        zones: inLayout.zones.map((z) => ({ ...z })),
+        extraLegroomRows: [...inLayout.extraLegroomRows],
+        unavailable: [...inLayout.unavailable],
+        capacity: layoutCapacity(inLayout),
+      };
+    }
+  }
+
+  return {
+    version: 1,
+    out: {
+      basis: "fleet",
+      ...(fleet.revision !== undefined ? { fleetRevision: fleet.revision } : {}),
+      aircraftId: outAircraftId,
+      rows: outLayout.rows,
+      letters: [...outLayout.letters],
+      aisleAfter: outLayout.aisleAfter,
+      zones: outLayout.zones.map((z) => ({ ...z })),
+      extraLegroomRows: [...outLayout.extraLegroomRows],
+      unavailable: [...outLayout.unavailable],
+      capacity: layoutCapacity(outLayout),
+    },
+    ...(inSnapshot ? { in: inSnapshot } : {}),
+  };
+}
+
+export function snapshotSeatFee(
+  seat: string,
+  basis: BookingPricingSnapshotV1,
+  layout?: LayoutGeometry | LegSeatLayoutSnapshot | undefined,
+): number {
+  const isExtraLegroom = layout
+    ? seatIsExtraLegroom(layout, seat)
+    : basis.seatPricing.extraLegroomRows.includes(Number(seat.replace(/\D/g, "")));
+  return isExtraLegroom
     ? basis.seatPricing.extraLegroomPrice
     : basis.seatPricing.standardSeatPrice;
 }

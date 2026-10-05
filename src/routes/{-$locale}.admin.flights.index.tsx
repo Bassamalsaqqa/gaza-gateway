@@ -25,8 +25,6 @@ import { useAdmin } from "@/lib/admin-store";
 import { useI18n, pick } from "@/lib/i18n";
 import { dateLong } from "@/lib/format";
 import {
-  SEAT_LETTERS,
-  SEAT_ROWS,
   destinationByCode,
   destinations,
   todayISO,
@@ -34,10 +32,9 @@ import {
 } from "@/lib/data";
 import { checkedInPax, seatedPassengers } from "@/lib/domain/booking";
 import { useFlightsQuery, useBookingsQuery, useUpdateFlightOverrideMutation } from "@/lib/repositories";
+import { useFleetQuery, resolveFlightCapacity, resolveFlightAircraftDisplay } from "@/lib/fleet";
 import { flightBookingMetrics } from "@/lib/admin-flight-metrics";
 import { pageHead } from "@/lib/head";
-
-const CAPACITY = SEAT_ROWS * SEAT_LETTERS.length;
 
 export const Route = createFileRoute("/{-$locale}/admin/flights/")({
   head: ({ params }) =>
@@ -97,6 +94,7 @@ function AdminFlightsPage() {
   // Canonical repository hooks
   const { data: repoFlights = [], isPending, isError } = useFlightsQuery(date, direction === "all" ? undefined : direction);
   const { data: bookings = [] } = useBookingsQuery();
+  const fleetQuery = useFleetQuery();
   const setFlightOverride = useUpdateFlightOverrideMutation();
 
   const handleSaveStatus = async (flightId: string, nextStatus: FlightStatus) => {
@@ -294,6 +292,8 @@ function AdminFlightsPage() {
                     const sold = flightBookingMetrics(f.id, bookings).total;
                     const p = progress(f.id);
                     const isEditingThisGate = editingGate?.flightId === f.id;
+                    const capacity = resolveFlightCapacity(f, fleetQuery.isError ? null : fleetQuery.data);
+                    const aircraftDisplay = resolveFlightAircraftDisplay(f, fleetQuery.isError ? null : fleetQuery.data);
 
                     return (
                       <GazaTableRow key={`${f.id}-${f.direction}`} className="border-b border-border last:border-0 hover:bg-secondary/30 transition-colors">
@@ -321,7 +321,7 @@ function AdminFlightsPage() {
                           <Ltr>{`${f.originCode} → ${f.destinationCode}`}</Ltr>
                         </GazaTableCell>
                         <GazaTableCell className="px-3 py-2 text-muted-foreground">
-                          <Ltr>{f.aircraft}</Ltr>
+                          <Ltr>{aircraftDisplay.registration ? `${aircraftDisplay.model} · ${aircraftDisplay.registration}` : aircraftDisplay.model}</Ltr>
                         </GazaTableCell>
                         <GazaTableCell className="px-3 py-2">
                           {isEditingThisGate ? (
@@ -385,8 +385,8 @@ function AdminFlightsPage() {
                           )}
                         </GazaTableCell>
                         <GazaTableCell className="px-3 py-2">
-                          <Ltr className="text-xs text-muted-foreground">{`${sold}/${CAPACITY}`}</Ltr>
-                          <span className="sr-only">{t("adm.flight.loadOf", { n: sold, total: CAPACITY })}</span>
+                          <Ltr className="text-xs text-muted-foreground">{`${sold}/${capacity ?? "—"}`}</Ltr>
+                          <span className="sr-only">{capacity ? t("adm.flight.loadOf", { n: sold, total: capacity }) : `${sold} / —`}</span>
                         </GazaTableCell>
                         <GazaTableCell className="px-3 py-2">
                           <AdminChip tone={p.total > 0 && p.checked === p.total ? "brand" : "neutral"}>
@@ -443,6 +443,8 @@ function AdminFlightsPage() {
                 const sold = flightBookingMetrics(f.id, bookings).total;
                 const p = progress(f.id);
                 const isEditingThisGate = editingGate?.flightId === f.id;
+                const capacity = resolveFlightCapacity(f, fleetQuery.isError ? null : fleetQuery.data);
+                const aircraftDisplay = resolveFlightAircraftDisplay(f, fleetQuery.isError ? null : fleetQuery.data);
 
                 return (
                   <li key={`${f.id}-${f.direction}-card`} className="px-4 py-3.5 space-y-2.5">
@@ -460,7 +462,7 @@ function AdminFlightsPage() {
                           )}
                         </p>
                         <p className="mt-0.5 text-xs text-muted-foreground">
-                          <Ltr>{`${f.originCode} → ${f.destinationCode} · ${f.aircraft}`}</Ltr>
+                          <Ltr>{`${f.originCode} → ${f.destinationCode} · ${aircraftDisplay.registration ? `${aircraftDisplay.model} · ${aircraftDisplay.registration}` : aircraftDisplay.model}`}</Ltr>
                         </p>
                       </div>
 
@@ -552,7 +554,7 @@ function AdminFlightsPage() {
                       <div>
                         <dt className="font-semibold text-muted-foreground">{t("adm.col.load")}</dt>
                         <dd className="mt-0.5">
-                          <Ltr>{`${sold}/${CAPACITY}`}</Ltr>
+                          <Ltr>{`${sold}/${capacity ?? "—"}`}</Ltr>
                         </dd>
                       </div>
                       <div>

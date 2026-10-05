@@ -561,9 +561,9 @@ describe("6B2A integration, preferences and source authority guards", () => {
   test("query keys are deterministic and registry shares one catalog with Booking, Draft and Passenger", () => {
     assert.deepEqual(commercialCatalogKeys.current(), ["commercial-catalog", "current"]);
     const source = readFileSync("src/lib/repositories/registry.ts", "utf8");
-    assert.match(source, /new LocalBookingRepository\(coordinator,\s*\{ commercial \}\)/);
+    assert.match(source, /new LocalBookingRepository\(coordinator,\s*\{\s*commercial,\s*fleet\s*\}\)/);
     assert.match(source, /new LocalPassengerRepository\(passengerCoordinator, commercial\)/);
-    assert.match(source, /new LocalBookingDraftRepository\(bookingDraftCoordinator, commercial\)/);
+    assert.match(source, /new LocalBookingDraftRepository\(bookingDraftCoordinator,\s*commercial(?:,\s*fleet)?\)/);
     assert.match(source, /value\.commercial\.subscribe/);
     assert.match(source, /queryKey: commercialCatalogKeys\.all/);
     assert.match(source, /createRepositories\(\{ inMemoryOnly: true \}\)/);
@@ -784,14 +784,15 @@ describe("6B2A integration, preferences and source authority guards", () => {
       assert.ok(doc.includes("f8c0d0bdc579c5c2719670c8387fa543d8d6a170"), `Expected "${file}" to preserve historical 6B1 release`);
       assert.ok(doc.includes("bcf284df3f0d7b24ec59372bb038ed9ae1e8c934"), `Expected "${file}" to preserve historical 6B1 runtime source`);
       assert.ok(doc.includes("Phase 6B2B — Fleet Identity, Seat Layout & Booking Seat Authority"), `Expected "${file}" to record next lane name`);
-      assert.match(doc, /Phase 6B2B[^]*Planned \/ Unstarted \/ Next Engineering Lane/);
+      assert.match(doc, /Phase 6B2B[^]*Implemented \/ Awaiting Independent Review/);
       assert.match(doc, /Phase 6B2C[^]*Planned \/ Unstarted/);
       // Scope current acceptance checks to 6B2A status statements. Later phases
       // and explicitly historical descriptions may still await their own review.
       const currentStatusLines = doc.split(/\r?\n/)
         .filter(line => /Phase 6B2A|Commercial catalog|CommercialCatalogRepository|Current Status|Engineering Status|Production \/ Source Checkpoint|Immediate Next Step/.test(line))
         .flatMap(line => line.split(/(?<=\.)\s+/))
-        .filter(statement => !/^(?:Phase 6B1 (?:is|remains) a historical|.*\bhistorical (?:record|checkpoint|note):)/i.test(statement));
+        .filter(statement => !/^(?:Phase 6B1 (?:is|remains) a historical|.*\bhistorical (?:record|checkpoint|note):)/i.test(statement))
+        .filter(statement => !/Phase 6B2B|6B2B/.test(statement));
       for (const line of currentStatusLines) {
         assert.doesNotMatch(line, /Implemented \/ Awaiting (?:Independent )?Review/);
         for (const phrase of stalePhrases) {

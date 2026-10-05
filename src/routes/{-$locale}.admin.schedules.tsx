@@ -18,7 +18,8 @@ import {
 import { AdminDenied } from "@/components/admin/admin-denied";
 import { useAdmin } from "@/lib/admin-store";
 import { useI18n, pick } from "@/lib/i18n";
-import { destinationByCode, destinations } from "@/lib/data";
+import { destinationByCode, destinations, aircraftNameToId } from "@/lib/data";
+import { useFleetQuery } from "@/lib/fleet";
 import type { ExceptionKind, Schedule, ScheduleCreateInput } from "@/lib/schedules";
 import {
   parseSchedule, ScheduleValidationError, newScheduleId,
@@ -50,7 +51,7 @@ export const Route = createFileRoute("/{-$locale}/admin/schedules")({
 const KINDS: ExceptionKind[] = ["cancelled", "time", "aircraft", "extra"];
 
 /** Stable draft factory. Uses crypto.randomUUID for ID; one ID per new draft. */
-function emptySchedule(): Schedule {
+function emptySchedule(defaultPlane?: { id: string; model: string }): Schedule {
   const id = newScheduleId();
   const first = destinations[0];
   return {
@@ -61,7 +62,8 @@ function emptySchedule(): Schedule {
     days: [1, 3, 5],
     departTime: "08:00",
     arriveTime: "10:00",
-    aircraft: "Airbus A320neo",
+    aircraft: defaultPlane?.model ?? "",
+    ...(defaultPlane ? { aircraftId: defaultPlane.id } : {}),
     from: "2026-01-11",
     until: "2026-12-19",
     active: true,
@@ -71,7 +73,8 @@ function emptySchedule(): Schedule {
 
 function AdminSchedulesPage() {
   const { t, lang } = useI18n();
-  const { can, ops, toast } = useAdmin();
+  const { can, toast } = useAdmin();
+  const { data: fleetData, isError: fleetError } = useFleetQuery();
   const [query, setQuery] = useState("");
   const [dest, setDest] = useState("all");
   const [state, setState] = useState<"all" | "active" | "inactive">("all");
@@ -101,6 +104,44 @@ function AdminSchedulesPage() {
       return [s.number, s.destination, d ? d.city.en : "", d ? d.city.ar : ""].join(" ").toLowerCase().includes(q);
     });
   }, [schedules, query, dest, state]);
+
+  const scheduleAircraftOptions = useMemo(() => {
+    const options: { id: string; label: string }[] = [];
+    if (fleetData?.aircraft) {
+      for (const a of fleetData.aircraft) {
+        if (a.active) {
+          options.push({
+            id: a.id,
+            label: `${a.model} (${a.registration})`,
+          });
+        }
+      }
+
+      const currentPlane = draft
+        ? fleetData.aircraft.find((a) => a.id === (draft.aircraftId ?? aircraftNameToId(draft.aircraft)))
+        : undefined;
+
+      if (currentPlane && !currentPlane.active) {
+        if (!options.some((o) => o.id === currentPlane.id)) {
+          options.unshift({
+            id: currentPlane.id,
+            label: `${currentPlane.model} (${currentPlane.registration}) [${t("adm.common.inactive")}]`,
+          });
+        }
+      } else if (draft?.aircraft && !currentPlane) {
+        options.unshift({
+          id: draft.aircraftId ?? draft.aircraft,
+          label: `${draft.aircraft} [${t("fleet.legacy")}]`,
+        });
+      }
+    } else if (draft) {
+      options.push({
+        id: draft.aircraftId ?? draft.aircraft,
+        label: draft.aircraft,
+      });
+    }
+    return options;
+  }, [fleetData, draft, t]);
 
   if (!can("ops.view")) return <AdminDenied area={t("adm.sch.title")} permission="ops.view" />;
 
@@ -177,14 +218,15 @@ function AdminSchedulesPage() {
         description={t("adm.sch.sub")}
         action={
           <PermissionButton
-            allowed={mayEdit}
+            allowed={mayEdit && !fleetError && Boolean(fleetData?.aircraft.some(a => a.active))}
             reason={t("adm.edit.readOnly")}
             variant="primary"
             onClick={() => {
               setIsNew(true);
               setSaveError(null);
               setFieldErrors({});
-              setDraft(emptySchedule());
+              const firstActive = fleetData?.aircraft.find((a) => a.active);
+              setDraft(emptySchedule(firstActive));
             }}
           >
             <Plus aria-hidden="true" className="size-3.5" />
@@ -466,13 +508,34 @@ function AdminSchedulesPage() {
             </div>
 
             <Field label={t("adm.col.aircraft")} htmlFor="sc-ac" error={fieldErrors["aircraft"]} errorId="sc-ac-error">
-              <Select id="sc-ac" aria-invalid={Boolean(fieldErrors["aircraft"]) || undefined} aria-describedby={fieldErrors["aircraft"] ? "sc-ac-error" : undefined} dir="ltr" value={draft.aircraft} onChange={(e) => setDraft({ ...draft, aircraft: e.target.value })}>
-                {ops.aircraft.map((a) => (
-                  <option key={a.id} value={a.name}>
-                    {a.name}
+              <Select
+                id="sc-ac"
+                aria-invalid={Boolean(fieldErrors["aircraft"]) || undefined}
+                aria-describedby={fieldErrors["aircraft"] ? "sc-ac-error" : undefined}
+                dir="ltr"
+                disabled={fleetError}
+                value={draft.aircraftId || (draft.aircraft ? (aircraftNameToId(draft.aircraft) ?? draft.aircraft) : "")}
+                onChange={(e) => {
+                  const selectedId = e.target.value;
+                  const chosen = fleetData?.aircraft.find((a) => a.id === selectedId);
+                  setDraft({
+                    ...draft,
+                    aircraftId: selectedId,
+                    aircraft: chosen ? chosen.model : draft.aircraft,
+                  });
+                }}
+              >
+                {scheduleAircraftOptions.map((opt) => (
+                  <option key={opt.id} value={opt.id}>
+                    {opt.label}
                   </option>
                 ))}
               </Select>
+              {fleetError ? (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {t("adm.flight.fleetUnavailable") || "Fleet configuration is unavailable; aircraft reassignment is disabled."}
+                </p>
+              ) : null}
             </Field>
 
             <div className="grid grid-cols-2 gap-3">

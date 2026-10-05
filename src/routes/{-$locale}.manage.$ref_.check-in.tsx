@@ -15,15 +15,19 @@ import {
   legFullyCheckedIn,
   openPaxForLeg,
   seatedPassengers,
+  resolveBookingLegLayout,
   type Leg,
 } from "@/lib/domain/booking";
+import { resolveBookingPricing } from "@/lib/commercial/pricing";
 import { getCheckInEligibility } from "@/lib/domain/check-in";
 import { usePassengerAccount } from "@/lib/passenger";
 import {
   useBookingEffectiveFlights,
   useBookingQuery,
+  useBookingsQuery,
   useCompleteCheckInMutation,
-} from "@/lib/repositories/queries";
+  getCanonicalOccupiedSeats,
+} from "@/lib/repositories";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/{-$locale}/manage/$ref_/check-in")({
@@ -50,6 +54,7 @@ function CheckInPage() {
   const { ref } = Route.useParams();
   const { t, lang } = useI18n();
   const { data: booking, isLoading } = useBookingQuery(ref);
+  const { data: allBookings = [] } = useBookingsQuery();
   const effectiveFlights = useBookingEffectiveFlights(booking);
   const completeCheckInMutation = useCompleteCheckInMutation();
 
@@ -446,11 +451,18 @@ function CheckInPage() {
               }}
               passengerLabels={selected.map((i) => paxLabel(i))}
               cabin={booking.criteria.cabin}
+              layout={resolveBookingLegLayout(booking, leg ?? "out")}
+              occupiedSeats={getCanonicalOccupiedSeats(allBookings, flight.id, booking.ref, leg ?? "out")}
+              extraLegroomPrice={resolveBookingPricing(booking).seatPricing.extraLegroomPrice}
               suggestedSeat={suggestSeat(
                 flight.id,
+                resolveBookingLegLayout(booking, leg ?? "out"),
                 booking.criteria.cabin,
                 account?.seatPreference ?? "none",
-                Object.values(seats),
+                [
+                  ...Object.values(seats),
+                  ...Array.from(getCanonicalOccupiedSeats(allBookings, flight.id, booking.ref, leg ?? "out")),
+                ],
               )}
             />
           </div>

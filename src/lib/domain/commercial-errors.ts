@@ -23,6 +23,8 @@ export function commercialErrorKey(error: unknown): string {
     if (reason === "invalid_extras") return "a6.err.extras";
     if (reason === "invalid_infant" || reason === "invalid_passengers") return "a6.err.passengers";
     if (reason === "insufficient_seats" || reason === "sold_out") return "a6.err.capacity";
+    if (reason === "fleet_unavailable") return "fleet.error.unavailable";
+    if (reason === "cabin_unavailable") return "a6.err.cabin";
     return "a6.err.flight";
   }
   if (!(error instanceof Error)) return "a6.err.retry";
@@ -37,6 +39,7 @@ export function commercialErrorKey(error: unknown): string {
     text.includes("checked-in")
   )
     return "a6.err.immutable";
+  if (text.includes("cabin")) return "a6.err.cabin";
   if (text.includes("seat")) return "a6.err.seats";
   if (text.includes("too early") || text.includes("too_early") || text.includes("not_open"))
     return "a6.err.early";

@@ -1,6 +1,9 @@
 import { LocalCommercialCatalogRepository } from "../commercial/repository.ts";
 import { CommercialStorageCoordinator } from "../commercial/storage.ts";
 import { commercialCatalogKeys } from "../commercial/keys.ts";
+import { LocalFleetRepository } from "../fleet/repository.ts";
+import { FleetStorageCoordinator } from "../fleet/storage.ts";
+import { fleetKeys } from "../fleet/keys.ts";
 /**
  * Gaza Gateway — Repository Registry & Provider
  *
@@ -46,6 +49,8 @@ export interface CreateRepositoriesOptions {
   storage?: Storage | null | undefined;
   commercialCoordinator?: CommercialStorageCoordinator | undefined;
   initialCommercialCatalog?: import("../commercial/types.ts").CommercialCatalog | undefined;
+  fleetCoordinator?: FleetStorageCoordinator | undefined;
+  initialFleetData?: import("../fleet/types.ts").FleetEnvelopeV1 | undefined;
 }
 
 /**
@@ -55,6 +60,7 @@ export interface CreateRepositoriesOptions {
  * BookingDraftRepository uses an independent BookingDraftStorageCoordinator.
  * ContactRepository uses an independent ContactStorageCoordinator.
  * ScheduleRepository uses an independent ScheduleStorageCoordinator.
+ * FleetRepository uses an independent FleetStorageCoordinator.
  */
 export function createRepositories(options?: CreateRepositoriesOptions): RepositoryRegistry {
   const coordinator =
@@ -97,13 +103,25 @@ export function createRepositories(options?: CreateRepositoriesOptions): Reposit
       ...(options?.initialSchedules !== undefined ? { initialSchedules: options.initialSchedules } : {}),
     });
 
+  const fleetCoordinator =
+    options?.fleetCoordinator ??
+    new FleetStorageCoordinator({
+      ...(options?.inMemoryOnly !== undefined ? { inMemoryOnly: options.inMemoryOnly } : {}),
+      ...(options?.storage !== undefined ? { storage: options.storage } : {}),
+      ...(options?.initialData !== undefined ? {} : options?.initialFleetData !== undefined ? { initialData: options.initialFleetData } : {}),
+    });
+
   const commercial = new LocalCommercialCatalogRepository(options?.commercialCoordinator ?? new CommercialStorageCoordinator({ inMemoryOnly: options?.inMemoryOnly, storage: options?.storage, initialCatalog: options?.initialCommercialCatalog }));
-  const booking = new LocalBookingRepository(coordinator, { commercial });
-  const flight = new LocalFlightRepository(coordinator);
+  const fleet = new LocalFleetRepository(fleetCoordinator);
+  const booking = new LocalBookingRepository(coordinator, { commercial, fleet });
+  const flight = new LocalFlightRepository(coordinator, {
+    fleet,
+    ...(options?.storage !== undefined ? { storage: options.storage } : {}),
+  });
   const passenger = new LocalPassengerRepository(passengerCoordinator, commercial);
-  const bookingDraft = new LocalBookingDraftRepository(bookingDraftCoordinator, commercial);
+  const bookingDraft = new LocalBookingDraftRepository(bookingDraftCoordinator, commercial, fleet);
   const contact = new LocalContactRepository({ coordinator: contactCoordinator });
-  const schedule = new LocalScheduleRepository(scheduleCoordinator);
+  const schedule = new LocalScheduleRepository(scheduleCoordinator, fleet);
 
   return {
     commercial,
@@ -113,6 +131,7 @@ export function createRepositories(options?: CreateRepositoriesOptions): Reposit
     bookingDraft,
     contact,
     schedule,
+    fleet,
   };
 }
 
@@ -193,6 +212,9 @@ export function RepositoryProvider({
     const unsubSchedule = value.schedule.subscribe(() => {
       queryClient.invalidateQueries({ queryKey: scheduleKeys.all });
     });
+    const unsubFleet = value.fleet.subscribe(() => {
+      queryClient.invalidateQueries({ queryKey: fleetKeys.all });
+    });
     return () => {
       unsubBooking();
       unsubFlight();
@@ -201,6 +223,7 @@ export function RepositoryProvider({
       unsubContact();
       unsubSchedule();
       unsubCommercial();
+      unsubFleet();
     };
   }, [value, queryClient]);
 

@@ -339,7 +339,7 @@ export async function runPhase6B2AChecks({ checkStep, browser, baseUrl }) {
     },
   );
   await checkStep(
-    "Check 85: 6B2A viewer cannot mutate commercial catalog; aircraft/seat maps remain session-only",
+    "Check 85: 6B2A viewer cannot mutate commercial catalog or the Fleet aircraft controls",
     async () => {
       const { context, dict } = await catalogContext(browser, "en", "adm-3");
       try {
@@ -353,7 +353,9 @@ export async function runPhase6B2AChecks({ checkStep, browser, baseUrl }) {
         for (const c of await controls.all()) assert.equal(await c.isDisabled(), true);
         assert.equal((await read(page)).revision, 0);
         await page.getByRole("tab", { name: "Aircraft", exact: true }).click();
-        await page.getByText(/resets on reload/i).waitFor();
+        const newBtn = page.getByRole("button", { name: /New Aircraft/i });
+        await newBtn.waitFor();
+        assert.equal(await newBtn.isDisabled(), true);
       } finally {
         await context.close();
       }

@@ -1,3 +1,5 @@
+import { runPhase6B2BCorrectionChecks } from "./phase6b2b-correction-01.mjs";
+import { runPhase6B2BChecks } from "./phase6b2b-fleet.mjs";
 import { runPhase6B2ACorrection01Checks } from "./phase6b2a-correction-01.mjs";
 import { runPhase6B2AChecks } from "./phase6b2a-commercial.mjs";
 import { runPhase6B1Correction01Checks } from "./phase6b1-correction-01.mjs";
@@ -3940,6 +3942,11 @@ async function runBrowserSmoke() {
       // 4. Test round-trip flight selection: outbound and inbound
       const firstOutbound = page.locator('[data-surface-target="booking.flight-option"]:not([disabled])').first();
       await firstOutbound.click();
+      await page.waitForFunction(
+        (el) => el.getAttribute("data-state") === "checked",
+        await firstOutbound.elementHandle(),
+        { timeout: 5000 }
+      );
       const isOutboundChecked = await firstOutbound.getAttribute("data-state");
       if (isOutboundChecked !== "checked") {
         throw new Error("Outbound flight option did not become checked after click");
@@ -3955,6 +3962,11 @@ async function runBrowserSmoke() {
       }
       const firstInbound = inboundOptions.first();
       await firstInbound.click();
+      await page.waitForFunction(
+        (el) => el.getAttribute("data-state") === "checked",
+        await firstInbound.elementHandle(),
+        { timeout: 5000 }
+      );
       const isInboundChecked = await firstInbound.getAttribute("data-state");
       if (isInboundChecked !== "checked") {
         throw new Error("Inbound flight option did not become checked after click");
@@ -5263,8 +5275,8 @@ async function runBrowserSmoke() {
               },
             ],
             seats: {
-              "out-0": "2A",
-              "in-0": "4B",
+              "out-0": "12A",
+              "in-0": "14B",
             },
             extras: {
               baggage: 0,
@@ -5331,8 +5343,8 @@ async function runBrowserSmoke() {
         if (postReconciliation.hasOutSeat) {
           throw new Error("Expected out-0 seat to be evicted via prefix deletion");
         }
-        if (postReconciliation.inSeat !== "4B") {
-          throw new Error(`Expected surviving in-0 seat '4B' to be preserved, got ${postReconciliation.inSeat}`);
+        if (postReconciliation.inSeat !== "14B") {
+          throw new Error(`Expected surviving in-0 seat '14B' to be preserved, got ${postReconciliation.inSeat}`);
         }
         if (!postReconciliation.inboundId) {
           throw new Error("Expected surviving inbound flight to remain intact");
@@ -6529,7 +6541,11 @@ async function runBrowserSmoke() {
         // Verify durable Escape dismissal, focus-return to trigger, and restored scroll state
         await page.keyboard.press("Escape");
         await photoDialog.waitFor({ state: "hidden", timeout: 5000 });
-        const gishaFocused = await gishaCard.evaluate((el) => el === document.activeElement);
+        let gishaFocused = false;
+        for (let attempt = 0; attempt < 40 && !gishaFocused; attempt++) {
+          gishaFocused = await gishaCard.evaluate((el) => el === document.activeElement);
+          if (!gishaFocused) await page.waitForTimeout(50);
+        }
         if (!gishaFocused) {
           throw new Error("Focus did not return to Gisha card trigger button after Escape dismissal");
         }
@@ -7788,6 +7804,8 @@ async function runBrowserSmoke() {
     await runPhase6B1Correction01Checks({ checkStep, browser, baseUrl });
     await runPhase6B2AChecks({ checkStep, browser, baseUrl });
     await runPhase6B2ACorrection01Checks({ checkStep, browser, baseUrl });
+    await runPhase6B2BChecks({ checkStep, browser, baseUrl });
+    await runPhase6B2BCorrectionChecks({ checkStep, browser, baseUrl });
 
   } finally {
     await browser.close();

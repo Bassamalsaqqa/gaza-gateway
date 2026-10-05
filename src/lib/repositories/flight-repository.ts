@@ -1,3 +1,4 @@
+import { validateAircraftAssignment } from "../fleet/assignment.ts";
 /**
  * Gaza Gateway — Canonical Flight Repository Implementation
  *
@@ -17,6 +18,9 @@ import {
   type FlightOverride,
 } from "../domain/flight.ts";
 import type { FlightRepository, MonthlyServiceMap } from "./types.ts";
+import type { FleetRepository } from "../fleet/types.ts";
+import { LocalFleetRepository } from "../fleet/repository.ts";
+import { FleetStorageCoordinator } from "../fleet/storage.ts";
 import { isFlightBookable } from "../booking-rules.ts";
 import {
   RepoStorageCoordinator,
@@ -25,12 +29,13 @@ import {
 
 export class LocalFlightRepository implements FlightRepository {
   private coordinator: RepoStorageCoordinator;
+  private readonly fleet: FleetRepository;
   private listeners: Set<() => void> = new Set();
   private unsubscribeCoordinator: (() => void) | null = null;
 
   constructor(
     coordinatorOrInitial?: RepoStorageCoordinator | RepoStorageV1,
-    options?: { storage?: Storage | null },
+    options?: { storage?: Storage | null; fleet?: FleetRepository },
   ) {
     if (coordinatorOrInitial instanceof RepoStorageCoordinator) {
       this.coordinator = coordinatorOrInitial;
@@ -40,6 +45,14 @@ export class LocalFlightRepository implements FlightRepository {
         storage: options?.storage,
       });
     }
+
+    this.fleet =
+      options?.fleet ??
+      new LocalFleetRepository(
+        new FleetStorageCoordinator({
+          ...(options?.storage !== undefined ? { storage: options.storage } : {}),
+        }),
+      );
 
     this.unsubscribeCoordinator = this.coordinator.subscribe(() => {
       this.notifyListeners();
@@ -194,7 +207,21 @@ export class LocalFlightRepository implements FlightRepository {
     const cleanPatch = sanitizeFlightOverride(patch);
     if (!cleanPatch) return;
 
-    this.coordinator.mutate((state) => {
+    const current = await this.getFlightById(flightId);
+    const hasEquipment = cleanPatch.aircraftId !== undefined || cleanPatch.aircraft !== undefined;
+    const unchanged = current &&
+      (cleanPatch.aircraftId === undefined || cleanPatch.aircraftId === current.aircraftId) &&
+      (cleanPatch.aircraft === undefined || cleanPatch.aircraft === current.aircraft);
+    if (hasEquipment && !unchanged) {
+      Object.assign(cleanPatch, await validateAircraftAssignment(this.fleet, cleanPatch));
+    } else if (unchanged) {
+      // This command is operational-only; do not restore stale equipment if another
+      // writer assigns a different aircraft before the booking-store lock is acquired.
+      delete cleanPatch.aircraftId;
+      delete cleanPatch.aircraft;
+    }
+
+    await this.coordinator.mutateAsync((state) => {
       const current = state.flightOverrides[flightId] ?? {};
       state.flightOverrides[flightId] = {
         ...current,
@@ -206,7 +233,7 @@ export class LocalFlightRepository implements FlightRepository {
   public async clearOverride(flightId: string): Promise<void> {
     if (!flightId || typeof flightId !== "string") return;
 
-    this.coordinator.mutate((state) => {
+    await this.coordinator.mutateAsync((state) => {
       if (state.flightOverrides[flightId]) {
         delete state.flightOverrides[flightId];
       }

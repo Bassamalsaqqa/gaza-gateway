@@ -42,16 +42,20 @@ import { pick, useI18n } from "@/lib/i18n";
 import { money } from "@/lib/format";
 import { type MockBookingStatus, type MockPassenger } from "@/lib/admin-mock";
 import { pageHead } from "@/lib/head";
+import { resolveBookingPricing } from "@/lib/commercial/pricing";
 import {
   useBookingQuery,
+  useBookingsQuery,
   useCancelBookingMutation,
   useUpdateBookingContactMutation,
   useUpdateBookingSeatsMutation,
   useUpdateBookingExtrasMutation,
-} from "@/lib/repositories/queries";
+  getCanonicalOccupiedSeats,
+} from "@/lib/repositories";
 import {
   bookingToMockBooking,
   isPaxCheckedIn,
+  resolveBookingLegLayout,
   type AdaptedAdminBooking,
   type AdaptedAdminPassenger,
 } from "@/lib/domain/booking";
@@ -103,6 +107,7 @@ function AdminBookingDetailPage() {
   const [confirmCancel, setConfirmCancel] = useState(false);
 
   const { data: canonicalBooking, isPending, isError } = useBookingQuery(ref);
+  const { data: allBookings = [] } = useBookingsQuery();
   const cancelBookingMutation = useCancelBookingMutation();
   const updateContactMutation = useUpdateBookingContactMutation();
   const updateSeatsMutation = useUpdateBookingSeatsMutation();
@@ -877,6 +882,16 @@ function AdminBookingDetailPage() {
                         passengerLabels={canonicalBooking.passengers.map(
                           (p) => `${p.firstName} ${p.lastName}`,
                         )}
+                        layout={resolveBookingLegLayout(canonicalBooking, "out")}
+                        occupiedSeats={getCanonicalOccupiedSeats(
+                          allBookings,
+                          canonicalBooking.outbound.id,
+                          canonicalBooking.ref,
+                          "out",
+                        )}
+                        extraLegroomPrice={
+                          resolveBookingPricing(canonicalBooking).seatPricing.extraLegroomPrice
+                        }
                         onSelect={(seat) =>
                           setEditSeats((current) => ({ ...current, [`out-${pIdx}`]: seat }))
                         }
@@ -925,6 +940,16 @@ function AdminBookingDetailPage() {
                         passengerLabels={canonicalBooking.passengers.map(
                           (p) => `${p.firstName} ${p.lastName}`,
                         )}
+                        layout={resolveBookingLegLayout(canonicalBooking, "in")}
+                        occupiedSeats={getCanonicalOccupiedSeats(
+                          allBookings,
+                          canonicalBooking.inbound.id,
+                          canonicalBooking.ref,
+                          "in",
+                        )}
+                        extraLegroomPrice={
+                          resolveBookingPricing(canonicalBooking).seatPricing.extraLegroomPrice
+                        }
                         onSelect={(seat) =>
                           setEditSeats((current) => ({ ...current, [`in-${pIdx}`]: seat }))
                         }

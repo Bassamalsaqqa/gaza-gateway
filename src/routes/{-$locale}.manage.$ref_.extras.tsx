@@ -105,6 +105,7 @@ function ManageExtrasPage() {
     criteria: booking.criteria,
     seats: booking.seats,
     extras,
+    seatLayouts: booking.seatLayouts,
   }, basis);
 
   const setPax = (index: number, patch: Partial<PaxExtras>) =>

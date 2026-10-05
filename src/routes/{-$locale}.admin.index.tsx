@@ -38,9 +38,10 @@ import { useDashboardData, type OpsFlight } from "@/components/admin/dashboard-d
 import { useAdmin } from "@/lib/admin-store";
 import { useI18n } from "@/lib/i18n";
 import { dateLong, dateShort } from "@/lib/format";
-import { SEAT_ROWS, SEAT_LETTERS, type FlightStatus } from "@/lib/data";
+import { type FlightStatus } from "@/lib/data";
 import { checkedInPax, seatedPassengers, type Booking } from "@/lib/domain/booking";
 import { useUpdateFlightOverrideMutation } from "@/lib/repositories";
+import { useFleetQuery, resolveFlightCapacity, resolveFlightAircraftDisplay } from "@/lib/fleet";
 import { flightBookingMetrics } from "@/lib/admin-flight-metrics";
 import { pageHead } from "@/lib/head";
 import { cn } from "@/lib/utils";
@@ -55,7 +56,6 @@ const STATUSES: FlightStatus[] = [
   "Landed",
   "Cancelled",
 ];
-const CAPACITY = SEAT_ROWS * SEAT_LETTERS.length;
 
 export const Route = createFileRoute("/{-$locale}/admin/")({
   head: ({ params }) =>
@@ -90,6 +90,7 @@ function loadOf(flight: OpsFlight, bookings: Booking[]): number { return flightB
 function AdminDashboardPage() {
   const { t, lang } = useI18n();
   const { can, toast } = useAdmin();
+  const fleetQuery = useFleetQuery();
   const overrideMutation = useUpdateFlightOverrideMutation();
   const [saveError, setSaveError] = useState<string | null>(null);
   const [invalidField, setInvalidField] = useState<"gate" | "revised" | null>(null);
@@ -251,7 +252,11 @@ function AdminDashboardPage() {
             </GazaTableRow>
           </GazaTableHeader>
           <GazaTableBody>
-            {data.operation.map((f) => (
+            {data.operation.map((f) => {
+              const capacity = resolveFlightCapacity(f, fleetQuery.isError ? null : fleetQuery.data);
+              const aircraftDisplay = resolveFlightAircraftDisplay(f, fleetQuery.isError ? null : fleetQuery.data);
+
+              return (
               <GazaTableRow
                 key={`${f.id}-${f.direction}`}
                 className="border-b border-border last:border-0 hover:bg-secondary/40 transition-colors"
@@ -282,7 +287,7 @@ function AdminDashboardPage() {
                   <Ltr>{`${f.originCode} → ${f.destinationCode}`}</Ltr>
                 </GazaTableCell>
                 <GazaTableCell className="px-3 py-2 text-muted-foreground">
-                  <Ltr>{f.aircraft}</Ltr>
+                  <Ltr>{aircraftDisplay.registration ? `${aircraftDisplay.model} · ${aircraftDisplay.registration}` : aircraftDisplay.model}</Ltr>
                 </GazaTableCell>
                 <GazaTableCell className="px-3 py-2">
                   {f.gate ? (
@@ -299,13 +304,13 @@ function AdminDashboardPage() {
                     >
                       <span
                         className="block h-full rounded-full bg-brand"
-                        style={{ width: `${Math.round((loadOf(f, bookings) / CAPACITY) * 100)}%` }}
+                        style={{ width: `${capacity ? Math.round((loadOf(f, bookings) / capacity) * 100) : 0}%` }}
                       />
                     </span>
-                    <Ltr className="text-xs font-medium text-muted-foreground tabular-nums">{`${loadOf(f, bookings)}/${CAPACITY}`}</Ltr>
+                    <Ltr className="text-xs font-medium text-muted-foreground tabular-nums">{`${loadOf(f, bookings)}/${capacity ?? "—"}`}</Ltr>
                   </span>}
                   {commercialReady ? <span className="sr-only">
-                    {t("adm.flight.loadOf", { n: loadOf(f, bookings), total: CAPACITY })}
+                    {capacity ? t("adm.flight.loadOf", { n: loadOf(f, bookings), total: capacity }) : `${loadOf(f, bookings)} / —`}
                   </span> : null}
                 </GazaTableCell>
                 <GazaTableCell className="px-3 py-2">
@@ -335,7 +340,8 @@ function AdminDashboardPage() {
                   </PermissionButton>
                 </GazaTableCell>
               </GazaTableRow>
-            ))}
+            );
+            })}
           </GazaTableBody>
         </GazaTable>
       </div>
@@ -344,6 +350,9 @@ function AdminDashboardPage() {
       <ul className="xl:hidden">
         {data.operation.map((f) => {
           const ci = checkinFor(f);
+          const capacity = resolveFlightCapacity(f, fleetQuery.isError ? null : fleetQuery.data);
+          const aircraftDisplay = resolveFlightAircraftDisplay(f, fleetQuery.isError ? null : fleetQuery.data);
+
           return (
             <li
               key={`${f.id}-${f.direction}-m`}
@@ -365,13 +374,13 @@ function AdminDashboardPage() {
                   )}
                   <Ltr>{f.direction === "dep" ? f.departTime : f.arriveTime}</Ltr>
                 </span>
-                <Ltr>{f.aircraft}</Ltr>
+                <Ltr>{aircraftDisplay.registration ? `${aircraftDisplay.model} · ${aircraftDisplay.registration}` : aircraftDisplay.model}</Ltr>
                 {f.gate ? (
                   <Ltr>{`${f.terminal} · ${f.gate}`}</Ltr>
                 ) : (
                   <AdminChip tone="warn">{t("adm.flight.noGate")}</AdminChip>
                 )}
-                {commercialReady ? <Ltr>{`${loadOf(f, bookings)}/${CAPACITY}`}</Ltr> : <span>{t("adm.dash.unavailable")}</span>}
+                {commercialReady ? <Ltr>{`${loadOf(f, bookings)}/${capacity ?? "—"}`}</Ltr> : <span>{t("adm.dash.unavailable")}</span>}
                 {commercialReady && ci.total > 0 ? (
                   <AdminChip tone={ci.checked === ci.total ? "brand" : "neutral"}>
                     {t("adm.flight.checkedOf", { n: ci.checked, total: ci.total })}

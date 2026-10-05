@@ -1,7 +1,9 @@
 import { useCommercialOptions } from "@/lib/commercial/queries";
-import { previewBookingTotal, pricingSnapshot, validateServiceSelections } from "@/lib/commercial/pricing";
+import { previewBookingTotal, pricingSnapshot, validateServiceSelections, resolvePreviewSeatLayouts } from "@/lib/commercial/pricing";
 import { CommercialCatalogError, catalogErrorKey } from "@/lib/commercial/types";
 import { CommercialCatalogState } from "@/components/commercial-catalog-state";
+import { useFleetQuery, layoutSupportsCabin } from "@/lib/fleet";
+import type { CabinId } from "@/lib/fleet/types";
 import { useAppNavigate } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
@@ -138,6 +140,8 @@ function BookPage() {
 
   const { data: account } = usePassengerAccount();
   const { data: travelers = [] } = usePassengerTravelers();
+  const fleetQuery = useFleetQuery();
+  const fleet = fleetQuery.data;
 
 
   const [activePax, setActivePax] = useState(0);
@@ -207,14 +211,28 @@ function BookPage() {
       const fixtureDate = draft.criteria.departDate || getCapacityProofDate();
       return getCapacityProofFlights(fixtureDate);
     }
-    return searchedOutbound ?? [];
-  }, [draft.criteria.departDate, isCapacityProof, searchedOutbound]);
+    const pool = searchedOutbound ?? [];
+    if (fleetQuery.isError || !fleet?.layouts) return [];
+    return pool.filter((f) => {
+      if (!f.aircraftId) return false;
+      const layout = fleet.layouts[f.aircraftId];
+      if (!layout) return false;
+      return layoutSupportsCabin(layout, draft.criteria.cabin as CabinId);
+    });
+  }, [draft.criteria.departDate, draft.criteria.cabin, isCapacityProof, searchedOutbound, fleet?.layouts, fleetQuery.isError]);
 
   const inboundOptions = useMemo(() => {
     if (draft.criteria.tripType !== "round") return [];
     if (isCapacityProof) return [];
-    return searchedInbound ?? [];
-  }, [draft.criteria.tripType, isCapacityProof, searchedInbound]);
+    const pool = searchedInbound ?? [];
+    if (fleetQuery.isError || !fleet?.layouts) return [];
+    return pool.filter((f) => {
+      if (!f.aircraftId) return false;
+      const layout = fleet.layouts[f.aircraftId];
+      if (!layout) return false;
+      return layoutSupportsCabin(layout, draft.criteria.cabin as CabinId);
+    });
+  }, [draft.criteria.tripType, draft.criteria.cabin, isCapacityProof, searchedInbound, fleet?.layouts, fleetQuery.isError]);
 
   const isOutboundSelected = Boolean(
     isReady &&
@@ -248,18 +266,25 @@ function BookPage() {
 
   // Authoritative selection reconciliation against effective flight queries
   useEffect(() => {
-    if (!isReady || isCapacityProof) return;
+    if (!isReady || isCapacityProof || fleetQuery.isPending || fleetQuery.isError) return;
     if (isOutboundLoading || (draft.criteria.tripType === "round" && isInboundLoading)) return;
     if (!draft.outbound && !draft.inbound) return;
 
     const effectiveOut = draft.outbound
-      ? outboundOptions.find((f) => f.id === draft.outbound?.id)
+      ? searchedOutbound?.find((f) => f.id === draft.outbound?.id)
       : null;
     const effectiveIn = draft.inbound
-      ? inboundOptions.find((f) => f.id === draft.inbound?.id)
+      ? searchedInbound?.find((f) => f.id === draft.inbound?.id)
       : null;
 
-    const res = reconcileDraft(draft, effectiveOut, effectiveIn);
+    const outLayout = effectiveOut?.aircraftId && fleet?.layouts ? fleet.layouts[effectiveOut.aircraftId] : null;
+    const inLayout = effectiveIn?.aircraftId && fleet?.layouts ? fleet.layouts[effectiveIn.aircraftId] : null;
+
+    const res = reconcileDraft(draft, effectiveOut, effectiveIn, {
+      outboundLayout: outLayout,
+      inboundLayout: inLayout,
+      cabin: draft.criteria.cabin,
+    });
     if (res.changed) {
       setDraft((current) => ({
         ...current,
@@ -286,9 +311,13 @@ function BookPage() {
                       ? t("book.flightSoldOut")
                       : rawReason === "insufficient_seats"
                         ? t("book.flightInsufficientSeats")
-                        : t("book.flightUnavailable");
+                        : rawReason === "cabin_unavailable"
+                          ? t("book.flightCabinUnavailable")
+                          : t("book.flightUnavailable");
 
         setReconciliationNotice(t("book.reconcileAlert", { reason: localizedReason }));
+      } else if (res.outbound.seatsCleared.length || res.inbound?.seatsCleared.length) {
+        setReconciliationNotice(t("book.seatsReconciled"));
       }
     }
   }, [
@@ -301,6 +330,8 @@ function BookPage() {
     inboundOptions,
     setDraft,
     t,
+    fleet,
+    fleetQuery.isPending, fleetQuery.isError, searchedOutbound, searchedInbound,
   ]);
 
   const requestedStep = search.step;
@@ -501,7 +532,7 @@ function BookPage() {
       // Safety rule: test inventory cannot create a persistent booking or PNR
       return;
     }
-    const totals = previewBookingTotal(draft, commercial.catalogSnapshot);
+    const totals = previewBookingTotal(draft, commercial.catalogSnapshot, previewSeatLayouts);
     if (!totals || commercial.query.isError) { setReconciliationNotice(t(commercial.catalog ? "commercial.error.fare_unavailable" : "commercial.error.catalog_unavailable")); goToStep("fare"); return; }
     setIsConfirming(true);
     try {
@@ -558,7 +589,11 @@ function BookPage() {
                       ? t("book.flightSoldOut")
                       : reason === "insufficient_seats"
                         ? t("book.flightInsufficientSeats")
-                        : t("book.flightUnavailable");
+                        : reason === "fleet_unavailable"
+                          ? t("fleet.error.unavailable")
+                        : reason === "cabin_unavailable"
+                          ? t("book.flightCabinUnavailable")
+                          : t("book.flightUnavailable");
 
         setReconciliationNotice(t("book.reconcileAlert", { reason: localizedReason }));
         goToStep("results");
@@ -568,8 +603,14 @@ function BookPage() {
     }
   };
 
-  const totals = previewBookingTotal(draft, commercial.catalogSnapshot);
+  const previewSeatLayouts = useMemo(
+    () => resolvePreviewSeatLayouts(draft.outbound, draft.inbound, fleet),
+    [draft.outbound, draft.inbound, fleet],
+  );
 
+  const totals = previewBookingTotal(draft, commercial.catalogSnapshot, previewSeatLayouts);
+
+  if (!["search", "results"].includes(currentStep) && !isCapacityProof && fleetQuery.isError) return <Container className="py-10"><p role="alert">{t("fleet.error.unavailable")}</p></Container>;
   if (currentStep !== "search" && (!commercial.catalog || commercial.query.isError)) return <Container className="py-10"><CommercialCatalogState /></Container>;
   if (["passengers","seats","extras","review"].includes(currentStep) && !totals) return <Container className="py-10"><p role="alert">{t("commercial.error.fare_unavailable")}</p><button type="button" className={btnClass("primary","md")} onClick={()=>goToStep("fare")}>{t("step.fare")}</button></Container>;
 
@@ -702,7 +743,7 @@ function BookPage() {
                     {t("book.outbound")}
                   </h2>
                   <div className="mt-3">
-                    {isOutboundLoading ? (
+                    {fleetQuery.isError && !isCapacityProof ? <Notice role="alert">{t("fleet.error.unavailable")}</Notice> : isOutboundLoading || (fleetQuery.isPending && !isCapacityProof) ? (
                       <div className="py-8 text-center text-sm text-muted-foreground animate-pulse">
                         {t("search.searching") || "Searching flights..."}
                       </div>
@@ -758,7 +799,7 @@ function BookPage() {
                         {t("book.inbound")} · {dateLong(draft.criteria.returnDate, lang)}
                       </h2>
                       <div className="mt-3">
-                        {isInboundLoading ? (
+                        {fleetQuery.isError ? <Notice role="alert">{t("fleet.error.unavailable")}</Notice> : isInboundLoading || fleetQuery.isPending ? (
                           <div className="py-8 text-center text-sm text-muted-foreground animate-pulse">
                             {t("search.searching") || "Searching flights..."}
                           </div>

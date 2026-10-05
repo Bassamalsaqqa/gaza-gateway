@@ -114,6 +114,7 @@ export function sanitizePassenger(raw: unknown, defaultType: PassengerType = "ad
 
   return {
     type,
+    ...(typeof p["id"] === "string" && p["id"].trim() ? { id: p["id"].trim() } : {}),
     ...(type === "infant" && withAdult !== undefined ? { withAdult } : {}),
     firstName: typeof p["firstName"] === "string" ? p["firstName"].trim() : "",
     lastName: typeof p["lastName"] === "string" ? p["lastName"].trim() : "",

@@ -1,38 +1,53 @@
 import { Sparkles } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { isSeatAvailable } from "@/lib/data";
 import {
-  EXTRA_LEGROOM_ROWS,
-  SEAT_LETTERS,
-  cabinZone,
-  isSeatAvailable,
-  seatFee,
-} from "@/lib/data";
+  FROZEN_LEGACY_SEAT_LAYOUT,
+  type LegSeatLayoutSnapshot,
+} from "@/lib/domain/booking";
+import {
+  parseSeatCode,
+  seatExists,
+  seatPosition,
+  type LayoutGeometry,
+} from "@/lib/fleet/layout";
 import { money } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 export type SeatMapProps = {
-  flightId: string;
+  flightId?: string | undefined;
   /** seat code per passenger index, e.g. { 0: "12A" } */
-  assignments: Record<number, string>;
-  activePassenger: number;
-  onSelect: (passengerIndex: number, seat: string) => void;
-  passengerLabels: string[];
-  onActivePassengerChange: (index: number) => void;
-  /** Booked cabin — only that zone of the aircraft is selectable. */
-  cabin?: string;
+  assignments?: Record<number, string> | undefined;
+  activePassenger?: number | undefined;
+  onSelect?: ((passengerIndex: number, seat: string) => void) | undefined;
+  passengerLabels?: string[] | undefined;
+  onActivePassengerChange?: ((index: number) => void) | undefined;
+  /** Booked cabin — only that zone of the aircraft is selectable. If omitted in read-only mode, shows entire plane. */
+  cabin?: string | undefined;
   /** Optional seat suggested from a saved seat preference. */
   suggestedSeat?: string | undefined;
-  className?: string;
+  className?: string | undefined;
+  /** Dynamic layout geometry or sealed leg snapshot. Falls back to frozen legacy layout if omitted. */
+  layout?: LayoutGeometry | LegSeatLayoutSnapshot | undefined;
+  /** Advisory canonical cross-PNR occupied seats. */
+  occupiedSeats?: Set<string> | undefined;
+  /** Extra legroom seat fee. Defaults to 18. */
+  extraLegroomPrice?: number | undefined;
+  /** Whether the seat map is in read-only preview mode. */
+  readOnly?: boolean | undefined;
 };
 
 function parseRow(seat: string): number {
-  return Number.parseInt(seat.replace(/\D/g, ""), 10) || 1;
+  const parsed = parseSeatCode(seat);
+  return parsed?.row ?? (Number.parseInt(seat.replace(/\D/g, ""), 10) || 1);
 }
 
-function parseLetter(seat: string): (typeof SEAT_LETTERS)[number] {
-  const match = seat.match(/[A-F]/i);
-  return (match ? match[0].toUpperCase() : "A") as (typeof SEAT_LETTERS)[number];
+function parseLetter(seat: string): string {
+  const parsed = parseSeatCode(seat);
+  if (parsed) return parsed.letter;
+  const match = seat.match(/[A-Za-z]/);
+  return match ? match[0].toUpperCase() : "A";
 }
 
 function isSeatInZone(seat: string, firstRow: number, lastRow: number): boolean {
@@ -41,13 +56,15 @@ function isSeatInZone(seat: string, firstRow: number, lastRow: number): boolean 
 }
 
 function seatPositionLabel(
+  layout: LayoutGeometry,
   letter: string,
   t: (key: string, values?: Record<string, string | number>) => string,
 ): string {
-  if (letter === "A" || letter === "F") {
+  const pos = seatPosition(layout, letter);
+  if (pos === "window") {
     return t("book.seatWindow");
   }
-  if (letter === "C" || letter === "D") {
+  if (pos === "aisle") {
     return t("book.seatAisle");
   }
   return t("book.seatMiddle");
@@ -82,24 +99,57 @@ export function AircraftSeatIcon({
   );
 }
 
+const EMPTY_ASSIGNMENTS: Record<number, string> = {};
+const EMPTY_PASSENGER_LABELS: string[] = [];
+
 export function SeatMap({
-  flightId,
-  assignments,
-  activePassenger,
+  flightId = "",
+  assignments = EMPTY_ASSIGNMENTS,
+  activePassenger = 0,
   onSelect,
-  passengerLabels,
+  passengerLabels = EMPTY_PASSENGER_LABELS,
   onActivePassengerChange,
-  cabin = "economy",
+  cabin,
   suggestedSeat,
   className,
+  layout,
+  occupiedSeats,
+  extraLegroomPrice = 18,
+  readOnly = false,
 }: SeatMapProps) {
   const { t, lang } = useI18n();
+  const effectiveLayout = useMemo(
+    () => layout ?? FROZEN_LEGACY_SEAT_LAYOUT,
+    [layout],
+  );
+
+  const isReadOnly = readOnly || !onSelect;
+  const isAllCabins = isReadOnly || cabin === "all" || !cabin;
+
   const taken = useMemo(() => new Set(Object.values(assignments)), [assignments]);
-  const zone = cabinZone(cabin);
+
+  const zone = useMemo(() => {
+    if (isAllCabins) {
+      return {
+        id: "all" as const,
+        firstRow: 1,
+        lastRow: effectiveLayout.rows,
+      };
+    }
+    return (
+      effectiveLayout.zones.find((z) => z.id === cabin) ??
+      effectiveLayout.zones[0] ?? {
+        id: "economy" as const,
+        firstRow: 1,
+        lastRow: effectiveLayout.rows,
+      }
+    );
+  }, [effectiveLayout.zones, effectiveLayout.rows, cabin, isAllCabins]);
+
   const rows = useMemo(
     () =>
       Array.from(
-        { length: zone.lastRow - zone.firstRow + 1 },
+        { length: Math.max(0, zone.lastRow - zone.firstRow + 1) },
         (_, i) => zone.firstRow + i,
       ),
     [zone.firstRow, zone.lastRow],
@@ -108,15 +158,32 @@ export function SeatMap({
   const seatButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const [liveMessage, setLiveMessage] = useState<string>("");
 
+  const isSeatAvailableInMap = useCallback(
+    (code: string, row: number, letter: string): boolean => {
+      // 1. Nonexistent geometry
+      if (!seatExists(effectiveLayout, code)) return false;
+      // 2. Structural blocked seats
+      if (effectiveLayout.unavailable.includes(code)) return false;
+      if (isReadOnly) return true;
+      // 3. Deterministic flight prototype pseudo-occupancy
+      if (flightId && !isSeatAvailable(flightId, row, letter)) return false;
+      // 4. Advisory canonical cross-PNR occupied seats
+      if (occupiedSeats && occupiedSeats.has(code)) return false;
+      return true;
+    },
+    [effectiveLayout, flightId, occupiedSeats, isReadOnly],
+  );
+
   // Determine an initial sensible focused seat within current cabin zone
   const firstAvailableSeat = useMemo(() => {
     for (const r of rows) {
-      for (const l of SEAT_LETTERS) {
-        if (isSeatAvailable(flightId, r, l)) return `${r}${l}`;
+      for (const l of effectiveLayout.letters) {
+        const code = `${r}${l}`;
+        if (isSeatAvailableInMap(code, r, l)) return code;
       }
     }
-    return `${rows[0]}${SEAT_LETTERS[0]}`;
-  }, [flightId, rows]);
+    return `${rows[0] ?? 1}${effectiveLayout.letters[0] ?? "A"}`;
+  }, [effectiveLayout.letters, isSeatAvailableInMap, rows]);
 
   const assignedCurrent = assignments[activePassenger];
   const preferredSeat =
@@ -144,10 +211,11 @@ export function SeatMap({
 
   const handleSelectSeat = useCallback(
     (seat: string) => {
+      if (isReadOnly || !onSelect) return;
       const selectedByEntry = Object.entries(assignments).find(([, val]) => val === seat);
       const isSelected = Boolean(selectedByEntry);
       const isAssignedToOther = isSelected && Number(selectedByEntry?.[0]) !== activePassenger;
-      const available = isSeatAvailable(flightId, parseRow(seat), parseLetter(seat));
+      const available = isSeatAvailableInMap(seat, parseRow(seat), parseLetter(seat));
 
       if (!available) {
         setLiveMessage(t("book.seatLiveOccupied", { seat }));
@@ -171,7 +239,7 @@ export function SeatMap({
         setLiveMessage(t("book.seatLiveSelected", { seat, name: currentPaxLabel }));
       }
     },
-    [activePassenger, assignedCurrent, assignments, flightId, onSelect, passengerLabels, t],
+    [activePassenger, assignedCurrent, assignments, isSeatAvailableInMap, isReadOnly, onSelect, passengerLabels, t],
   );
 
   const handleKeyDown = (e: React.KeyboardEvent, row: number, letterIndex: number) => {
@@ -183,7 +251,7 @@ export function SeatMap({
       case "ArrowRight":
         handled = true;
         // In LTR aircraft geometry, ArrowRight moves starboard (increasing letter index)
-        if (nextLetterIndex < SEAT_LETTERS.length - 1) {
+        if (nextLetterIndex < effectiveLayout.letters.length - 1) {
           nextLetterIndex += 1;
         } else if (nextRow < zone.lastRow) {
           nextRow += 1;
@@ -197,7 +265,7 @@ export function SeatMap({
           nextLetterIndex -= 1;
         } else if (nextRow > zone.firstRow) {
           nextRow -= 1;
-          nextLetterIndex = SEAT_LETTERS.length - 1;
+          nextLetterIndex = effectiveLayout.letters.length - 1;
         }
         break;
       case "ArrowDown":
@@ -218,7 +286,7 @@ export function SeatMap({
         break;
       case "End":
         handled = true;
-        nextLetterIndex = SEAT_LETTERS.length - 1;
+        nextLetterIndex = effectiveLayout.letters.length - 1;
         break;
       case "PageUp":
         handled = true;
@@ -231,13 +299,13 @@ export function SeatMap({
       case " ":
       case "Enter":
         e.preventDefault();
-        handleSelectSeat(`${row}${SEAT_LETTERS[letterIndex]}`);
+        handleSelectSeat(`${row}${effectiveLayout.letters[letterIndex]}`);
         return;
     }
 
     if (handled) {
       e.preventDefault();
-      const nextSeat = `${nextRow}${SEAT_LETTERS[nextLetterIndex]}`;
+      const nextSeat = `${nextRow}${effectiveLayout.letters[nextLetterIndex]}`;
       setFocusedSeat(nextSeat);
       const btn = seatButtonRefs.current.get(nextSeat);
       if (btn) btn.focus();
@@ -252,31 +320,33 @@ export function SeatMap({
       </div>
 
       {/* Cabin Zone Header and Suggestion */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          {t("book.cabinZone", {
-            cabin: t(`cabin.${zone.id}`),
-            from: String(zone.firstRow),
-            to: String(zone.lastRow),
-          })}
-        </p>
-        {suggestedSeat && !taken.has(suggestedSeat) ? (
-          <button
-            type="button"
-            data-testid="suggested-seat-btn"
-            data-suggested-seat={suggestedSeat}
-            onClick={() => {
-              setFocusedSeat(suggestedSeat);
-              handleSelectSeat(suggestedSeat);
-            }}
-            className="inline-flex min-h-10 cursor-pointer items-center gap-1.5 rounded-full border border-clay/50 bg-clay-soft px-3 py-1 text-xs font-semibold text-accent-foreground hover:border-clay active:scale-[0.99] motion-reduce:active:scale-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
-          >
-            <Sparkles aria-hidden="true" className="size-3.5 text-clay" />
-            <span>{t("book.useSuggested")}</span>
-            <span className="code-id font-bold">{suggestedSeat}</span>
-          </button>
-        ) : null}
-      </div>
+      {!isAllCabins ? (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            {t("book.cabinZone", {
+              cabin: t(`cabin.${zone.id}`),
+              from: String(zone.firstRow),
+              to: String(zone.lastRow),
+            })}
+          </p>
+          {suggestedSeat && !taken.has(suggestedSeat) ? (
+            <button
+              type="button"
+              data-testid="suggested-seat-btn"
+              data-suggested-seat={suggestedSeat}
+              onClick={() => {
+                setFocusedSeat(suggestedSeat);
+                handleSelectSeat(suggestedSeat);
+              }}
+              className="inline-flex min-h-10 cursor-pointer items-center gap-1.5 rounded-full border border-clay/50 bg-clay-soft px-3 py-1 text-xs font-semibold text-accent-foreground hover:border-clay active:scale-[0.99] motion-reduce:active:scale-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
+            >
+              <Sparkles aria-hidden="true" className="size-3.5 text-clay" />
+              <span>{t("book.useSuggested")}</span>
+              <span className="code-id font-bold">{suggestedSeat}</span>
+            </button>
+          ) : null}
+        </div>
+      ) : null}
 
       {/* Consistent Icon Silhouette Legend */}
       <ul
@@ -299,7 +369,7 @@ export function SeatMap({
           <span className="flex size-5 items-center justify-center rounded border border-clay/60 bg-clay-soft text-accent-foreground">
             <AircraftSeatIcon />
           </span>
-          <span>{`${t("book.seatExtra")} · ${money(18, lang)}`}</span>
+          <span>{`${t("book.seatExtra")} · ${money(extraLegroomPrice, lang)}`}</span>
         </li>
         <li className="flex items-center gap-1.5">
           <span className="flex size-5 items-center justify-center rounded border border-transparent bg-secondary text-muted-foreground/40 opacity-70">
@@ -316,7 +386,7 @@ export function SeatMap({
           role="grid"
           aria-label={t("book.seatTitle")}
           aria-rowcount={rows.length}
-          aria-colcount={SEAT_LETTERS.length}
+          aria-colcount={effectiveLayout.letters.length}
           className="mx-auto w-max rounded-t-[3.5rem] border border-border bg-sand px-3 pt-7 pb-6 sm:px-8 shadow-[var(--shadow-soft)]"
         >
           {/* Nose / Front of aircraft indicator */}
@@ -327,16 +397,16 @@ export function SeatMap({
             </span>
           </div>
 
-          {/* Seat Letters Header (Columns A-F with aisle gap) */}
+          {/* Seat Letters Header */}
           <div className="mb-3 flex items-center justify-center gap-1.5 sm:gap-2" role="row">
             <span className="w-8 sm:w-9" aria-hidden="true" />
-            {SEAT_LETTERS.map((letter, i) => (
+            {effectiveLayout.letters.map((letter, i) => (
               <span
                 key={letter}
                 role="columnheader"
                 className={cn(
                   "code-id w-11 text-center text-xs font-bold text-muted-foreground",
-                  i === 3 && "ms-4 sm:ms-6",
+                  i === effectiveLayout.aisleAfter && "ms-4 sm:ms-6",
                 )}
               >
                 {letter}
@@ -358,18 +428,18 @@ export function SeatMap({
               >
                 {row}
               </span>
-              {SEAT_LETTERS.map((letter, colIndex) => {
+              {effectiveLayout.letters.map((letter, colIndex) => {
                 const seat = `${row}${letter}`;
-                const available = isSeatAvailable(flightId, row, letter);
+                const available = isSeatAvailableInMap(seat, row, letter);
                 const selectedBy = Object.entries(assignments).find(([, value]) => value === seat);
                 const isSelected = Boolean(selectedBy);
                 const isCurrentPaxSelected = isSelected && Number(selectedBy?.[0]) === activePassenger;
                 const isOtherPaxSelected = isSelected && !isCurrentPaxSelected;
-                const extra = EXTRA_LEGROOM_ROWS.includes(row);
+                const extra = effectiveLayout.extraLegroomRows.includes(row);
                 const suggested = suggestedSeat === seat && !isSelected && available;
                 const disabled = !available || isOtherPaxSelected;
                 const isFocused = seat === focusedSeat;
-                const posLabel = seatPositionLabel(letter, t);
+                const posLabel = seatPositionLabel(effectiveLayout, letter, t);
 
                 let statusDesc = "";
                 if (isCurrentPaxSelected) {
@@ -396,7 +466,7 @@ export function SeatMap({
                     key={seat}
                     role="gridcell"
                     aria-colindex={colIndex + 1}
-                    className={cn(colIndex === 3 && "ms-4 sm:ms-6")}
+                    className={cn(colIndex === effectiveLayout.aisleAfter && "ms-4 sm:ms-6")}
                   >
                     <button
                       ref={(el) => {

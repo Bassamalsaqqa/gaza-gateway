@@ -1,5 +1,8 @@
 import type { BookingPricingSnapshotV1 } from "../commercial/types.ts";
 import { parsePricingSnapshot } from "../commercial/schema.ts";
+import type { SeatZone } from "../fleet/types.ts";
+import { layoutCapacity } from "../fleet/layout.ts";
+import { aircraftLayoutSchema } from "../fleet/schema.ts";
 /**
  * Gaza Gateway — Canonical Booking Domain Model
  *
@@ -41,6 +44,70 @@ export type Leg = "out" | "in";
 export type BookingChannel = "web" | "desk";
 export type { SearchCriteria };
 
+/**
+ * Immutable per-leg seat layout geometry snapshot sealed at booking creation time.
+ */
+export interface LegSeatLayoutSnapshot {
+  basis: "fleet" | "legacy";
+  fleetRevision?: number | undefined;
+  aircraftId?: string | undefined;
+  model?: string | undefined;
+  registration?: string | undefined;
+  rows: number;
+  letters: string[];
+  aisleAfter: number;
+  zones: SeatZone[];
+  extraLegroomRows: number[];
+  unavailable: string[];
+  capacity: number;
+}
+
+/**
+ * Versioned container for per-leg seat layout snapshots on a Booking aggregate.
+ */
+export interface BookingSeatLayoutsV1 {
+  version: 1;
+  out: LegSeatLayoutSnapshot;
+  in?: LegSeatLayoutSnapshot | undefined;
+}
+
+/**
+ * Frozen baseline legacy layout resolver for legacy bookings without explicit snapshot.
+ * Represents the accepted pre-Phase 6B2B 28-row A320 configuration:
+ * 28 rows, A-F, aisleAfter 3, Business 1-4, Premium 5-10, Economy 11-28,
+ * extra legroom rows 5, 11, 12, no structural blocked seats, 168 capacity.
+ */
+export const FROZEN_LEGACY_SEAT_LAYOUT: LegSeatLayoutSnapshot = {
+  basis: "legacy",
+  rows: 28,
+  letters: ["A", "B", "C", "D", "E", "F"],
+  aisleAfter: 3,
+  zones: [
+    { id: "business", firstRow: 1, lastRow: 4 },
+    { id: "premium", firstRow: 5, lastRow: 10 },
+    { id: "economy", firstRow: 11, lastRow: 28 },
+  ],
+  extraLegroomRows: [5, 11, 12],
+  unavailable: [],
+  capacity: 168,
+};
+
+/**
+ * Resolves the authoritative seat layout snapshot for a booking leg.
+ * Confirmed bookings with stored snapshots use their frozen snapshot.
+ * Snapshotless legacy bookings resolve the frozen 6B2A baseline geometry without mutating storage.
+ */
+export function resolveBookingLegLayout(
+  booking: Booking,
+  leg: Leg,
+): LegSeatLayoutSnapshot {
+  if (booking.seatLayouts) {
+    if (leg === "out") return booking.seatLayouts.out;
+    if (leg === "in" && booking.seatLayouts.in) return booking.seatLayouts.in;
+  }
+  return FROZEN_LEGACY_SEAT_LAYOUT;
+}
+
 /** Per-leg check-in: the passenger indexes that completed check-in on that leg. */
 export type CheckedIn = { out: number[]; in: number[] };
 
@@ -64,6 +131,7 @@ export interface Booking {
   contact: Contact;
   total: number;
   pricingSnapshot?: BookingPricingSnapshotV1 | undefined;
+  seatLayouts?: BookingSeatLayoutsV1 | undefined;
   status: "confirmed" | "cancelled";
   checkedIn: CheckedIn;
   channel: BookingChannel;
@@ -86,6 +154,7 @@ export interface BookingCreateInput {
   extras: Extras;
   contact: Contact;
   total: number;
+  seatLayouts?: BookingSeatLayoutsV1 | undefined;
   channel?: BookingChannel;
   ownerEmail?: string | null;
   submissionId?: string | undefined;
@@ -109,6 +178,8 @@ export type BookingCreationFailureReason =
   | "route_mismatch"
   | "date_mismatch"
   | "unavailable"
+  | "fleet_unavailable"
+  | "cabin_unavailable"
   | "invalid_passengers"
   | "invalid_infant"
   | "invalid_contact"
@@ -277,10 +348,65 @@ interface RawBookingShape {
   contact?: unknown;
   total?: unknown;
   pricingSnapshot?: unknown;
+  seatLayouts?: unknown;
   status?: unknown;
   checkedIn?: unknown;
   ownerEmail?: unknown;
   submissionId?: unknown;
+}
+
+/**
+ * Validates and normalizes a raw LegSeatLayoutSnapshot object.
+ * Enforces geometry, contiguous zone coverage, unique letters, bounded legroom,
+ * valid unavailable seats, and derived capacity integrity.
+ */
+export function parseLegSeatLayoutSnapshot(raw: unknown): LegSeatLayoutSnapshot | null {
+  if (!raw || typeof raw !== "object") return null;
+  const value = raw as Record<string, unknown>;
+  if (value["basis"] !== "fleet" && value["basis"] !== "legacy") return null;
+  const parsed = aircraftLayoutSchema.safeParse({ ...value, aircraftId: value["aircraftId"] ?? "legacy" });
+  if (!parsed.success || value["capacity"] !== layoutCapacity(parsed.data)) return null;
+  if (value["basis"] === "fleet" &&
+      (!Number.isSafeInteger(value["fleetRevision"]) || Number(value["fleetRevision"]) < 0 ||
+       typeof value["aircraftId"] !== "string" || !value["aircraftId"].trim())) return null;
+  if (value["fleetRevision"] !== undefined &&
+      (!Number.isSafeInteger(value["fleetRevision"]) || Number(value["fleetRevision"]) < 0)) return null;
+  for (const field of ["aircraftId", "model", "registration"])
+    if (value[field] !== undefined &&
+        (typeof value[field] !== "string" || !String(value[field]).trim() || String(value[field]).length > 120)) return null;
+  const { ...geometry } = parsed.data;
+  return {
+    rows: geometry.rows, letters: geometry.letters, aisleAfter: geometry.aisleAfter,
+    zones: geometry.zones, extraLegroomRows: geometry.extraLegroomRows, unavailable: geometry.unavailable,
+    basis: value["basis"],
+    capacity: Number(value["capacity"]),
+    ...(value["fleetRevision"] !== undefined ? { fleetRevision: Number(value["fleetRevision"]) } : {}),
+    ...(typeof value["aircraftId"] === "string" ? { aircraftId: value["aircraftId"] } : {}),
+    ...(typeof value["model"] === "string" ? { model: value["model"] } : {}),
+    ...(typeof value["registration"] === "string" ? { registration: value["registration"] } : {}),
+  };
+}
+
+/**
+ * Validates and normalizes a raw BookingSeatLayoutsV1 container.
+ */
+export function parseBookingSeatLayouts(raw: unknown): BookingSeatLayoutsV1 | null {
+  if (!raw || typeof raw !== "object") return null;
+  const s = raw as Record<string, unknown>;
+  if (s["version"] !== 1) return null;
+  const out = parseLegSeatLayoutSnapshot(s["out"]);
+  if (!out) return null;
+  let inLayout: LegSeatLayoutSnapshot | undefined = undefined;
+  if (s["in"] !== undefined && s["in"] !== null) {
+    const parsedIn = parseLegSeatLayoutSnapshot(s["in"]);
+    if (!parsedIn) return null;
+    inLayout = parsedIn;
+  }
+  return {
+    version: 1,
+    out,
+    ...(inLayout ? { in: inLayout } : {}),
+  };
 }
 
 /**
@@ -393,10 +519,15 @@ export function normalizeBooking(raw: unknown): Booking | null {
 
   const pricingSnapshot = b.pricingSnapshot === undefined ? undefined : parsePricingSnapshot(b.pricingSnapshot);
   if (b.pricingSnapshot !== undefined && (!pricingSnapshot || pricingSnapshot.fareId !== fareId || pricingSnapshot.cabinId !== criteria.cabin)) return null;
+
+  const seatLayouts = b.seatLayouts === undefined ? undefined : parseBookingSeatLayouts(b.seatLayouts);
+  if (b.seatLayouts !== undefined && (!seatLayouts || Boolean(seatLayouts.in) !== Boolean(inbound))) return null;
+
   return {
     ref,
     createdAt,
     pricingSnapshot: pricingSnapshot ?? undefined,
+    seatLayouts: seatLayouts ?? undefined,
     criteria,
     outbound,
     inbound,

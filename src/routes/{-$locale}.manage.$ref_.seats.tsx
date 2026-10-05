@@ -7,9 +7,19 @@ import { Code, Container, EmptyState, GazaLoadingState, PageHeader, Panel, btnCl
 import { airportByCode } from "@/lib/data";
 import { dateLong, money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
-import { bookingLegs, isCheckedIn, type Leg } from "@/lib/domain/booking";
+import {
+  bookingLegs,
+  isCheckedIn,
+  resolveBookingLegLayout,
+  type Leg,
+} from "@/lib/domain/booking";
 import { usePassengerAccount } from "@/lib/passenger";
-import { useBookingQuery, useUpdateBookingSeatsMutation } from "@/lib/repositories/queries";
+import {
+  useBookingQuery,
+  useBookingsQuery,
+  useUpdateBookingSeatsMutation,
+  getCanonicalOccupiedSeats,
+} from "@/lib/repositories";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/{-$locale}/manage/$ref_/seats")({
@@ -35,6 +45,7 @@ function ManageSeatsPage() {
   const { t, lang } = useI18n();
   const navigate = useAppNavigate();
   const { data: booking, isLoading } = useBookingQuery(ref);
+  const { data: allBookings = [] } = useBookingsQuery();
   const updateSeatsMutation = useUpdateBookingSeatsMutation();
 
   const { data: account } = usePassengerAccount();
@@ -110,8 +121,8 @@ function ManageSeatsPage() {
     }
   };
 
-  const seatCharges = Object.values(seats).reduce(
-    (sum, seat) => sum + snapshotSeatFee(seat, resolveBookingPricing(booking)),
+  const seatCharges = Object.entries(seats).reduce(
+    (sum, [key, seat]) => sum + snapshotSeatFee(seat, resolveBookingPricing(booking), booking.seatLayouts ? resolveBookingLegLayout(booking, key.startsWith("in-") ? "in" : "out") : undefined),
     0,
   );
 
@@ -184,6 +195,10 @@ function ManageSeatsPage() {
               setSeats((prev) => ({ ...prev, [`${leg}-${target}`]: seat }));
             }}
             passengerLabels={seatable.map((i) => paxLabel(i))}
+            cabin={booking.criteria.cabin}
+            layout={resolveBookingLegLayout(booking, leg)}
+            occupiedSeats={getCanonicalOccupiedSeats(allBookings, flight.id, booking.ref, leg)}
+            extraLegroomPrice={resolveBookingPricing(booking).seatPricing.extraLegroomPrice}
           />
         </div>
 

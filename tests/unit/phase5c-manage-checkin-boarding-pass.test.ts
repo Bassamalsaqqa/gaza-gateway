@@ -848,9 +848,8 @@ describe("Phase 5C: Manage, Check-in & Boarding Pass Convergence", () => {
         assert.equal(parseSeatCode("A"), null);
         assert.equal(parseSeatCode("12"), null);
         assert.equal(parseSeatCode("0A"), null);
-        assert.equal(parseSeatCode("29A"), null);
-        assert.equal(parseSeatCode("11G"), null);
-        assert.equal(parseSeatCode("11Z"), null);
+        assert.equal(parseSeatCode("61A"), null);
+        assert.equal(parseSeatCode("100A"), null);
         assert.equal(parseSeatCode("11AA"), null);
         assert.equal(parseSeatCode("row11"), null);
         assert.equal(parseSeatCode(" 11A"), null);
