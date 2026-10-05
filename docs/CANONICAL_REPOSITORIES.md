@@ -123,6 +123,7 @@ export interface FlightOverride {
 export interface BookingRepository {
   list(): Promise<Booking[]>;
   getByRef(ref: string): Promise<Booking | null>;
+  getOccupiedSeats(flightId: string, options?: { excludeRef?: string }): Promise<string[]>;
   create(input: BookingCreateInput): Promise<Booking>;
   cancel(ref: string): Promise<Booking>;
   updateContact(ref: string, contact: Contact): Promise<Booking>;
@@ -130,7 +131,6 @@ export interface BookingRepository {
   updateExtras(ref: string, extras: Extras): Promise<Booking>;
   completeCheckIn(input: CheckInCommandInput): Promise<Booking>;
   undoCheckIn(input: UndoCheckInCommandInput): Promise<Booking>;
-  checkIn(ref: string, leg: Leg, paxIndexes: number[]): Promise<Booking | null>;
   claim(ref: string, accountEmail: string): Promise<ClaimResult>;
   delete(ref: string): Promise<boolean>;
   subscribe(listener: () => void): () => void;
@@ -262,7 +262,7 @@ Centralized hierarchical query keys in `src/lib/repositories/keys.ts`:
 Canonical repositories own mutations. StoreProvider retains booking compatibility; AdminProvider is a staff/session and permission simulation boundary, not a flight writer or proxy.
 
 1. **`StoreProvider` (`src/lib/store.tsx`)**:
-   - Delegates all booking mutations (`addBooking`, `checkInLeg`; claim and product edits use typed repository commands) to `bookingRepo`.
+   - Delegates all booking mutations (`addBooking`; check-in, claim and product edits use typed repository commands) to `bookingRepo`.
    - Listens to `bookingRepo.subscribe()` to maintain backward-compatible `bookings` state.
    - Draft, account and saved companion authority belongs to BookingDraftRepository and PassengerRepository; `gza.store.v1` is a read-only migration source.
 2. **`AdminProvider` (`src/lib/admin-store.tsx`)**:

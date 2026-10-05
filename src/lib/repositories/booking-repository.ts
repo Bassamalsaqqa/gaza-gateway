@@ -38,13 +38,13 @@ import {
 
 /**
  * Pure helper to derive canonical occupied seats on a flight from confirmed bookings.
+ * Physical flight identity, not booking leg role, defines seat occupancy.
  * Excludes cancelled bookings and optionally excludes a current booking reference.
  */
 export function getCanonicalOccupiedSeats(
   bookings: Booking[],
   flightId: string,
   excludeRef?: string,
-  _filterLeg?: Leg,
 ): Set<string> {
   const occupied = new Set<string>();
   const cleanExclude = excludeRef?.trim().toUpperCase();
@@ -156,10 +156,10 @@ export class LocalBookingRepository implements BookingRepository {
 
   public async getOccupiedSeats(
     flightId: string,
-    options?: { leg?: Leg; excludeRef?: string },
+    options?: { excludeRef?: string },
   ): Promise<string[]> {
     const bookings = this.coordinator.getState().bookings;
-    const occupied = getCanonicalOccupiedSeats(bookings, flightId, options?.excludeRef, options?.leg);
+    const occupied = getCanonicalOccupiedSeats(bookings, flightId, options?.excludeRef);
     return Array.from(occupied);
   }
 
@@ -726,7 +726,7 @@ export class LocalBookingRepository implements BookingRepository {
     }
     const clean = input.ref.trim().toUpperCase();
 
-    return this.coordinator.mutateAsync((state) => {
+    return this.coordinator.conditionalMutateAsync((state) => {
       const index = state.bookings.findIndex((b) => b.ref.toUpperCase() === clean);
       if (index === -1) {
         throw new Error(`Booking ${clean} not found.`);
@@ -830,7 +830,7 @@ export class LocalBookingRepository implements BookingRepository {
         }
         if (isIdentical) {
           // Idempotent return without state modification
-          return { ...existing };
+          return { commit: false, result: { ...existing } };
         }
         throw new Error(`Passenger is already checked in for leg ${input.leg}.`);
       }
@@ -918,7 +918,7 @@ export class LocalBookingRepository implements BookingRepository {
       };
 
       state.bookings[index] = updated;
-      return { ...updated };
+      return { commit: true, result: { ...updated } };
     });
   }
 
@@ -992,34 +992,6 @@ export class LocalBookingRepository implements BookingRepository {
 
       state.bookings[index] = updated;
       return { commit: true, result: { ...updated } };
-    });
-  }
-
-  public async checkIn(ref: string, leg: Leg, paxIndexes: number[]): Promise<Booking | null> {
-    if (!ref || typeof ref !== "string") return null;
-    const clean = ref.trim().toUpperCase();
-
-    return this.coordinator.mutateAsync((state) => {
-      const index = state.bookings.findIndex((b) => b.ref.toUpperCase() === clean);
-      if (index === -1) return null;
-
-      const existing = state.bookings[index];
-      if (!existing || existing.status !== "confirmed") return null;
-
-      const currentChecked = existing.checkedIn?.[leg] ?? [];
-      const merged = Array.from(new Set([...currentChecked, ...paxIndexes])).sort((a, b) => a - b);
-
-      const updated: Booking = {
-        ...existing,
-        pricingSnapshot: resolveBookingPricing(existing),
-        checkedIn: {
-          ...existing.checkedIn,
-          [leg]: merged,
-        },
-      };
-
-      state.bookings[index] = updated;
-      return { ...updated };
     });
   }
 

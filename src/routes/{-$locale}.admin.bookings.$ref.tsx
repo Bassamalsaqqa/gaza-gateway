@@ -887,7 +887,6 @@ function AdminBookingDetailPage() {
                           allBookings,
                           canonicalBooking.outbound.id,
                           canonicalBooking.ref,
-                          "out",
                         )}
                         extraLegroomPrice={
                           resolveBookingPricing(canonicalBooking).seatPricing.extraLegroomPrice
@@ -945,7 +944,6 @@ function AdminBookingDetailPage() {
                           allBookings,
                           canonicalBooking.inbound.id,
                           canonicalBooking.ref,
-                          "in",
                         )}
                         extraLegroomPrice={
                           resolveBookingPricing(canonicalBooking).seatPricing.extraLegroomPrice

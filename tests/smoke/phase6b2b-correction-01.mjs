@@ -91,6 +91,8 @@ export async function runPhase6B2BCorrectionChecks({checkStep,browser,baseUrl}){
         assert.equal(await page.locator("#fq-aircraft").isDisabled(),true);
         await page.fill("#fq-gate","B12");await page.getByRole("dialog").getByRole("button",{name:dict["adm.edit.save"],exact:true}).click();await page.getByRole("dialog").waitFor({state:"hidden"});
         await page.goto(baseUrl+prefix+"/book?step=seats");await page.getByRole("alert").filter({hasText:pub["fleet.error.unavailable"]}).waitFor();
+        // The mounted booking entry identifies Fleet failure, not Commercial failure.
+        assert.equal(await page.getByRole("alert").filter({hasText:pub["commercial.error.catalog_unavailable"]}).count(),0);
         assert.equal(await page.getByRole("grid").count(),0);
         assert.equal(await page.evaluate(()=>localStorage.getItem("gza.fleet.v1")),"{fleet-corrupt");
         assert.deepEqual(errors,[]);

@@ -617,7 +617,6 @@ function AdminCheckInPage() {
                           bookings,
                           currentFlight.id,
                           sheetRow.booking.ref,
-                          sheetRow.leg,
                         )
                       : undefined
                   }

@@ -197,7 +197,7 @@ function ManageSeatsPage() {
             passengerLabels={seatable.map((i) => paxLabel(i))}
             cabin={booking.criteria.cabin}
             layout={resolveBookingLegLayout(booking, leg)}
-            occupiedSeats={getCanonicalOccupiedSeats(allBookings, flight.id, booking.ref, leg)}
+            occupiedSeats={getCanonicalOccupiedSeats(allBookings, flight.id, booking.ref)}
             extraLegroomPrice={resolveBookingPricing(booking).seatPricing.extraLegroomPrice}
           />
         </div>

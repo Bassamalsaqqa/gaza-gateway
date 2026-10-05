@@ -1,3 +1,5 @@
+import { departuresOn, isSeatAvailable } from "../../src/lib/data.ts";
+import { flightDepartureEpoch } from "../../src/lib/booking-rules.ts";
 import { canonicalCreateFixture } from "../helpers/booking-create-fixture.ts";
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
@@ -451,7 +453,7 @@ describe("Canonical Repositories & Domain Layer", () => {
         passengers: [
           { name: "Sami Al-Husseini", type: "adult", nationality: "PS" },
         ],
-        outbound: createMockFlight(),
+        outbound: departuresOn("2026-10-15").find((f) => f.status === "Scheduled" && f.seatsLeft > 0)!,
         total: 180,
       }));
 
@@ -462,8 +464,16 @@ describe("Canonical Repositories & Domain Layer", () => {
       const fetched = await repo.getByRef("GZANEW01");
       assert.equal(fetched?.contact.email, "new@example.com");
 
-      // Check-in passenger while confirmed
-      const checked = await repo.checkIn("GZANEW01", "out", [0]);
+      // The typed check-in command enforces real flight/window/document/seat rules.
+      const command = {
+        ref: newBooking.ref, leg: "out" as const, selectedPaxIndexes: [0],
+        documents: { 0: "DOC123" },
+        seats: { 0: Array.from({ length: 12 }, (_, i) => `${13 + i}A`).find(
+          (seat) => isSeatAvailable(newBooking.outbound.id, Number(seat.slice(0, -1)), "A"),
+        )! },
+        now: flightDepartureEpoch(newBooking.outbound)! - 2 * 60 * 60 * 1000,
+      };
+      const checked = await repo.completeCheckIn(command);
       assert.ok(checked);
       assert.equal(isPaxCheckedIn(checked, "out", 0), true);
 
@@ -472,8 +482,7 @@ describe("Canonical Repositories & Domain Layer", () => {
       assert.equal(updated.status, "cancelled");
 
       // Verify check-in is rejected when booking is cancelled
-      const cannotCheckInCancelled = await repo.checkIn("GZANEW01", "out", [0]);
-      assert.equal(cannotCheckInCancelled, null);
+      await assert.rejects(repo.completeCheckIn(command), /cancelled/);
 
       // Claim booking with mismatching contact email
       const mismatch = await repo.claim("GZANEW01", "other@example.com");

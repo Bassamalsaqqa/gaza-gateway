@@ -42,8 +42,15 @@ export class LocalScheduleRepository implements ScheduleRepository {
     return this.coordinator.read().schedules.find((entry) => entry.id === id) ?? null;
   }
   async create(input: ScheduleCreateInput): Promise<Schedule> {
-    const assignment = await validateAircraftAssignment(this.fleet, input);
-    const parsed = parseSchedule({ ...input, ...assignment });
+    // Replay committed identity before consulting mutable Fleet authority.
+    const normalized = parseSchedule(input);
+    const committed = await this.getById(normalized.id);
+    if (committed) {
+      if (JSON.stringify(committed) === JSON.stringify(normalized)) return committed;
+      throw new ScheduleIdentityConflictError();
+    }
+    const assignment = await validateAircraftAssignment(this.fleet, normalized);
+    const parsed = parseSchedule({ ...normalized, ...assignment });
     return this.coordinator.mutate((candidate) => {
       const existing = candidate.schedules.find((entry) => entry.id === parsed.id);
       if (existing) {

@@ -108,7 +108,7 @@ export function createRepositories(options?: CreateRepositoriesOptions): Reposit
     new FleetStorageCoordinator({
       ...(options?.inMemoryOnly !== undefined ? { inMemoryOnly: options.inMemoryOnly } : {}),
       ...(options?.storage !== undefined ? { storage: options.storage } : {}),
-      ...(options?.initialData !== undefined ? {} : options?.initialFleetData !== undefined ? { initialData: options.initialFleetData } : {}),
+      ...(options?.initialFleetData !== undefined ? { initialData: options.initialFleetData } : {}),
     });
 
   const commercial = new LocalCommercialCatalogRepository(options?.commercialCoordinator ?? new CommercialStorageCoordinator({ inMemoryOnly: options?.inMemoryOnly, storage: options?.storage, initialCatalog: options?.initialCommercialCatalog }));

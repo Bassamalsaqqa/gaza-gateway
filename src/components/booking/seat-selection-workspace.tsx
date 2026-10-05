@@ -314,7 +314,7 @@ export function SeatSelectionWorkspace({
               <AlertCircle className="mx-auto size-6 text-destructive" />
               <p className="text-sm font-semibold text-foreground">{t("error.title")}</p>
               <p className="text-xs text-muted-foreground">
-                {t("commercial.error.catalog_unavailable")}
+                {t("fleet.error.unavailable")}
               </p>
               <button
                 type="button"

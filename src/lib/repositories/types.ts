@@ -58,8 +58,6 @@ export interface BookingRepository {
    */
   undoCheckIn(input: UndoCheckInCommandInput): Promise<Booking>;
 
-  /** Marks specific passenger indices as checked in on the given leg (generic internal method). */
-  checkIn(ref: string, leg: Leg, paxIndexes: number[]): Promise<Booking | null>;
 
   /**
    * Links a booking to an account email with explicit status:
@@ -73,9 +71,10 @@ export interface BookingRepository {
 
   /**
    * Retrieves canonical occupied seat codes on a flight across confirmed, non-cancelled bookings.
-   * Can optionally filter by leg and exclude a specific booking reference (e.g. for re-selection).
+   * Physical flight identity, not booking leg role, defines occupancy.
+   * Can exclude a specific booking reference (e.g. for re-selection).
    */
-  getOccupiedSeats(flightId: string, options?: { leg?: Leg; excludeRef?: string }): Promise<string[]>;
+  getOccupiedSeats(flightId: string, options?: { excludeRef?: string }): Promise<string[]>;
 
   /** Removes a booking by reference (used for smoke test isolation / cleanup). */
   delete(ref: string): Promise<boolean>;

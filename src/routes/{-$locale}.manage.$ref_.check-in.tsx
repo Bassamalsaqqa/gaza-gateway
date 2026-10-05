@@ -452,7 +452,7 @@ function CheckInPage() {
               passengerLabels={selected.map((i) => paxLabel(i))}
               cabin={booking.criteria.cabin}
               layout={resolveBookingLegLayout(booking, leg ?? "out")}
-              occupiedSeats={getCanonicalOccupiedSeats(allBookings, flight.id, booking.ref, leg ?? "out")}
+              occupiedSeats={getCanonicalOccupiedSeats(allBookings, flight.id, booking.ref)}
               extraLegroomPrice={resolveBookingPricing(booking).seatPricing.extraLegroomPrice}
               suggestedSeat={suggestSeat(
                 flight.id,
@@ -461,7 +461,7 @@ function CheckInPage() {
                 account?.seatPreference ?? "none",
                 [
                   ...Object.values(seats),
-                  ...Array.from(getCanonicalOccupiedSeats(allBookings, flight.id, booking.ref, leg ?? "out")),
+                  ...Array.from(getCanonicalOccupiedSeats(allBookings, flight.id, booking.ref)),
                 ],
               )}
             />

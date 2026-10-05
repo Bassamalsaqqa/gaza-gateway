@@ -16,6 +16,8 @@ Confirmed PNRs use their stored geometry. Snapshotless historical PNRs resolve f
 
 Fleet layout classifies a seat as standard or extra legroom by leg; the historical commercial pricing snapshot supplies its fee. Existing layout-less bookings retain the legacy row classification. Fleet/catalog edits cannot retroactively reprice an old PNR.
 
+Physical flight identity, not booking leg role, defines seat occupancy. The public occupancy command permits only booking-reference exclusion, never outbound/inbound role filtering. Forward check-in uses `completeCheckIn()` exclusively; no generic check-in compatibility writer remains. Exact committed Schedule creation replay returns before consulting Fleet, without a write, revision bump or notification; first-time assignments still require current Fleet validation and an identity guard inside the Schedule transaction.
+
 Occupancy has four distinct sources: nonexistent geometry, structural unavailable seats, deterministic flight-specific prototype occupancy and confirmed PNR seats derived from `gza.repo.v1`. Booking writers share the `gza.repo.v1` origin Web Lock and reread inside it; create/seat/check-in commands reject newly introduced cross-PNR collisions on either matching flight leg. Existing legacy collisions can retain their own seats; cancelled PNRs release derived occupancy. No seat inventory key, automatic `seatsLeft` decrement or server inventory exists.
 
 AdminProvider retains only session-only destination configuration in OpsState. Phase 6B2C — Network & Dated-Service Materialization remains Planned / Unstarted; Phase 6C/7/7B remain unstarted.

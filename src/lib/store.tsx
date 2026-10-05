@@ -83,7 +83,7 @@ export {
   passCount,
   seatedPassengers,
 } from "./domain/booking";
-import type { Booking, BookingPassenger, CheckedIn, Leg } from "./domain/booking";
+import type { Booking, BookingPassenger, CheckedIn } from "./domain/booking";
 import { makePassengerId } from "./domain/booking";
 import { useRepositories } from "./repositories";
 import { normalizeEmailIdentity } from "./passenger/domain.ts";
@@ -99,7 +99,6 @@ type StoreValue = {
       passengers: (Passenger | BookingPassenger)[];
     },
   ) => Promise<Booking>;
-  checkInLeg: (ref: string, leg: Leg, paxIndexes: number[]) => Promise<void>;
   findBooking: (ref: string) => Booking | undefined;
 };
 
@@ -205,20 +204,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [canonicalAccount, bookingRepo],
   );
 
-  const checkInLeg = useCallback(
-    async (ref: string, leg: Leg, paxIndexes: number[]) => {
-      const updated = await bookingRepo.checkIn(ref, leg, paxIndexes);
-      if (updated) {
-        setBookings((prev) =>
-          prev.map((b) =>
-            b.ref.toUpperCase() === updated.ref.toUpperCase() ? updated : b,
-          ),
-        );
-      }
-    },
-    [bookingRepo],
-  );
-
   const findBooking = useCallback(
     (ref: string) => bookings.find((b) => b.ref.toUpperCase() === ref.trim().toUpperCase()),
     [bookings],
@@ -229,14 +214,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       ready,
       bookings,
       addBooking,
-      checkInLeg,
       findBooking,
     }),
     [
       ready,
       bookings,
       addBooking,
-      checkInLeg,
       findBooking,
     ],
   );
