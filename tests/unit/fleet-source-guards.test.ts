@@ -49,7 +49,9 @@ describe("Phase 6B2B Source Guards (Requirements 64, 65, 66, 67)", () => {
           historical = /historical (?:review|audit|evidence)/i.test(line);
         }
         if (!historical && (/6B2B/.test(line) || /Phase 6B2B/.test(section))) {
-          assert.doesNotMatch(line, /Implemented\s*\/\s*Awaiting\s+(?:Independent\s+)?Review/i, file);
+          // Later C1 status may share a current-status line with accepted B2B.
+          const b2bStatus = line.split(/(?:Phase )?6B2C[12]/)[0]!;
+          assert.doesNotMatch(b2bStatus, /Implemented\s*\/\s*Awaiting\s+(?:Independent\s+)?Review/i, file);
         }
       }
       assert.ok(content.includes("2751e22be91ad74eacc9213489a57a21baf04807"));

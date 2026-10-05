@@ -9,7 +9,6 @@ import {
   type ReactNode,
 } from "react";
 import { MOCK_PASSPHRASE, staffAccounts, staffByRole, type AdminRole, type Permission, type Staff, can } from "./admin";
-import { seedOpsState, type OpsState } from "./admin-ops";
 import { isStudioPreviewActive } from "./studio-preview";
 
 export type { FlightOverride } from "./domain/flight";
@@ -25,9 +24,6 @@ type AdminValue = {
   signOut: () => void;
   setRole: (role: AdminRole) => void;
   can: (permission: Permission) => boolean;
-  /** Operations & commercial configuration held in local state for this session. */
-  ops: OpsState;
-  patchOps: <K extends keyof OpsState>(key: K, value: OpsState[K]) => void;
   toasts: Toast[];
   toast: (message: string) => void;
   dismissToast: (id: number) => void;
@@ -39,13 +35,9 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [staff, setStaff] = useState<Staff | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const [ops, setOps] = useState<OpsState>(() => seedOpsState());
   const initialLegacyAdminRef = useRef<Record<string, unknown>>({});
   const hasStaffMutatedRef = useRef(false);
 
-  const patchOps = useCallback(<K extends keyof OpsState>(key: K, value: OpsState[K]) => {
-    setOps((prev) => ({ ...prev, [key]: value }));
-  }, []);
 
   useEffect(() => {
     if (isStudioPreviewActive()) {
@@ -123,8 +115,6 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       signOut,
       setRole,
       can: (permission: Permission) => can(staff?.role, permission),
-      ops,
-      patchOps,
       toasts,
       toast,
       dismissToast,
@@ -135,8 +125,6 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       signIn,
       signOut,
       setRole,
-      ops,
-      patchOps,
       toasts,
       toast,
       dismissToast,

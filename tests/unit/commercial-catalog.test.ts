@@ -708,11 +708,7 @@ describe("6B2A integration, preferences and source authority guards", () => {
           file,
         );
     }
-    const ops =
-      readFileSync("src/lib/admin-ops.ts", "utf8")
-        .split("export interface OpsState")[1]
-        ?.split("}")[0] ?? "";
-    assert.doesNotMatch(ops, /\b(?:fares|baggage|meals|assistance)\b/);
+    assert.doesNotMatch(readFileSync("src/lib/admin-store.tsx", "utf8"), /OpsState|patchOps|seedOpsState/);
     assert.doesNotMatch(
       readFileSync("src/lib/booking-draft/factories.ts", "utf8"),
       /EXTRA_BAG_PRICE|farePrice\(/,

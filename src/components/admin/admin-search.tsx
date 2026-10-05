@@ -1,3 +1,4 @@
+import { useNetworkQuery } from "@/lib/network";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Archive,
@@ -21,7 +22,7 @@ import { contentItems, type Permission } from "@/lib/admin";
 import { mockCustomers } from "@/lib/admin-mock";
 import { useBookingsQuery } from "@/lib/repositories";
 import { bookingToMockBooking, type AdaptedAdminBooking } from "@/lib/domain/booking";
-import { arrivalsOn, departuresOn, destinations, todayISO } from "@/lib/data";
+import { arrivalsOn, departuresOn, todayISO } from "@/lib/data";
 import { useAppNavigate } from "@/components/app-link";
 import { cn } from "@/lib/utils";
 import { Ltr } from "./admin-kit";
@@ -193,6 +194,7 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
   const canContent = can("content.view");
 
   const today = todayISO();
+  const { data: networkDestinations } = useNetworkQuery();
 
   const { data: repositoryBookings, isPending: bookingsPending, isError: bookingsError } = useBookingsQuery();
   const allBookings = useMemo<AdaptedAdminBooking[]>(() => {
@@ -311,7 +313,7 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
 
     // 4. Destinations (requires ops.view or content.view)
     if (canOps || canContent) {
-      for (const d of destinations) {
+      for (const d of networkDestinations ?? []) {
         const labelEn = d.city.en;
         const labelAr = d.city.ar;
         const countryEn = d.country.en;
@@ -350,7 +352,7 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
     }
 
     return out.slice(0, 30);
-  }, [query, lang, t, today, canOps, canCommercial, canContent, permittedCommands, allBookings]);
+  }, [query, lang, t, today, canOps, canCommercial, canContent, permittedCommands, allBookings, networkDestinations]);
 
   useEffect(() => setActive(0), [query]);
 

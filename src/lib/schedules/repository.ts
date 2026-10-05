@@ -10,6 +10,8 @@ import { parseSchedule, ScheduleValidationError } from "./schema.ts";
 import { ScheduleStorageCoordinator } from "./storage.ts";
 import type { FleetRepository } from "../fleet/types.ts";
 import { LocalFleetRepository } from "../fleet/repository.ts";
+import { LocalNetworkRepository } from "../network/repository.ts";
+import type { NetworkRepository } from "../network/types.ts";
 export { ScheduleValidationError } from "./schema.ts";
 export { ScheduleStorageWriteError } from "./storage.ts";
 export class ScheduleNotFoundError extends Error {
@@ -28,9 +30,11 @@ export class ScheduleIdentityConflictError extends Error {
 export class LocalScheduleRepository implements ScheduleRepository {
   private readonly coordinator: ScheduleStorageCoordinator;
   private readonly fleet: FleetRepository;
-  constructor(coordinator: ScheduleStorageCoordinator, fleet?: FleetRepository) {
+  private readonly network: NetworkRepository;
+  constructor(coordinator: ScheduleStorageCoordinator, fleet?: FleetRepository, network?: NetworkRepository) {
     this.coordinator = coordinator;
     this.fleet = fleet ?? new LocalFleetRepository();
+    this.network = network ?? new LocalNetworkRepository();
   }
   subscribe(listener: () => void): () => void {
     return this.coordinator.subscribe(listener);
@@ -42,13 +46,17 @@ export class LocalScheduleRepository implements ScheduleRepository {
     return this.coordinator.read().schedules.find((entry) => entry.id === id) ?? null;
   }
   async create(input: ScheduleCreateInput): Promise<Schedule> {
-    // Replay committed identity before consulting mutable Fleet authority.
+    // Replay committed identity before consulting mutable Network/Fleet authority.
     const normalized = parseSchedule(input);
     const committed = await this.getById(normalized.id);
     if (committed) {
       if (JSON.stringify(committed) === JSON.stringify(normalized)) return committed;
       throw new ScheduleIdentityConflictError();
     }
+    if (!await this.network.getByCode(normalized.destination)) {
+      throw new ScheduleValidationError([{ code: "custom", path: ["destination"], message: "Unknown network destination." }]);
+    }
+    // Known inactive routes may be planned before activation.
     const assignment = await validateAircraftAssignment(this.fleet, normalized);
     const parsed = parseSchedule({ ...normalized, ...assignment });
     return this.coordinator.mutate((candidate) => {
@@ -64,6 +72,7 @@ export class LocalScheduleRepository implements ScheduleRepository {
   async update(id: string, patch: ScheduleUpdateInput): Promise<Schedule> {
     const existing = await this.getById(id);
     if (!existing) throw new ScheduleNotFoundError();
+    assertRouteIdentity(existing, patch);
     const currentId = existing.aircraftId ?? aircraftNameToSeedId(existing.aircraft);
     const assignmentChanged =
       (patch.aircraftId !== undefined && patch.aircraftId !== currentId) ||
@@ -82,6 +91,7 @@ export class LocalScheduleRepository implements ScheduleRepository {
       const index = candidate.schedules.findIndex((entry) => entry.id === id);
       if (index < 0) throw new ScheduleNotFoundError();
       const current = candidate.schedules[index]!;
+      assertRouteIdentity(current, patch);
       const retainedId = current.aircraftId ?? aircraftNameToSeedId(current.aircraft);
       // Resolve unchanged equipment from the state reread inside the lock, not
       // the preflight snapshot. Known legacy names seal identity on a real rewrite.
@@ -95,5 +105,13 @@ export class LocalScheduleRepository implements ScheduleRepository {
     await this.coordinator.mutate((candidate) => {
       candidate.schedules = candidate.schedules.filter((entry) => entry.id !== id);
     });
+  }
+}
+
+function assertRouteIdentity(current: Schedule, patch: ScheduleUpdateInput): void {
+  for (const field of ["id", "destination", "direction"] as const) {
+    if (field in patch && (patch as Record<string, unknown>)[field] !== current[field]) {
+      throw new ScheduleValidationError([{ code: "custom", path: [field], message: "Schedule route identity is immutable. Create a new schedule." }]);
+    }
   }
 }

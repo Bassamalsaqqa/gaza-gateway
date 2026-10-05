@@ -1,8 +1,6 @@
 import { z } from "zod";
-import { destinations } from "../data.ts";
 import type { Schedule } from "./types.ts";
 
-const codes = new Set(destinations.map((destination) => destination.code));
 const id = z.string().trim().min(1).max(160);
 const isoDate = z
   .string()
@@ -28,7 +26,7 @@ export const scheduleSchema = z
       .trim()
       .regex(/^[A-Z]{2}\s?\d{1,4}$/),
     direction: z.enum(["out", "in"]),
-    destination: z.string().refine((code) => codes.has(code)),
+    destination: z.string().regex(/^[A-Z]{3}$/),
     days: z
       .array(z.number().int().min(0).max(6))
       .min(1)

@@ -4,6 +4,9 @@ import { commercialCatalogKeys } from "../commercial/keys.ts";
 import { LocalFleetRepository } from "../fleet/repository.ts";
 import { FleetStorageCoordinator } from "../fleet/storage.ts";
 import { fleetKeys } from "../fleet/keys.ts";
+import { LocalNetworkRepository } from "../network/repository.ts";
+import { NetworkStorageCoordinator } from "../network/storage.ts";
+import { networkKeys } from "../network/keys.ts";
 /**
  * Gaza Gateway — Repository Registry & Provider
  *
@@ -51,6 +54,8 @@ export interface CreateRepositoriesOptions {
   initialCommercialCatalog?: import("../commercial/types.ts").CommercialCatalog | undefined;
   fleetCoordinator?: FleetStorageCoordinator | undefined;
   initialFleetData?: import("../fleet/types.ts").FleetEnvelopeV1 | undefined;
+  networkCoordinator?: NetworkStorageCoordinator | undefined;
+  initialNetworkData?: import("../network/types.ts").NetworkEnvelopeV1 | undefined;
 }
 
 /**
@@ -61,6 +66,7 @@ export interface CreateRepositoriesOptions {
  * ContactRepository uses an independent ContactStorageCoordinator.
  * ScheduleRepository uses an independent ScheduleStorageCoordinator.
  * FleetRepository uses an independent FleetStorageCoordinator.
+ * NetworkRepository uses an independent NetworkStorageCoordinator.
  */
 export function createRepositories(options?: CreateRepositoriesOptions): RepositoryRegistry {
   const coordinator =
@@ -113,6 +119,9 @@ export function createRepositories(options?: CreateRepositoriesOptions): Reposit
 
   const commercial = new LocalCommercialCatalogRepository(options?.commercialCoordinator ?? new CommercialStorageCoordinator({ inMemoryOnly: options?.inMemoryOnly, storage: options?.storage, initialCatalog: options?.initialCommercialCatalog }));
   const fleet = new LocalFleetRepository(fleetCoordinator);
+  const network = new LocalNetworkRepository(options?.networkCoordinator ?? new NetworkStorageCoordinator({
+    inMemoryOnly: options?.inMemoryOnly, storage: options?.storage, initialData: options?.initialNetworkData,
+  }));
   const booking = new LocalBookingRepository(coordinator, { commercial, fleet });
   const flight = new LocalFlightRepository(coordinator, {
     fleet,
@@ -121,7 +130,7 @@ export function createRepositories(options?: CreateRepositoriesOptions): Reposit
   const passenger = new LocalPassengerRepository(passengerCoordinator, commercial);
   const bookingDraft = new LocalBookingDraftRepository(bookingDraftCoordinator, commercial, fleet);
   const contact = new LocalContactRepository({ coordinator: contactCoordinator });
-  const schedule = new LocalScheduleRepository(scheduleCoordinator, fleet);
+  const schedule = new LocalScheduleRepository(scheduleCoordinator, fleet, network);
 
   return {
     commercial,
@@ -132,6 +141,7 @@ export function createRepositories(options?: CreateRepositoriesOptions): Reposit
     contact,
     schedule,
     fleet,
+    network,
   };
 }
 
@@ -215,6 +225,9 @@ export function RepositoryProvider({
     const unsubFleet = value.fleet.subscribe(() => {
       queryClient.invalidateQueries({ queryKey: fleetKeys.all });
     });
+    const unsubNetwork = value.network.subscribe(() => {
+      queryClient.invalidateQueries({ queryKey: networkKeys.all });
+    });
     return () => {
       unsubBooking();
       unsubFlight();
@@ -224,6 +237,7 @@ export function RepositoryProvider({
       unsubSchedule();
       unsubCommercial();
       unsubFleet();
+      unsubNetwork();
     };
   }, [value, queryClient]);
 

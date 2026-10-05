@@ -1,23 +1,23 @@
-import { Switch } from "@/components/ui/switch";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Plus, X } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { AppLink } from "@/components/app-link";
 import { Field, Input, Select, Textarea, btnClass } from "@/components/kit";
 import {
   AdminChip,
   AdminPageHeader,
   AdminPanel,
-  AdminStickyActions,
   AdminTabs,
-  BilingualStatus,
   Ltr,
   PermissionButton,
 } from "@/components/admin/admin-kit";
 import { AdminDenied } from "@/components/admin/admin-denied";
 import { useAdmin } from "@/lib/admin-store";
 import { pick, useI18n } from "@/lib/i18n";
-import type { DestinationConfig } from "@/lib/admin-ops";
+import { useNetworkDestinationQuery } from "@/lib/network";
+import { legacyDestinationPresentationByCode } from "@/lib/destination-reference";
+import { NetworkBasics } from "@/components/admin/network-basics";
+import { NetworkState } from "@/components/admin/network-state";
 import { useSchedulesQuery } from "@/lib/schedules";
 import { pageHead } from "@/lib/head";
 import { contentRepository } from "@/content/repository";
@@ -56,12 +56,11 @@ type Editing = "en" | "ar";
 function AdminDestinationEditorPage() {
   const { t, lang } = useI18n();
   const { code } = Route.useParams();
-  const { can, ops, patchOps, toast } = useAdmin();
+  const { can, toast } = useAdmin();
+  const network = useNetworkDestinationQuery(code);
+  const editorial = legacyDestinationPresentationByCode(code);
   const { data: schedules = [], isPending: schedulesLoading, isError: schedulesError } = useSchedulesQuery();
 
-  const current = useMemo(() => ops.destinations.find((d) => d.code === code) ?? null, [ops.destinations, code]);
-  const [draft, setDraft] = useState<DestinationConfig | null>(current);
-  const [loaded, setLoaded] = useState(code);
   const [tab, setTab] = useState<Tab>("basics");
   const [editing, setEditing] = useState<Editing>(lang === "ar" ? "ar" : "en");
 
@@ -113,12 +112,13 @@ function AdminDestinationEditorPage() {
   const mayEditContent = can("content.edit");
 
   const saveImageDraft = async () => {
+    if (!mayEditContent || !mediaReady || mediaSaving) return;
     setMediaSaving(true);
     setMediaError(false);
     try {
       await contentRepository.saveDraft("destinations.presentation", presentationDraft);
       setSavedPresentation(presentationDraft);
-      toast(t("a2.saved") || "Image draft saved locally");
+      toast(t("a2.saved"));
     } catch {
       setMediaError(true);
     } finally {
@@ -127,6 +127,7 @@ function AdminDestinationEditorPage() {
   };
 
   const discardImageDraft = async () => {
+    if (!mayEditContent || !mediaReady || mediaSaving) return;
     setMediaError(false);
     try {
       await contentRepository.discardDraft("destinations.presentation");
@@ -138,16 +139,9 @@ function AdminDestinationEditorPage() {
     }
   };
 
-  if (code !== loaded) {
-    setLoaded(code);
-    setDraft(current);
-  }
-
-  const mayEdit = can("ops.edit");
-
   if (!can("ops.view")) return <AdminDenied area={t("adm.dest.title")} permission="ops.view" />;
 
-  if (!draft) {
+  if (!editorial) {
     return (
       <div className="space-y-4">
         <AppLink to="/admin/destinations" className={btnClass("outline", "sm")}>
@@ -161,13 +155,6 @@ function AdminDestinationEditorPage() {
       </div>
     );
   }
-
-  const set = (patch: Partial<DestinationConfig>) => setDraft({ ...draft, ...patch });
-
-  const save = () => {
-    patchOps("destinations", ops.destinations.map((d) => (d.code === draft.code ? draft : d)));
-    toast(t("adm.dest.saved", { code: draft.code }));
-  };
 
   const langTabs = (
     <div role="group" aria-label={t("adm.common.english")} className="flex rounded-md border border-border">
@@ -197,24 +184,20 @@ function AdminDestinationEditorPage() {
       </AppLink>
 
       <AdminPageHeader
-        title={lang === "ar" ? draft.cityAr : draft.cityEn}
-        description={lang === "ar" ? draft.countryAr : draft.countryEn}
+        title={network.data ? pick(lang, network.data.city) : code}
+        description={network.data ? pick(lang, network.data.country) : ""}
         meta={
           <div className="flex flex-wrap items-center gap-2">
             <AdminChip tone="muted">
-              <Ltr>{draft.code}</Ltr>
+              <Ltr>{code}</Ltr>
             </AdminChip>
-            <AdminChip tone={draft.published ? "brand" : "warn"}>
-              {t(draft.published ? "adm.dest.published" : "adm.content.draft")}
-            </AdminChip>
-            {draft.featured ? <AdminChip tone="info">{t("adm.dest.featured")}</AdminChip> : null}
-            <BilingualStatus missingAr={!draft.descAr} />
+            {network.data && !network.isError ? <AdminChip tone={network.data.active ? "brand" : "muted"}>{t(network.data.active ? "adm.common.active" : "adm.common.inactive")}</AdminChip> : null}
           </div>
         }
         action={
           <>
             <a
-              href={`/destinations/${draft.code}`}
+              href={`/destinations/${code}`}
               target="_blank"
               rel="noreferrer"
               className={btnClass("outline", "sm")}
@@ -222,7 +205,7 @@ function AdminDestinationEditorPage() {
               {t("adm.common.previewEn")}
             </a>
             <a
-              href={`/ar/destinations/${draft.code}`}
+              href={`/ar/destinations/${code}`}
               target="_blank"
               rel="noreferrer"
               className={btnClass("outline", "sm")}
@@ -247,58 +230,10 @@ function AdminDestinationEditorPage() {
         />
 
         <div className="p-4">
-          {tab === "basics" ? (
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-sm font-bold">{t("adm.dest.tab.basics")}</h2>
-                {langTabs}
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Field label={t("adm.dest.iata")} htmlFor="de-code">
-                  <Input id="de-code" dir="ltr" value={draft.code} readOnly />
-                </Field>
-                <Field label={t("adm.dest.tz")} htmlFor="de-tz">
-                  <Input id="de-tz" dir="ltr" value={draft.tz} onChange={(e) => set({ tz: e.target.value })} />
-                </Field>
-                <Field label={t("adm.dest.airportName")} htmlFor="de-name">
-                  <Input
-                    id="de-name"
-                    dir={dirFor}
-                    value={editing === "ar" ? draft.nameAr : draft.nameEn}
-                    onChange={(e) => set(editing === "ar" ? { nameAr: e.target.value } : { nameEn: e.target.value })}
-                  />
-                </Field>
-                <Field label={t("adm.dest.city")} htmlFor="de-city">
-                  <Input
-                    id="de-city"
-                    dir={dirFor}
-                    value={editing === "ar" ? draft.cityAr : draft.cityEn}
-                    onChange={(e) => set(editing === "ar" ? { cityAr: e.target.value } : { cityEn: e.target.value })}
-                  />
-                </Field>
-                <Field label={t("adm.dest.country")} htmlFor="de-country">
-                  <Input
-                    id="de-country"
-                    dir={dirFor}
-                    value={editing === "ar" ? draft.countryAr : draft.countryEn}
-                    onChange={(e) =>
-                      set(editing === "ar" ? { countryAr: e.target.value } : { countryEn: e.target.value })
-                    }
-                  />
-                </Field>
-                <Field label={t("adm.dest.duration")} htmlFor="de-dur">
-                  <Input
-                    id="de-dur"
-                    dir="ltr"
-                    type="number"
-                    min={30}
-                    value={draft.flightMinutes}
-                    onChange={(e) => set({ flightMinutes: Number(e.target.value) || 0 })}
-                  />
-                </Field>
-              </div>
-            </div>
-          ) : null}
+          {tab === "basics" ? <>
+            <NetworkState pending={network.isPending} error={network.isError} onRetry={() => void network.refetch()} />
+            {network.data ? <NetworkBasics key={code} destination={network.data} unavailable={network.isError} /> : null}
+          </> : null}
 
           {tab === "public" ? (
             <div className="space-y-4">
@@ -313,7 +248,7 @@ function AdminDestinationEditorPage() {
                     {t("adm.dest.hero")}
                   </p>
                   <img
-                    data-admin-destination-preview={draft.code}
+                    data-admin-destination-preview={code}
                     src={smallestDestinationSrc(selectedPhoto)}
                     alt=""
                     style={{ objectPosition: `${currentFocal.x}% ${currentFocal.y}%` }}
@@ -375,7 +310,7 @@ function AdminDestinationEditorPage() {
                     </div>
 
                     {mediaError && (
-                      <p className="text-xs font-semibold text-destructive">
+                      <p role="alert" className="text-xs font-semibold text-destructive">
                         {pick(lang, { en: "Failed to persist draft to storage.", ar: "فشل حفظ المسودة في الذاكرة المحلية." })}
                       </p>
                     )}
@@ -390,7 +325,7 @@ function AdminDestinationEditorPage() {
                       </PermissionButton>
 
                       <a
-                        href={`/destinations/${draft.code}?contentPreview=1`}
+                        href={`/destinations/${code}?contentPreview=1`}
                         target="_blank"
                         rel="noreferrer"
                         className={btnClass("outline", "sm")}
@@ -398,7 +333,7 @@ function AdminDestinationEditorPage() {
                         {t("adm.common.previewEn")} ({pick(lang, { en: "Draft", ar: "مسودة" })})
                       </a>
                       <a
-                        href={`/ar/destinations/${draft.code}?contentPreview=1`}
+                        href={`/ar/destinations/${code}?contentPreview=1`}
                         target="_blank"
                         rel="noreferrer"
                         className={btnClass("outline", "sm")}
@@ -417,240 +352,44 @@ function AdminDestinationEditorPage() {
                   </div>
                 </div>
                 <div className="space-y-3">
+                  <p className="text-xs text-muted-foreground">{t("network.publicReadonly")}</p>
                   <Field label={t("adm.dest.description")} htmlFor="de-desc">
-                    <Textarea
-                      id="de-desc"
-                      dir={dirFor}
-                      className="min-h-28"
-                      value={editing === "ar" ? draft.descAr : draft.descEn}
-                      onChange={(e) => set(editing === "ar" ? { descAr: e.target.value } : { descEn: e.target.value })}
-                    />
+                    <Textarea id="de-desc" dir={dirFor} className="min-h-28" value={editorial.blurb[editing]} readOnly />
                   </Field>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <Field label={t("adm.dest.priceFrom")} htmlFor="de-price">
-                      <Input
-                        id="de-price"
-                        dir="ltr"
-                        type="number"
-                        min={0}
-                        value={draft.priceFrom}
-                        onChange={(e) => set({ priceFrom: Number(e.target.value) || 0 })}
-                      />
-                    </Field>
-                    <div className="flex flex-col justify-center gap-3 pt-4">
-                      <div className="flex items-center gap-2.5">
-                        <Switch
-                          id="dest-featured"
-                          checked={draft.featured}
-                          onCheckedChange={(val) => set({ featured: val })}
-                        />
-                        <label htmlFor="dest-featured" className="text-sm font-semibold cursor-pointer select-none">
-                          {t("adm.dest.featured")}
-                        </label>
-                      </div>
-                      <div className="flex items-center gap-2.5">
-                        <Switch
-                          id="dest-published"
-                          checked={draft.published}
-                          onCheckedChange={(val) => set({ published: val })}
-                        />
-                        <label htmlFor="dest-published" className="text-sm font-semibold cursor-pointer select-none">
-                          {t("adm.dest.visible")}
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="border-t border-border pt-3">
-                <div className="flex items-center justify-between gap-2">
                   <h3 className="text-sm font-bold">{t("adm.dest.goodToKnow")}</h3>
-                  <button
-                    type="button"
-                    onClick={() => set({ goodToKnow: [...draft.goodToKnow, { en: "", ar: "" }] })}
-                    className={btnClass("outline", "sm")}
-                  >
-                    <Plus aria-hidden="true" className="size-3.5" />
-                    {t("adm.dest.addPoint")}
-                  </button>
+                  <ul className="space-y-2 text-sm">{editorial.goodToKnow.map((item, index) => <li key={index} dir={dirFor}>{item[editing]}</li>)}</ul>
                 </div>
-                <ul className="mt-2 space-y-2">
-                  {draft.goodToKnow.map((point, i) => (
-                    <li key={`gtk-${i}`} className="flex items-start gap-2">
-                      <Textarea
-                        dir={dirFor}
-                        aria-label={`${t("adm.dest.goodToKnow")} ${i + 1}`}
-                        className="min-h-16"
-                        value={editing === "ar" ? point.ar : point.en}
-                        onChange={(e) => {
-                          const next = draft.goodToKnow.map((p, idx) =>
-                            idx === i ? (editing === "ar" ? { ...p, ar: e.target.value } : { ...p, en: e.target.value }) : p,
-                          );
-                          set({ goodToKnow: next });
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => set({ goodToKnow: draft.goodToKnow.filter((_, idx) => idx !== i) })}
-                        aria-label={t("adm.dest.removePoint")}
-                        className="mt-1 rounded-md p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
-                      >
-                        <X aria-hidden="true" className="size-4" />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
               </div>
             </div>
           ) : null}
 
           {tab === "route" ? (
             <div className="space-y-4">
-              <h2 className="text-sm font-bold">{t("adm.dest.tab.route")}</h2>
-              <p className="text-sm">
-                <Ltr>{`GZA ↔ ${draft.code}`}</Ltr>
-              </p>
-              <div className="flex items-center gap-2.5">
-                <Switch
-                  id="dest-service-active"
-                  checked={draft.serviceActive}
-                  onCheckedChange={(val) => set({ serviceActive: val })}
-                />
-                <label htmlFor="dest-service-active" className="text-sm font-semibold cursor-pointer select-none">
-                  {t("adm.dest.serviceActive")}
-                </label>
-              </div>
-
-              <fieldset>
-                <legend className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  {t("adm.dest.days")}
-                </legend>
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  {[0, 1, 2, 3, 4, 5, 6].map((d) => (
-                    <button
-                      key={d}
-                      type="button"
-                      aria-pressed={draft.days.includes(d)}
-                      onClick={() =>
-                        set({
-                          days: draft.days.includes(d)
-                            ? draft.days.filter((x) => x !== d)
-                            : [...draft.days, d].sort((a, b) => a - b),
-                        })
-                      }
-                      className={`rounded-md border px-2.5 py-1 text-xs font-semibold ${
-                        draft.days.includes(d)
-                          ? "border-brand bg-brand-soft text-brand-deep"
-                          : "border-border text-muted-foreground hover:bg-secondary"
-                      }`}
-                    >
-                      {t(`adm.day.${d}`)}
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
-
-              <Field label={t("adm.dest.frequency")} htmlFor="de-weekly" className="max-w-40">
-                <Input
-                  id="de-weekly"
-                  dir="ltr"
-                  type="number"
-                  min={0}
-                  value={draft.weeklyFlights}
-                  onChange={(e) => set({ weeklyFlights: Number(e.target.value) || 0 })}
-                />
-              </Field>
-
-              <div className="border-t border-border pt-3">
-                <h3 className="text-sm font-bold">{t("adm.dest.related")}</h3>
-                <p className="mt-1 text-xs text-muted-foreground">{t("adm.sch.planningNote")}</p>
-                {schedulesLoading ? <p role="status">{t("adm.ops.loading")}</p> : schedulesError ? <p role="alert">{t("adm.ops.loadError")}</p> : schedules.filter((s) => s.destination === draft.code).length === 0 ? (
-                  <p className="mt-1 text-xs text-muted-foreground">{t("adm.dest.relatedEmpty")}</p>
-                ) : (
-                  <ul className="mt-2 divide-y divide-border rounded-md border border-border text-sm">
-                    {schedules
-                      .filter((s) => s.destination === draft.code)
-                      .map((s) => (
-                        <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
-                          <span>
-                            <Ltr className="font-bold">{s.number}</Ltr>{" "}
-                            <Ltr className="text-xs text-muted-foreground">
-                              {s.direction === "out" ? `GZA → ${s.destination}` : `${s.destination} → GZA`}
-                            </Ltr>
-                          </span>
-                          <span className="flex items-center gap-2">
-                            <Ltr className="text-xs text-muted-foreground">{`${s.departTime} → ${s.arriveTime}`}</Ltr>
-                            <AdminChip tone={s.active ? "brand" : "muted"}>
-                              {t(s.active ? "adm.common.active" : "adm.common.inactive")}
-                            </AdminChip>
-                          </span>
-                        </li>
-                      ))}
-                  </ul>
-                )}
-                <AppLink to="/admin/schedules" className={btnClass("outline", "sm", "mt-3")}>
-                  {t("adm.sch.title")}
-                </AppLink>
-              </div>
+              <h2 className="text-sm font-bold">{t("adm.dest.related")}</h2>
+              <p className="text-xs text-muted-foreground">{t("adm.sch.planningNote")}</p>
+              {schedulesLoading ? <p role="status">{t("adm.ops.loading")}</p> : schedulesError ? <p role="alert">{t("adm.ops.loadError")}</p> : schedules.filter(s => s.destination === code).length === 0 ? <p className="text-sm text-muted-foreground">{t("adm.dest.relatedEmpty")}</p> : (
+                <ul className="divide-y divide-border rounded-md border border-border text-sm">
+                  {schedules.filter(s => s.destination === code).map(s => <li key={s.id} className="space-y-2 px-3 py-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2"><Ltr className="font-bold"><span>{s.number}</span> · {s.direction === "out" ? `GZA → ${s.destination}` : `${s.destination} → GZA`}</Ltr><AdminChip tone={s.active ? "brand" : "muted"}>{t(s.active ? "adm.common.active" : "adm.common.inactive")}</AdminChip></div>
+                    <dl className="grid gap-2 text-xs sm:grid-cols-2">
+                      <div><dt className="font-semibold">{t("adm.sch.days")}</dt><dd>{s.days.map(day => t(`adm.day.${day}`)).join(" · ")}</dd></div>
+                      <div><dt className="font-semibold">{t("adm.sch.depart")} / {t("adm.sch.arrive")}</dt><dd><Ltr>{s.departTime} → {s.arriveTime}</Ltr></dd></div>
+                      <div><dt className="font-semibold">{t("adm.col.aircraft")}</dt><dd><Ltr>{s.aircraft}</Ltr></dd></div>
+                      <div><dt className="font-semibold">{t("adm.sch.from")} / {t("adm.sch.until")}</dt><dd><Ltr>{s.from} → {s.until}</Ltr></dd></div>
+                      <div><dt className="font-semibold">{t("adm.sch.exceptions")}</dt><dd><Ltr>{s.exceptions.length}</Ltr></dd></div>
+                    </dl>
+                  </li>)}
+                </ul>
+              )}
+              <AppLink to="/admin/schedules" search={{ destination: code }} className={btnClass("outline", "sm")}>{t("adm.sch.title")}</AppLink>
             </div>
           ) : null}
-
-          {tab === "seo" ? (
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-sm font-bold">{t("adm.dest.tab.seo")}</h2>
-                {langTabs}
-              </div>
-              <Field label={t("adm.dest.seoTitle")} htmlFor="de-seot">
-                <Input
-                  id="de-seot"
-                  dir={dirFor}
-                  value={editing === "ar" ? draft.seoTitleAr : draft.seoTitleEn}
-                  onChange={(e) =>
-                    set(editing === "ar" ? { seoTitleAr: e.target.value } : { seoTitleEn: e.target.value })
-                  }
-                />
-              </Field>
-              <Field label={t("adm.dest.seoDesc")} htmlFor="de-seod">
-                <Textarea
-                  id="de-seod"
-                  dir={dirFor}
-                  className="min-h-24"
-                  value={editing === "ar" ? draft.seoDescAr : draft.seoDescEn}
-                  onChange={(e) => set(editing === "ar" ? { seoDescAr: e.target.value } : { seoDescEn: e.target.value })}
-                />
-              </Field>
-              <div>
-                <Field label={t("adm.dest.socialImage")} htmlFor="de-social">
-                  <Input
-                    id="de-social"
-                    dir={dirFor}
-                    readOnly
-                    value={pick(lang, {
-                      en: "Not configured (site default: /social/gaza-airport.jpg)",
-                      ar: "غير مهيأة (افتراضي الموقع: /social/gaza-airport.jpg)",
-                    })}
-                  />
-                </Field>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {pick(lang, {
-                    en: "Per-destination social image metadata is not configured; sharing falls back to the site-wide default image. Local photo drafts do not alter static head tags.",
-                    ar: "بيانات صورة المشاركة لوسائل التواصل غير مهيأة لكل وجهة؛ وتعتمد المشاركة الصورة الافتراضية للموقع. المسودات المحلية للصور لا تغيّر وسوم الميتا الثابتة.",
-                  })}
-                </p>
-              </div>
-            </div>
-          ) : null}
-
-          <AdminStickyActions>
-            <button type="button" onClick={() => setDraft(current)} className={btnClass("outline", "sm")}>
-              {t("adm.edit.cancel")}
-            </button>
-            <PermissionButton allowed={mayEdit} reason={t("adm.edit.readOnly")} variant="primary" onClick={save}>
-              {t("adm.edit.save")}
-            </PermissionButton>
-          </AdminStickyActions>
+          {tab === "seo" ? <div className="space-y-4">
+            <p className="text-xs text-muted-foreground">{t("network.seoReadonly")}</p>
+            <Field label={t("adm.dest.seoTitle")} htmlFor="de-seot"><Input id="de-seot" dir="ltr" value={editorial.seoTitle} readOnly /></Field>
+            <Field label={t("adm.dest.seoDesc")} htmlFor="de-seod"><Textarea id="de-seod" dir="ltr" value={editorial.seoDescription} readOnly /></Field>
+            <Field label={t("adm.dest.socialImage")} htmlFor="de-social"><Input id="de-social" dir="ltr" value="/social/gaza-airport.jpg" readOnly /></Field>
+          </div> : null}
         </div>
       </AdminPanel>
     </div>

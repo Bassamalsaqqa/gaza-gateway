@@ -18,7 +18,9 @@ import {
 import { AdminDenied } from "@/components/admin/admin-denied";
 import { useAdmin } from "@/lib/admin-store";
 import { useI18n, pick } from "@/lib/i18n";
-import { destinationByCode, destinations, aircraftNameToId } from "@/lib/data";
+import { aircraftNameToId } from "@/lib/data";
+import { useNetworkQuery, NetworkError, type NetworkDestination } from "@/lib/network";
+import { useAppNavigate } from "@/components/app-link";
 import { useFleetQuery } from "@/lib/fleet";
 import type { ExceptionKind, Schedule, ScheduleCreateInput } from "@/lib/schedules";
 import {
@@ -45,20 +47,22 @@ export const Route = createFileRoute("/{-$locale}/admin/schedules")({
       },
       noindex: true,
     }),
+  validateSearch: (search: Record<string, unknown>) => ({
+    destination: typeof search["destination"] === "string" && /^[A-Z]{3}$/.test(search["destination"]) ? search["destination"] : undefined,
+  }),
   component: AdminSchedulesPage,
 });
 
 const KINDS: ExceptionKind[] = ["cancelled", "time", "aircraft", "extra"];
 
 /** Stable draft factory. Uses crypto.randomUUID for ID; one ID per new draft. */
-function emptySchedule(defaultPlane?: { id: string; model: string }): Schedule {
+function emptySchedule(destination: string, defaultPlane?: { id: string; model: string }): Schedule {
   const id = newScheduleId();
-  const first = destinations[0];
   return {
     id,
     number: "PS",
     direction: "out",
-    destination: first ? first.code : "AMM",
+    destination,
     days: [1, 3, 5],
     departTime: "08:00",
     arriveTime: "10:00",
@@ -76,7 +80,13 @@ function AdminSchedulesPage() {
   const { can, toast } = useAdmin();
   const { data: fleetData, isError: fleetError } = useFleetQuery();
   const [query, setQuery] = useState("");
-  const [dest, setDest] = useState("all");
+  const network = useNetworkQuery();
+  const navigate = useAppNavigate();
+  const search = Route.useSearch();
+  const dest = search["destination"] ?? "all";
+  const setDest = (value: string) => void navigate({ to: "/admin/schedules", search: { destination: value === "all" ? undefined : value } });
+  const destinations = useMemo(() => network.data ?? [], [network.data]);
+  const destinationOptions: { code: string; city?: NetworkDestination["city"]; active?: boolean }[] = [...destinations];
   const [state, setState] = useState<"all" | "active" | "inactive">("all");
   const [draft, setDraft] = useState<Schedule | null>(null);
   const [isNew, setIsNew] = useState(false);
@@ -89,6 +99,9 @@ function AdminSchedulesPage() {
 
   // Canonical repository data
   const { data: schedules = [], isPending: loading, isError: loadError } = useSchedulesQuery();
+  for (const code of new Set([...schedules.map(s => s.destination), ...(draft ? [draft.destination] : [])])) {
+    if (!destinationOptions.some(d => d.code === code)) destinationOptions.push({ code });
+  }
   const createSchedule = useCreateScheduleMutation();
   const updateSchedule = useUpdateScheduleMutation();
   const deleteSchedule = useDeleteScheduleMutation();
@@ -100,10 +113,10 @@ function AdminSchedulesPage() {
       if (state === "active" && !s.active) return false;
       if (state === "inactive" && s.active) return false;
       if (!q) return true;
-      const d = destinationByCode(s.destination);
+      const d = destinations.find(d => d.code === s.destination);
       return [s.number, s.destination, d ? d.city.en : "", d ? d.city.ar : ""].join(" ").toLowerCase().includes(q);
     });
-  }, [schedules, query, dest, state]);
+  }, [schedules, query, dest, state, destinations]);
 
   const scheduleAircraftOptions = useMemo(() => {
     const options: { id: string; label: string }[] = [];
@@ -162,7 +175,8 @@ function AdminSchedulesPage() {
       if (isNew) {
         await createSchedule.mutateAsync(parseSchedule(draft) as ScheduleCreateInput);
       } else {
-        await updateSchedule.mutateAsync({ id: draft.id, patch: parseSchedule(draft) });
+        const { id, destination, direction, ...patch } = parseSchedule(draft);
+        await updateSchedule.mutateAsync({ id, patch });
       }
       toast(t("adm.sch.saved", { number: draft.number }));
       setDraft(null);
@@ -183,7 +197,7 @@ function AdminSchedulesPage() {
           ? "exc-" + (parts[2] === "date" ? "date" : parts[2] === "kind" ? "kind" : "detail") + "-" + exception.id
           : map[parts[0] ?? "number"];
         document.getElementById(target ?? "sc-number")?.focus();
-      } else setSaveError(t("adm.sch.saveError"));
+      } else setSaveError(t(err instanceof NetworkError ? "network.unavailable" : "adm.sch.saveError"));
       // Sheet/fields retained so user can retry
     }
   };
@@ -213,20 +227,21 @@ function AdminSchedulesPage() {
         {t("adm.sch.planningNote")}
       </div>
 
+      {network.isError ? <div role="alert" className="text-xs text-muted-foreground">{t("network.unavailable")} <button type="button" className={btnClass("outline", "sm")} onClick={() => void network.refetch()}>{t("adm.ops.retry")}</button></div> : null}
       <AdminPageHeader
         title={t("adm.sch.title")}
         description={t("adm.sch.sub")}
         action={
           <PermissionButton
-            allowed={mayEdit && !fleetError && Boolean(fleetData?.aircraft.some(a => a.active))}
-            reason={t("adm.edit.readOnly")}
+            allowed={mayEdit && !fleetError && network.isSuccess && !network.isError && destinations.length > 0 && Boolean(fleetData?.aircraft.some(a => a.active))}
+            reason={t(!mayEdit ? "adm.edit.readOnly" : network.isError ? "network.unavailable" : "fleet.error.unavailable")}
             variant="primary"
             onClick={() => {
               setIsNew(true);
               setSaveError(null);
               setFieldErrors({});
               const firstActive = fleetData?.aircraft.find((a) => a.active);
-              setDraft(emptySchedule(firstActive));
+              setDraft(emptySchedule(destinations.find(d => d.code === dest)?.code ?? destinations[0]!.code, firstActive));
             }}
           >
             <Plus aria-hidden="true" className="size-3.5" />
@@ -251,9 +266,9 @@ function AdminSchedulesPage() {
             className="h-9 w-auto text-sm"
           >
             <option value="all">{t("adm.sch.allDest")}</option>
-            {destinations.map((d) => (
+            {destinationOptions.map((d) => (
               <option key={d.code} value={d.code}>
-                {`${d.code} — ${pick(lang, d.city)}`}
+                {`${d.code} — ${(d.city ? pick(lang, d.city) : d.code)}${d.active === false ? ` · ${t("adm.common.inactive")}` : ""}`}
               </option>
             ))}
           </Select>
@@ -442,7 +457,7 @@ function AdminSchedulesPage() {
               </Field>
               <Field label={t("adm.sch.direction")} htmlFor="sc-dir" error={fieldErrors["direction"]} errorId="sc-dir-error">
                 <Select
-                  id="sc-dir" aria-invalid={Boolean(fieldErrors["direction"]) || undefined} aria-describedby={fieldErrors["direction"] ? "sc-dir-error" : undefined}
+                  id="sc-dir" disabled={!isNew} aria-invalid={Boolean(fieldErrors["direction"]) || undefined} aria-describedby={fieldErrors["direction"] ? "sc-dir-error" : undefined}
                   value={draft.direction}
                   onChange={(e) => setDraft({ ...draft, direction: e.target.value as "out" | "in" })}
                 >
@@ -453,15 +468,16 @@ function AdminSchedulesPage() {
             </div>
 
             <Field label={t("adm.sch.destination")} htmlFor="sc-dest" error={fieldErrors["destination"]} errorId="sc-dest-error">
-              <Select id="sc-dest" aria-invalid={Boolean(fieldErrors["destination"]) || undefined} aria-describedby={fieldErrors["destination"] ? "sc-dest-error" : undefined} value={draft.destination} onChange={(e) => setDraft({ ...draft, destination: e.target.value })}>
-                {destinations.map((d) => (
+              <Select id="sc-dest" disabled={!isNew || network.isError} aria-invalid={Boolean(fieldErrors["destination"]) || undefined} aria-describedby={fieldErrors["destination"] ? "sc-dest-error" : undefined} value={draft.destination} onChange={(e) => setDraft({ ...draft, destination: e.target.value })}>
+                {(isNew ? destinations : destinationOptions).map((d) => (
                   <option key={d.code} value={d.code}>
-                    {`${d.code} — ${pick(lang, d.city)}`}
+                    {`${d.code} — ${(d.city ? pick(lang, d.city) : d.code)}${d.active === false ? ` · ${t("adm.common.inactive")}` : ""}`}
                   </option>
                 ))}
               </Select>
             </Field>
 
+            {!isNew ? <p className="text-xs text-muted-foreground">{t("network.routeLocked")}</p> : null}
             <fieldset id="sc-days" tabIndex={-1} aria-invalid={Boolean(fieldErrors["days"]) || undefined} aria-describedby={fieldErrors["days"] ? "sc-days-error" : undefined}>
               <legend className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 {t("adm.sch.days")}

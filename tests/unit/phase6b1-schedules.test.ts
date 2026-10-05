@@ -209,7 +209,7 @@ describe("Phase 6B1 — central schedule validation", () => {
     ["id", ""],
     ["number", "BAD"],
     ["direction", "dep"],
-    ["destination", "XXX"],
+    ["destination", "xx"],
     ["days", []],
     ["days", [1, 1]],
     ["days", [7]],
@@ -314,7 +314,7 @@ describe("Phase 6B1 — integration and truth boundaries", () => {
       "src/routes/{-$locale}.admin.destinations.$code.tsx",
     ])
       assert.doesNotMatch(source(file), /ops\.schedules|patchOps\("schedules"/);
-    assert.doesNotMatch(source("src/lib/admin-ops.ts"), /schedules:\s*Schedule/);
+    assert.doesNotMatch(source("src/lib/admin-store.tsx"), /schedules:\s*Schedule|seedOpsState/);
     const route = source("src/routes/{-$locale}.admin.schedules.tsx");
     assert.match(route, /preserveOpenOnConfirm/);
     assert.match(route, /aria-invalid/);

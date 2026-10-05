@@ -1,4 +1,5 @@
 import { runPhase6B2BCorrectionChecks } from "./phase6b2b-correction-01.mjs";
+import { runPhase6B2C1Checks } from "./phase6b2c1-network.mjs";
 import { runPhase6B2BChecks } from "./phase6b2b-fleet.mjs";
 import { runPhase6B2ACorrection01Checks } from "./phase6b2a-correction-01.mjs";
 import { runPhase6B2AChecks } from "./phase6b2a-commercial.mjs";
@@ -7806,6 +7807,7 @@ async function runBrowserSmoke() {
     await runPhase6B2ACorrection01Checks({ checkStep, browser, baseUrl });
     await runPhase6B2BChecks({ checkStep, browser, baseUrl });
     await runPhase6B2BCorrectionChecks({ checkStep, browser, baseUrl });
+    await runPhase6B2C1Checks({ checkStep, browser, baseUrl });
 
   } finally {
     await browser.close();

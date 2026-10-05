@@ -10,12 +10,13 @@ import {
 import { dirOf, langFromPath, swapLangPath, type Lang } from "./locale";
 import { adminEn, adminAr } from "./i18n-admin";
 import { admin2En, admin2Ar } from "./i18n-admin2";
+import { networkEn, networkAr } from "./i18n-network";
 import { en, ar, type Dict } from "./i18n-public.ts";
 
 export type { Lang };
 
-const enAll: Dict = { ...en, ...adminEn, ...admin2En };
-const arAll: Dict = { ...ar, ...adminAr, ...admin2Ar };
+const enAll: Dict = { ...en, ...adminEn, ...admin2En, ...networkEn };
+const arAll: Dict = { ...ar, ...adminAr, ...admin2Ar, ...networkAr };
 
 const dictionaries: Record<Lang, Dict> = { en: enAll, ar: arAll };
 

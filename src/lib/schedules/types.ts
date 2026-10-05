@@ -3,7 +3,7 @@
  *
  * Recurring schedule planning for Palestinian Airlines.
  * Schedules are planning annotations only; they do NOT generate dated public
- * flights or alter booking search in Phase 6B1. See Phase 6B2 for
+ * flights or alter booking search in Phase 6B2C1. See Phase 6B2C2 for
  * schedule-to-dated-flight materialization.
  */
 
@@ -25,7 +25,7 @@ export type Schedule = {
   number: string;
   /** out = GZA → destination, in = destination → GZA */
   direction: "out" | "in";
-  /** IATA destination code (must be a known compiled network destination) */
+  /** Immutable route identity; new commands validate it through NetworkRepository. */
   destination: string;
   /** Days of week the schedule operates: 0 (Sun) … 6 (Sat). Unique integers. */
   days: number[];
@@ -51,8 +51,6 @@ export type ScheduleCreateInput = Schedule;
 
 export interface ScheduleUpdateInput {
   number?: string;
-  direction?: "out" | "in";
-  destination?: string;
   days?: number[];
   departTime?: string;
   arriveTime?: string;
