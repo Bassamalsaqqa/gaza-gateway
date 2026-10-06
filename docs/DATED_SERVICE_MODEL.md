@@ -1,8 +1,8 @@
 # Dated-Service Model — Phase 6B2C2A
 
-> **Current Source Status**: **Phase 6B2C2A Implemented / Awaiting Independent Review.** Production remains owner-deployed Phase 6B2A; Phase 6B2B release/deployment is intentionally pending. Phase 6B2C2B remains Planned / Unstarted.
+> **Current Source Status**: **Phase 6B2C2A Complete / Accepted Source.** Production remains owner-deployed Phase 6B2A; Phase 6B2B release/deployment is intentionally pending. Phase 6B2C2B remains Planned / Unstarted.
 
-Status: **Phase 6B2C2A Implemented / Awaiting Independent Review**. Historical completed phases:
+Status: **Phase 6B2C2A Complete / Accepted Source**. Historical completed phases:
 
 - **Phase 6B2C1 Complete / Accepted Source** (accepted engineering SHA: `9846f9ad90760a5e47ca231a838d146c4d7096a0`, accepted source `f5506a2ae467b2eb5b8182d7d5b009f258115eb4`).
 - **Phase 6B2B Complete / Accepted Source** (accepted engineering SHA: `7f8a2bef613fa0cd37af4f05684c98aebe94d23e`, accepted source `d0a411cb8a882298eb32a3222478fbc782ba5556`).
@@ -134,3 +134,9 @@ Extra time overrides are independently optional; omitted values resolve from the
 The frozen legacy generator produces multiple rotations that do not match recurring Schedule seeds. The seeds are not changed to simulate equivalence. C2B may legitimately change service counts and times when it activates Schedule discovery. Historical compatibility will be identity-based, with no hardcoded calendar cutover date. No PNR, override or draft IDs are migrated in C2A.
 
 LocalStorage Schedule definitions are runtime-only and cannot participate in HostPapa static prerender head generation. C2A leaves Flight Detail heads unchanged; C2B may use generic static metadata for local dated-service IDs. There is no generated flight-instance store, backend or cross-device synchronization.
+
+## Phase 6B2C2A accepted-source checkpoint
+
+**Phase 6B2C2A Complete / Accepted Source.** ChatGPT independently accepted engineering at `429ca82dfa3db0453feeab5b53bb45e9e14cf45a` (reviewed original implementation: `2e1a3e626c48836384cb22ed57a4d6c4a13e7be3`). The accepted-source checkpoint is this source-finalization commit; its immutable SHA is recorded in the finalization handback without a self-referential commit requirement. C2A has no Accepted Release and is not deployed.
+
+Phase 6B2B and Phase 6B2C1 are Complete / Accepted Source; their release/deployment is intentionally pending. Production remains owner-deployed Phase 6B2A, Complete / Accepted Source / Accepted Release / Deployed by Owner: release `2751e22be91ad74eacc9213489a57a21baf04807`, runtime source `ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`. Phase 6B2C2B remains Planned / Unstarted; Phase 6C, Phase 7 and Phase 7B remain Planned / Unstarted. Phase 6B as a whole remains incomplete. No public or Booking discovery cutover, stored identity migration, release or deployment is performed by this finalization.

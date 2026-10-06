@@ -44,7 +44,7 @@ it("C1 accepted-source docs preserve engineering provenance, production and defe
       current,
       /Production remains \*\*Phase 6B2A[^\n]*Complete \/ Accepted Source \/ Accepted Release \/ Deployed by Owner/,
     );
-    assert.match(current, /Phase 6B2C2A[^\n]*Implemented \/ Awaiting Independent Review/);
+    assert.match(current, /Phase 6B2C2A[^\n]*Complete \/ Accepted Source/);
     assert.match(current, /Phase 6B2C2B[^\n]*Planned \/ Unstarted/);
     for (const truth of [
       "d0a411cb8a882298eb32a3222478fbc782ba5556",
@@ -74,7 +74,7 @@ it("C1 accepted-source docs preserve engineering provenance, production and defe
     "ae8c1e8071cf7f6412247f043e16a3ec2c88bd73",
   ])
     assert.ok(model.includes(truth));
-  assert.match(model, /Phase 6B2C2A[^\n]*Implemented \/ Awaiting Independent Review/);
+  assert.match(model, /Phase 6B2C2A[^\n]*Complete \/ Accepted Source/);
   assert.match(model, /Phase 6B2C2B[^\n]*Planned \/ Unstarted/);
   assert.doesNotMatch(model, /Phase 6B2C1[ -]+Implemented\s*\/\s*Awaiting\s+Independent\s+Review/);
   assert.match(model, /persist before adopting or notifying/);
@@ -83,9 +83,9 @@ it("C1 accepted-source docs preserve engineering provenance, production and defe
   assert.match(model, /`id`, `destination` and `direction` are immutable/);
 });
 
-it("C2A dated-service model doc preserves phase boundaries and foundation status", () => {
+it("C2A dated-service model doc preserves phase boundaries and accepted-source status", () => {
   const model = readFileSync("docs/DATED_SERVICE_MODEL.md", "utf8");
-  assert.match(model, /Phase 6B2C2A Implemented \/ Awaiting Independent Review/);
+  assert.match(model, /Phase 6B2C2A Complete \/ Accepted Source/);
   assert.match(model, /Phase 6B2C2B[^\n]*Planned \/ Unstarted/);
   assert.match(model, /Phase 6B2C1 Complete \/ Accepted Source/);
   assert.match(model, /Phase 6B2B Complete \/ Accepted Source/);
@@ -117,10 +117,32 @@ it("all authoritative current headers and roadmap distinguish C2A foundation fro
     const text = readFileSync(file, "utf8");
     assert.match(
       text,
-      /(?:Status|Progression)[^\n]*Phase 6B2C2A[^\n]*Implemented \/ Awaiting Independent Review/,
+      /(?:Status|Progression)[^\n]*Phase 6B2C2A[^\n]*Complete \/ Accepted Source/,
       file,
     );
     assert.match(text, /Phase 6B2C2B[^\n]*Planned \/ Unstarted/, file);
+    const accepted = text.split("## Phase 6B2C2A accepted-source checkpoint")[1];
+    assert.ok(accepted, `${file}: C2A accepted-source checkpoint`);
+    assert.match(accepted, /Phase 6B2C2A Complete \/ Accepted Source/, file);
+    assert.ok(accepted.includes("429ca82dfa3db0453feeab5b53bb45e9e14cf45a"), file);
+    assert.match(accepted, /C2A has no Accepted Release and is not deployed/, file);
+    assert.match(
+      accepted,
+      /Phase 6B2B and Phase 6B2C1 are Complete \/ Accepted Source; their release\/deployment is intentionally pending/,
+      file,
+    );
+    assert.match(accepted, /Production remains owner-deployed Phase 6B2A/, file);
+    for (const sha of [
+      "2751e22be91ad74eacc9213489a57a21baf04807",
+      "ae8c1e8071cf7f6412247f043e16a3ec2c88bd73",
+    ])
+      assert.ok(accepted.includes(sha), `${file}: current production ${sha}`);
+    assert.doesNotMatch(
+      text,
+      /Implemented\s*\/\s*Awaiting\s+Independent\s+Review|Independent engineering review of Phase 6B2C2A/,
+      file,
+    );
+    assert.match(text, /Phase 6B as a whole (?:remains incomplete|is not complete)/, file);
     assert.doesNotMatch(
       text,
       /Phase 6B2C2[^AB\n][^\n]*Network & Dated-Service Materialization(?: is| remains) Planned \/ Unstarted/,
