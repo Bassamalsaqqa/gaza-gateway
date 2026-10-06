@@ -1,14 +1,14 @@
 # Dated-Service Authority Model — Phase 6B2C2A
 
-> **Current Source Status**: **Phase 6B2C2B Implemented / Awaiting Independent Review. Phase 6B2C2A Complete / Accepted Source.** Production remains owner-deployed Phase 6B2A; Phase 6B2B release/deployment is intentionally pending. Phase 6B2C2B remains Implemented / Awaiting Independent Review.
+> **Current Source Status**: **Phase 6B2C2B Complete / Accepted Source. Phase 6B2C2A Complete / Accepted Source.** Production remains owner-deployed Phase 6B2A; Phase 6B2B release/deployment is intentionally pending. Phase 6B2C2B remains Complete / Accepted Source.
 
-Status: **Phase 6B2C2B Implemented / Awaiting Independent Review**. The pure C2A foundation is Complete / Accepted Source. Historical completed phases:
+Status: **Phase 6B2C2B Complete / Accepted Source**. The pure C2A foundation is Complete / Accepted Source. Historical completed phases:
 
 - **Phase 6B2C1 Complete / Accepted Source** (accepted engineering SHA: `9846f9ad90760a5e47ca231a838d146c4d7096a0`, accepted source `f5506a2ae467b2eb5b8182d7d5b009f258115eb4`).
 - **Phase 6B2B Complete / Accepted Source** (accepted engineering SHA: `7f8a2bef613fa0cd37af4f05684c98aebe94d23e`, accepted source `d0a411cb8a882298eb32a3222478fbc782ba5556`).
 - **Phase 6B2A Complete / Accepted Source / Accepted Release / Deployed by Owner** (current production: release `2751e22be91ad74eacc9213489a57a21baf04807`, runtime source `ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`).
 
-Phase 6B as a whole remains incomplete. Phase 6B2C2B — Network & Dated-Service Discovery Cutover is Implemented / Awaiting Independent Review. Phase 6C, Phase 7 and Phase 7B are Planned / Unstarted.
+Phase 6B as a whole is Complete / Accepted Source. Phase 6B2C2B — Network & Dated-Service Discovery Cutover is Complete / Accepted Source. Phase 6C, Phase 7 and Phase 7B are Planned / Unstarted.
 
 ---
 
@@ -49,7 +49,7 @@ Phase 6B2C2A establishes the pure domain foundation for projecting recurring `Sc
    - One shared `LocalDatedServiceResolver` composes canonical Schedule/Network with `routeBasePriceByCode`; it writes nothing.
    - `readSnapshot`, `project`, `listCurrentFlights`, `searchCurrentFlights` and `resolveCurrentFlightById` expose current-only projection. Missing route pricing or corrupt authority raises `CurrentFlightAuthorityError`.
    - `FlightRepository.searchFlights`, `getCurrentFlightById` and monthly maps never include compatibility-only services. Monthly commands read planning authorities once.
-   - `getFlights` combines current services, all canonical Booking Flight snapshots and actual legacy override relevance, deduplicated in that order before applying overrides. `getFlightById` prefers current `svc1` bases, then Booking snapshots; valid legacy IDs use explicit frozen compatibility when needed.
+   - `getFlights` combines current services, confirmed canonical Booking Flight snapshots and actual legacy override relevance, deduplicated in that order before applying overrides. `getFlightById` prefers current `svc1` bases, then Booking snapshots; valid legacy IDs use explicit frozen compatibility when needed.
    - Schedule, Network and booking/override events invalidate Flight queries through one central Query layer; destroy unsubscribes repository listeners.
    - Existing PNR seat/check-in commands use current base when available, otherwise stored Flight, then transaction-current overlay. Check-in uses current planned departure, with the accepted revised-departure rule unchanged.
 
@@ -141,11 +141,11 @@ LocalStorage Schedule definitions are runtime-only and cannot participate in Hos
 
 **Phase 6B2C2A Complete / Accepted Source.** ChatGPT independently accepted engineering at `429ca82dfa3db0453feeab5b53bb45e9e14cf45a` (reviewed original implementation: `2e1a3e626c48836384cb22ed57a4d6c4a13e7be3`). Accepted C2A source is `412fc2b4f79e01da0607b5bca44e01d76156a634`; the source-finalization handback records its provenance. C2A has no Accepted Release and is not deployed.
 
-Phase 6B2B and Phase 6B2C1 are Complete / Accepted Source; their release/deployment is intentionally pending. Production remains owner-deployed Phase 6B2A, Complete / Accepted Source / Accepted Release / Deployed by Owner: release `2751e22be91ad74eacc9213489a57a21baf04807`, runtime source `ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`. Phase 6B2C2B remains Implemented / Awaiting Independent Review; Phase 6C, Phase 7 and Phase 7B remain Planned / Unstarted. Phase 6B as a whole remains incomplete. The historical C2A finalization performed no public or Booking discovery cutover, stored identity migration, release or deployment. C2B current behavior is described below.
+Phase 6B2B and Phase 6B2C1 are Complete / Accepted Source; their release/deployment is intentionally pending. Production remains owner-deployed Phase 6B2A, Complete / Accepted Source / Accepted Release / Deployed by Owner: release `2751e22be91ad74eacc9213489a57a21baf04807`, runtime source `ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`. Phase 6B2C2B remains Complete / Accepted Source; Phase 6C, Phase 7 and Phase 7B remain Planned / Unstarted. Phase 6B as a whole is Complete / Accepted Source. The historical C2A finalization performed no public or Booking discovery cutover, stored identity migration, release or deployment. C2B current behavior is described below.
 
 ## Phase 6B2C2B - Canonical Dated-Service Discovery & Booking Cutover
 
-**Implemented / Awaiting Independent Review.** Baseline accepted source: `412fc2b4f79e01da0607b5bca44e01d76156a634`. Phase 6B2C2A remains Complete / Accepted Source (accepted engineering `429ca82dfa3db0453feeab5b53bb45e9e14cf45a`). Phase 6B as a whole remains incomplete.
+**Complete / Accepted Source.** Baseline accepted source: `412fc2b4f79e01da0607b5bca44e01d76156a634`. Phase 6B2C2A remains Complete / Accepted Source (accepted engineering `429ca82dfa3db0453feeab5b53bb45e9e14cf45a`). Phase 6B as a whole is Complete / Accepted Source.
 
 Current authority is NetworkRepository + ScheduleRepository + read-only compiled route merchandising price, projected by the shared DatedServiceResolver into `svc1-*` Flights, then composed with canonical FlightOverride. Current search, monthly sellability, Home/public boards, Admin search and new public/desk Booking creation use this chain. Valid empty Schedule storage produces zero current services; corrupt Schedule/Network authority fails truthfully without legacy discovery fallback.
 
@@ -155,11 +155,11 @@ Broad Flight lookup retains stored Booking Flight snapshots, including cancelled
 
 The frozen legacy generator is compatibility-only. There is no generated Flight persistence store, hardcoded cutover date, PNR/draft/override identity migration, backend or cross-device claim. Browser-local `svc1-*` Flight Detail uses generic static metadata because prerender cannot read local Schedule/Network state. Booking route selectors use active Network routes; compiled destination information pages remain available.
 
-Production remains **Phase 6B2A - Complete / Accepted Source / Accepted Release / Deployed by Owner**, runtime source `ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`, release `2751e22be91ad74eacc9213489a57a21baf04807`. Phase 6B2B, Phase 6B2C1 and Phase 6B2C2A release/deployment remain intentionally pending. C2B is neither accepted, released nor deployed. Phase 6C / 7 / 7B remain Planned / Unstarted.
+Production remains **Phase 6B2A - Complete / Accepted Source / Accepted Release / Deployed by Owner**, runtime source `ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`, release `2751e22be91ad74eacc9213489a57a21baf04807`. Phase 6B2B, Phase 6B2C1 and Phase 6B2C2A release/deployment remain intentionally pending. C2B engineering is accepted and source is finalized; C2B has no Accepted Release and is not deployed. Phase 6C / 7 / 7B remain Planned / Unstarted.
 
 ## Phase 6B2C2B Independent Review Correction 01
 
-Status remains **Implemented / Awaiting Independent Review**. Reviewed parent: `ff46f8e7ab606731be679eaedbada9e07d09e91a`.
+Status remains **Complete / Accepted Source**. Reviewed parent: `ff46f8e7ab606731be679eaedbada9e07d09e91a`.
 
 PNR-facing operations use `FlightRepository.getBookingFlight(ref, leg)`: prefer a currently materializable service, otherwise use that exact canonical Booking leg's stored Flight, then compose the freshly read matching FlightOverride. Query cache identity includes Booking reference and leg. Multiple PNRs sharing a stable service ID may retain different historical times/equipment; broad public Flight detail is a separate compatibility contract. Read resolution does not migrate Bookings, prices or seat layouts.
 
@@ -168,3 +168,14 @@ PNR-facing operations use `FlightRepository.getBookingFlight(ref, leg)`: prefer 
 Board relevance uses current services, confirmed PNR snapshots and explicit legacy override-only compatibility. Cancelled PNRs retain history/detail snapshots but do not independently resurrect a retired service on Home/public/Admin boards. Cancelling the last confirmed PNR removes its compatibility-only board row; explicit valid legacy overrides remain operationally relevant.
 
 Production remains owner-deployed Phase 6B2A. Protected main and HostPapa, current discovery authority, new-sale validation, historical pricing/layouts, Studio isolation and all identity/store boundaries remain unchanged.
+
+
+## Phase 6B2C2B accepted-source checkpoint
+
+**Phase 6B2C2B Complete / Accepted Source. Phase 6B Complete / Accepted Source.** ChatGPT independently accepted engineering at `b4cd96a3eda97ae1442119c4fde03c0a463c7cb4` (original implementation: `ff46f8e7ab606731be679eaedbada9e07d09e91a`; accepted C2A baseline: `412fc2b4f79e01da0607b5bca44e01d76156a634`). Acceptance is recorded in the owner-supplied 2026-10-06 master handoff. The accepted-source candidate is the docs/status-only finalization commit introducing this checkpoint; its exact SHA is recorded in the publication handback. Independent accepted-source verification precedes main fast-forward.
+
+PNR-facing Flight reads use `(Booking reference, leg)`: current service when available, otherwise that exact leg's stored Flight, then current FlightOverride. Historical pricing and seat-layout snapshots remain unchanged. Admin Check-in can discover confirmed PNRs using their own snapshots during planning failure, with an explicit localized warning. Public/new-sale authority still fails truthfully. Cancelled PNRs preserve their own history without independently resurrecting retired operational board rows.
+
+Production remains **Phase 6B2A — Complete / Accepted Source / Accepted Release / Deployed by Owner**, runtime source `ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`, release `2751e22be91ad74eacc9213489a57a21baf04807`. Phase 6B2B, Phase 6B2C1, Phase 6B2C2A and Phase 6B2C2B release/deployment remain pending. Phase 6B has no consolidated Accepted Release and is not deployed as a consolidated milestone. No live production verification is claimed by this finalization.
+
+**Next milestone:** independently verify accepted source, then construct/review the consolidated Phase 6B HostPapa release for owner deployment and production reconciliation. Phase 6C / 7 / 7B remain Planned / Unstarted. This finalization changes no runtime implementation. The immutable planning snapshot is [the 2026-10-06 master handoff](../GAZA_GATEWAY_MASTER_AI_AGENT_HANDOFF_ROADMAP_2026-10-06.md); its pre-finalization refs/status are historical snapshot facts, not moving current refs.
