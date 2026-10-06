@@ -45,6 +45,7 @@ import { pageHead } from "@/lib/head";
 import { resolveBookingPricing } from "@/lib/commercial/pricing";
 import {
   useBookingQuery,
+  useBookingEffectiveFlights,
   useBookingsQuery,
   useCancelBookingMutation,
   useUpdateBookingContactMutation,
@@ -107,6 +108,7 @@ function AdminBookingDetailPage() {
   const [confirmCancel, setConfirmCancel] = useState(false);
 
   const { data: canonicalBooking, isPending, isError } = useBookingQuery(ref);
+  const effectiveFlights = useBookingEffectiveFlights(canonicalBooking);
   const { data: allBookings = [] } = useBookingsQuery();
   const cancelBookingMutation = useCancelBookingMutation();
   const updateContactMutation = useUpdateBookingContactMutation();
@@ -118,9 +120,9 @@ function AdminBookingDetailPage() {
   const [sheetError, setSheetError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const booking = useMemo<AdaptedAdminBooking | undefined>(() => {
-    if (canonicalBooking) return bookingToMockBooking(canonicalBooking);
+    if (canonicalBooking) return bookingToMockBooking({ ...canonicalBooking, outbound: effectiveFlights.outbound.effectiveFlight ?? canonicalBooking.outbound, inbound: effectiveFlights.inbound?.effectiveFlight ?? canonicalBooking.inbound });
     return undefined;
-  }, [canonicalBooking]);
+  }, [canonicalBooking, effectiveFlights.outbound.effectiveFlight, effectiveFlights.inbound?.effectiveFlight]);
 
   const mayEdit = can("commercial.edit");
 
@@ -720,8 +722,8 @@ function AdminBookingDetailPage() {
                   setFieldErrors({});
                   try {
                     validateUpdateSeatsAssignments(canonicalBooking, editSeats, {
-                      outbound: canonicalBooking.outbound,
-                      inbound: canonicalBooking.inbound,
+                      outbound: effectiveFlights.outbound.effectiveFlight ?? canonicalBooking.outbound,
+                      inbound: effectiveFlights.inbound?.effectiveFlight ?? canonicalBooking.inbound,
                     });
                   } catch (error) {
                     setSheetError(t(commercialErrorKey(error)));
@@ -874,7 +876,7 @@ function AdminBookingDetailPage() {
 
                     {!isOutChecked ? (
                       <CommercialSeatPicker
-                        flight={canonicalBooking.outbound}
+                        flight={effectiveFlights.outbound.effectiveFlight ?? canonicalBooking.outbound}
                         cabin={canonicalBooking.criteria.cabin}
                         seats={editSeats}
                         leg="out"
@@ -931,7 +933,7 @@ function AdminBookingDetailPage() {
                     ) : null}
                     {canonicalBooking.inbound && !isInChecked ? (
                       <CommercialSeatPicker
-                        flight={canonicalBooking.inbound}
+                        flight={effectiveFlights.inbound?.effectiveFlight ?? canonicalBooking.inbound}
                         cabin={canonicalBooking.criteria.cabin}
                         seats={editSeats}
                         leg="in"

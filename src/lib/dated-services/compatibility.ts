@@ -11,3 +11,8 @@ export function bookingFlightSnapshots(bookings: Booking[]): Flight[] {
   }
   return [...flights.values()];
 }
+
+/** Board relevance is retained by confirmed PNRs only; history keeps every snapshot. */
+export function confirmedBookingFlightSnapshots(bookings: Booking[]): Flight[] {
+  return bookingFlightSnapshots(bookings.filter(booking => booking.status === "confirmed"));
+}

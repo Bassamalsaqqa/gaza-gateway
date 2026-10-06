@@ -1,7 +1,7 @@
 import { AppLink } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo } from "react";
-import { useQueries, useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
+import { useQueries } from "@tanstack/react-query";
 import { Ticket } from "lucide-react";
 import { BoardingPassCard, passesForBooking } from "@/components/booking/boarding-pass";
 import { btnClass, EmptyState, Notice, Panel, Pill } from "@/components/kit";
@@ -33,51 +33,27 @@ function BoardingPassesPage() {
   const { t } = useI18n();
   const { data: bookings } = useMyBookings();
   const { flight: flightRepo } = useRepositories();
-  const queryClient = useQueryClient();
-
-  useEffect(() => {
-    return flightRepo.subscribe(() => {
-      queryClient.invalidateQueries({ queryKey: flightKeys.all });
-    });
-  }, [flightRepo, queryClient]);
-
-  // Collect unique flight IDs across confirmed bookings
-  const flightIds = useMemo(() => {
-    const ids = new Set<string>();
-    for (const b of bookings) {
-      if (b.status === "confirmed") {
-        if (b.outbound?.id) ids.add(b.outbound.id);
-        if (b.inbound?.id) ids.add(b.inbound.id);
-      }
-    }
-    return Array.from(ids);
-  }, [bookings]);
-
+  const bookingLegs = useMemo(() => bookings.flatMap(b =>
+    b.status === "confirmed" ? (["out", "in"] as const).filter(leg => leg === "out" || b.inbound).map(leg => ({ ref: b.ref, leg })) : []), [bookings]);
   const flightQueries = useQueries({
-    queries: flightIds.map((id) => ({
-      queryKey: flightKeys.detail(id),
-      queryFn: () => flightRepo.getFlightById(id),
-      enabled: Boolean(id),
+    queries: bookingLegs.map(({ ref, leg }) => ({
+      queryKey: flightKeys.bookingLeg(ref, leg),
+      queryFn: () => flightRepo.getBookingFlight(ref, leg),
     })),
   });
-
   const effectiveFlightMap = useMemo(() => {
     const map = new Map<string, Flight | null>();
-    flightIds.forEach((id, idx) => {
-      const q = flightQueries[idx];
-      if (q && q.isSuccess && !q.isLoading && !q.isError && q.data) {
-        map.set(id, q.data);
-      } else {
-        map.set(id, null);
-      }
+    bookingLegs.forEach(({ ref, leg }, index) => {
+      const query = flightQueries[index];
+      map.set(`${ref}:${leg}`, query?.isSuccess && !query.isError ? query.data : null);
     });
     return map;
-  }, [flightIds, flightQueries]);
+  }, [bookingLegs, flightQueries]);
 
   const passes = useMemo(() => {
     return bookings.flatMap((b) => {
-      const outEff = (b.outbound?.id ? effectiveFlightMap.get(b.outbound.id) : null) ?? null;
-      const inEff = (b.inbound?.id ? effectiveFlightMap.get(b.inbound.id) : null) ?? null;
+      const outEff = (b.outbound?.id ? effectiveFlightMap.get(`${b.ref}:out`) : null) ?? null;
+      const inEff = (b.inbound?.id ? effectiveFlightMap.get(`${b.ref}:in`) : null) ?? null;
       return passesForBooking(b, { out: outEff, in: inEff });
     });
   }, [bookings, effectiveFlightMap]);

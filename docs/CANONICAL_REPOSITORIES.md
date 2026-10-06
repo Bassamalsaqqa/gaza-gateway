@@ -397,8 +397,20 @@ Current authority is NetworkRepository + ScheduleRepository + read-only compiled
 
 New Booking commands resolve current service IDs only. Committed submission replay precedes every external authority read. Command-time Commercial/Fleet/Schedule/Network snapshots are composed with transaction-current FlightOverrides, and Flight/pricing/seat-layout snapshots plus total commit together in `gza.repo.v1`. This is browser command-time snapshot composition, not multi-store ACID.
 
-Broad Flight lookup and operational boards also retain stored Booking Flight snapshots and relevant override-only legacy Flights. Current bases take precedence when available. Existing PNR mutations can fall back to their stored Flight plus current override during planning removal or authority corruption. Historical pricing and seat-layout snapshots remain authoritative. Planning deactivation is not retroactive cancellation: explicit structured cancellation or FlightOverride cancellation supplies operational truth.
+Broad Flight lookup retains stored Booking Flight snapshots, including cancelled history. Operational boards retain only confirmed Booking Flight snapshots and relevant override-only legacy Flights. Current bases take precedence when available. Existing PNR mutations can fall back to their stored Flight plus current override during planning removal or authority corruption. Historical pricing and seat-layout snapshots remain authoritative. Planning deactivation is not retroactive cancellation: explicit structured cancellation or FlightOverride cancellation supplies operational truth.
 
 The frozen legacy generator is compatibility-only. There is no generated Flight persistence store, hardcoded cutover date, PNR/draft/override identity migration, backend or cross-device claim. Browser-local `svc1-*` Flight Detail uses generic static metadata because prerender cannot read local Schedule/Network state. Booking route selectors use active Network routes; compiled destination information pages remain available.
 
 Production remains **Phase 6B2A - Complete / Accepted Source / Accepted Release / Deployed by Owner**, runtime source `ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`, release `2751e22be91ad74eacc9213489a57a21baf04807`. Phase 6B2B, Phase 6B2C1 and Phase 6B2C2A release/deployment remain intentionally pending. C2B is neither accepted, released nor deployed. Phase 6C / 7 / 7B remain Planned / Unstarted.
+
+## Phase 6B2C2B Independent Review Correction 01
+
+Status remains **Implemented / Awaiting Independent Review**. Reviewed parent: `ff46f8e7ab606731be679eaedbada9e07d09e91a`.
+
+PNR-facing operations use `FlightRepository.getBookingFlight(ref, leg)`: prefer a currently materializable service, otherwise use that exact canonical Booking leg's stored Flight, then compose the freshly read matching FlightOverride. Query cache identity includes Booking reference and leg. Multiple PNRs sharing a stable service ID may retain different historical times/equipment; broad public Flight detail is a separate compatibility contract. Read resolution does not migrate Bookings, prices or seat layouts.
+
+`getCheckInFlights(date)` is a desk-only read. Healthy planning retains normal current/compatibility operational listings. Unavailable planning yields an explicit EN/AR warning and confirmed Gaza-departure PNR compatibility from their stored snapshots plus overrides. A Booking/leg map supplies each desk row's own operational timing and sheet Flight. Final check-in remains the canonical BookingRepository command. Public boards, sale search and new Booking creation still fail truthfully during current-authority corruption.
+
+Board relevance uses current services, confirmed PNR snapshots and explicit legacy override-only compatibility. Cancelled PNRs retain history/detail snapshots but do not independently resurrect a retired service on Home/public/Admin boards. Cancelling the last confirmed PNR removes its compatibility-only board row; explicit valid legacy overrides remain operationally relevant.
+
+Production remains owner-deployed Phase 6B2A. Protected main and HostPapa, current discovery authority, new-sale validation, historical pricing/layouts, Studio isolation and all identity/store boundaries remain unchanged.

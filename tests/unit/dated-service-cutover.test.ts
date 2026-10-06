@@ -303,11 +303,17 @@ describe("C2B current service authority and compatibility", () => {
     const smaller = reconcileDraft(draft, { ...renamed, aircraftId: "custom", aircraft:"Custom aircraft" }, null, { outboundLayout: layout });
     assert.equal(smaller.reconciledDraft.seats["out-0"], undefined); assert.deepEqual(smaller.reconciledDraft.contact, draft.contact);
   });
-  it("cancelled PNR Flight snapshot retains board relevance after planning disappears", async () => {
+  it("only confirmed PNRs retain board relevance after planning disappears; cancellation preserves history", async () => {
     const r = rig(), f = await current(r), b = await r.booking.create(command(f));
-    await r.booking.cancel(b.ref); await r.schedule.update(f.scheduleId!, { active:false });
+    await r.schedule.update(f.scheduleId!, { active:false });
     assert.ok((await r.flight.getFlights(date)).some(x => x.id === f.id));
+    await r.booking.cancel(b.ref);
+    assert.ok(!(await r.flight.getFlights(date)).some(x => x.id === f.id));
+    assert.deepEqual(await r.flight.getBookingFlight(b.ref, "out"), b.outbound);
     assert.equal(await r.flight.getCurrentFlightById(f.id), null);
+    const legacy = legacyDeparturesOn(date)[0]!;
+    await r.flight.setOverride(legacy.id, {gate:"B9"});
+    assert.ok((await r.flight.getFlights(date)).some(x => x.id === legacy.id && x.gate === "B9"));
   });
 });
 

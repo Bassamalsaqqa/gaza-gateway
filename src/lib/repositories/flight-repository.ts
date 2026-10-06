@@ -1,7 +1,8 @@
 import type { Flight } from "../data.ts";
 import { validateAircraftAssignment } from "../fleet/assignment.ts";
 import { getEffectiveFlight, isSyntheticFlightId, sanitizeFlightOverride, type FlightOverride } from "../domain/flight.ts";
-import type { FlightRepository, MonthlyServiceMap } from "./types.ts";
+import type { CheckInFlightRead, FlightRepository, MonthlyServiceMap } from "./types.ts";
+import type { Leg } from "../domain/booking.ts";
 import type { FleetRepository } from "../fleet/types.ts";
 import { LocalFleetRepository } from "../fleet/repository.ts";
 import { FleetStorageCoordinator } from "../fleet/storage.ts";
@@ -10,7 +11,7 @@ import { RepoStorageCoordinator, type RepoStorageV1 } from "./storage.ts";
 import { createStandaloneServiceResolver, matchesFlightDirection, type DatedServiceResolver } from "../dated-services/resolver.ts";
 import { isDatedServiceId } from "../dated-services/identity.ts";
 import { isLegacyFlightId, legacyFlightById } from "../dated-services/legacy.ts";
-import { bookingFlightSnapshots } from "../dated-services/compatibility.ts";
+import { bookingFlightSnapshots, confirmedBookingFlightSnapshots } from "../dated-services/compatibility.ts";
 
 /** Current-sale discovery and broader operational compatibility are separate contracts. */
 export class LocalFlightRepository implements FlightRepository {
@@ -36,8 +37,11 @@ export class LocalFlightRepository implements FlightRepository {
   async getFlights(date: string, direction?: "dep" | "arr"): Promise<Flight[]> {
     const current = await this.resolver.listCurrentFlights(date, direction);
     const state = this.readState();
+    return this.boardFlights(current, state, date, direction);
+  }
+  private boardFlights(current: Flight[], state: RepoStorageV1, date: string, direction?: "dep" | "arr"): Flight[] {
     const flights = new Map(current.map(f => [f.id, f]));
-    for (const f of bookingFlightSnapshots(state.bookings)) {
+    for (const f of confirmedBookingFlightSnapshots(state.bookings)) {
       if (f.date === date && matchesFlightDirection(f, direction) && !flights.has(f.id)) flights.set(f.id, f);
     }
     for (const id of Object.keys(state.flightOverrides)) {
@@ -47,6 +51,43 @@ export class LocalFlightRepository implements FlightRepository {
     }
     return [...flights.values()].map(f => getEffectiveFlight(f, state.flightOverrides[f.id]))
       .sort((a, b) => a.departTime.localeCompare(b.departTime) || a.number.localeCompare(b.number) || a.id.localeCompare(b.id));
+  }
+  async getBookingFlight(ref: string, leg: Leg): Promise<Flight | null> {
+    const clean = ref.trim().toUpperCase();
+    const booking = this.readState().bookings.find(b => b.ref.toUpperCase() === clean);
+    const stored = leg === "in" ? booking?.inbound : booking?.outbound;
+    if (!stored) return null;
+    let current: Flight | null = null;
+    try { current = await this.resolver.resolveCurrentFlightById(stored.id); }
+    catch { /* Valid PNR history remains available without current planning. */ }
+    // Reread this Booking and overrides after the external authority read.
+    const state = this.readState();
+    const canonical = state.bookings.find(b => b.ref.toUpperCase() === clean);
+    const own = leg === "in" ? canonical?.inbound : canonical?.outbound;
+    if (!own) return null;
+    const base = current?.id === own.id ? current : own;
+    return getEffectiveFlight(base, state.flightOverrides[own.id]);
+  }
+  async getCheckInFlights(date: string): Promise<CheckInFlightRead> {
+    let current: Flight[] = [], planningUnavailable = false;
+    try { current = await this.resolver.listCurrentFlights(date, "dep"); }
+    catch { planningUnavailable = true; }
+    const state = this.readState();
+    const bases = new Map(current.map(f => [f.id, f]));
+    const bookingFlights: CheckInFlightRead["bookingFlights"] = {};
+    for (const booking of state.bookings) {
+      if (booking.status !== "confirmed") continue;
+      for (const leg of ["out", "in"] as const) {
+        const stored = leg === "out" ? booking.outbound : booking.inbound;
+        if (!stored || stored.date !== date || stored.originCode !== "GZA") continue;
+        (bookingFlights[booking.ref] ??= {})[leg] = getEffectiveFlight(bases.get(stored.id) ?? stored, state.flightOverrides[stored.id]);
+      }
+    }
+    const flights = planningUnavailable
+      ? [...new Map(Object.values(bookingFlights).flatMap(legs => Object.values(legs)).map(f => [f.id, f])).values()]
+          .sort((a, b) => a.departTime.localeCompare(b.departTime) || a.id.localeCompare(b.id))
+      : this.boardFlights(current, state, date, "dep");
+    return { flights, bookingFlights, planningUnavailable };
   }
   async searchFlights(origin: string, destination: string, date: string): Promise<Flight[]> {
     if (!origin || !destination || !date) return [];

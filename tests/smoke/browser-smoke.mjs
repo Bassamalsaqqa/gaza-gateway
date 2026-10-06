@@ -1,3 +1,4 @@
+import { runCutoverCorrection01Checks } from "./phase6b2c2b-correction-01.mjs";
 import { runDatedServiceCutoverChecks } from "./phase6b2c2b-cutover.mjs";
 import { currentDeparturesOn, currentArrivalsOn } from "../helpers/current-service-fixture.ts";
 import { runDatedServiceFoundationChecks } from "./phase6b2c2a-foundation.mjs";
@@ -7785,6 +7786,7 @@ async function runBrowserSmoke() {
     await runPhase6B2C1Checks({ checkStep, browser, baseUrl });
     await runDatedServiceFoundationChecks({ checkStep, browser, baseUrl });
     await runDatedServiceCutoverChecks({ checkStep, browser, baseUrl });
+    await runCutoverCorrection01Checks({ checkStep, browser, baseUrl });
 
   } finally {
     await browser.close();

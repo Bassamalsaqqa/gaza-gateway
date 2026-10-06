@@ -57,6 +57,7 @@ export interface AdminCheckInRow {
   status: DeskPassengerStatus;
   eligibility: CheckInEligibilityResult;
   booking: Booking;
+  effectiveFlight: Flight;
 }
 
 /**
@@ -68,6 +69,7 @@ export function buildAdminCheckInRows(
   flight: Flight | null | undefined,
   bookings: Booking[],
   now: Date | string | number = new Date(),
+  bookingFlights?: Record<string, Partial<Record<Leg, Flight>>>,
 ): AdminCheckInRow[] {
   if (!flight || flight.originCode !== "GZA") return [];
 
@@ -79,7 +81,10 @@ export function buildAdminCheckInRows(
     const matchingLeg = getBookingLegs(b).find((entry) => entry.flight.id === flight.id);
     if (!matchingLeg) continue;
     const leg = matchingLeg.leg;
-    const eligibility = getCheckInEligibility(b, leg, flight, { now });
+    // Booking and desk queries can converge at different moments. A missing map
+    // entry must not borrow a different PNR's selector snapshot.
+    const effectiveFlight = bookingFlights ? bookingFlights[b.ref]?.[leg] ?? matchingLeg.flight : flight;
+    const eligibility = getCheckInEligibility(b, leg, effectiveFlight, { now });
 
     b.passengers.forEach((p, idx) => {
       if (p.type === "infant") return;
@@ -119,6 +124,7 @@ export function buildAdminCheckInRows(
         status,
         eligibility,
         booking: b,
+        effectiveFlight,
       });
     });
   }

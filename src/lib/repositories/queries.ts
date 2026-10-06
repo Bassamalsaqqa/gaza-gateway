@@ -244,13 +244,13 @@ export function useBookingEffectiveFlights(
   const results = useQueries({
     queries: [
       {
-        queryKey: flightKeys.detail(outboundId),
-        queryFn: () => (outboundId ? flightRepo.getFlightById(outboundId) : Promise.resolve(null)),
+        queryKey: flightKeys.bookingLeg(booking?.ref ?? "", "out"),
+        queryFn: () => (outboundId && booking ? flightRepo.getBookingFlight(booking.ref, "out") : Promise.resolve(null)),
         enabled: Boolean(outboundId),
       },
       {
-        queryKey: flightKeys.detail(inboundId),
-        queryFn: () => (inboundId ? flightRepo.getFlightById(inboundId) : Promise.resolve(null)),
+        queryKey: flightKeys.bookingLeg(booking?.ref ?? "", "in"),
+        queryFn: () => (inboundId && booking ? flightRepo.getBookingFlight(booking.ref, "in") : Promise.resolve(null)),
         enabled: Boolean(inboundId),
       },
     ],
@@ -322,6 +322,11 @@ export function getEffectiveFlightForLeg(
 /**
  * Retrieves scheduled flights for a date with operational overrides composed.
  */
+export function useCheckInFlightsQuery(date: string) {
+  const { flight } = useRepositories();
+  return useQuery({ queryKey: flightKeys.desk(date), queryFn: () => flight.getCheckInFlights(date), enabled: Boolean(date) });
+}
+
 export function useFlightsQuery(
   date: string,
   direction?: "dep" | "arr",

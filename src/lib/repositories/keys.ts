@@ -17,6 +17,8 @@ export const bookingKeys = {
 export const flightKeys = {
   all: ["flights"] as const,
   current: (id: string) => [...flightKeys.all, "current", id] as const,
+  bookingLeg: (ref: string, leg: "out" | "in") => [...flightKeys.all, "bookingLeg", ref.toUpperCase(), leg] as const,
+  desk: (date: string) => [...flightKeys.all, "checkIn", date] as const,
   lists: () => [...flightKeys.all, "list"] as const,
   list: (date: string, direction?: "dep" | "arr") => [...flightKeys.lists(), { date, direction }] as const,
   details: () => [...flightKeys.all, "detail"] as const,

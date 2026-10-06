@@ -37,7 +37,7 @@ import { cn } from "@/lib/utils";
 import { resolveBookingLegLayout } from "@/lib/domain/booking";
 import { resolveBookingPricing } from "@/lib/commercial/pricing";
 import {
-  useFlightsQuery,
+  useCheckInFlightsQuery,
   useBookingsQuery,
   useCompleteCheckInMutation,
   useUndoCheckInMutation,
@@ -88,6 +88,8 @@ const statusTone = (s: DeskPassengerStatus) =>
           ? "warn"
           : "muted";
 
+const emptyFlights: Flight[] = [];
+
 function AdminCheckInPage() {
   const { t, lang } = useI18n();
   const { can, toast } = useAdmin();
@@ -99,7 +101,10 @@ function AdminCheckInPage() {
   const [query, setQuery] = useState<string>(() => search.ref || "");
 
   // Gaza physical station departures query
-  const { data: flights = [], isLoading: flightsLoading } = useFlightsQuery(date, "dep");
+  const deskQuery = useCheckInFlightsQuery(date);
+  const flights = deskQuery.data?.flights ?? emptyFlights;
+  const flightsLoading = deskQuery.isLoading;
+  const bookingFlights = deskQuery.data?.bookingFlights;
   const gzaFlights = useMemo(() => flights.filter((f) => f.originCode === "GZA"), [flights]);
 
   // Ensure selectedFlightId points to a valid current flight
@@ -131,8 +136,8 @@ function AdminCheckInPage() {
 
   // Pure rows selector
   const allRows = useMemo(
-    () => buildAdminCheckInRows(currentFlight, bookings),
-    [currentFlight, bookings],
+    () => buildAdminCheckInRows(currentFlight, bookings, new Date(), bookingFlights),
+    [currentFlight, bookings, bookingFlights],
   );
 
   // Filtered rows by search query
@@ -152,13 +157,13 @@ function AdminCheckInPage() {
   const flightCounts = useMemo(() => {
     const map = new Map<string, { booked: number; checkedIn: number }>();
     for (const f of gzaFlights) {
-      const matchingRows = buildAdminCheckInRows(f, bookings);
+      const matchingRows = buildAdminCheckInRows(f, bookings, new Date(), bookingFlights);
       const booked = matchingRows.length;
       const checkedIn = matchingRows.filter((row) => row.checkedIn).length;
       map.set(f.id, { booked, checkedIn });
     }
     return map;
-  }, [gzaFlights, bookings]);
+  }, [gzaFlights, bookings, bookingFlights]);
 
   const mayEdit = can("commercial.edit");
 
@@ -205,8 +210,8 @@ function AdminCheckInPage() {
           [`${r.leg}-${r.paxIndex}`]: seatToUse.trim().toUpperCase(),
         },
         {
-          outbound: r.leg === "out" ? currentFlight : r.booking.outbound,
-          inbound: r.leg === "in" ? currentFlight : r.booking.inbound,
+          outbound: r.leg === "out" ? r.effectiveFlight : r.booking.outbound,
+          inbound: r.leg === "in" ? r.effectiveFlight : r.booking.inbound,
         },
       );
     } catch (error) {
@@ -330,6 +335,8 @@ function AdminCheckInPage() {
         }
       />
 
+      {deskQuery.data?.planningUnavailable && <p role="alert" className="text-sm text-muted-foreground">{t("services.planningWarning")}</p>}
+      {deskQuery.isError && <p role="alert" className="text-sm text-muted-foreground">{t("services.error.unavailable")}</p>}
       <AdminPanel title={t("a2.ci.today")} bodyClassName="p-0">
         <Toolbar>
           <div className="flex flex-wrap items-center gap-3 w-full">
@@ -599,7 +606,7 @@ function AdminCheckInPage() {
                   />
                 </Field>
                 <CommercialSeatPicker
-                  flight={currentFlight}
+                  flight={sheetRow.effectiveFlight}
                   cabin={sheetRow.booking.criteria.cabin}
                   seats={{
                     ...sheetRow.booking.seats,

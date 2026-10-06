@@ -106,12 +106,22 @@ export interface MonthlyDayService {
 
 export type MonthlyServiceMap = Record<string, MonthlyDayService>;
 
+export interface CheckInFlightRead {
+  flights: Flight[];
+  bookingFlights: Record<string, Partial<Record<Leg, Flight>>>;
+  planningUnavailable: boolean;
+}
+
 export interface FlightRepository {
-  /** Operational board: current services plus booked and override-relevant compatibility, with overrides. */
+  /** Operational board: current services plus confirmed-PNR and override-relevant compatibility, with overrides. */
   getFlights(date: string, direction?: "dep" | "arr"): Promise<Flight[]>;
 
   /** Broad detail: current base first, then stored Booking snapshot or frozen legacy identity, with override. */
   getFlightById(id: string): Promise<Flight | null>;
+  /** PNR-specific current operations, falling back only to this canonical Booking leg. */
+  getBookingFlight(ref: string, leg: Leg): Promise<Flight | null>;
+  /** Desk-only confirmed-PNR compatibility during planning failure; never a sale fallback. */
+  getCheckInFlights(date: string): Promise<CheckInFlightRead>;
   /** Current materialized service only, with override; no historical/legacy fallback. */
   getCurrentFlightById(id: string): Promise<Flight | null>;
 

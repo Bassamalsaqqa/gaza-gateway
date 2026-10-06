@@ -50,6 +50,7 @@ export async function mountedCommand(page, command) {
     if(!r)throw new Error("Shared repository provider missing");
     if(command.kind==="search")return r.flight.searchFlights(command.origin??"GZA",command.destination??"AMM",command.date);
     if(command.kind==="detail")return r.flight.getFlightById(command.id);
+    if(command.kind==="bookingFlight")return r.flight.getBookingFlight(command.ref,command.leg);
     if(command.kind==="current")return r.flight.getCurrentFlightById(command.id);
     if(command.kind==="draft")return r.bookingDraft.updateDraft(prev=>({...prev,fareId:"essential",seats:command.clearSeats?{}:prev.seats,passengers:[{type:"adult",firstName:"Service",lastName:"Passenger",dob:"1980-01-01",nationality:"PS",document:"P123456"}],contact:{email:"service@example.com",phone:"+970599000000"},extras:{pax:[{extraBags:0,meal:"standard",assistance:[]}]}}));
     if(command.kind==="draftState")return r.bookingDraft.getDraft();
