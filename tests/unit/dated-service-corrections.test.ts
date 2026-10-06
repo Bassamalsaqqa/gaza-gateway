@@ -25,6 +25,7 @@ import {
 } from "../../src/lib/schedules/repository.ts";
 import { FleetStorageCoordinator, FLEET_STORAGE_KEY } from "../../src/lib/fleet/storage.ts";
 import { LocalFleetRepository } from "../../src/lib/fleet/repository.ts";
+import { seedFleetLayouts } from "../../src/lib/fleet/seed.ts";
 import { LocalNetworkRepository } from "../../src/lib/network/repository.ts";
 import { NetworkStorageCoordinator, NETWORK_STORAGE_KEY } from "../../src/lib/network/storage.ts";
 import { adminEn, adminAr } from "../../src/lib/i18n-admin.ts";
@@ -509,3 +510,148 @@ test("update normalizes detached structured equipment before Fleet validation", 
   });
   assert.deepEqual(patch, before);
 });
+
+test("missing Schedule store seeds materialize all known models with real Fleet layouts without writing", async () => {
+  const storage = new MemoryStorage();
+  const repo = new LocalScheduleRepository(new ScheduleStorageCoordinator({ storage }));
+  const seeds = seedSchedules();
+  assert.deepEqual(await repo.list(), seeds);
+  const before = structuredClone(seeds);
+  const layouts = seedFleetLayouts();
+  const expected = new Map([
+    ["Airbus A320neo", "a320neo"],
+    ["Airbus A321neo", "a321neo"],
+    ["Boeing 737-800", "b737800"],
+  ]);
+  const seen = new Set<string>();
+  for (const s of seeds.filter((entry) => entry.active)) {
+    assert.equal(s.aircraftId, undefined);
+    const start = new Date(s.from + "T00:00:00Z");
+    while (!s.days.includes(start.getUTCDay())) start.setUTCDate(start.getUTCDate() + 1);
+    const flight = materializeScheduleOnDate({
+      schedule: s,
+      network: seedNetworkEnvelope().destinations.find((entry) => entry.code === s.destination)!,
+      date: start.toISOString().slice(0, 10),
+      basePrice: 150,
+      now,
+    })!;
+    assert.ok(flight);
+    assert.equal(flight.aircraft, s.aircraft);
+    assert.equal(flight.aircraftId, expected.get(s.aircraft));
+    assert.ok(layouts[flight.aircraftId!]);
+    assert.equal(layouts[flight.aircraftId!]!.aircraftId, flight.aircraftId);
+    seen.add(s.aircraft);
+  }
+  assert.deepEqual(seen, new Set(expected.keys()));
+  assert.deepEqual(seeds, before);
+  assert.equal(storage.writes, 0);
+  assert.equal(storage.getItem(SCHEDULE_STORAGE_KEY), null);
+});
+
+for (const [model, expectedId] of [
+  ["Airbus A320neo", "a320neo"],
+  ["Airbus A321neo", "a321neo"],
+  ["Boeing 737-800", "b737800"],
+  ["Legacy Charter Type", undefined],
+] as const)
+  test("legacy persisted Schedule equipment resolves without migration: " + model, async () => {
+    const s = { ...schedule(), aircraft: model, aircraftId: undefined };
+    const r = rig([s]);
+    const bytes = r.storage.getItem(SCHEDULE_STORAGE_KEY);
+    const stored = (await r.repo.getById(s.id))!;
+    const before = structuredClone(stored);
+    const flight = projection(stored)!;
+    assert.equal(flight.aircraft, model);
+    assert.equal(flight.aircraftId, expectedId);
+    if (expectedId) assert.ok(seedFleetLayouts()[expectedId]);
+    assert.deepEqual(stored, before);
+    assert.equal((await r.repo.getById(s.id))!.aircraftId, undefined);
+    assert.equal(r.storage.getItem(SCHEDULE_STORAGE_KEY), bytes);
+    assert.equal(r.storage.writes, 0);
+    assert.equal(r.events(), 0);
+  });
+
+test("explicit Schedule and structured effect identities take precedence over legacy names", () => {
+  const legacy = { ...schedule(), aircraft: "Legacy Charter Type", aircraftId: undefined };
+  assert.equal(
+    projection({ ...legacy, aircraftId: "explicit-airframe" })!.aircraftId,
+    "explicit-airframe",
+  );
+  const base = { ...schedule(), aircraftId: "explicit-airframe" };
+  const aircraft = projection({ ...base, exceptions: [aircraftEffect()] })!;
+  assert.equal(aircraft.aircraftId, "a321neo");
+  assert.equal(aircraft.aircraft, "Airbus A321neo");
+  const extra = projection(
+    {
+      ...base,
+      exceptions: [extraEffect({ aircraftId: "b737800", aircraft: "Boeing 737-800" })],
+    },
+    extraDate,
+  )!;
+  assert.equal(extra.aircraftId, "b737800");
+  assert.equal(extra.aircraft, "Boeing 737-800");
+  assert.equal(projection({ ...legacy, exceptions: [aircraftEffect()] })!.aircraftId, "a321neo");
+});
+
+for (const exception of [
+  aircraftEffect(),
+  timeEffect(),
+  { id: "annotation", date, kind: "time", detail: "planning only" } as ScheduleException,
+])
+  test(
+    "two repositories reject a stale exception collection: " +
+      (exception.effect ? exception.kind : "annotation"),
+    async () => {
+      const s = { ...schedule(), exceptions: [exception] };
+      const a = rig([s]);
+      const b = new LocalScheduleRepository(
+        new ScheduleStorageCoordinator({ storage: a.storage }),
+        a.fleet,
+        a.network,
+      );
+      let bEvents = 0;
+      b.subscribe(() => bEvents++);
+      const snapshot = (await a.repo.getById(s.id))!;
+      const mutate = a.coord.mutate.bind(a.coord);
+      let release!: () => void, entered!: () => void;
+      const held = new Promise<void>((resolve) => (release = resolve));
+      const queued = new Promise<void>((resolve) => (entered = resolve));
+      a.coord.mutate = async (fn) => {
+        entered();
+        await held;
+        return mutate(fn);
+      };
+      const staleException = structuredClone(snapshot.exceptions[0]!);
+      staleException.detail = "stale operator A";
+      if (staleException.kind === "aircraft" && staleException.effect) {
+        staleException.effect = { aircraftId: "a320neo", aircraft: "Airbus A320neo" };
+      } else if (staleException.kind === "time" && staleException.effect) {
+        staleException.effect.departTime = "22:10";
+      }
+      const patch = { exceptions: [staleException] };
+      const draft = structuredClone(patch);
+      const pending = a.repo.update(s.id, patch);
+      const rejected = assert.rejects(pending, ScheduleIdentityConflictError);
+      await queued;
+      const newerException = structuredClone(snapshot.exceptions[0]!);
+      newerException.detail = "committed operator B";
+      if (newerException.kind === "time" && newerException.effect) {
+        newerException.effect.departTime = "21:20";
+      }
+      const newer = await b.update(s.id, { exceptions: [newerException] });
+      const bytes = a.storage.getItem(SCHEDULE_STORAGE_KEY)!;
+      assert.equal(JSON.parse(bytes).revision, 1);
+      assert.equal(a.storage.writes, 1);
+      assert.equal(bEvents, 1);
+      release();
+      await rejected;
+      assert.equal(a.storage.getItem(SCHEDULE_STORAGE_KEY), bytes);
+      assert.equal(a.storage.writes, 1);
+      assert.equal(a.events(), 0);
+      assert.equal(bEvents, 1);
+      assert.deepEqual(await a.repo.getById(s.id), newer);
+      assert.deepEqual(await b.getById(s.id), newer);
+      assert.equal(newer.exceptions[0]!.detail, "committed operator B");
+      assert.deepEqual(patch, draft);
+    },
+  );

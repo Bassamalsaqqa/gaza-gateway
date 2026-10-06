@@ -3,6 +3,7 @@
 > **Current Source Status**: **Phase 6B2C2A Implemented / Awaiting Independent Review.** Production remains owner-deployed Phase 6B2A; Phase 6B2B release/deployment is intentionally pending. Phase 6B2C2B remains Planned / Unstarted.
 
 Status: **Phase 6B2C2A Implemented / Awaiting Independent Review**. Historical completed phases:
+
 - **Phase 6B2C1 Complete / Accepted Source** (accepted engineering SHA: `9846f9ad90760a5e47ca231a838d146c4d7096a0`, accepted source `f5506a2ae467b2eb5b8182d7d5b009f258115eb4`).
 - **Phase 6B2B Complete / Accepted Source** (accepted engineering SHA: `7f8a2bef613fa0cd37af4f05684c98aebe94d23e`, accepted source `d0a411cb8a882298eb32a3222478fbc782ba5556`).
 - **Phase 6B2A Complete / Accepted Source / Accepted Release / Deployed by Owner** (current production: release `2751e22be91ad74eacc9213489a57a21baf04807`, runtime source `ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`).
@@ -55,6 +56,7 @@ Phase 6B2C2A establishes the pure domain foundation for projecting recurring `Sc
 ## Identity Codec Specification
 
 ### Format
+
 ```
 svc1-<base64url UTF-8 exact Schedule ID>-YYYY-MM-DD
 ```
@@ -64,6 +66,7 @@ svc1-<base64url UTF-8 exact Schedule ID>-YYYY-MM-DD
 - **Date Component**: Strict ISO 8601 calendar date (`YYYY-MM-DD`) validated against real Gregorian rules (leap years, month bounds, days 1-31).
 
 ### Reversibility & Validation
+
 - `datedServiceId(scheduleId: string, date: string): string` validates input and encodes deterministically.
 - `parseDatedServiceId(id: string): { scheduleId: string, date: string } | null` verifies canonical base64url encoding, valid ISO calendar date, and recovers the exact scheduleId. Non-canonical encodings, invalid dates, or malformed strings return `null`.
 - `isDatedServiceId(id: string): boolean` tests whether a string conforms to the codec specification.
@@ -73,11 +76,13 @@ svc1-<base64url UTF-8 exact Schedule ID>-YYYY-MM-DD
 ## Structured Effects & Lifecycle
 
 ### Schedule Lifecycle
+
 - **No Destructive Delete**: `ScheduleRepository.remove`, `deleteSchedule`, and `useDeleteScheduleMutation` are removed. Future product commands cannot delete Schedules. Existing previously emptied stores are preserved without resurrection.
 - **Retirement Mechanism**: Setting `active: false` is the sole retirement mechanism. Inactive schedules preserve their identity, history, and exceptions while being excluded from operational projection when C2B activates.
 - **Empty Storage Authority**: Empty persisted arrays in `gza.schedule.v1` (`{ schemaVersion: 1, revision: N, schedules: [] }`) are fully authoritative and never resurrect compiled seeds.
 
 ### Exception Schema & Discriminator
+
 `ScheduleException` is a discriminated union on `kind`:
 
 1. **`cancelled`**:
@@ -105,6 +110,7 @@ svc1-<base64url UTF-8 exact Schedule ID>-YYYY-MM-DD
    - Legacy stored records `{ id, date, kind, detail }` parse unchanged as annotations without operational power. Prose `detail` is never parsed for operational rules.
 
 ### Operational Effect Rules
+
 - Effect `date` must fall within inclusive `[schedule.from, schedule.until]`.
 - Exception `id` values must be unique within the Schedule.
 - Only one operational effect of a given kind per date.
@@ -113,10 +119,11 @@ svc1-<base64url UTF-8 exact Schedule ID>-YYYY-MM-DD
 - `extra` is valid only on non-recurring weekdays (days not in `schedule.days`).
 - Equipment assignments in `aircraft` or `extra` effects are validated against `FleetRepository` at mutation time: the aircraft must exist, be active, and possess a valid seat layout.
 
-
 ## Certified command and compatibility boundaries
 
-Schedule command inputs are detached before awaiting dependencies or queued locks. New/changed structured equipment is validated through Fleet; unchanged historical equipment can survive inactive or corrupt Fleet. Locked rereads protect unchanged-equipment assumptions. Exact committed create replay bypasses both Fleet and Network and performs zero writes, revision increments or notifications.
+Schedule command inputs are detached before awaiting dependencies or queued locks. New/changed structured equipment is validated through Fleet; unchanged historical equipment can survive inactive or corrupt Fleet. When a command replaces exceptions, the locked reread compares the entire canonical exception collection against its preflight baseline. Concurrent changes reject with `ScheduleIdentityConflictError`, preserving the newer collection without writing, incrementing revision or notifying subscribers; operator edits are not implicitly merged. Exact committed create replay bypasses both Fleet and Network and performs zero writes, revision increments or notifications.
+
+Pure materialization resolves equipment identity in order: structured aircraft effect, structured extra equipment effect, explicit Schedule `aircraftId`, then the accepted exact known-name Fleet mapping (`Airbus A320neo` → `a320neo`, `Airbus A321neo` → `a321neo`, `Boeing 737-800` → `b737800`). Stored effect/Schedule display text is preserved. Unknown legacy names remain unresolved without an invented ID. This compatibility projection performs no Fleet repository read and no read-time Schedule migration or storage write.
 
 The codec rejects unpaired UTF-16 surrogates and invalid/noncanonical UTF-8 tokens. Valid Unicode (including a leading BOM), punctuation and whitespace round-trip exactly in Node and browser execution. Gregorian years 0000 through 9999 use ISO parsing without Date.UTC's 0-99 year remapping.
 

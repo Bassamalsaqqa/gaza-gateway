@@ -107,6 +107,10 @@ export class LocalScheduleRepository implements ScheduleRepository {
     const prospective = parseSchedule({ ...existing, ...patch });
     const fields = Object.keys(patch) as (keyof ScheduleUpdateInput)[];
     patch = Object.fromEntries(fields.map((field) => [field, prospective[field]]));
+    // Replacing exceptions is one optimistic command: preserve the entire
+    // canonical collection this edit was based on, including annotations.
+    const exceptionBaseline =
+      patch.exceptions !== undefined ? JSON.stringify(existing.exceptions) : undefined;
 
     const currentId = existing.aircraftId ?? aircraftNameToSeedId(existing.aircraft);
     const assignmentChanged =
@@ -127,16 +131,9 @@ export class LocalScheduleRepository implements ScheduleRepository {
       delete nextPatch.aircraft;
     }
 
-    // Track exceptions that were validated or determined unchanged
-    const unchangedExceptions: ScheduleException[] = [];
     if (patch.exceptions !== undefined) {
       const exceptionsCopy = structuredClone(patch.exceptions);
-      await validateExceptionAircraftAssignments(
-        this.fleet,
-        exceptionsCopy,
-        existing.exceptions,
-        unchangedExceptions,
-      );
+      await validateExceptionAircraftAssignments(this.fleet, exceptionsCopy, existing.exceptions);
       nextPatch.exceptions = exceptionsCopy;
     }
 
@@ -146,13 +143,12 @@ export class LocalScheduleRepository implements ScheduleRepository {
       const current = candidate.schedules[index]!;
       assertRouteIdentity(current, patch);
 
-      // Concurrency guard: verify that exceptions assumed unchanged from preflight
-      // are still present with the exact same data in the locked reread state.
-      for (const exc of unchangedExceptions) {
-        const lockedExc = current.exceptions.find((e) => e.id === exc.id);
-        if (!lockedExc || JSON.stringify(lockedExc) !== JSON.stringify(exc)) {
-          throw new ScheduleIdentityConflictError();
-        }
+      // Reread under the storage lock before replacing any operator's effects.
+      if (
+        exceptionBaseline !== undefined &&
+        JSON.stringify(current.exceptions) !== exceptionBaseline
+      ) {
+        throw new ScheduleIdentityConflictError();
       }
 
       const retainedId = current.aircraftId ?? aircraftNameToSeedId(current.aircraft);
@@ -182,7 +178,6 @@ async function validateExceptionAircraftAssignments(
   fleet: FleetRepository,
   exceptions: ScheduleException[],
   existingExceptions?: ScheduleException[],
-  unchangedOut?: ScheduleException[],
 ): Promise<void> {
   for (let idx = 0; idx < exceptions.length; idx++) {
     const exc = exceptions[idx]!;
@@ -218,7 +213,6 @@ async function validateExceptionAircraftAssignments(
         }
         if (prevId === targetAircraftId && prevName === targetAircraft) {
           // Unchanged stored equipment survives later Fleet deactivation/corruption
-          unchangedOut?.push(prev);
           continue;
         }
       }

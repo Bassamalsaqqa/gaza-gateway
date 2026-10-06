@@ -14,6 +14,7 @@
  */
 
 import type { Flight } from "../data.ts";
+import { aircraftNameToSeedId } from "../fleet/layout.ts";
 import type {
   ScheduleExceptionCancelled,
   ScheduleExceptionTime,
@@ -133,7 +134,10 @@ export function materializeScheduleOnDate(options: MaterializeScheduleOptions): 
   const effectiveAircraft =
     aircraftEx?.effect?.aircraft ?? extraEx?.effect?.aircraft ?? schedule.aircraft;
   const effectiveAircraftId =
-    aircraftEx?.effect?.aircraftId ?? extraEx?.effect?.aircraftId ?? schedule.aircraftId;
+    aircraftEx?.effect?.aircraftId ??
+    extraEx?.effect?.aircraftId ??
+    schedule.aircraftId ??
+    aircraftNameToSeedId(schedule.aircraft);
 
   // Route endpoints
   const isOutbound = schedule.direction === "out";
