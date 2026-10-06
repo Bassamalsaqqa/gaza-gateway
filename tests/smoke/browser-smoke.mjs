@@ -1,3 +1,4 @@
+import { runDatedServiceFoundationChecks } from "./phase6b2c2a-foundation.mjs";
 import { runPhase6B2BCorrectionChecks } from "./phase6b2b-correction-01.mjs";
 import { runPhase6B2C1Checks } from "./phase6b2c1-network.mjs";
 import { runPhase6B2BChecks } from "./phase6b2b-fleet.mjs";
@@ -7808,6 +7809,7 @@ async function runBrowserSmoke() {
     await runPhase6B2BChecks({ checkStep, browser, baseUrl });
     await runPhase6B2BCorrectionChecks({ checkStep, browser, baseUrl });
     await runPhase6B2C1Checks({ checkStep, browser, baseUrl });
+    await runDatedServiceFoundationChecks({ checkStep, browser, baseUrl });
 
   } finally {
     await browser.close();

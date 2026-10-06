@@ -72,7 +72,7 @@ async function flightRow(page, number) {
 
 export async function runPhase6B1Checks({ checkStep, browser, baseUrl }) {
   await checkStep(
-    "Check 69: Phase 6B1 schedule CRUD, reload, mounted two-tab convergence and planning-only boundary",
+    "Check 69: Phase 6B1 schedule create/edit/retire, reload, mounted two-tab convergence and planning-only boundary",
     async () => {
       const context = await commercialContext(browser, null);
       try {
@@ -114,21 +114,41 @@ export async function runPhase6B1Checks({ checkStep, browser, baseUrl }) {
         );
         await b.goto(baseUrl + "/admin/schedules");
         await mainRow(b, "PS902").waitFor();
-        await mainRow(a, "PS902").getByRole("button", { name: "Delete", exact: true }).click();
-        await a
-          .getByRole("alertdialog")
-          .getByRole("button", { name: "Delete", exact: true })
-          .click();
+        assert.equal(await mainRow(a, "PS902").locator('button:has-text("Delete")').count(), 0);
+        await edit(a, "PS902");
+        assert.equal(await a.locator('button:has-text("Delete")').count(), 0);
+        await a.locator("#sc-active").click();
+        await a.getByRole("button", { name: adminEn["adm.sch.addException"], exact: true }).click();
+        await a.getByText(adminEn["adm.sch.planningAnnotation"], { exact: true }).first().waitFor();
+        const toggle = a.locator('button[role="switch"]').last();
+        await toggle.click();
+        await a.getByText(adminEn["adm.sch.effectActive"], { exact: true }).first().waitFor();
+        await save(a);
+        await waitClosed(a);
+        await b.getByRole("button", { name: adminEn["adm.common.active"], exact: true }).click();
         await mainRow(b, "PS902").waitFor({ state: "hidden" });
+        await b.getByRole("button", { name: adminEn["adm.common.inactive"], exact: true }).click();
+        await mainRow(b, "PS902").waitFor();
         await a.reload();
-        assert.ok(!JSON.parse(await store(a)).schedules.some((s) => s.id === id));
+        const stored = JSON.parse(await store(a));
+        const retired = stored.schedules.find((s) => s.id === id);
+        assert.ok(retired);
+        assert.equal(retired.active, false);
+        assert.equal(retired.exceptions.length, 1);
+        assert.ok(retired.exceptions[0].effect);
+        await publicTab.reload();
+        await publicTab.locator("main tbody tr").first().waitFor();
+        assert.deepEqual(
+          await publicTab.locator("main tbody tr").evaluateAll((es) => es.map((e) => e.innerText)),
+          links,
+        );
       } finally {
         await context.close();
       }
     },
   );
   await checkStep(
-    "Check 70: Phase 6B1 schedule create/update/delete failures preserve state and retry identity",
+    "Check 70: Phase 6B1 schedule create/update/retirement failures preserve state and retry identity",
     async () => {
       const context = await commercialContext(browser, null);
       try {
@@ -161,20 +181,19 @@ export async function runPhase6B1Checks({ checkStep, browser, baseUrl }) {
           "PS904",
         );
         const before = await store(page);
-        await mainRow(page, "PS904").getByRole("button", { name: "Delete", exact: true }).click();
+        await edit(page, "PS904");
+        await page.locator("#sc-active").click();
         await failure(page, "gza.schedule.v1");
-        await page
-          .getByRole("alertdialog")
-          .getByRole("button", { name: "Delete", exact: true })
-          .click();
-        await page.getByRole("alertdialog").getByRole("alert").waitFor();
+        await save(page);
+        await alert(page);
         assert.equal(await store(page), before);
         await retry(page);
-        await page
-          .getByRole("alertdialog")
-          .getByRole("button", { name: "Delete", exact: true })
-          .click();
-        await mainRow(page, "PS904").waitFor({ state: "hidden" });
+        await save(page);
+        await waitClosed(page);
+        assert.equal(
+          JSON.parse(await store(page)).schedules.find((s) => s.id === id).active,
+          false,
+        );
       } finally {
         await context.close();
       }
@@ -239,7 +258,7 @@ export async function runPhase6B1Checks({ checkStep, browser, baseUrl }) {
         await edits.first().waitFor();
         for (const el of await edits.all()) assert.equal(await el.isDisabled(), true);
         const deletes = page.getByRole("button", { name: "Delete", exact: true });
-        for (const el of await deletes.all()) assert.equal(await el.isDisabled(), true);
+        assert.equal(await deletes.count(), 0);
         await page.goto(baseUrl + "/admin/flights");
         const quick = page.getByRole("button", { name: "Quick edit", exact: true });
         await quick.first().waitFor();

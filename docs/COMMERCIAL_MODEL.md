@@ -2,7 +2,7 @@
 
 **Complete / Accepted Source / Accepted Release / Deployed by Owner**, the current production checkpoint (accepted engineering SHA: `1c5e6b6259add7b59199725f6b23324e8d1c58eb`; deployed runtime source: `ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`; owner-deployed release: `2751e22be91ad74eacc9213489a57a21baf04807`). Phase 6B1 remains a historical completed phase (release `f8c0d0bdc579c5c2719670c8387fa543d8d6a170`, runtime source `bcf284df3f0d7b24ec59372bb038ed9ae1e8c934`).
 
-> **Current Source Status**: **Phase 6B2C1 Complete / Accepted Source.** Production remains owner-deployed Phase 6B2A; Phase 6B2B release/deployment is intentionally pending. Phase 6B2C2 remains Planned / Unstarted.
+> **Current Source Status**: **Phase 6B2C2A Implemented / Awaiting Independent Review. Phase 6B2C1 Complete / Accepted Source.** Production remains owner-deployed Phase 6B2A; Phase 6B2B release/deployment is intentionally pending. Phase 6B2C2A is Implemented / Awaiting Independent Review; Phase 6B2C2B remains Planned / Unstarted.
 
 ## Authority and persistence
 
@@ -28,9 +28,9 @@ Names and service labels resolve through the current catalog including retired r
 
 ## Boundaries
 
-Admin Products Fares/Baggage/Meals/Assistance and cabin pricing are commercial.edit mutations; commercial.view can inspect. Field validation is localized/associated; storage failure is a general alert and preserves editor input. In Phase 6B2B, aircraft and seat maps are canonicalized under `FleetRepository` (`gza.fleet.v1`) with booking seat layout snapshots (`BookingSeatLayoutsV1`). Network reference configuration uses NetworkRepository (`gza.network.v1`) in Phase 6B2C1; editorial/SEO and route pricing are excluded. No gza.ops.v1, backend, network changes, schedule materialization or flight-ID changes; deployment is owner-confirmed. Phase 6B2B is Complete / Accepted Source; Phase 6B2C2/6C/7/7B remain Planned / Unstarted.
+Admin Products Fares/Baggage/Meals/Assistance and cabin pricing are commercial.edit mutations; commercial.view can inspect. Field validation is localized/associated; storage failure is a general alert and preserves editor input. In Phase 6B2B, aircraft and seat maps are canonicalized under `FleetRepository` (`gza.fleet.v1`) with booking seat layout snapshots (`BookingSeatLayoutsV1`). Network reference configuration uses NetworkRepository (`gza.network.v1`) in Phase 6B2C1; editorial/SEO and route pricing are excluded. No gza.ops.v1, backend, network changes, schedule materialization or flight-ID changes; deployment is owner-confirmed. Phase 6B2B is Complete / Accepted Source; Phase 6B2C2A is Implemented / Awaiting Independent Review; Phase 6B2C2B/6C/7/7B remain Planned / Unstarted.
 
-Phase 6B2B — Fleet Identity, Seat Layout & Booking Seat Authority (Complete / Accepted Source). Phase 6B2C2 — Network & Dated-Service Materialization (Planned / Unstarted).
+Phase 6B2B — Fleet Identity, Seat Layout & Booking Seat Authority (Complete / Accepted Source). Phase 6B2C2A (Implemented / Awaiting Independent Review); Phase 6B2C2B (Planned / Unstarted).
 
 ## Correction 01 command boundaries
 
@@ -50,7 +50,7 @@ Release status: **Not yet Accepted Release**. Deployment status: **Not yet Deplo
 
 Production remains **Phase 6B2A — Complete / Accepted Source / Accepted Release / Deployed by Owner**: release `2751e22be91ad74eacc9213489a57a21baf04807`, runtime source `ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`. Deployment is owner-confirmed; no independent live-browser verification is claimed.
 
-Phase 6B2C2 — Network & Dated-Service Materialization remains **Planned / Unstarted**. Phase 6C, Phase 7 and Phase 7B remain Planned / Unstarted. Phase 6B as a whole remains incomplete.
+Phase 6B2C2A is **Implemented / Awaiting Independent Review**; Phase 6B2C2B remains **Planned / Unstarted**. Phase 6C, Phase 7 and Phase 7B remain Planned / Unstarted. Phase 6B as a whole remains incomplete.
 
 ## Phase 6B2C1 - Network Reference Authority & Destination Operations Convergence
 
@@ -60,4 +60,12 @@ Admin Destination Basics persist operational fields; planning frequency and Rout
 
 Phase 6B2B is Complete / Accepted Source; its release/deployment is intentionally pending. Production remains **Phase 6B2A - Complete / Accepted Source / Accepted Release / Deployed by Owner**, release `2751e22be91ad74eacc9213489a57a21baf04807`, runtime source `ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`. No independent live-browser production verification is claimed.
 
-Phase 6B2C2 - Network & Dated-Service Materialization: **Planned / Unstarted**. Public Flight generation, Flight IDs and Booking Flight resolution are unchanged in C1. Phase 6C/7/7B remain Planned / Unstarted; Phase 6B as a whole remains incomplete. See [NETWORK_MODEL.md](NETWORK_MODEL.md) for persistence, lifecycle and failure isolation.
+Phase 6B2C2 - Network & Dated-Service Materialization: Phase 6B2C2A is Implemented / Awaiting Independent Review; Phase 6B2C2B is Planned / Unstarted. Public Flight generation, Flight IDs and Booking Flight resolution are unchanged in C1. Phase 6C/7/7B remain Planned / Unstarted; Phase 6B as a whole remains incomplete. See [NETWORK_MODEL.md](NETWORK_MODEL.md) for persistence, lifecycle and failure isolation.
+
+## Phase 6B2C2A - Stable Dated-Service Materialization Foundation
+
+**Implemented / Awaiting Independent Review.** Establishes pure, deterministic projection of recurring schedules onto concrete calendar dates with structured operational effects (`cancelled`, `time`, `aircraft`, `extra`). Versioned URL-safe reversible codec `svc1-<base64url>-<date>` preserves exact Schedule identity without loss. Schedule lifecycle eliminates destructive `remove`; `active = false` is the sole retirement mechanism.
+
+Phase 6B2A is Complete / Accepted Source / Accepted Release / Deployed by Owner (current production release: `2751e22be91ad74eacc9213489a57a21baf04807`, runtime source: `ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`). Phase 6B2B is Complete / Accepted Source (release/deployment intentionally pending). Phase 6B2C1 is Complete / Accepted Source.
+
+Phase 6B2C2B - Network & Dated-Service Discovery Cutover: **Planned / Unstarted**. In Phase 6B2C2A, live consumer discovery (Public Flights, Home board, Flight Detail, Booking search, Admin global search) remains bound to the compiled legacy generator and canonical overrides. Phase 6C/7/7B remain Planned / Unstarted; Phase 6B as a whole remains incomplete. See [DATED_SERVICE_MODEL.md](DATED_SERVICE_MODEL.md).

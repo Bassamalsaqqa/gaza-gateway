@@ -37,7 +37,7 @@ function rig(){
   return {storage,coordinator,fleet,commercial,flight,schedule,booking};
 }
 function candidate():BookingCreateInput{
-  const f=departuresOn(addDaysISO(todayISO(),5)).find(f=>f.status==="Scheduled" && f.seatsLeft>3)!;
+  const f=Array.from({ length: 14 }, (_, i) => departuresOn(addDaysISO(todayISO(), 5 + i))).flat().find(f=>f.aircraftId==="a320neo" && f.status==="Scheduled" && f.seatsLeft>3)!;
   assert.ok(f);
   return {criteria:{tripType:"oneway",origin:f.originCode,destination:f.destinationCode,departDate:f.date,returnDate:"",adults:1,children:0,infants:0,cabin:"economy"},outbound:f,fareId:"essential",passengers:[{type:"adult",firstName:"Seat",lastName:"Audit",dob:"1980-01-01",nationality:"PS",document:"AUDIT123"}],seats:{},extras:{pax:[{extraBags:0,meal:"standard",assistance:[]}]},contact:{email:"audit@example.com",phone:"+970599000000"},total:0};
 }

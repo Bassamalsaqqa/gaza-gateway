@@ -139,26 +139,24 @@ describe("Phase 6B1 — schedule authority and transactions", () => {
     result.days.push(9);
     assert.ok(!(await reloaded.getById("new-schedule"))!.days.includes(9));
   });
-  it("unchanged update and absent removal avoid writes and notifications", async () => {
+  it("unchanged update and no-op retirement avoid writes and notifications", async () => {
     const { storage, coordinator, repository } = setup();
     const created = await repository.create(entry());
     const writes = storage.writes;
     let notifications = 0;
     coordinator.subscribe(() => notifications++);
     await repository.update(created.id, { number: created.number });
-    await repository.remove("absent");
+    await repository.update(created.id, { active: created.active });
     assert.equal(storage.writes, writes);
     assert.equal(notifications, 0);
   });
-  it("removing every schedule persists an authoritative empty list", async () => {
-    const { storage, repository } = setup();
-    for (const item of await repository.list()) await repository.remove(item.id);
-    assert.deepEqual(
-      await new LocalScheduleRepository(new ScheduleStorageCoordinator({ storage })).list(),
-      [],
-    );
+  it("already-empty storage authority persists an authoritative empty list", async () => {
+    const { storage } = setup();
+    storage.setItem(SCHEDULE_STORAGE_KEY, JSON.stringify({ schemaVersion: 1, revision: 1, schedules: [] }));
+    const repo = new LocalScheduleRepository(new ScheduleStorageCoordinator({ storage }));
+    assert.deepEqual(await repo.list(), []);
   });
-  for (const action of ["create", "update", "delete"] as const)
+  for (const action of ["create", "update", "retirement"] as const)
     it(action + " failure rolls back without notification and supports retry", async () => {
       const { storage, coordinator, repository } = setup();
       await repository.create(entry());
@@ -172,7 +170,7 @@ describe("Phase 6B1 — schedule authority and transactions", () => {
           ? repository.create(entry("second"))
           : action === "update"
             ? repository.update("new-schedule", { departTime: "11:11" })
-            : repository.remove("new-schedule");
+            : repository.update("new-schedule", { active: false });
       await assert.rejects(mutate(), ScheduleStorageWriteError);
       assert.deepEqual(await repository.list(), before);
       assert.equal(storage.getItem(SCHEDULE_STORAGE_KEY), raw);
@@ -268,7 +266,7 @@ describe("Phase 6B1 — integration and truth boundaries", () => {
     const search = await repositories.flight.searchFlights("GZA", "AMM", date);
     await repositories.schedule.create({ ...entry(), number: "PS999", active: false });
     await repositories.schedule.update("sch-AMM-out", { departTime: "23:59", active: false });
-    await repositories.schedule.remove("sch-AMM-in");
+    await repositories.schedule.update("sch-AMM-in", { active: false });
     assert.deepEqual(await repositories.flight.getFlights(date), flights);
     assert.deepEqual(await repositories.flight.searchFlights("GZA", "AMM", date), search);
   });
@@ -316,7 +314,8 @@ describe("Phase 6B1 — integration and truth boundaries", () => {
       assert.doesNotMatch(source(file), /ops\.schedules|patchOps\("schedules"/);
     assert.doesNotMatch(source("src/lib/admin-store.tsx"), /schedules:\s*Schedule|seedOpsState/);
     const route = source("src/routes/{-$locale}.admin.schedules.tsx");
-    assert.match(route, /preserveOpenOnConfirm/);
+    assert.doesNotMatch(route, /useDeleteScheduleMutation/);
+    assert.doesNotMatch(route, /confirmDelete/);
     assert.match(route, /aria-invalid/);
     assert.match(route, /aria-describedby/);
     assert.doesNotMatch(route, /err\.message/);

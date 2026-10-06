@@ -1,5 +1,7 @@
 # Network reference authority — Phase 6B2C1
 
+> **Current Source Status**: **Phase 6B2C2A Implemented / Awaiting Independent Review.** Network Phase 6B2C1 Complete / Accepted Source remains intact. Phase 6B2C2B is Planned / Unstarted. Production remains owner-deployed Phase 6B2A.
+
 Status: **Phase 6B2C1 Complete / Accepted Source**. Independently accepted engineering SHA: `9846f9ad90760a5e47ca231a838d146c4d7096a0`. C1 has no Accepted Release and is not deployed. The accepted-source checkpoint is the source-finalization commit on main following this engineering SHA; its immutable SHA is recorded in the finalization handback. Baseline: `d0a411cb8a882298eb32a3222478fbc782ba5556`. Production remains owner-deployed Phase 6B2A, release `2751e22be91ad74eacc9213489a57a21baf04807`, runtime source `ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`. Phase 6B2B is Complete / Accepted Source, its release/deployment is intentionally pending. No independent live-browser production verification is claimed.
 
 ## Aggregate
@@ -50,6 +52,14 @@ Schedule schema validates uppercase three-letter structural syntax without impor
 
 Schedule `id`, `destination` and `direction` are immutable. Number, times, days, dates, active state and planning annotations remain editable. Existing Schedule history and safe non-route edits remain usable with corrupt Network; labels fall back to technical destination codes. New creation is blocked truthfully. Existing PNR display/Manage/check-in, Fleet/Commercial Admin, contact/content and staff sign-in remain independent.
 
-## Deferred work
+## Phase 6B2C2 — Network & Dated-Service Materialization
 
-Phase 6B2C2 — Network & Dated-Service Materialization is **Planned / Unstarted**. C1 does not change Public Flight generation, Flight IDs/numbers, Booking Flight resolution, public search, or static routes. Schedule changes remain planning-only. Route pricing, full destination CMS/SEO publication and network expansion are excluded. Phase 6C/7/7B remain Planned / Unstarted; Phase 6B as a whole remains incomplete. No release or deployment is part of C1.
+Phase 6B2C2A is **Implemented / Awaiting Independent Review**; Phase 6B2C2B is **Planned / Unstarted**. C1 does not change Public Flight generation, Flight IDs/numbers, Booking Flight resolution, public search, or static routes. Schedule changes remain planning-only. Route pricing, full destination CMS/SEO publication and network expansion are excluded. Phase 6C/7/7B remain Planned / Unstarted; Phase 6B as a whole remains incomplete. No release or deployment is part of C1.
+
+## Phase 6B2C2A - Stable Dated-Service Materialization Foundation
+
+**Implemented / Awaiting Independent Review.** Establishes pure, deterministic projection of recurring schedules onto concrete calendar dates with structured operational effects (`cancelled`, `time`, `aircraft`, `extra`). Versioned URL-safe reversible codec `svc1-<base64url>-<date>` preserves exact Schedule identity without loss. Schedule lifecycle eliminates destructive `remove`; `active = false` is the sole retirement mechanism.
+
+Phase 6B2A is Complete / Accepted Source / Accepted Release / Deployed by Owner (current production release: `2751e22be91ad74eacc9213489a57a21baf04807`, runtime source: `ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`). Phase 6B2B is Complete / Accepted Source (release/deployment intentionally pending). Phase 6B2C1 is Complete / Accepted Source.
+
+Phase 6B2C2B - Network & Dated-Service Discovery Cutover: **Planned / Unstarted**. In Phase 6B2C2A, live consumer discovery (Public Flights, Home board, Flight Detail, Booking search, Admin global search) remains bound to the compiled legacy generator and canonical overrides. Phase 6C/7/7B remain Planned / Unstarted; Phase 6B as a whole remains incomplete. See [DATED_SERVICE_MODEL.md](DATED_SERVICE_MODEL.md).

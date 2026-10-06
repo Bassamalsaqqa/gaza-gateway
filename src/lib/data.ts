@@ -38,6 +38,7 @@ export type FlightStatus =
 
 export type Flight = {
   id: string;
+  scheduleId?: string | undefined;
   number: string;
   originCode: string;
   destinationCode: string;

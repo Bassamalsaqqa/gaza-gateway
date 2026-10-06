@@ -14,5 +14,4 @@ export {
   useScheduleQuery,
   useCreateScheduleMutation,
   useUpdateScheduleMutation,
-  useDeleteScheduleMutation,
 } from "./queries.ts";

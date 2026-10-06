@@ -41,7 +41,7 @@ function available(f: Flight, index = 0, cabin = "economy") {
   return seats[index]!;
 }
 function input(): BookingCreateInput {
-  const f = departuresOn(addDaysISO(todayISO(), 5))[0]!;
+  const f = Array.from({ length: 14 }, (_, i) => departuresOn(addDaysISO(todayISO(), 5 + i))).flat().find(f => f.aircraftId === "a320neo" && f.status === "Scheduled" && f.seatsLeft >= 2)!;
   return {
     outbound: f,
     inbound: null,
@@ -306,7 +306,7 @@ describe("Phase 6A Correction: canonical writer invariants", () => {
   });
   test("revalidates effective capacity snapshot rather than client seatsLeft", async () => {
     const d = input();
-    const f = departuresOn(addDaysISO(todayISO(), 5)).find((f) => f.seatsLeft < 20)!;
+    const f = Array.from({ length: 14 }, (_, i) => departuresOn(addDaysISO(todayISO(), 5 + i))).flat().find((f) => f.seatsLeft < 20)!;
     assert.ok(f);
     d.outbound = { ...f, seatsLeft: 999 };
     d.criteria.destination = f.destinationCode;

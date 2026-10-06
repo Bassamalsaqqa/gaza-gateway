@@ -75,8 +75,8 @@ function storageRig(raw?: string) {
   };
 }
 function candidate(): BookingCreateInput {
-  const flight = departuresOn(addDaysISO(todayISO(), 5)).find(
-    (f) => f.status === "Scheduled" && f.seatsLeft >= 2,
+  const flight = Array.from({ length: 14 }, (_, i) => departuresOn(addDaysISO(todayISO(), 5 + i))).flat().find(
+    (f) => f.aircraftId === "a320neo" && f.status === "Scheduled" && f.seatsLeft >= 2,
   )!;
   return {
     criteria: {
@@ -788,7 +788,7 @@ describe("6B2A integration, preferences and source authority guards", () => {
         .filter(line => /Phase 6B2A|Commercial catalog|CommercialCatalogRepository|Current Status|Engineering Status|Production \/ Source Checkpoint|Immediate Next Step/.test(line))
         .flatMap(line => line.split(/(?<=\.)\s+/))
         .filter(statement => !/^(?:Phase 6B1 (?:is|remains) a historical|.*\bhistorical (?:record|checkpoint|note):)/i.test(statement))
-        .filter(statement => !/Phase 6B2B|6B2B/.test(statement));
+        .filter(statement => !/Phase 6B2[B-C]|6B2[B-C]/.test(statement));
       for (const line of currentStatusLines) {
         assert.doesNotMatch(line, /Implemented \/ Awaiting (?:Independent )?Review/);
         for (const phrase of stalePhrases) {

@@ -2,21 +2,80 @@
  * Gaza Gateway — Schedule Domain Types
  *
  * Recurring schedule planning for Palestinian Airlines.
- * Schedules are planning annotations only; they do NOT generate dated public
- * flights or alter booking search in Phase 6B2C1. See Phase 6B2C2 for
- * schedule-to-dated-flight materialization.
+ * Phase 6B2C2A provides backward-compatible structured effects and lifecycle hardening.
+ * Destructive deletion has been removed; active=false is the sole retirement mechanism.
  */
 
 export type ExceptionKind = "cancelled" | "time" | "aircraft" | "extra";
 
-export type ScheduleException = {
+export interface ScheduleExceptionEffectCancelled {
+  cancelled: true;
+}
+
+export interface ScheduleExceptionEffectTime {
+  /** Planned departure time HH:mm */
+  departTime: string;
+  /** Planned arrival time HH:mm */
+  arriveTime: string;
+}
+
+export interface ScheduleExceptionEffectAircraft {
+  /** Stable Fleet aircraft ID */
+  aircraftId: string;
+  /** Aircraft model name */
+  aircraft: string;
+}
+
+export interface ScheduleExceptionEffectExtra {
+  /** Optional departure time HH:mm (defaults to base schedule) */
+  departTime?: string | undefined;
+  /** Optional arrival time HH:mm (defaults to base schedule) */
+  arriveTime?: string | undefined;
+  /** Optional Fleet aircraft ID (defaults to base schedule) */
+  aircraftId?: string | undefined;
+  /** Optional aircraft model name (defaults to base schedule) */
+  aircraft?: string | undefined;
+}
+
+export type ScheduleExceptionEffect =
+  | ScheduleExceptionEffectCancelled
+  | ScheduleExceptionEffectTime
+  | ScheduleExceptionEffectAircraft
+  | ScheduleExceptionEffectExtra;
+
+export interface ScheduleExceptionBase {
   id: string;
   /** ISO date: YYYY-MM-DD */
   date: string;
-  kind: ExceptionKind;
   /** Human-readable planning annotation. Never parsed into flight effects. */
   detail: string;
-};
+}
+
+export interface ScheduleExceptionCancelled extends ScheduleExceptionBase {
+  kind: "cancelled";
+  effect?: ScheduleExceptionEffectCancelled | undefined;
+}
+
+export interface ScheduleExceptionTime extends ScheduleExceptionBase {
+  kind: "time";
+  effect?: ScheduleExceptionEffectTime | undefined;
+}
+
+export interface ScheduleExceptionAircraft extends ScheduleExceptionBase {
+  kind: "aircraft";
+  effect?: ScheduleExceptionEffectAircraft | undefined;
+}
+
+export interface ScheduleExceptionExtra extends ScheduleExceptionBase {
+  kind: "extra";
+  effect?: ScheduleExceptionEffectExtra | undefined;
+}
+
+export type ScheduleException =
+  | ScheduleExceptionCancelled
+  | ScheduleExceptionTime
+  | ScheduleExceptionAircraft
+  | ScheduleExceptionExtra;
 
 /** A recurring schedule entry for one route/direction. */
 export type Schedule = {
@@ -43,7 +102,7 @@ export type Schedule = {
   until: string;
   /** Whether this schedule entry is currently active */
   active: boolean;
-  /** Planning exceptions (annotations only, not actual flight-data mutations) */
+  /** Planning exceptions with optional backward-compatible structured effects */
   exceptions: ScheduleException[];
 };
 
@@ -62,12 +121,11 @@ export interface ScheduleUpdateInput {
   exceptions?: ScheduleException[];
 }
 
-/** Async, backend-ready ScheduleRepository contract. */
+/** Async, backend-ready ScheduleRepository contract (destructive remove removed). */
 export interface ScheduleRepository {
   list(): Promise<Schedule[]>;
   getById(id: string): Promise<Schedule | null>;
   create(input: ScheduleCreateInput): Promise<Schedule>;
   update(id: string, patch: ScheduleUpdateInput): Promise<Schedule>;
-  remove(id: string): Promise<void>;
   subscribe(listener: () => void): () => void;
 }

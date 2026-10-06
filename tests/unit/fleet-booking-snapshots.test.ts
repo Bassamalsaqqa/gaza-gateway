@@ -81,15 +81,16 @@ function samplePassengers(): BookingPassenger[] {
 
 function getScheduledOutbound(offsetDays = 5): Flight {
   const date = addDaysISO(todayISO(), offsetDays);
-  const flight = departuresOn(date).find((f) => f.status === "Scheduled" && f.seatsLeft >= 2);
+  const flight = Array.from({ length: 14 }, (_, i) => departuresOn(addDaysISO(date, i))).flat().find((f) => f.aircraftId === "a320neo" && f.status === "Scheduled" && f.seatsLeft >= 2);
   if (!flight) throw new Error(`No scheduled departures found on ${date}`);
   return flight;
 }
 
 function getMatchingInbound(outbound: Flight, offsetDays = 10): Flight {
   const date = addDaysISO(todayISO(), offsetDays);
-  const flight = arrivalsOn(date).find(
+  const flight = Array.from({ length: 21 }, (_, i) => arrivalsOn(addDaysISO(date, i))).flat().find(
     (f) =>
+      f.date > outbound.date &&
       f.originCode === outbound.destinationCode &&
       f.destinationCode === outbound.originCode &&
       f.status === "Scheduled" &&
@@ -120,10 +121,7 @@ function makeCandidateInput(overrides?: Partial<BookingCreateInput>): BookingCre
     inbound: null,
     fareId: "essential",
     passengers: samplePassengers(),
-    seats: {
-      "out-0": "11A",
-      "out-1": "11B",
-    },
+    seats: Object.fromEntries(Array.from({ length: 18 }, (_, i) => i + 11).flatMap(row => ["A", "B", "C", "D", "E", "F"].filter(letter => isSeatAvailable(outbound.id, row, letter)).map(letter => `${row}${letter}`)).slice(0, 2).map((seat, i) => [`out-${i}`, seat])),
     extras: {
       pax: [
         { extraBags: 0, meal: "standard", assistance: [] },
@@ -193,7 +191,7 @@ describe("Phase 6B2B Checkpoint D — Fleet Booking Layout Snapshots & Geometry 
     // New booking created now receives mutated layout with 20 rows
     const candidateB = makeCandidateInput({
       submissionId: "sub-pnr-b",
-      seats: { "out-0": "9C", "out-1": "9D" }, // row 9 is economy on new layout
+      seats: Object.fromEntries(["A", "B", "C", "D", "E", "F"].filter(letter => isSeatAvailable(candidateA.outbound.id, 9, letter)).slice(0, 2).map((letter, i) => [`out-${i}`, `9${letter}`])), // available row 9 economy seats
     });
     const pnrB = await rig.booking.create(candidateB);
     assert.ok(pnrB.seatLayouts);
