@@ -185,7 +185,7 @@ function BookPage() {
       : `${t("book.passenger")} ${i + 1}`;
   };
 
-  const { data: searchedOutbound, isLoading: isOutboundLoading } = useFlightSearchQuery(
+  const { data: searchedOutbound, isLoading: isOutboundLoading, isError: isOutboundError } = useFlightSearchQuery(
     draft.criteria.origin,
     draft.criteria.destination,
     draft.criteria.departDate,
@@ -193,7 +193,7 @@ function BookPage() {
     { enabled: !isCapacityProof && Boolean(draft.criteria.departDate) },
   );
 
-  const { data: searchedInbound, isLoading: isInboundLoading } = useFlightSearchQuery(
+  const { data: searchedInbound, isLoading: isInboundLoading, isError: isInboundError } = useFlightSearchQuery(
     draft.criteria.destination,
     draft.criteria.origin,
     draft.criteria.returnDate,
@@ -266,8 +266,8 @@ function BookPage() {
 
   // Authoritative selection reconciliation against effective flight queries
   useEffect(() => {
-    if (!isReady || isCapacityProof || fleetQuery.isPending || fleetQuery.isError) return;
-    if (isOutboundLoading || (draft.criteria.tripType === "round" && isInboundLoading)) return;
+    if (!isReady || isStudio || fleetQuery.isPending || fleetQuery.isError) return;
+    if (isOutboundLoading || isOutboundError || (draft.criteria.tripType === "round" && (isInboundLoading || isInboundError))) return;
     if (!draft.outbound && !draft.inbound) return;
 
     const effectiveOut = draft.outbound
@@ -323,8 +323,9 @@ function BookPage() {
   }, [
     isReady,
     isCapacityProof,
+    isStudio,
     isOutboundLoading,
-    isInboundLoading,
+    isInboundLoading, isOutboundError, isInboundError,
     draft,
     outboundOptions,
     inboundOptions,
@@ -575,7 +576,7 @@ function BookPage() {
       } else if (err instanceof BookingCreationError) {
         const reason = err.reason;
         const localizedReason =
-          reason === "cancelled"
+          reason === "authority_unavailable" ? t("services.error.unavailable") : reason === "cancelled"
             ? t("book.flightCancelled")
             : reason === "departed"
               ? t("book.flightDeparted")
@@ -743,7 +744,7 @@ function BookPage() {
                     {t("book.outbound")}
                   </h2>
                   <div className="mt-3">
-                    {fleetQuery.isError && !isCapacityProof ? <Notice role="alert">{t("fleet.error.unavailable")}</Notice> : isOutboundLoading || (fleetQuery.isPending && !isCapacityProof) ? (
+                    {isOutboundError && !isCapacityProof ? <Notice role="alert">{t("services.error.unavailable")}</Notice> : fleetQuery.isError && !isCapacityProof ? <Notice role="alert">{t("fleet.error.unavailable")}</Notice> : isOutboundLoading || (fleetQuery.isPending && !isCapacityProof) ? (
                       <div className="py-8 text-center text-sm text-muted-foreground animate-pulse">
                         {t("search.searching") || "Searching flights..."}
                       </div>

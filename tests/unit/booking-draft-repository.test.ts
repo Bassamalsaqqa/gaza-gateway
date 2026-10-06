@@ -20,7 +20,7 @@ import { RepoStorageCoordinator } from "../../src/lib/repositories/storage.ts";
 import { LocalBookingRepository } from "../../src/lib/repositories/booking-repository.ts";
 import { LocalFlightRepository } from "../../src/lib/repositories/flight-repository.ts";
 import { BookingCreationError } from "../../src/lib/domain/booking.ts";
-import { flightById } from "../../src/lib/data.ts";
+import { currentDeparturesOn } from "../helpers/current-service-fixture.ts";
 import type { Flight } from "../../src/lib/data.ts";
 
 function makeTestDraft(origin = "GZA", destination = "AMM"): BookingDraft {
@@ -598,7 +598,7 @@ describe("Phase 5B: Canonical Booking Draft Repository & Invariants", () => {
       const flightRepo = new LocalFlightRepository(coordinator);
 
       // Deterministic flight from schedule
-      const flight = flightById("PS100-2026-10-15-out");
+      const flight = currentDeparturesOn("2026-10-15").find(f => f.destinationCode === "AMM");
       assert.ok(flight);
 
       // Operational cancellation applied to coordinator
@@ -643,7 +643,7 @@ describe("Phase 5B: Canonical Booking Draft Repository & Invariants", () => {
       const coordinator = new RepoStorageCoordinator({ storage: makeStorage() });
       const bookingRepo = new LocalBookingRepository(coordinator);
 
-      const flight = flightById("PS100-2026-10-15-out");
+      const flight = currentDeparturesOn("2026-10-15").find(f => f.destinationCode === "AMM");
       assert.ok(flight);
 
       const createData = {

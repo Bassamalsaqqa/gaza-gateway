@@ -1,3 +1,4 @@
+import { useNetworkQuery } from "@/lib/network/queries";
 import { previewBookingTotal, pricingSnapshot, serviceOptions, resolvePreviewSeatLayouts } from "@/lib/commercial/pricing";
 import { CommercialCatalogError } from "@/lib/commercial/types";
 import { useCommercialOptions } from "@/lib/commercial/queries";
@@ -31,7 +32,7 @@ import {
 import { AdminDenied } from "@/components/admin/admin-denied";
 import { useAdmin } from "@/lib/admin-store";
 import { pick, useI18n } from "@/lib/i18n";
-import { destinations, todayISO, addDaysISO, aircraftNameToId, type Flight } from "@/lib/data";
+import { todayISO, addDaysISO, aircraftNameToId, type Flight } from "@/lib/data";
 import { getFlightBookability } from "@/lib/booking-rules";
 import { bookingTotal } from "@/lib/domain/pricing";
 import { money } from "@/lib/format";
@@ -132,16 +133,18 @@ function AdminNewBookingPage() {
   const mayEdit = can("commercial.edit");
   const createBooking = useCreateBookingMutation();
   const fleetQuery = useFleetQuery();
+  const networkQuery = useNetworkQuery();
+  const activeDestinations = networkQuery.isError ? [] : (networkQuery.data ?? []).filter(d => d.active);
   const { data: allBookings = [] } = useBookingsQuery();
 
   // Departures query for Gaza origin
-  const { data: availableFlights = [], isLoading: flightsLoading } = useFlightSearchQuery(
+  const { data: availableFlights = [], isLoading: flightsLoading, isError: flightsError } = useFlightSearchQuery(
     "GZA",
     destinationCode,
     date,
   );
   useEffect(() => {
-    if (fleetQuery.isPending || fleetQuery.isError || !fleetQuery.data || !selectedFlightId) return;
+    if (flightsLoading || flightsError || networkQuery.isPending || networkQuery.isError || fleetQuery.isPending || fleetQuery.isError || !fleetQuery.data || !selectedFlightId) return;
     const flight = availableFlights.find(f => f.id === selectedFlightId);
     const layout = flight?.aircraftId ? fleetQuery.data.layouts[flight.aircraftId] : undefined;
     if (!layout || !layoutSupportsCabin(layout, "economy")) {
@@ -152,9 +155,9 @@ function AdminNewBookingPage() {
       const parsed = parseSeatCode(seat);
       return parsed && seatStructurallyAvailable(layout, seat) && cabinOfLayoutRow(layout, parsed.row) === "economy";
     })));
-  }, [fleetQuery.data, fleetQuery.isPending, fleetQuery.isError, selectedFlightId, availableFlights, t]);
+  }, [fleetQuery.data, fleetQuery.isPending, fleetQuery.isError, selectedFlightId, availableFlights, flightsLoading, flightsError, networkQuery.isPending, networkQuery.isError, t]);
   const chosenFlight: Flight | null =
-    availableFlights.find((f) => f.id === selectedFlightId) ?? null;
+    !flightsError && !networkQuery.isError && activeDestinations.some(d => d.code === destinationCode) ? availableFlights.find((f) => f.id === selectedFlightId) ?? null : null;
 
   // Seat-requiring passengers count (adults + children)
   const seatRequiredCount = useMemo(() => {
@@ -544,14 +547,14 @@ function AdminNewBookingPage() {
                 <Field label={t("search.to")} htmlFor="nb-dest">
                   <Select
                     id="nb-dest"
+                    disabled={networkQuery.isPending || networkQuery.isError}
                     value={destinationCode}
                     onChange={(e) => {
                       setDestinationCode(e.target.value);
                       setSelectedFlightId("");
                     }}
                   >
-                    {destinations
-                      .filter((d) => d.code !== "GZA")
+                    {activeDestinations
                       .map((d) => (
                         <option key={d.code} value={d.code}>
                           {d.code} · {pick(lang, d.city)}
@@ -561,7 +564,7 @@ function AdminNewBookingPage() {
                 </Field>
               </div>
 
-              {flightsLoading ? (
+              {flightsError || networkQuery.isError ? <p role="alert">{t(networkQuery.isError ? "network.unavailable" : "services.error.unavailable")}</p> : !networkQuery.isPending && !activeDestinations.some(d => d.code === destinationCode) ? <p role="status">{t("services.routeInactive")}</p> : flightsLoading || networkQuery.isPending ? (
                 <div className="p-8 text-center text-sm text-muted-foreground">
                   {t("a2.bk.loading")}
                 </div>

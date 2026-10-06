@@ -1,3 +1,4 @@
+import { currentDeparturesOn } from "../helpers/current-service-fixture.ts";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { LocalFleetRepository } from "../../src/lib/fleet/repository.ts";
@@ -10,7 +11,7 @@ import { RepoStorageCoordinator, REPO_STORAGE_KEY } from "../../src/lib/reposito
 import { LocalBookingRepository } from "../../src/lib/repositories/booking-repository.ts";
 import { LocalCommercialCatalogRepository } from "../../src/lib/commercial/repository.ts";
 import { CommercialStorageCoordinator } from "../../src/lib/commercial/storage.ts";
-import { departuresOn, todayISO, addDaysISO, isSeatAvailable } from "../../src/lib/data.ts";
+import { todayISO, addDaysISO, isSeatAvailable } from "../../src/lib/data.ts";
 import { FROZEN_LEGACY_SEAT_LAYOUT, parseLegSeatLayoutSnapshot, normalizeBooking, type BookingCreateInput } from "../../src/lib/domain/booking.ts";
 import { reconcileDraft } from "../../src/lib/booking-draft/reconciliation.ts";
 import { bookingTotal } from "../../src/lib/domain/pricing.ts";
@@ -37,7 +38,7 @@ function rig(){
   return {storage,coordinator,fleet,commercial,flight,schedule,booking};
 }
 function candidate():BookingCreateInput{
-  const f=Array.from({ length: 14 }, (_, i) => departuresOn(addDaysISO(todayISO(), 5 + i))).flat().find(f=>f.aircraftId==="a320neo" && f.status==="Scheduled" && f.seatsLeft>3)!;
+  const f=Array.from({ length: 14 }, (_, i) => currentDeparturesOn(addDaysISO(todayISO(), 5 + i))).flat().find(f=>f.aircraftId==="a320neo" && f.status==="Scheduled" && f.seatsLeft>3)!;
   assert.ok(f);
   return {criteria:{tripType:"oneway",origin:f.originCode,destination:f.destinationCode,departDate:f.date,returnDate:"",adults:1,children:0,infants:0,cabin:"economy"},outbound:f,fareId:"essential",passengers:[{type:"adult",firstName:"Seat",lastName:"Audit",dob:"1980-01-01",nationality:"PS",document:"AUDIT123"}],seats:{},extras:{pax:[{extraBags:0,meal:"standard",assistance:[]}]},contact:{email:"audit@example.com",phone:"+970599000000"},total:0};
 }

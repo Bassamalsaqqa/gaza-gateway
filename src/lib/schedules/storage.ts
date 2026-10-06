@@ -112,6 +112,13 @@ export class ScheduleStorageCoordinator {
     if (!this.inMemoryOnly) this.state = readScheduleStorage(this.storage).envelope;
     return structuredClone(this.state);
   }
+  /** Discovery must distinguish corrupt authority from a valid empty collection. */
+  readForDiscovery(): ScheduleStorageEnvelope {
+    if (this.inMemoryOnly) return structuredClone(this.state);
+    const result = readScheduleStorage(this.storage);
+    if (result.corrupt) throw new ScheduleStorageWriteError("Schedule authority is unavailable.");
+    return structuredClone(result.envelope);
+  }
   async mutate<T>(mutator: (candidate: ScheduleStorageEnvelope) => T): Promise<T> {
     const commit = (): T => {
       let current = this.state;

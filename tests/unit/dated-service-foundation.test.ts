@@ -521,21 +521,21 @@ describe("Legacy Compatibility Exports Contract", () => {
 });
 
 describe("Phase 6B2C2A Architectural & Source Invariants", () => {
-  test("FlightRepository does not import dated-services or pure materializer", () => {
+  test("C2B FlightRepository composes shared resolver instead of directly importing pure materializer", () => {
     const source = readFileSync(
       resolve(process.cwd(), "src/lib/repositories/flight-repository.ts"),
       "utf-8",
     );
-    assert.doesNotMatch(source, /dated-services/);
+    assert.match(source, /dated-services\/resolver/);
     assert.doesNotMatch(source, /materializeScheduleOnDate/);
   });
 
-  test("BookingRepository does not import dated-services or pure materializer", () => {
+  test("C2B BookingRepository composes shared resolver instead of directly importing pure materializer", () => {
     const source = readFileSync(
       resolve(process.cwd(), "src/lib/repositories/booking-repository.ts"),
       "utf-8",
     );
-    assert.doesNotMatch(source, /dated-services/);
+    assert.match(source, /dated-services\/resolver/);
     assert.doesNotMatch(source, /materializeScheduleOnDate/);
   });
 

@@ -1,3 +1,4 @@
+import { useFlightsQuery } from "@/lib/repositories";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AppLink } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
@@ -10,8 +11,6 @@ import { StatusBadge } from "@/components/flight-status";
 import { btnClass, Code, Container, SectionHeader } from "@/components/kit";
 import {
   airportByCode,
-  arrivalsOn,
-  departuresOn,
   destinations,
   GZA,
   img,
@@ -67,10 +66,8 @@ function Home() {
   const { content: destPresentation } = useContentPreview("destinations.presentation", publishedDestinationsPresentation);
   const today = todayISO();
   const [board, setBoard] = useState<"departures" | "arrivals">("departures");
-  const flights = useMemo(
-    () => (board === "departures" ? departuresOn(today) : arrivalsOn(today)).slice(0, 5),
-    [board, today],
-  );
+  const boardQuery = useFlightsQuery(today, board === "departures" ? "dep" : "arr");
+  const flights = !boardQuery.isError ? (boardQuery.data ?? []).slice(0, 5) : [];
   const archive = useMemo(() => getFeaturedArchiveRecords(6), []);
 
   return (
@@ -291,6 +288,12 @@ function Home() {
             </TabsList>
           </Tabs>
 
+          {boardQuery.isLoading || boardQuery.isError || flights.length === 0 ? (
+            <p role={boardQuery.isError ? "alert" : "status"} className="mt-5 text-sm text-muted-foreground">
+              {t(boardQuery.isError ? "services.error.unavailable" : boardQuery.isLoading ? "services.loading" : "services.empty")}
+              {boardQuery.isError && <button type="button" className={btnClass("ghost", "sm")} onClick={() => void boardQuery.refetch()}>{t("adm.ops.retry")}</button>}
+            </p>
+          ) : null}
           {/* Desktop Tabular View */}
           <div className="mt-5 hidden sm:block overflow-x-auto">
             <FlightTable flights={flights} mode={board} compact />

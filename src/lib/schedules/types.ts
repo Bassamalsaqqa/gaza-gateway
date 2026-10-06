@@ -124,6 +124,8 @@ export interface ScheduleUpdateInput {
 /** Async, backend-ready ScheduleRepository contract (destructive remove removed). */
 export interface ScheduleRepository {
   list(): Promise<Schedule[]>;
+  /** Fail-closed authority read for current dated-service discovery. */
+  listForDiscovery(): Promise<Schedule[]>;
   getById(id: string): Promise<Schedule | null>;
   create(input: ScheduleCreateInput): Promise<Schedule>;
   update(id: string, patch: ScheduleUpdateInput): Promise<Schedule>;

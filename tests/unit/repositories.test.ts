@@ -1,4 +1,5 @@
-import { departuresOn, isSeatAvailable } from "../../src/lib/data.ts";
+import { currentDeparturesOn } from "../helpers/current-service-fixture.ts";
+import { isSeatAvailable } from "../../src/lib/data.ts";
 import { flightDepartureEpoch } from "../../src/lib/booking-rules.ts";
 import { canonicalCreateFixture } from "../helpers/booking-create-fixture.ts";
 import { describe, it, beforeEach } from "node:test";
@@ -46,6 +47,11 @@ import {
 } from "../../src/lib/repositories/registry.ts";
 import { bookingKeys, flightKeys } from "../../src/lib/repositories/queries.ts";
 import type { Flight } from "../../src/lib/data.ts";
+
+/** New command fixtures use current Schedule authority; createMockFlight remains historical. */
+function createCurrentMockFlight(overrides: Partial<Flight> = {}): Flight {
+  return { ...currentDeparturesOn("2026-10-15").find(f => f.destinationCode === "AMM")!, ...overrides };
+}
 
 function createMockFlight(overrides: Partial<Flight> = {}): Flight {
   return {
@@ -453,7 +459,7 @@ describe("Canonical Repositories & Domain Layer", () => {
         passengers: [
           { name: "Sami Al-Husseini", type: "adult", nationality: "PS" },
         ],
-        outbound: departuresOn("2026-10-15").find((f) => f.status === "Scheduled" && f.seatsLeft > 0)!,
+        outbound: currentDeparturesOn("2026-10-15").find((f) => f.status === "Scheduled" && f.seatsLeft > 0)!,
         total: 180,
       }));
 
@@ -508,7 +514,7 @@ describe("Canonical Repositories & Domain Layer", () => {
     it("strictly isolates synthetic capacity proof flights from booking creation", async () => {
       const repo = createTestBookingRepo();
 
-      const testProofFlight = createMockFlight({
+      const testProofFlight = createCurrentMockFlight({
         id: "CAP-PROOF-PS204-out",
         number: "PS 204",
       });
@@ -543,7 +549,7 @@ describe("Canonical Repositories & Domain Layer", () => {
         fareFamily: "essential",
         cabin: "economy",
         passengers: [{ name: "Test Pax", type: "adult" }],
-        outbound: createMockFlight(),
+        outbound: createCurrentMockFlight(),
         total: 180,
       }));
 
@@ -747,7 +753,7 @@ describe("Canonical Repositories & Domain Layer", () => {
           createdAt: "2026-01-01T00:00:00.000Z",
           status: "confirmed",
           total: 100,
-          outbound: createMockFlight(),
+          outbound: createCurrentMockFlight(),
           inbound: null,
           fareId: "classic",
           passengers: [{ id: "pax-SENTINEL-1-0", type: "adult", firstName: "Sentinel", lastName: "User" }],
@@ -785,7 +791,7 @@ describe("Canonical Repositories & Domain Layer", () => {
         passengers: [{ name: "Studio Passenger", type: "adult" }],
         seats: {},
         extras: { pax: [] },
-        outbound: createMockFlight(),
+        outbound: createCurrentMockFlight(),
         total: 180,
       }));
 
@@ -820,7 +826,7 @@ describe("Canonical Repositories & Domain Layer", () => {
     it("rejects records missing ref without inventing new PNRs", () => {
       // Completely missing ref
       const noRef = {
-        outbound: createMockFlight(),
+        outbound: createCurrentMockFlight(),
         contact: { email: "test@example.com" },
       };
       assert.equal(normalizeBooking(noRef), null);
@@ -828,14 +834,14 @@ describe("Canonical Repositories & Domain Layer", () => {
       // Empty whitespace ref
       const emptyRef = {
         ref: "   ",
-        outbound: createMockFlight(),
+        outbound: createCurrentMockFlight(),
       };
       assert.equal(normalizeBooking(emptyRef), null);
 
       // Non-string ref
       const nonStringRef = {
         ref: 12345,
-        outbound: createMockFlight(),
+        outbound: createCurrentMockFlight(),
       };
       assert.equal(normalizeBooking(nonStringRef), null);
     });
@@ -843,7 +849,7 @@ describe("Canonical Repositories & Domain Layer", () => {
     it("deterministically derives missing createdAt and yields identical output on repeat loads", () => {
       const malformedInput = {
         ref: "GZAMALF01",
-        outbound: createMockFlight({ date: "2026-11-20" }),
+        outbound: createCurrentMockFlight({ date: "2026-11-20" }),
         // createdAt intentionally omitted
       };
 
@@ -862,10 +868,10 @@ describe("Canonical Repositories & Domain Layer", () => {
     it("loads the same malformed legacy storage twice with 100% idempotent output", () => {
       const legacyRaw = JSON.stringify({
         bookings: [
-          { ref: "LEGACY-STABLE-1", outbound: createMockFlight({ date: "2026-10-15" }) },
-          { outbound: createMockFlight() }, // Malformed: missing ref, must be discarded
-          { ref: "   ", outbound: createMockFlight() }, // Malformed: empty ref, must be discarded
-          { ref: "LEGACY-STABLE-2", outbound: createMockFlight({ date: "2026-12-01" }) },
+          { ref: "LEGACY-STABLE-1", outbound: createCurrentMockFlight({ date: "2026-10-15" }) },
+          { outbound: createCurrentMockFlight() }, // Malformed: missing ref, must be discarded
+          { ref: "   ", outbound: createCurrentMockFlight() }, // Malformed: empty ref, must be discarded
+          { ref: "LEGACY-STABLE-2", outbound: createCurrentMockFlight({ date: "2026-12-01" }) },
         ],
       });
 
@@ -906,7 +912,7 @@ describe("Canonical Repositories & Domain Layer", () => {
           infants: 0,
         },
         fareId: "classic",
-        outbound: createMockFlight({ date: "2026-10-15" }),
+        outbound: createCurrentMockFlight({ date: "2026-10-15" }),
         passengers: [{ name: "New Traveller", type: "adult" }],
         seats: {},
         extras: { pax: [] },
@@ -932,7 +938,7 @@ describe("Canonical Repositories & Domain Layer", () => {
     it("rejects booking creation when outbound or inbound flight is unbookable", async () => {
       const storage = new MemoryStorage();
       const repos = createRepositories({ storage });
-      await repos.flight.setOverride("PS100-2026-10-15-out", { status: "Cancelled" });
+      await repos.flight.setOverride(createCurrentMockFlight().id, { status: "Cancelled" });
       const repo = repos.booking;
 
       await assert.rejects(
@@ -949,7 +955,7 @@ describe("Canonical Repositories & Domain Layer", () => {
               infants: 0,
             },
             fareId: "classic",
-            outbound: createMockFlight(),
+            outbound: createCurrentMockFlight(),
             passengers: [{ name: "Traveller", type: "adult" }],
             seats: {},
             extras: { pax: [] },
@@ -989,7 +995,7 @@ describe("Canonical Repositories & Domain Layer", () => {
             },
             fareId: "classic",
             outbound: {
-              ...createMockFlight(),
+              ...createCurrentMockFlight(),
               id: "PS999-2026-10-15-out",
               number: "PS999",
             },
@@ -1024,9 +1030,9 @@ describe("Canonical Repositories & Domain Layer", () => {
               infants: 0,
             },
             fareId: "classic",
-            outbound: createMockFlight(),
+            outbound: createCurrentMockFlight(),
             inbound: {
-              ...createMockFlight(),
+              ...createCurrentMockFlight(),
               id: "PS998-2026-10-20-in",
               number: "PS998",
               originCode: "AMM",
@@ -1150,7 +1156,7 @@ describe("Canonical Repositories & Domain Layer", () => {
         fareFamily: "essential" as const,
         cabin: "economy" as const,
         passengers: [{ name: "Failure Passenger", type: "adult" as const }],
-        outbound: createMockFlight(),
+        outbound: createCurrentMockFlight(),
         total: 180,
       };
 
@@ -1361,7 +1367,7 @@ describe("Canonical Repositories & Domain Layer", () => {
               status: "confirmed",
               bookedAt: "2026-01-01T00:00:00Z",
               createdAt: "2026-01-01T00:00:00Z",
-              outbound: createMockFlight(),
+              outbound: createCurrentMockFlight(),
               inbound: null,
               checkedIn: { out: [], in: [] },
               seats: {},
@@ -1401,7 +1407,7 @@ describe("Canonical Repositories & Domain Layer", () => {
               status: "confirmed",
               bookedAt: "2026-01-01T00:00:00Z",
               createdAt: "2026-01-01T00:00:00Z",
-              outbound: createMockFlight(),
+              outbound: createCurrentMockFlight(),
               inbound: null,
               checkedIn: { out: [], in: [] },
               seats: {},
@@ -1434,7 +1440,7 @@ describe("Canonical Repositories & Domain Layer", () => {
           status: "confirmed",
           bookedAt: "2026-01-01T00:00:00Z",
           createdAt: "2026-01-01T00:00:00Z",
-          outbound: createMockFlight(),
+          outbound: createCurrentMockFlight(),
           inbound: null,
           checkedIn: { out: [], in: [] },
           seats: {},

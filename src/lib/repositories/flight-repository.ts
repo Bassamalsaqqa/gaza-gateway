@@ -1,200 +1,92 @@
+import type { Flight } from "../data.ts";
 import { validateAircraftAssignment } from "../fleet/assignment.ts";
-/**
- * Gaza Gateway — Canonical Flight Repository Implementation
- *
- * Provides the single source of truth and single writer for the Flight aggregate:
- * - Reads deterministic scheduled flights from `src/lib/data.ts`.
- * - Composes base flights with mutable operational overrides using pure `getEffectiveFlight()`.
- * - Persists overrides to `gza.repo.v1`.
- * - Isolates synthetic Studio scenarios and capacity proof flights.
- * - Reactive listener notifications for cache synchronization across public & admin.
- */
-
-import { arrivalsOn, departuresOn, flightById, type Flight } from "../data.ts";
-import {
-  getEffectiveFlight,
-  isSyntheticFlightId,
-  sanitizeFlightOverride,
-  type FlightOverride,
-} from "../domain/flight.ts";
+import { getEffectiveFlight, isSyntheticFlightId, sanitizeFlightOverride, type FlightOverride } from "../domain/flight.ts";
 import type { FlightRepository, MonthlyServiceMap } from "./types.ts";
 import type { FleetRepository } from "../fleet/types.ts";
 import { LocalFleetRepository } from "../fleet/repository.ts";
 import { FleetStorageCoordinator } from "../fleet/storage.ts";
 import { isFlightBookable } from "../booking-rules.ts";
-import {
-  RepoStorageCoordinator,
-  type RepoStorageV1,
-} from "./storage.ts";
+import { RepoStorageCoordinator, type RepoStorageV1 } from "./storage.ts";
+import { createStandaloneServiceResolver, matchesFlightDirection, type DatedServiceResolver } from "../dated-services/resolver.ts";
+import { isDatedServiceId } from "../dated-services/identity.ts";
+import { isLegacyFlightId, legacyFlightById } from "../dated-services/legacy.ts";
+import { bookingFlightSnapshots } from "../dated-services/compatibility.ts";
 
+/** Current-sale discovery and broader operational compatibility are separate contracts. */
 export class LocalFlightRepository implements FlightRepository {
-  private coordinator: RepoStorageCoordinator;
+  private readonly coordinator: RepoStorageCoordinator;
   private readonly fleet: FleetRepository;
-  private listeners: Set<() => void> = new Set();
-  private unsubscribeCoordinator: (() => void) | null = null;
-
-  constructor(
-    coordinatorOrInitial?: RepoStorageCoordinator | RepoStorageV1,
-    options?: { storage?: Storage | null; fleet?: FleetRepository },
-  ) {
-    if (coordinatorOrInitial instanceof RepoStorageCoordinator) {
-      this.coordinator = coordinatorOrInitial;
-    } else {
-      this.coordinator = new RepoStorageCoordinator({
-        initialData: coordinatorOrInitial,
-        storage: options?.storage,
-      });
+  private readonly resolver: DatedServiceResolver;
+  private readonly listeners = new Set<() => void>();
+  private readonly cleanup: (() => void)[];
+  constructor(coordinatorOrInitial?: RepoStorageCoordinator | RepoStorageV1,
+    options?: { storage?: Storage | null; fleet?: FleetRepository; resolver?: DatedServiceResolver }) {
+    this.coordinator = coordinatorOrInitial instanceof RepoStorageCoordinator ? coordinatorOrInitial :
+      new RepoStorageCoordinator({ initialData: coordinatorOrInitial, storage: options?.storage });
+    this.fleet = options?.fleet ?? new LocalFleetRepository(new FleetStorageCoordinator({ storage: options?.storage }));
+    this.resolver = options?.resolver ?? createStandaloneServiceResolver(options?.storage);
+    const notify = () => { for (const listener of this.listeners) { try { listener(); } catch { /* committed changes remain successful */ } } };
+    this.cleanup = [this.coordinator.subscribe(notify), this.resolver.subscribe(notify)];
+  }
+  subscribe(listener: () => void): () => void { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; }
+  destroy(): void { for (const unsubscribe of this.cleanup.splice(0)) unsubscribe(); this.listeners.clear(); }
+  private readState(): RepoStorageV1 {
+    return this.coordinator.conditionalMutate(state => ({ commit: false, result: state }));
+  }
+  async getFlights(date: string, direction?: "dep" | "arr"): Promise<Flight[]> {
+    const current = await this.resolver.listCurrentFlights(date, direction);
+    const state = this.readState();
+    const flights = new Map(current.map(f => [f.id, f]));
+    for (const f of bookingFlightSnapshots(state.bookings)) {
+      if (f.date === date && matchesFlightDirection(f, direction) && !flights.has(f.id)) flights.set(f.id, f);
     }
-
-    this.fleet =
-      options?.fleet ??
-      new LocalFleetRepository(
-        new FleetStorageCoordinator({
-          ...(options?.storage !== undefined ? { storage: options.storage } : {}),
-        }),
-      );
-
-    this.unsubscribeCoordinator = this.coordinator.subscribe(() => {
-      this.notifyListeners();
-    });
-  }
-
-  private notifyListeners(): void {
-    for (const listener of this.listeners) {
-      try {
-        listener();
-      } catch (err) {
-        console.error("FlightRepository listener error:", err);
-      }
+    for (const id of Object.keys(state.flightOverrides)) {
+      if (!isLegacyFlightId(id) || flights.has(id)) continue;
+      const f = legacyFlightById(id);
+      if (f && f.date === date && matchesFlightDirection(f, direction)) flights.set(id, f);
     }
+    return [...flights.values()].map(f => getEffectiveFlight(f, state.flightOverrides[f.id]))
+      .sort((a, b) => a.departTime.localeCompare(b.departTime) || a.number.localeCompare(b.number) || a.id.localeCompare(b.id));
   }
-
-  public subscribe(listener: () => void): () => void {
-    this.listeners.add(listener);
-    return () => {
-      this.listeners.delete(listener);
-    };
-  }
-
-  public destroy(): void {
-    if (this.unsubscribeCoordinator) {
-      this.unsubscribeCoordinator();
-      this.unsubscribeCoordinator = null;
-    }
-    this.listeners.clear();
-  }
-
-  public async getFlights(date: string, direction?: "dep" | "arr"): Promise<Flight[]> {
-    let pool: Flight[];
-    if (direction === "dep") {
-      pool = departuresOn(date);
-    } else if (direction === "arr") {
-      pool = arrivalsOn(date);
-    } else {
-      pool = [...departuresOn(date), ...arrivalsOn(date)];
-    }
-
-    const overrides = this.coordinator.getState().flightOverrides;
-    return pool.map((flight) => {
-      const override = overrides[flight.id];
-      return getEffectiveFlight(flight, override);
-    });
-  }
-
-  public async searchFlights(origin: string, destination: string, date: string): Promise<Flight[]> {
+  async searchFlights(origin: string, destination: string, date: string): Promise<Flight[]> {
     if (!origin || !destination || !date) return [];
-    const cleanOrigin = origin.trim().toUpperCase();
-    const cleanDest = destination.trim().toUpperCase();
-
-    // Inbound discovery: if origin is GZA, direction is Gaza departure; if destination is GZA, direction is arrival
-    const direction = cleanOrigin === "GZA" ? "dep" : cleanDest === "GZA" ? "arr" : undefined;
-    const flights = await this.getFlights(date, direction);
-
-    return flights.filter(
-      (f) =>
-        f.originCode.toUpperCase() === cleanOrigin &&
-        f.destinationCode.toUpperCase() === cleanDest &&
-        f.date === date,
-    );
+    const current = await this.resolver.searchCurrentFlights(origin, destination, date);
+    const state = this.readState();
+    return current.map(f => getEffectiveFlight(f, state.flightOverrides[f.id]));
   }
-
-  public async getMonthlyServiceMap(
-    year: number,
-    month: number,
-    origin: string,
-    destination: string,
-    options?: { paxCount?: number; now?: Date | string | number },
-  ): Promise<MonthlyServiceMap> {
-    if (!origin || !destination || !year || !month) return {};
-    const cleanOrigin = origin.trim().toUpperCase();
-    const cleanDest = destination.trim().toUpperCase();
-
-    const daysInMonth = new Date(year, month, 0).getDate();
-    const result: MonthlyServiceMap = {};
-    const overrides = this.coordinator.getState().flightOverrides;
-
-    for (let day = 1; day <= daysInMonth; day += 1) {
-      const dayStr = String(day).padStart(2, "0");
-      const monthStr = String(month).padStart(2, "0");
-      const date = `${year}-${monthStr}-${dayStr}`;
-
-      const pool =
-        cleanOrigin === "GZA"
-          ? departuresOn(date)
-          : cleanDest === "GZA"
-            ? arrivalsOn(date)
-            : [...departuresOn(date), ...arrivalsOn(date)];
-
-      const effectiveFlights = pool
-        .filter(
-          (f) =>
-            f.originCode.toUpperCase() === cleanOrigin &&
-            f.destinationCode.toUpperCase() === cleanDest &&
-            f.date === date,
-        )
-        .map((f) => getEffectiveFlight(f, overrides[f.id]));
-
-      // Only bookable flights qualify as sellable service and lowest fare calculation
-      const bookableFlights = effectiveFlights.filter((f) => isFlightBookable(f, options));
-
-      if (bookableFlights.length > 0) {
-        const lowestFare = Math.min(...bookableFlights.map((f) => f.basePrice));
-        result[date] = {
-          date,
-          hasService: true,
-          lowestFare,
-          flightCount: bookableFlights.length,
-        };
-      } else {
-        result[date] = {
-          date,
-          hasService: false,
-          lowestFare: null,
-          flightCount: 0,
-        };
-      }
+  async getCurrentFlightById(id: string): Promise<Flight | null> {
+    const base = await this.resolver.resolveCurrentFlightById(id);
+    if (!base) return null;
+    return getEffectiveFlight(base, this.readState().flightOverrides[id]);
+  }
+  async getFlightById(id: string): Promise<Flight | null> {
+    if (!id || typeof id !== "string") return null;
+    let base: Flight | null = null, authorityError: unknown;
+    if (isDatedServiceId(id)) {
+      try { base = await this.resolver.resolveCurrentFlightById(id); } catch (error) { authorityError = error; }
     }
-
+    const state = this.readState();
+    base ??= bookingFlightSnapshots(state.bookings).find(f => f.id === id) ?? null;
+    if (!base && isLegacyFlightId(id)) base = legacyFlightById(id);
+    if (!base && authorityError) throw authorityError;
+    return base ? getEffectiveFlight(base, state.flightOverrides[id]) : null;
+  }
+  async getMonthlyServiceMap(year: number, month: number, origin: string, destination: string,
+    options?: { paxCount?: number; now?: Date | string | number }): Promise<MonthlyServiceMap> {
+    if (!origin || !destination || !year || !month) return {};
+    const snapshot = await this.resolver.readSnapshot(), state = this.readState();
+    const result: MonthlyServiceMap = {};
+    for (let day = 1; day <= new Date(year, month, 0).getDate(); day++) {
+      const date = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      const flights = this.resolver.project(snapshot, date, options)
+        .filter(f => f.originCode === origin.trim().toUpperCase() && f.destinationCode === destination.trim().toUpperCase())
+        .map(f => getEffectiveFlight(f, state.flightOverrides[f.id])).filter(f => isFlightBookable(f, options));
+      result[date] = { date, hasService: flights.length > 0, lowestFare: flights.length ? Math.min(...flights.map(f => f.basePrice)) : null, flightCount: flights.length };
+    }
     return result;
   }
-
-  public async getFlightById(id: string): Promise<Flight | null> {
-    if (!id || typeof id !== "string") return null;
-    const base = flightById(id);
-    if (!base) return null;
-
-    const override = this.coordinator.getState().flightOverrides[base.id];
-    return getEffectiveFlight(base, override);
-  }
-
-  public async getOverrides(): Promise<Record<string, FlightOverride>> {
-    return { ...this.coordinator.getState().flightOverrides };
-  }
-
-  public async getOverride(flightId: string): Promise<FlightOverride | null> {
-    if (!flightId || typeof flightId !== "string") return null;
-    return this.coordinator.getState().flightOverrides[flightId] ?? null;
-  }
+  async getOverrides(): Promise<Record<string, FlightOverride>> { return structuredClone(this.readState().flightOverrides); }
+  async getOverride(id: string): Promise<FlightOverride | null> { return structuredClone(this.readState().flightOverrides[id] ?? null); }
 
   public async setOverride(flightId: string, patch: FlightOverride): Promise<void> {
     if (!flightId || typeof flightId !== "string") return;
@@ -208,6 +100,7 @@ export class LocalFlightRepository implements FlightRepository {
     if (!cleanPatch) return;
 
     const current = await this.getFlightById(flightId);
+    if (!current) throw new Error("Flight is not available for operational editing.");
     const hasEquipment = cleanPatch.aircraftId !== undefined || cleanPatch.aircraft !== undefined;
     const unchanged = current &&
       (cleanPatch.aircraftId === undefined || cleanPatch.aircraftId === current.aircraftId) &&

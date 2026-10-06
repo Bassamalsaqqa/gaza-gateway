@@ -243,7 +243,7 @@ function FlightsPage() {
                 }
                 className="w-full overflow-x-auto"
               >
-                {isPending ? <p role="status">{t("adm.ops.loading")}</p> : isError ? <p role="alert">{t("adm.ops.loadError")}</p> : <FlightTable flights={flights} mode={mode} />}
+                {isPending ? <p role="status">{t("adm.ops.loading")}</p> : isError ? <p role="alert">{t("services.error.unavailable")}</p> : <FlightTable flights={flights} mode={mode} />}
               </motion.div>
             </AnimatePresence>
           </div>

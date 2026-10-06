@@ -1,7 +1,6 @@
+import { currentDeparturesOn, currentArrivalsOn } from "../helpers/current-service-fixture.ts";
 import assert from "node:assert/strict";
 import {
-  departuresOn,
-  arrivalsOn,
   todayISO,
   addDaysISO,
   isSeatAvailable,
@@ -19,12 +18,13 @@ export function availableSeat(f, index = 0) {
   return seats[index];
 }
 export function counterTestFlight() {
-  return departuresOn(addDaysISO(todayISO(), 5))[0];
+  return currentDeparturesOn(addDaysISO(todayISO(), 5)).find(f => f.aircraftId === "a320neo");
 }
 export function commercialFixture() {
+  // Preconstructed PNR on current-service identity; legacy compatibility has separate fixtures.
   const f = counterTestFlight();
   // A route need not operate its return on the following weekday. Select a real compiled service.
-  const inbound = Array.from({ length: 7 }, (_, i) => arrivalsOn(addDaysISO(f.date, i + 1)))
+  const inbound = Array.from({ length: 7 }, (_, i) => currentArrivalsOn(addDaysISO(f.date, i + 1)))
     .flat().find((x) => x.originCode === f.destinationCode && x.status !== "Cancelled" && x.seatsLeft > 0);
   assert.ok(inbound);
   const date = inbound.date;
@@ -70,13 +70,13 @@ export function commercialFixture() {
 export async function commercialContext(browser, b, staffId = "adm-1") {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   await context.addInitScript(
-    ({ b, staffId, clock }) => {
+    ({ b, staffId, clock, currentId }) => {
       if (!localStorage.getItem("gza.admin.v1"))
         localStorage.setItem("gza.admin.v1", JSON.stringify({ staffId, overrides: {} }));
       if (!localStorage.getItem("gza.repo.v1"))
         localStorage.setItem(
           "gza.repo.v1",
-          JSON.stringify({ schemaVersion: 1, bookings: b ? [b] : [], flightOverrides: {} }),
+          JSON.stringify({ schemaVersion: 1, bookings: b ? [b] : [], flightOverrides: b ? Object.fromEntries([b.outbound, b.inbound].filter(f => f?.id.startsWith("svc1-")).map(f => [f.id, {status:"Scheduled"}])) : { [currentId]: { status: "Scheduled" } } }),
         );
       const RealDate = Date;
       window.Date = class extends RealDate {
@@ -89,7 +89,7 @@ export async function commercialContext(browser, b, staffId = "adm-1") {
         }
       };
     },
-    { b, staffId, clock: flightDepartureEpoch(b?.outbound ?? counterTestFlight()) - 2 * 3600000 },
+    { b, staffId, currentId: counterTestFlight().id, clock: flightDepartureEpoch(b?.outbound ?? counterTestFlight()) - 2 * 3600000 },
   );
   return context;
 }
@@ -242,7 +242,7 @@ export async function runCommercialChecks({ checkStep, browser, baseUrl }) {
         const unserved = "DOH";
         await page.selectOption("#nb-dest", unserved);
         assert.equal(await page.locator("#nb-dest").inputValue(), unserved);
-        if (!departuresOn(f.date).some((x) => x.destinationCode === unserved))
+        if (!currentDeparturesOn(f.date).some((x) => x.destinationCode === unserved))
           assert.equal(await page.locator('input[name="nb-flight-choice"]').count(), 0);
         await page.selectOption("#nb-dest", f.destinationCode);
         await page.locator('input[name="nb-flight-choice"]').first().check();

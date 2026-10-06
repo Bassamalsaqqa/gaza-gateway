@@ -18,7 +18,7 @@ import type { Booking, BookingCreateInput, BookingPassenger, Leg, SearchCriteria
 import { makePassengerId, BookingCreationError, FROZEN_LEGACY_SEAT_LAYOUT, resolveBookingLegLayout } from "../domain/booking.ts";
 import { isSyntheticFlightId, getEffectiveFlight, type Flight } from "../domain/flight.ts";
 import { isFlightBookable, getFlightBookability } from "../booking-rules.ts";
-import { flightById } from "../data.ts";
+import { createStandaloneServiceResolver, type DatedServiceResolver } from "../dated-services/resolver.ts";
 import { makePnr } from "../format.ts";
 import type { BookingRepository, CheckInCommandInput, UndoCheckInCommandInput, ClaimResult } from "./types.ts";
 import type { Extras } from "../booking-draft/types.ts";
@@ -84,6 +84,7 @@ export function getCanonicalOccupiedSeats(
 export class LocalBookingRepository implements BookingRepository {
   private readonly commercial: CommercialCatalogRepository;
   private readonly fleet: FleetRepository;
+  private readonly resolver: DatedServiceResolver;
   private coordinator: RepoStorageCoordinator;
   private listeners: Set<() => void> = new Set();
   private unsubscribeCoordinator: (() => void) | null = null;
@@ -94,8 +95,10 @@ export class LocalBookingRepository implements BookingRepository {
       storage?: Storage | null;
       commercial?: CommercialCatalogRepository;
       fleet?: FleetRepository;
+      resolver?: DatedServiceResolver;
     },
   ) {
+    this.resolver = options?.resolver ?? createStandaloneServiceResolver(options?.storage);
     this.commercial = options?.commercial ?? new LocalCommercialCatalogRepository();
     this.fleet =
       options?.fleet ??
@@ -173,6 +176,7 @@ export class LocalBookingRepository implements BookingRepository {
       }));
       if (committed) return structuredClone(committed);
     }
+    data = structuredClone(data);
     // Catalog and Fleet are sampled at command time; booking snapshot and price commit atomically together.
     const catalog = await this.commercial.get();
     let fleetState: FleetSnapshot;
@@ -183,6 +187,13 @@ export class LocalBookingRepository implements BookingRepository {
         "fleet_unavailable",
         "Fleet layout unavailable. Please try again.",
       );
+    }
+    let sampledOutbound: Flight | null, sampledInbound: Flight | null;
+    try {
+      sampledOutbound = data.outbound?.id ? await this.resolver.resolveCurrentFlightById(data.outbound.id) : null;
+      sampledInbound = data.inbound?.id ? await this.resolver.resolveCurrentFlightById(data.inbound.id) : null;
+    } catch {
+      throw new BookingCreationError("authority_unavailable", "Current Flight authority is unavailable.");
     }
     const seatPaxCount =
       (Array.isArray(data.passengers) ? data.passengers : []).filter((p) => p?.type !== "infant").length || 1;
@@ -218,9 +229,9 @@ export class LocalBookingRepository implements BookingRepository {
       if (!data.outbound?.id) {
         throw new BookingCreationError("flight_missing", "Cannot create booking: outbound flight missing.", "out");
       }
-      const baseOutbound = flightById(data.outbound.id);
+      const baseOutbound = sampledOutbound;
       if (!baseOutbound) {
-        throw new BookingCreationError("flight_missing", "Cannot create booking: outbound flight missing from canonical schedule.", "out");
+        throw new BookingCreationError("flight_missing", "Cannot create booking: outbound flight missing from current Schedule authority.", "out");
       }
       const effectiveOutbound = getEffectiveFlight(baseOutbound, state.flightOverrides[baseOutbound.id]);
 
@@ -265,9 +276,9 @@ export class LocalBookingRepository implements BookingRepository {
         if (!data.inbound?.id) {
           throw new BookingCreationError("flight_missing", "Cannot create booking: inbound flight missing for round trip.", "in");
         }
-        const baseInbound = flightById(data.inbound.id);
+        const baseInbound = sampledInbound;
         if (!baseInbound) {
-          throw new BookingCreationError("flight_missing", "Cannot create booking: inbound flight missing for round trip from canonical schedule.", "in");
+          throw new BookingCreationError("flight_missing", "Cannot create booking: inbound flight missing for round trip from current Schedule authority.", "in");
         }
         effectiveInbound = getEffectiveFlight(baseInbound, state.flightOverrides[baseInbound.id]);
 
@@ -353,7 +364,7 @@ export class LocalBookingRepository implements BookingRepository {
       const outAircraft = outAircraftId ? fleetState.aircraft.find((a: Aircraft) => a.id === outAircraftId) : undefined;
       const outLayout = outAircraftId ? fleetState.layouts[outAircraftId] : undefined;
 
-      if (outAircraftId && !outLayout) {
+      if (!outAircraft || !outLayout) {
         throw new BookingCreationError(
           "fleet_unavailable",
           `Seat layout for aircraft ${outAircraftId} is unavailable.`,
@@ -388,7 +399,7 @@ export class LocalBookingRepository implements BookingRepository {
         const inAircraft = inAircraftId ? fleetState.aircraft.find((a: Aircraft) => a.id === inAircraftId) : undefined;
         const inLayout = inAircraftId ? fleetState.layouts[inAircraftId] : undefined;
 
-        if (inAircraftId && !inLayout) {
+        if (!inAircraft || !inLayout) {
           throw new BookingCreationError(
             "fleet_unavailable",
             `Seat layout for aircraft ${inAircraftId} is unavailable.`,
@@ -569,6 +580,21 @@ export class LocalBookingRepository implements BookingRepository {
     });
   }
 
+  /** Current operations when available; confirmed geometry/pricing remain Booking snapshots. */
+  private async sampleBookedBases(ref: string): Promise<Map<string, Flight>> {
+    const booking = this.coordinator.conditionalMutate(state => ({ commit: false,
+      result: state.bookings.find(b => b.ref.toUpperCase() === ref) }));
+    const bases = new Map<string, Flight>();
+    for (const flight of [booking?.outbound, booking?.inbound]) {
+      if (!flight) continue;
+      try {
+        const current = await this.resolver.resolveCurrentFlightById(flight.id);
+        if (current) bases.set(current.id, current);
+      } catch { /* Existing PNR survives unavailable current planning authority. */ }
+    }
+    return bases;
+  }
+
   public async updateSeats(
     ref: string,
     seats: Record<string, string>,
@@ -578,6 +604,8 @@ export class LocalBookingRepository implements BookingRepository {
     }
     const clean = ref.trim().toUpperCase();
 
+    seats = structuredClone(seats);
+    const currentBases = await this.sampleBookedBases(clean);
     return this.coordinator.conditionalMutateAsync((state) => {
       const index = state.bookings.findIndex((b) => b.ref.toUpperCase() === clean);
       if (index === -1) {
@@ -593,19 +621,10 @@ export class LocalBookingRepository implements BookingRepository {
         throw new Error(`Cannot update seats: booking ${clean} is cancelled.`);
       }
 
-      // Resolve effective flights within current transaction overrides without snapshot fallbacks
-      const baseOutbound = flightById(existing.outbound.id);
-      const effectiveOutbound = baseOutbound
-        ? getEffectiveFlight(baseOutbound, state.flightOverrides[baseOutbound.id])
-        : null;
-
-      let effectiveInbound: Flight | null = null;
-      if (existing.inbound) {
-        const baseInbound = flightById(existing.inbound.id);
-        effectiveInbound = baseInbound
-          ? getEffectiveFlight(baseInbound, state.flightOverrides[baseInbound.id])
-          : null;
-      }
+      const baseOutbound = currentBases.get(existing.outbound.id) ?? existing.outbound;
+      const effectiveOutbound = getEffectiveFlight(baseOutbound, state.flightOverrides[baseOutbound.id]);
+      const baseInbound = existing.inbound ? currentBases.get(existing.inbound.id) ?? existing.inbound : null;
+      const effectiveInbound = baseInbound ? getEffectiveFlight(baseInbound, state.flightOverrides[baseInbound.id]) : null;
 
       // Resolve sealed layout snapshot: preserve stored snapshot or seal frozen legacy fallback
       const sealedLayouts: BookingSeatLayoutsV1 = existing.seatLayouts ?? {
@@ -724,7 +743,9 @@ export class LocalBookingRepository implements BookingRepository {
     if (!input.ref || typeof input.ref !== "string") {
       throw new Error("Cannot complete check-in: reference is required.");
     }
+    input = structuredClone(input);
     const clean = input.ref.trim().toUpperCase();
+    const currentBases = await this.sampleBookedBases(clean);
 
     return this.coordinator.conditionalMutateAsync((state) => {
       const index = state.bookings.findIndex((b) => b.ref.toUpperCase() === clean);
@@ -746,15 +767,8 @@ export class LocalBookingRepository implements BookingRepository {
         throw new Error(`Cannot check in: leg ${input.leg} does not exist on booking ${clean}.`);
       }
 
-      // Re-resolve canonical effective flight with current transaction overrides
-      const baseFlight = flightById(bookedFlight.id);
-      const effectiveFlight = baseFlight
-        ? getEffectiveFlight(baseFlight, state.flightOverrides[baseFlight.id])
-        : null;
-
-      if (!effectiveFlight) {
-        throw new Error(`Cannot check in: flight ${bookedFlight.id} is unavailable.`);
-      }
+      const baseFlight = currentBases.get(bookedFlight.id) ?? bookedFlight;
+      const effectiveFlight = getEffectiveFlight(baseFlight, state.flightOverrides[bookedFlight.id]);
 
       // Step 1: Validate passenger index list and seat keys BEFORE replay handling or doc/seat processing
       if (!input.selectedPaxIndexes || !Array.isArray(input.selectedPaxIndexes) || input.selectedPaxIndexes.length === 0) {

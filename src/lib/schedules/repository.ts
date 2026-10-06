@@ -32,7 +32,7 @@ export class ScheduleIdentityConflictError extends Error {
   }
 }
 
-/** Planning only: dated FlightRepository has no dependency on this repository in Phase 6B2C2A. */
+/** Recurring planning authority projected by the shared dated-service resolver. */
 export class LocalScheduleRepository implements ScheduleRepository {
   private readonly coordinator: ScheduleStorageCoordinator;
   private readonly fleet: FleetRepository;
@@ -54,6 +54,9 @@ export class LocalScheduleRepository implements ScheduleRepository {
 
   async list(): Promise<Schedule[]> {
     return this.coordinator.read().schedules;
+  }
+  async listForDiscovery(): Promise<Schedule[]> {
+    return this.coordinator.readForDiscovery().schedules;
   }
 
   async getById(id: string): Promise<Schedule | null> {

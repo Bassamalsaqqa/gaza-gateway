@@ -2,7 +2,6 @@ import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { createHash } from "node:crypto";
 import { departuresOn, arrivalsOn } from "../../src/lib/data.ts";
 
 interface BaselineFlight {
@@ -47,27 +46,11 @@ describe("Legacy Flight Baseline Freeze & Repository Invariants", () => {
     assert.equal(fixture.dates.length, 3);
   });
 
-  test("FlightRepository and BookingRepository match baseline Git bytes regardless of checkout line endings", () => {
-    const flightRepoPath = resolve(process.cwd(), "src/lib/repositories/flight-repository.ts");
-    const bookingRepoPath = resolve(process.cwd(), "src/lib/repositories/booking-repository.ts");
-
-    // Git checks out CRLF on Windows and LF elsewhere. Compare the canonical
-    // Git blob representation; every source byte other than CRLF remains frozen.
-    const canonicalHash = (file: string) =>
-      createHash("sha256").update(readFileSync(file, "utf8").replace(/\r\n/g, "\n")).digest("hex");
-    const flightRepoHash = canonicalHash(flightRepoPath);
-    const bookingRepoHash = canonicalHash(bookingRepoPath);
-
-    assert.equal(
-      flightRepoHash,
-      "30f4a83aade1e90d2967170f857b8b6183107b8f8ecd739588adceaeee2f216a",
-      "flight-repository.ts must remain byte-identical to baseline f550",
-    );
-    assert.equal(
-      bookingRepoHash,
-      "b21e83c828b6f21c620d220c880dedcc9c3130b59be2f754856c1a57d0483b1f",
-      "booking-repository.ts must remain byte-identical to baseline f550",
-    );
+  test("compatibility wrappers retain explicit frozen-generator delegation after C2B", () => {
+    const source = readFileSync("src/lib/dated-services/legacy.ts", "utf8");
+    assert.match(source, /return departuresOn\(date, now\)/);
+    assert.match(source, /return arrivalsOn\(date, now\)/);
+    assert.match(source, /return flightById\(id\)/);
   });
 
   test("raw legacy departuresOn and arrivalsOn match all 48 flights across 3 dates field-by-field", () => {

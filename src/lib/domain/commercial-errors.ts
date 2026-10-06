@@ -23,6 +23,7 @@ export function commercialErrorKey(error: unknown): string {
     if (reason === "invalid_extras") return "a6.err.extras";
     if (reason === "invalid_infant" || reason === "invalid_passengers") return "a6.err.passengers";
     if (reason === "insufficient_seats" || reason === "sold_out") return "a6.err.capacity";
+    if (reason === "authority_unavailable") return "services.error.unavailable";
     if (reason === "fleet_unavailable") return "fleet.error.unavailable";
     if (reason === "cabin_unavailable") return "a6.err.cabin";
     return "a6.err.flight";

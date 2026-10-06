@@ -27,6 +27,9 @@ import type {
 
 function haveFlightDisplayFieldsChanged(stored: Flight, effective: Flight): boolean {
   return (
+    stored.number !== effective.number ||
+    stored.durationMinutes !== effective.durationMinutes ||
+    stored.basePrice !== effective.basePrice ||
     stored.status !== effective.status ||
     stored.gate !== effective.gate ||
     stored.terminal !== effective.terminal ||

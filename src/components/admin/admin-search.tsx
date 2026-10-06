@@ -1,3 +1,4 @@
+import { useFlightsQuery } from "@/lib/repositories";
 import { useNetworkQuery } from "@/lib/network";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -22,7 +23,7 @@ import { contentItems, type Permission } from "@/lib/admin";
 import { mockCustomers } from "@/lib/admin-mock";
 import { useBookingsQuery } from "@/lib/repositories";
 import { bookingToMockBooking, type AdaptedAdminBooking } from "@/lib/domain/booking";
-import { arrivalsOn, departuresOn, todayISO } from "@/lib/data";
+import { todayISO } from "@/lib/data";
 import { useAppNavigate } from "@/components/app-link";
 import { cn } from "@/lib/utils";
 import { Ltr } from "./admin-kit";
@@ -216,6 +217,8 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
     return COMMAND_DEFINITIONS.filter((c) => !c.permission || can(c.permission));
   }, [can]);
 
+  const flightsQuery = useFlightsQuery(canOps ? today : "");
+
   const results = useMemo<Result[]>(() => {
     const raw = query.trim();
     const q = normalizeSearch(raw);
@@ -256,11 +259,7 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
 
     // 2. Flights (requires ops.view)
     if (canOps) {
-      const flightMap = new Map<string, typeof departuresOn extends (d: string) => (infer F)[] ? F : never>();
-      for (const f of [...departuresOn(today), ...arrivalsOn(today)]) {
-        flightMap.set(f.id, f);
-      }
-      for (const f of flightMap.values()) {
+      for (const f of flightsQuery.isError ? [] : flightsQuery.data ?? []) {
         const statusText = f.status === "Delayed" ? "delayed متأخرة" : f.status;
         const hay = normalizeSearch(`${f.number} ${f.originCode} ${f.destinationCode} ${f.aircraft} ${statusText}`);
         if (hay.includes(q)) {
@@ -352,7 +351,7 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
     }
 
     return out.slice(0, 30);
-  }, [query, lang, t, today, canOps, canCommercial, canContent, permittedCommands, allBookings, networkDestinations]);
+  }, [query, lang, t, canOps, canCommercial, canContent, permittedCommands, allBookings, networkDestinations, flightsQuery.data, flightsQuery.isError]);
 
   useEffect(() => setActive(0), [query]);
 
@@ -460,6 +459,7 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
         </div>
 
         <div id="admin-search-results" className="flex-1 overflow-y-auto">
+          {canOps && (flightsQuery.isLoading || flightsQuery.isError) && <p role={flightsQuery.isError ? "alert" : "status"} className="px-4 py-2 text-xs text-muted-foreground">{t(flightsQuery.isError ? "services.error.unavailable" : "services.loading")}</p>}
           {canCommercial && bookingsPending ? (
             <p role="status" className="px-4 py-2 text-xs text-muted-foreground">{t("a2.bk.loading")}</p>
           ) : canCommercial && bookingsError ? (

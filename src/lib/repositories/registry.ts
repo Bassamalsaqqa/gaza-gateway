@@ -7,6 +7,8 @@ import { fleetKeys } from "../fleet/keys.ts";
 import { LocalNetworkRepository } from "../network/repository.ts";
 import { NetworkStorageCoordinator } from "../network/storage.ts";
 import { networkKeys } from "../network/keys.ts";
+import { LocalDatedServiceResolver, type DatedServiceResolver } from "../dated-services/resolver.ts";
+import { IsolatedStudioFlightResolver } from "../studio-flight-fixtures.ts";
 /**
  * Gaza Gateway — Repository Registry & Provider
  *
@@ -38,6 +40,8 @@ import { contactKeys } from "../contact/keys.ts";
 import { scheduleKeys } from "../schedules/keys.ts";
 
 export interface CreateRepositoriesOptions {
+  /** Fixture resolver injection is restricted to explicitly isolated memory registries. */
+  serviceResolver?: DatedServiceResolver | undefined;
   inMemoryOnly?: boolean | undefined;
   initialData?: RepoStorageV1 | undefined;
   initialPassengerData?: PassengerStorageV1 | undefined;
@@ -69,6 +73,8 @@ export interface CreateRepositoriesOptions {
  * NetworkRepository uses an independent NetworkStorageCoordinator.
  */
 export function createRepositories(options?: CreateRepositoriesOptions): RepositoryRegistry {
+  if (options?.serviceResolver && (!options.inMemoryOnly || (options.coordinator && !options.coordinator.isInMemory())))
+    throw new Error("Fixture service resolution requires isolated memory repositories.");
   const coordinator =
     options?.coordinator ??
     new RepoStorageCoordinator({
@@ -122,15 +128,17 @@ export function createRepositories(options?: CreateRepositoriesOptions): Reposit
   const network = new LocalNetworkRepository(options?.networkCoordinator ?? new NetworkStorageCoordinator({
     inMemoryOnly: options?.inMemoryOnly, storage: options?.storage, initialData: options?.initialNetworkData,
   }));
-  const booking = new LocalBookingRepository(coordinator, { commercial, fleet });
+  const schedule = new LocalScheduleRepository(scheduleCoordinator, fleet, network);
+  const resolver = options?.serviceResolver ?? new LocalDatedServiceResolver(schedule, network);
+  const booking = new LocalBookingRepository(coordinator, { commercial, fleet, resolver });
   const flight = new LocalFlightRepository(coordinator, {
     fleet,
+    resolver,
     ...(options?.storage !== undefined ? { storage: options.storage } : {}),
   });
   const passenger = new LocalPassengerRepository(passengerCoordinator, commercial);
   const bookingDraft = new LocalBookingDraftRepository(bookingDraftCoordinator, commercial, fleet);
   const contact = new LocalContactRepository({ coordinator: contactCoordinator });
-  const schedule = new LocalScheduleRepository(scheduleCoordinator, fleet, network);
 
   return {
     commercial,
@@ -155,7 +163,7 @@ let studioRepositories: RepositoryRegistry | null = null;
  */
 export function getIsolatedStudioRepositories(): RepositoryRegistry {
   if (!studioRepositories) {
-    studioRepositories = createRepositories({ inMemoryOnly: true });
+    studioRepositories = createRepositories({ inMemoryOnly: true, serviceResolver: new IsolatedStudioFlightResolver() });
   }
   return studioRepositories;
 }

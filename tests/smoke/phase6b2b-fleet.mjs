@@ -212,8 +212,12 @@ export async function runPhase6B2BChecks({ checkStep, browser, baseUrl }) {
         const observer = await context.newPage(), fresh = await context.newPage();
         await adminPage.goto(baseUrl + "/admin/products?tab=seatmaps");
         await observer.goto(baseUrl + "/admin/products?tab=seatmaps");
-        await adminPage.locator("#sm-ac").selectOption(b.outbound.aircraftId);
-        await observer.locator("#sm-ac").selectOption(b.outbound.aircraftId);
+        for (const page of [adminPage, observer]) {
+          await page.locator("#sm-rows").waitFor();
+          // Playwright dispatches change even for the already-selected native option.
+          if (await page.locator("#sm-ac").inputValue() !== b.outbound.aircraftId)
+            await page.locator("#sm-ac").selectOption(b.outbound.aircraftId);
+        }
         await fresh.goto(baseUrl + "/book?step=seats");
         const oldRows = Number(await adminPage.locator("#sm-rows").inputValue());
         await adminPage.locator("#sm-rows").fill(String(oldRows + 1));

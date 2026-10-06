@@ -1,6 +1,6 @@
 export const networkEn: Record<string, string> = {
   "network.subtitle": "Persistent airport references and network lifecycle. Frequency comes from recurring planning schedules.",
-  "network.scope": "Network changes persist in this browser. They do not change Public Flights or booking search in this phase.",
+  "network.scope": "Network changes persist in this browser and determine current service discovery with recurring schedules. Deactivation stops new discovery without cancelling existing bookings.",
   "network.unavailable": "Network reference is unavailable. Please retry.",
   "network.saveError": "Could not save Network changes. Your edits are retained. Please retry.",
   "network.frequency": "Planned weekly departures",
@@ -19,7 +19,7 @@ export const networkEn: Record<string, string> = {
 };
 export const networkAr: Record<string, string> = {
   "network.subtitle": "مراجع المطارات وحالة الشبكة المحفوظة. تُستمد وتيرة التشغيل من جداول التخطيط المتكررة.",
-  "network.scope": "تُحفظ تعديلات الشبكة في هذا المتصفح. ولا تغيّر الرحلات العامة أو نتائج البحث عن الحجوزات في هذه المرحلة.",
+  "network.scope": "تُحفظ تعديلات الشبكة في هذا المتصفح وتحدد اكتشاف الخدمات الحالية مع الجداول المتكررة. يوقف إلغاء التنشيط ظهور الرحلات للحجوزات الجديدة دون إلغاء الحجوزات القائمة.",
   "network.unavailable": "مرجع الشبكة غير متاح. يرجى المحاولة مجددًا.",
   "network.saveError": "تعذّر حفظ تعديلات الشبكة. احتُفظ بتعديلاتك، ويمكنك المحاولة مجددًا.",
   "network.frequency": "المغادرات الأسبوعية المخططة",

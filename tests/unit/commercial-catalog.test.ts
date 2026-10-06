@@ -1,3 +1,4 @@
+import { currentDeparturesOn } from "../helpers/current-service-fixture.ts";
 import { LocalPassengerRepository } from "../../src/lib/passenger/repository.ts";
 import { PassengerStorageCoordinator, StorageCommitError as PassengerStorageCommitError } from "../../src/lib/passenger/storage.ts";
 import { commercialCatalogKeys } from "../../src/lib/commercial/keys.ts";
@@ -27,7 +28,6 @@ import {
 } from "../../src/lib/repositories/storage.ts";
 import { normalizeBooking, type BookingCreateInput } from "../../src/lib/domain/booking.ts";
 import {
-  departuresOn,
   todayISO,
   addDaysISO,
   isSeatAvailable,
@@ -75,7 +75,7 @@ function storageRig(raw?: string) {
   };
 }
 function candidate(): BookingCreateInput {
-  const flight = Array.from({ length: 14 }, (_, i) => departuresOn(addDaysISO(todayISO(), 5 + i))).flat().find(
+  const flight = Array.from({ length: 14 }, (_, i) => currentDeparturesOn(addDaysISO(todayISO(), 5 + i))).flat().find(
     (f) => f.aircraftId === "a320neo" && f.status === "Scheduled" && f.seatsLeft >= 2,
   )!;
   return {
@@ -561,12 +561,12 @@ describe("6B2A integration, preferences and source authority guards", () => {
   test("query keys are deterministic and registry shares one catalog with Booking, Draft and Passenger", () => {
     assert.deepEqual(commercialCatalogKeys.current(), ["commercial-catalog", "current"]);
     const source = readFileSync("src/lib/repositories/registry.ts", "utf8");
-    assert.match(source, /new LocalBookingRepository\(coordinator,\s*\{\s*commercial,\s*fleet\s*\}\)/);
+    assert.match(source, /new LocalBookingRepository\(coordinator,\s*\{\s*commercial,\s*fleet,\s*resolver\s*\}\)/);
     assert.match(source, /new LocalPassengerRepository\(passengerCoordinator, commercial\)/);
-    assert.match(source, /new LocalBookingDraftRepository\(bookingDraftCoordinator,\s*commercial(?:,\s*fleet)?\)/);
+    assert.match(source, /new LocalBookingDraftRepository\(bookingDraftCoordinator,\s*commercial(?:,\s*fleet(?:,\s*resolver)?)?\)/);
     assert.match(source, /value\.commercial\.subscribe/);
     assert.match(source, /queryKey: commercialCatalogKeys\.all/);
-    assert.match(source, /createRepositories\(\{ inMemoryOnly: true \}\)/);
+    assert.match(source, /createRepositories\(\{ inMemoryOnly: true, serviceResolver: new IsolatedStudioFlightResolver\(\) \}\)/);
   });
   test("storage events invalidate only matching origin storage; read adopts canonical revision without an echo write", async () => {
     const r = storageRig();

@@ -1,5 +1,6 @@
+import { dateShort } from "../../src/lib/format.ts";
 import assert from "node:assert/strict";
-import { commercialContext, commercialFixture, availableSeat } from "./phase6a-commercial.mjs";
+import { commercialContext, commercialFixture, availableSeat, counterTestFlight } from "./phase6a-commercial.mjs";
 import { flightDepartureEpoch } from "../../src/lib/booking-rules.ts";
 import { adminEn, adminAr } from "../../src/lib/i18n-admin.ts";
 import { departuresOn, todayISO, addDaysISO, SEAT_ROWS, SEAT_LETTERS } from "../../src/lib/data.ts";
@@ -72,15 +73,17 @@ async function flightRow(page, number) {
 
 export async function runPhase6B1Checks({ checkStep, browser, baseUrl }) {
   await checkStep(
-    "Check 69: Phase 6B1 schedule create/edit/retire, reload, mounted two-tab convergence and planning-only boundary",
+    "Check 69: Phase 6B1 schedule create/edit/retire, reload, mounted two-tab convergence and current discovery boundary",
     async () => {
       const context = await commercialContext(browser, null);
       try {
         const a = await context.newPage(),
           b = await context.newPage(),
           publicTab = await context.newPage();
-        const date = todayISO();
-        await publicTab.goto(baseUrl + "/flights?date=" + date);
+        const date = Array.from({length: 6}, (_, i) => addDaysISO(counterTestFlight().date, i + 1)).find(d => [1, 3, 5].includes(new Date(d + "T12:00:00Z").getUTCDay()));
+        assert.ok(date);
+        await publicTab.goto(baseUrl + "/flights");
+        await publicTab.getByRole("button", {name: date === addDaysISO(counterTestFlight().date, 1) ? "Tomorrow" : dateShort(date, "en"), exact: true}).click();
         await publicTab.locator("main tbody tr").first().waitFor();
         const links = await publicTab
           .locator("main tbody tr")
@@ -107,11 +110,11 @@ export async function runPhase6B1Checks({ checkStep, browser, baseUrl }) {
         await b.getByRole("tab", { name: adminEn["adm.dest.tab.route"], exact: true }).click();
         await b.getByText("PS902", { exact: true }).waitFor();
         await publicTab.reload();
+        await publicTab.getByRole("button", {name: date === addDaysISO(counterTestFlight().date, 1) ? "Tomorrow" : dateShort(date, "en"), exact: true}).click();
         await publicTab.locator("main tbody tr").first().waitFor();
-        assert.deepEqual(
-          await publicTab.locator("main tbody tr").evaluateAll((es) => es.map((e) => e.innerText)),
-          links,
-        );
+        const expanded = await publicTab.locator("main tbody tr").evaluateAll(es => es.map(e => e.innerText));
+        assert.equal(expanded.length, links.length + 1);
+        assert.ok(expanded.some(text => text.includes("PS902")));
         await b.goto(baseUrl + "/admin/schedules");
         await mainRow(b, "PS902").waitFor();
         assert.equal(await mainRow(a, "PS902").locator('button:has-text("Delete")').count(), 0);
@@ -137,6 +140,7 @@ export async function runPhase6B1Checks({ checkStep, browser, baseUrl }) {
         assert.equal(retired.exceptions.length, 1);
         assert.ok(retired.exceptions[0].effect);
         await publicTab.reload();
+        await publicTab.getByRole("button", {name: date === addDaysISO(counterTestFlight().date, 1) ? "Tomorrow" : dateShort(date, "en"), exact: true}).click();
         await publicTab.locator("main tbody tr").first().waitFor();
         assert.deepEqual(
           await publicTab.locator("main tbody tr").evaluateAll((es) => es.map((e) => e.innerText)),
@@ -347,8 +351,7 @@ export async function runPhase6B1Checks({ checkStep, browser, baseUrl }) {
           },
           { origin: "GZA", destination: f.destinationCode, date: f.date, id: f.id },
         );
-        assert.equal(effective.gate, "C9");
-        assert.equal(effective.status, "Delayed");
+        assert.equal(effective, undefined, "Booked legacy operational service must not reenter current sale search");
       } finally {
         await context.close();
       }

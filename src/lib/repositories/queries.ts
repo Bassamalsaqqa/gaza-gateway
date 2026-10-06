@@ -237,13 +237,6 @@ export function useBookingEffectiveFlights(
   booking: Booking | null | undefined,
 ): BookingEffectiveFlightsResult {
   const { flight: flightRepo } = useRepositories();
-  const queryClient = useQueryClient();
-
-  useEffect(() => {
-    return flightRepo.subscribe(() => {
-      queryClient.invalidateQueries({ queryKey: flightKeys.all });
-    });
-  }, [flightRepo, queryClient]);
 
   const outboundId = booking?.outbound?.id?.trim() ?? "";
   const inboundId = booking?.inbound?.id?.trim() ?? "";
@@ -359,18 +352,17 @@ export function useFlightQuery(id: string | null | undefined): UseQueryResult<Fl
   });
 }
 
+/** New-sale eligibility lookup; broad detail compatibility never implies a sale. */
+export function useCurrentFlightQuery(id: string): UseQueryResult<Flight | null, Error> {
+  const { flight } = useRepositories();
+  return useQuery({ queryKey: flightKeys.current(id), queryFn: () => flight.getCurrentFlightById(id), enabled: Boolean(id) });
+}
+
 /**
  * Retrieves all flight overrides.
  */
 export function useFlightOverridesQuery(): UseQueryResult<Record<string, FlightOverride>, Error> {
   const { flight: flightRepo } = useRepositories();
-  const queryClient = useQueryClient();
-
-  useEffect(() => {
-    return flightRepo.subscribe(() => {
-      queryClient.invalidateQueries({ queryKey: flightKeys.all });
-    });
-  }, [flightRepo, queryClient]);
 
   return useQuery({
     queryKey: flightKeys.overrides(),
@@ -540,13 +532,6 @@ export function useFlightSearchQuery(
   queryOptions?: { enabled?: boolean },
 ): UseQueryResult<Flight[], Error> {
   const { flight: flightRepo } = useRepositories();
-  const queryClient = useQueryClient();
-
-  useEffect(() => {
-    return flightRepo.subscribe(() => {
-      queryClient.invalidateQueries({ queryKey: flightKeys.all });
-    });
-  }, [flightRepo, queryClient]);
 
   const enabled =
     Boolean(origin && destination && date) &&
@@ -571,13 +556,6 @@ export function useMonthlyFlightServiceQuery(
   queryOptions?: { enabled?: boolean },
 ): UseQueryResult<MonthlyServiceMap, Error> {
   const { flight: flightRepo } = useRepositories();
-  const queryClient = useQueryClient();
-
-  useEffect(() => {
-    return flightRepo.subscribe(() => {
-      queryClient.invalidateQueries({ queryKey: flightKeys.all });
-    });
-  }, [flightRepo, queryClient]);
 
   const enabled =
     Boolean(origin && destination && year && month) &&

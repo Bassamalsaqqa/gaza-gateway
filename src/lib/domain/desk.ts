@@ -6,7 +6,9 @@ import { isISOCalendarDate } from "./booking-validation.ts";
  * and counter operations, keeping pure selectors decoupled from React route components.
  */
 
-import { flightById, type Flight } from "../data.ts";
+import type { Flight } from "../data.ts";
+import { isDatedServiceId } from "../dated-services/identity.ts";
+import { isLegacyFlightId } from "../dated-services/legacy.ts";
 import { type Booking, type Leg, isPaxCheckedIn, getBookingLegs } from "./booking.ts";
 import { type CheckInEligibilityResult, getCheckInEligibility } from "./check-in.ts";
 
@@ -33,7 +35,7 @@ export function sanitizeAdminCheckInSearch(search: Record<string, unknown>): {
       ? search["ref"].trim().toUpperCase()
       : undefined;
   const flightId =
-    typeof search["flightId"] === "string" && flightById(search["flightId"])
+    typeof search["flightId"] === "string" && (isDatedServiceId(search["flightId"]) || isLegacyFlightId(search["flightId"]))
       ? search["flightId"]
       : undefined;
   return { date, ref, flightId };

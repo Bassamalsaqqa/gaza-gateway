@@ -12,8 +12,6 @@
  */
 
 import {
-  arrivalsOn,
-  departuresOn,
   aircraftNameToId,
   aircraftIdToName,
   type Flight,

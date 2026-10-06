@@ -1,3 +1,6 @@
+import { servicesEn, servicesAr } from "../../src/lib/i18n-services.ts";
+import { networkEn, networkAr } from "../../src/lib/i18n-network.ts";
+import { currentDeparturesOn } from "../helpers/current-service-fixture.ts";
 import { CommercialCatalogError } from "../../src/lib/commercial/types.ts";
 import { resolveBookingPricing } from "../../src/lib/commercial/pricing.ts";
 import { readFileSync } from "node:fs";
@@ -13,7 +16,6 @@ import {
   REPO_STORAGE_KEY,
 } from "../../src/lib/repositories/storage.ts";
 import {
-  departuresOn,
   todayISO,
   addDaysISO,
   isSeatAvailable,
@@ -41,7 +43,7 @@ function available(f: Flight, index = 0, cabin = "economy") {
   return seats[index]!;
 }
 function input(): BookingCreateInput {
-  const f = Array.from({ length: 14 }, (_, i) => departuresOn(addDaysISO(todayISO(), 5 + i))).flat().find(f => f.aircraftId === "a320neo" && f.status === "Scheduled" && f.seatsLeft >= 2)!;
+  const f = Array.from({ length: 14 }, (_, i) => currentDeparturesOn(addDaysISO(todayISO(), 5 + i))).flat().find(f => f.aircraftId === "a320neo" && f.status === "Scheduled" && f.seatsLeft >= 2)!;
   return {
     outbound: f,
     inbound: null,
@@ -306,7 +308,7 @@ describe("Phase 6A Correction: canonical writer invariants", () => {
   });
   test("revalidates effective capacity snapshot rather than client seatsLeft", async () => {
     const d = input();
-    const f = Array.from({ length: 14 }, (_, i) => departuresOn(addDaysISO(todayISO(), 5 + i))).flat().find((f) => f.seatsLeft < 20)!;
+    const f = Array.from({ length: 14 }, (_, i) => currentDeparturesOn(addDaysISO(todayISO(), 5 + i))).flat().find((f) => f.seatsLeft < 20)!;
     assert.ok(f);
     d.outbound = { ...f, seatsLeft: 999 };
     d.criteria.destination = f.destinationCode;
@@ -538,8 +540,8 @@ describe("Phase 6A Correction: undo, station selectors and presentation truth", 
 
 test("Phase 6A commercial route labels resolve in both locales and mobile cards render components", () => {
   const dictionaries = [
-    { ...en, ...adminEn, ...admin2En },
-    { ...ar, ...adminAr, ...admin2Ar },
+    { ...en, ...adminEn, ...admin2En, ...networkEn, ...servicesEn },
+    { ...ar, ...adminAr, ...admin2Ar, ...networkAr, ...servicesAr },
   ];
   const routes = ["bookings.new", "bookings.$ref", "check-in"];
   for (const route of routes) {

@@ -166,8 +166,8 @@ function AdminFlightDetailPage() {
         meta={
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge status={flight.status} />
-            <AdminChip tone="muted">
-              <Ltr>{flight.id}</Ltr>
+            <AdminChip tone="muted" className="max-w-full min-w-0 whitespace-normal">
+              <Ltr className="min-w-0 break-all whitespace-normal">{flight.id}</Ltr>
             </AdminChip>
             <span className="text-xs text-muted-foreground">{dateLong(flight.date, lang)}</span>
           </div>

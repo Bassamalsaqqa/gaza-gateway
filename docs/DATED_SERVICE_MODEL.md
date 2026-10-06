@@ -1,14 +1,14 @@
-# Dated-Service Model — Phase 6B2C2A
+# Dated-Service Authority Model — Phase 6B2C2A
 
-> **Current Source Status**: **Phase 6B2C2A Complete / Accepted Source.** Production remains owner-deployed Phase 6B2A; Phase 6B2B release/deployment is intentionally pending. Phase 6B2C2B remains Planned / Unstarted.
+> **Current Source Status**: **Phase 6B2C2B Implemented / Awaiting Independent Review. Phase 6B2C2A Complete / Accepted Source.** Production remains owner-deployed Phase 6B2A; Phase 6B2B release/deployment is intentionally pending. Phase 6B2C2B remains Implemented / Awaiting Independent Review.
 
-Status: **Phase 6B2C2A Complete / Accepted Source**. Historical completed phases:
+Status: **Phase 6B2C2B Implemented / Awaiting Independent Review**. The pure C2A foundation is Complete / Accepted Source. Historical completed phases:
 
 - **Phase 6B2C1 Complete / Accepted Source** (accepted engineering SHA: `9846f9ad90760a5e47ca231a838d146c4d7096a0`, accepted source `f5506a2ae467b2eb5b8182d7d5b009f258115eb4`).
 - **Phase 6B2B Complete / Accepted Source** (accepted engineering SHA: `7f8a2bef613fa0cd37af4f05684c98aebe94d23e`, accepted source `d0a411cb8a882298eb32a3222478fbc782ba5556`).
 - **Phase 6B2A Complete / Accepted Source / Accepted Release / Deployed by Owner** (current production: release `2751e22be91ad74eacc9213489a57a21baf04807`, runtime source `ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`).
 
-Phase 6B as a whole remains incomplete. Phase 6B2C2B — Network & Dated-Service Discovery Cutover is Planned / Unstarted. Phase 6C, Phase 7 and Phase 7B are Planned / Unstarted.
+Phase 6B as a whole remains incomplete. Phase 6B2C2B — Network & Dated-Service Discovery Cutover is Implemented / Awaiting Independent Review. Phase 6C, Phase 7 and Phase 7B are Planned / Unstarted.
 
 ---
 
@@ -45,11 +45,13 @@ Phase 6B2C2A establishes the pure domain foundation for projecting recurring `Sc
    - Mutable presentation changes do not change simulation seeds.
    - Temporal presentation uses reference timezone `Asia/Gaza`.
 
-6. **Compatibility Boundary (C2A vs C2B)**:
-   - In Phase 6B2C2A, live consumer discovery (Public Flights `/flights`, Home departures/arrivals, Flight Detail `/flight/$flightId`, Booking search `/book`, Admin global search) remains bound to the compiled legacy generator in `src/lib/data.ts` and canonical overrides in `gza.repo.v1`.
-   - `FlightRepository` and `BookingRepository` remain frozen byte-identical to baseline.
-   - Compatibility wrappers (`legacyDeparturesOn`, `legacyArrivalsOn`, `legacyFlightById`, `legacySearchFlights`) are exported from `src/lib/dated-services/legacy.ts` for future transition.
-   - Phase 6B2C2B will perform the canonical cutover of public/booking discovery to the materializer.
+6. **Runtime resolution and compatibility (C2B)**:
+   - One shared `LocalDatedServiceResolver` composes canonical Schedule/Network with `routeBasePriceByCode`; it writes nothing.
+   - `readSnapshot`, `project`, `listCurrentFlights`, `searchCurrentFlights` and `resolveCurrentFlightById` expose current-only projection. Missing route pricing or corrupt authority raises `CurrentFlightAuthorityError`.
+   - `FlightRepository.searchFlights`, `getCurrentFlightById` and monthly maps never include compatibility-only services. Monthly commands read planning authorities once.
+   - `getFlights` combines current services, all canonical Booking Flight snapshots and actual legacy override relevance, deduplicated in that order before applying overrides. `getFlightById` prefers current `svc1` bases, then Booking snapshots; valid legacy IDs use explicit frozen compatibility when needed.
+   - Schedule, Network and booking/override events invalidate Flight queries through one central Query layer; destroy unsubscribes repository listeners.
+   - Existing PNR seat/check-in commands use current base when available, otherwise stored Flight, then transaction-current overlay. Check-in uses current planned departure, with the accepted revised-departure rule unchanged.
 
 ---
 
@@ -78,7 +80,7 @@ svc1-<base64url UTF-8 exact Schedule ID>-YYYY-MM-DD
 ### Schedule Lifecycle
 
 - **No Destructive Delete**: `ScheduleRepository.remove`, `deleteSchedule`, and `useDeleteScheduleMutation` are removed. Future product commands cannot delete Schedules. Existing previously emptied stores are preserved without resurrection.
-- **Retirement Mechanism**: Setting `active: false` is the sole retirement mechanism. Inactive schedules preserve their identity, history, and exceptions while being excluded from operational projection when C2B activates.
+- **Retirement Mechanism**: Setting `active: false` is the sole retirement mechanism. Inactive schedules preserve their identity, history, and exceptions while being excluded from operational projection from current discovery.
 - **Empty Storage Authority**: Empty persisted arrays in `gza.schedule.v1` (`{ schemaVersion: 1, revision: N, schedules: [] }`) are fully authoritative and never resurrect compiled seeds.
 
 ### Exception Schema & Discriminator
@@ -131,12 +133,26 @@ Route merchandising price must be explicit: single projection requires basePrice
 
 Extra time overrides are independently optional; omitted values resolve from the base Schedule at projection time. Enabling extra in Admin stores an empty effect, leaving those defaults unsnapshotted. Equipment overrides require a coherent Fleet ID/model pair. Legacy annotation dates outside the current effective range stay readable and are never automatically converted to effects. No arrival-after-departure constraint is invented for local wall times.
 
-The frozen legacy generator produces multiple rotations that do not match recurring Schedule seeds. The seeds are not changed to simulate equivalence. C2B may legitimately change service counts and times when it activates Schedule discovery. Historical compatibility will be identity-based, with no hardcoded calendar cutover date. No PNR, override or draft IDs are migrated in C2A.
+The frozen legacy generator produces multiple rotations that do not match recurring Schedule seeds. The seeds are not changed to simulate equivalence. C2B current service counts and times come from recurring Schedule truth and may legitimately differ from legacy rotations. Historical compatibility is identity-based, with no hardcoded calendar cutover date. No PNR, override or draft IDs are migrated in C2A.
 
-LocalStorage Schedule definitions are runtime-only and cannot participate in HostPapa static prerender head generation. C2A leaves Flight Detail heads unchanged; C2B may use generic static metadata for local dated-service IDs. There is no generated flight-instance store, backend or cross-device synchronization.
+LocalStorage Schedule definitions are runtime-only and cannot participate in HostPapa static prerender head generation. C2B uses generic static metadata for local dated-service IDs; specific legacy metadata uses the frozen compatibility wrapper. There is no generated flight-instance store, backend or cross-device synchronization.
 
 ## Phase 6B2C2A accepted-source checkpoint
 
-**Phase 6B2C2A Complete / Accepted Source.** ChatGPT independently accepted engineering at `429ca82dfa3db0453feeab5b53bb45e9e14cf45a` (reviewed original implementation: `2e1a3e626c48836384cb22ed57a4d6c4a13e7be3`). The accepted-source checkpoint is this source-finalization commit; its immutable SHA is recorded in the finalization handback without a self-referential commit requirement. C2A has no Accepted Release and is not deployed.
+**Phase 6B2C2A Complete / Accepted Source.** ChatGPT independently accepted engineering at `429ca82dfa3db0453feeab5b53bb45e9e14cf45a` (reviewed original implementation: `2e1a3e626c48836384cb22ed57a4d6c4a13e7be3`). Accepted C2A source is `412fc2b4f79e01da0607b5bca44e01d76156a634`; the source-finalization handback records its provenance. C2A has no Accepted Release and is not deployed.
 
-Phase 6B2B and Phase 6B2C1 are Complete / Accepted Source; their release/deployment is intentionally pending. Production remains owner-deployed Phase 6B2A, Complete / Accepted Source / Accepted Release / Deployed by Owner: release `2751e22be91ad74eacc9213489a57a21baf04807`, runtime source `ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`. Phase 6B2C2B remains Planned / Unstarted; Phase 6C, Phase 7 and Phase 7B remain Planned / Unstarted. Phase 6B as a whole remains incomplete. No public or Booking discovery cutover, stored identity migration, release or deployment is performed by this finalization.
+Phase 6B2B and Phase 6B2C1 are Complete / Accepted Source; their release/deployment is intentionally pending. Production remains owner-deployed Phase 6B2A, Complete / Accepted Source / Accepted Release / Deployed by Owner: release `2751e22be91ad74eacc9213489a57a21baf04807`, runtime source `ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`. Phase 6B2C2B remains Implemented / Awaiting Independent Review; Phase 6C, Phase 7 and Phase 7B remain Planned / Unstarted. Phase 6B as a whole remains incomplete. The historical C2A finalization performed no public or Booking discovery cutover, stored identity migration, release or deployment. C2B current behavior is described below.
+
+## Phase 6B2C2B - Canonical Dated-Service Discovery & Booking Cutover
+
+**Implemented / Awaiting Independent Review.** Baseline accepted source: `412fc2b4f79e01da0607b5bca44e01d76156a634`. Phase 6B2C2A remains Complete / Accepted Source (accepted engineering `429ca82dfa3db0453feeab5b53bb45e9e14cf45a`). Phase 6B as a whole remains incomplete.
+
+Current authority is NetworkRepository + ScheduleRepository + read-only compiled route merchandising price, projected by the shared DatedServiceResolver into `svc1-*` Flights, then composed with canonical FlightOverride. Current search, monthly sellability, Home/public boards, Admin search and new public/desk Booking creation use this chain. Valid empty Schedule storage produces zero current services; corrupt Schedule/Network authority fails truthfully without legacy discovery fallback.
+
+Normal new Booking commands resolve current service IDs only. Appearance Studio explicitly injects a legacy fixture resolver into an isolated in-memory registry; its simulated bookings and overrides never enter persistent stores, and normal registries cannot accept that fixture resolver. Studio drafts retain their selected mock Flight facts rather than reconciling against production planning. Committed submission replay precedes every external authority read. Command-time Commercial/Fleet/Schedule/Network snapshots are composed with transaction-current FlightOverrides, and Flight/pricing/seat-layout snapshots plus total commit together in `gza.repo.v1`. This is browser command-time snapshot composition, not multi-store ACID.
+
+Broad Flight lookup and operational boards also retain stored Booking Flight snapshots and relevant override-only legacy Flights. Current bases take precedence when available. Existing PNR mutations can fall back to their stored Flight plus current override during planning removal or authority corruption. Historical pricing and seat-layout snapshots remain authoritative. Planning deactivation is not retroactive cancellation: explicit structured cancellation or FlightOverride cancellation supplies operational truth.
+
+The frozen legacy generator is compatibility-only. There is no generated Flight persistence store, hardcoded cutover date, PNR/draft/override identity migration, backend or cross-device claim. Browser-local `svc1-*` Flight Detail uses generic static metadata because prerender cannot read local Schedule/Network state. Booking route selectors use active Network routes; compiled destination information pages remain available.
+
+Production remains **Phase 6B2A - Complete / Accepted Source / Accepted Release / Deployed by Owner**, runtime source `ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`, release `2751e22be91ad74eacc9213489a57a21baf04807`. Phase 6B2B, Phase 6B2C1 and Phase 6B2C2A release/deployment remain intentionally pending. C2B is neither accepted, released nor deployed. Phase 6C / 7 / 7B remain Planned / Unstarted.

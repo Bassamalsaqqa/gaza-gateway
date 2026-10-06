@@ -1,3 +1,4 @@
+import { currentDeparturesOn } from "../helpers/current-service-fixture.ts";
 import { canonicalCreateFixture } from "../helpers/booking-create-fixture.ts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
@@ -354,28 +355,13 @@ describe("Phase 5A Passenger Aggregate & Invariants", () => {
           tripType: "one-way",
           originCode: "GZA",
           destinationCode: "AMM",
-          departDate: "2026-10-10",
+          departDate: "2026-10-11",
           adults: 1,
           children: 0,
           infants: 0,
           cabin: "economy",
         },
-        outbound: {
-          id: "PS100-2026-10-10-out",
-          number: "PS100",
-          originCode: "GZA",
-          destinationCode: "AMM",
-          date: "2026-10-10",
-          departTime: "07:15",
-          arriveTime: "08:10",
-          aircraft: "Airbus A321neo",
-          terminal: "1",
-          basePrice: 177,
-          status: "Scheduled",
-          gate: "A1",
-          durationMinutes: 55,
-          seatsLeft: 19,
-        },
+        outbound: currentDeparturesOn("2026-10-11").find(f => f.destinationCode === "AMM")!,
         inbound: null,
         fareId: "classic",
         passengers: [{ firstName: "Guest", lastName: "Traveler", type: "adult" }],

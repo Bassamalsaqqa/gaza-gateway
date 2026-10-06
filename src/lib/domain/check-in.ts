@@ -100,7 +100,7 @@ export function getCheckInEligibility(
 
   // 2. Evaluate scheduled departure window (in departure station timezone)
   // Scheduled departure governs: revised departure NEVER extends this window.
-  const scheduledEpoch = flightDepartureEpoch(bookedFlight);
+  const scheduledEpoch = flightDepartureEpoch(effectiveFlight);
   const opensAt = scheduledEpoch - CHECKIN_WINDOW_OPENS_BEFORE_MS;
   const closesAt = scheduledEpoch - CHECKIN_WINDOW_CLOSES_BEFORE_MS;
 

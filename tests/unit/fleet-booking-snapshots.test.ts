@@ -1,3 +1,4 @@
+import { currentDeparturesOn, currentArrivalsOn } from "../helpers/current-service-fixture.ts";
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { LocalBookingRepository } from "../../src/lib/repositories/booking-repository.ts";
@@ -8,7 +9,7 @@ import { LocalFleetRepository } from "../../src/lib/fleet/repository.ts";
 import { FleetStorageCoordinator, FLEET_STORAGE_KEY } from "../../src/lib/fleet/storage.ts";
 import type { BookingCreateInput, BookingPassenger, Booking } from "../../src/lib/domain/booking.ts";
 import { FROZEN_LEGACY_SEAT_LAYOUT, resolveBookingLegLayout, BookingCreationError } from "../../src/lib/domain/booking.ts";
-import { departuresOn, arrivalsOn, todayISO, addDaysISO, isSeatAvailable, type Flight } from "../../src/lib/data.ts";
+import { todayISO, addDaysISO, isSeatAvailable, type Flight } from "../../src/lib/data.ts";
 import { parseSeatCode } from "../../src/lib/fleet/layout.ts";
 
 function storageRig() {
@@ -81,14 +82,14 @@ function samplePassengers(): BookingPassenger[] {
 
 function getScheduledOutbound(offsetDays = 5): Flight {
   const date = addDaysISO(todayISO(), offsetDays);
-  const flight = Array.from({ length: 14 }, (_, i) => departuresOn(addDaysISO(date, i))).flat().find((f) => f.aircraftId === "a320neo" && f.status === "Scheduled" && f.seatsLeft >= 2);
+  const flight = Array.from({ length: 14 }, (_, i) => currentDeparturesOn(addDaysISO(date, i))).flat().find((f) => f.aircraftId === "a320neo" && f.status === "Scheduled" && f.seatsLeft >= 2);
   if (!flight) throw new Error(`No scheduled departures found on ${date}`);
   return flight;
 }
 
 function getMatchingInbound(outbound: Flight, offsetDays = 10): Flight {
   const date = addDaysISO(todayISO(), offsetDays);
-  const flight = Array.from({ length: 21 }, (_, i) => arrivalsOn(addDaysISO(date, i))).flat().find(
+  const flight = Array.from({ length: 21 }, (_, i) => currentArrivalsOn(addDaysISO(date, i))).flat().find(
     (f) =>
       f.date > outbound.date &&
       f.originCode === outbound.destinationCode &&

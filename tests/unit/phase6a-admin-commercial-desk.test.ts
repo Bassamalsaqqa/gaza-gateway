@@ -1,3 +1,4 @@
+import { currentDeparturesOn } from "../helpers/current-service-fixture.ts";
 import { describe, test } from "node:test";
 import assert from "node:assert";
 import {
@@ -9,7 +10,7 @@ import {
 } from "../../src/lib/domain/booking.ts";
 import { LocalBookingRepository as BookingRepositoryImpl } from "../../src/lib/repositories/booking-repository.ts";
 import { RepoStorageCoordinator } from "../../src/lib/repositories/storage.ts";
-import { departuresOn, todayISO, addDaysISO, isSeatAvailable, type Flight } from "../../src/lib/data.ts";
+import { todayISO, addDaysISO, isSeatAvailable, type Flight } from "../../src/lib/data.ts";
 import { flightDepartureEpoch } from "../../src/lib/booking-rules.ts";
 import { bookingTotal, type BookingTotalInput } from "../../src/lib/domain/pricing.ts";
 import { buildAdminCheckInRows } from "../../src/lib/domain/desk.ts";
@@ -17,7 +18,7 @@ import { buildAdminCheckInRows } from "../../src/lib/domain/desk.ts";
 describe("Phase 6A: Admin Commercial Desk Convergence Unit Suite", () => {
   const getTestFlight = (): Flight => {
     const flightDate = addDaysISO(todayISO(), 3);
-    const flight = departuresOn(flightDate)[0];
+    const flight = currentDeparturesOn(flightDate)[0];
     assert.ok(flight, `A test departure flight must exist on date ${flightDate}`);
     return flight;
   };

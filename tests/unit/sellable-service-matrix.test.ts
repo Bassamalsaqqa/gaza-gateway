@@ -5,7 +5,8 @@ import {
   getFlightBookability,
   getSeatRequiredPaxCount,
 } from "../../src/lib/booking-rules.ts";
-import { flightById, type Flight } from "../../src/lib/data.ts";
+import { type Flight } from "../../src/lib/data.ts";
+import { currentDeparturesOn } from "../helpers/current-service-fixture.ts";
 import { createRepositories } from "../../src/lib/repositories/registry.ts";
 
 class MemoryStorage implements Storage {
@@ -38,20 +39,7 @@ class MemoryStorage implements Storage {
 
 function createMockFlight(overrides: Partial<Flight> = {}): Flight {
   return {
-    id: "PS100-2026-10-15-out",
-    number: "PS100",
-    originCode: "GZA",
-    destinationCode: "AMM",
-    date: "2026-10-15",
-    departTime: "19:45",
-    arriveTime: "20:40",
-    durationMinutes: 55,
-    aircraft: "Boeing 737-800",
-    status: "Scheduled",
-    gate: "A6",
-    terminal: "1",
-    basePrice: 189,
-    seatsLeft: 8,
+    ...currentDeparturesOn("2026-10-15", "2026-10-01").find(f => f.destinationCode === "AMM")!,
     ...overrides,
   };
 }
@@ -138,6 +126,7 @@ describe("Sellable Service Matrix & Authority Convergence", () => {
 
       // Initial baseline: flights exist and are bookable
       const searchResult = await repos.flight.searchFlights(origin, dest, date);
+      assert.ok(searchResult.every(f => f.id.startsWith("svc1-") && f.scheduleId));
       const searchBookable = searchResult.filter((f) => isFlightBookable(f, { paxCount }));
       const hasSearchService = searchBookable.length > 0;
       assert.equal(hasSearchService, true);

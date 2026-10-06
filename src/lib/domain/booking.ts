@@ -178,6 +178,7 @@ export type BookingCreationFailureReason =
   | "route_mismatch"
   | "date_mismatch"
   | "unavailable"
+  | "authority_unavailable"
   | "fleet_unavailable"
   | "cabin_unavailable"
   | "invalid_passengers"

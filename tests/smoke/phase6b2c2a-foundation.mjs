@@ -30,7 +30,7 @@ async function add(page,dict,kind,effect) {
 
 export async function runDatedServiceFoundationChecks({checkStep,browser,baseUrl}) {
   for(const [i,lang] of ["en","ar"].entries()) {
-    await checkStep(`Check ${113+i}: C2A ${lang} all structured effects save/reload, annotation and retirement; legacy discovery stays unchanged`,async()=>{
+    await checkStep(`Check ${113+i}: C2A ${lang} all structured effects save/reload, annotation and retirement; unrelated booked service remains intact`,async()=>{
       const {context,prefix,dict,b}=await foundationContext(browser,lang);const page=await context.newPage();
       try {
         // Runtime detail remains keyed by the accepted legacy identity before/after Schedule edits.

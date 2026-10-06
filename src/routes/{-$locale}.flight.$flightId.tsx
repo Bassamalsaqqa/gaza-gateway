@@ -1,29 +1,31 @@
+import { legacyFlightById } from "@/lib/dated-services/legacy";
 import { useCommercialOptions } from "@/lib/commercial/queries";
 import { CommercialCatalogState } from "@/components/commercial-catalog-state";
 import { commercialFarePrice } from "@/lib/commercial/pricing";
 import type { FareId } from "@/lib/commercial/types";
-import { useMemo } from "react";
 import { AppLink, useAppNavigate } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
 import { ArrowRight, Ban, Plane } from "lucide-react";
 import { StatusBadge } from "@/components/flight-status";
 import { btnClass, Code, Container, EmptyState, Notice, Panel, Pill } from "@/components/kit";
-import { useFlightQuery } from "@/lib/repositories";
-import { AIRLINE, addDaysISO, airportByCode, flightById, getFlightBookability, isFlightBookable, GZA, minutesToLabel, unbookableReasonLabelKey, type Flight } from "@/lib/data";
+import { useFlightQuery, useCurrentFlightQuery } from "@/lib/repositories";
+import { AIRLINE, addDaysISO, airportByCode, getFlightBookability, isFlightBookable, GZA, minutesToLabel, unbookableReasonLabelKey, type Flight } from "@/lib/data";
 import { dateLong, money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
 import { defaultCriteria } from "@/lib/booking-draft";
 import { useRepositories } from "@/lib/repositories";
+import { useFleetQuery } from "@/lib/fleet/queries";
+import { layoutSupportsCabin } from "@/lib/fleet/layout";
 
 export const Route = createFileRoute("/{-$locale}/flight/$flightId")({
   head: ({ params }) => {
-    const flight = flightById(params.flightId);
+    const flight = legacyFlightById(params.flightId);
     const title = flight
       ? `${flight.number} ${flight.originCode}–${flight.destinationCode} — Gaza International Airport (GZA)`
-      : "Flight details — Gaza International Airport (GZA)";
+      : params.locale === "ar" ? "تفاصيل الرحلة — الخطوط الجوية الفلسطينية" : "Flight details — Palestinian Airlines";
     const description = flight
       ? `Palestinian Airlines ${flight.number} departs ${flight.originCode} at ${flight.departTime} and arrives ${flight.destinationCode} at ${flight.arriveTime}. Aircraft, terminal, gate and status.`
-      : "Flight details for Palestinian Airlines services at Gaza International Airport.";
+      : params.locale === "ar" ? "تفاصيل رحلات الخطوط الجوية الفلسطينية." : "Flight details for Palestinian Airlines services at Gaza International Airport.";
     return {
       meta: [
         { title },
@@ -41,9 +43,9 @@ export const Route = createFileRoute("/{-$locale}/flight/$flightId")({
 function FlightDetailPage() {
   const { flightId } = Route.useParams();
   const { t, lang } = useI18n();
-  const { data: repoFlight } = useFlightQuery(flightId);
-  const fallbackFlight = useMemo(() => flightById(flightId), [flightId]);
-  const flight = repoFlight ?? fallbackFlight;
+  const query = useFlightQuery(flightId);
+  const flight = query.data;
+  if (query.isLoading || query.isError) return <Container className="py-14"><p role={query.isError ? "alert" : "status"}>{t(query.isError ? "services.error.unavailable" : "services.loading")}</p>{query.isError && <button type="button" className={btnClass("outline", "sm")} onClick={() => void query.refetch()}>{t("adm.ops.retry")}</button>}</Container>;
 
   if (!flight) {
     return (
@@ -75,20 +77,24 @@ function FlightDetail({
   t: (key: string, vars?: Record<string, string | number>) => string;
 }) {
   const commercial = useCommercialOptions();
+  const currentQuery = useCurrentFlightQuery(flight.id);
+  const fleetQuery = useFleetQuery();
   const farePrice = (base: number, fare: FareId, cabin: string) => commercial.catalogSnapshot ? commercialFarePrice(commercial.catalogSnapshot, base, fare, cabin) : NaN;
   const navigate = useAppNavigate();
   const { bookingDraft: draftRepo } = useRepositories();
   const from = airportByCode(flight.originCode) ?? GZA;
   const to = airportByCode(flight.destinationCode) ?? GZA;
-  if (!commercial.catalog || commercial.query.isError) return <CommercialCatalogState />;
   const price = farePrice(flight.basePrice, "essential", "economy");
   const routeCode = flight.originCode === GZA.code ? flight.destinationCode : flight.originCode;
 
   const bookability = getFlightBookability(flight, { paxCount: 1 });
-  const isBookable = bookability.bookable;
+  const isCurrent = Boolean(currentQuery.data && !currentQuery.isError);
+  const layout = flight.aircraftId ? fleetQuery.data?.layouts[flight.aircraftId] : undefined;
+  const hasCabin = Boolean(layout && !fleetQuery.isError && layoutSupportsCabin(layout, "economy"));
+  const isBookable = isCurrent && hasCabin && bookability.bookable && Boolean(commercial.catalog && !commercial.query.isError);
 
   async function bookThisFlight() {
-    if (!isFlightBookable(flight, { paxCount: 1 })) return;
+    if (!isBookable || !isFlightBookable(flight, { paxCount: 1 })) return;
     const criteria = {
       ...defaultCriteria(flight.date, addDaysISO(flight.date, 7)),
       tripType: "oneway" as const,
@@ -132,6 +138,7 @@ function FlightDetail({
             <TimeBlock label={t("fd.arrive")} time={flight.arriveTime} code={flight.destinationCode} city={pick(lang, to.city)} />
           </div>
 
+          {isCurrent && (!commercial.catalog || commercial.query.isError) && <CommercialCatalogState />}
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
             {isBookable ? (
               <>
@@ -148,7 +155,7 @@ function FlightDetail({
               <>
                 <span className="inline-flex items-center gap-2 rounded-lg border border-ink-border bg-ink/60 px-4 py-3 text-sm font-medium text-ink-foreground">
                   <Ban aria-hidden="true" className="size-4 shrink-0 text-clay" />
-                  <span>{t(unbookableReasonLabelKey(bookability.reason))}</span>
+                  <span>{t(currentQuery.isError ? "services.error.unavailable" : currentQuery.isLoading || (isCurrent && fleetQuery.isPending) ? "services.loading" : !isCurrent ? "services.compatibility" : !hasCabin ? "fleet.error.unavailable" : unbookableReasonLabelKey(bookability.reason))}</span>
                 </span>
                 <AppLink to="/flights" className={btnClass("primary", "lg")}>
                   {t("fd.openBoard")}

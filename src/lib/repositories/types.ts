@@ -107,13 +107,15 @@ export interface MonthlyDayService {
 export type MonthlyServiceMap = Record<string, MonthlyDayService>;
 
 export interface FlightRepository {
-  /** Retrieves scheduled flights for a given date with operational overrides applied. */
+  /** Operational board: current services plus booked and override-relevant compatibility, with overrides. */
   getFlights(date: string, direction?: "dep" | "arr"): Promise<Flight[]>;
 
-  /** Resolves a single flight instance with operational overrides applied. */
+  /** Broad detail: current base first, then stored Booking snapshot or frozen legacy identity, with override. */
   getFlightById(id: string): Promise<Flight | null>;
+  /** Current materialized service only, with override; no historical/legacy fallback. */
+  getCurrentFlightById(id: string): Promise<Flight | null>;
 
-  /** Searches effective flights for a route on a specific date with operational overrides composed. */
+  /** Current service candidate pool only, with overrides; consumers still apply bookability and cabin rules. */
   searchFlights(origin: string, destination: string, date: string): Promise<Flight[]>;
 
   /** Retrieves a monthly service and lowest fare map for a route with operational overrides composed. */
@@ -137,7 +139,7 @@ export interface FlightRepository {
   /** Clears an operational override on a flight. */
   clearOverride(flightId: string): Promise<void>;
 
-  /** Subscribes to changes in flight overrides. */
+  /** Subscribes to Repo, Schedule and Network changes through one invalidation layer. */
   subscribe(listener: () => void): () => void;
 }
 

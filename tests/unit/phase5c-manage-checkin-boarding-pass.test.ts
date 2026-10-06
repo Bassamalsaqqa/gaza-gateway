@@ -1,3 +1,4 @@
+import { isSeatAvailable } from "../../src/lib/data.ts";
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { getCheckInEligibility } from "../../src/lib/domain/check-in.ts";
@@ -1679,104 +1680,32 @@ describe("Phase 5C: Manage, Check-in & Boarding Pass Convergence", () => {
       assert.equal(persisted?.seats["out-1"], "12B");
     });
 
-    it("outbound missing -> new/reassigned seat rejected, complete memory/storage unchanged", async () => {
-      // Point the booking to a non-existent flight ID in the catalog
-      coordinator.mutate(state => {
-        // Fixture setup only: production booking mutations use typed commands.
-        Object.assign(state.bookings[0]!, {
-          outbound: {
-            ...mockOutboundFlight,
-            id: "PS999-2026-10-10-out",
-          },
-        });
-      });
-
-      const baselineBooking = structuredClone(await repo.getByRef("GZA-5C01"));
-      const baselineRaw = mockStorage.getItem("gza.repo.v1");
-
-      await assert.rejects(
-        () =>
-          repo.updateSeats("GZA-5C01", {
-            "out-0": "11C",
-            "out-1": "12B",
-          }),
-        /unavailable/i,
-      );
-
-      // Memory unchanged
-      const inMemory = await repo.getByRef("GZA-5C01");
-      assert.deepEqual(inMemory, baselineBooking);
-
-      // Storage unchanged
-      assert.equal(mockStorage.getItem("gza.repo.v1"), baselineRaw);
-    });
-
-    it("actual removal on missing leg also rejected", async () => {
-      // Point the booking to a non-existent flight ID in the catalog
-      coordinator.mutate(state => {
-        // Fixture setup only: production booking mutations use typed commands.
-        Object.assign(state.bookings[0]!, {
-          outbound: {
-            ...mockOutboundFlight,
-            id: "PS999-2026-10-10-out",
-          },
-        });
-      });
-
-      const baselineBooking = structuredClone(await repo.getByRef("GZA-5C01"));
-      const baselineRaw = mockStorage.getItem("gza.repo.v1");
-
-      // Attempt to remove passenger 0's seat by only specifying passenger 1
-      await assert.rejects(
-        () =>
-          repo.updateSeats("GZA-5C01", {
-            "out-1": "11B", // out-0 omitted -> removal
-          }),
-        /unavailable/i,
-      );
-
-      // Memory and storage unchanged
-      assert.deepEqual(await repo.getByRef("GZA-5C01"), baselineBooking);
-      assert.equal(mockStorage.getItem("gza.repo.v1"), baselineRaw);
-    });
-
-    it("round trip with resolvable outbound and missing inbound -> outbound-only mutation succeeds and inbound stays unchanged; inbound mutation rejects", async () => {
-      // Outbound PS100 is in catalog; inbound PS999 is missing from catalog
-      coordinator.mutate(state => {
-        // Fixture setup only: production booking mutations use typed commands.
-        Object.assign(state.bookings[0]!, {
-          inbound: {
-            ...mockInboundFlight,
-            id: "PS999-2026-10-15-in",
-          },
-          seats: {
-            "out-0": "11A",
-            "out-1": "11B",
-            "in-0": "14A",
-            "in-1": "14B",
-          },
-        });
-      });
-
-      // 1. Outbound-only mutation succeeds
-      const updated = await repo.updateSeats("GZA-5C01", {
-        "out-0": "11C",
-        "out-1": "12B",
-      });
+    it("C2B stored outbound snapshot remains seat authority when current lookup is missing", async () => {
+      coordinator.mutate(state => { state.bookings[0]!.outbound = { ...mockOutboundFlight, id: "PS999-2026-10-10-out" }; });
+      const updated = await repo.updateSeats("GZA-5C01", { "out-0": "11C", "out-1": "12B" });
       assert.equal(updated.seats["out-0"], "11C");
       assert.equal(updated.seats["out-1"], "12B");
-      // Inbound seats untouched!
-      assert.equal(updated.seats["in-0"], "14A");
-      assert.equal(updated.seats["in-1"], "14B");
-
-      // 2. Inbound mutation rejects
-      await assert.rejects(
-        () =>
-          repo.updateSeats("GZA-5C01", {
-            "in-0": "15A",
-          }),
-        /unavailable/i,
-      );
+      assert.equal(updated.outbound.id, "PS999-2026-10-10-out");
+    });
+    it("C2B actual removal on compatibility leg uses stored snapshot and retains unrelated passenger", async () => {
+      coordinator.mutate(state => { state.bookings[0]!.outbound = { ...mockOutboundFlight, id: "PS999-2026-10-10-out" }; });
+      const updated = await repo.updateSeats("GZA-5C01", { "out-1": "11B" });
+      assert.equal(updated.seats["out-0"], undefined);
+      assert.equal(updated.seats["out-1"], "11B");
+    });
+    it("C2B compatibility inbound seat updates preserve unrelated outbound assignments", async () => {
+      coordinator.mutate(state => { state.bookings[0]!.inbound = { ...mockInboundFlight, id: "PS999-2026-10-15-in" }; });
+      const before = (await repo.getByRef("GZA-5C01"))!;
+      const taken = new Set(Object.entries(before.seats).filter(([k]) => k.startsWith("in-")).map(([,v]) => v));
+      let free = "";
+      for (let row = 13; row <= 28 && !free; row++) for (const letter of "ABCDEF") {
+        if (!taken.has(`${row}${letter}`) && isSeatAvailable(before.inbound!.id, row, letter)) { free = `${row}${letter}`; break; }
+      }
+      assert.ok(free);
+      const updated = await repo.updateSeats(before.ref, { "in-0": free });
+      assert.equal(updated.seats["in-0"], free);
+      assert.equal(updated.seats["out-0"], before.seats["out-0"]);
+      assert.equal(updated.seats["out-1"], before.seats["out-1"]);
     });
 
     it("genuine unchanged request on missing leg is non-destructive under the chosen documented rule", async () => {

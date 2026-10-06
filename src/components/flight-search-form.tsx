@@ -1,3 +1,5 @@
+import { useQueryClient } from "@tanstack/react-query";
+import { useNetworkQuery } from "@/lib/network/queries";
 /**
  * FlightSearchForm — Gaza Gateway (Redesign 0.2)
  *
@@ -23,7 +25,7 @@ import { AirportCombobox } from "./airport-combobox";
 import { AirlineDatePicker } from "./airline-date-picker";
 import { TravellersPicker } from "./travellers-picker";
 import { CabinPicker } from "./cabin-picker";
-import { GZA, addDaysISO, destinations, isFlightBookable, todayISO } from "@/lib/data";
+import { GZA, addDaysISO, isFlightBookable, todayISO } from "@/lib/data";
 import { useI18n } from "@/lib/i18n";
 import { type SearchCriteria } from "@/lib/booking-draft";
 import {
@@ -64,6 +66,9 @@ export function FlightSearchForm({
   const resetDraftMutation = useResetBookingDraftMutation();
   const activeDraft = draftState?.draft ?? draftRepo.getDraft();
 
+  const queryClient = useQueryClient();
+  const networkQuery = useNetworkQuery();
+  const activeRoutes = useMemo(() => networkQuery.isError ? [] : (networkQuery.data ?? []).filter(d => d.active), [networkQuery.data, networkQuery.isError]);
   const navigate = useAppNavigate();
   const ctx = context;
   const isHome = ctx === "home";
@@ -148,8 +153,8 @@ export function FlightSearchForm({
       const next = { ...prev, [side]: code } as SearchCriteria;
       if (code === GZA.code) {
         if (other === GZA.code) {
-          if (side === "origin") next.destination = destinations[0]?.code ?? "AMM";
-          else next.origin = destinations[0]?.code ?? "AMM";
+          if (side === "origin") next.destination = activeRoutes[0]?.code ?? "";
+          else next.origin = activeRoutes[0]?.code ?? "";
         }
         return next;
       }
@@ -161,7 +166,7 @@ export function FlightSearchForm({
   const swap = () =>
     setCriteria((prev) => ({ ...prev, origin: prev.destination, destination: prev.origin }));
 
-  const allAirports = useMemo(() => [GZA, ...destinations], []);
+  const allAirports = useMemo(() => [GZA, ...activeRoutes.map(d => ({ code: d.code, name: d.airportName, city: d.city, country: d.country, tz: d.timezone }))], [activeRoutes]);
 
   /* ── Validation ── */
   const isDatePairInvalid =
@@ -172,7 +177,8 @@ export function FlightSearchForm({
 
   const isNetworkValid =
     (criteria.origin === GZA.code || criteria.destination === GZA.code) &&
-    criteria.origin !== criteria.destination;
+    criteria.origin !== criteria.destination &&
+    activeRoutes.some(d => d.code === (criteria.origin === GZA.code ? criteria.destination : criteria.origin));
 
   /* ── Effective flight queries for operational availability & service ── */
   const seatPax = criteria.adults + criteria.children;
@@ -247,6 +253,9 @@ export function FlightSearchForm({
     (c: SearchCriteria): string | null => {
       if (c.origin === c.destination) return t("search.errSame");
       if (c.origin !== GZA.code && c.destination !== GZA.code) return t("search.errNetwork");
+      if (networkQuery.isError) return t("network.unavailable");
+      if (!isNetworkValid) return t("services.routeInactive");
+      if (isDepartError || (c.tripType === "round" && isReturnError)) return t("services.error.unavailable");
       if (!c.departDate) return t("search.errDepart");
       if (c.departDate < todayISO()) return t("search.errPast");
       if (isDepartResolving) return null; // Pending is not no-service
@@ -260,7 +269,7 @@ export function FlightSearchForm({
       return null;
     },
     [
-      t,
+      t, networkQuery.isError, isNetworkValid, isDepartError, isReturnError,
       isDepartResolving,
       isReturnResolving,
       hasDepartService,
@@ -274,7 +283,7 @@ export function FlightSearchForm({
     if (error) setError(validate(criteria));
   }, [error, criteria, validate]);
 
-  const isSubmitDisabled = isResolving || resetDraftMutation.isPending;
+  const isSubmitDisabled = isResolving || resetDraftMutation.isPending || networkQuery.isPending || networkQuery.isError || isDepartError || (criteria.tripType === "round" && isReturnError) || !isNetworkValid;
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -561,7 +570,7 @@ export function FlightSearchForm({
           </div>
 
           {/* ─── Validation Banner (high contrast over red shell) ─── */}
-          {error || submissionError ? (
+          {networkQuery.isError || isDepartError || (criteria.tripType === "round" && isReturnError) || (!networkQuery.isPending && !isNetworkValid) || error || submissionError ? (
             <div
               role="alert"
               aria-live="polite"
@@ -570,7 +579,8 @@ export function FlightSearchForm({
                 "flex items-center gap-2 rounded-lg border border-destructive/40 bg-card/95 px-3.5 py-2.5 text-sm font-medium text-destructive shadow-xs",
               )}
             >
-              <span>{error ?? submissionError}</span>
+              <span>{networkQuery.isError ? t("network.unavailable") : isDepartError || (criteria.tripType === "round" && isReturnError) ? t("services.error.unavailable") : !isNetworkValid ? t("services.routeInactive") : error ?? submissionError}</span>
+              {(networkQuery.isError || isDepartError || isReturnError) && <button type="button" className="underline" onClick={() => { void networkQuery.refetch(); void queryClient.invalidateQueries({ queryKey: ["flights"] }); }}>{t("adm.ops.retry")}</button>}
             </div>
           ) : null}
         </div>

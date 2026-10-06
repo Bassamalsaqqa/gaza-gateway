@@ -17,3 +17,8 @@ export function legacyDestinationPresentationByCode(code: string) {
     seoDescription: `Palestinian Airlines flies from Gaza International Airport to ${d.city.en}. Flight time, weekly schedule, fares and booking.`,
   };
 }
+
+/** Read-only merchandising fixture; Network and Schedule never persist route prices. */
+export function routeBasePriceByCode(code: string): number | null {
+  return destinationByCode(code)?.priceFrom ?? null;
+}

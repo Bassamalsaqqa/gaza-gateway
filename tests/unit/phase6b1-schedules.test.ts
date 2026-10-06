@@ -259,7 +259,7 @@ describe("Phase 6B1 — integration and truth boundaries", () => {
     assert.equal(storage.writes, 0);
     resetIsolatedStudioRepositories();
   });
-  it("schedule planning edits and exceptions do not change FlightRepository or booking search", async () => {
+  it("C2B schedule lifecycle now controls current Flight discovery while unrelated routes remain", async () => {
     const repositories = createRepositories({ inMemoryOnly: true });
     const date = "2026-10-06";
     const flights = await repositories.flight.getFlights(date);
@@ -267,8 +267,10 @@ describe("Phase 6B1 — integration and truth boundaries", () => {
     await repositories.schedule.create({ ...entry(), number: "PS999", active: false });
     await repositories.schedule.update("sch-AMM-out", { departTime: "23:59", active: false });
     await repositories.schedule.update("sch-AMM-in", { active: false });
-    assert.deepEqual(await repositories.flight.getFlights(date), flights);
-    assert.deepEqual(await repositories.flight.searchFlights("GZA", "AMM", date), search);
+    assert.ok(flights.some(f => f.scheduleId === "sch-AMM-out"));
+    assert.equal(search.length, 1);
+    assert.ok(!(await repositories.flight.getFlights(date)).some(f => f.scheduleId === "sch-AMM-out" || f.scheduleId === "sch-AMM-in"));
+    assert.deepEqual(await repositories.flight.searchFlights("GZA", "AMM", date), []);
   });
   it("query keys and provider use one schedule invalidation authority", () => {
     assert.deepEqual(scheduleKeys.all, ["schedules"]);

@@ -21,7 +21,7 @@ const save = (page, dict) => page.getByRole("button", { name: dict["adm.edit.sav
 
 export async function runPhase6B2C1Checks({ checkStep, browser, baseUrl }) {
   for (const [i, lang] of ["en", "ar"].entries()) {
-    await checkStep(`Check ${105 + i}: Phase 6B2C1 ${lang} mounted Network cross-tab persistence, dirty conflict, inactive lifecycle and unchanged Public Flights`, async () => {
+    await checkStep(`Check ${105 + i}: Phase 6B2C1 ${lang} mounted Network cross-tab persistence, dirty conflict, inactive lifecycle and booked compatibility survives Network deactivation`, async () => {
       const { context, prefix, dict, network, b: booking } = await networkContext(browser, lang);
       try {
         const a = await context.newPage(), b = await context.newPage(), list = await context.newPage();

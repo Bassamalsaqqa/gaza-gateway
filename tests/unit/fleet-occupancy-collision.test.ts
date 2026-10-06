@@ -1,3 +1,4 @@
+import { currentDeparturesOn } from "../helpers/current-service-fixture.ts";
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { LocalBookingRepository, getCanonicalOccupiedSeats } from "../../src/lib/repositories/booking-repository.ts";
@@ -16,7 +17,6 @@ import {
 import { SeatValidationError } from "../../src/lib/domain/seat-validation.ts";
 import type { BookingCreateInput, BookingPassenger, Booking } from "../../src/lib/domain/booking.ts";
 import {
-  departuresOn,
   todayISO,
   addDaysISO,
   isSeatAvailable,
@@ -71,7 +71,7 @@ function createRig(initialBookings: Booking[] = []) {
 
 function getScheduledFlight(): Flight {
   const date = addDaysISO(todayISO(), 5);
-  const flight = departuresOn(date).find((f) => f.status === "Scheduled" && f.seatsLeft >= 4);
+  const flight = currentDeparturesOn(date).find((f) => f.status === "Scheduled" && f.seatsLeft >= 4);
   if (!flight) throw new Error(`No scheduled departures found on ${date}`);
   return flight;
 }

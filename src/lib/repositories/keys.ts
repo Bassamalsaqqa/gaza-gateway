@@ -16,6 +16,7 @@ export const bookingKeys = {
 /** Hierarchical Query Keys for the Flight domain */
 export const flightKeys = {
   all: ["flights"] as const,
+  current: (id: string) => [...flightKeys.all, "current", id] as const,
   lists: () => [...flightKeys.all, "list"] as const,
   list: (date: string, direction?: "dep" | "arr") => [...flightKeys.lists(), { date, direction }] as const,
   details: () => [...flightKeys.all, "detail"] as const,

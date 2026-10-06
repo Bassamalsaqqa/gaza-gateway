@@ -1,3 +1,5 @@
+import { runDatedServiceCutoverChecks } from "./phase6b2c2b-cutover.mjs";
+import { currentDeparturesOn, currentArrivalsOn } from "../helpers/current-service-fixture.ts";
 import { runDatedServiceFoundationChecks } from "./phase6b2c2a-foundation.mjs";
 import { runPhase6B2BCorrectionChecks } from "./phase6b2b-correction-01.mjs";
 import { runPhase6B2C1Checks } from "./phase6b2c1-network.mjs";
@@ -62,6 +64,21 @@ async function waitForInteractiveInput(page, selector) {
     return input && Object.keys(input).some(key =>
       key.startsWith("__reactProps") && typeof input[key]?.onChange === "function");
   }, selector, { timeout: 8000 });
+}
+
+async function waitForNetworkRoute(page) {
+  try {
+    await page.locator('#search-to [data-slot="airport-code"]').waitFor();
+  } catch (error) {
+    console.error("Network route fixture diagnostics:", await page.evaluate(() => ({
+      pathname: location.pathname,
+      origin: document.querySelector("#search-from")?.textContent,
+      destination: document.querySelector("#search-to")?.textContent,
+      alerts: [...document.querySelectorAll('form [role="alert"]')].map(n => n.textContent),
+      networkKeyPresent: localStorage.getItem("gza.network.v1") !== null,
+    })));
+    throw error;
+  }
 }
 
 // Failure-only journey diagnostics; no form payload or storage contents are logged.
@@ -533,18 +550,16 @@ async function runBrowserSmoke() {
     await checkStep("7. Flight Detail Bookability & Unbookable States (/flight/*)", async () => {
       // Deterministic future and past flight IDs (daily AMM service rotation 0)
       function getFutureFlightId(daysAhead = 3) {
-        const d = new Date(Date.now() + daysAhead * 86400000);
-        const iso = d.toISOString().slice(0, 10);
-        const weekday = new Date(`${iso}T12:00:00`).getDay();
-        const num = weekday % 2 === 0 ? "PS100" : "PS101";
-        return `${num}-${iso}-out`;
+        for (let i = daysAhead; i < daysAhead + 7; i++) {
+          const iso = new Date(Date.now() + i * 86400000).toISOString().slice(0, 10);
+          const f = currentDeparturesOn(iso).find(f => f.destinationCode === "AMM");
+          if (f) return f.id;
+        }
+        throw new Error("No opening AMM schedule date in fixture range");
       }
       function getPastFlightId(daysAgo = 7) {
-        const d = new Date(Date.now() - daysAgo * 86400000);
-        const iso = d.toISOString().slice(0, 10);
-        const weekday = new Date(`${iso}T12:00:00`).getDay();
-        const num = weekday % 2 === 0 ? "PS100" : "PS101";
-        return `${num}-${iso}-out`;
+        const iso = new Date(Date.now() - daysAgo * 86400000).toISOString().slice(0, 10);
+        return currentDeparturesOn(iso)[0].id;
       }
 
       const futureId = getFutureFlightId(3);
@@ -630,18 +645,16 @@ async function runBrowserSmoke() {
     // 8. Arabic Flight Detail & LTR Technical Formatting
     await checkStep("8. Arabic Flight Detail & Technical LTR Formatting (/ar/flight/*)", async () => {
       function getFutureFlightId(daysAhead = 3) {
-        const d = new Date(Date.now() + daysAhead * 86400000);
-        const iso = d.toISOString().slice(0, 10);
-        const weekday = new Date(`${iso}T12:00:00`).getDay();
-        const num = weekday % 2 === 0 ? "PS100" : "PS101";
-        return `${num}-${iso}-out`;
+        for (let i = daysAhead; i < daysAhead + 7; i++) {
+          const iso = new Date(Date.now() + i * 86400000).toISOString().slice(0, 10);
+          const f = currentDeparturesOn(iso).find(f => f.destinationCode === "AMM");
+          if (f) return f.id;
+        }
+        throw new Error("No opening AMM schedule date in fixture range");
       }
       function getPastFlightId(daysAgo = 7) {
-        const d = new Date(Date.now() - daysAgo * 86400000);
-        const iso = d.toISOString().slice(0, 10);
-        const weekday = new Date(`${iso}T12:00:00`).getDay();
-        const num = weekday % 2 === 0 ? "PS100" : "PS101";
-        return `${num}-${iso}-out`;
+        const iso = new Date(Date.now() - daysAgo * 86400000).toISOString().slice(0, 10);
+        return currentDeparturesOn(iso)[0].id;
       }
 
       const futureId = getFutureFlightId(3);
@@ -723,12 +736,13 @@ async function runBrowserSmoke() {
 
     // 9. Real Cross-Public/Admin Booking Journey Proof
     await checkStep("9. Real cross-public/admin booking journey proof", async () => {
-      function getFutureFlightId(daysAhead = 4) {
-        const d = new Date(Date.now() + daysAhead * 86400000);
-        const iso = d.toISOString().slice(0, 10);
-        const weekday = new Date(`${iso}T12:00:00`).getDay();
-        const num = weekday % 2 === 0 ? "PS100" : "PS101";
-        return `${num}-${iso}-out`;
+      function getFutureFlightId(daysAhead = 3) {
+        for (let i = daysAhead; i < daysAhead + 7; i++) {
+          const iso = new Date(Date.now() + i * 86400000).toISOString().slice(0, 10);
+          const f = currentDeparturesOn(iso).find(f => f.destinationCode === "AMM");
+          if (f) return f.id;
+        }
+        throw new Error("No opening AMM schedule date in fixture range");
       }
 
       const futureId = getFutureFlightId(4);
@@ -866,15 +880,17 @@ async function runBrowserSmoke() {
 
     // 10. Operational Flight Override Reflection Proof via Admin UI
     await checkStep("10. Operational flight override reflection proof via Admin UI", async () => {
-      function getFutureFlightId(daysAhead = 5) {
-        const d = new Date(Date.now() + daysAhead * 86400000);
-        const iso = d.toISOString().slice(0, 10);
-        const weekday = new Date(`${iso}T12:00:00`).getDay();
-        const num = weekday % 2 === 0 ? "PS100" : "PS101";
-        return `${num}-${iso}-out`;
+      function getFutureFlight(daysAhead = 3) {
+        for (let i = daysAhead; i < daysAhead + 7; i++) {
+          const iso = new Date(Date.now() + i * 86400000).toISOString().slice(0, 10);
+          const f = currentDeparturesOn(iso).find(f => f.destinationCode === "AMM");
+          if (f) return f;
+        }
+        throw new Error("No opening AMM schedule date in fixture range");
       }
 
-      const targetFlightId = getFutureFlightId(5);
+      const targetFlight = getFutureFlight(5);
+      const targetFlightId = targetFlight.id;
       let flightId = targetFlightId;
       const overrideGate = "B7";
 
@@ -884,7 +900,7 @@ async function runBrowserSmoke() {
         await page.waitForSelector("table", { timeout: 10000 });
 
         // Set date filter to target flight's date
-        const flightDate = targetFlightId.split("-").slice(1, 4).join("-");
+        const flightDate = targetFlight.date;
         const dateInput = page.locator('input[type="date"]').first();
         if (await dateInput.count() > 0) {
           await dateInput.fill(flightDate);
@@ -892,8 +908,7 @@ async function runBrowserSmoke() {
         }
 
         // Locate flight row and open Quick Edit
-        const flightPrefix = targetFlightId.slice(0, 5); // "PS100" or "PS101"
-        const row = page.locator(`tr:has-text("${flightPrefix}")`).first();
+        const row = page.locator("tr").filter({has: page.locator(`a[href$="/${targetFlightId}"]`)}).first();
         await row.waitFor({ state: "visible", timeout: 8000 });
         const detailHref = await row.locator('a[href*="/admin/flights/"]').getAttribute("href");
         const selectedId = detailHref?.split("/").pop();
@@ -2673,9 +2688,14 @@ async function runBrowserSmoke() {
 
 
     await checkStep("Check 28: Redesigned console shared-family context markers and control structure", async () => {
+      const routeContext = await browser.newContext();
+      const page = await routeContext.newPage();
+      try {
+
       // 1. Home has context="home" marker and inner console marker
       await page.setViewportSize({ width: 1440, height: 900 });
       await page.goto(baseUrl + "/", { waitUntil: "domcontentloaded" });
+      await waitForNetworkRoute(page);
 
       const homeConsole = page.locator('[data-flight-search-console="home"]').first();
       if ((await homeConsole.count()) === 0) {
@@ -2689,6 +2709,7 @@ async function runBrowserSmoke() {
 
       // 2. /book has context="standard" marker (not home)
       await page.goto(baseUrl + "/book", { waitUntil: "domcontentloaded" });
+      await waitForNetworkRoute(page);
       const bookConsole = page.locator('[data-flight-search-console="standard"]').first();
       if ((await bookConsole.count()) === 0) {
         throw new Error("/book form must have data-flight-search-console=\"standard\"");
@@ -2700,6 +2721,7 @@ async function runBrowserSmoke() {
 
       // 3. /destinations/IST has context="standard" marker
       await page.goto(baseUrl + "/destinations/IST", { waitUntil: "domcontentloaded" });
+      await waitForNetworkRoute(page);
       const destConsole = page.locator('[data-flight-search-console="standard"]').first();
       if ((await destConsole.count()) === 0) {
         throw new Error("/destinations/IST form must have data-flight-search-console=\"standard\"");
@@ -2711,6 +2733,7 @@ async function runBrowserSmoke() {
 
       // 4. Verify zones exist on Home form: route, dates, travellers, cabin, search-action
       await page.goto(baseUrl + "/", { waitUntil: "domcontentloaded" });
+      await waitForNetworkRoute(page);
       const routeZone = await page.locator('[data-zone="route"]').count();
       const datesZone = await page.locator('[data-zone="dates"]').count();
       const travellersZone = await page.locator('[data-zone="travellers"]').count();
@@ -2752,6 +2775,7 @@ async function runBrowserSmoke() {
       // 9. Destination prefill: /destinations/IST should have GZA → IST prefilled after hydration,
       // even when a prior booking draft stored in localStorage selected another destination (AMM).
       await page.goto(baseUrl + "/", { waitUntil: "domcontentloaded" });
+      await waitForNetworkRoute(page);
       await page.evaluate(() => {
         const priorStore = {
           draft: {
@@ -2769,11 +2793,12 @@ async function runBrowserSmoke() {
           },
           bookings: [],
         };
-        localStorage.setItem("gza.store.v1", JSON.stringify(priorStore));
+        localStorage.setItem("gza.booking.draft.v1", JSON.stringify({schemaVersion:1,status:"active",revision:1,updatedAt:new Date().toISOString(),source:"direct",draft:{...priorStore.draft,entry:"search",outbound:null,inbound:null,fareId:"classic",passengers:[],seats:{},extras:{pax:[]},contact:{email:"",phone:""}}}));
       });
 
       // 9a. Test /destinations/IST (English)
       await page.goto(baseUrl + "/destinations/IST", { waitUntil: "domcontentloaded" });
+      await waitForNetworkRoute(page);
       await page.waitForSelector("#search-from", { timeout: 10000 });
       await page.waitForSelector("#search-to", { timeout: 10000 });
       await page.waitForTimeout(150);
@@ -2800,6 +2825,7 @@ async function runBrowserSmoke() {
 
       // 9b. Test /ar/destinations/IST (Arabic)
       await page.goto(baseUrl + "/ar/destinations/IST", { waitUntil: "domcontentloaded" });
+      await waitForNetworkRoute(page);
       await page.waitForSelector("#search-from", { timeout: 10000 });
       await page.waitForSelector("#search-to", { timeout: 10000 });
       await page.waitForTimeout(150);
@@ -2824,6 +2850,7 @@ async function runBrowserSmoke() {
 
       // 9c. Verify Home route preserves normal draft behavior
       await page.goto(baseUrl + "/", { waitUntil: "domcontentloaded" });
+      await waitForNetworkRoute(page);
       await page.waitForSelector("#search-to", { timeout: 10000 });
       const homeToData = await page.evaluate(() => {
         const btn = document.getElementById("search-to");
@@ -2836,6 +2863,7 @@ async function runBrowserSmoke() {
       // 10. Verify no horizontal overflow at 390px mobile & Swap target size >= 44x44
       await page.setViewportSize({ width: 390, height: 844 });
       await page.goto(baseUrl + "/", { waitUntil: "domcontentloaded" });
+      await waitForNetworkRoute(page);
       const mobileOverflow = await page.evaluate(() => {
         return document.body.scrollWidth > document.body.clientWidth;
       });
@@ -2863,6 +2891,7 @@ async function runBrowserSmoke() {
         for (const width of [320, 390, 640, 767]) {
           await page.setViewportSize({ width, height: 844 });
           await page.goto(baseUrl + localePath, { waitUntil: "domcontentloaded" });
+      await waitForNetworkRoute(page);
           await page.waitForSelector('[data-flight-search-console] [data-slot="route-swap-button"]');
           const targets = await page.evaluate(() => {
             const form = document.querySelector('form[data-flight-search-console]');
@@ -2892,6 +2921,7 @@ async function runBrowserSmoke() {
       // 10b. Verify Swap button interactive behavior at 767px
       await page.setViewportSize({ width: 767, height: 844 });
       await page.goto(baseUrl + "/", { waitUntil: "load" });
+      await waitForNetworkRoute(page);
       await page.waitForSelector("#search-from", { timeout: 10000 });
       const beforeSwap = await page.evaluate(() => {
         const from = document.getElementById("search-from")?.querySelector('[data-slot="airport-code"]')?.textContent?.trim();
@@ -2931,6 +2961,7 @@ async function runBrowserSmoke() {
       // 10c. Verify desktop trip-type buttons are compact (not overinflated, height <= 38px)
       await page.setViewportSize({ width: 1440, height: 900 });
       await page.goto(baseUrl + "/", { waitUntil: "load" });
+      await waitForNetworkRoute(page);
       const desktopTripHeight = await page.evaluate(() => {
         const btn = document.querySelector('[data-slot="trip-type-button"]');
         return btn ? btn.getBoundingClientRect().height : 0;
@@ -2942,6 +2973,7 @@ async function runBrowserSmoke() {
       // 11. Viewport 320px: zero clipping of IATA codes and city names in EN and AR
       await page.setViewportSize({ width: 320, height: 568 });
       await page.goto(baseUrl + "/", { waitUntil: "domcontentloaded" });
+      await waitForNetworkRoute(page);
       const smallMobileOverflow = await page.evaluate(() => {
         return document.body.scrollWidth > document.body.clientWidth;
       });
@@ -2988,6 +3020,7 @@ async function runBrowserSmoke() {
 
       // Reset viewport
       await page.setViewportSize({ width: 1440, height: 900 });
+      } finally { await routeContext.close(); }
     });
 
     await checkStep("Check 31: Compact fares and popovers with RTL interaction geometry", async () => {
@@ -3238,8 +3271,13 @@ async function runBrowserSmoke() {
     });
 
     await checkStep("Check 30: Arabic console RTL symmetry, no mirroring of ticket art, technical LTR isolation", async () => {
+      const routeContext = await browser.newContext();
+      const page = await routeContext.newPage();
+      try {
+
       await page.setViewportSize({ width: 1440, height: 900 });
       await page.goto(baseUrl + "/ar", { waitUntil: "domcontentloaded" });
+      await waitForNetworkRoute(page);
 
       // 1. Arabic home form has context="home"
       const arHomeConsole = page.locator('[data-flight-search-console="home"]').first();
@@ -3274,6 +3312,7 @@ async function runBrowserSmoke() {
 
       // 5. Arabic /ar/book has standard context
       await page.goto(baseUrl + "/ar/book", { waitUntil: "domcontentloaded" });
+      await waitForNetworkRoute(page);
       const arBookConsole = await page.locator('[data-flight-search-console="standard"]').count();
       if (arBookConsole === 0) {
         throw new Error("/ar/book must have data-flight-search-console=\"standard\"");
@@ -3281,6 +3320,7 @@ async function runBrowserSmoke() {
 
       // 6. Arabic /ar/destinations/IST has standard context
       await page.goto(baseUrl + "/ar/destinations/IST", { waitUntil: "domcontentloaded" });
+      await waitForNetworkRoute(page);
       const arDestConsole = await page.locator('[data-flight-search-console="standard"]').count();
       if (arDestConsole === 0) {
         throw new Error("/ar/destinations/IST must have data-flight-search-console=\"standard\"");
@@ -3289,6 +3329,7 @@ async function runBrowserSmoke() {
       // 7. No horizontal overflow in Arabic at 390px
       await page.setViewportSize({ width: 390, height: 844 });
       await page.goto(baseUrl + "/ar", { waitUntil: "domcontentloaded" });
+      await waitForNetworkRoute(page);
       const arMobileOverflow = await page.evaluate(() => {
         return document.body.scrollWidth > document.body.clientWidth;
       });
@@ -3299,6 +3340,7 @@ async function runBrowserSmoke() {
       // 8. No horizontal overflow in Arabic at 320px
       await page.setViewportSize({ width: 320, height: 568 });
       await page.goto(baseUrl + "/ar", { waitUntil: "domcontentloaded" });
+      await waitForNetworkRoute(page);
       const arSmallOverflow = await page.evaluate(() => {
         return document.body.scrollWidth > document.body.clientWidth;
       });
@@ -3344,6 +3386,7 @@ async function runBrowserSmoke() {
 
       // Reset viewport
       await page.setViewportSize({ width: 1440, height: 900 });
+      } finally { await routeContext.close(); }
     });
 
     await checkStep("Check 32: Home utility rail integration (4 cards, WebP loading, LTR mirroring, empty alt, links)", async () => {
@@ -5211,9 +5254,11 @@ async function runBrowserSmoke() {
         await testPage.setViewportSize({ width: 1440, height: 900 });
 
         // 1. Seed a valid round-trip draft on step review with outbound, inbound, and seats
-        // Route: GZA <-> AMM on 2026-10-15 (outbound PS100-2026-10-15-out) and 2026-10-22 (inbound PS101-2026-10-22-in)
-        const outboundFlightId = "PS100-2026-10-15-out";
-        const inboundFlightId = "PS101-2026-10-22-in";
+        const outboundFlight = currentDeparturesOn("2026-10-15").find(f => f.destinationCode === "AMM");
+        const inboundFlight = currentArrivalsOn("2026-10-22").find(f => f.originCode === "AMM");
+        if (!outboundFlight || !inboundFlight) throw new Error("Current round-trip Schedule fixture missing");
+        const outboundFlightId = outboundFlight.id;
+        const inboundFlightId = inboundFlight.id;
 
         const envelope = {
           schemaVersion: 1,
@@ -5233,38 +5278,8 @@ async function runBrowserSmoke() {
               infants: 0,
               cabin: "economy",
             },
-            outbound: {
-              id: outboundFlightId,
-              number: "PS 100",
-              originCode: "GZA",
-              destinationCode: "AMM",
-              date: "2026-10-15",
-              departTime: "09:00",
-              arriveTime: "10:15",
-              durationMinutes: 75,
-              aircraft: "Airbus A320neo",
-              status: "Scheduled",
-              gate: "A1",
-              terminal: "1",
-              basePrice: 150,
-              seatsLeft: 12,
-            },
-            inbound: {
-              id: inboundFlightId,
-              number: "PS 101",
-              originCode: "AMM",
-              destinationCode: "GZA",
-              date: "2026-10-22",
-              departTime: "12:00",
-              arriveTime: "13:15",
-              durationMinutes: 75,
-              aircraft: "Airbus A320neo",
-              status: "Scheduled",
-              gate: "A2",
-              terminal: "1",
-              basePrice: 150,
-              seatsLeft: 10,
-            },
+            outbound: outboundFlight,
+            inbound: inboundFlight,
             fareId: "classic",
             passengers: [
               {
@@ -5520,10 +5535,8 @@ async function runBrowserSmoke() {
         const testPage = await testContext.newPage();
 
         // 1. Prepare operational overrides cancelling all flights for GZA -> AMM on 2026-10-15
-        const cancelledFlightIds = [
-          "PS140-2026-10-15-out",
-          "PS100-2026-10-15-out",
-        ];
+        const cancelledFlightIds = currentDeparturesOn("2026-10-15").filter(f => f.destinationCode === "AMM").map(f => f.id);
+        if (!cancelledFlightIds.length) throw new Error("Opening current AMM service fixture missing");
 
         const initialDraftEnvelope = {
           schemaVersion: 1,
@@ -6040,7 +6053,7 @@ async function runBrowserSmoke() {
       }
     });
 
-    await checkStep("Check 44: Phase 5C — Operational Flight Presentation: loading, error, missing/unavailable, and override verification", async () => {
+    await checkStep("Check 44: Phase 5C — Operational Flight Presentation: override verification and durable stored-snapshot compatibility", async () => {
       const testContext = await browser.newContext({ viewport: { width: 1440, height: 900 } });
       try {
         const testPage = await testContext.newPage();
@@ -6161,8 +6174,7 @@ async function runBrowserSmoke() {
           throw new Error("Scheduled departure 07:15 lost on Boarding Pass");
         }
 
-        // 3. Stage 2: Simulate flight resolution unavailable/missing
-        // Point the booking to a non-existent flight ID in the catalog
+        // 3. A historical identity absent from current planning remains resolvable from its canonical Booking snapshot.
         await testPage.evaluate(({ bRef }) => {
           const raw = localStorage.getItem("gza.repo.v1");
           if (raw) {
@@ -6179,52 +6191,13 @@ async function runBrowserSmoke() {
           }
         }, { bRef: bookingRef });
 
-        // Reload Boarding Pass
-        await testPage.reload({ waitUntil: "domcontentloaded" });
-        await testPage.waitForSelector('text=Operational flight status unavailable', { timeout: 10000 });
-
-        const unavailBpText = await testPage.textContent('body');
-        // Proving booked gate A1 is NOT presented as current gate
-        // The gate cell should show "—", not "A1"
-        const gateCell = testPage.locator('div:has(> p:text("Gate")) p.code-id, div:has(> p:text("بوابة")) p.code-id').first();
-        if ((await gateCell.count()) > 0) {
-          const gateValue = (await gateCell.textContent()).trim();
-          if (gateValue === "A1") {
-            throw new Error("Booked gate A1 was falsely presented as current gate when effective flight was unavailable");
-          }
-        }
-        // Scheduled booked facts survive
-        if (!unavailBpText.includes("07:15")) {
-          throw new Error("Scheduled departure 07:15 did not survive on unavailable Boarding Pass");
-        }
-        if (!unavailBpText.includes("PS999")) {
-          throw new Error("Flight number PS999 did not survive on unavailable Boarding Pass");
-        }
-
-        // Reload Manage Detail
-        await testPage.goto(`${baseUrl}/manage/${bookingRef}`, { waitUntil: "domcontentloaded" });
-        await testPage.waitForSelector('text=Operational flight status unavailable', { timeout: 10000 });
-
-        const unavailDetailText = await testPage.textContent('body');
-        // Scheduled facts survive
-        if (!unavailDetailText.includes("07:15")) {
-          throw new Error("Scheduled departure 07:15 did not survive on unavailable Manage Detail");
-        }
-        // Booked gate A1 is NOT presented as current
-        if (unavailDetailText.includes("Gate A1") || unavailDetailText.includes("gate A1")) {
-          throw new Error("Booked gate A1 was falsely presented as current gate on unavailable Manage Detail");
-        }
-
-        // 4. Test Arabic presentation of unavailable status
-        await testPage.goto(`${baseUrl}/ar/manage/${bookingRef}`, { waitUntil: "domcontentloaded" });
-        await testPage.waitForSelector('text=الحالة التشغيلية للرحلة غير متوفرة', { timeout: 10000 });
-
-        const arText = await testPage.textContent('body');
-        if (!arText.includes("07:15")) {
-          throw new Error("Scheduled departure 07:15 did not survive in Arabic view");
-        }
-        if (!arText.includes("PS999")) {
-          throw new Error("Technical identifier PS999 not displayed in Arabic view");
+        for (const path of [`/boarding-pass/${bookingRef}/out/0`, `/manage/${bookingRef}`, `/ar/manage/${bookingRef}`]) {
+          await testPage.goto(baseUrl + path, { waitUntil: "domcontentloaded" });
+          await testPage.getByText("PS999", { exact: true }).first().waitFor();
+          await testPage.getByText("A1", { exact: true }).first().waitFor();
+          const text = await testPage.textContent("body");
+          if (!text.includes("07:15")) throw new Error("Stored planned departure must remain intelligible");
+          if (text.includes("Operational flight status unavailable")) throw new Error("Successful Booking snapshot resolution must not report an unavailable Flight");
         }
       } finally {
         await testContext.close();
@@ -6757,6 +6730,7 @@ async function runBrowserSmoke() {
         await arVideoCloseBtn.focus();
         await page.keyboard.press("Escape");
         await arVideoDialog.waitFor({ state: "hidden", timeout: 5000 });
+        await page.waitForFunction(node => document.activeElement === node, await firstArVideoCard.elementHandle(), {timeout:5000});
         const arVideoFocused = await firstArVideoCard.evaluate((el) => el === document.activeElement);
         if (!arVideoFocused) {
           throw new Error("Focus did not return to Arabic video card trigger after Escape dismissal");
@@ -7810,6 +7784,7 @@ async function runBrowserSmoke() {
     await runPhase6B2BCorrectionChecks({ checkStep, browser, baseUrl });
     await runPhase6B2C1Checks({ checkStep, browser, baseUrl });
     await runDatedServiceFoundationChecks({ checkStep, browser, baseUrl });
+    await runDatedServiceCutoverChecks({ checkStep, browser, baseUrl });
 
   } finally {
     await browser.close();
