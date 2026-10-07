@@ -9,6 +9,7 @@
 import { z } from "zod";
 import { APPROVED_MEDIA_CATALOG } from "../media-policy.ts";
 import { SOURCE_REGISTRY } from "./sources.ts";
+import type { SourceRecord } from "./types.ts";
 
 export const publicationStateSchema = z.enum([
   "published",
@@ -224,7 +225,9 @@ export function extractVerifiedYouTubeId(rawUrl: string): string | null {
   }
 }
 
-export const archiveRecordSchema = z.object({
+/** The same HC guards can validate a local source overlay without changing public authority. */
+export function createArchiveRecordSchema(sources: Readonly<Record<string, SourceRecord>> = SOURCE_REGISTRY) {
+return z.object({
   id: z.string().min(1),
   slug: z.string().regex(/^[a-z0-9-]+$/),
   medium: mediumSchema,
@@ -294,7 +297,7 @@ export const archiveRecordSchema = z.object({
 
   // 4. Resolving sourceRefs validation (all sourceRefs must resolve)
   for (const ref of record.sourceRefs) {
-    if (!SOURCE_REGISTRY[ref]) {
+    if (!Object.hasOwn(sources, ref)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: `Unresolved sourceRef: ${ref}`,
@@ -449,7 +452,7 @@ export const archiveRecordSchema = z.object({
       } else {
         // Must resolve to an actual video SourceRecord with matching verified HTTPS YouTube URL
         const matchingSrc = record.sourceRefs
-          .map((ref) => SOURCE_REGISTRY[ref])
+          .map((ref) => sources[ref])
           .find((src) => src && src.type === "video");
 
         if (!matchingSrc) {
@@ -595,3 +598,6 @@ export const archiveRecordSchema = z.object({
     }
   }
 });
+}
+
+export const archiveRecordSchema = createArchiveRecordSchema();

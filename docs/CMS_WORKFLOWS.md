@@ -1,6 +1,6 @@
 # Phase 7 CMS workflows
 
-> **Status**: Phase 7 Implemented / Awaiting Independent Review. The foundation and all bounded CMS editors are implemented and reviewed by Codex. This document records implementation behavior, not independent acceptance.
+> **Status**: Phase 7 Complete / Accepted Source. Independently accepted and published to main at `6b0240f1692beecc3f030775c0a25a68758a279b`. Phase 7B media/provenance administration is implemented separately and awaiting independent review. No editorial batch release or deployment yet.
 
 ## Content and authority
 

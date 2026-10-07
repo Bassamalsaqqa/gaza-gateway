@@ -1,5 +1,7 @@
 import { LocalCommercialCatalogRepository } from "../commercial/repository.ts";
 import { LocalContentRepository } from "../../content/repository.ts";
+import { LocalArchiveDraftRepository } from "../archive/drafts/repository.ts";
+import { archiveDraftKeys } from "../archive/drafts/keys.ts";
 import { contentKeys } from "../../content/keys.ts";
 import { CommercialStorageCoordinator } from "../commercial/storage.ts";
 import { commercialCatalogKeys } from "../commercial/keys.ts";
@@ -176,6 +178,10 @@ export function createRepositories(options?: CreateRepositoriesOptions): Reposit
   });
 
   return {
+    archiveDrafts: new LocalArchiveDraftRepository({
+      ...(options?.inMemoryOnly !== undefined ? { inMemory: options.inMemoryOnly } : {}),
+      ...(options?.storage !== undefined ? { storage: options.storage } : {}),
+    }),
     content,
     commercial,
     booking,
@@ -286,6 +292,9 @@ export function RepositoryProvider({
     const unsubContent = value.content.subscribe(() => {
       queryClient.invalidateQueries({ queryKey: contentKeys.all });
     });
+    const unsubArchive = value.archiveDrafts.subscribe(() => {
+      queryClient.invalidateQueries({ queryKey: archiveDraftKeys.all });
+    });
     return () => {
       unsubBooking();
       unsubFlight();
@@ -299,6 +308,7 @@ export function RepositoryProvider({
       unsubStaff();
       unsubActivity();
       unsubContent();
+      unsubArchive();
     };
   }, [value, queryClient]);
 

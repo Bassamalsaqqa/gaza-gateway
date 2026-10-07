@@ -185,6 +185,7 @@ export interface FlightRepository {
 }
 
 export interface RepositoryRegistry {
+  archiveDrafts: import("../archive/drafts/types.ts").ArchiveDraftRepository;
   content: import("../../content/repository.ts").ContentRepository;
   network: import("../network/types.ts").NetworkRepository;
   commercial: import("../commercial/types.ts").CommercialCatalogRepository;

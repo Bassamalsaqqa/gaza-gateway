@@ -19,6 +19,11 @@ export function formatActivitySummary(
   const actorName = pick(lang, event.actor.name) || event.actor.email;
   const isAr = lang === "ar";
 
+  if (event.module === "content" && /^archive_(?:record|source)_draft$/.test(event.targetType)) {
+    if (event.action === "cleared") return isAr ? `حذف ${actorName} مسودة الأرشيف المحلية (${event.targetId}).` : `${actorName} discarded the local archive draft (${event.targetId}).`;
+    return isAr ? `حفظ ${actorName} مسودة الأرشيف المحلية (${event.targetId}).` : `${actorName} saved the local archive draft (${event.targetId}).`;
+  }
+
   if (event.module === "content" && event.targetType === "content_draft") {
     if (event.action === "cleared") {
       return isAr ? `حذف ${actorName} المسودة المحلية (${event.targetId}).` : `${actorName} discarded the local draft (${event.targetId}).`;

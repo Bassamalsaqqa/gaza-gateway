@@ -62,7 +62,7 @@ it("migrated CMS routes retire fixture writers and preserve bounded navigation/v
 
 it("current CMS documentation separates implementation, acceptance and publication", () => {
   const model = source("docs/CMS_WORKFLOWS.md");
-  assert.match(model, /Phase 7 Implemented \/ Awaiting Independent Review/);
+  assert.match(model, /Phase 7 Complete \/ Accepted Source/);
   assert.match(model, /gza\.content\.draft\.v1/);
   assert.match(model, /Saving a draft is not publishing/);
   assert.match(model, /Phase 7B media\/provenance administration/);

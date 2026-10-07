@@ -191,7 +191,7 @@ it("all authoritative current headers and roadmap distinguish C2A foundation fro
   }
 });
 
-it("living docs retain accepted Phase 6 provenance and the in-progress Phase 7 boundary", () => {
+it("living docs retain accepted Phase 6 provenance and accepted Phase 7 and the Phase 7B review boundary", () => {
   const livingFiles = [
     "README.md",
     "PRODUCT.md",
@@ -244,11 +244,12 @@ it("living docs retain accepted Phase 6 provenance and the in-progress Phase 7 b
     );
     assert.match(
       current,
-      /Phase 7 - CMS Admin Workflows: Implemented \/ Awaiting Independent Review/,
-      `${file}: Phase 7 Implemented / Awaiting Independent Review`,
+      /Phase 7 - CMS Admin Workflows: Complete \/ Accepted Source/,
+      `${file}: Phase 7 Complete / Accepted Source`,
     );
-    assert.match(current, /Phase 7B remains Planned \/ Unstarted/, file);
-    assert.match(current, /No Phase 7 release or acceptance is claimed/, file);
+    assert.match(current, /Phase 7B - Media & Provenance Admin: Implemented \/ Awaiting Independent Review/, file);
+    assert.ok(current.includes("6b0240f1692beecc3f030775c0a25a68758a279b"), file);
+    assert.match(current, /No Phase 7\/7B release or deployment has occurred/, file);
     assert.ok(
       current.includes("8e3136c22156c9acf800d25e94e8cd3d29a8bfc8"),
       `${file}: consolidated production release SHA`,

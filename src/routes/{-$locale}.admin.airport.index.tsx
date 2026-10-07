@@ -1,6 +1,6 @@
 import { createFileRoute, useBlocker } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, ChevronUp, Plus, Trash2, X } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronUp, Plus, RefreshCw, Trash2, X } from "lucide-react";
 import { Input, Select, Textarea, btnClass } from "@/components/kit";
 import {
   AdminChip,
@@ -33,19 +33,24 @@ import { pageHead } from "@/lib/head";
 import { publishedAirportPast } from "@/content/published/airport-past";
 import { publishedAirportPresent } from "@/content/published/airport-present";
 import { publishedAirportFuture } from "@/content/published/airport-future";
-import { SOURCE_REGISTRY } from "@/lib/archive/sources";
+import { SOURCE_REGISTRY, getAllSourceRecords } from "@/lib/archive/sources";
+import { getIntakeArchiveRecords } from "@/lib/archive/catalog";
+import type { ArchiveRecord, SourceRecord } from "@/lib/archive/types";
 import type {
   FutureCopyKey,
 } from "@/content/types";
 import {
-  archiveItems,
-  mediaItems,
-  sourceRecords,
-  type ArchiveItem,
-  type MediaItem,
-  type SourceRecord,
-  type Verification,
-} from "@/lib/admin-mock";
+  ArchiveCatalog,
+  ArchiveRecordEditorSheet,
+  ArchiveRecordSheet,
+  MediaCatalog,
+  MediaVariantSheet,
+  SourceCatalog,
+  SourceRecordEditorSheet,
+  SourceRecordSheet,
+} from "@/components/admin/archive";
+import { useArchiveAdminI18n } from "@/components/admin/archive/i18n";
+import { useArchiveDraftSnapshot } from "@/lib/archive/drafts/queries";
 
 type Tab = "past" | "present" | "future" | "archive" | "sources" | "media";
 type Lang = "en" | "ar";
@@ -80,9 +85,6 @@ export const Route = createFileRoute("/{-$locale}/admin/airport/")({
     }),
   component: AdminAirportPage,
 });
-
-const verifTone = (v: Verification) =>
-  v === "verified" ? "brand" : v === "pending" ? "warn" : "danger";
 
 function LangToggle({ value, onChange }: { value: Lang; onChange: (v: Lang) => void }) {
   const { t } = useI18n();
@@ -202,8 +204,9 @@ function SourceSelector({
 }
 
 function AdminAirportPage() {
-  const { t, lang } = useI18n();
+  const { t, lang } = useArchiveAdminI18n();
   const search = Route.useSearch();
+  const navigate = Route.useNavigate();
   const { can, toast } = useAdmin();
 
   const [tab, setTab] = useState<Tab>(() => search.tab ?? "past");
@@ -212,22 +215,52 @@ function AdminAirportPage() {
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
   const [reloadConflictOpen, setReloadConflictOpen] = useState(false);
 
-  // Read-only reference inspection states (Phase 7B)
-  const [item, setItem] = useState<ArchiveItem | null>(null);
-  const [source, setSource] = useState<SourceRecord | null>(null);
-  const [media, setMedia] = useState<MediaItem | null>(null);
-  const [view, setView] = useState<"grid" | "table">("grid");
-  const [era, setEra] = useState("all");
-  const [category, setCategory] = useState("all");
-  const [state, setState] = useState("all");
-  const [mediaKind, setMediaKind] = useState("all");
+  // Canonical records & inspection states (Phase 7B)
+  const intakeRecords = useMemo(() => getIntakeArchiveRecords(), []);
+  const allSources = useMemo(() => getAllSourceRecords(), []);
 
   const mayEdit = can("content.edit");
+  const draftSnapshotQuery = useArchiveDraftSnapshot(true);
+  const draftStorageError = draftSnapshotQuery.isError;
+  const canEdit = mayEdit;
+  const canEditArchive = mayEdit && draftSnapshotQuery.isSuccess && !draftStorageError;
+
+  const effectiveRecords = (!draftStorageError && draftSnapshotQuery.data?.records) || intakeRecords;
+  const effectiveSources = (!draftStorageError && draftSnapshotQuery.data?.sources) || allSources;
+  const recordDrafts = draftSnapshotQuery.data?.recordDrafts;
+  const sourceDrafts = draftSnapshotQuery.data?.sourceDrafts;
+  const draftRecordIds = useMemo(() => Object.keys(recordDrafts ?? {}), [recordDrafts]);
+  const draftSourceIds = useMemo(() => Object.keys(sourceDrafts ?? {}), [sourceDrafts]);
+
+  const [selectedArchiveRecord, setSelectedArchiveRecord] = useState<ArchiveRecord | null>(null);
+  const [selectedSourceRecord, setSelectedSourceRecord] = useState<{id: string} | null>(null);
+  const [selectedMediaRecord, setSelectedMediaRecord] = useState<ArchiveRecord | null>(null);
+
+  // Editing sheets states
+  const [editingRecord, setEditingRecord] = useState<ArchiveRecord | null>(null);
+  const [editingSource, setEditingSource] = useState<{ source: SourceRecord | null; isNew: boolean } | null>(null);
+  const [recordEditorDirty, setRecordEditorDirty] = useState(false);
+  const [sourceEditorDirty, setSourceEditorDirty] = useState(false);
 
   // Synchronize search params tab if provided
   useEffect(() => {
     setTab(search.tab ?? "past");
   }, [search.tab]);
+
+  // Navigation controls the opened sheet, not every query refresh.
+  useEffect(() => {
+    setSelectedArchiveRecord(null);
+    setSelectedSourceRecord(null);
+    setSelectedMediaRecord(null);
+    setEditingRecord(null);
+    setEditingSource(null);
+    setRecordEditorDirty(false);
+    setSourceEditorDirty(false);
+    if (!search.item) return;
+    if (tab === "archive") setSelectedArchiveRecord(intakeRecords.find((r) => r.id === search.item) ?? null);
+    if (tab === "sources") setSelectedSourceRecord(allSources.find((r) => r.id === search.item) ?? {id: search.item});
+    if (tab === "media") setSelectedMediaRecord(intakeRecords.find((r) => r.id === search.item || r.mediaId === search.item) ?? null);
+  }, [search.item, tab, intakeRecords, allSources]);
 
   // Documents
   const pastCms = useCmsDocument({
@@ -271,13 +304,15 @@ function AdminAirportPage() {
     if (tabName === "past") return pastCms.dirty;
     if (tabName === "present") return presentCms.dirty;
     if (tabName === "future") return futureCms.dirty;
+    if (tabName === "archive") return recordEditorDirty;
+    if (tabName === "sources") return sourceEditorDirty;
     return false;
   };
 
   const currentIsDirty = isTabDirty(tab);
 
   const busy = pastCms.saving || presentCms.saving || futureCms.saving;
-  const anyDirty = pastCms.dirty || presentCms.dirty || futureCms.dirty;
+  const anyDirty = pastCms.dirty || presentCms.dirty || futureCms.dirty || recordEditorDirty || sourceEditorDirty;
   const navigationBlocker = useBlocker({
     shouldBlockFn: () => anyDirty || busy,
     enableBeforeUnload: anyDirty || busy,
@@ -301,6 +336,8 @@ function AdminAirportPage() {
     if (currentIsDirty) {
       setPendingTab(nextTab);
     } else {
+      setEditingRecord(null);
+      setEditingSource(null);
       setTab(nextTab);
     }
   };
@@ -310,6 +347,14 @@ function AdminAirportPage() {
     if (tab === "past") pastCms.resetLocalEdits();
     if (tab === "present") presentCms.resetLocalEdits();
     if (tab === "future") futureCms.resetLocalEdits();
+    if (tab === "archive") {
+      setEditingRecord(null);
+      setRecordEditorDirty(false);
+    }
+    if (tab === "sources") {
+      setEditingSource(null);
+      setSourceEditorDirty(false);
+    }
     setTab(pendingTab);
     setPendingTab(null);
   };
@@ -572,30 +617,6 @@ function AdminAirportPage() {
     }));
   };
 
-  // Filtered rows for read-only archive reference tabs
-  const archiveRows = useMemo(
-    () =>
-      archiveItems.filter((a) => {
-        if (era !== "all" && a.era !== era) return false;
-        if (category !== "all" && a.category !== category) return false;
-        if (state === "missing" && a.source) return false;
-        if (state !== "all" && state !== "missing" && a.state !== state) return false;
-        return true;
-      }),
-    [era, category, state],
-  );
-
-  const mediaRows = useMemo(
-    () =>
-      mediaItems.filter((m) =>
-        mediaKind === "all"
-          ? true
-          : mediaKind === "unused"
-          ? m.usedIn.length === 0
-          : m.kind === mediaKind,
-      ),
-    [mediaKind],
-  );
 
   const FUTURE_SECTIONS: {
     groupId: string;
@@ -668,9 +689,9 @@ function AdminAirportPage() {
             { id: "past", label: t("a2.ap.tab.past") },
             { id: "present", label: t("a2.ap.tab.present") },
             { id: "future", label: t("a2.ap.tab.future") },
-            { id: "archive", label: t("a2.ap.tab.archive"), count: archiveItems.length },
-            { id: "sources", label: t("a2.ap.tab.sources"), count: sourceRecords.length },
-            { id: "media", label: t("a2.ap.tab.media"), count: mediaItems.length },
+            { id: "archive", label: t("a2.ap.tab.archive"), count: effectiveRecords.length },
+            { id: "sources", label: t("a2.ap.tab.sources"), count: effectiveSources.length },
+            { id: "media", label: t("a2.ap.tab.media"), count: intakeRecords.length },
           ]}
         />
 
@@ -1398,206 +1419,126 @@ function AdminAirportPage() {
           )}
 
           {/* ------------------------------------------------------------------ */}
-          {/* TAB: ARCHIVE (Phase 7B Read-Only Reference)                         */}
+          {/* TAB: ARCHIVE (Phase 7B Canonical Catalog)                           */}
+          {/* ------------------------------------------------------------------ */}
+          {/* ------------------------------------------------------------------ */}
+          {/* TAB: ARCHIVE (Phase 7B Canonical Catalog)                           */}
           {/* ------------------------------------------------------------------ */}
           {tab === "archive" && (
-            <div className="space-y-4">
-              <div className="rounded-md border border-border bg-sand p-3 text-xs text-muted-foreground">
-                <p className="font-semibold text-foreground mb-1">
-                  {t("cms.airport.archiveDisclosure")}
-                </p>
-              </div>
-
-              <Toolbar>
-                <Select aria-label={t("a2.ap.ar.era")} value={era} onChange={(e) => setEra(e.target.value)} className="w-auto">
-                  <option value="all">{t("a2.all")}</option>
-                  {(["past", "present", "future"] as const).map((v) => (
-                    <option key={v} value={v}>{t(`a2.ap.era.${v}`)}</option>
-                  ))}
-                </Select>
-                <Select aria-label={t("a2.ap.ar.category")} value={category} onChange={(e) => setCategory(e.target.value)} className="w-auto">
-                  <option value="all">{t("a2.all")}</option>
-                  {(["photograph", "document", "architecture", "concept"] as const).map((v) => (
-                    <option key={v} value={v}>{t(`a2.ap.cat.${v}`)}</option>
-                  ))}
-                </Select>
-                <Select aria-label={t("a2.status")} value={state} onChange={(e) => setState(e.target.value)} className="w-auto">
-                  <option value="all">{t("a2.all")}</option>
-                  <option value="draft">{t("adm.state.draft")}</option>
-                  <option value="published">{t("adm.state.published")}</option>
-                  <option value="missing">{t("a2.ap.ar.missingSource")}</option>
-                </Select>
-                <div className="flex gap-1">
-                  {(["grid", "table"] as const).map((v) => (
-                    <button key={v} type="button" aria-pressed={view === v} onClick={() => setView(v)} className={btnClass(view === v ? "secondary" : "ghost", "sm")}>
-                      {t(`a2.${v}`)}
-                    </button>
-                  ))}
-                </div>
-              </Toolbar>
-
-              {archiveRows.length === 0 ? (
-                <AdminEmpty title={t("a2.ap.tab.archive")} body={t("a2.mock")} />
-              ) : view === "grid" ? (
-                <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  {archiveRows.map((a) => (
-                    <li key={a.id} className="rounded-md border border-border p-3">
-                      <div aria-hidden="true" className="mb-2 h-24 rounded bg-sand" />
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="text-sm font-bold">{pick(lang, a.title)}</h3>
-                        <ContentStateChip state={a.state} />
-                      </div>
-                      <p className="mt-1 text-xs text-muted-foreground">{pick(lang, a.caption)}</p>
-                      <button type="button" className={btnClass("outline", "sm", "mt-2")} onClick={() => setItem(a)}>
-                        {t("a2.inspect")}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="overflow-x-auto">
-                  <GazaTable className="w-full text-sm">
-                    <GazaTableCaption className="sr-only">{t("a2.ap.tab.archive")}</GazaTableCaption>
-                    <GazaTableHeader>
-                      <GazaTableRow className="border-b border-border type-th">
-                        {[t("a2.title"), t("a2.ap.ar.era"), t("a2.ap.ar.category"), t("a2.date"), t("a2.ap.ar.source"), t("a2.status")].map((h) => (
-                          <GazaTableHead key={h} scope="col" className="px-3 py-2 text-start font-bold">{h}</GazaTableHead>
-                        ))}
-                      </GazaTableRow>
-                    </GazaTableHeader>
-                    <GazaTableBody>
-                      {archiveRows.map((a) => (
-                        <GazaTableRow key={a.id} className="border-b border-border last:border-0">
-                          <GazaTableCell className="px-3 py-2">
-                            <button type="button" className="font-semibold underline decoration-dotted" onClick={() => setItem(a)}>
-                              {pick(lang, a.title)}
-                            </button>
-                          </GazaTableCell>
-                          <GazaTableCell className="px-3 py-2">{t(`a2.ap.era.${a.era}`)}</GazaTableCell>
-                          <GazaTableCell className="px-3 py-2">{t(`a2.ap.cat.${a.category}`)}</GazaTableCell>
-                          <GazaTableCell className="px-3 py-2"><Ltr>{a.date}</Ltr></GazaTableCell>
-                          <GazaTableCell className="px-3 py-2">{a.source ? <Ltr>{a.source}</Ltr> : <AdminChip tone="danger">{t("a2.ap.ar.missingSource")}</AdminChip>}</GazaTableCell>
-                          <GazaTableCell className="px-3 py-2"><ContentStateChip state={a.state} /></GazaTableCell>
-                        </GazaTableRow>
-                      ))}
-                    </GazaTableBody>
-                  </GazaTable>
+            <>
+              {draftStorageError && (
+                <div
+                  role="alert"
+                  className="mb-4 flex flex-col gap-3 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-foreground sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="flex min-w-0 items-start gap-3">
+                    <AlertTriangle aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-destructive" />
+                    <div className="min-w-0">
+                      <h4 className="text-sm font-bold text-foreground">{t("adm.common.error")}</h4>
+                      <p className="mt-0.5 text-xs text-muted-foreground">{t("archive.edit.storageError")}</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void draftSnapshotQuery.refetch()}
+                    className={btnClass("secondary", "sm")}
+                  >
+                    <RefreshCw aria-hidden="true" className="me-1.5 size-3.5" />
+                    <span>{t("archive.action.retry")}</span>
+                  </button>
                 </div>
               )}
-            </div>
+
+              <ArchiveCatalog
+                records={effectiveRecords}
+                compiledRecords={intakeRecords}
+                sources={effectiveSources}
+                draftRecordIds={draftRecordIds}
+                canEdit={canEditArchive}
+                onOpenRecord={(id) => {
+                  const match = effectiveRecords.find((r) => r.id === id);
+                  if (match) {
+                    setEditingRecord(null);
+                    setSelectedArchiveRecord(match);
+                  }
+                }}
+                onEditRecord={canEditArchive ? (id) => {
+                  const match = effectiveRecords.find((r) => r.id === id);
+                  if (match) {
+                    setSelectedArchiveRecord(null);
+                    setEditingRecord(match);
+                  }
+                } : undefined}
+              />
+            </>
           )}
 
           {/* ------------------------------------------------------------------ */}
-          {/* TAB: SOURCES (Phase 7B Read-Only Reference)                         */}
+          {/* TAB: SOURCES (Phase 7B Canonical Registry)                          */}
           {/* ------------------------------------------------------------------ */}
           {tab === "sources" && (
-            <div className="space-y-4">
-              <div className="rounded-md border border-border bg-sand p-3 text-xs text-muted-foreground">
-                <p className="font-semibold text-foreground mb-1">
-                  {t("cms.airport.sourcesDisclosure")}
-                </p>
-              </div>
+            <>
+              {draftStorageError && (
+                <div
+                  role="alert"
+                  className="mb-4 flex flex-col gap-3 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-foreground sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="flex min-w-0 items-start gap-3">
+                    <AlertTriangle aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-destructive" />
+                    <div className="min-w-0">
+                      <h4 className="text-sm font-bold text-foreground">{t("adm.common.error")}</h4>
+                      <p className="mt-0.5 text-xs text-muted-foreground">{t("archive.edit.storageError")}</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void draftSnapshotQuery.refetch()}
+                    className={btnClass("secondary", "sm")}
+                  >
+                    <RefreshCw aria-hidden="true" className="me-1.5 size-3.5" />
+                    <span>{t("archive.action.retry")}</span>
+                  </button>
+                </div>
+              )}
 
-              <div className="overflow-x-auto">
-                <GazaTable className="w-full text-sm">
-                  <GazaTableCaption className="sr-only">{t("a2.ap.tab.sources")}</GazaTableCaption>
-                  <GazaTableHeader>
-                    <GazaTableRow className="border-b border-border type-th">
-                      {[t("a2.title"), t("a2.ap.src.type"), t("a2.ap.src.org"), t("a2.date"), t("a2.status"), t("a2.ap.src.usedBy")].map((h) => (
-                        <GazaTableHead key={h} scope="col" className="px-3 py-2 text-start font-bold">{h}</GazaTableHead>
-                      ))}
-                    </GazaTableRow>
-                  </GazaTableHeader>
-                  <GazaTableBody>
-                    {sourceRecords.map((s) => (
-                      <GazaTableRow key={s.id} className="border-b border-border last:border-0">
-                        <GazaTableCell className="px-3 py-2">
-                          <button type="button" className="font-semibold underline decoration-dotted" onClick={() => setSource(s)}>
-                            {pick(lang, s.title)}
-                          </button>
-                        </GazaTableCell>
-                        <GazaTableCell className="px-3 py-2">{t(`a2.ap.src.t.${s.type}`)}</GazaTableCell>
-                        <GazaTableCell className="px-3 py-2">{s.org}</GazaTableCell>
-                        <GazaTableCell className="px-3 py-2"><Ltr>{s.date}</Ltr></GazaTableCell>
-                        <GazaTableCell className="px-3 py-2"><AdminChip tone={verifTone(s.verification)}>{t(`a2.ap.ver.${s.verification}`)}</AdminChip></GazaTableCell>
-                        <GazaTableCell className="px-3 py-2"><Ltr>{s.usedBy}</Ltr></GazaTableCell>
-                      </GazaTableRow>
-                    ))}
-                  </GazaTableBody>
-                </GazaTable>
-              </div>
-            </div>
+              <SourceCatalog
+                sources={effectiveSources}
+                archiveRecords={effectiveRecords}
+                draftSourceIds={draftSourceIds}
+                canEdit={canEditArchive}
+                onOpenSource={(id) => {
+                  const match = effectiveSources.find((s) => s.id === id);
+                  if (match) {
+                    setEditingSource(null);
+                    setSelectedSourceRecord(match);
+                  }
+                }}
+                onEditSource={canEditArchive ? (id) => {
+                  const match = effectiveSources.find((s) => s.id === id);
+                  if (match) {
+                    setSelectedSourceRecord(null);
+                    setEditingSource({ source: match, isNew: false });
+                  }
+                } : undefined}
+                onNewSource={canEditArchive ? () => {
+                  setSelectedSourceRecord(null);
+                  setEditingSource({ source: null, isNew: true });
+                } : undefined}
+              />
+            </>
           )}
 
           {/* ------------------------------------------------------------------ */}
-          {/* TAB: MEDIA (Phase 7B Read-Only Reference)                           */}
+          {/* TAB: MEDIA (Phase 7B Media & Variant Inspection)                    */}
           {/* ------------------------------------------------------------------ */}
           {tab === "media" && (
-            <div className="space-y-4">
-              <div className="rounded-md border border-border bg-sand p-3 text-xs text-muted-foreground">
-                <p className="font-semibold text-foreground mb-1">
-                  {t("cms.airport.mediaDisclosure")}
-                </p>
-              </div>
-
-              <Toolbar>
-                <Select aria-label={t("a2.status")} value={mediaKind} onChange={(e) => setMediaKind(e.target.value)} className="w-auto">
-                  <option value="all">{t("a2.all")}</option>
-                  <option value="image">{t("a2.ap.md.kind.image")}</option>
-                  <option value="document">{t("a2.ap.md.kind.document")}</option>
-                  <option value="video">{t("a2.ap.md.kind.video")}</option>
-                  <option value="unused">{t("a2.ap.md.unused")}</option>
-                </Select>
-                <div className="flex gap-1">
-                  {(["grid", "list"] as const).map((v) => (
-                    <button
-                      key={v}
-                      type="button"
-                      aria-pressed={(v === "grid") === (view === "grid")}
-                      onClick={() => setView(v === "grid" ? "grid" : "table")}
-                      className={btnClass((v === "grid") === (view === "grid") ? "secondary" : "ghost", "sm")}
-                    >
-                      {t(`a2.${v}`)}
-                    </button>
-                  ))}
-                </div>
-              </Toolbar>
-
-              {mediaRows.length === 0 ? (
-                <AdminEmpty title={t("a2.ap.tab.media")} body={t("a2.mock")} />
-              ) : view === "grid" ? (
-                <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                  {mediaRows.map((m) => (
-                    <li key={m.id} className="rounded-md border border-border p-3">
-                      <div aria-hidden="true" className="mb-2 h-20 rounded bg-sand" />
-                      <p className="text-sm font-semibold">{pick(lang, m.title)}</p>
-                      <p className="text-xs text-muted-foreground"><Ltr>{m.filename}</Ltr></p>
-                      <p className="text-xs text-muted-foreground"><Ltr>{m.meta}</Ltr></p>
-                      {m.usedIn.length === 0 ? <AdminChip tone="warn" className="mt-1">{t("a2.ap.md.unused")}</AdminChip> : null}
-                      <button type="button" className={btnClass("outline", "sm", "mt-2")} onClick={() => setMedia(m)}>
-                        {t("a2.inspect")}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <ul className="divide-y divide-border rounded-md border border-border">
-                  {mediaRows.map((m) => (
-                    <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 p-3">
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold">{pick(lang, m.title)}</p>
-                        <p className="text-xs text-muted-foreground">
-                          <Ltr>{`${m.filename} · ${m.meta} · ${m.uploaded}`}</Ltr>
-                        </p>
-                      </div>
-                      <button type="button" className={btnClass("outline", "sm")} onClick={() => setMedia(m)}>
-                        {t("a2.inspect")}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+            <MediaCatalog
+              records={intakeRecords}
+              onOpenMediaRecord={(id) => {
+                const match = intakeRecords.find((r) => r.id === id);
+                if (match) setSelectedMediaRecord(match);
+              }}
+            />
           )}
         </div>
       </AdminPanel>
@@ -1635,72 +1576,94 @@ function AdminAirportPage() {
         onClose={handleCancelTabSwitch}
       />
 
-      {/* Read-Only Archive Record Inspection Sheet */}
-      <GazaSheet
-        open={Boolean(item)}
-        onClose={() => setItem(null)}
-        title={item ? pick(lang, item.title) : ""}
-        description={item ? item.id : ""}
-      >
-        {item && (
-          <div className="space-y-4">
-            <p className="text-sm">{pick(lang, item.caption)}</p>
-            <div className="rounded bg-sand p-3 text-xs space-y-1">
-              <p><span className="font-semibold">{t("a2.ap.ar.era")}:</span> {t(`a2.ap.era.${item.era}`)}</p>
-              <p><span className="font-semibold">{t("a2.ap.ar.category")}:</span> {t(`a2.ap.cat.${item.category}`)}</p>
-              <p><span className="font-semibold">{t("a2.date")}:</span> <Ltr>{item.date}</Ltr></p>
-              <p><span className="font-semibold">{t("a2.ap.ar.source")}:</span> <Ltr>{item.source ?? "—"}</Ltr></p>
-            </div>
-            <button type="button" className={btnClass("outline", "sm", "w-full")} onClick={() => setItem(null)}>
-              {t("a2.close")}
-            </button>
-          </div>
-        )}
-      </GazaSheet>
+      {/* Canonical Archive Record Inspection Sheet */}
+      <ArchiveRecordSheet
+        record={effectiveRecords.find((r) => r.id === selectedArchiveRecord?.id) ?? null}
+        sources={effectiveSources}
+        draftSourceIds={draftSourceIds}
+        isDraft={selectedArchiveRecord ? draftRecordIds.includes(selectedArchiveRecord.id) : false}
+        canEdit={canEditArchive}
+        onClose={() => setSelectedArchiveRecord(null)}
+        onEdit={(id) => {
+          const match = effectiveRecords.find((r) => r.id === id);
+          if (match) {
+            setSelectedArchiveRecord(null);
+            setEditingRecord(match);
+          }
+        }}
+        onOpenDuplicateTarget={(targetId) => {
+          const target = effectiveRecords.find((r) => r.id === targetId);
+          if (target) setSelectedArchiveRecord(target);
+        }}
+      />
 
-      {/* Read-Only Source Record Inspection Sheet */}
-      <GazaSheet
-        open={Boolean(source)}
-        onClose={() => setSource(null)}
-        title={source ? pick(lang, source.title) : ""}
-        description={source ? source.id : ""}
-      >
-        {source && (
-          <div className="space-y-4">
-            <div className="rounded bg-sand p-3 text-xs space-y-1">
-              <p><span className="font-semibold">{t("a2.ap.src.type")}:</span> {t(`a2.ap.src.t.${source.type}`)}</p>
-              <p><span className="font-semibold">{t("a2.ap.src.org")}:</span> {source.org}</p>
-              <p><span className="font-semibold">{t("a2.date")}:</span> <Ltr>{source.date}</Ltr></p>
-              <p><span className="font-semibold">{t("a2.status")}:</span> {t(`a2.ap.ver.${source.verification}`)}</p>
-              <p><span className="font-semibold">{t("a2.ap.src.usedBy")}:</span> <Ltr>{source.usedBy}</Ltr></p>
-            </div>
-            <button type="button" className={btnClass("outline", "sm", "w-full")} onClick={() => setSource(null)}>
-              {t("a2.close")}
-            </button>
-          </div>
-        )}
-      </GazaSheet>
+      {/* Canonical Source Record Inspection Sheet */}
+      <SourceRecordSheet
+        source={effectiveSources.find((s) => s.id === selectedSourceRecord?.id) ?? null}
+        archiveRecords={effectiveRecords}
+        draftRecordIds={draftRecordIds}
+        isDraft={selectedSourceRecord ? draftSourceIds.includes(selectedSourceRecord.id) : false}
+        canEdit={canEditArchive}
+        onClose={() => setSelectedSourceRecord(null)}
+        onEdit={(id) => {
+          const match = effectiveSources.find((s) => s.id === id);
+          if (match) {
+            setSelectedSourceRecord(null);
+            setEditingSource({ source: match, isNew: false });
+          }
+        }}
+        onOpenArchiveRecord={(recordId) => {
+          const match = effectiveRecords.find((r) => r.id === recordId);
+          if (match) {
+            void navigate({search: {tab: "archive", item: recordId}});
+          }
+        }}
+      />
 
-      {/* Read-Only Media Inspection Sheet */}
-      <GazaSheet
-        open={Boolean(media)}
-        onClose={() => setMedia(null)}
-        title={media ? pick(lang, media.title) : ""}
-        description={media ? media.id : ""}
-      >
-        {media && (
-          <div className="space-y-4">
-            <div className="rounded bg-sand p-3 text-xs space-y-1">
-              <p><span className="font-semibold">{t("a2.ap.md.filename")}:</span> <Ltr>{media.filename}</Ltr></p>
-              <p><span className="font-semibold">{t("a2.ap.md.dimensions")}:</span> <Ltr>{media.meta}</Ltr></p>
-              <p><span className="font-semibold">{t("a2.ap.md.usedIn")}:</span> <Ltr>{media.usedIn.join(", ") || "—"}</Ltr></p>
-            </div>
-            <button type="button" className={btnClass("outline", "sm", "w-full")} onClick={() => setMedia(null)}>
-              {t("a2.close")}
-            </button>
-          </div>
-        )}
-      </GazaSheet>
+      {/* Archive Record Editor Sheet */}
+      <ArchiveRecordEditorSheet
+        record={effectiveRecords.find((r) => r.id === editingRecord?.id) ?? editingRecord}
+        savedDraft={editingRecord ? (recordDrafts?.[editingRecord.id] ?? null) : null}
+        effectiveSources={effectiveSources}
+        effectiveRecords={effectiveRecords}
+        draftSourceIds={draftSourceIds}
+        open={Boolean(editingRecord)}
+        onClose={() => {
+          setEditingRecord(null);
+          setRecordEditorDirty(false);
+        }}
+        onDirtyChange={setRecordEditorDirty}
+        onSaved={() => {
+          void draftSnapshotQuery.refetch();
+        }}
+        onDiscarded={() => {
+          void draftSnapshotQuery.refetch();
+        }}
+      />
+
+      {/* Source Record Editor Sheet */}
+      <SourceRecordEditorSheet
+        source={effectiveSources.find((s) => s.id === editingSource?.source?.id) ?? editingSource?.source ?? null}
+        savedDraft={editingSource?.source ? (sourceDrafts?.[editingSource.source.id] ?? null) : null}
+        open={Boolean(editingSource)}
+        onClose={() => {
+          setEditingSource(null);
+          setSourceEditorDirty(false);
+        }}
+        onDirtyChange={setSourceEditorDirty}
+        onSaved={() => {
+          void draftSnapshotQuery.refetch();
+        }}
+        onDiscarded={() => {
+          void draftSnapshotQuery.refetch();
+        }}
+      />
+
+      {/* Media & Variant Inspection Sheet */}
+      <MediaVariantSheet
+        record={selectedMediaRecord}
+        onClose={() => setSelectedMediaRecord(null)}
+      />
     </div>
   );
 }
