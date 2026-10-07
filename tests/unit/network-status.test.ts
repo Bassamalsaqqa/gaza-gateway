@@ -103,7 +103,7 @@ it("C2B source finalization records independent engineering acceptance and keeps
     assert.ok(checkpoint.includes("ae8c1e8071cf7f6412247f043e16a3ec2c88bd73"), file);
     assert.match(checkpoint, /Phase 6B2B, Phase 6B2C1, Phase 6B2C2A and Phase 6B2C2B release\/deployment remain pending|Phase 6B consolidated release/);
     assert.match(checkpoint, /Phase 6B has no consolidated Accepted Release|Deployed by Owner/);
-    assert.match(checkpoint, /Phase 6C \/ 7 \/ 7B remain Planned \/ Unstarted|Phase 6C(?:(?!Phase 7)[^\n])*Implemented \/ Awaiting Independent Review/);
+    assert.match(checkpoint, /Phase 6C \/ 7 \/ 7B remain Planned \/ Unstarted|Phase 6C(?:(?!Phase 7)[^\n])*(?:Implemented \/ Awaiting Independent Review|Complete \/ Accepted Source)/);
     assert.doesNotMatch(text, /Phase 6B(?:(?!Phase 6C)[^\n])*Implemented \/ Awaiting Independent Review|Phase 6B(?: as a whole)? (?:is not complete|remains incomplete|is incomplete)/, file);
   }
   const roadmap = readFileSync("roadmap.md", "utf8");
@@ -160,7 +160,7 @@ it("all authoritative current headers and roadmap distinguish C2A foundation fro
     assert.match(cutover, /valid empty|Valid empty/);
     assert.match(cutover, /Planning deactivation is not retroactive cancellation/);
     assert.match(cutover, /C2B has no Accepted Release and is not deployed|consolidated Phase 6B owner deployment|Historical milestone record/);
-    assert.match(cutover, /Phase 6C \/ 7 \/ 7B remain Planned \/ Unstarted|Phase 6C is Implemented \/ Awaiting Independent Review/);
+    assert.match(cutover, /Phase 6C \/ 7 \/ 7B remain Planned \/ Unstarted|Phase 6C (?:is )?(?:Implemented \/ Awaiting Independent Review|Complete \/ Accepted Source)/);
     const accepted = text.split("## Phase 6B2C2A accepted-source checkpoint")[1];
     assert.ok(accepted, `${file}: C2A accepted-source checkpoint`);
     assert.match(accepted, /Phase 6B2C2A Complete \/ Accepted Source/, file);
@@ -187,6 +187,83 @@ it("all authoritative current headers and roadmap distinguish C2A foundation fro
       text,
       /Phase 6B2C2[^AB\n][^\n]*Network & Dated-Service Materialization(?: is| remains) Planned \/ Unstarted/,
       file,
+    );
+  }
+});
+
+it("Phase 6C accepted-source docs record independent engineering acceptance, accepted SHA and boundaries", () => {
+  const livingFiles = [
+    "README.md",
+    "PRODUCT.md",
+    "roadmap.md",
+    ...[
+      "ARCHITECTURE",
+      "CANONICAL_REPOSITORIES",
+      "DATA_FLOW",
+      "SCHEDULE_MODEL",
+      "SETTINGS_MODEL",
+      "NETWORK_MODEL",
+      "FLEET_MODEL",
+      "DATED_SERVICE_MODEL",
+      "COMMERCIAL_MODEL",
+      "CONTENT_MODEL",
+      "CONTACT_MODEL",
+    ].map((name) => `docs/${name}.md`),
+  ];
+  for (const file of livingFiles) {
+    const text = readFileSync(file, "utf8");
+    const current = text.split("## Phase 6B consolidated release & Phase 6C status")[1];
+    assert.ok(current, `${file}: living current-status block`);
+    const header = text.split(/\r?\n/).slice(0, 10).join("\n");
+    if (file !== "PRODUCT.md") {
+      assert.match(header, /Phase 6C[^\n]*Complete \/ Accepted Source/, `${file}: current header`);
+      assert.doesNotMatch(header, /Phase 6C[^\n]*Awaiting Independent Review/, `${file}: no stale current header`);
+    }
+    assert.match(current, /Phase 6 engineering implementation is complete/);
+    assert.match(current, /once this finalization is independently reviewed and published to main/);
+    assert.match(
+      text,
+      /Phase 6C(?:(?!Phase 7)[^\n])*Complete \/ Accepted Source/,
+      `${file}: Phase 6C Complete / Accepted Source`,
+    );
+    assert.ok(
+      current.includes("d5dd2942fad517cc5f1be353ad206511cc0724cc"),
+      `${file}: accepted engineering SHA`,
+    );
+    assert.ok(
+      current.includes("3ac3c8a078f7ffa82b411744b656c3575a3955c4"),
+      `${file}: original implementation SHA`,
+    );
+    assert.match(
+      text,
+      /Phase 6C (?:has no Accepted Release and )?is not (?:released or )?deployed/,
+      `${file}: Phase 6C not deployed`,
+    );
+    assert.match(
+      text,
+      /Phase 7 (?:and Phase 7B|\/ 7B) remain Planned \/ Unstarted/,
+      `${file}: Phase 7/7B Planned / Unstarted`,
+    );
+    assert.ok(
+      current.includes("8e3136c22156c9acf800d25e94e8cd3d29a8bfc8"),
+      `${file}: consolidated production release SHA`,
+    );
+    assert.ok(
+      current.includes("2749c26714258871c32bd2b14a75fc4e87a68b62"),
+      `${file}: consolidated production runtime source SHA`,
+    );
+  }
+
+  for (const modelDoc of [
+    "docs/STAFF_MODEL.md",
+    "docs/CUSTOMER_DIRECTORY_MODEL.md",
+    "docs/ACTIVITY_MODEL.md",
+  ]) {
+    const text = readFileSync(modelDoc, "utf8");
+    assert.match(
+      text,
+      /Document Status[^\n]*Phase 6C Complete \/ Accepted Source/,
+      `${modelDoc}: document status`,
     );
   }
 });

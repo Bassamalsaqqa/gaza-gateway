@@ -1,6 +1,6 @@
 # Customer Directory Domain Model (Phase 6C)
 
-> **Document Status**: Active Architecture Specification (Phase 6C Implemented / Awaiting Independent Review)
+> **Document Status**: Active Architecture Specification (Phase 6C Complete / Accepted Source)
 > **Product**: Gaza Airport (`GZA`) & Palestinian Airlines (`PS`) — [gazaairport.com](https://www.gazaairport.com)
 > **Domain Aggregate**: Derived Customer Directory (`CustomerSummary`, `CustomerDetail`)
 > **Storage Authority**: **Non-Persistent Derived Projection** (Zero duplicate storage; NO `gza.customer.v1`)

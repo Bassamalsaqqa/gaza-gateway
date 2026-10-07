@@ -1,6 +1,6 @@
 # Staff Domain & Administrative Identity Model (Phase 6C)
 
-> **Document Status**: Active Architecture Specification (Phase 6C Implemented / Awaiting Independent Review)
+> **Document Status**: Active Architecture Specification (Phase 6C Complete / Accepted Source)
 > **Product**: Gaza Airport (`GZA`) & Palestinian Airlines (`PS`) — [gazaairport.com](https://www.gazaairport.com)
 > **Domain Aggregate**: Administrative Staff Directory (`StaffMember`), Roles & Permissions (`AdminRole`), Session Resolution
 > **Canonical Storage Key**: `localStorage["gza.staff.v1"]`
