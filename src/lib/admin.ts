@@ -147,22 +147,4 @@ export const adminNav: AdminNavGroup[] = [
   },
 ];
 
-/* ------------------------------ editorial mock ----------------------------- */
-
-export type ContentItem = {
-  id: string;
-  titleKey: string;
-  module: string;
-  state: "draft" | "published" | "archived";
-  missingAr?: boolean;
-  missingSource?: boolean;
-  updated: string;
-};
-
-export const contentItems: ContentItem[] = [
-  { id: "c1", titleKey: "adm.content.item1", module: "adm.nav.homepage", state: "draft", updated: "2 h" },
-  { id: "c2", titleKey: "adm.content.item2", module: "adm.nav.travel", state: "published", missingAr: true, updated: "1 d" },
-  { id: "c3", titleKey: "adm.content.item3", module: "adm.nav.archive", state: "draft", missingSource: true, updated: "1 d" },
-  { id: "c4", titleKey: "adm.content.item4", module: "adm.nav.story", state: "published", updated: "3 d" },
-  { id: "c5", titleKey: "adm.content.item5", module: "adm.nav.archive", state: "draft", missingAr: true, missingSource: true, updated: "5 d" },
-];
+// Editorial search/attention now projects typed content through src/content/inventory.ts.

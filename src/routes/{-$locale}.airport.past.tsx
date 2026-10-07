@@ -56,7 +56,7 @@ export const Route = createFileRoute("/{-$locale}/airport/past")({
 
 function PastPage() {
   const { t, lang } = useI18n();
-  const { content, previewing } = useContentPreview("airport.past", publishedAirportPast);
+  const { content, previewing, previewError, previewLoading } = useContentPreview("airport.past", publishedAirportPast);
 
   // Extract all unique source records referenced by published timeline chapters
   const allReferencedSources = useMemo(() => {
@@ -71,7 +71,7 @@ function PastPage() {
 
   return (
     <>
-      {previewing ? <ContentPreviewNotice /> : null}
+      {previewing ? <ContentPreviewNotice error={previewError} loading={previewLoading} /> : null}
       {/* Editorial Chapter Hero using accepted historical-documentary hero */}
       <PublicPhotoHero
         mediaId="airport-archive-hero-2000"

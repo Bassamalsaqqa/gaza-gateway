@@ -16,7 +16,7 @@ const PLACEHOLDER_SEEDS = [
 ];
 const unique = (values: string[]) => new Set(values).size === values.length;
 const plainText = z.string().min(1).max(5000).refine(
-  (value) => !/<\s*\/?\s*[a-z][^>]*>/i.test(value) && !/javascript:|data:text\/html/i.test(value),
+  (value) => value.trim().length > 0 && !/<\s*\/?\s*[a-z][^>]*>/i.test(value) && !/javascript:|data:text\/html/i.test(value),
 );
 const localized = z.object({ en: plainText, ar: plainText }).strict();
 const slug = z.string().regex(/^[a-z][a-z0-9-]{0,63}$/);
@@ -196,23 +196,81 @@ const destinationsPresentation = z.object({
     ),
 );
 
+const future = z.object({
+  id: z.literal("airport.future"), kind: z.literal("airport.future"), schemaVersion: z.literal(1), seo,
+  copy: z.object({
+    title: localized, subtitle: localized, notice: localized,
+    terminalTitle: localized, terminalBody: localized, hospitalityTitle: localized, hospitalityBody: localized,
+    masterplanTitle: localized, masterplanBody: localized, networkTitle: localized, networkBody: localized,
+  }).strict(),
+}).strict();
+
+const destinationCodes = ["AMM", "CAI", "DOH", "DXB", "IST", "JED", "RUH"] as const;
+const editorialDestination = z.object({
+  code: z.enum(destinationCodes), seo, blurb: localized,
+  goodToKnow: z.array(z.object({ id: slug, text: localized, visible: z.boolean() }).strict()).max(50),
+}).strict();
+const destinationsEditorial = z.object({
+  id: z.literal("destinations.editorial"), kind: z.literal("destinations.editorial"), schemaVersion: z.literal(1), seo,
+  destinations: z.array(editorialDestination).length(7),
+}).strict().superRefine((doc, ctx) => {
+  if (new Set(doc.destinations.map((entry) => entry.code)).size !== 7) {
+    ctx.addIssue({ code: "custom", path: ["destinations"], message: "Destination codes must be unique" });
+  }
+  const ids = doc.destinations.flatMap((entry) => entry.goodToKnow.map((point) => point.id));
+  if (new Set(ids).size !== ids.length) ctx.addIssue({ code: "custom", path: ["destinations"], message: "Point IDs must be unique" });
+});
+
+const informationPage = z.object({
+  id: z.enum(["about", "contact", "privacy", "terms"]), seo, title: localized, description: localized,
+  blocks: z.array(z.object({
+    id: slug, visible: z.boolean(), title: localized, paragraphs: z.array(localized).min(1).max(50),
+  }).strict()).max(40),
+}).strict();
+const informationPages = z.object({
+  id: z.literal("pages.information"), kind: z.literal("pages.information"), schemaVersion: z.literal(1), seo,
+  pages: z.array(informationPage).length(4),
+}).strict().superRefine((doc, ctx) => {
+  if (new Set(doc.pages.map((page) => page.id)).size !== 4) ctx.addIssue({ code: "custom", path: ["pages"], message: "Page IDs must be unique" });
+  const ids = doc.pages.flatMap((page) => page.blocks.map((block) => block.id));
+  if (new Set(ids).size !== ids.length) ctx.addIssue({ code: "custom", path: ["pages"], message: "Block IDs must be unique" });
+});
+
 export function isContentKey(value: unknown): value is ContentKey {
   return (
     value === "home" ||
     value === "travel" ||
     value === "airport.past" ||
     value === "airport.present" ||
-    value === "destinations.presentation"
+    value === "destinations.presentation" || value === "airport.future" ||
+    value === "destinations.editorial" || value === "pages.information"
   );
 }
 export function isValidContent(key: ContentKey, value: unknown): value is ContentDocument {
-  if (key === "home") return home.safeParse(value).success;
-  if (key === "travel") return travel.safeParse(value).success;
-  if (key === "airport.past") return past.safeParse(value).success;
-  if (key === "airport.present") return present.safeParse(value).success;
-  return destinationsPresentation.safeParse(value).success;
+  return contentValidationIssues(key, value).length === 0;
+}
+
+/** Field paths are structural; the editor translates issue codes for its own locale. */
+export function contentValidationIssues(key: ContentKey, value: unknown) {
+  if (!isContentKey(key)) return [{ path: "", code: "custom" }];
+  const schema = key === "home" ? home : key === "travel" ? travel :
+    key === "airport.past" ? past : key === "airport.present" ? present :
+    key === "airport.future" ? future : key === "destinations.editorial" ? destinationsEditorial :
+    key === "pages.information" ? informationPages : destinationsPresentation;
+  const result = schema.safeParse(value);
+  return result.success ? [] : result.error.issues.map((issue) => ({
+    path: issue.path.map(String).join("."), code: issue.code,
+  }));
 }
 export function contentHealth(value: ContentDocument) {
+  if (value.kind === "airport.future" || value.kind === "destinations.editorial" || value.kind === "pages.information") {
+    const texts = value.kind === "airport.future" ? Object.values(value.copy) :
+      value.kind === "destinations.editorial" ? value.destinations.flatMap((entry) => [entry.blurb, ...entry.goodToKnow.map((point) => point.text), entry.seo.title, entry.seo.description]) :
+      value.pages.flatMap((page) => [page.title, page.description, page.seo.title, page.seo.description,
+        ...page.blocks.flatMap((block) => [block.title, ...block.paragraphs])]);
+    return { hasEnglish: texts.every((text) => text.en.trim().length > 0),
+      hasArabic: texts.every((text) => text.ar.trim().length > 0), missingSource: false };
+  }
   if (value.kind === "destinations.presentation") {
     return {
       hasEnglish: true,

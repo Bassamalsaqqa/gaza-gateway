@@ -328,93 +328,10 @@ export type MockCustomer = {
  */
 
 
-/* --------------------------- website content mock ------------------------- */
-
-export type SitePage = {
-  id: string;
-  labelKey: string;
-  state: "draft" | "published" | "archived";
-  en: boolean;
-  ar: boolean;
-  updated: string;
-  path: string;
-};
-
-export const sitePages: SitePage[] = [
-  { id: "about", labelKey: "a2.web.pg.about", state: "published", en: true, ar: true, updated: "2026-09-02", path: "/about" },
-  { id: "contact", labelKey: "a2.web.pg.contact", state: "published", en: true, ar: false, updated: "2026-09-11", path: "/contact" },
-  { id: "privacy", labelKey: "a2.web.pg.privacy", state: "published", en: true, ar: true, updated: "2026-07-19", path: "/privacy" },
-  { id: "terms", labelKey: "a2.web.pg.terms", state: "draft", en: true, ar: false, updated: "2026-09-14", path: "/terms" },
-];
-
-export type NavItemMock = { id: string; label: Bi; visible: boolean };
-
-export const headerNavMock: NavItemMock[] = [
-  { id: "flights", label: { en: "Flights", ar: "الرحلات" }, visible: true },
-  { id: "destinations", label: { en: "Destinations", ar: "المحطات" }, visible: true },
-  { id: "airport", label: { en: "The Airport", ar: "المطار" }, visible: true },
-  { id: "archive", label: { en: "Archive", ar: "الأرشيف" }, visible: true },
-  { id: "travel", label: { en: "Travel Info", ar: "معلومات السفر" }, visible: true },
-  { id: "manage", label: { en: "Manage Booking", ar: "إدارة الحجز" }, visible: true },
-  { id: "checkin", label: { en: "Check-in", ar: "تسجيل الوصول" }, visible: true },
-  { id: "signin", label: { en: "Sign in", ar: "تسجيل الدخول" }, visible: true },
-  { id: "book", label: { en: "Book", ar: "احجز" }, visible: true },
-];
-
-export const footerGroupsMock: { id: string; label: Bi; links: NavItemMock[] }[] = [
-  {
-    id: "travel",
-    label: { en: "Travel", ar: "السفر" },
-    links: [
-      { id: "flights", label: { en: "Flights", ar: "الرحلات" }, visible: true },
-      { id: "destinations", label: { en: "Destinations", ar: "المحطات" }, visible: true },
-      { id: "checkin", label: { en: "Check-in", ar: "تسجيل الوصول" }, visible: true },
-    ],
-  },
-  {
-    id: "airport",
-    label: { en: "The airport", ar: "المطار" },
-    links: [
-      { id: "story", label: { en: "Airport story", ar: "حكاية المطار" }, visible: true },
-      { id: "archive", label: { en: "Archive", ar: "الأرشيف" }, visible: true },
-    ],
-  },
-  {
-    id: "help",
-    label: { en: "Help", ar: "المساعدة" },
-    links: [
-      { id: "contact", label: { en: "Contact", ar: "اتصل بنا" }, visible: true },
-      { id: "travel", label: { en: "Travel information", ar: "معلومات السفر" }, visible: true },
-    ],
-  },
-];
-
-export const legalLinksMock: NavItemMock[] = [
-  { id: "privacy", label: { en: "Privacy", ar: "الخصوصية" }, visible: true },
-  { id: "terms", label: { en: "Terms", ar: "الشروط" }, visible: true },
-];
-
-/* --------------------------- airport & archive mock ----------------------- */
-
+/* --------------------- deferred archive/media reference fixtures -------------------- */
+// Website, navigation, Present and Future fixture authority was retired in Phase 7.
+// The following read-only design fixtures belong to the deferred Phase 7B admin lane.
 export type Verification = "verified" | "pending" | "unsourced";
-
-export type PresentFact = { id: string; label: Bi; value: Bi; verification: Verification };
-
-export const presentFacts: PresentFact[] = [
-  { id: "f1", label: { en: "Location", ar: "الموقع" }, value: { en: "Rafah, southern Gaza Strip", ar: "رفح، جنوب قطاع غزة" }, verification: "verified" },
-  { id: "f2", label: { en: "IATA code", ar: "رمز إياتا" }, value: { en: "GZA", ar: "GZA" }, verification: "verified" },
-  { id: "f3", label: { en: "Runway", ar: "المدرج" }, value: { en: "Placeholder value pending source", ar: "قيمة أولية بانتظار المصدر" }, verification: "pending" },
-  { id: "f4", label: { en: "Current status", ar: "الحالة الحالية" }, value: { en: "Placeholder value pending source", ar: "قيمة أولية بانتظار المصدر" }, verification: "unsourced" },
-];
-
-export type FutureItem = { id: string; group: string; title: Bi; body: Bi; media: string; visible: boolean };
-
-export const futureItems: FutureItem[] = [
-  { id: "fu1", group: "a2.ap.fu.terminal", title: { en: "Terminal concept", ar: "تصوّر المبنى" }, body: { en: "Placeholder concept description.", ar: "وصف أولي للتصوّر." }, media: "placeholder", visible: true },
-  { id: "fu2", group: "a2.ap.fu.experience", title: { en: "Arrivals experience", ar: "تجربة الوصول" }, body: { en: "Placeholder description.", ar: "وصف أولي." }, media: "placeholder", visible: true },
-  { id: "fu3", group: "a2.ap.fu.masterplan", title: { en: "Site masterplan", ar: "المخطط العام للموقع" }, body: { en: "Placeholder description.", ar: "وصف أولي." }, media: "placeholder", visible: true },
-  { id: "fu4", group: "a2.ap.fu.network", title: { en: "Wider network", ar: "شبكة أوسع" }, body: { en: "Placeholder description.", ar: "وصف أولي." }, media: "placeholder", visible: false },
-];
 
 export type ArchiveItem = {
   id: string;

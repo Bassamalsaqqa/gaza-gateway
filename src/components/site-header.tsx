@@ -9,25 +9,7 @@ import { usePassengerAccount } from "@/lib/passenger";
 import { cn } from "@/lib/utils";
 
 
-const primaryNav = [
-  { to: "/flights", key: "nav.flights" },
-  { to: "/destinations", key: "nav.destinations" },
-  { to: "/airport", key: "nav.airport" },
-  { to: "/gallery", key: "nav.gallery" },
-  { to: "/travel", key: "nav.travel" },
-] as const;
-
-const drawerNav = [
-  { to: "/flights", key: "nav.flights" },
-  { to: "/destinations", key: "nav.destinations" },
-  { to: "/airport", key: "nav.airport" },
-  { to: "/gallery", key: "nav.gallery" },
-  { to: "/travel", key: "nav.travel" },
-  { to: "/manage", key: "nav.manage" },
-  { to: "/check-in", key: "nav.checkin" },
-  { to: "/about", key: "nav.about" },
-  { to: "/contact", key: "nav.contact" },
-] as const;
+import { primaryNav, drawerNav } from "@/lib/site-navigation";
 
 function DirectLanguageButton({ className }: { className?: string }) {
   const { lang, setLang } = useI18n();

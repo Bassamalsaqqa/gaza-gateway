@@ -4,6 +4,7 @@ import { ChapterNav, ChapterPagination } from "@/components/airport/chapter-nav"
 import { Container } from "@/components/kit";
 import { PublicPhotoHero } from "@/components/media/public-photo-hero";
 import { publishedAirportPresent } from "@/content/published/airport-present";
+import { ContentPreviewNotice, useContentPreview } from "@/content/preview";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +20,7 @@ import spatialGeometrySkin from "@/assets/media/decorative/airport/present/spati
 import globalNetworkSkin from "@/assets/media/decorative/airport/present/global-network.webp";
 
 type AirportSearch = {
+  contentPreview?: 1;
   skinPreview?: 1;
   studioPreview?: 1;
   baseline?: 1;
@@ -27,6 +29,7 @@ type AirportSearch = {
 export const Route = createFileRoute("/{-$locale}/airport/present")({
   validateSearch: (search: Record<string, unknown>): AirportSearch => {
     const out: AirportSearch = {};
+    if (search["contentPreview"] === "1" || search["contentPreview"] === 1) out.contentPreview = 1;
     const rawPreview = search["skinPreview"];
     if (rawPreview === "1" || rawPreview === 1 || rawPreview === '"1"') {
       out.skinPreview = 1;
@@ -164,10 +167,11 @@ function renderFactDetail(detailText: string) {
 function PresentPage() {
   const { lang, t } = useI18n();
   const isArabic = lang === "ar";
-  const content = publishedAirportPresent;
+  const { content, previewing, previewError, previewLoading } = useContentPreview("airport.present", publishedAirportPresent);
 
   return (
     <>
+      {previewing && <ContentPreviewNotice error={previewError} loading={previewLoading} />}
       {/* Editorial Chapter Hero with Licensed Dated Documentary Evidence */}
       <PublicPhotoHero
         mediaId="airport-present-ruins-2008"

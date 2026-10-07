@@ -21,7 +21,8 @@ export type ActivityModule =
   | "commercial"
   | "inbox"
   | "staff"
-  | "session";
+  | "session"
+  | "content";
 
 export type ActivityAction =
   | "created"

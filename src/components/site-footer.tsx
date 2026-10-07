@@ -2,44 +2,7 @@ import { AppLink } from "@/components/app-link";
 import { Brand } from "./brand";
 import { useI18n } from "@/lib/i18n";
 
-const columns = [
-  {
-    key: "footer.plan",
-    links: [
-      { to: "/book", key: "nav.book" },
-      { to: "/flights", key: "nav.flights" },
-      { to: "/destinations", key: "nav.destinations" },
-      { to: "/manage", key: "nav.manage" },
-      { to: "/check-in", key: "nav.checkin" },
-    ],
-  },
-  {
-    key: "footer.discover",
-    links: [
-      { to: "/airport", key: "nav.airport" },
-      { to: "/airport/past", key: "airport.past" },
-      { to: "/airport/present", key: "airport.present" },
-      { to: "/airport/future", key: "airport.future" },
-      { to: "/gallery", key: "nav.gallery" },
-    ],
-  },
-  {
-    key: "footer.help",
-    links: [
-      { to: "/travel", key: "nav.travel" },
-      { to: "/about", key: "nav.about" },
-      { to: "/contact", key: "nav.contact" },
-      { to: "/signin", key: "nav.signin" },
-    ],
-  },
-  {
-    key: "footer.legal",
-    links: [
-      { to: "/privacy", key: "legal.privacyTitle" },
-      { to: "/terms", key: "legal.termsTitle" },
-    ],
-  },
-] as const;
+import { footerColumns as columns } from "@/lib/site-navigation";
 
 export function SiteFooter() {
   const { t } = useI18n();

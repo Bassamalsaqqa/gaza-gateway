@@ -1,4 +1,6 @@
 import { LocalCommercialCatalogRepository } from "../commercial/repository.ts";
+import { LocalContentRepository } from "../../content/repository.ts";
+import { contentKeys } from "../../content/keys.ts";
 import { CommercialStorageCoordinator } from "../commercial/storage.ts";
 import { commercialCatalogKeys } from "../commercial/keys.ts";
 import { LocalFleetRepository } from "../fleet/repository.ts";
@@ -168,8 +170,13 @@ export function createRepositories(options?: CreateRepositoriesOptions): Reposit
        ...(options?.initialActivityData !== undefined ? { initialData: options.initialActivityData } : {}),
     });
   const activity = new LocalActivityRepository(activityCoordinator);
+  const content = new LocalContentRepository({
+    ...(options?.inMemoryOnly !== undefined ? { inMemory: options.inMemoryOnly } : {}),
+    ...(options?.storage !== undefined ? { storage: options.storage } : {}),
+  });
 
   return {
+    content,
     commercial,
     booking,
     flight,
@@ -276,6 +283,9 @@ export function RepositoryProvider({
     const unsubActivity = value.activity.subscribe(() => {
       queryClient.invalidateQueries({ queryKey: activityKeys.all });
     });
+    const unsubContent = value.content.subscribe(() => {
+      queryClient.invalidateQueries({ queryKey: contentKeys.all });
+    });
     return () => {
       unsubBooking();
       unsubFlight();
@@ -288,6 +298,7 @@ export function RepositoryProvider({
       unsubNetwork();
       unsubStaff();
       unsubActivity();
+      unsubContent();
     };
   }, [value, queryClient]);
 

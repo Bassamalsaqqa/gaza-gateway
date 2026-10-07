@@ -25,6 +25,7 @@ export function ConfirmDialog({
   title,
   body,
   confirmLabel,
+  cancelLabel,
   onConfirm,
   onClose,
   pending = false,
@@ -35,6 +36,7 @@ export function ConfirmDialog({
   title: string;
   body: string;
   confirmLabel: string;
+  cancelLabel?: string;
   onConfirm: () => void;
   onClose: () => void;
   pending?: boolean;
@@ -84,7 +86,7 @@ export function ConfirmDialog({
         ) : null}
         <AlertDialogFooter>
           <AlertDialogCancel autoFocus disabled={pending}>
-            {t("common.keep")}
+            {cancelLabel ?? t("common.keep")}
           </AlertDialogCancel>
           <AlertDialogAction
             disabled={pending}

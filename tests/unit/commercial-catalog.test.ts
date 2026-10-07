@@ -788,7 +788,7 @@ describe("6B2A integration, preferences and source authority guards", () => {
         .filter(line => /Phase 6B2A|Commercial catalog|CommercialCatalogRepository|Current Status|Engineering Status|Production \/ Source Checkpoint|Immediate Next Step/.test(line))
         .flatMap(line => line.split(/(?<=\.)\s+/))
         .filter(statement => !/^(?:Phase 6B1 (?:is|remains) a historical|.*\bhistorical (?:record|checkpoint|note):)/i.test(statement))
-        .filter(statement => !/Phase 6(?:B2[B-C]|C)|6(?:B2[B-C]|C)/.test(statement));
+        .filter(statement => !/Phase (?:6(?:B2[B-C]|C)|7B?)|6(?:B2[B-C]|C)/.test(statement));
       for (const line of currentStatusLines) {
         assert.doesNotMatch(line, /Implemented \/ Awaiting (?:Independent )?Review/);
         for (const phrase of stalePhrases) {

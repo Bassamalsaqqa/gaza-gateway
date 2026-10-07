@@ -19,6 +19,13 @@ export function formatActivitySummary(
   const actorName = pick(lang, event.actor.name) || event.actor.email;
   const isAr = lang === "ar";
 
+  if (event.module === "content" && event.targetType === "content_draft") {
+    if (event.action === "cleared") {
+      return isAr ? `حذف ${actorName} المسودة المحلية (${event.targetId}).` : `${actorName} discarded the local draft (${event.targetId}).`;
+    }
+    return isAr ? `حفظ ${actorName} المسودة المحلية (${event.targetId}).` : `${actorName} saved the local draft (${event.targetId}).`;
+  }
+
   const actionText = t(`a2.ac.act.${event.action}`);
   const moduleText = t(event.module);
 

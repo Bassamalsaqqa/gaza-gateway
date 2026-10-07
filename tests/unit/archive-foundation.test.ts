@@ -584,23 +584,24 @@ describe("HC-0 / HC-1 Archive & Present Foundation Invariants", () => {
     assert.ok(homeDraft, "Valid Home draft must be recovered despite malformed sibling airport.present");
     assert.equal(homeDraft.id, "home");
 
-    // 11b. getDraft("airport.present") returns null because it is malformed
-    const presentDraft = await repo.getDraft("airport.present");
-    assert.equal(presentDraft, null, "Malformed airport.present draft must evaluate to null");
+    // A malformed requested document is unavailable, not a silently absent draft.
+    await assert.rejects(repo.getDraft("airport.present"), { code: "corrupt_store" });
 
-    // 11c. Saving a valid airport.present draft MUST preserve the sibling Home draft
-    await repo.saveDraft("airport.present", publishedAirportPresent);
+    // Saving a healthy sibling must preserve malformed bytes rather than repair them.
+    const editedHome = structuredClone(publishedHome);
+    editedHome.copy.h1.en = "Healthy Home draft";
+    await repo.saveDraft("home", editedHome);
 
     const rawCommitted = JSON.parse(mockStorage.getItem("gza.content.draft.v1")!);
     assert.ok(rawCommitted.drafts.home, "Home draft must NOT be wiped out when saving airport.present");
-    assert.ok(rawCommitted.drafts["airport.present"], "airport.present draft must be saved");
+    assert.deepEqual(rawCommitted.drafts["airport.present"], seededPayload.drafts["airport.present"]);
 
-    // 11d. Discarding airport.present MUST NOT wipe out the sibling Home draft
-    await repo.discardDraft("airport.present");
+    // Discarding Home must also leave the malformed sibling untouched.
+    await repo.discardDraft("home");
 
     const rawAfterDiscard = JSON.parse(mockStorage.getItem("gza.content.draft.v1")!);
-    assert.ok(rawAfterDiscard.drafts.home, "Home draft must survive discard of airport.present");
-    assert.equal(rawAfterDiscard.drafts["airport.present"], undefined, "airport.present must be removed");
+    assert.equal(rawAfterDiscard.drafts.home, undefined);
+    assert.deepEqual(rawAfterDiscard.drafts["airport.present"], seededPayload.drafts["airport.present"]);
   });
 
   // Test 12: Public getters hold immunity (staging and excluded records are inaccessible via public lookups)

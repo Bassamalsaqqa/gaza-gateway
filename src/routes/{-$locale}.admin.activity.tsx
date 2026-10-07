@@ -119,6 +119,8 @@ function AdminActivityPage() {
         return t("a2.st.title");
       case "session":
         return t("adm.nav.dashboard");
+      case "content":
+        return t("a2.web.title");
       default:
         return mod;
     }

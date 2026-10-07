@@ -1,7 +1,8 @@
 import type { ApprovedMediaId } from "../lib/media-policy.ts";
 
 export type LocalizedText = { en: string; ar: string };
-export type ContentKey = "home" | "travel" | "airport.past" | "airport.present" | "destinations.presentation";
+export type ContentKey = "home" | "travel" | "airport.past" | "airport.present" | "airport.future" |
+  "destinations.presentation" | "destinations.editorial" | "pages.information";
 export type EvidenceState = "verified" | "provisional" | "placeholder";
 export type MediaReference =
   | { kind: "media"; id: ApprovedMediaId }
@@ -117,12 +118,51 @@ export interface DestinationsPresentationContent extends ContentEnvelope<"destin
   assignments: DestinationPhotoAssignment[];
 }
 
+/** Illustrative disclosure and image truth classes remain immutable media/UI authority. */
+export type FutureCopyKey = "title" | "subtitle" | "notice" | "terminalTitle" | "terminalBody" |
+  "hospitalityTitle" | "hospitalityBody" | "masterplanTitle" | "masterplanBody" | "networkTitle" | "networkBody";
+export interface AirportFutureContent extends ContentEnvelope<"airport.future"> {
+  copy: Record<FutureCopyKey, LocalizedText>;
+}
+
+export interface DestinationEditorialEntry {
+  code: DestinationPhotoAssignment["code"];
+  seo: PageSeoContent;
+  blurb: LocalizedText;
+  goodToKnow: TravelPoint[];
+}
+/** Editorial only: price, frequency, route availability, duration and equipment are excluded. */
+export interface DestinationsEditorialContent extends ContentEnvelope<"destinations.editorial"> {
+  destinations: DestinationEditorialEntry[];
+}
+
+export type InformationalPageId = "about" | "contact" | "privacy" | "terms";
+export interface InformationalPageBlock {
+  id: string;
+  visible: boolean;
+  title: LocalizedText;
+  paragraphs: LocalizedText[];
+}
+export interface InformationalPageContent {
+  id: InformationalPageId;
+  seo: PageSeoContent;
+  title: LocalizedText;
+  description: LocalizedText;
+  blocks: InformationalPageBlock[];
+}
+export interface InformationalPagesContent extends ContentEnvelope<"pages.information"> {
+  pages: InformationalPageContent[];
+}
+
 export interface ContentMap {
   home: HomeContent;
   travel: TravelContent;
   "airport.past": AirportPastContent;
   "airport.present": AirportPresentContent;
+  "airport.future": AirportFutureContent;
   "destinations.presentation": DestinationsPresentationContent;
+  "destinations.editorial": DestinationsEditorialContent;
+  "pages.information": InformationalPagesContent;
 }
 export type ContentDocument = ContentMap[ContentKey];
 

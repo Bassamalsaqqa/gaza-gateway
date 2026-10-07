@@ -191,7 +191,7 @@ it("all authoritative current headers and roadmap distinguish C2A foundation fro
   }
 });
 
-it("Phase 6C accepted-source docs record independent engineering acceptance, accepted SHA and boundaries", () => {
+it("living docs retain accepted Phase 6 provenance and the in-progress Phase 7 boundary", () => {
   const livingFiles = [
     "README.md",
     "PRODUCT.md",
@@ -217,10 +217,13 @@ it("Phase 6C accepted-source docs record independent engineering acceptance, acc
     const header = text.split(/\r?\n/).slice(0, 10).join("\n");
     if (file !== "PRODUCT.md") {
       assert.match(header, /Phase 6C[^\n]*Complete \/ Accepted Source/, `${file}: current header`);
-      assert.doesNotMatch(header, /Phase 6C[^\n]*Awaiting Independent Review/, `${file}: no stale current header`);
+      assert.doesNotMatch(header, /Phase 6C(?:(?!Phase 7)[^\n])*Awaiting Independent Review/, `${file}: no stale current header`);
     }
     assert.match(current, /Phase 6 engineering implementation is complete/);
-    assert.match(current, /once this finalization is independently reviewed and published to main/);
+    assert.match(current, /published to main at `4374e9f37cd6f23798cfd20ccfa7e43bcec77f89`/);
+    assert.match(current, /421101d294674aaa503565cfc4df9fafb62527ba/);
+    assert.match(current, /Owner deployment of that package has not been confirmed/);
+    assert.doesNotMatch(current, /once this finalization is independently reviewed and published to main/);
     assert.match(
       text,
       /Phase 6C(?:(?!Phase 7)[^\n])*Complete \/ Accepted Source/,
@@ -235,15 +238,17 @@ it("Phase 6C accepted-source docs record independent engineering acceptance, acc
       `${file}: original implementation SHA`,
     );
     assert.match(
-      text,
+      current,
       /Phase 6C (?:has no Accepted Release and )?is not (?:released or )?deployed/,
       `${file}: Phase 6C not deployed`,
     );
     assert.match(
-      text,
-      /Phase 7 (?:and Phase 7B|\/ 7B) remain Planned \/ Unstarted/,
-      `${file}: Phase 7/7B Planned / Unstarted`,
+      current,
+      /Phase 7 - CMS Admin Workflows: Implemented \/ Awaiting Independent Review/,
+      `${file}: Phase 7 Implemented / Awaiting Independent Review`,
     );
+    assert.match(current, /Phase 7B remains Planned \/ Unstarted/, file);
+    assert.match(current, /No Phase 7 release or acceptance is claimed/, file);
     assert.ok(
       current.includes("8e3136c22156c9acf800d25e94e8cd3d29a8bfc8"),
       `${file}: consolidated production release SHA`,

@@ -1,9 +1,9 @@
 # Data Flow, State Management & Pretend-Action Inventory
 
 > **Document Purpose**: Complete audit of current data sources, state persistence, cross-screen entity splits, and enabled no-op actions across public and admin workspaces.
-> **Status**: **Phase 6B - Complete / Accepted Source / Accepted Release / Deployed by Owner.** Phase 6C - Admin Directory, Staff & Activity Convergence is **Complete / Accepted Source**. Phase 6 engineering implementation is complete; whole Phase 6 becomes Complete / Accepted Source once this finalization is independently reviewed and published to main. Production remains owner-deployed consolidated Phase 6B. Phase 6C is not released or deployed. Phase 7 and Phase 7B remain Planned / Unstarted. Phase 6B2C1 Complete / Accepted Source; Phase 6B2C2A Complete / Accepted Source; Phase 6B2C2B Complete / Accepted Source.
+> **Status**: **Phase 6B - Complete / Accepted Source / Accepted Release / Deployed by Owner.** Phase 6C - Admin Directory, Staff & Activity Convergence is **Complete / Accepted Source**. Phase 6 engineering implementation is complete; Phase 6 is Complete / Accepted Source, published to main at `4374e9f37cd6f23798cfd20ccfa7e43bcec77f89`. Production remains owner-deployed consolidated Phase 6B. The final Phase 6 static package is published; Phase 6C owner deployment is not confirmed. Phase 7 is Implemented / Awaiting Independent Review; Phase 7B remains Planned / Unstarted. Phase 6B2C1 Complete / Accepted Source; Phase 6B2C2A Complete / Accepted Source; Phase 6B2C2B Complete / Accepted Source.
 > **Production / Source Checkpoint**: Current owner-deployed production release: `8e3136c22156c9acf800d25e94e8cd3d29a8bfc8`; deployed runtime source: `2749c26714258871c32bd2b14a75fc4e87a68b62`. Deployment is confirmed by the product owner. AGY reported HTTP 200 for targeted route checks; no independent live bundle verification claimed. Historical Phase 6A: Complete / Accepted Source / Accepted Release / Deployed by Owner, engineering `59e2e0ce9b56bc492d7c7a2bfc5a0df15fd58fea`, source `2ae1a876018992649074cbed1ebf0560e4da03ff`, release `b5cff4db4b6e087907a9733ffd841880439fbfdb`. Phase 5D is a historical completed phase. Earlier production checkpoints remain historical.
-> **Immediate Next Step**: Independent review and publication of Phase 6C documentation finalization to main, followed by authorized Phase 6 closeout. Main and HostPapa remain unchanged.
+> **Immediate Next Step**: Independent review of the pushed Phase 7 CMS candidate. Phase 7B remains Planned / Unstarted.
 
 
 ---
@@ -11,7 +11,7 @@
 
 ## 1. Current State Stores & Persistence
 
-Following Phase 5D, the application coordinates persistence across canonical repositories and legacy boundary keys:
+After accepted Phase 6 source publication, Phase 7 extends editorial workflows without changing operational persistence authority.
 
 | Store / Source | Implementation Files | Persistence | Entities & Data Types Managed |
 | :--- | :--- | :--- | :--- |
@@ -21,14 +21,14 @@ Following Phase 5D, the application coordinates persistence across canonical rep
 | **Canonical Booking Draft** (`BookingDraftRepository`) | `src/lib/booking-draft/` | `localStorage["gza.booking.draft.v1"]` (schemaVersion: 1) | Active booking wizard draft (`BookingDraft`). 5 storage states, serialized mutation queue, tombstone anti-resurrection, cross-tab synchronization. |
 | **Canonical Repositories** (`BookingRepository`, `FlightRepository`) | `src/lib/repositories/`, `src/lib/domain/` | `localStorage["gza.repo.v1"]` (schemaVersion: 1) | Canonical bookings (`Booking[]`) and mutable operational flight overrides (`flightOverrides: Record<string, FlightOverride>`). Single source of truth for public and admin views. Synchronized across tabs via `subscribeToStorage()`. |
 | **Canonical Passenger State** (`PassengerRepository`) | `src/lib/passenger/` | `localStorage["gza.passenger.v1"]` (schemaVersion: 1) | Canonical passenger account (`PassengerAccount \| null`), profile preferences, and saved companions (`Traveler[]`). Migrated once from `gza.store.v1` only if absent; present empty state is authoritative. Synchronized across tabs via `subscribe()`. |
-| **Published Editorial Content** | `src/content/published/` | Compiled source in prerendered HTML and route chunks | Canonical Home, Travel, Airport Past (5 source-backed verified chapters), and Airport Present proof documents. Normal public URLs never read local drafts. |
+| **Published Editorial Content** | `src/content/published/` | Compiled source in static output | Eight typed documents: Home, Travel, Past, Present, Future, destination presentation/editorial and informational pages. Normal public URLs never read local drafts. |
 | **Historical Archive & Source Registry (HC-2 / HC-3)** | `src/lib/archive/` | Compiled typed catalog (`catalog.ts`), schema (`schema.ts`), and registry (`sources.ts`) | Canonical archive records (`getPublishedArchiveRecords()`) for public Gallery (`/gallery`), Home archive spotlight (6 featured cards), Airport Past documentary strips (`getPublishedArchiveRecordsForTimelineEvent()`) and watch archive section (`getVerifiedVideoReferences()`). Curated external primary sources (`SOURCE_REGISTRY`). Zero local video files. |
-| **Local Editorial Drafts** | `src/content/repository.ts` | `localStorage["gza.content.draft.v1"]` (schemaVersion: 1) | Admin Travel draft and explicit `?contentPreview=1` overlay only. Save errors reject; corrupt data falls back to published. |
+| **Local Editorial Drafts** | `src/content/repository.ts` | `gza.content.draft.v1` schemaVersion 1 | Shared ContentRepository; detached validated writes, stale-baseline conflicts, typed failures without repair, explicit post-hydration preview and isolated Studio. All bounded CMS editors integrated and reviewed. |
 | **Legacy Store Key** | Preserved read-only migration source | `localStorage["gza.store.v1"]` | Closed legacy store. Migrated once to `gza.booking.draft.v1` if canonical draft is missing. ZERO active draft writers; original string preserved byte-for-byte; never resurrected once cleared. |
 | **Admin Staff Session / RBAC Simulation** (`useAdmin`) | `src/lib/admin-store.tsx` | `localStorage["gza.admin.v1"]` (staffId) | Staff identity (`Staff \| null`), active role (`AdminRole`). AdminProvider owns staff session / RBAC simulation and toast/UI helpers only. Product-domain OpsState is eliminated; NetworkRepository owns airport references and network lifecycle in `gza.network.v1`. It does not own or proxy canonical flight overrides. |
 | **Recurring schedule planning** | `src/lib/schedules/` | `gza.schedule.v1`; version 1, revision, schedules; queued Web Lock commits | Admin Schedule Manager and related destination schedules; current dated-service discovery through the shared resolver. |
 | **Network reference** | `src/lib/network/` | `gza.network.v1`; version 1, revision, destinations | Fixed airport reference identities, operational destination editing and Schedule route validation; no CMS/pricing/materialization. |
-| **Admin Static Mock Data** | `src/lib/admin-mock.ts` | In-memory static constants | Customer profiles (`mockCustomers`), check-in desk fixtures, staff directory, audit and analytics fixtures, and non-migrated CMS/story collections. Contact inbox fixtures migrated to canonical seeds. Home, Travel and Past proof arrays derive from `src/content/`. |
+| **Remaining Admin Fixtures** | `src/lib/admin-mock.ts` | Static fixtures | Deferred media/analytics/remaining UI fixtures only; staff/customer/activity and operational authorities were retired from fixture consumption in Phase 6. Phase 7 CMS fixture writers have been retired. |
 | **Settings Draft Store** (Contact & Appearance) | `src/lib/settings/` | `localStorage["gza.settings.draft.v1"]` (schemaVersion: 1) | Multi-document envelope (`{ schemaVersion: 1, site: { contact?, appearance? } }`). Independent per-document save/discard. Active in Admin Settings and explicit `?settingsPreview=1` / `?skinPreview=1`. |
 | **Appearance Legacy Key** | `src/lib/skin.ts` | `localStorage["gza.skin.preview.v1"]` | Legacy working copy. Migrated deterministically into `gza.settings.draft.v1` on first load; left byte-for-byte untouched. No dual writes. |
 
@@ -130,9 +130,9 @@ Following Phase 4, bookings and operational flight overrides share canonical rep
 
 ## 3. Systematic No-Op / Pretend-Action Inventory & Mutation Reality
 
-### 3.1 Simulated & No-Op Actions (Toast-Only or Simulated UI Controls)
+### 3.1 Historical pretend-action inventory and current CMS resolution
 
-The following table catalogs user-facing controls that appear functional (buttons, forms, action menus) but currently produce simulated feedback (toast notifications, page-local UI flags, or no-ops) without altering any underlying data store:
+The table below is the historical pre-convergence inventory retained for traceability. Its Phase 6 fixture descriptions are historical, not current runtime authority. Phase 7 CMS rows below reflect the implemented candidate; independently accepted phase/source state remains in the living status block.
 
 | Route / Component | Exact File Path | Action / Element | Current Implementation & State Effect | Resolution Phase |
 | :--- | :--- | :--- | :--- | :--- |
@@ -143,10 +143,10 @@ The following table catalogs user-facing controls that appear functional (button
 | **Admin Customer Detail** | `src/routes/{-$locale}.admin.customers.$id.tsx` | "Edit Contact" Save | Inside `AdminSheet`, Save calls `useAdmin().toast(t("a2.saved"))` without updating `mockCustomers` | Phase 6C |
 | **Admin Customer Detail** | `src/routes/{-$locale}.admin.customers.$id.tsx` | "Attach Booking" / "Reset Password" | Calls `useAdmin().toast(t("a2.uiOnly"))` | Phase 6 |
 | **Admin Customer Detail** | `src/routes/{-$locale}.admin.customers.$id.tsx` | "Disable Account" (`a2.cu.disable`) | Opens bespoke `ConfirmDialog`; onConfirm calls `useAdmin().toast(t("a2.uiOnly"))` | Phase 6 |
-| **Admin Website CMS** | `src/routes/{-$locale}.admin.website.tsx` | Travel Save Draft / Preview / Discard | Real `ContentRepository` mutation to `gza.content.draft.v1`; explicit preview only. No global Publish button for this module. | Phase 4B complete |
-| **Admin Website CMS** | `src/routes/{-$locale}.admin.website.tsx` | Home reorder / other page editing | Home controls are read-only; non-migrated page editor Save is disabled as prototype-only. | Phase 7 |
-| **Admin Airport CMS** | `src/routes/{-$locale}.admin.airport.index.tsx` | Past timeline editing / duplicate / reorder / archive / attach | Canonical Past timeline is shown read-only; editing controls are disabled pending a real workflow. | Phase 7 |
-| **Admin Airport CMS** | `src/routes/{-$locale}.admin.airport.index.tsx` | Add Fact / Vision / Record / Media / Source | Calls `useAdmin().toast(t("a2.uiOnly"))` | Phase 6 |
+| **Admin Website CMS** | `src/routes/{-$locale}.admin.website.tsx` | Home/Travel Save Draft / Preview / Discard | Real typed ContentRepository commands, expected-draft conflict checks and semantic activity. Explicit local preview; no Publish action. | Phase 7 candidate |
+| **Admin Website CMS** | `src/routes/{-$locale}.admin.website.tsx` | Pages blocks/paragraphs and Navigation | Real informational bundle editing; actual compiled navigation displayed read-only. No pretend save or published timestamps. | Phase 7 candidate |
+| **Admin Airport CMS** | `src/routes/{-$locale}.admin.airport.index.tsx` | Past/Present/Future narratives, source references and SEO | Real typed local draft commands, retained errors, bilingual field validation and preview. Fixed chapter/evidence identity retained. | Phase 7 candidate |
+| **Admin Airport CMS** | `src/routes/{-$locale}.admin.airport.index.tsx` | Archive / Sources / Media | Clearly disclosed read-only Phase 7B reference fixtures; pretend upload/save actions removed. | Phase 7B deferred |
 | **Admin Staff Management** | `src/routes/{-$locale}.admin.staff.tsx` | "Invite Staff" Save | Inside `AdminSheet`, Save calls `useAdmin().toast(t("a2.st.inviteSent"))` (no record added) | Phase 6 |
 | **Admin Staff Management** | `src/routes/{-$locale}.admin.staff.tsx` | "Change Role" Save | Inside `AdminSheet`, Save calls `useAdmin().toast(t("a2.st.roleChanged"))` (no record updated) | Phase 6 |
 | **Admin Staff Management** | `src/routes/{-$locale}.admin.staff.tsx` | "Disable Staff" (`a2.st.disable`) | Calls `useAdmin().toast(t("a2.uiOnly"))` | Phase 6 |
@@ -355,8 +355,12 @@ PNR-facing Flight reads use `(Booking reference, leg)`: current service when ava
 
 ## Phase 6B consolidated release & Phase 6C status
 
-*Current status*: **Phase 6B — Operations Configuration Persistence: Complete / Accepted Source / Accepted Release / Deployed by Owner.** Deployed production release: `8e3136c22156c9acf800d25e94e8cd3d29a8bfc8`, runtime source: `2749c26714258871c32bd2b14a75fc4e87a68b62`. Deployment is confirmed by the product owner (HTTP 200 confirmed live; no independent live bundle verification claimed). Phase 6B consolidated Phase 6B1, 6B2A, 6B2B, 6B2C1, 6B2C2A, and 6B2C2B.
+Phase 6 engineering implementation is complete. Phase 6 and Phase 6C are **Complete / Accepted Source**, published to main at `4374e9f37cd6f23798cfd20ccfa7e43bcec77f89`. Accepted Phase 6C engineering and Correction 05: `d5dd2942fad517cc5f1be353ad206511cc0724cc`; original implementation: `3ac3c8a078f7ffa82b411744b656c3575a3955c4`.
 
-Phase 6C — Admin Directory Staff & Activity Convergence is **Complete / Accepted Source** (accepted engineering and Correction 05: `d5dd2942fad517cc5f1be353ad206511cc0724cc`, reviewed original implementation: `3ac3c8a078f7ffa82b411744b656c3575a3955c4`). Phase 6C has no Accepted Release and is not deployed. Phase 6 engineering implementation is complete; the whole of Phase 6 becomes Complete / Accepted Source once this finalization is independently reviewed and published to main. Production remains owner-deployed consolidated Phase 6B: release `8e3136c22156c9acf800d25e94e8cd3d29a8bfc8`, runtime source `2749c26714258871c32bd2b14a75fc4e87a68b62`. Phase 7 and Phase 7B remain Planned / Unstarted.
+The final Phase 6 static package is published on HostPapa at `421101d294674aaa503565cfc4df9fafb62527ba`, packaging source `4374e9f37cd6f23798cfd20ccfa7e43bcec77f89`. Owner deployment of that package has not been confirmed. Phase 6C is not deployed.
 
-**Next milestone:** Independent review and publication of the Phase 6C documentation finalization to main, followed by authorized Phase 6 closeout. Phase 7 and Phase 7B remain Planned / Unstarted. This documentation reconciliation changes no runtime implementation. The immutable planning snapshot is [the 2026-10-06 master handoff](../GAZA_GATEWAY_MASTER_AI_AGENT_HANDOFF_ROADMAP_2026-10-06.md); its pre-finalization refs/status are historical snapshot facts, not moving current refs.
+Confirmed production remains **Phase 6B - Complete / Accepted Source / Accepted Release / Deployed by Owner**: release `8e3136c22156c9acf800d25e94e8cd3d29a8bfc8`, deployed runtime source `2749c26714258871c32bd2b14a75fc4e87a68b62`. Deployment is confirmed by the product owner. No independent live bundle verification claimed for this reconciliation.
+
+**Phase 7 - CMS Admin Workflows: Implemented / Awaiting Independent Review.** The typed content foundation, storage/conflict handling, administrative audit commands, explicit public previews, canonical content inventory/search, and Home, Travel, Airport, destination and informational-page editors are implemented. Codex collected and independently reviewed both bounded AGY editor tasks, correcting validation, navigation, storage-error and mobile behavior before integration. Phase 7B remains Planned / Unstarted. No Phase 7 release or acceptance is claimed.
+
+**Next milestone:** independent ChatGPT engineering review of the pushed whole Phase 7 candidate. Main and HostPapa remain unchanged during this review. See [CMS workflows](CMS_WORKFLOWS.md) for the implementation contract. Earlier milestone sections retain their historical source/release state; they do not override this current block.

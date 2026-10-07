@@ -20,11 +20,15 @@ import {
   smallestDestinationSrc,
 } from "@/lib/destination-media";
 import { publishedDestinationsPresentation } from "@/content/published/destinations-presentation";
+import { publishedDestinationsEditorial } from "@/content/published/destinations-editorial";
+import { compiledContentHead } from "@/content/head";
 import { ContentPreviewNotice, useContentPreview } from "@/content/preview";
 
 export const Route = createFileRoute("/{-$locale}/destinations/$code")({
   head: ({ params }) => {
     const destination = destinationByCode(params.code);
+    const editorial = publishedDestinationsEditorial.destinations.find((entry) => entry.code === destination?.code);
+    if (editorial) return compiledContentHead(editorial.seo, params.locale);
     const city = destination ? destination.city.en : "Destination";
     const title = destination
       ? `${city} (${destination.code}) from Gaza — Palestinian Airlines`
@@ -48,8 +52,10 @@ function DestinationPage() {
   const { code } = Route.useParams();
   const { t, lang } = useI18n();
   const destination = destinationByCode(code);
+  const { content: editorialContent, previewError: editorialError, previewLoading: editorialLoading } = useContentPreview("destinations.editorial", publishedDestinationsEditorial);
+  const editorial = editorialContent.destinations.find((entry) => entry.code === code.toUpperCase());
 
-  const { content: presentation, previewing } = useContentPreview(
+  const { content: presentation, previewing, previewError, previewLoading } = useContentPreview(
     "destinations.presentation",
     publishedDestinationsPresentation,
   );
@@ -81,7 +87,7 @@ function DestinationPage() {
 
   return (
     <>
-      {previewing && <ContentPreviewNotice />}
+      {previewing && <ContentPreviewNotice error={previewError ?? editorialError} loading={previewLoading || editorialLoading} />}
       <section className="relative isolate overflow-hidden bg-ink text-ink-foreground">
         {photo && (
           <img
@@ -133,7 +139,7 @@ function DestinationPage() {
       <Container className="mt-14 grid gap-8 lg:grid-cols-[1.6fr_1fr]">
         <div>
           <h2 className="text-2xl font-bold">{t("dest.about")}</h2>
-          <p className="mt-3 text-base leading-relaxed text-muted-foreground">{pick(lang, destination.blurb)}</p>
+          <p className="mt-3 text-base leading-relaxed text-muted-foreground">{pick(lang, editorial!.blurb)}</p>
 
           <h3 className="mt-10 text-lg font-bold">{t("dest.schedule")}</h3>
           <div className="mt-4 flex flex-wrap gap-2">
@@ -172,10 +178,10 @@ function DestinationPage() {
               {t("dest.goodToKnow")}
             </h3>
             <ul className="mt-3 space-y-2.5 text-sm text-muted-foreground">
-              {destination.goodToKnow.map((point, index) => (
-                <li key={index} className="flex gap-2">
+              {editorial!.goodToKnow.filter((point) => point.visible).map((point) => (
+                <li key={point.id} className="flex gap-2">
                   <Clock aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-brand-deep" />
-                  {pick(lang, point)}
+                  {pick(lang, point.text)}
                 </li>
               ))}
             </ul>

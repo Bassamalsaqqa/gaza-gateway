@@ -1,8 +1,9 @@
 import { useMemo } from "react";
 import { todayISO, type Flight } from "@/lib/data";
-import { contentItems, type Permission } from "@/lib/admin";
+import { type Permission } from "@/lib/admin";
+import { useContentInventoryQuery } from "@/content/queries";
 import { useAdmin, type FlightOverride } from "@/lib/admin-store";
-import { useI18n } from "@/lib/i18n";
+import { pick, useI18n } from "@/lib/i18n";
 import { useContactNewCount } from "@/lib/contact";
 import { checkedInPax, seatedPassengers, type Booking } from "@/lib/domain/booking";
 import { dailyBookingMetrics } from "@/lib/admin-flight-metrics";
@@ -21,12 +22,14 @@ export type AttentionItem = {
   permission: Permission;
 };
 
-/** Canonical flights/bookings/contact, with explicitly unmigrated compiled content fixtures. */
+/** Canonical flights/bookings/contact plus the typed compiled/local-draft content inventory. */
 export function useDashboardData() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const bookingsQuery = useBookingsQuery();
   const commercialStatus = dashboardReadState(bookingsQuery);
   const { can } = useAdmin();
+  const contentQuery = useContentInventoryQuery(can("content.view"));
+  const contentStatus = contentQuery.isError || (contentQuery.data?.unavailable.length ?? 0) > 0 ? "error" : contentQuery.isPending ? "loading" : "ready";
   const { data: newContactCount = 0 } = useContactNewCount();
   const today = todayISO();
 
@@ -36,6 +39,7 @@ export function useDashboardData() {
   const operationsStatus = dashboardReadState(departuresQuery, arrivalsQuery);
 
   return useMemo(() => {
+    const contentItems = contentQuery.data?.documents ?? [];
     // Unavailable arrays are only internal iteration guards, never successful zero metrics.
     const depFlights = operationsStatus === "ready" ? departuresQuery.data ?? [] : [];
     const arrFlights = operationsStatus === "ready" ? arrivalsQuery.data ?? [] : [];
@@ -55,7 +59,7 @@ export function useDashboardData() {
     const bookings = rawBookings;
     const daily = dailyBookingMetrics(bookings, today);
 
-    const contentAttention = contentItems.filter((c) => c.state === "draft" || c.missingAr || c.missingSource).length;
+    const contentAttention = dashboardMetric(contentStatus, contentItems.filter((c) => c.state === "draft" || c.missingAr || c.missingSource).length);
 
     const allAttention: AttentionItem[] = [];
     for (const f of cancelled) {
@@ -118,7 +122,7 @@ export function useDashboardData() {
         allAttention.push({
           id: `att-ar-${c.id}`,
           severity: "medium",
-          title: `${t("adm.attn.arabic")} — ${t(c.titleKey)}`,
+          title: `${t("adm.attn.arabic")} — ${pick(lang, c.title)}`,
           module: t(c.module),
           next: t("adm.attn.arabicNext"),
           permission: "content.view",
@@ -128,7 +132,7 @@ export function useDashboardData() {
         allAttention.push({
           id: `att-src-${c.id}`,
           severity: "low",
-          title: `${t("adm.attn.source")} — ${t(c.titleKey)}`,
+          title: `${t("adm.attn.source")} — ${pick(lang, c.title)}`,
           module: t(c.module),
           next: t("adm.attn.sourceNext"),
           permission: "content.view",
@@ -138,7 +142,7 @@ export function useDashboardData() {
         allAttention.push({
           id: `att-dr-${c.id}`,
           severity: "low",
-          title: `${t("adm.attn.draft")} — ${t(c.titleKey)}`,
+          title: `${t("adm.attn.draft")} — ${pick(lang, c.title)}`,
           module: t(c.module),
           next: t("adm.attn.draftNext"),
           permission: "content.view",
@@ -174,14 +178,15 @@ export function useDashboardData() {
       attention,
       recent,
       content: {
-        drafts: contentItems.filter((c) => c.state === "draft").length,
-        missingAr: contentItems.filter((c) => c.missingAr).length,
-        awaitingSource: contentItems.filter((c) => c.missingSource).length,
-        published: contentItems.filter((c) => c.state === "published").length,
+        status: contentStatus,
+        drafts: dashboardMetric(contentStatus, contentItems.filter((c) => c.state === "draft").length),
+        missingAr: dashboardMetric(contentStatus, contentItems.filter((c) => c.missingAr).length),
+        awaitingSource: dashboardMetric(contentStatus, contentItems.filter((c) => c.missingSource).length),
+        published: dashboardMetric(contentQuery.isPending || contentQuery.isError ? "loading" : "ready", contentItems.length),
         items: contentItems,
       },
     };
-  }, [today, bookingsQuery.data, departuresQuery.data, arrivalsQuery.data, operationsStatus, commercialStatus, t, can, newContactCount]) satisfies { attention: AttentionItem[] } & Record<string, unknown>;
+  }, [today, bookingsQuery.data, departuresQuery.data, arrivalsQuery.data, operationsStatus, commercialStatus, t, lang, can, newContactCount, contentQuery.data, contentQuery.isPending, contentQuery.isError, contentStatus]) satisfies { attention: AttentionItem[] } & Record<string, unknown>;
 }
 
 export type { FlightOverride };

@@ -31,6 +31,7 @@ export const activityModuleSchema = z.enum([
   "inbox",
   "staff",
   "session",
+  "content",
 ]);
 
 export const activityActionSchema = z.enum([

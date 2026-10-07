@@ -19,7 +19,8 @@ import {
 } from "lucide-react";
 import { pick, useI18n } from "@/lib/i18n";
 import { useAdmin } from "@/lib/admin-store";
-import { contentItems, type Permission } from "@/lib/admin";
+import { type Permission } from "@/lib/admin";
+import { useContentInventoryQuery } from "@/content/queries";
 import { useCustomersQuery } from "@/lib/customer-directory";
 import { useBookingsQuery } from "@/lib/repositories";
 import { bookingToMockBooking, type AdaptedAdminBooking } from "@/lib/domain/booking";
@@ -193,6 +194,7 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
   const canOps = can("ops.view");
   const canCommercial = can("commercial.view");
   const canContent = can("content.view");
+  const contentQuery = useContentInventoryQuery(open && canContent);
 
   const today = todayISO();
   const { data: networkDestinations } = useNetworkQuery();
@@ -335,24 +337,26 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
 
     // 5. Content (requires content.view)
     if (canContent) {
-      for (const c of contentItems) {
-        const label = t(c.titleKey);
+      for (const c of contentQuery.data?.entities ?? []) {
+        const label = pick(lang, c.title);
         const moduleLabel = t(c.module);
-        const hay = normalizeSearch(`${label} ${moduleLabel}`);
+        const hay = normalizeSearch(`${label} ${moduleLabel} ${c.searchText}`);
         if (hay.includes(q)) {
           out.push({
             id: `k-${c.id}`,
             group: "content",
             title: label,
-            meta: moduleLabel,
-            to: "/admin/website",
+            meta: `${moduleLabel} · ${t(c.state === "draft" ? "content.localDraft" : "content.compiledPublished")}`,
+            to: c.to,
+            ...(c.params ? { params: c.params } : {}),
+            ...(c.search ? { search: c.search } : {}),
           });
         }
       }
     }
 
     return out.slice(0, 30);
-  }, [query, lang, t, canOps, canCommercial, canContent, permittedCommands, allBookings, repositoryCustomers, networkDestinations, flightsQuery.data, flightsQuery.isError]);
+  }, [query, lang, t, canOps, canCommercial, canContent, permittedCommands, allBookings, repositoryCustomers, networkDestinations, flightsQuery.data, flightsQuery.isError, contentQuery.data]);
 
   useEffect(() => setActive(0), [query]);
 
@@ -460,6 +464,9 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
         </div>
 
         <div id="admin-search-results" className="flex-1 overflow-y-auto">
+          {canContent && (contentQuery.isError || (contentQuery.data?.unavailable.length ?? 0) > 0) && <p role="alert" className="px-4 py-2 text-xs text-destructive">
+            {lang === "ar" ? "المسودات المحلية غير متاحة لبعض المحتوى؛ تظهر السجلات المنشورة فقط لهذه المستندات." : "Some local drafts are unavailable; only compiled published records are listed for those documents."}
+          </p>}
           {canOps && (flightsQuery.isLoading || flightsQuery.isError) && <p role={flightsQuery.isError ? "alert" : "status"} className="px-4 py-2 text-xs text-muted-foreground">{t(flightsQuery.isError ? "services.error.unavailable" : "services.loading")}</p>}
           {canCommercial && bookingsPending ? (
             <p role="status" className="px-4 py-2 text-xs text-muted-foreground">{t("a2.bk.loading")}</p>

@@ -62,8 +62,8 @@ export const Route = createFileRoute("/{-$locale}/")({
 
 function Home() {
   const { t, lang } = useI18n();
-  const { content, previewing } = useContentPreview("home", publishedHome);
-  const { content: destPresentation } = useContentPreview("destinations.presentation", publishedDestinationsPresentation);
+  const { content, previewing, previewError, previewLoading } = useContentPreview("home", publishedHome);
+  const { content: destPresentation, previewError: destinationPreviewError, previewLoading: destinationPreviewLoading } = useContentPreview("destinations.presentation", publishedDestinationsPresentation);
   const today = todayISO();
   const [board, setBoard] = useState<"departures" | "arrivals">("departures");
   const boardQuery = useFlightsQuery(today, board === "departures" ? "dep" : "arr");
@@ -72,7 +72,7 @@ function Home() {
 
   return (
     <>
-      {previewing ? <ContentPreviewNotice /> : null}
+      {previewing ? <ContentPreviewNotice error={previewError ?? destinationPreviewError} loading={previewLoading || destinationPreviewLoading} /> : null}
       {/* 1. Civic Hero Section with Atmospheric Lighting & Identity */}
       <section className="relative isolate overflow-hidden bg-ink text-ink-foreground">
         {/* Real owner-provided concept hero — eager, high-priority LCP candidate with explicit positive stacking */}

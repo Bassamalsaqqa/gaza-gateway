@@ -62,7 +62,7 @@ export const Route = createFileRoute("/{-$locale}/travel")({
 function TravelPage() {
   const search = Route.useSearch();
   const { t, lang } = useI18n();
-  const { content, previewing } = useContentPreview("travel", publishedTravel);
+  const { content, previewing, previewError, previewLoading } = useContentPreview("travel", publishedTravel);
   const travelSections = useMemo(() => content.sections.filter((section) => section.visible), [content]);
   const first = travelSections[0];
   const initialSection =
@@ -94,7 +94,7 @@ function TravelPage() {
 
   return (
     <>
-      {previewing ? <ContentPreviewNotice /> : null}
+      {previewing ? <ContentPreviewNotice error={previewError} loading={previewLoading} /> : null}
       <PublicPhotoHero
         mediaId="travel-info-hero"
         routeKey="travel"

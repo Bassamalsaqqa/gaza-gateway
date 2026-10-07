@@ -29,7 +29,7 @@ function DestinationsPage() {
   const { t, lang } = useI18n();
   const [query, setQuery] = useState("");
 
-  const { content: presentation, previewing } = useContentPreview(
+  const { content: presentation, previewing, previewError, previewLoading } = useContentPreview(
     "destinations.presentation",
     publishedDestinationsPresentation,
   );
@@ -44,7 +44,7 @@ function DestinationsPage() {
 
   return (
     <>
-      {previewing && <ContentPreviewNotice />}
+      {previewing && <ContentPreviewNotice error={previewError} loading={previewLoading} />}
       <PublicPhotoHero
         mediaId="destinations-hero"
         routeKey="destinations"

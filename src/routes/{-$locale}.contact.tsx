@@ -1,3 +1,4 @@
+import { compiledContentHead } from "@/content/head";
 import { createFileRoute } from "@tanstack/react-router";
 import { CheckCircle2, Mail, MapPin, Phone, Send } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -14,6 +15,8 @@ import {
   Textarea,
 } from "@/components/kit";
 import { pick, useI18n } from "@/lib/i18n";
+import { publishedInformationPages } from "@/content/published/information-pages";
+import { ContentPreviewNotice, useContentPreview } from "@/content/preview";
 import { settingsRepository, PUBLISHED_CONTACT_SETTINGS } from "@/lib/settings";
 import type { ContactSettings } from "@/lib/settings";
 import {
@@ -23,29 +26,20 @@ import {
 } from "@/lib/contact";
 
 type ContactSearch = {
+  contentPreview?: 1;
   settingsPreview?: 1;
 };
 
 export const Route = createFileRoute("/{-$locale}/contact")({
   validateSearch: (search: Record<string, unknown>): ContactSearch => {
     const out: ContactSearch = {};
+    if (search["contentPreview"] === "1" || search["contentPreview"] === 1) out.contentPreview = 1;
     if (search["settingsPreview"] === "1" || search["settingsPreview"] === 1) {
       out.settingsPreview = 1;
     }
     return out;
   },
-  head: () => ({
-    meta: [
-      { title: "Contact — Gaza International Airport (GZA)" },
-      {
-        name: "description",
-        content:
-          "Contact Gaza International Airport and Palestinian Airlines: passenger enquiries, media and archive contributions, plus phone and email details.",
-      },
-      { property: "og:title", content: "Contact Gaza International Airport" },
-      { property: "og:description", content: "Passenger, media and archive enquiries." },
-    ],
-  }),
+  head: ({ params }) => compiledContentHead(publishedInformationPages.pages.find((page) => page.id === "contact")!.seo, params.locale),
   component: ContactPage,
 });
 
@@ -58,6 +52,8 @@ function generateSubmissionId(): string {
 
 function ContactPage() {
   const { t, lang } = useI18n();
+  const { content, previewing, previewError, previewLoading } = useContentPreview("pages.information", publishedInformationPages);
+  const page = content.pages.find((entry) => entry.id === "contact")!;
   const search = Route.useSearch();
   const createContactMutation = useCreateContactMessage();
 
@@ -216,7 +212,14 @@ function ContactPage() {
 
   return (
     <>
-      <PageHeader title={t("contact.title")} description={t("contact.sub")} />
+      {previewing && <ContentPreviewNotice error={previewError} loading={previewLoading} />}
+      <PageHeader title={pick(lang, page.title)} description={pick(lang, page.description)} />
+      {page.blocks.some((block) => block.visible) && <Container className="space-y-4 pt-6">
+        {page.blocks.filter((block) => block.visible).map((block) => <Panel key={block.id}>
+          <h2 className="text-lg font-bold">{pick(lang, block.title)}</h2>
+          {block.paragraphs.map((paragraph, index) => <p key={index} className="mt-3 text-sm leading-relaxed text-muted-foreground">{pick(lang, paragraph)}</p>)}
+        </Panel>)}
+      </Container>}
 
       <Container className="grid gap-8 py-10 lg:grid-cols-[1.4fr_1fr]">
         <div>

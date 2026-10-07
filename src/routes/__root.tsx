@@ -8,7 +8,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { lazy, Suspense, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { I18nProvider } from "@/lib/i18n";
@@ -29,7 +29,11 @@ const StudioFrameListenerLazy = lazy(() =>
 );
 
 function StudioFrameMount() {
-  if (typeof window === "undefined") return null;
+  // The lazy browser listener has no server markup. Keep its first client render
+  // identical to SSR; repository isolation still happens before any storage access.
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => { setHydrated(true); }, []);
+  if (!hydrated || typeof window === "undefined") return null;
   const isStudio =
     window.location.search.includes("studioPreview=1") ||
     window.location.search.includes("studioPreview=%221%22") ||

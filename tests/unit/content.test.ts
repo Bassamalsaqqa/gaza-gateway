@@ -89,12 +89,14 @@ describe("browser-local content drafts", () => {
     assert.equal(result?.sections[0]?.title.en, "Edited English");
     assert.equal(result?.sections[0]?.title.ar, "عنوان عربي");
   });
-  it("recovers from malformed and unknown-version storage", async () => {
+  it("fails closed without changing malformed or unsupported-version storage", async () => {
     const storage = new MemoryStorage();
     storage.setItem(CONTENT_DRAFT_KEY, "{broken");
-    assert.equal(await new LocalContentRepository(storage).getDraft("travel"), null);
+    await assert.rejects(new LocalContentRepository(storage).getDraft("travel"), { code: "corrupt_store" });
+    assert.equal(storage.getItem(CONTENT_DRAFT_KEY), "{broken");
     storage.setItem(CONTENT_DRAFT_KEY, JSON.stringify({ schemaVersion: 2, drafts: { travel: publishedTravel } }));
-    assert.equal(await new LocalContentRepository(storage).getDraft("travel"), null);
+    await assert.rejects(new LocalContentRepository(storage).getDraft("travel"), { code: "unsupported_version" });
+    assert.equal(JSON.parse(storage.getItem(CONTENT_DRAFT_KEY)!).schemaVersion, 2);
   });
   it("does not claim success or adopt state when storage rejects the write", async () => {
     const storage = new MemoryStorage();

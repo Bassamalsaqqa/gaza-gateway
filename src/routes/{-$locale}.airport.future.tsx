@@ -1,3 +1,4 @@
+import { compiledContentHead } from "@/content/head";
 import { AppLink } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
 import { ArrowRight, Lightbulb } from "lucide-react";
@@ -9,8 +10,11 @@ import { ResponsiveImage } from "@/components/responsive-image";
 import { GazaSurface, SurfaceMedia, useSurfaceRecipe } from "@/design/surfaces";
 import { MEDIA } from "@/lib/media";
 import airportFutureBodyImg from "@/assets/media/decorative/airport/airport-future-body.webp";
+import { publishedAirportFuture } from "@/content/published/airport-future";
+import { ContentPreviewNotice, useContentPreview } from "@/content/preview";
 
 type FutureSearch = {
+  contentPreview?: 1;
   skinPreview?: 1;
   studioPreview?: 1;
   baseline?: 1;
@@ -19,6 +23,7 @@ type FutureSearch = {
 export const Route = createFileRoute("/{-$locale}/airport/future")({
   validateSearch: (search: Record<string, unknown>): FutureSearch => {
     const out: FutureSearch = {};
+    if (search["contentPreview"] === "1" || search["contentPreview"] === 1) out.contentPreview = 1;
     const rawPreview = search["skinPreview"];
     if (rawPreview === "1" || rawPreview === 1 || rawPreview === '"1"') {
       out.skinPreview = 1;
@@ -33,23 +38,13 @@ export const Route = createFileRoute("/{-$locale}/airport/future")({
     }
     return out;
   },
-  head: () => ({
-    meta: [
-      { title: "The future — vision for Gaza International Airport" },
-      {
-        name: "description",
-        content:
-          "Concepts for a reopened Gaza International Airport: terminal proposals, masterplan thinking, future passenger experience and a growing route network.",
-      },
-      { property: "og:title", content: "The future — Gaza International Airport" },
-      { property: "og:description", content: "Terminal concepts, masterplan and future passenger experience." },
-    ],
-  }),
+  head: ({ params }) => compiledContentHead(publishedAirportFuture.seo, params.locale),
   component: FuturePage,
 });
 
 function FuturePage() {
   const { t, lang } = useI18n();
+  const { content, previewing, previewError, previewLoading } = useContentPreview("airport.future", publishedAirportFuture);
   const { active: isEditorialActive, recipe: editorialRecipe } = useSurfaceRecipe(
     "editorial",
     "airport.future-editorial",
@@ -92,6 +87,7 @@ function FuturePage() {
 
   return (
     <>
+      {previewing && <ContentPreviewNotice error={previewError} loading={previewLoading} />}
       {/* Editorial Chapter Hero — day aerial with explicit positive stacking */}
       <section className="relative isolate overflow-hidden bg-ink text-ink-foreground">
         <ResponsiveImage
@@ -104,10 +100,10 @@ function FuturePage() {
         <div className="absolute inset-0 z-10 bg-gradient-to-t from-ink via-ink/75 to-ink/40 sm:bg-gradient-to-r sm:from-ink/90 sm:via-ink/65 sm:to-ink/25 sm:rtl:bg-gradient-to-l" />
         <Container className="relative z-20 py-16 sm:py-24">
           <h1 className="type-title-hero max-w-3xl text-ink-foreground">
-            {t("airport.future")}
+            {pick(lang, content.copy.title)}
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-relaxed text-ink-muted sm:text-lg">
-            {t("airport.futureSubtitle")}
+            {pick(lang, content.copy.subtitle)}
           </p>
           {/* Single plain disclosure */}
           <p className="mt-4 text-xs text-ink-muted/90 sm:text-sm font-medium">
@@ -122,7 +118,7 @@ function FuturePage() {
 
         {/* Concise non-duplicative planning prose */}
         <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
-          {t("airport.futureNotice")}
+          {pick(lang, content.copy.notice)}
         </p>
 
         {/* ── Main chapters: day imagery with editorial narrative ── */}
@@ -132,10 +128,10 @@ function FuturePage() {
             const chapter1Content = (
               <div className="relative z-10 flex flex-col justify-center">
                 <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-                  {t("airport.themeTerminalTitle")}
+                  {pick(lang, content.copy.terminalTitle)}
                 </h2>
                 <p className="mt-3 text-base leading-relaxed text-muted-foreground sm:text-lg sm:leading-relaxed">
-                  {t("airport.themeTerminalBody")}
+                  {pick(lang, content.copy.terminalBody)}
                 </p>
               </div>
             );
@@ -339,10 +335,10 @@ function FuturePage() {
               />
               <div className="relative z-10 flex flex-col justify-center">
                 <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-                  {t("airport.themeHospitalityTitle")}
+                  {pick(lang, content.copy.hospitalityTitle)}
                 </h2>
                 <p className="mt-3 text-base leading-relaxed text-muted-foreground sm:text-lg sm:leading-relaxed">
-                  {t("airport.themeHospitalityBody")}
+                  {pick(lang, content.copy.hospitalityBody)}
                 </p>
               </div>
             </div>
@@ -380,10 +376,10 @@ function FuturePage() {
               />
               <div className="relative z-10 flex flex-col justify-center">
                 <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-                  {t("airport.themeMasterplanTitle")}
+                  {pick(lang, content.copy.masterplanTitle)}
                 </h2>
                 <p className="mt-3 text-base leading-relaxed text-muted-foreground sm:text-lg sm:leading-relaxed">
-                  {t("airport.themeMasterplanBody")}
+                  {pick(lang, content.copy.masterplanBody)}
                 </p>
               </div>
             </div>
@@ -438,11 +434,11 @@ function FuturePage() {
           <div className="flex items-center gap-2 text-foreground">
             <Lightbulb aria-hidden="true" className="size-5 text-clay" />
             <h2 className="text-xl font-bold">
-              {t("airport.networkTitle")}
+              {pick(lang, content.copy.networkTitle)}
             </h2>
           </div>
           <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-            {t("airport.networkBody")}
+            {pick(lang, content.copy.networkBody)}
           </p>
 
           <ul className="mt-5 flex flex-wrap gap-2.5">

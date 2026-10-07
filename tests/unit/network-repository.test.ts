@@ -179,8 +179,11 @@ describe("C1 authority and localization source guards", () => {
     assert.ok(networkAr["network.unavailable"]!.includes("الشبكة"));
     for (const file of ["src/lib/repositories/flight-repository.ts", "src/lib/repositories/booking-repository.ts", "src/lib/data.ts"]) assert.doesNotMatch(source(file), /from ["'][^"']*network\//);
     const page = source("src/routes/{-$locale}.admin.destinations.$code.tsx");
-    assert.match(page, /contentRepository\.saveDraft\("destinations.presentation"/);
-    assert.match(page, /value=\{editorial\.seoTitle\} readOnly/);
+    assert.match(page, /key: "destinations.presentation"/);
+    assert.match(page, /presentationCms\.save\(\)/);
+    assert.match(page, /key: "destinations.editorial"/);
+    assert.match(page, /editorialCms\.save\(\)/);
+    assert.doesNotMatch(page, /import.*contentRepository/);
     assert.match(page, /search=\{\{ destination: code \}\}/);
   });
 });

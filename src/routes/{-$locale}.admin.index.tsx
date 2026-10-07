@@ -29,14 +29,13 @@ import {
   GazaSheet,
   AttentionRow,
   BilingualStatus,
-  ContentStateChip,
   Ltr,
   Metric,
   PermissionButton,
 } from "@/components/admin/admin-kit";
 import { useDashboardData, type OpsFlight } from "@/components/admin/dashboard-data";
 import { useAdmin } from "@/lib/admin-store";
-import { useI18n } from "@/lib/i18n";
+import { pick, useI18n } from "@/lib/i18n";
 import { dateLong, dateShort } from "@/lib/format";
 import { type FlightStatus } from "@/lib/data";
 import { checkedInPax, seatedPassengers, type Booking } from "@/lib/domain/booking";
@@ -446,13 +445,16 @@ function AdminDashboardPage() {
       className="rounded-xl border border-border bg-card shadow-xs"
       bodyClassName="p-0"
     >
+      {data.content.status !== "ready" && <p role={data.content.status === "error" ? "alert" : "status"} className="border-b border-border px-4 py-3 text-sm text-muted-foreground">
+        {data.content.status === "error" ? (lang === "ar" ? "تعذر قراءة بعض المسودات المحلية. لم تُغيّر البيانات؛ تظهر المستندات المنشورة المتاحة." : "Some local drafts could not be read. Data is unchanged; available compiled documents are shown.") : t("adm.ops.loading")}
+      </p>}
       <div className="grid grid-cols-2 divide-y divide-x sm:divide-y-0 sm:grid-cols-4 divide-border border-b border-border bg-secondary/15">
         <div className="flex items-center justify-between p-2.5 sm:p-3">
           <span className="text-xs font-medium text-muted-foreground truncate">
             {t("adm.content.drafts")}
           </span>
           <span className="code-id text-sm font-bold tabular-nums text-foreground ms-2">
-            {data.content.drafts}
+            {data.content.drafts ?? "—"}
           </span>
         </div>
         <div className="flex items-center justify-between p-2.5 sm:p-3">
@@ -462,10 +464,10 @@ function AdminDashboardPage() {
           <span
             className={cn(
               "code-id text-sm font-bold tabular-nums ms-2",
-              data.content.missingAr > 0 ? "text-status-delayed" : "text-foreground",
+              (data.content.missingAr ?? 0) > 0 ? "text-status-delayed" : "text-foreground",
             )}
           >
-            {data.content.missingAr}
+            {data.content.missingAr ?? "—"}
           </span>
         </div>
         <div className="flex items-center justify-between p-2.5 sm:p-3">
@@ -475,10 +477,10 @@ function AdminDashboardPage() {
           <span
             className={cn(
               "code-id text-sm font-bold tabular-nums ms-2",
-              data.content.awaitingSource > 0 ? "text-status-delayed" : "text-foreground",
+              (data.content.awaitingSource ?? 0) > 0 ? "text-status-delayed" : "text-foreground",
             )}
           >
-            {data.content.awaitingSource}
+            {data.content.awaitingSource ?? "—"}
           </span>
         </div>
         <div className="flex items-center justify-between p-2.5 sm:p-3">
@@ -486,7 +488,7 @@ function AdminDashboardPage() {
             {t("adm.content.published")}
           </span>
           <span className="code-id text-sm font-bold tabular-nums text-brand-deep ms-2">
-            {data.content.published}
+            {data.content.published ?? "—"}
           </span>
         </div>
       </div>
@@ -494,10 +496,10 @@ function AdminDashboardPage() {
         {data.content.items.slice(0, 4).map((c) => (
           <li key={c.id} className="flex items-center justify-between gap-2 px-3 py-2 sm:px-4">
             <span className="min-w-0 flex-1 truncate text-xs font-semibold text-foreground">
-              {t(c.titleKey)}
+              {pick(lang, c.title)}
             </span>
             <div className="flex items-center gap-1.5 shrink-0">
-              <ContentStateChip state={c.state} />
+              <AdminChip tone={c.state === "draft" ? "warn" : "brand"}>{t(c.state === "draft" ? "content.localDraft" : "content.compiledPublished")}</AdminChip>
               <BilingualStatus missingAr={c.missingAr ?? false} />
             </div>
           </li>
