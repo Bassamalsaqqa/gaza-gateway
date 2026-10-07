@@ -11,7 +11,6 @@ import {
   PanelLeftOpen,
   Plus,
   Search,
-  Sparkles,
   Ticket,
   UserRound,
   X,
@@ -32,15 +31,12 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
-const ROLES: AdminRole[] = ["admin", "editor", "viewer"];
 const SIDEBAR_STORAGE_KEY = "gza.admin.sidebar.collapsed";
 
 function useOsShortcut(): string {
@@ -269,7 +265,7 @@ function WorkspaceMark({ collapsed = false }: { collapsed?: boolean }) {
 
 function AccountMenu() {
   const { t, lang } = useI18n();
-  const { staff, setRole, signOut } = useAdmin();
+  const { staff, signOut } = useAdmin();
 
   if (!staff) return null;
 
@@ -296,25 +292,9 @@ function AccountMenu() {
             {staff.email}
           </span>
           <span className="block text-xs font-normal text-muted-foreground">
-            {pick(lang, staff.title)}
+            {pick(lang, staff.title)} • {t(`adm.role.${staff.role}`)}
           </span>
         </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuLabel className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Sparkles aria-hidden="true" className="size-3" />
-          {t("adm.shell.switchRole")}
-        </DropdownMenuLabel>
-        <DropdownMenuRadioGroup
-          value={staff.role}
-          onValueChange={(value) => setRole(value as AdminRole)}
-        >
-          {ROLES.map((role) => (
-            <DropdownMenuRadioItem key={role} value={role}>
-              {t(`adm.role.${role}`)}
-            </DropdownMenuRadioItem>
-          ))}
-        </DropdownMenuRadioGroup>
-        <p className="px-2 py-1 text-xs text-muted-foreground">{t("adm.shell.switchRoleNote")}</p>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={signOut} className="font-semibold cursor-pointer">
           {t("adm.shell.signOut")}

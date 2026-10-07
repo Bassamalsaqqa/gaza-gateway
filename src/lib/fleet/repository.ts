@@ -18,6 +18,8 @@ import {
   type AircraftCreateInput,
   type AircraftLayout,
   type AircraftUpdatePatch,
+  type FleetAircraftMutationReceipt,
+  type FleetLayoutMutationReceipt,
   type FleetRepository,
   type FleetSnapshot,
   type LayoutUpdateInput,
@@ -120,47 +122,75 @@ export class LocalFleetRepository implements FleetRepository {
     });
   }
 
-  async updateAircraft(id: string, patch: AircraftUpdatePatch): Promise<Aircraft> {
+  async updateAircraftWithReceipt(
+    id: string,
+    patch: AircraftUpdatePatch,
+  ): Promise<FleetAircraftMutationReceipt> {
     if ("id" in patch) {
       throw new FleetError("immutable_field", { id: "Aircraft ID is immutable" });
     }
 
-    return this.coordinator.mutate((candidate) => {
+    let changed = false;
+    const aircraft = await this.coordinator.mutate((candidate) => {
       const plane = candidate.aircraft.find((a) => a.id === id);
       if (!plane) {
         throw new FleetError("aircraft_not_found");
       }
 
+      const nextRegistration =
+        patch.registration !== undefined
+          ? patch.registration.trim().toUpperCase()
+          : plane.registration;
+      const nextModel = patch.model !== undefined ? patch.model.trim() : plane.model;
+      const nextActive = patch.active !== undefined ? patch.active : plane.active;
+
+      if (
+        nextRegistration === plane.registration &&
+        nextModel === plane.model &&
+        nextActive === plane.active
+      ) {
+        changed = false;
+        return structuredClone(plane);
+      }
+
       if (patch.registration !== undefined) {
-        const normalized = patch.registration.trim().toUpperCase();
         const conflict = candidate.aircraft.some(
-          (a) => a.id !== id && a.registration.toUpperCase() === normalized,
+          (a) => a.id !== id && a.registration.toUpperCase() === nextRegistration,
         );
         if (conflict) {
           throw new FleetError("duplicate_registration", {
             registration: "Registration is already in use by another aircraft",
           });
         }
-        plane.registration = normalized;
+        plane.registration = nextRegistration;
       }
 
       if (patch.model !== undefined) {
-        plane.model = patch.model.trim();
+        plane.model = nextModel;
       }
 
       if (patch.active !== undefined) {
-        plane.active = patch.active;
+        plane.active = nextActive;
       }
 
+      changed = true;
       return structuredClone(plane);
     });
+
+    return { aircraft, changed };
   }
 
-  async updateLayout(
+  async updateAircraft(id: string, patch: AircraftUpdatePatch): Promise<Aircraft> {
+    const receipt = await this.updateAircraftWithReceipt(id, patch);
+    return receipt.aircraft;
+  }
+
+  async updateLayoutWithReceipt(
     aircraftId: string,
     input: LayoutUpdateInput,
-  ): Promise<AircraftLayout> {
-    return this.coordinator.mutate((candidate) => {
+  ): Promise<FleetLayoutMutationReceipt> {
+    let changed = false;
+    const layout = await this.coordinator.mutate((candidate) => {
       const plane = candidate.aircraft.find((a) => a.id === aircraftId);
       if (!plane) {
         throw new FleetError("aircraft_not_found");
@@ -181,9 +211,25 @@ export class LocalFleetRepository implements FleetRepository {
         unavailable: input.unavailable.map((u) => u.toUpperCase()),
       };
 
+      if (JSON.stringify(existingLayout) === JSON.stringify(updatedLayout)) {
+        changed = false;
+        return structuredClone(existingLayout);
+      }
+
       candidate.layouts[aircraftId] = updatedLayout;
+      changed = true;
       return structuredClone(updatedLayout);
     });
+
+    return { layout, changed };
+  }
+
+  async updateLayout(
+    aircraftId: string,
+    input: LayoutUpdateInput,
+  ): Promise<AircraftLayout> {
+    const receipt = await this.updateLayoutWithReceipt(aircraftId, input);
+    return receipt.layout;
   }
 
   subscribe(listener: () => void): () => void {

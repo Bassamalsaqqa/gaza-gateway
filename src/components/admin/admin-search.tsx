@@ -20,7 +20,7 @@ import {
 import { pick, useI18n } from "@/lib/i18n";
 import { useAdmin } from "@/lib/admin-store";
 import { contentItems, type Permission } from "@/lib/admin";
-import { mockCustomers } from "@/lib/admin-mock";
+import { useCustomersQuery } from "@/lib/customer-directory";
 import { useBookingsQuery } from "@/lib/repositories";
 import { bookingToMockBooking, type AdaptedAdminBooking } from "@/lib/domain/booking";
 import { todayISO } from "@/lib/data";
@@ -198,6 +198,7 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
   const { data: networkDestinations } = useNetworkQuery();
 
   const { data: repositoryBookings, isPending: bookingsPending, isError: bookingsError } = useBookingsQuery();
+  const { data: repositoryCustomers = [], isError: customersError } = useCustomersQuery();
   const allBookings = useMemo<AdaptedAdminBooking[]>(() => {
     if (repositoryBookings) {
       return repositoryBookings.map(bookingToMockBooking);
@@ -293,18 +294,18 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
         }
       }
 
-      // Check mockCustomers
-      for (const mc of mockCustomers) {
-        const hay = normalizeSearch(`${mc.name} ${mc.email} ${mc.phone} ${mc.id}`);
-        if (hay.includes(q) && !seenEmails.has(mc.email)) {
-          seenEmails.add(mc.email);
+      // Check canonical customers
+      for (const c of repositoryCustomers) {
+        const hay = normalizeSearch(`${c.name} ${c.email} ${c.phone} ${c.refs.join(" ")}`);
+        if (hay.includes(q) && !seenEmails.has(c.email)) {
+          seenEmails.add(c.email);
           out.push({
-            id: `mc-${mc.id}`,
+            id: `c-${c.id}`,
             group: "customers",
-            title: mc.name,
-            meta: `${mc.email} · ${mc.phone}`,
+            title: c.name,
+            meta: c.phone ? `${c.email} · ${c.phone}` : c.email,
             to: "/admin/customers/$id",
-            params: { id: mc.id },
+            params: { id: c.id },
           });
         }
       }
@@ -351,7 +352,7 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
     }
 
     return out.slice(0, 30);
-  }, [query, lang, t, canOps, canCommercial, canContent, permittedCommands, allBookings, networkDestinations, flightsQuery.data, flightsQuery.isError]);
+  }, [query, lang, t, canOps, canCommercial, canContent, permittedCommands, allBookings, repositoryCustomers, networkDestinations, flightsQuery.data, flightsQuery.isError]);
 
   useEffect(() => setActive(0), [query]);
 
@@ -464,6 +465,11 @@ export function AdminSearch({ open, onClose }: { open: boolean; onClose: () => v
             <p role="status" className="px-4 py-2 text-xs text-muted-foreground">{t("a2.bk.loading")}</p>
           ) : canCommercial && bookingsError ? (
             <p role="alert" className="px-4 py-2 text-xs text-destructive">{t("a2.bk.loadError")}</p>
+          ) : null}
+          {canCommercial && customersError ? (
+            <p role="alert" className="px-4 py-2 text-xs text-destructive">
+              {lang === "ar" ? "تعذر تحميل نتائج العملاء." : "Customer search unavailable."}
+            </p>
           ) : null}
           {query.trim() === "" ? (
             <div className="px-4 py-3">

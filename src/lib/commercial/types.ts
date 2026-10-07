@@ -43,18 +43,32 @@ export type CabinPricingPatch = Partial<Omit<CabinPricing, "id">>;
 export type BaggagePatch = Partial<BaggagePolicy>;
 export type OptionPatch = Partial<Omit<CatalogOption, "id">>;
 export type NewOptionInput = CatalogOption;
+export interface CommercialMutationReceipt<T = unknown> {
+  result: T;
+  changed: boolean;
+}
 export interface CommercialCatalogRepository {
   get(): Promise<CommercialCatalogSnapshot>;
   updateFare(id: FareId, patch: FarePatch): Promise<CommercialCatalogSnapshot>;
+  updateFareWithReceipt(id: FareId, patch: FarePatch): Promise<CommercialMutationReceipt<CommercialCatalogSnapshot>>;
   updateCabinPricing(id: CabinId, patch: CabinPricingPatch): Promise<CommercialCatalogSnapshot>;
+  updateCabinPricingWithReceipt(id: CabinId, patch: CabinPricingPatch): Promise<CommercialMutationReceipt<CommercialCatalogSnapshot>>;
   updateBaggage(patch: BaggagePatch): Promise<CommercialCatalogSnapshot>;
+  updateBaggageWithReceipt(patch: BaggagePatch): Promise<CommercialMutationReceipt<CommercialCatalogSnapshot>>;
   createMeal(input: NewOptionInput): Promise<CatalogOption>;
+  createMealWithReceipt(input: NewOptionInput): Promise<CommercialMutationReceipt<CatalogOption>>;
   updateMeal(id: string, patch: OptionPatch): Promise<CatalogOption>;
+  updateMealWithReceipt(id: string, patch: OptionPatch): Promise<CommercialMutationReceipt<CatalogOption>>;
   reorderMeals(ids: string[]): Promise<CommercialCatalogSnapshot>;
+  reorderMealsWithReceipt(ids: string[]): Promise<CommercialMutationReceipt<CommercialCatalogSnapshot>>;
   setDefaultMeal(id: string): Promise<CommercialCatalogSnapshot>;
+  setDefaultMealWithReceipt(id: string): Promise<CommercialMutationReceipt<CommercialCatalogSnapshot>>;
   createAssistance(input: NewOptionInput): Promise<CatalogOption>;
+  createAssistanceWithReceipt(input: NewOptionInput): Promise<CommercialMutationReceipt<CatalogOption>>;
   updateAssistance(id: string, patch: OptionPatch): Promise<CatalogOption>;
+  updateAssistanceWithReceipt(id: string, patch: OptionPatch): Promise<CommercialMutationReceipt<CatalogOption>>;
   reorderAssistance(ids: string[]): Promise<CommercialCatalogSnapshot>;
+  reorderAssistanceWithReceipt(ids: string[]): Promise<CommercialMutationReceipt<CommercialCatalogSnapshot>>;
   subscribe(listener: () => void): () => void;
 }
 export interface BookingPricingSnapshotV1 {

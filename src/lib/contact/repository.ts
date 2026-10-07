@@ -16,6 +16,7 @@ import type {
   ContactCreateInput,
   ContactFilterOptions,
   ContactMessage,
+  ContactMutationReceipt,
   ContactRepository,
   ContactStatus,
   InternalNote,
@@ -137,26 +138,44 @@ export class LocalContactRepository implements ContactRepository {
     });
   }
 
-  public async setStatus(id: string, status: ContactStatus): Promise<ContactMessage> {
+  public async setStatusWithReceipt(
+    id: string,
+    status: ContactStatus,
+  ): Promise<ContactMutationReceipt> {
     if (!CONTACT_STATUSES.includes(status)) {
       throw new Error(`Invalid contact status '${status}'.`);
     }
 
     let updated: ContactMessage | null = null;
+    let changed = false;
+    let beforeStatus: ContactStatus | undefined;
+
     await this.coordinator.mutate((candidate) => {
       const msg = candidate.messages.find((m) => m.id === id);
       if (!msg) {
         throw new Error(`Contact message with ID '${id}' not found.`);
       }
+      beforeStatus = msg.status;
+      if (msg.status === status) {
+        updated = structuredClone(msg);
+        changed = false;
+        return;
+      }
       msg.status = status;
       msg.updatedAt = this.now();
       updated = structuredClone(msg);
+      changed = true;
     });
 
     if (!updated) {
       throw new Error(`Failed to update status for contact message '${id}'.`);
     }
-    return updated;
+    return { message: updated, changed, beforeStatus };
+  }
+
+  public async setStatus(id: string, status: ContactStatus): Promise<ContactMessage> {
+    const receipt = await this.setStatusWithReceipt(id, status);
+    return receipt.message;
   }
 
   public async addInternalNote(
@@ -196,22 +215,41 @@ export class LocalContactRepository implements ContactRepository {
     return updated;
   }
 
-  public async setAssignee(id: string, staffId: string | null): Promise<ContactMessage> {
+  public async setAssigneeWithReceipt(
+    id: string,
+    staffId: string | null,
+  ): Promise<ContactMutationReceipt> {
+    const targetStaffId = staffId?.trim() ? staffId.trim() : undefined;
     let updated: ContactMessage | null = null;
+    let changed = false;
+    let beforeAssignee: string | null | undefined;
+
     await this.coordinator.mutate((candidate) => {
       const msg = candidate.messages.find((m) => m.id === id);
       if (!msg) {
         throw new Error(`Contact message with ID '${id}' not found.`);
       }
-      msg.assignedStaffId = staffId?.trim() ? staffId.trim() : undefined;
+      beforeAssignee = msg.assignedStaffId ?? null;
+      if ((msg.assignedStaffId ?? undefined) === targetStaffId) {
+        updated = structuredClone(msg);
+        changed = false;
+        return;
+      }
+      msg.assignedStaffId = targetStaffId;
       msg.updatedAt = this.now();
       updated = structuredClone(msg);
+      changed = true;
     });
 
     if (!updated) {
       throw new Error(`Failed to set assignee for contact message '${id}'.`);
     }
-    return updated;
+    return { message: updated, changed, beforeAssignee };
+  }
+
+  public async setAssignee(id: string, staffId: string | null): Promise<ContactMessage> {
+    const receipt = await this.setAssigneeWithReceipt(id, staffId);
+    return receipt.message;
   }
 
   public async saveReplyDraft(id: string, replyDraft: string): Promise<ContactMessage> {

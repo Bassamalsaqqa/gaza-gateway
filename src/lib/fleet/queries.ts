@@ -10,6 +10,8 @@ import { fleetKeys } from "./keys.ts";
 import type {
   AircraftCreateInput,
   AircraftUpdatePatch,
+  FleetAircraftMutationReceipt,
+  FleetLayoutMutationReceipt,
   LayoutUpdateInput,
 } from "./types.ts";
 
@@ -32,8 +34,13 @@ export function useCreateAircraftMutation() {
 export function useUpdateAircraftMutation() {
   const { fleet } = useRepositories();
   return useMutation({
-    mutationFn: ({ id, patch }: { id: string; patch: AircraftUpdatePatch }) =>
-      fleet.updateAircraft(id, patch),
+    mutationFn: ({
+      id,
+      patch,
+    }: {
+      id: string;
+      patch: AircraftUpdatePatch;
+    }): Promise<FleetAircraftMutationReceipt> => fleet.updateAircraftWithReceipt(id, patch),
   });
 }
 
@@ -46,6 +53,6 @@ export function useUpdateLayoutMutation() {
     }: {
       aircraftId: string;
       input: LayoutUpdateInput;
-    }) => fleet.updateLayout(aircraftId, input),
+    }): Promise<FleetLayoutMutationReceipt> => fleet.updateLayoutWithReceipt(aircraftId, input),
   });
 }

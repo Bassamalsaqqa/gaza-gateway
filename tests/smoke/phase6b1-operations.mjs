@@ -31,7 +31,7 @@ export function operationsFixture() {
   };
 }
 const store = (page) => page.evaluate(() => localStorage.getItem("gza.schedule.v1"));
-const mainRow = (page, number) => page.locator("main tbody tr").filter({ hasText: number });
+const mainRow = (page, number) => page.locator("main tbody tr").filter({ hasText: number }).first();
 async function save(page, dict = adminEn) {
   await page
     .getByRole("dialog")
@@ -485,6 +485,7 @@ export async function runPhase6B1Checks({ checkStep, browser, baseUrl }) {
         await b
           .locator("main tbody tr")
           .filter({ hasText: f.number })
+          .first()
           .getByRole("button", { name: adminAr["adm.flight.quickEdit"], exact: true })
           .click();
         await b.locator("#qe-gate").fill("E7");

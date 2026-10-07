@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Eye, EyeOff, LockKeyhole, ShieldCheck } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { AppLink, useAppNavigate } from "@/components/app-link";
 import { Field, Input, btnClass } from "@/components/kit";
 import { AdminChip } from "@/components/admin/admin-kit";
-import { MOCK_PASSPHRASE, staffAccounts } from "@/lib/admin";
+import { MOCK_PASSPHRASE } from "@/lib/admin";
+import { useStaffQuery } from "@/lib/staff";
 import { useAdmin } from "@/lib/admin-store";
 import { pick, useI18n } from "@/lib/i18n";
 import { pageHead } from "@/lib/head";
@@ -32,6 +33,7 @@ function AdminSignInPage() {
   const { t, lang } = useI18n();
   const { signIn, staff } = useAdmin();
   const navigate = useAppNavigate();
+  const { data: staffList } = useStaffQuery();
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [showPass, setShowPass] = useState(false);
@@ -39,18 +41,23 @@ function AdminSignInPage() {
   const [errorField, setErrorField] = useState<"email" | "pass" | "form" | null>(null);
   const reduceMotion = useReducedMotion();
 
+  const activeStaffList = useMemo(
+    () => (staffList ?? []).filter((s) => s.status === "active"),
+    [staffList],
+  );
+
   useEffect(() => {
     if (staff) void navigate({ to: "/admin", replace: true });
   }, [staff, navigate]);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) {
       setError(t("adm.signin.errEmail"));
       setErrorField("email");
       return;
     }
-    const result = signIn(email, pass);
+    const result = await signIn(email, pass);
     if (!result.ok) {
       setError(result.error === "pass" ? t("adm.signin.errPass") : t("adm.signin.errUnknown"));
       setErrorField(result.error === "pass" ? "pass" : "form");
@@ -195,7 +202,7 @@ function AdminSignInPage() {
             </p>
             <p className="mt-1 text-xs text-muted-foreground">{t("adm.signin.helperNote")}</p>
             <ul className="mt-2 space-y-1.5">
-              {staffAccounts.map((s) => (
+              {activeStaffList.map((s) => (
                 <li key={s.id} className="flex items-center justify-between gap-2">
                   <span className="min-w-0">
                     <span className="block truncate text-xs font-semibold">{pick(lang, s.name)}</span>

@@ -13,7 +13,9 @@ import {
 } from "@/components/admin/admin-kit";
 import { AdminDenied } from "@/components/admin/admin-denied";
 import { useAdmin } from "@/lib/admin-store";
-import { staffAccounts } from "@/lib/admin";
+import { useStaffQuery } from "@/lib/staff";
+import { useRepositories } from "@/lib/repositories/registry";
+import { executeAuditedAdminCommand } from "@/lib/activity";
 import { pick, useI18n } from "@/lib/i18n";
 import { pageHead } from "@/lib/head";
 import { cn } from "@/lib/utils";
@@ -66,7 +68,8 @@ function formatTimestamp(isoStr: string): string {
 
 function AdminInboxPage() {
   const { t, lang } = useI18n();
-  const { can, staff } = useAdmin();
+  const { can, staff, toast, actor } = useAdmin();
+  const { activity: activityRepo } = useRepositories();
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [topicFilter, setTopicFilter] = useState<string>("all");
   const [msgLangFilter, setMsgLangFilter] = useState<string>("all");
@@ -85,6 +88,7 @@ function AdminInboxPage() {
 
   // Query canonical contact messages from repository
   const { data: messages = [] } = useContactMessages();
+  const { data: staffMembers = [] } = useStaffQuery();
 
   // Mutations
   const setStatusMutation = useSetContactStatus();
@@ -173,15 +177,55 @@ function AdminInboxPage() {
   };
   const handleStatusChange = async (status: ContactStatus) => {
     if (!active) return;
-    await runCommand(() => setStatusMutation.mutateAsync({ id: active.id, status }));
+    const oldStatus = active.status;
+    await runCommand(async () => {
+      await executeAuditedAdminCommand({
+        domainCommand: () => setStatusMutation.mutateAsync({ id: active.id, status }),
+        activityRepo,
+        actor,
+        event: (receipt) => ({
+          module: "inbox",
+          action: "status_changed",
+          targetType: "contact_message",
+          targetId: receipt.message.id,
+          before: receipt.beforeStatus ?? oldStatus,
+          after: receipt.message.status,
+          metadata: {
+            ticketId: receipt.message.id,
+            status: receipt.message.status,
+          },
+        }),
+        isNoOp: (r) => !r.changed,
+        onAuditWarning: () => toast(t("a2.ac.auditWarning")),
+      });
+    });
   };
   const handleAssignment = async (staffId: string | null) => {
     if (!active) return;
-    await runCommand(() => setAssigneeMutation.mutateAsync({ id: active.id, staffId }));
+    await runCommand(async () => {
+      await executeAuditedAdminCommand({
+        domainCommand: () => setAssigneeMutation.mutateAsync({ id: active.id, staffId }),
+        activityRepo,
+        actor,
+        event: {
+          module: "inbox",
+          action: "assigned",
+          targetType: "contact_message",
+          targetId: active.id,
+          after: staffId ?? "unassigned",
+          metadata: {
+            ticketId: active.id,
+            assigneeId: staffId ?? "unassigned",
+          },
+        },
+        isNoOp: (r) => !r.changed,
+        onAuditWarning: () => toast(t("a2.ac.auditWarning")),
+      });
+    });
   };
 
   const assignedStaff = active?.assignedStaffId
-    ? staffAccounts.find((s) => s.id === active.assignedStaffId)
+    ? staffMembers.find((s) => s.id === active.assignedStaffId)
     : null;
 
   return (

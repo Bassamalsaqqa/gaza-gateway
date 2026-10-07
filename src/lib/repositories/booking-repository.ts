@@ -20,7 +20,7 @@ import { isSyntheticFlightId, getEffectiveFlight, type Flight } from "../domain/
 import { isFlightBookable, getFlightBookability } from "../booking-rules.ts";
 import { createStandaloneServiceResolver, type DatedServiceResolver } from "../dated-services/resolver.ts";
 import { makePnr } from "../format.ts";
-import type { BookingRepository, CheckInCommandInput, UndoCheckInCommandInput, ClaimResult } from "./types.ts";
+import type { BookingRepository, BookingMutationReceipt, CheckInCommandInput, UndoCheckInCommandInput, ClaimResult } from "./types.ts";
 import type { Extras } from "../booking-draft/types.ts";
 import { getCheckInEligibility } from "../domain/check-in.ts";
 import { bookingTotal } from "../domain/pricing.ts";
@@ -166,7 +166,7 @@ export class LocalBookingRepository implements BookingRepository {
     return Array.from(occupied);
   }
 
-  public async create(data: BookingCreateInput): Promise<Booking> {
+  public async createWithReceipt(data: BookingCreateInput): Promise<BookingMutationReceipt> {
     // A committed submission is replayed independently of today's commercial catalog.
     // Read through the coordinator's fresh canonical snapshot without writing/notifying.
     if (data.submissionId?.trim()) {
@@ -174,7 +174,7 @@ export class LocalBookingRepository implements BookingRepository {
         commit: false,
         result: state.bookings.find((b) => b.submissionId === data.submissionId),
       }));
-      if (committed) return structuredClone(committed);
+      if (committed) return { booking: structuredClone(committed), changed: false };
     }
     data = structuredClone(data);
     // Catalog and Fleet are sampled at command time; booking snapshot and price commit atomically together.
@@ -199,12 +199,12 @@ export class LocalBookingRepository implements BookingRepository {
       (Array.isArray(data.passengers) ? data.passengers : []).filter((p) => p?.type !== "infant").length || 1;
 
     // Atomically mutate coordinator: validates inside transaction against CURRENT shared coordinator flightOverrides
-    return this.coordinator.conditionalMutateAsync<Booking>((state) => {
+    return this.coordinator.conditionalMutateAsync<BookingMutationReceipt>((state) => {
       // 1. Idempotency guard: if submissionId was previously committed, return existing booking
       if (data.submissionId?.trim()) {
         const existing = state.bookings.find((b) => b.submissionId === data.submissionId);
         if (existing) {
-          return { commit: false, result: structuredClone(existing) };
+          return { commit: false, result: { booking: structuredClone(existing), changed: false } };
         }
       }
 
@@ -500,17 +500,22 @@ export class LocalBookingRepository implements BookingRepository {
       created.total = bookingTotal(created, created.pricingSnapshot).total;
 
       state.bookings = [created, ...state.bookings];
-      return { commit: true, result: { ...created } };
+      return { commit: true, result: { booking: { ...created }, changed: true } };
     });
   }
 
-  public async cancel(ref: string): Promise<Booking> {
+  public async create(data: BookingCreateInput): Promise<Booking> {
+    const receipt = await this.createWithReceipt(data);
+    return receipt.booking;
+  }
+
+  public async cancelWithReceipt(ref: string): Promise<BookingMutationReceipt> {
     if (!ref || typeof ref !== "string") {
       throw new Error("Cannot cancel booking: reference is required.");
     }
     const clean = ref.trim().toUpperCase();
 
-    return this.coordinator.mutateAsync((state) => {
+    return this.coordinator.conditionalMutateAsync<BookingMutationReceipt>((state) => {
       const index = state.bookings.findIndex((b) => b.ref.toUpperCase() === clean);
       if (index === -1) {
         throw new Error(`Booking ${clean} not found.`);
@@ -521,9 +526,9 @@ export class LocalBookingRepository implements BookingRepository {
         throw new Error(`Booking ${clean} not found.`);
       }
 
-      // Idempotent cancellation
+      // Idempotent cancellation: already cancelled -> commit: false (0 writes, 0 notifications)
       if (existing.status === "cancelled") {
-        return { ...existing };
+        return { commit: false, result: { booking: { ...existing }, changed: false } };
       }
 
       const updated: Booking = {
@@ -533,14 +538,19 @@ export class LocalBookingRepository implements BookingRepository {
       };
 
       state.bookings[index] = updated;
-      return { ...updated };
+      return { commit: true, result: { booking: { ...updated }, changed: true } };
     });
   }
 
-  public async updateContact(
+  public async cancel(ref: string): Promise<Booking> {
+    const receipt = await this.cancelWithReceipt(ref);
+    return receipt.booking;
+  }
+
+  public async updateContactWithReceipt(
     ref: string,
     contact: { email: string; phone?: string },
-  ): Promise<Booking> {
+  ): Promise<BookingMutationReceipt> {
     if (!ref || typeof ref !== "string") {
       throw new Error("Cannot update contact: reference is required.");
     }
@@ -551,7 +561,7 @@ export class LocalBookingRepository implements BookingRepository {
     }
     const cleanPhone = (contact?.phone ?? "").trim();
 
-    return this.coordinator.mutateAsync((state) => {
+    return this.coordinator.conditionalMutateAsync<BookingMutationReceipt>((state) => {
       const index = state.bookings.findIndex((b) => b.ref.toUpperCase() === clean);
       if (index === -1) {
         throw new Error(`Booking ${clean} not found.`);
@@ -566,6 +576,14 @@ export class LocalBookingRepository implements BookingRepository {
         throw new Error(`Cannot update contact: booking ${clean} is cancelled.`);
       }
 
+      const isNoOp =
+        existing.contact.email === cleanEmail &&
+        (existing.contact.phone ?? "") === cleanPhone;
+
+      if (isNoOp) {
+        return { commit: false, result: { booking: { ...existing }, changed: false } };
+      }
+
       const updated: Booking = {
         ...existing,
         pricingSnapshot: resolveBookingPricing(existing),
@@ -576,8 +594,16 @@ export class LocalBookingRepository implements BookingRepository {
       };
 
       state.bookings[index] = updated;
-      return { ...updated };
+      return { commit: true, result: { booking: { ...updated }, changed: true } };
     });
+  }
+
+  public async updateContact(
+    ref: string,
+    contact: { email: string; phone?: string },
+  ): Promise<Booking> {
+    const receipt = await this.updateContactWithReceipt(ref, contact);
+    return receipt.booking;
   }
 
   /** Current operations when available; confirmed geometry/pricing remain Booking snapshots. */
@@ -595,10 +621,10 @@ export class LocalBookingRepository implements BookingRepository {
     return bases;
   }
 
-  public async updateSeats(
+  public async updateSeatsWithReceipt(
     ref: string,
     seats: Record<string, string>,
-  ): Promise<Booking> {
+  ): Promise<BookingMutationReceipt> {
     if (!ref || typeof ref !== "string") {
       throw new Error("Cannot update seats: reference is required.");
     }
@@ -606,7 +632,7 @@ export class LocalBookingRepository implements BookingRepository {
 
     seats = structuredClone(seats);
     const currentBases = await this.sampleBookedBases(clean);
-    return this.coordinator.conditionalMutateAsync((state) => {
+    return this.coordinator.conditionalMutateAsync<BookingMutationReceipt>((state) => {
       const index = state.bookings.findIndex((b) => b.ref.toUpperCase() === clean);
       if (index === -1) {
         throw new Error(`Booking ${clean} not found.`);
@@ -662,7 +688,7 @@ export class LocalBookingRepository implements BookingRepository {
         Object.entries(existing.seats).every(([k, v]) => nextSeats[k] === v);
 
       if (isNoOp) {
-        return { commit: false, result: { ...existing } };
+        return { commit: false, result: { booking: { ...existing }, changed: false } };
       }
 
       // Invariant: Canonical pricing recalculation using latest booking facts and leg-aware extra legroom
@@ -685,21 +711,29 @@ export class LocalBookingRepository implements BookingRepository {
       };
 
       state.bookings[index] = updated;
-      return { commit: true, result: { ...updated } };
+      return { commit: true, result: { booking: { ...updated }, changed: true } };
     });
   }
 
-  public async updateExtras(
+  public async updateSeats(
+    ref: string,
+    seats: Record<string, string>,
+  ): Promise<Booking> {
+    const receipt = await this.updateSeatsWithReceipt(ref, seats);
+    return receipt.booking;
+  }
+
+  public async updateExtrasWithReceipt(
     ref: string,
     extras: Extras,
-  ): Promise<Booking> {
+  ): Promise<BookingMutationReceipt> {
     if (!ref || typeof ref !== "string") {
       throw new Error("Cannot update extras: reference is required.");
     }
     const catalog = await this.commercial.get();
     const clean = ref.trim().toUpperCase();
 
-    return this.coordinator.conditionalMutateAsync((state) => {
+    return this.coordinator.conditionalMutateAsync<BookingMutationReceipt>((state) => {
       const index = state.bookings.findIndex((b) => b.ref.toUpperCase() === clean);
       if (index === -1) {
         throw new Error(`Booking ${clean} not found.`);
@@ -715,7 +749,9 @@ export class LocalBookingRepository implements BookingRepository {
       }
 
       extras = validateBookingExtras(extras, existing.passengers.length, catalog.catalog, existing.extras);
-      if (JSON.stringify(extras) === JSON.stringify(existing.extras)) return { commit: false, result: { ...existing } };
+      if (JSON.stringify(extras) === JSON.stringify(existing.extras)) {
+        return { commit: false, result: { booking: { ...existing }, changed: false } };
+      }
       // Invariant: Canonical pricing recalculation using latest booking facts
       const nextTotal = bookingTotal({
         outbound: existing.outbound,
@@ -735,11 +771,21 @@ export class LocalBookingRepository implements BookingRepository {
       };
 
       state.bookings[index] = updated;
-      return { commit: true, result: { ...updated } };
+      return { commit: true, result: { booking: { ...updated }, changed: true } };
     });
   }
 
-  public async completeCheckIn(input: CheckInCommandInput): Promise<Booking> {
+  public async updateExtras(
+    ref: string,
+    extras: Extras,
+  ): Promise<Booking> {
+    const receipt = await this.updateExtrasWithReceipt(ref, extras);
+    return receipt.booking;
+  }
+
+  public async completeCheckInWithReceipt(
+    input: CheckInCommandInput,
+  ): Promise<BookingMutationReceipt> {
     if (!input.ref || typeof input.ref !== "string") {
       throw new Error("Cannot complete check-in: reference is required.");
     }
@@ -747,7 +793,7 @@ export class LocalBookingRepository implements BookingRepository {
     const clean = input.ref.trim().toUpperCase();
     const currentBases = await this.sampleBookedBases(clean);
 
-    return this.coordinator.conditionalMutateAsync((state) => {
+    return this.coordinator.conditionalMutateAsync<BookingMutationReceipt>((state) => {
       const index = state.bookings.findIndex((b) => b.ref.toUpperCase() === clean);
       if (index === -1) {
         throw new Error(`Booking ${clean} not found.`);
@@ -844,7 +890,7 @@ export class LocalBookingRepository implements BookingRepository {
         }
         if (isIdentical) {
           // Idempotent return without state modification
-          return { commit: false, result: { ...existing } };
+          return { commit: false, result: { booking: { ...existing }, changed: false } };
         }
         throw new Error(`Passenger is already checked in for leg ${input.leg}.`);
       }
@@ -932,11 +978,18 @@ export class LocalBookingRepository implements BookingRepository {
       };
 
       state.bookings[index] = updated;
-      return { commit: true, result: { ...updated } };
+      return { commit: true, result: { booking: { ...updated }, changed: true } };
     });
   }
 
-  public async undoCheckIn(input: UndoCheckInCommandInput): Promise<Booking> {
+  public async completeCheckIn(input: CheckInCommandInput): Promise<Booking> {
+    const receipt = await this.completeCheckInWithReceipt(input);
+    return receipt.booking;
+  }
+
+  public async undoCheckInWithReceipt(
+    input: UndoCheckInCommandInput,
+  ): Promise<BookingMutationReceipt> {
     if (!input || !input.ref || typeof input.ref !== "string") {
       throw new Error("Cannot undo check-in: reference is required.");
     }
@@ -960,7 +1013,7 @@ export class LocalBookingRepository implements BookingRepository {
 
     const clean = input.ref.trim().toUpperCase();
 
-    return this.coordinator.conditionalMutateAsync((state) => {
+    return this.coordinator.conditionalMutateAsync<BookingMutationReceipt>((state) => {
       const index = state.bookings.findIndex((b) => b.ref.toUpperCase() === clean);
       if (index === -1) {
         throw new Error(`Booking ${clean} not found.`);
@@ -991,7 +1044,7 @@ export class LocalBookingRepository implements BookingRepository {
 
       // Already not checked in -> genuine no-op, commit: false (no write, no notification)
       if (toRemove.length === 0) {
-        return { commit: false, result: { ...existing } };
+        return { commit: false, result: { booking: { ...existing }, changed: false } };
       }
 
       const nextChecked = currentChecked.filter((i) => !toRemove.includes(i));
@@ -1005,8 +1058,13 @@ export class LocalBookingRepository implements BookingRepository {
       };
 
       state.bookings[index] = updated;
-      return { commit: true, result: { ...updated } };
+      return { commit: true, result: { booking: { ...updated }, changed: true } };
     });
+  }
+
+  public async undoCheckIn(input: UndoCheckInCommandInput): Promise<Booking> {
+    const receipt = await this.undoCheckInWithReceipt(input);
+    return receipt.booking;
   }
 
   public async claim(ref: string, accountEmail: string): Promise<ClaimResult> {

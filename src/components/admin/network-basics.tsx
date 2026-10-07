@@ -5,10 +5,13 @@ import { Switch } from "@/components/ui/switch";
 import { useAdmin } from "@/lib/admin-store";
 import { useI18n } from "@/lib/i18n";
 import { NetworkError, parseNetworkDestination, useUpdateNetworkDestinationMutation, type NetworkDestination, type NetworkDestinationPatch } from "@/lib/network";
+import { useRepositories } from "@/lib/repositories";
+import { executeAuditedAdminCommand } from "@/lib/activity";
 
 export function NetworkBasics({ destination, unavailable }: { destination: NetworkDestination; unavailable: boolean }) {
   const { t } = useI18n();
-  const { can, toast } = useAdmin();
+  const { can, toast, actor } = useAdmin();
+  const { activity: activityRepo } = useRepositories();
   const mutation = useUpdateNetworkDestinationMutation();
   const [edit, setEdit] = useState<{ base: NetworkDestination; value: NetworkDestination } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -25,7 +28,25 @@ export function NetworkBasics({ destination, unavailable }: { destination: Netwo
       const { code, ...values } = parseNetworkDestination(form);
       const base = edit?.base ?? destination;
       const patch = Object.fromEntries(Object.entries(values).filter(([key, value]) => JSON.stringify(value) !== JSON.stringify(base[key as keyof NetworkDestination]))) as NetworkDestinationPatch;
-      await mutation.mutateAsync({ code, patch });
+      if (Object.keys(patch).length > 0) {
+        await executeAuditedAdminCommand({
+          domainCommand: () => mutation.mutateAsync({ code, patch }),
+          activityRepo,
+          actor,
+          event: {
+            module: "network",
+            action: "updated",
+            targetType: "destination",
+            targetId: code,
+            metadata: {
+              code,
+              active: patch.active ?? destination.active,
+            },
+          },
+          isNoOp: (receipt) => !receipt.changed,
+          onAuditWarning: () => toast(t("a2.ac.auditWarning")),
+        });
+      }
       reset(); toast(t("adm.dest.saved", { code }));
     } catch (error) {
       if (error instanceof NetworkError && error.code === "invalid_network") {

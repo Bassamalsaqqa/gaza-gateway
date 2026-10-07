@@ -43,6 +43,8 @@ import {
   useUndoCheckInMutation,
   getCanonicalOccupiedSeats,
 } from "@/lib/repositories";
+import { useRepositories } from "@/lib/repositories/registry";
+import { executeAuditedAdminCommand } from "@/lib/activity";
 import {
   buildAdminCheckInRows,
   adminCheckInStatusKey,
@@ -92,7 +94,8 @@ const emptyFlights: Flight[] = [];
 
 function AdminCheckInPage() {
   const { t, lang } = useI18n();
-  const { can, toast } = useAdmin();
+  const { can, toast, actor } = useAdmin();
+  const { activity: activityRepo } = useRepositories();
   const search = sanitizeAdminCheckInSearch(Route.useSearch() as Record<string, unknown>);
   const navigate = useAppNavigate();
 
@@ -227,50 +230,80 @@ function AdminCheckInPage() {
       );
       return;
     }
-    completeCheckInMutation.mutate(
-      {
-        ref: r.ref,
-        leg: r.leg,
-        selectedPaxIndexes: [r.paxIndex],
-        documents: { [r.paxIndex]: docToUse.trim() },
-        seats: { [r.paxIndex]: seatToUse.trim().toUpperCase() },
-      },
-      {
-        onSuccess: () => {
-          toast(t("a6.saved"));
-          setSheetRow(null);
-        },
-        onError: (err) => {
-          const msg = t(commercialErrorKey(err));
-          setMutationError(msg);
-          const fields = commercialFieldErrors(err);
-          setFieldErrors(
-            fields[`${r.leg}-${r.paxIndex}`]
-              ? { "sheet-ci-seat": fields[`${r.leg}-${r.paxIndex}`]! }
-              : {},
-          );
-          toast(msg);
-        },
-      },
-    );
+    void (async () => {
+      try {
+        await executeAuditedAdminCommand({
+          domainCommand: () =>
+            completeCheckInMutation.mutateAsync({
+              ref: r.ref,
+              leg: r.leg,
+              selectedPaxIndexes: [r.paxIndex],
+              documents: { [r.paxIndex]: docToUse.trim() },
+              seats: { [r.paxIndex]: seatToUse.trim().toUpperCase() },
+            }),
+          activityRepo,
+          actor,
+          event: {
+            module: "bookings",
+            action: "checked_in",
+            targetType: "check_in",
+            targetId: r.ref,
+            metadata: {
+              ref: r.ref,
+              leg: r.leg,
+              paxIndex: r.paxIndex,
+              seat: seatToUse.trim().toUpperCase(),
+            },
+          },
+          isNoOp: (receipt) => !receipt.changed,
+          onAuditWarning: () => toast(t("a2.ac.auditWarning")),
+        });
+        toast(t("a6.saved"));
+        setSheetRow(null);
+      } catch (err) {
+        const msg = t(commercialErrorKey(err));
+        setMutationError(msg);
+        const fields = commercialFieldErrors(err);
+        setFieldErrors(
+          fields[`${r.leg}-${r.paxIndex}`]
+            ? { "sheet-ci-seat": fields[`${r.leg}-${r.paxIndex}`]! }
+            : {},
+        );
+        toast(msg);
+      }
+    })();
   };
 
-  const handleUndoCheckIn = (r: AdminCheckInRow) => {
-    undoCheckInMutation.mutate(
-      {
-        ref: r.ref,
-        leg: r.leg,
-        selectedPaxIndexes: [r.paxIndex],
-      },
-      {
-        onSuccess: () => {
-          toast(t("a6.saved"));
+  const handleUndoCheckIn = async (r: AdminCheckInRow) => {
+    if (r.status !== "done") return;
+    try {
+      await executeAuditedAdminCommand({
+        domainCommand: () =>
+          undoCheckInMutation.mutateAsync({
+            ref: r.ref,
+            leg: r.leg,
+            selectedPaxIndexes: [r.paxIndex],
+          }),
+        activityRepo,
+        actor,
+        event: {
+          module: "bookings",
+          action: "undo_check_in",
+          targetType: "check_in",
+          targetId: r.ref,
+          metadata: {
+            ref: r.ref,
+            leg: r.leg,
+            paxIndex: r.paxIndex,
+          },
         },
-        onError: (err) => {
-          toast(t(commercialErrorKey(err)));
-        },
-      },
-    );
+        isNoOp: (receipt) => !receipt.changed,
+        onAuditWarning: () => toast(t("a2.ac.auditWarning")),
+      });
+      toast(t("a6.saved"));
+    } catch (err) {
+      toast(t(commercialErrorKey(err)));
+    }
   };
 
   const statusLabel = (row: AdminCheckInRow) => t(adminCheckInStatusKey(row));

@@ -129,16 +129,16 @@ export class LocalFlightRepository implements FlightRepository {
   async getOverrides(): Promise<Record<string, FlightOverride>> { return structuredClone(this.readState().flightOverrides); }
   async getOverride(id: string): Promise<FlightOverride | null> { return structuredClone(this.readState().flightOverrides[id] ?? null); }
 
-  public async setOverride(flightId: string, patch: FlightOverride): Promise<void> {
-    if (!flightId || typeof flightId !== "string") return;
+  public async setOverride(flightId: string, patch: FlightOverride): Promise<boolean> {
+    if (!flightId || typeof flightId !== "string") return false;
 
     // Block synthetic flights from persisting overrides
     if (isSyntheticFlightId(flightId)) {
-      return;
+      return false;
     }
 
     const cleanPatch = sanitizeFlightOverride(patch);
-    if (!cleanPatch) return;
+    if (!cleanPatch) return false;
 
     const current = await this.getFlightById(flightId);
     if (!current) throw new Error("Flight is not available for operational editing.");
@@ -155,22 +155,31 @@ export class LocalFlightRepository implements FlightRepository {
       delete cleanPatch.aircraft;
     }
 
+    let changed = false;
     await this.coordinator.mutateAsync((state) => {
-      const current = state.flightOverrides[flightId] ?? {};
-      state.flightOverrides[flightId] = {
-        ...current,
+      const currentOverride = state.flightOverrides[flightId] ?? {};
+      const nextOverride = {
+        ...currentOverride,
         ...cleanPatch,
       };
+      if (JSON.stringify(currentOverride) !== JSON.stringify(nextOverride)) {
+        state.flightOverrides[flightId] = nextOverride;
+        changed = true;
+      }
     });
+    return changed;
   }
 
-  public async clearOverride(flightId: string): Promise<void> {
-    if (!flightId || typeof flightId !== "string") return;
+  public async clearOverride(flightId: string): Promise<boolean> {
+    if (!flightId || typeof flightId !== "string") return false;
 
+    let cleared = false;
     await this.coordinator.mutateAsync((state) => {
       if (state.flightOverrides[flightId]) {
         delete state.flightOverrides[flightId];
+        cleared = true;
       }
     });
+    return cleared;
   }
 }

@@ -62,7 +62,7 @@ export async function runPhase6B1Correction01Checks({ checkStep, browser, baseUr
         await page.setViewportSize({ width: 1440, height: 900 });
         await page.goto(baseUrl + (locale === "ar" ? "/ar" : "") + "/admin");
         await page.getByTestId("dashboard-value-pax").getByText("1", { exact: true }).waitFor();
-        await page.locator("main tbody tr").filter({ hasText: booking.outbound.number }).waitFor();
+        await page.locator("main tbody tr").filter({ hasText: booking.outbound.number }).first().waitFor();
         await providers(page, { domain, mode: "failure" });
         const state = page.getByTestId(domain === "flight" ? "dashboard-ops-state" : "dashboard-commercial-state");
         await state.locator('xpath=self::*[@data-state="error"]').waitFor();
@@ -75,7 +75,7 @@ export async function runPhase6B1Correction01Checks({ checkStep, browser, baseUr
           assert.equal(await page.locator("main tbody tr").filter({ hasText: booking.outbound.number }).count(), 0);
           assert.equal(await page.getByTestId("dashboard-value-bks").innerText(), "0");
         } else {
-          await page.locator("main tbody tr").filter({ hasText: booking.outbound.number }).waitFor();
+          await page.locator("main tbody tr").filter({ hasText: booking.outbound.number }).first().waitFor();
           assert.equal(await page.getByText(dict["adm.recent.empty"], { exact: true }).count(), 0);
           assert.equal(await page.getByText("0/168", { exact: true }).count(), 0);
         }
@@ -101,7 +101,7 @@ export async function runPhase6B1Correction01Checks({ checkStep, browser, baseUr
         const page = await context.newPage();
         await page.setViewportSize({ width: 1440, height: 900 });
         await page.goto(baseUrl + (locale === "ar" ? "/ar" : "") + "/admin");
-        const row = page.locator("main tbody tr").filter({ hasText: booking.outbound.number });
+        const row = page.locator("main tbody tr").filter({ hasText: booking.outbound.number }).first();
         await row.getByRole("button", { name: dict["adm.flight.quickEdit"], exact: true }).click();
         await page.evaluate(() => {
           const node = document.querySelector("main");
@@ -169,11 +169,11 @@ export async function runPhase6B1Correction01Checks({ checkStep, browser, baseUr
         await page.setViewportSize({ width: 390, height: 900 });
         await page.goto(baseUrl + (locale === "ar" ? "/ar" : "") + "/admin/flights?date=" + booking.outbound.date);
         const label = dict["adm.flight.inlineGate"].replace("{flight}", booking.outbound.number);
-        await page.getByRole("button", { name: label, exact: true }).click();
-        const input = page.getByRole("textbox", { name: label, exact: true });
+        await page.getByRole("button", { name: label, exact: true }).first().click();
+        const input = page.getByRole("textbox", { name: label, exact: true }).first();
         await input.fill("A!");
         const before = await page.evaluate(() => localStorage.getItem("gza.repo.v1"));
-        await page.getByRole("button", { name: dict["adm.flight.inlineSave"], exact: true }).click();
+        await page.getByRole("button", { name: dict["adm.flight.inlineSave"], exact: true }).first().click();
         await page.getByRole("alert").filter({ hasText: dict["adm.flight.gateError"] }).waitFor();
         assert.equal(await input.getAttribute("aria-invalid"), "true");
         const errorId = await input.getAttribute("aria-describedby");

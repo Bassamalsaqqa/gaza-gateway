@@ -25,6 +25,11 @@ export interface UndoCheckInCommandInput {
   selectedPaxIndexes: number[];
 }
 
+export interface BookingMutationReceipt {
+  booking: Booking;
+  changed: boolean;
+}
+
 export interface BookingRepository {
   /** Retrieves all confirmed and cancelled bookings. */
   list(): Promise<Booking[]>;
@@ -35,20 +40,38 @@ export interface BookingRepository {
   /** Creates and persists a new booking with stable passenger IDs. */
   create(data: BookingCreateInput): Promise<Booking>;
 
+  /** Creates and persists a new booking, returning a transaction receipt. */
+  createWithReceipt(data: BookingCreateInput): Promise<BookingMutationReceipt>;
+
   /** Cancels a confirmed booking. Idempotently returns booking if already cancelled. Rejects if booking not found. */
   cancel(ref: string): Promise<Booking>;
+
+  /** Cancels a confirmed booking, returning a transaction receipt indicating whether status actually changed. */
+  cancelWithReceipt(ref: string): Promise<BookingMutationReceipt>;
 
   /** Updates passenger contact details. Rejects if booking is cancelled or invalid email. */
   updateContact(ref: string, contact: { email: string; phone?: string }): Promise<Booking>;
 
+  /** Updates passenger contact details, returning a transaction receipt. */
+  updateContactWithReceipt(ref: string, contact: { email: string; phone?: string }): Promise<BookingMutationReceipt>;
+
   /** Updates seat assignments and canonically recalculates totals. Rejects if booking cancelled, modifying checked-in seats, invalid seat format/cabin/availability, duplicate seats, or infant/invalid passenger. */
   updateSeats(ref: string, seats: Record<string, string>): Promise<Booking>;
+
+  /** Updates seat assignments, returning a transaction receipt. */
+  updateSeatsWithReceipt(ref: string, seats: Record<string, string>): Promise<BookingMutationReceipt>;
 
   /** Updates passenger extras and canonically recalculates totals. Rejects if booking cancelled. */
   updateExtras(ref: string, extras: Extras): Promise<Booking>;
 
+  /** Updates passenger extras, returning a transaction receipt. */
+  updateExtrasWithReceipt(ref: string, extras: Extras): Promise<BookingMutationReceipt>;
+
   /** Atomically completes check-in for selected passengers, validating window, flight status, duplicate indexes, passenger eligibility, documents, and seats. Returns idempotent booking if identical request is resubmitted. */
   completeCheckIn(input: CheckInCommandInput): Promise<Booking>;
+
+  /** Atomically completes check-in, returning a transaction receipt. */
+  completeCheckInWithReceipt(input: CheckInCommandInput): Promise<BookingMutationReceipt>;
 
   /**
    * Undoes check-in for selected passenger indexes on a given leg.
@@ -57,6 +80,9 @@ export interface BookingRepository {
    * No-op (no write/revision/notification) if selected passengers are already not checked in.
    */
   undoCheckIn(input: UndoCheckInCommandInput): Promise<Booking>;
+
+  /** Undoes check-in, returning a transaction receipt indicating whether checked-in state actually changed. */
+  undoCheckInWithReceipt(input: UndoCheckInCommandInput): Promise<BookingMutationReceipt>;
 
 
   /**
@@ -143,11 +169,11 @@ export interface FlightRepository {
   /** Retrieves the stored operational override for a flight if present. */
   getOverride(flightId: string): Promise<FlightOverride | null>;
 
-  /** Applies an operational override to a flight. */
-  setOverride(flightId: string, override: FlightOverride): Promise<void>;
+  /** Applies an operational override to a flight. Returns true if state changed. */
+  setOverride(flightId: string, override: FlightOverride): Promise<boolean>;
 
-  /** Clears an operational override on a flight. */
-  clearOverride(flightId: string): Promise<void>;
+  /** Clears an operational override on a flight. Returns true if an override was cleared. */
+  clearOverride(flightId: string): Promise<boolean>;
 
   /** Subscribes to Repo, Schedule and Network changes through one invalidation layer. */
   subscribe(listener: () => void): () => void;
@@ -163,4 +189,7 @@ export interface RepositoryRegistry {
   contact: import("../contact/types.ts").ContactRepository;
   schedule: import("../schedules/types.ts").ScheduleRepository;
   fleet: import("../fleet/types.ts").FleetRepository;
+  staff: import("../staff/types.ts").StaffRepository;
+  customerDirectory: import("../customer-directory/types.ts").CustomerDirectoryService;
+  activity: import("../activity/types.ts").ActivityRepository;
 }

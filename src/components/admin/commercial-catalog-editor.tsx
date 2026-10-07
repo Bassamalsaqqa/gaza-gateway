@@ -9,6 +9,7 @@ import { useRepositories } from "@/lib/repositories";
 import { useCommercialCatalogQuery } from "@/lib/commercial/queries";
 import { parseCommercialCatalog } from "@/lib/commercial/schema";
 import { newCommercialOptionId } from "@/lib/commercial/repository";
+import { executeAuditedAdminCommand, type ActivityAction } from "@/lib/activity";
 import {
   catalogErrorKey,
   CommercialCatalogError,
@@ -40,19 +41,49 @@ function prospective(catalog: CommercialCatalog, edit: Edit): CommercialCatalog 
 }
 export function CommercialProductsTab({ tab }: { tab: Tab }) {
   const { t, lang } = useI18n();
-  const { can, toast } = useAdmin();
-  const { commercial } = useRepositories();
+  const { can, toast, actor } = useAdmin();
+  const { commercial, activity: activityRepo } = useRepositories();
   const query = useCommercialCatalogQuery();
   const [edit, setEdit] = useState<Edit | null>(null);
   const [fields, setFields] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const mayEdit = can("commercial.edit");
   const mutation = useMutation({ mutationFn: async (action: () => Promise<unknown>) => action() });
-  const run = async (action: () => Promise<unknown>, close = false) => {
+  const run = async (
+    action: () => Promise<unknown>,
+    close = false,
+    auditMeta?: {
+      action: ActivityAction;
+      targetType: string;
+      targetId: string;
+      metadata?: Record<string, string | number | boolean>;
+    },
+  ) => {
     if (!mayEdit || mutation.isPending) return;
     setError(null);
     try {
-      await mutation.mutateAsync(action);
+      await executeAuditedAdminCommand({
+        domainCommand: () => mutation.mutateAsync(action),
+        activityRepo,
+        actor,
+        event: auditMeta
+          ? {
+              module: "commercial",
+              action: auditMeta.action,
+              targetType: auditMeta.targetType,
+              targetId: auditMeta.targetId,
+              metadata: auditMeta.metadata,
+            }
+          : undefined,
+        isNoOp: (receipt: unknown) =>
+          Boolean(
+            receipt &&
+              typeof receipt === "object" &&
+              "changed" in receipt &&
+              (receipt as { changed: boolean }).changed === false,
+          ),
+        onAuditWarning: () => toast(t("a2.ac.auditWarning")),
+      });
       toast(t("adm.edit.save"));
       if (close) setEdit(null);
     } catch (e) {
@@ -154,21 +185,35 @@ export function CommercialProductsTab({ tab }: { tab: Tab }) {
       return;
     }
     const draft = edit;
-    await run(async () => {
-      if (draft.kind === "baggage") return commercial.updateBaggage(draft.value);
-      const { id, ...patch } = draft.value;
-      if (draft.kind === "fare")
-        return commercial.updateFare(draft.value.id, patch as Omit<FareProduct, "id">);
-      if (draft.kind === "cabin")
-        return commercial.updateCabinPricing(draft.value.id, patch as Omit<CabinPricing, "id">);
-      if (draft.kind === "meals")
+    const isNew = "isNew" in draft && Boolean(draft.isNew);
+    const targetType = draft.kind === "baggage" ? "baggage_rule" : draft.kind;
+    const targetId = draft.kind === "baggage" ? "baggage" : (draft.value as { id: string }).id;
+    await run(
+      async () => {
+        if (draft.kind === "baggage") return commercial.updateBaggageWithReceipt(draft.value);
+        const { id, ...patch } = draft.value;
+        if (draft.kind === "fare")
+          return commercial.updateFareWithReceipt(draft.value.id, patch as Omit<FareProduct, "id">);
+        if (draft.kind === "cabin")
+          return commercial.updateCabinPricingWithReceipt(draft.value.id, patch as Omit<CabinPricing, "id">);
+        if (draft.kind === "meals")
+          return draft.isNew
+            ? commercial.createMealWithReceipt(draft.value)
+            : commercial.updateMealWithReceipt(id, patch as Omit<CatalogOption, "id">);
         return draft.isNew
-          ? commercial.createMeal(draft.value)
-          : commercial.updateMeal(id, patch as Omit<CatalogOption, "id">);
-      return draft.isNew
-        ? commercial.createAssistance(draft.value)
-        : commercial.updateAssistance(id, patch as Omit<CatalogOption, "id">);
-    }, true);
+          ? commercial.createAssistanceWithReceipt(draft.value)
+          : commercial.updateAssistanceWithReceipt(id, patch as Omit<CatalogOption, "id">);
+      },
+      true,
+      {
+        action: isNew ? "created" : "updated",
+        targetType,
+        targetId,
+        metadata: {
+          category: draft.kind,
+        },
+      },
+    );
   };
   const permit = (label: string, action: () => void, disabled = false) => (
     <PermissionButton
@@ -275,16 +320,33 @@ export function CommercialProductsTab({ tab }: { tab: Tab }) {
                   {permit(
                     t(o.active ? "commercial.retire" : "commercial.activate"),
                     () =>
-                      void run(() =>
-                        tab === "meals"
-                          ? commercial.updateMeal(o.id, { active: !o.active })
-                          : commercial.updateAssistance(o.id, { active: !o.active }),
+                      void run(
+                        () =>
+                          tab === "meals"
+                            ? commercial.updateMealWithReceipt(o.id, { active: !o.active })
+                            : commercial.updateAssistanceWithReceipt(o.id, { active: !o.active }),
+                        false,
+                        {
+                          action: "status_changed",
+                          targetType: tab === "meals" ? "meal" : "assistance",
+                          targetId: o.id,
+                          metadata: { active: !o.active },
+                        },
                       ),
                   )}
                   {tab === "meals" && o.active && catalog.defaultMealId !== o.id
                     ? permit(
                         t("commercial.makeDefault"),
-                        () => void run(() => commercial.setDefaultMeal(o.id)),
+                        () =>
+                          void run(
+                            () => commercial.setDefaultMealWithReceipt(o.id),
+                            false,
+                            {
+                              action: "updated",
+                              targetType: "default_meal",
+                              targetId: o.id,
+                            },
+                          ),
                       )
                     : null}
                   {[-1, 1].map((delta) => (
@@ -294,13 +356,21 @@ export function CommercialProductsTab({ tab }: { tab: Tab }) {
                       reason={t("adm.edit.readOnly")}
                       disabled={mutation.isPending || i + delta < 0 || i + delta >= options.length}
                       onClick={() =>
-                        void run(() => {
-                          const ids = options.map((o) => o.id);
-                          [ids[i], ids[i + delta]] = [ids[i + delta]!, ids[i]!];
-                          return tab === "meals"
-                            ? commercial.reorderMeals(ids)
-                            : commercial.reorderAssistance(ids);
-                        })
+                        void run(
+                          () => {
+                            const ids = options.map((o) => o.id);
+                            [ids[i], ids[i + delta]] = [ids[i + delta]!, ids[i]!];
+                            return tab === "meals"
+                              ? commercial.reorderMealsWithReceipt(ids)
+                              : commercial.reorderAssistanceWithReceipt(ids);
+                          },
+                          false,
+                          {
+                            action: "updated",
+                            targetType: tab === "meals" ? "meal_order" : "assistance_order",
+                            targetId: tab,
+                          },
+                        )
                       }
                     >
                       {delta < 0 ? t("commercial.moveUp") : t("commercial.moveDown")}

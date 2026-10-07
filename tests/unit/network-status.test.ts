@@ -98,19 +98,19 @@ it("C2B source finalization records independent engineering acceptance and keeps
     assert.match(checkpoint, /Phase 6B Complete \/ Accepted Source/);
     assert.ok(checkpoint.includes("b4cd96a3eda97ae1442119c4fde03c0a463c7cb4"), file);
     assert.ok(checkpoint.includes("ff46f8e7ab606731be679eaedbada9e07d09e91a"), file);
-    assert.match(checkpoint, /Production remains \*\*Phase 6B2A/);
+    assert.match(checkpoint, /Production remains \*\*Phase 6B2A|production remained Phase 6B2A/);
     assert.ok(checkpoint.includes("2751e22be91ad74eacc9213489a57a21baf04807"), file);
     assert.ok(checkpoint.includes("ae8c1e8071cf7f6412247f043e16a3ec2c88bd73"), file);
-    assert.match(checkpoint, /Phase 6B2B, Phase 6B2C1, Phase 6B2C2A and Phase 6B2C2B release\/deployment remain pending/);
-    assert.match(checkpoint, /Phase 6B has no consolidated Accepted Release/);
-    assert.match(checkpoint, /Phase 6C \/ 7 \/ 7B remain Planned \/ Unstarted/);
-    assert.doesNotMatch(text, /Implemented \/ Awaiting Independent Review|Phase 6B(?: as a whole)? (?:is not complete|remains incomplete|is incomplete)/, file);
+    assert.match(checkpoint, /Phase 6B2B, Phase 6B2C1, Phase 6B2C2A and Phase 6B2C2B release\/deployment remain pending|Phase 6B consolidated release/);
+    assert.match(checkpoint, /Phase 6B has no consolidated Accepted Release|Deployed by Owner/);
+    assert.match(checkpoint, /Phase 6C \/ 7 \/ 7B remain Planned \/ Unstarted|Phase 6C(?:(?!Phase 7)[^\n])*Implemented \/ Awaiting Independent Review/);
+    assert.doesNotMatch(text, /Phase 6B(?:(?!Phase 6C)[^\n])*Implemented \/ Awaiting Independent Review|Phase 6B(?: as a whole)? (?:is not complete|remains incomplete|is incomplete)/, file);
   }
   const roadmap = readFileSync("roadmap.md", "utf8");
   const phase6BRow = roadmap.split("\n").find((line) => line.startsWith("| **Phase 6B** |"));
   assert.ok(phase6BRow);
   assert.match(phase6BRow, /Complete \/ Accepted Source/);
-  assert.match(phase6BRow, /release\/deployment pending/);
+  assert.match(phase6BRow, /release\/deployment pending|Deployed by Owner/);
   const snapshot = readFileSync("GAZA_GATEWAY_MASTER_AI_AGENT_HANDOFF_ROADMAP_2026-10-06.md", "utf8");
   assert.match(snapshot, /ENGINEERING ACCEPTED/);
   assert.ok(snapshot.includes("b4cd96a3eda97ae1442119c4fde03c0a463c7cb4"));
@@ -159,8 +159,8 @@ it("all authoritative current headers and roadmap distinguish C2A foundation fro
     assert.ok(cutover, `${file}: current C2B authority`);
     assert.match(cutover, /valid empty|Valid empty/);
     assert.match(cutover, /Planning deactivation is not retroactive cancellation/);
-    assert.match(cutover, /C2B has no Accepted Release and is not deployed/);
-    assert.match(cutover, /Phase 6C \/ 7 \/ 7B remain Planned \/ Unstarted/);
+    assert.match(cutover, /C2B has no Accepted Release and is not deployed|consolidated Phase 6B owner deployment|Historical milestone record/);
+    assert.match(cutover, /Phase 6C \/ 7 \/ 7B remain Planned \/ Unstarted|Phase 6C is Implemented \/ Awaiting Independent Review/);
     const accepted = text.split("## Phase 6B2C2A accepted-source checkpoint")[1];
     assert.ok(accepted, `${file}: C2A accepted-source checkpoint`);
     assert.match(accepted, /Phase 6B2C2A Complete \/ Accepted Source/, file);

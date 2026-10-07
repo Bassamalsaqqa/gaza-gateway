@@ -76,13 +76,25 @@ export interface AircraftUpdatePatch {
 
 export type LayoutUpdateInput = Omit<AircraftLayout, "aircraftId">;
 
+export interface FleetAircraftMutationReceipt {
+  aircraft: Aircraft;
+  changed: boolean;
+}
+
+export interface FleetLayoutMutationReceipt {
+  layout: AircraftLayout;
+  changed: boolean;
+}
+
 export interface FleetRepository {
   get(): Promise<FleetSnapshot>;
   getAircraftById(id: string): Promise<Aircraft | null>;
   getLayoutByAircraftId(aircraftId: string): Promise<AircraftLayout | null>;
   createAircraft(input: AircraftCreateInput): Promise<{ aircraft: Aircraft; layout: AircraftLayout }>;
   updateAircraft(id: string, patch: AircraftUpdatePatch): Promise<Aircraft>;
+  updateAircraftWithReceipt(id: string, patch: AircraftUpdatePatch): Promise<FleetAircraftMutationReceipt>;
   updateLayout(aircraftId: string, input: LayoutUpdateInput): Promise<AircraftLayout>;
+  updateLayoutWithReceipt(aircraftId: string, input: LayoutUpdateInput): Promise<FleetLayoutMutationReceipt>;
   subscribe(listener: () => void): () => void;
 }
 

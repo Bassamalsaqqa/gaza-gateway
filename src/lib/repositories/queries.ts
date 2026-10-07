@@ -18,7 +18,7 @@ import {
 } from "@tanstack/react-query";
 import type { Booking, BookingCreateInput, Leg } from "../domain/booking.ts";
 import type { Flight, FlightOverride } from "../domain/flight.ts";
-import type { CheckInCommandInput, UndoCheckInCommandInput, ClaimResult, MonthlyServiceMap } from "./types.ts";
+import type { BookingMutationReceipt, CheckInCommandInput, UndoCheckInCommandInput, ClaimResult, MonthlyServiceMap } from "./types.ts";
 import type { BookingDraftState, Draft, Extras, SearchCriteria } from "../booking-draft/types.ts";
 import { bookingDraftKeys, bookingKeys, flightKeys } from "./keys.ts";
 export { bookingDraftKeys, bookingKeys, flightKeys } from "./keys.ts";
@@ -66,16 +66,20 @@ export function useBookingQuery(ref: string | null | undefined): UseQueryResult<
  * Mutation hook for creating a booking through the canonical repository.
  * Automatically invalidates booking query caches upon success.
  */
-export function useCreateBookingMutation(): UseMutationResult<Booking, Error, BookingCreateInput> {
+export function useCreateBookingMutation(): UseMutationResult<
+  BookingMutationReceipt,
+  Error,
+  BookingCreateInput
+> {
   const { booking: bookingRepo } = useRepositories();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: BookingCreateInput) => bookingRepo.create(data),
-    onSuccess: (created) => {
+    mutationFn: (data: BookingCreateInput) => bookingRepo.createWithReceipt(data),
+    onSuccess: (receipt) => {
       queryClient.invalidateQueries({ queryKey: bookingKeys.all });
-      if (created?.ref) {
-        queryClient.setQueryData(bookingKeys.detail(created.ref), created);
+      if (receipt?.booking?.ref) {
+        queryClient.setQueryData(bookingKeys.detail(receipt.booking.ref), receipt.booking);
       }
     },
   });
@@ -85,7 +89,7 @@ export function useCreateBookingMutation(): UseMutationResult<Booking, Error, Bo
  * Mutation hook for cancelling a booking through the canonical repository.
  */
 export function useCancelBookingMutation(): UseMutationResult<
-  Booking,
+  BookingMutationReceipt,
   Error,
   { ref: string }
 > {
@@ -93,11 +97,11 @@ export function useCancelBookingMutation(): UseMutationResult<
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ ref }: { ref: string }) => bookingRepo.cancel(ref),
-    onSuccess: (updated) => {
+    mutationFn: ({ ref }: { ref: string }) => bookingRepo.cancelWithReceipt(ref),
+    onSuccess: (receipt) => {
       queryClient.invalidateQueries({ queryKey: bookingKeys.all });
-      if (updated?.ref) {
-        queryClient.setQueryData(bookingKeys.detail(updated.ref), updated);
+      if (receipt?.booking?.ref) {
+        queryClient.setQueryData(bookingKeys.detail(receipt.booking.ref), receipt.booking);
       }
     },
   });
@@ -107,7 +111,7 @@ export function useCancelBookingMutation(): UseMutationResult<
  * Mutation hook for updating passenger contact info through the canonical repository.
  */
 export function useUpdateBookingContactMutation(): UseMutationResult<
-  Booking,
+  BookingMutationReceipt,
   Error,
   { ref: string; contact: { email: string; phone?: string } }
 > {
@@ -116,11 +120,11 @@ export function useUpdateBookingContactMutation(): UseMutationResult<
 
   return useMutation({
     mutationFn: ({ ref, contact }: { ref: string; contact: { email: string; phone?: string } }) =>
-      bookingRepo.updateContact(ref, contact),
-    onSuccess: (updated) => {
+      bookingRepo.updateContactWithReceipt(ref, contact),
+    onSuccess: (receipt) => {
       queryClient.invalidateQueries({ queryKey: bookingKeys.all });
-      if (updated?.ref) {
-        queryClient.setQueryData(bookingKeys.detail(updated.ref), updated);
+      if (receipt?.booking?.ref) {
+        queryClient.setQueryData(bookingKeys.detail(receipt.booking.ref), receipt.booking);
       }
     },
   });
@@ -130,7 +134,7 @@ export function useUpdateBookingContactMutation(): UseMutationResult<
  * Mutation hook for updating seat assignments through the canonical repository.
  */
 export function useUpdateBookingSeatsMutation(): UseMutationResult<
-  Booking,
+  BookingMutationReceipt,
   Error,
   { ref: string; seats: Record<string, string> }
 > {
@@ -139,11 +143,11 @@ export function useUpdateBookingSeatsMutation(): UseMutationResult<
 
   return useMutation({
     mutationFn: ({ ref, seats }: { ref: string; seats: Record<string, string> }) =>
-      bookingRepo.updateSeats(ref, seats),
-    onSuccess: (updated) => {
+      bookingRepo.updateSeatsWithReceipt(ref, seats),
+    onSuccess: (receipt) => {
       queryClient.invalidateQueries({ queryKey: bookingKeys.all });
-      if (updated?.ref) {
-        queryClient.setQueryData(bookingKeys.detail(updated.ref), updated);
+      if (receipt?.booking?.ref) {
+        queryClient.setQueryData(bookingKeys.detail(receipt.booking.ref), receipt.booking);
       }
     },
   });
@@ -153,7 +157,7 @@ export function useUpdateBookingSeatsMutation(): UseMutationResult<
  * Mutation hook for updating passenger extras through the canonical repository.
  */
 export function useUpdateBookingExtrasMutation(): UseMutationResult<
-  Booking,
+  BookingMutationReceipt,
   Error,
   { ref: string; extras: Extras }
 > {
@@ -162,11 +166,11 @@ export function useUpdateBookingExtrasMutation(): UseMutationResult<
 
   return useMutation({
     mutationFn: ({ ref, extras }: { ref: string; extras: Extras }) =>
-      bookingRepo.updateExtras(ref, extras),
-    onSuccess: (updated) => {
+      bookingRepo.updateExtrasWithReceipt(ref, extras),
+    onSuccess: (receipt) => {
       queryClient.invalidateQueries({ queryKey: bookingKeys.all });
-      if (updated?.ref) {
-        queryClient.setQueryData(bookingKeys.detail(updated.ref), updated);
+      if (receipt?.booking?.ref) {
+        queryClient.setQueryData(bookingKeys.detail(receipt.booking.ref), receipt.booking);
       }
     },
   });
@@ -176,7 +180,7 @@ export function useUpdateBookingExtrasMutation(): UseMutationResult<
  * Mutation hook for atomically completing check-in through the canonical repository.
  */
 export function useCompleteCheckInMutation(): UseMutationResult<
-  Booking,
+  BookingMutationReceipt,
   Error,
   CheckInCommandInput
 > {
@@ -184,18 +188,18 @@ export function useCompleteCheckInMutation(): UseMutationResult<
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (input: CheckInCommandInput) => bookingRepo.completeCheckIn(input),
-    onSuccess: (updated) => {
+    mutationFn: (input: CheckInCommandInput) => bookingRepo.completeCheckInWithReceipt(input),
+    onSuccess: (receipt) => {
       queryClient.invalidateQueries({ queryKey: bookingKeys.all });
-      if (updated?.ref) {
-        queryClient.setQueryData(bookingKeys.detail(updated.ref), updated);
+      if (receipt?.booking?.ref) {
+        queryClient.setQueryData(bookingKeys.detail(receipt.booking.ref), receipt.booking);
       }
     },
   });
 }
 
 export function useUndoCheckInMutation(): UseMutationResult<
-  Booking,
+  BookingMutationReceipt,
   Error,
   UndoCheckInCommandInput
 > {
@@ -203,11 +207,11 @@ export function useUndoCheckInMutation(): UseMutationResult<
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (input: UndoCheckInCommandInput) => bookingRepo.undoCheckIn(input),
-    onSuccess: (updated) => {
+    mutationFn: (input: UndoCheckInCommandInput) => bookingRepo.undoCheckInWithReceipt(input),
+    onSuccess: (receipt) => {
       queryClient.invalidateQueries({ queryKey: bookingKeys.all });
-      if (updated?.ref) {
-        queryClient.setQueryData(bookingKeys.detail(updated.ref), updated);
+      if (receipt?.booking?.ref) {
+        queryClient.setQueryData(bookingKeys.detail(receipt.booking.ref), receipt.booking);
       }
     },
   });
@@ -379,7 +383,7 @@ export function useFlightOverridesQuery(): UseQueryResult<Record<string, FlightO
  * Mutation hook for setting an operational override on a flight.
  */
 export function useUpdateFlightOverrideMutation(): UseMutationResult<
-  void,
+  boolean,
   Error,
   { flightId: string; patch: FlightOverride }
 > {
@@ -389,6 +393,25 @@ export function useUpdateFlightOverrideMutation(): UseMutationResult<
   return useMutation({
     mutationFn: ({ flightId, patch }: { flightId: string; patch: FlightOverride }) =>
       flightRepo.setOverride(flightId, patch),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: flightKeys.all });
+    },
+  });
+}
+
+/**
+ * Mutation hook for clearing operational overrides on a flight.
+ */
+export function useClearFlightOverrideMutation(): UseMutationResult<
+  boolean,
+  Error,
+  string
+> {
+  const { flight: flightRepo } = useRepositories();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (flightId: string) => flightRepo.clearOverride(flightId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: flightKeys.all });
     },

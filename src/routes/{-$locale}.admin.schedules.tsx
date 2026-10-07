@@ -39,6 +39,8 @@ import {
   useCreateScheduleMutation,
   useUpdateScheduleMutation,
 } from "@/lib/schedules";
+import { useRepositories } from "@/lib/repositories/registry";
+import { executeAuditedAdminCommand } from "@/lib/activity";
 import { pageHead } from "@/lib/head";
 
 export const Route = createFileRoute("/{-$locale}/admin/schedules")({
@@ -90,7 +92,8 @@ function emptySchedule(
 
 function AdminSchedulesPage() {
   const { t, lang } = useI18n();
-  const { can, toast } = useAdmin();
+  const { can, toast, actor } = useAdmin();
+  const { activity: activityRepo } = useRepositories();
   const { data: fleetData, isError: fleetError } = useFleetQuery();
   const [query, setQuery] = useState("");
   const network = useNetworkQuery();
@@ -202,10 +205,44 @@ function AdminSchedulesPage() {
     setFieldErrors({});
     try {
       if (isNew) {
-        await createSchedule.mutateAsync(parseSchedule(draft) as ScheduleCreateInput);
+        await executeAuditedAdminCommand({
+          domainCommand: () =>
+            createSchedule.mutateAsync(parseSchedule(draft) as ScheduleCreateInput),
+          activityRepo,
+          actor,
+          event: (receipt) => ({
+            module: "schedules",
+            action: "created",
+            targetType: "schedule",
+            targetId: receipt.schedule.id,
+            metadata: {
+              number: receipt.schedule.number,
+              destination: receipt.schedule.destination,
+              direction: receipt.schedule.direction,
+            },
+          }),
+          isNoOp: (receipt) => !receipt.changed,
+          onAuditWarning: () => toast(t("a2.ac.auditWarning")),
+        });
       } else {
         const { id, destination, direction, ...patch } = parseSchedule(draft);
-        await updateSchedule.mutateAsync({ id, patch });
+        await executeAuditedAdminCommand({
+          domainCommand: () => updateSchedule.mutateAsync({ id, patch }),
+          activityRepo,
+          actor,
+          event: {
+            module: "schedules",
+            action: "updated",
+            targetType: "schedule",
+            targetId: id,
+            metadata: {
+              number: draft.number,
+              active: patch.active ?? draft.active,
+            },
+          },
+          isNoOp: (receipt) => !receipt.changed,
+          onAuditWarning: () => toast(t("a2.ac.auditWarning")),
+        });
       }
       toast(t("adm.sch.saved", { number: draft.number }));
       setDraft(null);

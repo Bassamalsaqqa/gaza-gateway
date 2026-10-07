@@ -8,11 +8,14 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { MOCK_PASSPHRASE, staffAccounts, staffByRole, type AdminRole, type Permission, type Staff, can } from "./admin";
+import { type AdminRole, type Permission, type Staff, can } from "./admin";
 import { isStudioPreviewActive } from "./studio-preview";
+import { useRepositories } from "./repositories/registry";
+import { type ActivityActorSnapshot } from "./activity/index.ts";
+import { AdminSessionCoordinator, type AdminSessionState } from "./staff/index.ts";
+import { useI18n } from "./i18n";
 
 export type { FlightOverride } from "./domain/flight";
-
 
 type Toast = { id: number; message: string };
 
@@ -20,9 +23,10 @@ type AdminValue = {
   ready: boolean;
   staff: Staff | null;
   role: AdminRole | undefined;
-  signIn: (email: string, passphrase: string) => { ok: boolean; error?: "unknown" | "pass" };
+  directoryUnavailable: boolean;
+  actor: ActivityActorSnapshot | null;
+  signIn: (email: string, passphrase: string, onAuditWarning?: () => void) => Promise<{ ok: boolean; error?: "unknown" | "pass" | "storage_unavailable" }>;
   signOut: () => void;
-  setRole: (role: AdminRole) => void;
   can: (permission: Permission) => boolean;
   toasts: Toast[];
   toast: (message: string) => void;
@@ -32,71 +36,37 @@ type AdminValue = {
 const AdminContext = createContext<AdminValue | null>(null);
 
 export function AdminProvider({ children }: { children: ReactNode }) {
-  const [ready, setReady] = useState(false);
-  const [staff, setStaff] = useState<Staff | null>(null);
+  const { t } = useI18n();
+  const { staff: staffRepo, activity: activityRepo } = useRepositories();
+  const coordinatorRef = useRef<AdminSessionCoordinator | null>(null);
+
+  if (!coordinatorRef.current) {
+    coordinatorRef.current = new AdminSessionCoordinator({
+      staffRepo,
+      activityRepo,
+      isStudioPreview: isStudioPreviewActive(),
+    });
+  } else {
+    coordinatorRef.current.setActivityRepository(activityRepo);
+  }
+
+  const coordinator = coordinatorRef.current;
+  const [sessionState, setSessionState] = useState<AdminSessionState>(() => coordinator.getState());
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const initialLegacyAdminRef = useRef<Record<string, unknown>>({});
-  const hasStaffMutatedRef = useRef(false);
-
 
   useEffect(() => {
-    if (isStudioPreviewActive()) {
-      setReady(true);
-      return;
-    }
+    const unsubscribe = coordinator.subscribe(() => {
+      setSessionState(coordinator.getState());
+    });
 
-    try {
-      if (typeof window !== "undefined" && window.localStorage) {
-        const raw = window.localStorage.getItem("gza.admin.v1");
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-            initialLegacyAdminRef.current = parsed;
-            const staffId = typeof parsed.staffId === "string" ? parsed.staffId : null;
-            const found = staffId ? staffAccounts.find((s) => s.id === staffId) ?? null : null;
-            setStaff(found);
-          }
-        }
-      }
-    } catch {
-      /* ignore corrupted local state */
-    }
-    setReady(true);
-  }, []);
+    setSessionState(coordinator.getState());
+    void coordinator.resolveCurrentSession();
 
-  useEffect(() => {
-    if (!ready || !hasStaffMutatedRef.current || isStudioPreviewActive()) return;
-    try {
-      if (typeof window !== "undefined" && window.localStorage) {
-        const payload = {
-          ...initialLegacyAdminRef.current,
-          staffId: staff?.id ?? null,
-        };
-        window.localStorage.setItem("gza.admin.v1", JSON.stringify(payload));
-      }
-    } catch {
-      /* ignore storage write error */
-    }
-  }, [ready, staff]);
-
-  const signIn = useCallback((email: string, passphrase: string) => {
-    const found = staffAccounts.find((s) => s.email.toLowerCase() === email.trim().toLowerCase());
-    if (!found) return { ok: false, error: "unknown" as const };
-    if (passphrase.trim() !== MOCK_PASSPHRASE) return { ok: false, error: "pass" as const };
-    hasStaffMutatedRef.current = true;
-    setStaff(found);
-    return { ok: true };
-  }, []);
-
-  const signOut = useCallback(() => {
-    hasStaffMutatedRef.current = true;
-    setStaff(null);
-  }, []);
-
-  const setRole = useCallback((role: AdminRole) => {
-    hasStaffMutatedRef.current = true;
-    setStaff(staffByRole(role));
-  }, []);
+    return () => {
+      unsubscribe();
+      coordinator.destroy();
+    };
+  }, [coordinator]);
 
   const toast = useCallback((message: string) => {
     const id = Date.now() + Math.random();
@@ -106,15 +76,35 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
   const dismissToast = useCallback((id: number) => setToasts((prev) => prev.filter((tst) => tst.id !== id)), []);
 
+  const signIn = useCallback(
+    async (email: string, passphrase: string, onAuditWarning?: () => void) => {
+      return coordinator.signIn(email, passphrase, () => {
+        toast(t("a2.ac.auditWarning"));
+        onAuditWarning?.();
+      });
+    },
+    [coordinator, t, toast],
+  );
+
+  const signOut = useCallback(() => {
+    coordinator.signOut();
+  }, [coordinator]);
+
+  const { ready, staff, directoryUnavailable, actor } = sessionState;
+
   const value = useMemo<AdminValue>(
     () => ({
       ready,
       staff,
-      role: staff?.role,
+      role: staff?.status === "active" ? staff.role : undefined,
+      directoryUnavailable,
+      actor,
       signIn,
       signOut,
-      setRole,
-      can: (permission: Permission) => can(staff?.role, permission),
+      can: (permission: Permission) => {
+        if (!staff || staff.status !== "active") return false;
+        return can(staff.role, permission);
+      },
       toasts,
       toast,
       dismissToast,
@@ -122,9 +112,10 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     [
       ready,
       staff,
+      directoryUnavailable,
+      actor,
       signIn,
       signOut,
-      setRole,
       toasts,
       toast,
       dismissToast,

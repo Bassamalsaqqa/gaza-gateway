@@ -7,6 +7,14 @@ import { fleetKeys } from "../fleet/keys.ts";
 import { LocalNetworkRepository } from "../network/repository.ts";
 import { NetworkStorageCoordinator } from "../network/storage.ts";
 import { networkKeys } from "../network/keys.ts";
+import { LocalStaffRepository } from "../staff/repository.ts";
+import { StaffStorageCoordinator } from "../staff/storage.ts";
+import { staffKeys } from "../staff/keys.ts";
+import { LocalCustomerDirectoryService } from "../customer-directory/service.ts";
+import { customerKeys } from "../customer-directory/keys.ts";
+import { LocalActivityRepository } from "../activity/repository.ts";
+import { ActivityStorageCoordinator } from "../activity/storage.ts";
+import { activityKeys } from "../activity/keys.ts";
 import { LocalDatedServiceResolver, type DatedServiceResolver } from "../dated-services/resolver.ts";
 import { IsolatedStudioFlightResolver } from "../studio-flight-fixtures.ts";
 /**
@@ -60,6 +68,10 @@ export interface CreateRepositoriesOptions {
   initialFleetData?: import("../fleet/types.ts").FleetEnvelopeV1 | undefined;
   networkCoordinator?: NetworkStorageCoordinator | undefined;
   initialNetworkData?: import("../network/types.ts").NetworkEnvelopeV1 | undefined;
+  staffCoordinator?: StaffStorageCoordinator | undefined;
+  initialStaffData?: import("../staff/types.ts").StaffEnvelopeV1 | undefined;
+  activityCoordinator?: ActivityStorageCoordinator | undefined;
+  initialActivityData?: import("../activity/types.ts").ActivityEnvelopeV1 | undefined;
 }
 
 /**
@@ -139,6 +151,23 @@ export function createRepositories(options?: CreateRepositoriesOptions): Reposit
   const passenger = new LocalPassengerRepository(passengerCoordinator, commercial);
   const bookingDraft = new LocalBookingDraftRepository(bookingDraftCoordinator, commercial, fleet);
   const contact = new LocalContactRepository({ coordinator: contactCoordinator });
+  const staffCoordinator =
+    options?.staffCoordinator ??
+    new StaffStorageCoordinator({
+      ...(options?.inMemoryOnly !== undefined ? { inMemoryOnly: options.inMemoryOnly } : {}),
+      ...(options?.storage !== undefined ? { storage: options.storage } : {}),
+      ...(options?.initialStaffData !== undefined ? { initialData: options.initialStaffData } : {}),
+    });
+  const staff = new LocalStaffRepository(staffCoordinator);
+  const customerDirectory = new LocalCustomerDirectoryService(passenger, booking);
+  const activityCoordinator =
+    options?.activityCoordinator ??
+    new ActivityStorageCoordinator({
+       ...(options?.inMemoryOnly !== undefined ? { inMemoryOnly: options.inMemoryOnly } : {}),
+       ...(options?.storage !== undefined ? { storage: options.storage } : {}),
+       ...(options?.initialActivityData !== undefined ? { initialData: options.initialActivityData } : {}),
+    });
+  const activity = new LocalActivityRepository(activityCoordinator);
 
   return {
     commercial,
@@ -150,6 +179,9 @@ export function createRepositories(options?: CreateRepositoriesOptions): Reposit
     schedule,
     fleet,
     network,
+    staff,
+    customerDirectory,
+    activity,
   };
 }
 
@@ -213,12 +245,14 @@ export function RepositoryProvider({
   useEffect(() => {
     const unsubBooking = value.booking.subscribe(() => {
       queryClient.invalidateQueries({ queryKey: bookingKeys.all });
+      queryClient.invalidateQueries({ queryKey: customerKeys.all });
     });
     const unsubFlight = value.flight.subscribe(() => {
       queryClient.invalidateQueries({ queryKey: flightKeys.all });
     });
     const unsubPassenger = value.passenger.subscribe(() => {
       queryClient.invalidateQueries({ queryKey: passengerKeys.all });
+      queryClient.invalidateQueries({ queryKey: customerKeys.all });
     });
     const unsubBookingDraft = value.bookingDraft.subscribe(() => {
       queryClient.invalidateQueries({ queryKey: bookingDraftKeys.all });
@@ -236,6 +270,12 @@ export function RepositoryProvider({
     const unsubNetwork = value.network.subscribe(() => {
       queryClient.invalidateQueries({ queryKey: networkKeys.all });
     });
+    const unsubStaff = value.staff.subscribe(() => {
+      queryClient.invalidateQueries({ queryKey: staffKeys.all });
+    });
+    const unsubActivity = value.activity.subscribe(() => {
+      queryClient.invalidateQueries({ queryKey: activityKeys.all });
+    });
     return () => {
       unsubBooking();
       unsubFlight();
@@ -246,6 +286,8 @@ export function RepositoryProvider({
       unsubCommercial();
       unsubFleet();
       unsubNetwork();
+      unsubStaff();
+      unsubActivity();
     };
   }, [value, queryClient]);
 

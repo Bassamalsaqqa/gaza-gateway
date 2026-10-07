@@ -313,99 +313,12 @@ export type MockCustomer = {
   activity: { id: string; when: string; what: Bi }[];
 };
 
-export const mockCustomers: MockCustomer[] = [
-  {
-    id: "c-1001",
-    name: "Nadia Sabbagh",
-    email: "nadia.sabbagh@example.com",
-    phone: "+970 59 000 1122",
-    language: "ar",
-    status: "active",
-    bookings: 4,
-    upcoming: 1,
-    travelers: [
-      { name: "Karim Sabbagh", dob: "2017-02-03", nationality: "Palestinian", document: "P KS55120" },
-      { name: "Huda Sabbagh", dob: "1960-09-17", nationality: "Palestinian", document: "P HS22841" },
-    ],
-    refs: ["GZA4TQ"],
-    seatPref: "Window",
-    mealPref: "Standard",
-    newsletter: true,
-    activity: [
-      { id: "a1", when: "2026-09-02 09:40", what: { en: "Chose seats for GZA4TQ.", ar: "اختار المقاعد للحجز GZA4TQ." } },
-      { id: "a2", when: "2026-08-30 10:12", what: { en: "Account created.", ar: "أُنشئ الحساب." } },
-    ],
-  },
-  {
-    id: "c-1002",
-    name: "Omar Halabi",
-    email: "omar.halabi@example.com",
-    phone: "+970 59 000 5566",
-    language: "en",
-    status: "active",
-    bookings: 2,
-    upcoming: 0,
-    travelers: [],
-    refs: ["GZA7RD"],
-    seatPref: "Aisle",
-    mealPref: "Vegetarian",
-    newsletter: false,
-    activity: [{ id: "a1", when: "2026-09-16 20:10", what: { en: "Checked in for PS108.", ar: "سجّل الوصول لرحلة PS108." } }],
-  },
-  {
-    id: "c-1003",
-    name: "Salma Rayyan",
-    email: "salma.rayyan@example.com",
-    phone: "+970 59 000 7788",
-    language: "ar",
-    status: "active",
-    bookings: 3,
-    upcoming: 1,
-    travelers: [
-      { name: "Jana Rayyan", dob: "2015-09-09", nationality: "Palestinian", document: "P JR90011" },
-      { name: "Adam Rayyan", dob: "2019-12-01", nationality: "Palestinian", document: "P AR90012" },
-    ],
-    refs: ["GZA2BX"],
-    seatPref: "Window",
-    mealPref: "Child",
-    newsletter: true,
-    activity: [{ id: "a1", when: "2026-09-10 12:22", what: { en: "Booked GZA2BX for four passengers.", ar: "حجز GZA2BX لأربعة مسافرين." } }],
-  },
-  {
-    id: "c-1004",
-    name: "Yara Dabbagh",
-    email: "yara.dabbagh@example.com",
-    phone: "+970 59 000 9900",
-    language: "en",
-    status: "disabled",
-    bookings: 1,
-    upcoming: 0,
-    travelers: [],
-    refs: ["GZA5ZN"],
-    seatPref: "No preference",
-    mealPref: "Standard",
-    newsletter: false,
-    activity: [{ id: "a1", when: "2026-09-05 16:45", what: { en: "Cancelled GZA5ZN.", ar: "ألغى الحجز GZA5ZN." } }],
-  },
-  {
-    id: "c-1005",
-    name: "Bashar Qudsi",
-    email: "bashar.qudsi@example.com",
-    phone: "+970 59 000 2211",
-    language: "ar",
-    status: "guest",
-    bookings: 1,
-    upcoming: 1,
-    travelers: [],
-    refs: ["GZA8LP"],
-    seatPref: "Aisle",
-    mealPref: "Standard",
-    newsletter: false,
-    activity: [{ id: "a1", when: "2026-09-04 19:05", what: { en: "Booked as a guest.", ar: "حجز كزائر." } }],
-  },
-];
-
-export const mockCustomerById = (id: string): MockCustomer | undefined => mockCustomers.find((c) => c.id === id);
+/**
+ * Customer directory data and projections have migrated to the canonical non-persistent
+ * CustomerDirectoryService (`src/lib/customer-directory/`), projecting PassengerRepository
+ * (`gza.passenger.v1`) and BookingRepository (`gza.repo.v1`).
+ * Legacy static `mockCustomers` and `mockCustomerById` runtime authority has been removed in Phase 6C.
+ */
 
 /* --------------------------------- inbox --------------------------------- */
 /**
@@ -684,81 +597,16 @@ export type StaffRow = {
   lastActive: string;
 };
 
-export const staffRows: StaffRow[] = [
-  { id: "adm-1", name: { en: "Rana Habib", ar: "رنا حبيب" }, email: "rana.habib@gza.ps", role: "admin", status: "active", lastActive: "2026-09-17 08:40" },
-  { id: "adm-2", name: { en: "Yousef Nasser", ar: "يوسف ناصر" }, email: "yousef.nasser@gza.ps", role: "editor", status: "active", lastActive: "2026-09-16 15:12" },
-  { id: "adm-3", name: { en: "Layla Odeh", ar: "ليلى عودة" }, email: "layla.odeh@gza.ps", role: "viewer", status: "active", lastActive: "2026-09-15 11:03" },
-  { id: "adm-4", name: { en: "Samir Khoury", ar: "سمير خوري" }, email: "samir.khoury@gza.ps", role: "editor", status: "disabled", lastActive: "2026-07-28 09:55" },
-];
+/**
+ * Staff directory data and management have migrated to the canonical Staff domain
+ * and repository (`src/lib/staff/`, storage key `gza.staff.v1`).
+ * Legacy static `staffRows` runtime authority has been removed in Phase 6C.
+ */
 
 /* ------------------------------ activity log ----------------------------- */
 
-export type ActivityEntry = {
-  id: string;
-  actor: Bi;
-  action: "updated" | "published" | "cancelled" | "created" | "signin";
-  module: string;
-  object: string;
-  when: string;
-  before: string;
-  after: string;
-  summary: Bi;
-};
-
-export const activityEntries: ActivityEntry[] = [
-  {
-    id: "l1",
-    actor: { en: "Rana Habib", ar: "رنا حبيب" },
-    action: "updated",
-    module: "adm.nav.flights",
-    object: "PS104",
-    when: "2026-09-17 07:52",
-    before: "Scheduled",
-    after: "Delayed",
-    summary: { en: "Rana changed PS104 from Scheduled to Delayed.", ar: "غيّرت رنا حالة PS104 من مجدولة إلى متأخرة." },
-  },
-  {
-    id: "l2",
-    actor: { en: "Yousef Nasser", ar: "يوسف ناصر" },
-    action: "published",
-    module: "adm.nav.destinations",
-    object: "IST",
-    when: "2026-09-16 15:10",
-    before: "Draft",
-    after: "Published",
-    summary: { en: "Yousef published Arabic destination content.", ar: "نشر يوسف المحتوى العربي للمحطة." },
-  },
-  {
-    id: "l3",
-    actor: { en: "Rana Habib", ar: "رنا حبيب" },
-    action: "cancelled",
-    module: "a2.bk.title",
-    object: "GZA5ZN",
-    when: "2026-09-05 16:45",
-    before: "Confirmed",
-    after: "Cancelled",
-    summary: { en: "Administrator cancelled booking GZA5ZN.", ar: "ألغى المسؤول الحجز GZA5ZN." },
-  },
-  {
-    id: "l4",
-    actor: { en: "Yousef Nasser", ar: "يوسف ناصر" },
-    action: "created",
-    module: "a2.ap.title",
-    object: "ar-05",
-    when: "2026-09-04 10:22",
-    before: "—",
-    after: "Draft",
-    summary: { en: "Yousef added an archive item as a draft.", ar: "أضاف يوسف عنصرًا للأرشيف كمسوّدة." },
-  },
-  {
-    id: "l5",
-    actor: { en: "Layla Odeh", ar: "ليلى عودة" },
-    action: "signin",
-    module: "adm.workspace",
-    object: "layla.odeh@gza.ps",
-    when: "2026-09-15 11:03",
-    before: "—",
-    after: "—",
-    summary: { en: "Layla signed in to the workspace.", ar: "دخلت ليلى إلى مساحة العمل." },
-  },
-];
+/**
+ * Activity log data and audit trail have migrated to the canonical Activity domain
+ * and repository (`src/lib/activity/`, storage key `gza.activity.v1`).
+ * Legacy static `activityEntries` runtime authority has been removed in Phase 6C.
+ */

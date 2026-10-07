@@ -20,6 +20,7 @@ import type {
   ContactCreateInput,
   ContactFilterOptions,
   ContactMessage,
+  ContactMutationReceipt,
   ContactStatus,
 } from "./types.ts";
 
@@ -72,7 +73,7 @@ export function useCreateContactMessage(): UseMutationResult<
 }
 
 export function useSetContactStatus(): UseMutationResult<
-  ContactMessage,
+  ContactMutationReceipt,
   Error,
   { id: string; status: ContactStatus }
 > {
@@ -81,7 +82,7 @@ export function useSetContactStatus(): UseMutationResult<
 
   return useMutation({
     mutationFn: ({ id, status }: { id: string; status: ContactStatus }) =>
-      contact.setStatus(id, status),
+      contact.setStatusWithReceipt(id, status),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: contactKeys.all });
       queryClient.invalidateQueries({ queryKey: contactKeys.detail(variables.id) });
@@ -113,7 +114,7 @@ export function useAddContactNote(): UseMutationResult<
 }
 
 export function useSetContactAssignee(): UseMutationResult<
-  ContactMessage,
+  ContactMutationReceipt,
   Error,
   { id: string; staffId: string | null }
 > {
@@ -122,7 +123,7 @@ export function useSetContactAssignee(): UseMutationResult<
 
   return useMutation({
     mutationFn: ({ id, staffId }: { id: string; staffId: string | null }) =>
-      contact.setAssignee(id, staffId),
+      contact.setAssigneeWithReceipt(id, staffId),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: contactKeys.all });
       queryClient.invalidateQueries({ queryKey: contactKeys.detail(variables.id) });

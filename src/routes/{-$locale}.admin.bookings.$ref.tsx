@@ -62,6 +62,8 @@ import {
 } from "@/lib/domain/booking";
 import type { PaxExtras } from "@/lib/booking-draft";
 import { emptyPaxExtras } from "@/lib/booking-draft";
+import { useRepositories } from "@/lib/repositories/registry";
+import { executeAuditedAdminCommand } from "@/lib/activity";
 
 export const Route = createFileRoute("/{-$locale}/admin/bookings/$ref")({
   head: ({ params }) =>
@@ -101,7 +103,8 @@ function AdminBookingDetailPage() {
   const { t, lang } = useI18n();
   const commercial = useCommercialOptions();
   const { fares, mealOptions } = commercial;
-  const { can, toast } = useAdmin();
+  const { can, toast, actor } = useAdmin();
+  const { activity: activityRepo } = useRepositories();
   const [tab, setTab] = useState<Tab>("overview");
   const [sheet, setSheet] = useState<SheetKind>(null);
   const [cancelError, setCancelError] = useState<string | null>(null);
@@ -696,27 +699,42 @@ function AdminBookingDetailPage() {
                   }
                   setSheetError(null);
                   setFieldErrors({});
-                  updateContactMutation.mutate(
-                    {
-                      ref: canonicalBooking.ref,
-                      contact: {
-                        email: editContact.email.trim(),
-                        phone: editContact.phone.trim(),
-                      },
-                    },
-                    {
-                      onSuccess: () => {
-                        toast(t("a6.saved"));
-                        setSheet(null);
-                      },
-                      onError: (err) => {
-                        const msg = t(commercialErrorKey(err));
-                        setSheetError(msg);
-                        setFieldErrors(commercialFieldErrors(err));
-                        toast(msg);
-                      },
-                    },
-                  );
+                  void (async () => {
+                    try {
+                      await executeAuditedAdminCommand({
+                        domainCommand: () =>
+                          updateContactMutation.mutateAsync({
+                            ref: canonicalBooking.ref,
+                            contact: {
+                              email: editContact.email.trim(),
+                              phone: editContact.phone.trim(),
+                            },
+                          }),
+                        activityRepo,
+                        actor,
+                        event: {
+                          module: "bookings",
+                          action: "updated",
+                          targetType: "booking_contact",
+                          targetId: canonicalBooking.ref,
+                          metadata: {
+                            ref: canonicalBooking.ref,
+                            email: editContact.email.trim(),
+                            phone: editContact.phone.trim(),
+                          },
+                        },
+                        isNoOp: (receipt) => !receipt.changed,
+                        onAuditWarning: () => toast(t("a2.ac.auditWarning")),
+                      });
+                      toast(t("a6.saved"));
+                      setSheet(null);
+                    } catch (err) {
+                      const msg = t(commercialErrorKey(err));
+                      setSheetError(msg);
+                      setFieldErrors(commercialFieldErrors(err));
+                      toast(msg);
+                    }
+                  })();
                 } else if (sheet === "seat") {
                   setSheetError(null);
                   setFieldErrors({});
@@ -733,24 +751,38 @@ function AdminBookingDetailPage() {
                     );
                     return;
                   }
-                  updateSeatsMutation.mutate(
-                    {
-                      ref: canonicalBooking.ref,
-                      seats: editSeats,
-                    },
-                    {
-                      onSuccess: () => {
-                        toast(t("a6.saved"));
-                        setSheet(null);
-                      },
-                      onError: (err) => {
-                        const msg = t(commercialErrorKey(err));
-                        setSheetError(msg);
-                        setFieldErrors(commercialFieldErrors(err));
-                        toast(msg);
-                      },
-                    },
-                  );
+                  void (async () => {
+                    try {
+                      await executeAuditedAdminCommand({
+                        domainCommand: () =>
+                          updateSeatsMutation.mutateAsync({
+                            ref: canonicalBooking.ref,
+                            seats: editSeats,
+                          }),
+                        activityRepo,
+                        actor,
+                        event: {
+                          module: "bookings",
+                          action: "updated",
+                          targetType: "booking_seats",
+                          targetId: canonicalBooking.ref,
+                          metadata: {
+                            ref: canonicalBooking.ref,
+                            seats: Object.values(editSeats).join(", "),
+                          },
+                        },
+                        isNoOp: (receipt) => !receipt.changed,
+                        onAuditWarning: () => toast(t("a2.ac.auditWarning")),
+                      });
+                      toast(t("a6.saved"));
+                      setSheet(null);
+                    } catch (err) {
+                      const msg = t(commercialErrorKey(err));
+                      setSheetError(msg);
+                      setFieldErrors(commercialFieldErrors(err));
+                      toast(msg);
+                    }
+                  })();
                 } else if (sheet === "extras") {
                   setSheetError(null);
                   setFieldErrors({});
@@ -763,24 +795,38 @@ function AdminBookingDetailPage() {
                     if (!commercial.catalog || commercial.query.isError) { setSheetError(t("commercial.error.catalog_unavailable")); return; }
                     validateBookingExtras({pax:canonicalPax}, canonicalBooking.passengers.length, commercial.catalog, canonicalBooking.extras);
                   } catch (error) { setSheetError(t(commercialErrorKey(error)));setFieldErrors(commercialFieldErrors(error));requestAnimationFrame(()=>document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus());return; }
-                  updateExtrasMutation.mutate(
-                    {
-                      ref: canonicalBooking.ref,
-                      extras: { pax: canonicalPax },
-                    },
-                    {
-                      onSuccess: () => {
-                        toast(t("a6.saved"));
-                        setSheet(null);
-                      },
-                      onError: (err) => {
-                        const msg = t(commercialErrorKey(err));
-                        setSheetError(msg);
-                        setFieldErrors(commercialFieldErrors(err));
-                        toast(msg);
-                      },
-                    },
-                  );
+                  void (async () => {
+                    try {
+                      await executeAuditedAdminCommand({
+                        domainCommand: () =>
+                          updateExtrasMutation.mutateAsync({
+                            ref: canonicalBooking.ref,
+                            extras: { pax: canonicalPax },
+                          }),
+                        activityRepo,
+                        actor,
+                        event: {
+                          module: "bookings",
+                          action: "updated",
+                          targetType: "booking_extras",
+                          targetId: canonicalBooking.ref,
+                          metadata: {
+                            ref: canonicalBooking.ref,
+                            paxCount: canonicalPax.length,
+                          },
+                        },
+                        isNoOp: (receipt) => !receipt.changed,
+                        onAuditWarning: () => toast(t("a2.ac.auditWarning")),
+                      });
+                      toast(t("a6.saved"));
+                      setSheet(null);
+                    } catch (err) {
+                      const msg = t(commercialErrorKey(err));
+                      setSheetError(msg);
+                      setFieldErrors(commercialFieldErrors(err));
+                      toast(msg);
+                    }
+                  })();
                 }
               }}
             >
@@ -1036,19 +1082,31 @@ function AdminBookingDetailPage() {
         pending={cancelBookingMutation.isPending}
         error={cancelError}
         preserveOpenOnConfirm
-        onConfirm={() => {
+        onConfirm={async () => {
           if (!mayEdit || cancelBookingMutation.isPending) return;
           setCancelError(null);
-          cancelBookingMutation.mutate(
-            { ref: booking.ref },
-            {
-              onSuccess: () => {
-                setConfirmCancel(false);
-                toast(t("a2.bd.cancelled"));
+          try {
+            await executeAuditedAdminCommand({
+              domainCommand: () => cancelBookingMutation.mutateAsync({ ref: booking.ref }),
+              activityRepo,
+              actor,
+              event: {
+                module: "bookings",
+                action: "cancelled",
+                targetType: "booking",
+                targetId: booking.ref,
+                metadata: {
+                  ref: booking.ref,
+                },
               },
-              onError: (error) => setCancelError(t(commercialErrorKey(error))),
-            },
-          );
+              isNoOp: (receipt) => !receipt.changed,
+              onAuditWarning: () => toast(t("a2.ac.auditWarning")),
+            });
+            setConfirmCancel(false);
+            toast(t("a2.bd.cancelled"));
+          } catch (error) {
+            setCancelError(t(commercialErrorKey(error)));
+          }
         }}
         onClose={() => setConfirmCancel(false)}
       />

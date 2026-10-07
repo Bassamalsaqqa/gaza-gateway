@@ -66,6 +66,13 @@ export interface ContactCreateInput {
   bookingRef?: string | undefined;
 }
 
+export interface ContactMutationReceipt {
+  message: ContactMessage;
+  changed: boolean;
+  beforeStatus?: ContactStatus | undefined;
+  beforeAssignee?: string | null | undefined;
+}
+
 export interface ContactRepository {
   /** Retrieves messages matching the provided filters, sorted newest first. */
   list(filters?: ContactFilterOptions): Promise<ContactMessage[]>;
@@ -79,6 +86,9 @@ export interface ContactRepository {
   /** Updates message workflow status (new, open, resolved, spam). */
   setStatus(id: string, status: ContactStatus): Promise<ContactMessage>;
 
+  /** Updates message workflow status and returns mutation receipt with change flag. */
+  setStatusWithReceipt(id: string, status: ContactStatus): Promise<ContactMutationReceipt>;
+
   /** Appends a non-empty internal note with staff attribution. */
   addInternalNote(
     id: string,
@@ -87,6 +97,9 @@ export interface ContactRepository {
 
   /** Assigns or unassigns (pass null) a staff member to the message. */
   setAssignee(id: string, staffId: string | null): Promise<ContactMessage>;
+
+  /** Assigns or unassigns a staff member and returns mutation receipt with change flag. */
+  setAssigneeWithReceipt(id: string, staffId: string | null): Promise<ContactMutationReceipt>;
 
   /** Saves or clears a local reply draft. */
   saveReplyDraft(id: string, replyDraft: string): Promise<ContactMessage>;

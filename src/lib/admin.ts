@@ -22,43 +22,18 @@ import {
   UsersRound,
 } from "lucide-react";
 
+import type { StaffMember } from "./staff/types.ts";
+
 export type AdminRole = "admin" | "editor" | "viewer";
 
-export type Staff = {
-  id: string;
-  name: { en: string; ar: string };
-  email: string;
-  role: AdminRole;
-  title: { en: string; ar: string };
-};
+export type Staff = StaffMember;
 
-/** Mock staff identities used to exercise the permission UX. */
-export const staffAccounts: Staff[] = [
-  {
-    id: "adm-1",
-    name: { en: "Rana Habib", ar: "رنا حبيب" },
-    email: "rana.habib@gza.ps",
-    role: "admin",
-    title: { en: "Airport administrator", ar: "مسؤولة المطار" },
-  },
-  {
-    id: "adm-2",
-    name: { en: "Yousef Nasser", ar: "يوسف ناصر" },
-    email: "yousef.nasser@gza.ps",
-    role: "editor",
-    title: { en: "Content editor", ar: "محرِّر المحتوى" },
-  },
-  {
-    id: "adm-3",
-    name: { en: "Layla Odeh", ar: "ليلى عودة" },
-    email: "layla.odeh@gza.ps",
-    role: "viewer",
-    title: { en: "Operations viewer", ar: "مطالعة العمليات" },
-  },
-];
-
-export const staffByRole = (role: AdminRole): Staff =>
-  staffAccounts.find((s) => s.role === role) ?? (staffAccounts[0] as Staff);
+/**
+ * Staff directory data and session resolution have migrated to the canonical Staff domain
+ * and repository (`src/lib/staff/`, storage key `gza.staff.v1`).
+ * Legacy `staffAccounts` and `staffByRole` runtime authority has been removed in Phase 6C.
+ * Seed identities are defined under `src/lib/staff/seed.ts`.
+ */
 
 /** Single mock passphrase; there is no authentication infrastructure here. */
 export const MOCK_PASSPHRASE = "gza-admin";

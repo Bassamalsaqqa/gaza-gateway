@@ -1,3 +1,5 @@
+import { runPhase6CConvergenceChecks } from "./phase6c-convergence.mjs";
+import { runPhase6CStaffActivityChecks } from "./phase6c-staff-activity.mjs";
 import { runCutoverCorrection01Checks } from "./phase6b2c2b-correction-01.mjs";
 import { runDatedServiceCutoverChecks } from "./phase6b2c2b-cutover.mjs";
 import { currentDeparturesOn, currentArrivalsOn } from "../helpers/current-service-fixture.ts";
@@ -7787,6 +7789,8 @@ async function runBrowserSmoke() {
     await runDatedServiceFoundationChecks({ checkStep, browser, baseUrl });
     await runDatedServiceCutoverChecks({ checkStep, browser, baseUrl });
     await runCutoverCorrection01Checks({ checkStep, browser, baseUrl });
+    await runPhase6CStaffActivityChecks({ checkStep, browser, baseUrl });
+    await runPhase6CConvergenceChecks({ checkStep, browser, baseUrl });
 
   } finally {
     await browser.close();

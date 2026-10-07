@@ -17,10 +17,15 @@ export interface NetworkEnvelopeV1 {
   revision: number;
   destinations: NetworkDestination[];
 }
+export interface NetworkMutationReceipt {
+  destination: NetworkDestination;
+  changed: boolean;
+}
 export interface NetworkRepository {
   list(): Promise<NetworkDestination[]>;
   getByCode(code: string): Promise<NetworkDestination | null>;
   update(code: string, patch: NetworkDestinationPatch): Promise<NetworkDestination>;
+  updateWithReceipt(code: string, patch: NetworkDestinationPatch): Promise<NetworkMutationReceipt>;
   subscribe(listener: () => void): () => void;
 }
 export class NetworkError extends Error {

@@ -3,7 +3,9 @@ import { Field, Input, Select, Textarea, btnClass } from "@/components/kit";
 import { GazaSheet, Ltr, PermissionButton } from "@/components/admin/admin-kit";
 import { useAdmin } from "@/lib/admin-store";
 import { useI18n } from "@/lib/i18n";
-import { useUpdateFlightOverrideMutation } from "@/lib/repositories";
+import { useUpdateFlightOverrideMutation, useClearFlightOverrideMutation } from "@/lib/repositories";
+import { useRepositories } from "@/lib/repositories/registry";
+import { executeAuditedAdminCommand } from "@/lib/activity";
 import type { Flight, FlightStatus } from "@/lib/data";
 import { aircraftNameToId } from "@/lib/data";
 import { validateFlightEdit } from "@/lib/admin-flight-edit";
@@ -34,8 +36,10 @@ export function FlightQuickEdit({
   onClose: () => void;
 }) {
   const { t } = useI18n();
-  const { can, toast } = useAdmin();
+  const { can, toast, actor } = useAdmin();
+  const { activity: activityRepo } = useRepositories();
   const mutation = useUpdateFlightOverrideMutation();
+  const clearMutation = useClearFlightOverrideMutation();
   const { data: fleetData, isError: fleetError } = useFleetQuery();
   const mayEdit = can("ops.edit");
 
@@ -85,7 +89,51 @@ export function FlightQuickEdit({
         }
       }
 
-      await mutation.mutateAsync({ flightId: flight.id, patch });
+      await executeAuditedAdminCommand({
+        domainCommand: () => mutation.mutateAsync({ flightId: flight.id, patch }),
+        activityRepo,
+        actor,
+        event: {
+          module: "flights",
+          action: "updated",
+          targetType: "flight_override",
+          targetId: flight.id,
+          metadata: {
+            flightNumber: flight.number,
+            status: form.status,
+            gate: form.gate.trim(),
+            terminal: form.terminal.trim(),
+          },
+        },
+        isNoOp: (changed) => !changed,
+        onAuditWarning: () => toast(t("a2.ac.auditWarning")),
+      });
+      toast(t("adm.edit.saved", { flight: flight.number }));
+      onClose();
+    } catch {
+      setValidationError(t("adm.ops.saveError"));
+    }
+  };
+
+  const handleClear = async () => {
+    if (!flight || !mayEdit || clearMutation.isPending) return;
+    try {
+      await executeAuditedAdminCommand({
+        domainCommand: () => clearMutation.mutateAsync(flight.id),
+        activityRepo,
+        actor,
+        event: {
+          module: "flights",
+          action: "cleared",
+          targetType: "flight_override",
+          targetId: flight.id,
+          metadata: {
+            flightNumber: flight.number,
+          },
+        },
+        isNoOp: (cleared) => !cleared,
+        onAuditWarning: () => toast(t("a2.ac.auditWarning")),
+      });
       toast(t("adm.edit.saved", { flight: flight.number }));
       onClose();
     } catch {
@@ -141,6 +189,16 @@ export function FlightQuickEdit({
           <button type="button" onClick={onClose} className={btnClass("outline", "sm")}>
             {t("adm.edit.cancel")}
           </button>
+          <PermissionButton
+            allowed={mayEdit}
+            reason={t("adm.edit.readOnly")}
+            variant="outline"
+            disabled={clearMutation.isPending}
+            aria-busy={clearMutation.isPending}
+            onClick={handleClear}
+          >
+            {t("a2.ac.act.cleared")}
+          </PermissionButton>
           <PermissionButton
             allowed={mayEdit}
             reason={t("adm.edit.readOnly")}

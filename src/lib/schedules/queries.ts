@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useRepositories } from "../repositories/registry.ts";
 import { scheduleKeys } from "./keys.ts";
-import type { ScheduleCreateInput, ScheduleUpdateInput } from "./types.ts";
+import type { ScheduleCreateInput, ScheduleMutationReceipt, ScheduleUpdateInput } from "./types.ts";
 
 /** One subscription/invalidation authority in RepositoryProvider. */
 export function useSchedulesQuery() {
@@ -21,13 +21,21 @@ export function useScheduleQuery(id: string | null | undefined) {
 
 export function useCreateScheduleMutation() {
   const { schedule } = useRepositories();
-  return useMutation({ mutationFn: (input: ScheduleCreateInput) => schedule.create(input) });
+  return useMutation({
+    mutationFn: (input: ScheduleCreateInput): Promise<ScheduleMutationReceipt> =>
+      schedule.createWithReceipt(input),
+  });
 }
 
 export function useUpdateScheduleMutation() {
   const { schedule } = useRepositories();
   return useMutation({
-    mutationFn: ({ id, patch }: { id: string; patch: ScheduleUpdateInput }) =>
-      schedule.update(id, patch),
+    mutationFn: ({
+      id,
+      patch,
+    }: {
+      id: string;
+      patch: ScheduleUpdateInput;
+    }): Promise<ScheduleMutationReceipt> => schedule.updateWithReceipt(id, patch),
   });
 }

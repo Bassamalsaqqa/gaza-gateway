@@ -4,6 +4,7 @@ import type {
   Schedule,
   ScheduleCreateInput,
   ScheduleException,
+  ScheduleMutationReceipt,
   ScheduleRepository,
   ScheduleUpdateInput,
 } from "./types.ts";
@@ -63,14 +64,14 @@ export class LocalScheduleRepository implements ScheduleRepository {
     return this.coordinator.read().schedules.find((entry) => entry.id === id) ?? null;
   }
 
-  async create(input: ScheduleCreateInput): Promise<Schedule> {
+  async createWithReceipt(input: ScheduleCreateInput): Promise<ScheduleMutationReceipt> {
     // 1. Structural normalization
     const normalized = parseSchedule(input);
 
     // 2. Canonical committed preflight exact return/conflict BEFORE Network/Fleet
     const committed = await this.getById(normalized.id);
     if (committed) {
-      if (JSON.stringify(committed) === JSON.stringify(normalized)) return committed;
+      if (JSON.stringify(committed) === JSON.stringify(normalized)) return { schedule: committed, changed: false };
       throw new ScheduleIdentityConflictError();
     }
 
@@ -90,18 +91,30 @@ export class LocalScheduleRepository implements ScheduleRepository {
     const parsed = parseSchedule({ ...normalized, ...assignment });
 
     // 6. Mutate under lock with transaction reread identity guard
-    return this.coordinator.mutate((candidate) => {
+    let changed = false;
+    const schedule = await this.coordinator.mutate((candidate) => {
       const existing = candidate.schedules.find((entry) => entry.id === parsed.id);
       if (existing) {
-        if (JSON.stringify(existing) === JSON.stringify(parsed)) return existing;
+        if (JSON.stringify(existing) === JSON.stringify(parsed)) {
+          changed = false;
+          return existing;
+        }
         throw new ScheduleIdentityConflictError();
       }
       candidate.schedules.push(parsed);
+      changed = true;
       return parsed;
     });
+
+    return { schedule, changed };
   }
 
-  async update(id: string, patch: ScheduleUpdateInput): Promise<Schedule> {
+  async create(input: ScheduleCreateInput): Promise<Schedule> {
+    const receipt = await this.createWithReceipt(input);
+    return receipt.schedule;
+  }
+
+  async updateWithReceipt(id: string, patch: ScheduleUpdateInput): Promise<ScheduleMutationReceipt> {
     patch = structuredClone(patch);
     const existing = await this.getById(id);
     if (!existing) throw new ScheduleNotFoundError();
@@ -140,7 +153,8 @@ export class LocalScheduleRepository implements ScheduleRepository {
       nextPatch.exceptions = exceptionsCopy;
     }
 
-    return this.coordinator.mutate((candidate) => {
+    let changed = false;
+    const schedule = await this.coordinator.mutate((candidate) => {
       const index = candidate.schedules.findIndex((entry) => entry.id === id);
       if (index < 0) throw new ScheduleNotFoundError();
       const current = candidate.schedules[index]!;
@@ -157,9 +171,23 @@ export class LocalScheduleRepository implements ScheduleRepository {
       const retainedId = current.aircraftId ?? aircraftNameToSeedId(current.aircraft);
       const retainedAssignment = !assignmentChanged && retainedId ? { aircraftId: retainedId } : {};
       const updated = parseSchedule({ ...current, ...nextPatch, ...retainedAssignment, id });
+
+      if (JSON.stringify(current) === JSON.stringify(updated)) {
+        changed = false;
+        return current;
+      }
+
       candidate.schedules[index] = updated;
+      changed = true;
       return updated;
     });
+
+    return { schedule, changed };
+  }
+
+  async update(id: string, patch: ScheduleUpdateInput): Promise<Schedule> {
+    const receipt = await this.updateWithReceipt(id, patch);
+    return receipt.schedule;
   }
 }
 

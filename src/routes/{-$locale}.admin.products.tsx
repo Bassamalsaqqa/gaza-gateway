@@ -33,6 +33,8 @@ import {
   type AircraftLayout,
 } from "@/lib/fleet";
 import { SeatMap } from "@/components/booking/seat-map";
+import { useRepositories } from "@/lib/repositories/registry";
+import { executeAuditedAdminCommand } from "@/lib/activity";
 import { pageHead } from "@/lib/head";
 
 type Tab = "aircraft" | "seatmaps" | "fares" | "baggage" | "meals" | "assistance";
@@ -116,7 +118,8 @@ function AdminProductsPage() {
 
 function AircraftTab() {
   const { t } = useI18n();
-  const { can, toast } = useAdmin();
+  const { can, toast, actor } = useAdmin();
+  const { activity: activityRepo } = useRepositories();
   const mayEdit = can("commercial.edit");
   const fleetQuery = useFleetQuery();
   const createAircraftMutation = useCreateAircraftMutation();
@@ -160,30 +163,65 @@ function AircraftTab() {
     setSaveError(null);
     try {
       if (isNew) {
-        await createAircraftMutation.mutateAsync({
-          aircraft: {
-            id: draft.id,
-            model: draft.model.trim(),
-            registration: draft.registration.trim().toUpperCase(),
-            active: draft.active,
+        await executeAuditedAdminCommand({
+          domainCommand: () =>
+            createAircraftMutation.mutateAsync({
+              aircraft: {
+                id: draft.id,
+                model: draft.model.trim(),
+                registration: draft.registration.trim().toUpperCase(),
+                active: draft.active,
+              },
+              initialLayout: {
+                rows: 28,
+                letters: ["A", "B", "C", "D", "E", "F"],
+                aisleAfter: 3,
+                zones: [{ id: "economy", firstRow: 1, lastRow: 28 }],
+                extraLegroomRows: [],
+                unavailable: [],
+              },
+            }),
+          activityRepo,
+          actor,
+          event: {
+            module: "fleet",
+            action: "created",
+            targetType: "aircraft",
+            targetId: draft.id,
+            metadata: {
+              model: draft.model.trim(),
+              registration: draft.registration.trim().toUpperCase(),
+              active: draft.active,
+            },
           },
-          initialLayout: {
-            rows: 28,
-            letters: ["A", "B", "C", "D", "E", "F"],
-            aisleAfter: 3,
-            zones: [{ id: "economy", firstRow: 1, lastRow: 28 }],
-            extraLegroomRows: [],
-            unavailable: [],
-          },
+          onAuditWarning: () => toast(t("a2.ac.auditWarning")),
         });
       } else {
-        await updateAircraftMutation.mutateAsync({
-          id: draft.id,
-          patch: {
-            model: draft.model.trim(),
-            registration: draft.registration.trim().toUpperCase(),
-            active: draft.active,
+        await executeAuditedAdminCommand({
+          domainCommand: () =>
+            updateAircraftMutation.mutateAsync({
+              id: draft.id,
+              patch: {
+                model: draft.model.trim(),
+                registration: draft.registration.trim().toUpperCase(),
+                active: draft.active,
+              },
+            }),
+          activityRepo,
+          actor,
+          event: {
+            module: "fleet",
+            action: "updated",
+            targetType: "aircraft",
+            targetId: draft.id,
+            metadata: {
+              model: draft.model.trim(),
+              registration: draft.registration.trim().toUpperCase(),
+              active: draft.active,
+            },
           },
+          isNoOp: (receipt) => !receipt.changed,
+          onAuditWarning: () => toast(t("a2.ac.auditWarning")),
         });
       }
       toast(t("adm.prod.ac.saved", { name: draft.model.trim() }));
@@ -352,7 +390,8 @@ function AircraftTab() {
 
 function SeatMapTab() {
   const { t } = useI18n();
-  const { can, toast } = useAdmin();
+  const { can, toast, actor } = useAdmin();
+  const { activity: activityRepo } = useRepositories();
   const mayEdit = can("commercial.edit");
   const fleetQuery = useFleetQuery();
   const updateLayoutMutation = useUpdateLayoutMutation();
@@ -484,9 +523,27 @@ function SeatMapTab() {
     }
 
     try {
-      await updateLayoutMutation.mutateAsync({
-        aircraftId: draft.aircraftId,
-        input: validation.data,
+      await executeAuditedAdminCommand({
+        domainCommand: () =>
+          updateLayoutMutation.mutateAsync({
+            aircraftId: draft.aircraftId,
+            input: validation.data,
+          }),
+        activityRepo,
+        actor,
+        event: {
+          module: "fleet",
+          action: "updated",
+          targetType: "seatmap_layout",
+          targetId: draft.aircraftId,
+          metadata: {
+            aircraftId: draft.aircraftId,
+            rows: validation.data.rows,
+            capacity: validation.data.rows * validation.data.letters.length,
+          },
+        },
+        isNoOp: (receipt) => !receipt.changed,
+        onAuditWarning: () => toast(t("a2.ac.auditWarning")),
       });
       setIsDirty(false);
       setFieldErrors({});

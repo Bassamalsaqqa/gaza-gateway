@@ -15,12 +15,31 @@ import {
 } from "./domain.ts";
 import { PassengerStorageCoordinator } from "./storage.ts";
 
+export interface UpdateAccountOptions {
+  expectedEmail?: string;
+  requireCanonical?: boolean;
+}
+
+export interface AccountMutationReceipt {
+  account: PassengerAccount | null;
+  changed: boolean;
+  beforeAccount?: PassengerAccount | null;
+}
+
 export interface PassengerRepository {
   getAccount(): Promise<PassengerAccount | null>;
+  withAccountIdentity<T>(expectedEmail: string, command: () => Promise<T>): Promise<T>;
   listTravelers(): Promise<Traveler[]>;
   signIn(email: string, firstName?: string, lastName?: string): Promise<PassengerAccount>;
   signOut(): Promise<void>;
-  updateAccount(patch: Partial<Omit<PassengerAccount, "email">>): Promise<PassengerAccount | null>;
+  updateAccount(
+    patch: Partial<Omit<PassengerAccount, "email">>,
+    options?: UpdateAccountOptions,
+  ): Promise<PassengerAccount | null>;
+  updateAccountWithReceipt(
+    patch: Partial<Omit<PassengerAccount, "email">>,
+    options?: UpdateAccountOptions,
+  ): Promise<AccountMutationReceipt>;
   addTraveler(traveler: Omit<Traveler, "id">): Promise<Traveler>;
   updateTraveler(id: string, patch: Partial<Omit<Traveler, "id">>): Promise<Traveler | null>;
   removeTraveler(id: string): Promise<boolean>;
@@ -34,6 +53,10 @@ export class LocalPassengerRepository implements PassengerRepository {
   constructor(coordinator: PassengerStorageCoordinator, commercial: CommercialCatalogRepository = new LocalCommercialCatalogRepository()) {
     this.commercial = commercial;
     this.coordinator = coordinator;
+  }
+
+  public withAccountIdentity<T>(expectedEmail: string, command: () => Promise<T>): Promise<T> {
+    return this.coordinator.withAccountIdentity(expectedEmail, command);
   }
 
   public async getAccount(): Promise<PassengerAccount | null> {
@@ -97,29 +120,82 @@ export class LocalPassengerRepository implements PassengerRepository {
     });
   }
 
+  public async updateAccountWithReceipt(
+    patch: Partial<Omit<PassengerAccount, "email">>,
+    options?: UpdateAccountOptions,
+  ): Promise<AccountMutationReceipt> {
+    const catalog = patch.mealPreference !== undefined ? await this.commercial.get() : null;
+    let changed = false;
+    let beforeAccount: PassengerAccount | null = null;
+    const requireCanonical = Boolean(options?.expectedEmail || options?.requireCanonical);
+
+    const account = await this.coordinator.mutate(
+      (state) => {
+        if (!state.account) return null;
+        if (options?.expectedEmail) {
+          const expected = options.expectedEmail.trim().toLowerCase();
+          const actual = state.account.email.trim().toLowerCase();
+          if (expected !== actual) {
+            return null;
+          }
+        }
+
+        beforeAccount = structuredClone(state.account);
+
+        if (
+          patch.mealPreference !== undefined &&
+          patch.mealPreference !== state.account.mealPreference &&
+          !catalog?.catalog.meals.some((m) => m.id === patch.mealPreference && m.active)
+        ) {
+          throw new CommercialCatalogError("service_unavailable");
+        }
+
+        const nextFirstName = patch.firstName !== undefined ? patch.firstName.trim() : state.account.firstName;
+        const nextLastName = patch.lastName !== undefined ? patch.lastName.trim() : state.account.lastName;
+        const nextPhone = patch.phone !== undefined ? patch.phone.trim() : state.account.phone;
+        const nextSeat = patch.seatPreference !== undefined ? patch.seatPreference : state.account.seatPreference;
+        const nextMeal = patch.mealPreference !== undefined ? patch.mealPreference : state.account.mealPreference;
+        const nextNewsletter = patch.newsletter !== undefined ? patch.newsletter : state.account.newsletter;
+
+        if (
+          nextFirstName === state.account.firstName &&
+          nextLastName === state.account.lastName &&
+          nextPhone === state.account.phone &&
+          nextSeat === state.account.seatPreference &&
+          nextMeal === state.account.mealPreference &&
+          nextNewsletter === state.account.newsletter
+        ) {
+          return { ...state.account };
+        }
+
+        // Identity invariant: Email is read-only and immutable in profile updates
+        const updated: PassengerAccount = {
+          ...state.account,
+          firstName: nextFirstName,
+          lastName: nextLastName,
+          phone: nextPhone,
+          seatPreference: nextSeat,
+          mealPreference: nextMeal,
+          newsletter: nextNewsletter,
+          email: state.account.email, // strictly enforce immutability
+        };
+
+        state.account = updated;
+        changed = true;
+        return { ...updated };
+      },
+      { requireCanonical },
+    );
+
+    return { account, changed, beforeAccount };
+  }
+
   public async updateAccount(
     patch: Partial<Omit<PassengerAccount, "email">>,
+    options?: UpdateAccountOptions,
   ): Promise<PassengerAccount | null> {
-    const catalog = patch.mealPreference !== undefined ? await this.commercial.get() : null;
-    return this.coordinator.mutate((state) => {
-      if (!state.account) return null;
-      if (patch.mealPreference !== undefined && patch.mealPreference !== state.account.mealPreference && !catalog?.catalog.meals.some(m => m.id === patch.mealPreference && m.active)) throw new CommercialCatalogError("service_unavailable");
-
-      // Identity invariant: Email is read-only and immutable in profile updates
-      const updated: PassengerAccount = {
-        ...state.account,
-        firstName: patch.firstName !== undefined ? patch.firstName.trim() : state.account.firstName,
-        lastName: patch.lastName !== undefined ? patch.lastName.trim() : state.account.lastName,
-        phone: patch.phone !== undefined ? patch.phone.trim() : state.account.phone,
-        seatPreference: patch.seatPreference !== undefined ? patch.seatPreference : state.account.seatPreference,
-        mealPreference: patch.mealPreference !== undefined ? patch.mealPreference : state.account.mealPreference,
-        newsletter: patch.newsletter !== undefined ? patch.newsletter : state.account.newsletter,
-        email: state.account.email, // strictly enforce immutability
-      };
-
-      state.account = updated;
-      return { ...updated };
-    });
+    const { account } = await this.updateAccountWithReceipt(patch, options);
+    return account;
   }
 
   public async addTraveler(traveler: Omit<Traveler, "id">): Promise<Traveler> {

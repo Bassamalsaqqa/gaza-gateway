@@ -121,6 +121,11 @@ export interface ScheduleUpdateInput {
   exceptions?: ScheduleException[];
 }
 
+export interface ScheduleMutationReceipt {
+  schedule: Schedule;
+  changed: boolean;
+}
+
 /** Async, backend-ready ScheduleRepository contract (destructive remove removed). */
 export interface ScheduleRepository {
   list(): Promise<Schedule[]>;
@@ -128,6 +133,8 @@ export interface ScheduleRepository {
   listForDiscovery(): Promise<Schedule[]>;
   getById(id: string): Promise<Schedule | null>;
   create(input: ScheduleCreateInput): Promise<Schedule>;
+  createWithReceipt(input: ScheduleCreateInput): Promise<ScheduleMutationReceipt>;
   update(id: string, patch: ScheduleUpdateInput): Promise<Schedule>;
+  updateWithReceipt(id: string, patch: ScheduleUpdateInput): Promise<ScheduleMutationReceipt>;
   subscribe(listener: () => void): () => void;
 }

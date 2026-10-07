@@ -1,11 +1,13 @@
 # Data Flow, State Management & Pretend-Action Inventory
 
 > **Document Purpose**: Complete audit of current data sources, state persistence, cross-screen entity splits, and enabled no-op actions across public and admin workspaces.
-> **Status**: **Phase 6B2C2B Complete / Accepted Source. Phase 6B2C2A Complete / Accepted Source. Phase 6B2C1 Complete / Accepted Source.** Phase 5A–5D and HC-0–HC-3 are Complete / Accepted Source. Phase 5D — Public Contact Workflow Convergence is Complete / Accepted Source / Deployed by Owner (engineering acceptance: `05f0e97982f47b18e40b93d1cb3f2e29b548eff2`); Phase 6A — Admin Commercial Desk Convergence is Complete / Accepted Source / Accepted Release / Deployed by Owner (accepted engineering SHA: `59e2e0ce9b56bc492d7c7a2bfc5a0df15fd58fea`). Phase 6B1 is Complete / Accepted Source / Accepted Release / Deployed by Owner (accepted engineering SHA: `b2e37ba4f7d2b0ae66a444747340acfe818a3832`). Phase 6B2A is Complete / Accepted Source / Accepted Release / Deployed by Owner (accepted engineering SHA: `1c5e6b6259add7b59199725f6b23324e8d1c58eb`; deployed runtime source: `ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`; owner-deployed release: `2751e22be91ad74eacc9213489a57a21baf04807`); Phase 6B2B is Complete / Accepted Source; Phase 6B2C1 - Network Reference Authority & Destination Operations Convergence is Complete / Accepted Source; Phase 6B2C2A - Stable Dated-Service Materialization Foundation is Complete / Accepted Source; Phase 6B2C2B is Complete / Accepted Source. Phase 6C (Admin Directory Staff & Activity Convergence), Phase 7, and Phase 7B remain Planned / Unstarted.
-> **Production / Source Checkpoint**: Phase 6B2A — Sellable Commercial Catalog & Pricing Authority — is Complete / Accepted Source / Accepted Release / Deployed by Owner, the current production checkpoint. Current owner-deployed production release: `2751e22be91ad74eacc9213489a57a21baf04807`; deployed runtime source: `ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`; accepted engineering SHA: `1c5e6b6259add7b59199725f6b23324e8d1c58eb`. Deployment is confirmed by the product owner. Git/source/release provenance was independently checked after deployment; no independent live-browser verification from the ChatGPT/Codex environment is claimed. Main may advance through accepted source engineering and documentation commits while the deployed runtime source remains unchanged. Phase 6B1 is a historical completed production phase: Complete / Accepted Source / Accepted Release / Deployed by Owner (release `f8c0d0bdc579c5c2719670c8387fa543d8d6a170`, source `bcf284df3f0d7b24ec59372bb038ed9ae1e8c934`, engineering `b2e37ba4f7d2b0ae66a444747340acfe818a3832`). Phase 6A is a historical completed production phase: Complete / Accepted Source / Accepted Release / Deployed by Owner (release `b5cff4db4b6e087907a9733ffd841880439fbfdb`, source `2ae1a876018992649074cbed1ebf0560e4da03ff`, engineering `59e2e0ce9b56bc492d7c7a2bfc5a0df15fd58fea`). Phase 5D is a historical completed phase: Complete / Accepted Source / Deployed by Owner (release `898adc36701f138b54787fa14caecf55321b453f`, source `2e166ed815010728d25a891939b84db4109ae65e`).
-> **Immediate Next Step**: Independent accepted-source review of Phase 6B2C2B, followed by a consolidated Phase 6B release milestone before Phase 6C. Production remains owner-deployed Phase 6B2A. This source finalization creates no release and performs no deployment.
+> **Status**: **Phase 6B - Complete / Accepted Source / Accepted Release / Deployed by Owner.** Phase 6C - Admin Directory, Staff & Activity Convergence is **Implemented / Awaiting Independent Review**. Phase 6 awaits independent Phase 6C acceptance and later release/deployment. Phase 7 and Phase 7B remain Planned / Unstarted. Phase 6B2C1 Complete / Accepted Source; Phase 6B2C2A Complete / Accepted Source; Phase 6B2C2B Complete / Accepted Source.
+> **Production / Source Checkpoint**: Current owner-deployed production release: `8e3136c22156c9acf800d25e94e8cd3d29a8bfc8`; deployed runtime source: `2749c26714258871c32bd2b14a75fc4e87a68b62`. Deployment is confirmed by the product owner. AGY reported HTTP 200 for targeted route checks; no independent live bundle verification claimed. Historical Phase 6A: Complete / Accepted Source / Accepted Release / Deployed by Owner, engineering `59e2e0ce9b56bc492d7c7a2bfc5a0df15fd58fea`, source `2ae1a876018992649074cbed1ebf0560e4da03ff`, release `b5cff4db4b6e087907a9733ffd841880439fbfdb`. Phase 5D is a historical completed phase. Earlier production checkpoints remain historical.
+> **Immediate Next Step**: Independent review and acceptance of Phase 6C, followed by authorized Phase 6 closeout. Main and HostPapa remain unchanged during this correction.
+
 
 ---
+
 
 ## 1. Current State Stores & Persistence
 
@@ -97,7 +99,9 @@ Identified SEO debt recorded for Phase 11 resolution without expanding Phase 3.9
 3. **Automated Sitemap & Robots**: Generate static `sitemap.xml` and `robots.txt` compatible with HostPapa Apache static hosting.
 4. **Structured Data**: Implement JSON-LD schemas for `Airline`, `Airport`, and `FlightReservation` entities.
 
+
 ---
+
 
 ## 2. Public vs. Admin Entity Splits
 
@@ -120,7 +124,9 @@ Following Phase 4, bookings and operational flight overrides share canonical rep
 5. **New Booking at Counter (`src/routes/{-$locale}.admin.bookings.new.tsx`) — Converged in Phase 6A**:
    - Staff counter booking creation converged in Phase 6A into a real 5-step commercial creation wizard without mock fixtures. Staff search effective flights, select fares, enter validated passenger and contact identities, choose seats and Extras, review dynamically calculated totals, and commit via `BookingRepository.create()` with `channel: "desk"`, `ownerEmail: null`, and canonical stored pricing recalculation (`bookingTotal()`). A real PNR is generated and persists immediately into `gza.repo.v1`.
 
+
 ---
+
 
 ## 3. Systematic No-Op / Pretend-Action Inventory & Mutation Reality
 
@@ -187,7 +193,9 @@ Other persistent actions:
 9. **Admin Inbox Actions (`src/routes/{-$locale}.admin.inbox.tsx`)**:
    - Changing status (`setStatus`), adding internal notes (`addInternalNote`), assigning staff (`setAssignee`), and saving or clearing reply drafts (`saveReplyDraft`) execute real mutations against `ContactRepository` with immediate React Query invalidation and persistence in `gza.contact.v1`. Explicitly discloses that external email transport is not connected.
 
+
 ---
+
 
 ## 4. UI Primitives & Implementation Reality
 
@@ -207,7 +215,9 @@ Other persistent actions:
 | **Operational Analytics Charts** | **Custom HTML/CSS Bar Meter (`<Bar />`)** | `src/routes/{-$locale}.admin.analytics.tsx` | Bespoke HTML/CSS percentage bars rendered with styled `<span>` elements. `recharts` and `src/components/ui/chart.tsx` are **unmounted templates** not imported by any product screen. |
 | **Forms & Input Validation** | **Native HTML5 & React `useState`** | `src/components/flight-search-form.tsx`, `src/components/kit.tsx`, product routes | Controlled native inputs and native HTML5 constraints remain common. Phase 4B uses the existing `zod` dependency in `src/content/schema.ts` to validate local editorial drafts. Generic form wrappers remain unused. |
 
+
 ---
+
 
 ## 5. Repository and Content Convergence (Phases 4 and 4B Complete)
 
@@ -269,9 +279,7 @@ AdminProvider owns staff session / RBAC simulation and toast/UI helpers only. Pr
 
 `CommercialCatalogRepository` owns fares, cabin pricing, baggage, meals and assistance on browser-local `gza.commercial.v1`. Public booking, Manage, account meal preferences and the commercial Admin Products tabs share its query/mutation path. Fixed fare/cabin IDs and Essential/Economy multiplier anchors remain structural. Retired services remain resolvable; new selections require active options. BookingRepository independently reads the catalog at command time and commits a versioned pricing snapshot with its calculated total. Existing PNR mutations use their historical snapshot; snapshotless PNRs resolve a literal frozen legacy basis and seal it only on a real mutation. Catalog and booking stores are separate aggregates, not a server-grade multi-store ACID transaction. See [COMMERCIAL_MODEL.md](COMMERCIAL_MODEL.md) for the complete contract.
 
-AdminProvider owns staff session / RBAC simulation and toast/UI helpers only. Product-domain OpsState is eliminated; NetworkRepository owns airport references and network lifecycle in `gza.network.v1`. Aircraft and seat maps are canonicalized under `FleetRepository` (`gza.fleet.v1`). Existing Flight IDs remain compatibility identities; current services use stable Schedule-derived IDs with canonical Network and Schedule facts, retaining additive `aircraftId` linkage. Phase 6B is Complete / Accepted Source. Phase 6B2B — Fleet Identity, Seat Layout & Booking Seat Authority (Complete / Accepted Source); Phase 6B2C2A is Complete / Accepted Source; Phase 6B2C2B is Complete / Accepted Source; Phase 6C, Phase 7 and Phase 7B are Planned / Unstarted. No backend, payment, or GDS; deployment is owner-confirmed.
-
-Phase 6B2B — Fleet Identity, Seat Layout & Booking Seat Authority (Complete / Accepted Source). Phase 6B2C2A (Complete / Accepted Source); Phase 6B2C2B (Complete / Accepted Source).
+AdminProvider owns staff session / RBAC simulation and toast/UI helpers only. Product-domain OpsState is eliminated; NetworkRepository owns airport references and network lifecycle in `gza.network.v1`. Aircraft and seat maps are canonicalized under `FleetRepository` (`gza.fleet.v1`). Existing Flight IDs remain compatibility identities; current services use stable Schedule-derived IDs with canonical Network and Schedule facts, retaining additive `aircraftId` linkage. Phase 6B is Complete / Accepted Source / Accepted Release / Deployed by Owner. Phase 6C is Implemented / Awaiting Independent Review; Phase 7 and Phase 7B are Planned / Unstarted. No backend, payment, or GDS; deployment is owner-confirmed.
 
 ## Phase 6B2B accepted-source checkpoint
 
@@ -333,15 +341,22 @@ PNR-facing operations use `FlightRepository.getBookingFlight(ref, leg)`: prefer 
 
 Board relevance uses current services, confirmed PNR snapshots and explicit legacy override-only compatibility. Cancelled PNRs retain history/detail snapshots but do not independently resurrect a retired service on Home/public/Admin boards. Cancelling the last confirmed PNR removes its compatibility-only board row; explicit valid legacy overrides remain operationally relevant.
 
-Production remains owner-deployed Phase 6B2A. Protected main and HostPapa, current discovery authority, new-sale validation, historical pricing/layouts, Studio isolation and all identity/store boundaries remain unchanged.
+*(Historical context at 6B2C2B source)*: At the time of 6B2C2B, production remained owner-deployed Phase 6B2A. Current production is the consolidated Phase 6B owner deployment (`8e3136c22156c9acf800d25e94e8cd3d29a8bfc8`, source `2749c26714258871c32bd2b14a75fc4e87a68b62`). Phase 6C is Implemented / Awaiting Independent Review; Phase 7 and Phase 7B remain Planned / Unstarted. Protected main and HostPapa, current discovery authority, new-sale validation, historical pricing/layouts, Studio isolation and all identity/store boundaries remain unchanged.
 
 
-## Phase 6B2C2B accepted-source checkpoint
+## Phase 6B2C2B accepted-source checkpoint (Historical — 2026-10-06)
 
+*Historical milestone record (superseded by Phase 6B consolidated deployment below)*:
 **Phase 6B2C2B Complete / Accepted Source. Phase 6B Complete / Accepted Source.** ChatGPT independently accepted engineering at `b4cd96a3eda97ae1442119c4fde03c0a463c7cb4` (original implementation: `ff46f8e7ab606731be679eaedbada9e07d09e91a`; accepted C2A baseline: `412fc2b4f79e01da0607b5bca44e01d76156a634`). Acceptance is recorded in the owner-supplied 2026-10-06 master handoff. The accepted-source candidate is the docs/status-only finalization commit introducing this checkpoint; its exact SHA is recorded in the publication handback. Independent accepted-source verification precedes main fast-forward.
 
 PNR-facing Flight reads use `(Booking reference, leg)`: current service when available, otherwise that exact leg's stored Flight, then current FlightOverride. Historical pricing and seat-layout snapshots remain unchanged. Admin Check-in can discover confirmed PNRs using their own snapshots during planning failure, with an explicit localized warning. Public/new-sale authority still fails truthfully. Cancelled PNRs preserve their own history without independently resurrecting retired operational board rows.
 
-Production remains **Phase 6B2A — Complete / Accepted Source / Accepted Release / Deployed by Owner**, runtime source `ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`, release `2751e22be91ad74eacc9213489a57a21baf04807`. Phase 6B2B, Phase 6B2C1, Phase 6B2C2A and Phase 6B2C2B release/deployment remain pending. Phase 6B has no consolidated Accepted Release and is not deployed as a consolidated milestone. No live production verification is claimed by this finalization.
+*(Historical context at 6B2C2B checkpoint)*: At the time of 6B2C2B completion, production remained Phase 6B2A (`2751e22be91ad74eacc9213489a57a21baf04807`, runtime source `ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`), with consolidated release pending.
 
-**Next milestone:** independently verify accepted source, then construct/review the consolidated Phase 6B HostPapa release for owner deployment and production reconciliation. Phase 6C / 7 / 7B remain Planned / Unstarted. This finalization changes no runtime implementation. The immutable planning snapshot is [the 2026-10-06 master handoff](../GAZA_GATEWAY_MASTER_AI_AGENT_HANDOFF_ROADMAP_2026-10-06.md); its pre-finalization refs/status are historical snapshot facts, not moving current refs.
+## Phase 6B consolidated release & Phase 6C status
+
+*Current status*: **Phase 6B — Operations Configuration Persistence: Complete / Accepted Source / Accepted Release / Deployed by Owner.** Deployed production release: `8e3136c22156c9acf800d25e94e8cd3d29a8bfc8`, runtime source: `2749c26714258871c32bd2b14a75fc4e87a68b62`. Deployment is confirmed by the product owner (HTTP 200 confirmed live; no independent live bundle verification claimed). Phase 6B consolidated Phase 6B1, 6B2A, 6B2B, 6B2C1, 6B2C2A, and 6B2C2B.
+
+Phase 6C — Admin Directory Staff & Activity Convergence is **Implemented / Awaiting Independent Review**; Phase 6 as a whole is Pending Phase 6C Independent Acceptance. Phase 7 and Phase 7B remain Planned / Unstarted.
+
+**Next milestone:** Independently verify and accept Phase 6C engineering, followed by authorized Phase 6 closeout. Phase 7 and Phase 7B remain Planned / Unstarted. This documentation reconciliation changes no runtime implementation. The immutable planning snapshot is [the 2026-10-06 master handoff](../GAZA_GATEWAY_MASTER_AI_AGENT_HANDOFF_ROADMAP_2026-10-06.md); its pre-finalization refs/status are historical snapshot facts, not moving current refs.

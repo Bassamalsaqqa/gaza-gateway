@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useRepositories } from "../repositories/registry.ts";
 import { networkKeys } from "./keys.ts";
-import type { NetworkDestinationPatch } from "./types.ts";
+import type { NetworkDestinationPatch, NetworkMutationReceipt } from "./types.ts";
 
 export function useNetworkQuery() {
   const { network } = useRepositories();
@@ -13,5 +13,13 @@ export function useNetworkDestinationQuery(code: string) {
 }
 export function useUpdateNetworkDestinationMutation() {
   const { network } = useRepositories();
-  return useMutation({ mutationFn: ({ code, patch }: { code: string; patch: NetworkDestinationPatch }) => network.update(code, patch) });
+  return useMutation({
+    mutationFn: ({
+      code,
+      patch,
+    }: {
+      code: string;
+      patch: NetworkDestinationPatch;
+    }): Promise<NetworkMutationReceipt> => network.updateWithReceipt(code, patch),
+  });
 }

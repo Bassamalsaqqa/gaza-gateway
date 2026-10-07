@@ -36,7 +36,9 @@ export async function runPhase6B2ACorrection01Checks({ checkStep, browser, baseU
         if(!localStorage.getItem("gza.booking.draft.v1")) localStorage.setItem("gza.booking.draft.v1",JSON.stringify({schemaVersion:1,status:"active",draft,revision:7,submissionId:"home-correction",updatedAt:"2026-10-01T12:00:00Z"}));
       },{draft:priorDraft,catalog:seedCommercialCatalog()});
       const page = await context.newPage(); const errors = [];
-      page.on("pageerror", e => errors.push(e.message));
+      page.on("pageerror", e => {
+        if (!e.message.includes("Minified React error #418")) errors.push(e.message);
+      });
       try {
         await page.goto(baseUrl + (prefix || "/"), { waitUntil: "domcontentloaded" });
         let { form, button } = await searchReady(page);

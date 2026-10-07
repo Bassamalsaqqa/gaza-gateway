@@ -48,10 +48,13 @@ export function getStorage(customStorage?: Storage | null): Storage | null {
   }
 }
 
+export const PASSENGER_LOCK_NAME = "gza:lock:passenger";
+
 export interface PassengerCoordinatorOptions {
   inMemoryOnly?: boolean | undefined;
   initialData?: PassengerStorageV1 | undefined;
   storage?: Storage | null | undefined;
+  locks?: LockManager | undefined;
 }
 
 /**
@@ -96,6 +99,8 @@ export class PassengerStorageCoordinator {
   private state: PassengerStorageV1;
   private readonly storage: Storage | null;
   private readonly inMemoryOnly: boolean;
+  private readonly locks?: LockManager | undefined;
+  private chain: Promise<unknown> = Promise.resolve();
   private readonly listeners = new Set<() => void>();
   private cleanupStorageListener: (() => void) | null = null;
 
@@ -103,6 +108,9 @@ export class PassengerStorageCoordinator {
     const isStudio = isStudioPreviewActive();
     this.inMemoryOnly = Boolean(options?.inMemoryOnly || isStudio);
     this.storage = this.inMemoryOnly ? null : getStorage(options?.storage);
+    this.locks =
+      options?.locks ??
+      (typeof navigator !== "undefined" && "locks" in navigator ? navigator.locks : undefined);
 
     if (options?.initialData) {
       this.state = sanitizePassengerStorage(options.initialData);
@@ -204,34 +212,116 @@ export class PassengerStorageCoordinator {
    * 4. If save fails, throws `StorageCommitError` and leaves current state unchanged.
    * 5. If save succeeds, adopts candidate into `this.state` and notifies subscribers.
    */
-  public async mutate<T>(mutator: (candidate: PassengerStorageV1) => T): Promise<T> {
-    const candidate = structuredClone(this.state);
-    const result = mutator(candidate);
-
-    // Sanitize candidate before persisting
-    const sanitizedCandidate = sanitizePassengerStorage(candidate);
-
-    if (!this.inMemoryOnly) {
-      if (!this.storage) {
-        throw new StorageCommitError(
-          "Cannot save passenger state: storage is unavailable or disabled.",
-        );
+  public async mutate<T>(
+    mutator: (candidate: PassengerStorageV1) => T,
+    options?: { requireCanonical?: boolean },
+  ): Promise<T> {
+    const commit = (): T => {
+      let current = this.state;
+      if (!this.inMemoryOnly) {
+        if (!this.storage) {
+          if (options?.requireCanonical) {
+            throw new StorageCommitError(
+              "Cannot save passenger state: storage is unavailable or disabled.",
+            );
+          }
+        } else {
+          try {
+            const canonicalRaw = this.storage.getItem(PASSENGER_STORAGE_KEY);
+            if (canonicalRaw !== null) {
+              current = sanitizePassengerStorage(JSON.parse(canonicalRaw));
+            } else {
+              current = { schemaVersion: 1, account: null, travelers: [] };
+            }
+          } catch (err) {
+            if (options?.requireCanonical) {
+              throw new StorageCommitError(
+                "Cannot reread canonical passenger state: storage is unavailable or corrupt.",
+                err,
+              );
+            }
+            // Fall back to current memory state
+          }
+        }
       }
 
-      try {
-        this.storage.setItem(PASSENGER_STORAGE_KEY, JSON.stringify(sanitizedCandidate));
-      } catch (err) {
-        throw new StorageCommitError(
-          `Failed to commit passenger changes to storage: ${err instanceof Error ? err.message : String(err)}`,
-          err,
-        );
-      }
-    }
+      const candidate = structuredClone(current);
+      const result = mutator(candidate);
 
-    // Success: adopt candidate into memory and notify subscribers
-    this.state = sanitizedCandidate;
-    this.notifySubscribers();
-    return result;
+      // Sanitize candidate before persisting
+      const sanitizedCandidate = sanitizePassengerStorage(candidate);
+
+      // No-op check: if structurally unchanged, skip writing and notifying
+      if (JSON.stringify(sanitizedCandidate) === JSON.stringify(current)) {
+        this.state = current;
+        return structuredClone(result);
+      }
+
+      if (!this.inMemoryOnly) {
+        if (!this.storage) {
+          throw new StorageCommitError(
+            "Cannot save passenger state: storage is unavailable or disabled.",
+          );
+        }
+
+        try {
+          this.storage.setItem(PASSENGER_STORAGE_KEY, JSON.stringify(sanitizedCandidate));
+        } catch (err) {
+          throw new StorageCommitError(
+            `Failed to commit passenger changes to storage: ${err instanceof Error ? err.message : String(err)}`,
+            err,
+          );
+        }
+      }
+
+      // Success: adopt candidate into memory and notify subscribers
+      this.state = sanitizedCandidate;
+      this.notifySubscribers();
+      return structuredClone(result);
+    };
+
+    const run = async (): Promise<T> => {
+      if (this.inMemoryOnly || !this.locks) {
+        return commit();
+      }
+      return this.locks.request(PASSENGER_LOCK_NAME, async () => {
+        return commit();
+      });
+    };
+
+    const next = this.chain.then(run, run);
+    this.chain = next.catch(() => {});
+    return next;
+  }
+
+  /** Read the exact account under the passenger command lock; never migrate or write. */
+  public async withAccountIdentity<T>(expectedEmail: string, command: () => Promise<T>): Promise<T> {
+    const run = async (): Promise<T> => {
+      const execute = async (): Promise<T> => {
+        let current = this.state;
+        if (!this.inMemoryOnly) {
+          if (!this.storage) throw new StorageCommitError("Passenger storage is unavailable.");
+          try {
+            const raw = this.storage.getItem(PASSENGER_STORAGE_KEY);
+            current = raw === null
+              ? { schemaVersion: 1, account: null, travelers: [] }
+              : sanitizePassengerStorage(JSON.parse(raw));
+          } catch (cause) {
+            throw new StorageCommitError("Canonical passenger state is unavailable or corrupt.", cause);
+          }
+        }
+        const expected = expectedEmail.trim().toLowerCase();
+        if (!expected || current.account?.email.trim().toLowerCase() !== expected) {
+          throw new StorageCommitError("The target account is no longer the canonical account.");
+        }
+        return command();
+      };
+      if (this.inMemoryOnly || !this.locks) return execute();
+      return this.locks.request(PASSENGER_LOCK_NAME, execute);
+    };
+    const next = this.chain.then(run, run);
+    this.chain = next.catch(() => {});
+    return next;
   }
 
   public subscribe(listener: () => void): () => void {

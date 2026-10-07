@@ -39,6 +39,8 @@ import { money } from "@/lib/format";
 import { pageHead } from "@/lib/head";
 import { cn } from "@/lib/utils";
 import { useFleetQuery, layoutSupportsCabin, parseSeatCode, seatStructurallyAvailable, cabinOfLayoutRow } from "@/lib/fleet";
+import { useRepositories } from "@/lib/repositories/registry";
+import { executeAuditedAdminCommand } from "@/lib/activity";
 import {
   useFlightSearchQuery,
   useCreateBookingMutation,
@@ -93,7 +95,8 @@ function AdminNewBookingPage() {
   const commercial = useCommercialOptions();
   const { fares, mealOptions } = commercial;
   const farePrice = (base: number, fare: FareId, cabin: string) => commercial.catalogSnapshot ? commercialFarePrice(commercial.catalogSnapshot, base, fare, cabin) : NaN;
-  const { can, toast } = useAdmin();
+  const { can, toast, actor } = useAdmin();
+  const { activity: activityRepo } = useRepositories();
   const [step, setStep] = useState(0);
 
   // Stable client submission identity per active attempt
@@ -332,7 +335,7 @@ function AdminNewBookingPage() {
     if (showValidation(step)) setStep((s) => Math.min(STEPS.length - 1, s + 1));
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!mayEdit || createBooking.isPending) return;
     for (let index = 0; index < 4; index++) {
       if (!showValidation(index)) {
@@ -384,20 +387,36 @@ function AdminNewBookingPage() {
       submissionId,
     };
 
-    createBooking.mutate(input, {
-      onSuccess: (res) => {
-        setCreatedBooking(res);
-        setDone(true);
-        toast(t("a2.nb.successTitle"));
-      },
-      onError: (e) => {
-        if (e instanceof CommercialCatalogError) setStep(e.reason === "service_unavailable" ? 3 : 1);
-        const msg = t(commercialErrorKey(e));
-        setFormError(msg);
-        setFieldErrors({});
-        toast(msg);
-      },
-    });
+    try {
+      const receipt = await executeAuditedAdminCommand({
+        domainCommand: () => createBooking.mutateAsync(input),
+        activityRepo,
+        actor,
+        event: (res) => ({
+          module: "bookings",
+          action: "created",
+          targetType: "booking",
+          targetId: res.booking.ref,
+          metadata: {
+            ref: res.booking.ref,
+            flightNumber: res.booking.outbound.number,
+            passengers: res.booking.passengers.length,
+            total: res.booking.total,
+          },
+        }),
+        isNoOp: (res) => !res.changed,
+        onAuditWarning: () => toast(t("a2.ac.auditWarning")),
+      });
+      setCreatedBooking(receipt.booking);
+      setDone(true);
+      toast(t("a2.nb.successTitle"));
+    } catch (e: unknown) {
+      if (e instanceof CommercialCatalogError) setStep(e.reason === "service_unavailable" ? 3 : 1);
+      const msg = t(commercialErrorKey(e));
+      setFormError(msg);
+      setFieldErrors({});
+      toast(msg);
+    }
   };
 
   const handleReset = () => {
