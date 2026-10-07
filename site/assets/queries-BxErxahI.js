@@ -1,1 +1,0 @@
-import{n as e,r as t}from"./registry-CxYNZFnq.js";import{n,t as r}from"./useMutation-PWJGiq6S.js";function i(){let{schedule:r}=e();return n({queryKey:t.lists(),queryFn:()=>r.list()})}function a(){let{schedule:t}=e();return r({mutationFn:e=>t.create(e)})}function o(){let{schedule:t}=e();return r({mutationFn:({id:e,patch:n})=>t.update(e,n)})}export{i as n,o as r,a as t};

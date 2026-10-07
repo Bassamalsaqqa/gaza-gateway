@@ -1,0 +1,1 @@
+import{M as e}from"./index-fP2wfklM.js";var t=e;export{t as component};
