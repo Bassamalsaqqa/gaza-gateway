@@ -166,7 +166,7 @@ function ManageSeatsPage() {
           <p className="mt-2 text-xs text-muted-foreground">{t("ci.alreadyDone")}</p>
         ) : null}
         {isCurrentLegCheckedInForActivePax ? (
-          <p className="mt-2 text-xs font-medium text-amber-700 dark:text-amber-400">{t("ci.seatProtected")}</p>
+          <p className="mt-2 text-xs font-medium text-status-delayed">{t("ci.seatProtected")}</p>
         ) : null}
         {account?.seatPreference && account.seatPreference !== "none" ? (
           <p className="mt-2 text-xs text-muted-foreground">{t("ci.seatSuggestion")}</p>

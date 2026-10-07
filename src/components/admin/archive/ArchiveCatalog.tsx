@@ -99,7 +99,7 @@ export function ArchiveCatalog({
         </div>
         <div className="rounded-md border border-border bg-card p-2.5">
           <p className="text-[11px] text-muted-foreground">{t("archive.stats.held")}</p>
-          <p className="text-base font-bold text-amber-600 dark:text-amber-400">{stats.held}</p>
+          <p className="text-base font-bold text-status-delayed">{stats.held}</p>
         </div>
         <div className="rounded-md border border-border bg-card p-2.5">
           <p className="text-[11px] text-muted-foreground">{t("archive.stats.excluded")}</p>
@@ -370,7 +370,7 @@ export function ArchiveCatalog({
 
                     {/* Duplicate Overlay Badge */}
                     {r.duplicateOf && (
-                      <div className="absolute top-1.5 start-1.5 rounded bg-amber-500/90 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                      <div className="absolute top-1.5 start-1.5 rounded bg-status-delayed/90 px-1.5 py-0.5 text-[10px] font-semibold text-white">
                         {t("archive.badge.duplicateOf", { target: r.duplicateOf })}
                       </div>
                     )}

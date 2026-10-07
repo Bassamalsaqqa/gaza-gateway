@@ -163,7 +163,7 @@ function AirportPage() {
                       alt=""
                       aria-hidden="true"
                       loading="lazy"
-                      className="pointer-events-none absolute inset-0 size-full select-none object-cover object-center"
+                      className="pointer-events-none absolute inset-0 size-full select-none object-cover object-center opacity-40"
                     />
                     <div className="relative z-10 flex flex-1 flex-col">
                       <span className="type-label text-xs font-semibold text-clay-soft">{t(ch.horizonKey)}</span>

@@ -18,6 +18,9 @@ export function BackToTop() {
   const [progress, setProgress] = useState(0);
   const rafId = useRef<number | null>(null);
   const locationHref = useRouterState({ select: (s) => s.location.href });
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const normalizedPath = pathname.replace(/\/$/, "");
+  const isBookingRoute = normalizedPath === "/book" || normalizedPath === "/ar/book";
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -85,7 +88,8 @@ export function BackToTop() {
       title={t("common.backToTop")}
       className={cn(
         "fixed end-4 sm:end-6 bottom-[calc(1.5rem+env(safe-area-inset-bottom,0px))] z-30",
-        "flex size-11 min-h-11 min-w-11 items-center justify-center rounded-full border border-border bg-card/95 text-foreground shadow-sm cursor-pointer select-none",
+        isBookingRoute ? "hidden lg:flex" : "flex",
+        "size-11 min-h-11 min-w-11 items-center justify-center rounded-full border border-border bg-card/95 text-foreground shadow-sm cursor-pointer select-none",
         "hover:bg-secondary hover:text-primary active:scale-[0.98] transition-all duration-200 motion-reduce:transition-none motion-reduce:active:scale-100",
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring rounded-full",
         visible

@@ -217,7 +217,7 @@ function GalleryPage() {
                       setCategory(e.target.value as CategoryFilter);
                       setOpenIndex(null);
                     }}
-                    className="h-9 rounded-lg border border-input bg-card px-3 text-xs font-medium text-foreground transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
+                    className="h-11 sm:h-9 rounded-lg border border-input bg-card px-3 text-xs font-medium text-foreground transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
                   >
                     <option value="all">{t("gallery.categoryAll")}</option>
                     {availableMediums.map((id) => (
@@ -242,7 +242,7 @@ function GalleryPage() {
                       setEra(e.target.value as PhaseFilter);
                       setOpenIndex(null);
                     }}
-                    className="h-9 rounded-lg border border-input bg-card px-3 text-xs font-medium text-foreground transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
+                    className="h-11 sm:h-9 rounded-lg border border-input bg-card px-3 text-xs font-medium text-foreground transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
                   >
                     <option value="all">{t("gallery.eraAll")}</option>
                     {availablePhases.map((id) => (
@@ -267,7 +267,7 @@ function GalleryPage() {
                       setSubject(e.target.value as SubjectFilter);
                       setOpenIndex(null);
                     }}
-                    className="h-9 rounded-lg border border-input bg-card px-3 text-xs font-medium text-foreground transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
+                    className="h-11 sm:h-9 rounded-lg border border-input bg-card px-3 text-xs font-medium text-foreground transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
                   >
                     <option value="all">{t("gallery.subjectAll")}</option>
                     {availableSubjects.map((id) => (

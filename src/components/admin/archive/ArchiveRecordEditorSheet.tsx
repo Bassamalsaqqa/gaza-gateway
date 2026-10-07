@@ -801,9 +801,9 @@ export function ArchiveRecordEditorSheet({
             </h3>
 
             {/* Prominent Rights Disclaimer */}
-            <div className="rounded border border-amber-500/40 bg-amber-500/10 p-3 text-amber-900 dark:text-amber-200 space-y-1">
+            <div className="rounded border border-status-delayed/40 bg-status-delayed/10 p-3 text-foreground space-y-1">
               <div className="flex items-center gap-1.5 font-semibold">
-                <AlertTriangle className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                <AlertTriangle className="size-4 shrink-0 text-status-delayed" />
                 <span>{t("archive.edit.rightsWarning")}</span>
               </div>
             </div>

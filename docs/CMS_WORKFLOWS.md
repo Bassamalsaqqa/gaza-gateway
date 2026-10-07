@@ -1,6 +1,6 @@
 # Phase 7 CMS workflows
 
-> **Status**: Phase 7 Complete / Accepted Source. Independently accepted and published to main at `6b0240f1692beecc3f030775c0a25a68758a279b`. Phase 7B media/provenance administration is implemented separately and awaiting independent review. No editorial batch release or deployment yet.
+> **Status**: Phase 7 Complete / Accepted Source. Independently accepted and published to main at `6b0240f1692beecc3f030775c0a25a68758a279b`. Phase 7B media/provenance administration is Complete / Accepted Source at `deb9f6e2a4246f4f5c70ca1b56797ccf0588388e`. Combined release `f68adcc60ec195f8099252b0d2d78da9a7c5ef4e` is published; deployment is recorded on owner instruction, without independent live verification.
 
 ## Content and authority
 
@@ -38,6 +38,6 @@ Static route heads consume compiled bilingual SEO only. HostPapa prerender canno
 
 Admin content inventory, dashboard draft counts and global content search derive from the eight typed documents. They show unavailable draft authority explicitly and do not invent publication dates, translation gaps or fixture entities.
 
-Codex collected and independently reviewed AGY's Home/Travel and Airport/destination/informational-page editor tasks. Integration includes corrected field associations/focus, busy and dirty-navigation protection, explicit storage errors and retry, remote-draft conflict handling, read-only evidence classification, truthful deferred reference catalogs, and Arabic mobile wrapping. Navigation is read-only; approved archive/media/provenance administration remains deferred to Phase 7B.
+Codex collected and independently reviewed AGY's Home/Travel and Airport/destination/informational-page editor tasks. Integration includes corrected field associations/focus, busy and dirty-navigation protection, explicit storage errors and retry, remote-draft conflict handling, read-only evidence classification, truthful deferred reference catalogs, and Arabic mobile wrapping. Navigation is read-only; approved archive/media/provenance administration is implemented in accepted Phase 7B.
 
-Phase 7B media/provenance administration, backend publication, email, remote CMS and unrelated visual redesign are deferred. Whole Phase 7 must be committed and pushed before independent ChatGPT engineering review.
+Backend publication, email and remote CMS remain deferred. Phase 7B media/provenance administration is accepted; visual finalization now belongs to Phase 8. Historical Phase 7 engineering handback is preserved in Git history.

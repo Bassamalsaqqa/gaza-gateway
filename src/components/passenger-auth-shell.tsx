@@ -35,7 +35,7 @@ export function PassengerAuthShell({
             {/* Background photographic asset — strictly NEVER mirrored */}
             <ResponsiveImage
               entry="signin-photo"
-              sizes="(min-width: 1024px) 45vw, 100vw"
+              sizes="(min-width: 1024px) 381px, 100vw"
               loading="eager"
               fetchPriority="high"
               className="pointer-events-none absolute inset-0 size-full select-none object-cover"

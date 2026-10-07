@@ -191,85 +191,26 @@ it("all authoritative current headers and roadmap distinguish C2A foundation fro
   }
 });
 
-it("living docs retain accepted Phase 6 provenance and accepted Phase 7 and the Phase 7B review boundary", () => {
-  const livingFiles = [
-    "README.md",
-    "PRODUCT.md",
-    "roadmap.md",
-    ...[
-      "ARCHITECTURE",
-      "CANONICAL_REPOSITORIES",
-      "DATA_FLOW",
-      "SCHEDULE_MODEL",
-      "SETTINGS_MODEL",
-      "NETWORK_MODEL",
-      "FLEET_MODEL",
-      "DATED_SERVICE_MODEL",
-      "COMMERCIAL_MODEL",
-      "CONTENT_MODEL",
-      "CONTACT_MODEL",
-    ].map((name) => `docs/${name}.md`),
-  ];
-  for (const file of livingFiles) {
+it("living docs record accepted editorial source, owner deployment and Phase 8 review boundary", () => {
+  const files = ["README.md", "PRODUCT.md", "roadmap.md", ...["ARCHITECTURE", "CANONICAL_REPOSITORIES", "DATA_FLOW", "SCHEDULE_MODEL", "SETTINGS_MODEL", "NETWORK_MODEL", "FLEET_MODEL", "DATED_SERVICE_MODEL", "COMMERCIAL_MODEL", "CONTENT_MODEL", "CONTACT_MODEL"].map(name => `docs/${name}.md`)];
+  for (const file of files) {
     const text = readFileSync(file, "utf8");
-    const current = text.split("## Phase 6B consolidated release & Phase 6C status")[1];
-    assert.ok(current, `${file}: living current-status block`);
-    const header = text.split(/\r?\n/).slice(0, 10).join("\n");
-    if (file !== "PRODUCT.md") {
-      assert.match(header, /Phase 6C[^\n]*Complete \/ Accepted Source/, `${file}: current header`);
-      assert.doesNotMatch(header, /Phase 6C(?:(?!Phase 7)[^\n])*Awaiting Independent Review/, `${file}: no stale current header`);
-    }
-    assert.match(current, /Phase 6 engineering implementation is complete/);
-    assert.match(current, /published to main at `4374e9f37cd6f23798cfd20ccfa7e43bcec77f89`/);
-    assert.match(current, /421101d294674aaa503565cfc4df9fafb62527ba/);
-    assert.match(current, /Owner deployment of that package has not been confirmed/);
-    assert.doesNotMatch(current, /once this finalization is independently reviewed and published to main/);
-    assert.match(
-      text,
-      /Phase 6C(?:(?!Phase 7)[^\n])*Complete \/ Accepted Source/,
-      `${file}: Phase 6C Complete / Accepted Source`,
-    );
-    assert.ok(
-      current.includes("d5dd2942fad517cc5f1be353ad206511cc0724cc"),
-      `${file}: accepted engineering SHA`,
-    );
-    assert.ok(
-      current.includes("3ac3c8a078f7ffa82b411744b656c3575a3955c4"),
-      `${file}: original implementation SHA`,
-    );
-    assert.match(
-      current,
-      /Phase 6C (?:has no Accepted Release and )?is not (?:released or )?deployed/,
-      `${file}: Phase 6C not deployed`,
-    );
-    assert.match(
-      current,
-      /Phase 7 - CMS Admin Workflows: Complete \/ Accepted Source/,
-      `${file}: Phase 7 Complete / Accepted Source`,
-    );
-    assert.match(current, /Phase 7B - Media & Provenance Admin: Implemented \/ Awaiting Independent Review/, file);
-    assert.ok(current.includes("6b0240f1692beecc3f030775c0a25a68758a279b"), file);
-    assert.match(current, /No Phase 7\/7B release or deployment has occurred/, file);
-    assert.ok(
-      current.includes("8e3136c22156c9acf800d25e94e8cd3d29a8bfc8"),
-      `${file}: consolidated production release SHA`,
-    );
-    assert.ok(
-      current.includes("2749c26714258871c32bd2b14a75fc4e87a68b62"),
-      `${file}: consolidated production runtime source SHA`,
-    );
-  }
-
-  for (const modelDoc of [
-    "docs/STAFF_MODEL.md",
-    "docs/CUSTOMER_DIRECTORY_MODEL.md",
-    "docs/ACTIVITY_MODEL.md",
-  ]) {
-    const text = readFileSync(modelDoc, "utf8");
-    assert.match(
-      text,
-      /Document Status[^\n]*Phase 6C Complete \/ Accepted Source/,
-      `${modelDoc}: document status`,
-    );
+    const current = text.split("## Current checkpoint — Phase 8")[1];
+    assert.ok(current, file);
+    assert.match(current, /Phase 6, Phase 7 and Phase 7B are \*\*Complete \/ Accepted Source/);
+    assert.ok(current.includes("deb9f6e2a4246f4f5c70ca1b56797ccf0588388e"), file);
+    assert.ok(current.includes("f68adcc60ec195f8099252b0d2d78da9a7c5ef4e"), file);
+    assert.match(current, /product owner's instruction/);
+    assert.match(current, /no cPanel deployment or independent live verification/);
+    assert.match(current, /Phase 9 remains Planned \/ Unstarted/);
+    assert.match(current, /Phase 8 — Visual System & Assets Finalization: Implemented \/ Awaiting Independent Review/);
+    assert.match(current, /Earlier milestone sections are historical/);
+    for (const historicalSha of [
+      "d5dd2942fad517cc5f1be353ad206511cc0724cc",
+      "3ac3c8a078f7ffa82b411744b656c3575a3955c4",
+      "4374e9f37cd6f23798cfd20ccfa7e43bcec77f89",
+      "8e3136c22156c9acf800d25e94e8cd3d29a8bfc8",
+      "2749c26714258871c32bd2b14a75fc4e87a68b62",
+    ]) assert.ok(text.includes(historicalSha), `${file}: retained history ${historicalSha}`);
   }
 });

@@ -620,16 +620,16 @@ export function AppearanceStudio() {
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">{t("a2.se.metaDraft") || "Working Draft"}</span>
                 {isDirty ? (
-                  <span className="text-xs font-semibold text-amber-600 bg-amber-100 dark:bg-amber-900/40 dark:text-amber-400 px-2 py-0.5 rounded-full">{t("a2.se.unsaved") || "Unsaved"}</span>
+                  <span className="text-xs font-semibold text-status-delayed bg-status-delayed/15 px-2 py-0.5 rounded-full">{t("a2.se.unsaved") || "Unsaved"}</span>
                 ) : savedAppearance !== null ? (
-                  <span className="text-xs font-semibold text-green-600 bg-green-100 dark:bg-green-900/40 dark:text-green-400 px-2 py-0.5 rounded-full">{t("a2.se.savedDraft") || "Saved"}</span>
+                  <span className="text-xs font-semibold text-status-ontime bg-brand-soft px-2 py-0.5 rounded-full">{t("a2.se.savedDraft") || "Saved"}</span>
                 ) : (
                   <span className="text-xs font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{t("a2.se.publishedBaseline") || "Published baseline"}</span>
                 )}
               </div>
 
               {externalNotice && (
-                <div role="status" className="text-xs text-amber-700 dark:text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded p-2">
+                <div role="status" className="text-xs text-status-delayed bg-status-delayed/10 border border-status-delayed/20 rounded p-2">
                   {t("a2.se.externalChangeNotice") || (isAr ? "تم تحديث المسودة المحفوظة في علامة تبويب أخرى. تم الاحتفاظ بتعديلاتك غير المحفوظة." : "The saved draft was updated in another tab. Your unsaved changes have been kept.")}
                 </div>
               )}

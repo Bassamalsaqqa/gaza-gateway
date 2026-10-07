@@ -107,7 +107,11 @@ function DestinationPage() {
         <div className="absolute inset-0 -z-10 bg-gradient-to-t from-ink via-ink/70 to-ink/50" />
         <Container className="py-16 sm:py-24">
           <Eyebrow className="text-clay-soft">
-            <span className="code-id">GZA</span> → <span className="code-id">{destination.code}</span>
+            <span dir="ltr" className="inline-flex items-center gap-1.5">
+              <span className="code-id">GZA</span>
+              <ArrowRight aria-hidden="true" className="size-3.5 shrink-0" />
+              <span className="code-id">{destination.code}</span>
+            </span>
           </Eyebrow>
           <h1 className="mt-3 text-4xl font-bold sm:text-6xl">{city}</h1>
           <p className="mt-2 text-sm text-ink-muted">

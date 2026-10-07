@@ -423,7 +423,7 @@ function Home() {
                     alt=""
                     aria-hidden="true"
                     loading="lazy"
-                    className="pointer-events-none absolute inset-0 size-full select-none object-cover object-center"
+                    className="pointer-events-none absolute inset-0 size-full select-none object-cover object-center opacity-40"
                   />
                   <div className="relative z-10 flex flex-1 flex-col justify-between">
                     <div>
@@ -480,7 +480,7 @@ function Home() {
             alt=""
             aria-hidden="true"
             loading="lazy"
-            className="pointer-events-none absolute inset-0 size-full select-none object-cover object-center"
+            className="pointer-events-none absolute inset-0 size-full select-none object-cover object-center opacity-40"
           />
           <div className="relative z-10">
             <div className="flex size-11 items-center justify-center rounded-xl bg-secondary text-secondary-foreground">
@@ -513,7 +513,7 @@ function Home() {
             alt=""
             aria-hidden="true"
             loading="lazy"
-            className="pointer-events-none absolute inset-0 size-full select-none object-cover object-center"
+            className="pointer-events-none absolute inset-0 size-full select-none object-cover object-center opacity-40"
           />
           <div className="relative z-10">
             <div className="flex size-11 items-center justify-center rounded-xl bg-clay-soft text-clay">

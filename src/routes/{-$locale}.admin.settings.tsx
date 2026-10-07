@@ -222,7 +222,7 @@ function AdminSettingsPage() {
         description={t("a2.se.sub")}
         meta={
           tab === "contact" || tab === "appearance" ? (
-            <p className="text-xs text-muted-foreground font-medium text-amber-600 dark:text-amber-500">
+            <p className="text-xs font-medium text-status-delayed">
               {t("a2.se.metaDraft") || "Local, unpublished draft. Changes are stored in this browser only."}
             </p>
           ) : (
@@ -254,7 +254,7 @@ function AdminSettingsPage() {
           ) : tab === "contact" ? (
             <form onSubmit={handleSaveContact}>
               {externalNotice && (
-                <div role="status" className="mb-4 p-3 text-xs rounded bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
+                <div role="status" className="mb-4 p-3 text-xs rounded bg-status-delayed/10 text-status-delayed border border-status-delayed/20">
                   {t("a2.se.externalChangeNotice") || "The saved draft was updated in another tab. Your unsaved changes have been kept."}
                 </div>
               )}
@@ -311,9 +311,9 @@ function AdminSettingsPage() {
                   )}
                   <span className="text-xs ml-auto mr-4">
                     {isContactDirty ? (
-                      <span className="text-xs font-semibold text-amber-600 bg-amber-100 dark:bg-amber-900/40 dark:text-amber-400 px-2 py-0.5 rounded-full">{t("a2.se.unsaved") || "Unsaved"}</span>
+                      <span className="text-xs font-semibold text-status-delayed bg-status-delayed/15 px-2 py-0.5 rounded-full">{t("a2.se.unsaved") || "Unsaved"}</span>
                     ) : savedContact ? (
-                      <span className="text-xs font-semibold text-green-600 bg-green-100 dark:bg-green-900/40 dark:text-green-400 px-2 py-0.5 rounded-full">{t("a2.se.savedDraft") || "Saved"}</span>
+                      <span className="text-xs font-semibold text-status-ontime bg-brand-soft px-2 py-0.5 rounded-full">{t("a2.se.savedDraft") || "Saved"}</span>
                     ) : (
                       <span className="text-xs font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{t("a2.se.publishedBaseline") || "Published baseline"}</span>
                     )}

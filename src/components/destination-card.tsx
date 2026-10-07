@@ -43,10 +43,12 @@ export function DestinationCard({
             srcSet={buildDestinationSrcSet(photo)}
             sizes={size === "lg" ? "(min-width: 1024px) 50vw, 100vw" : "(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"}
             alt=""
+            width={photo.width}
+            height={photo.height}
             loading="lazy"
             decoding="async"
             style={{ objectPosition: `${focal.x}% ${focal.y}%` }}
-            className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+            className="size-full object-cover transition-transform duration-500 motion-safe:group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:transform-none"
           />
         )}
       </div>

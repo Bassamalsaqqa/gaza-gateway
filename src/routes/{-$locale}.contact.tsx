@@ -225,7 +225,7 @@ function ContactPage() {
         <div>
           {search.settingsPreview === 1 && <Notice>{t("contact.previewNotice")}</Notice>}
           {search.settingsPreview === 1 && activeDraft !== null && (
-            <div className="mb-4 text-xs font-semibold text-amber-700 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400 p-2.5 rounded-md border border-amber-300 dark:border-amber-800">
+            <div className="mb-4 text-xs font-semibold text-status-delayed bg-status-delayed/15 p-2.5 rounded-md border border-status-delayed/30">
               {pick(lang, {
                 en: "Stored in this browser • Not published",
                 ar: "مسودة محفوظة في هذا المتصفح • غير منشورة",

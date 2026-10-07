@@ -268,7 +268,7 @@ export function SurfaceRail({
     none: "bg-border",
     brand: "bg-brand",
     clay: "bg-clay",
-    brass: "bg-[#C7A46A]",
+    brass: "bg-brass",
   }[accent];
 
   return (

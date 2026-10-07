@@ -1,6 +1,6 @@
 # Archive administration — Phase 7B
 
-Status: Phase 7B Implemented / Awaiting Independent Review. Phase 7 accepted source is `6b0240f1692beecc3f030775c0a25a68758a279b`.
+Status: Phase 7B Complete / Accepted Source at `deb9f6e2a4246f4f5c70ca1b56797ccf0588388e`. Phase 7 accepted source is `6b0240f1692beecc3f030775c0a25a68758a279b`.
 
 ## Authorities
 

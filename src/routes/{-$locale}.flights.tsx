@@ -164,7 +164,7 @@ function FlightsPage() {
                       onClick={() => setDate(iso)}
                       aria-pressed={isSelected}
                       className={cn(
-                        "shrink-0 min-h-10 rounded-lg border px-3.5 py-2 text-xs sm:text-sm font-semibold transition-all cursor-pointer select-none",
+                        "shrink-0 min-h-11 sm:min-h-10 rounded-lg border px-3.5 py-2 text-xs sm:text-sm font-semibold transition-all cursor-pointer select-none",
                         "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
                         isSelected
                           ? "border-primary bg-primary text-primary-foreground shadow-xs font-bold"

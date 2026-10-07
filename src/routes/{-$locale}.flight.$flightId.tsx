@@ -119,8 +119,10 @@ function FlightDetail({
             <span className="text-xs text-ink-muted">{t("fd.operatedBy", { airline: pick(lang, AIRLINE.name) })}</span>
           </div>
 
-          <h1 className="mt-4 text-3xl font-bold sm:text-5xl">
-            {pick(lang, from.city)} <span aria-hidden="true">→</span> {pick(lang, to.city)}
+          <h1 className="mt-4 flex flex-wrap items-center gap-2 text-3xl font-bold sm:gap-3 sm:text-5xl">
+            <span>{pick(lang, from.city)}</span>
+            <ArrowRight aria-hidden="true" className="size-6 shrink-0 rtl:rotate-180 sm:size-8" />
+            <span>{pick(lang, to.city)}</span>
           </h1>
           <p className="mt-3 text-sm text-ink-muted sm:text-base">{dateLong(flight.date, lang)}</p>
 

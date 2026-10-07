@@ -5,7 +5,8 @@ import { ContentPreviewNotice, useContentPreview } from "@/content/preview";
 import { AppLink } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
 import { btnClass, Code, Container, PageHeader, Panel } from "@/components/kit";
-import { AIRLINE, destinations, img } from "@/lib/data";
+import { ResponsiveImage } from "@/components/responsive-image";
+import { AIRLINE, destinations } from "@/lib/data";
 import { pick, useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/{-$locale}/about")({
@@ -56,7 +57,23 @@ function AboutPage() {
                 <p key={paragraphIndex} className="mt-2 text-base leading-relaxed text-muted-foreground">{pick(lang, paragraph)}</p>
               ))}
               {block.id === "about-airport" && <AppLink to="/airport" className={btnClass("outline", "md", "mt-5")}>{t("airport.title")}</AppLink>}
-              {block.id === "about-material" && <img src={img("archive-desk-documents", 1400, 500)} alt="" loading="lazy" className="mt-6 aspect-21/9 w-full rounded-xl object-cover" />}
+              {block.id === "about-material" && (
+                <ResponsiveImage
+                  entry="airport-archive-hero-2000"
+                  sizes="(min-width: 1024px) 896px, 100vw"
+                  loading="lazy"
+                  className="aspect-21/9 w-full rounded-xl object-cover"
+                  containerClassName="mt-6"
+                  caption={
+                    <span className="flex items-center justify-between">
+                      <span>{t("media.archive2000Label")}</span>
+                      <AppLink to="/gallery" className="font-medium hover:underline">
+                        {t("nav.gallery")}
+                      </AppLink>
+                    </span>
+                  }
+                />
+              )}
             </Panel>
           </Fragment>
         ))}
