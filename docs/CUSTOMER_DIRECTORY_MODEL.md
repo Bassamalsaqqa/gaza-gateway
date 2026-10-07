@@ -119,3 +119,9 @@ All administrative actions on customer detail surfaces execute real domain comma
     queryClient.invalidateQueries({ queryKey: customerKeys.all });
   });
   ```
+
+## Customer audit history and privacy boundary
+
+The customer Activity tab reads canonical ActivityRepository events for the customer's current canonical booking references. Account customers additionally include direct customer/account events targeting their route ID or email. It orders retained events newest first and distinguishes unavailable history from an empty result. It does not infer unaudited passenger actions. Guest contact receipts supply detached transaction-time before-contact and committed after-contact facts; identical saves create no event.
+
+Customer route tokens encode email reversibly and are not anonymous or non-PII. Stronger route privacy is a later privacy-hardening consideration.

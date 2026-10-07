@@ -24,6 +24,9 @@ import {
   useCustomerDetailQuery,
   useUpdateCustomerContact,
 } from "@/lib/customer-directory";
+import { customerActivityEvents } from "@/lib/customer-directory/activity";
+import { useActivityQuery } from "@/lib/activity/queries";
+import type { CustomerDetail } from "@/lib/customer-directory/types";
 import { todayISO } from "@/lib/data";
 import { pageHead } from "@/lib/head";
 import type { Booking } from "@/lib/domain/booking";
@@ -452,10 +455,7 @@ function AdminCustomerDetailPage() {
           ) : null}
 
           {tab === "activity" ? (
-            <AdminEmpty
-              title={t("a2.cu.tab.activity")}
-              body={t("a2.cu.noActivity")}
-            />
+            <CustomerActivity customer={customer} />
           ) : null}
         </div>
       </AdminPanel>
@@ -601,5 +601,40 @@ function AdminCustomerDetailPage() {
         </form>
       </GazaSheet>
     </div>
+  );
+}
+
+function CustomerActivity({ customer }: { customer: CustomerDetail }) {
+  const { t, lang } = useI18n();
+  const { data, isLoading, isError, refetch } = useActivityQuery();
+  if (isLoading) return <p className="text-sm text-muted-foreground">{t("a2.loading")}</p>;
+  if (isError) return (
+    <div role="alert" className="space-y-3 text-sm">
+      <p>{lang === "ar" ? "تعذر تحميل سجل النشاط في هذا المتصفح." : "Unable to load activity in this browser."}</p>
+      <button className={btnClass("outline", "sm")} onClick={() => void refetch()}>
+        {lang === "ar" ? "إعادة المحاولة" : "Retry"}
+      </button>
+    </div>
+  );
+  const events = customerActivityEvents(data ?? [], customer);
+  if (!events.length) return <AdminEmpty title={t("a2.cu.tab.activity")} body={t("a2.cu.noActivity")} />;
+  return (
+    <ul className="space-y-3" data-testid="customer-activity">
+      {events.map((event) => (
+        <li key={event.id} className="min-w-0 rounded-md border border-border p-3 text-sm space-y-2">
+          <p className="font-semibold">{event.actor.name[lang]} · {t(`a2.ac.act.${event.action}`)}</p>
+          <p className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+            <time dateTime={event.timestamp} dir="ltr">{new Date(event.timestamp).toLocaleString(lang === "ar" ? "ar" : "en", { timeZone: "Asia/Gaza" })}</time>
+            <Ltr className="break-all">{event.targetId}</Ltr>
+          </p>
+          {(event.before != null || event.after != null) && (
+            <dl className="grid gap-2 sm:grid-cols-2">
+              <div className="min-w-0"><dt className="text-xs text-muted-foreground">{lang === "ar" ? "قبل" : "Before"}</dt><dd dir="ltr" className="break-all">{event.before ?? "—"}</dd></div>
+              <div className="min-w-0"><dt className="text-xs text-muted-foreground">{lang === "ar" ? "بعد" : "After"}</dt><dd dir="ltr" className="break-all">{event.after ?? "—"}</dd></div>
+            </dl>
+          )}
+        </li>
+      ))}
+    </ul>
   );
 }

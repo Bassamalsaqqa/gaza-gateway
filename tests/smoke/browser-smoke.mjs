@@ -1,3 +1,4 @@
+import { runPhase6CCorrection05Checks } from "./phase6c-correction-05.mjs";
 import { runPhase6CConvergenceChecks } from "./phase6c-convergence.mjs";
 import { runPhase6CStaffActivityChecks } from "./phase6c-staff-activity.mjs";
 import { runCutoverCorrection01Checks } from "./phase6b2c2b-correction-01.mjs";
@@ -1061,8 +1062,8 @@ async function runBrowserSmoke() {
       const expectedStoreRaw = JSON.stringify(sentinelStore);
       const expectedAdminRaw = JSON.stringify(sentinelAdmin);
 
-      // 11a. Inject sentinels into localStorage before loading Studio preview
-      await page.goto(`${baseUrl}/`, { waitUntil: "domcontentloaded" });
+      // 11a. Inject sentinels into localStorage from an isolated origin before the Studio action
+      await page.goto(`${baseUrl}/?studioPreview=1`, { waitUntil: "domcontentloaded" });
       await page.evaluate(({ repo, store, admin }) => {
         localStorage.setItem("gza.repo.v1", repo);
         localStorage.setItem("gza.store.v1", store);
@@ -1085,11 +1086,8 @@ async function runBrowserSmoke() {
         await page.reload({ waitUntil: "domcontentloaded" });
         await page.waitForTimeout(1000);
 
-        // 11e. Exit Studio preview by navigating back to public root
-        await page.goto(`${baseUrl}/`, { waitUntil: "domcontentloaded" });
-        await page.waitForTimeout(500);
-
-        // 11f. VERIFY: ALL THREE keys must remain 100% BYTE-IDENTICAL to their sentinels
+        // 11e. VERIFY in Studio: ALL THREE keys remain 100% BYTE-IDENTICAL.
+        // A missing production session pointer is intentionally not resolved or cleared here.
         const actualRepoRaw = await page.evaluate(() => localStorage.getItem("gza.repo.v1"));
         const actualStoreRaw = await page.evaluate(() => localStorage.getItem("gza.store.v1"));
         const actualAdminRaw = await page.evaluate(() => localStorage.getItem("gza.admin.v1"));
@@ -1110,6 +1108,19 @@ async function runBrowserSmoke() {
           throw new Error(
             `Studio action mutated persistent gza.admin.v1!\nExpected: ${expectedAdminRaw}\nActual:   ${actualAdminRaw}`
           );
+        }
+
+        // 11f. Outside Studio, normal canonical session resolution revokes this
+        // nonexistent identity (Correction 05) without touching compatible fields.
+        await page.goto(`${baseUrl}/`, { waitUntil: "domcontentloaded" });
+        await page.waitForFunction(() => JSON.parse(localStorage.getItem("gza.admin.v1") || "{}").staffId === null);
+        const revokedAdminRaw = await page.evaluate(() => localStorage.getItem("gza.admin.v1"));
+        if (revokedAdminRaw !== JSON.stringify({ ...sentinelAdmin, staffId: null })) {
+          throw new Error("Normal missing-session revocation changed compatible sentinel fields");
+        }
+        if (await page.evaluate(() => localStorage.getItem("gza.repo.v1")) !== expectedRepoRaw ||
+            await page.evaluate(() => localStorage.getItem("gza.store.v1")) !== expectedStoreRaw) {
+          throw new Error("Leaving Studio modified unrelated persistent domain sentinels");
         }
       } finally {
         // Clean up sentinels from localStorage
@@ -7791,6 +7802,7 @@ async function runBrowserSmoke() {
     await runCutoverCorrection01Checks({ checkStep, browser, baseUrl });
     await runPhase6CStaffActivityChecks({ checkStep, browser, baseUrl });
     await runPhase6CConvergenceChecks({ checkStep, browser, baseUrl });
+    await runPhase6CCorrection05Checks({ checkStep, browser, baseUrl });
 
   } finally {
     await browser.close();

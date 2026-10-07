@@ -20,7 +20,7 @@ import { isSyntheticFlightId, getEffectiveFlight, type Flight } from "../domain/
 import { isFlightBookable, getFlightBookability } from "../booking-rules.ts";
 import { createStandaloneServiceResolver, type DatedServiceResolver } from "../dated-services/resolver.ts";
 import { makePnr } from "../format.ts";
-import type { BookingRepository, BookingMutationReceipt, CheckInCommandInput, UndoCheckInCommandInput, ClaimResult } from "./types.ts";
+import type { BookingRepository, BookingMutationReceipt, BookingContactMutationReceipt, CheckInCommandInput, UndoCheckInCommandInput, ClaimResult } from "./types.ts";
 import type { Extras } from "../booking-draft/types.ts";
 import { getCheckInEligibility } from "../domain/check-in.ts";
 import { bookingTotal } from "../domain/pricing.ts";
@@ -550,7 +550,7 @@ export class LocalBookingRepository implements BookingRepository {
   public async updateContactWithReceipt(
     ref: string,
     contact: { email: string; phone?: string },
-  ): Promise<BookingMutationReceipt> {
+  ): Promise<BookingContactMutationReceipt> {
     if (!ref || typeof ref !== "string") {
       throw new Error("Cannot update contact: reference is required.");
     }
@@ -561,7 +561,7 @@ export class LocalBookingRepository implements BookingRepository {
     }
     const cleanPhone = (contact?.phone ?? "").trim();
 
-    return this.coordinator.conditionalMutateAsync<BookingMutationReceipt>((state) => {
+    return this.coordinator.conditionalMutateAsync<BookingContactMutationReceipt>((state) => {
       const index = state.bookings.findIndex((b) => b.ref.toUpperCase() === clean);
       if (index === -1) {
         throw new Error(`Booking ${clean} not found.`);
@@ -576,12 +576,13 @@ export class LocalBookingRepository implements BookingRepository {
         throw new Error(`Cannot update contact: booking ${clean} is cancelled.`);
       }
 
+      const beforeContact = { ...existing.contact };
       const isNoOp =
         existing.contact.email === cleanEmail &&
         (existing.contact.phone ?? "") === cleanPhone;
 
       if (isNoOp) {
-        return { commit: false, result: { booking: { ...existing }, changed: false } };
+        return { commit: false, result: { booking: { ...existing }, changed: false, beforeContact } };
       }
 
       const updated: Booking = {
@@ -594,7 +595,7 @@ export class LocalBookingRepository implements BookingRepository {
       };
 
       state.bookings[index] = updated;
-      return { commit: true, result: { booking: { ...updated }, changed: true } };
+      return { commit: true, result: { booking: { ...updated }, changed: true, beforeContact } };
     });
   }
 

@@ -97,8 +97,8 @@ export function useUpdateCustomerContact() {
         });
         return {
           changed: receipt.changed,
-          beforeContact: `${receipt.booking.contact.email} / ${receipt.booking.contact.phone ?? ""}`,
-          afterContact: `${input.email} / ${input.phone}`,
+          beforeContact: `${receipt.beforeContact.email} / ${receipt.beforeContact.phone ?? ""}`,
+          afterContact: `${receipt.booking.contact.email} / ${receipt.booking.contact.phone ?? ""}`,
         };
       }
     },

@@ -21,6 +21,8 @@ import type { StaffMember, StaffRepository } from "./types.ts";
 
 export const ADMIN_STORAGE_KEY = "gza.admin.v1";
 
+export type AdminSignInResult = { ok: boolean; error?: "unknown" | "pass" | "storage_unavailable" | "directory_unavailable" };
+
 export interface AdminSessionCoordinatorOptions {
   storage?: Storage | null | undefined;
   staffRepo: StaffRepository;
@@ -218,6 +220,9 @@ export class AdminSessionCoordinator {
                   this.notify();
                   return;
                 }
+                // The epoch check above owns this resolution. Re-enabling the
+                // identity later must require a fresh sign-in.
+                this.clearStoredSession(staffId);
               } catch {
                 if (this.epoch !== currentEpoch) return;
                 this._staff = null;
@@ -244,7 +249,7 @@ export class AdminSessionCoordinator {
     email: string,
     passphrase: string,
     onAuditWarning?: () => void,
-  ): Promise<{ ok: boolean; error?: "unknown" | "pass" | "storage_unavailable" }> {
+  ): Promise<AdminSignInResult> {
     const currentEpoch = ++this.epoch;
 
     if (!this.isStudioPreview && !this.storage) {
@@ -257,7 +262,7 @@ export class AdminSessionCoordinator {
     try {
       found = await this.staffRepo.getByEmail(normalized);
     } catch {
-      return { ok: false, error: "unknown" };
+      return { ok: false, error: "directory_unavailable" };
     }
 
     if (this.epoch !== currentEpoch) return { ok: false, error: "unknown" };
@@ -281,7 +286,7 @@ export class AdminSessionCoordinator {
         }
         touched = res;
       } catch {
-        return { ok: false, error: "unknown" };
+        return { ok: false, error: "directory_unavailable" };
       }
 
       // Canonical re-check & epoch check BEFORE session write
@@ -293,7 +298,7 @@ export class AdminSessionCoordinator {
       try {
         fresh = await this.staffRepo.getById(touched.id);
       } catch {
-        return { ok: false, error: "unknown" };
+        return { ok: false, error: "directory_unavailable" };
       }
       if (this.epoch !== currentEpoch || !fresh || fresh.status !== "active") {
         return { ok: false, error: "unknown" };
@@ -375,7 +380,7 @@ export class AdminSessionCoordinator {
         this._directoryUnavailable = true;
         this.clearStoredSession();
         this.notify();
-        return { ok: false, error: "unknown" };
+        return { ok: false, error: "directory_unavailable" };
       }
 
       if (this.epoch !== currentEpoch) return { ok: false, error: "unknown" };
@@ -408,11 +413,19 @@ export class AdminSessionCoordinator {
     this.notify();
   }
 
-  private clearStoredSession(): void {
+  private clearStoredSession(expectedStaffId?: string): void {
     if (!this.storage || this.isStudioPreview) return;
     try {
+      const raw = this.storage.getItem(ADMIN_STORAGE_KEY);
+      let parsed: unknown = null;
+      try { parsed = raw ? JSON.parse(raw) : null; } catch { /* clear malformed session identity */ }
+      const current = parsed && typeof parsed === "object" && !Array.isArray(parsed)
+        ? parsed as Record<string, unknown>
+        : this.legacyAdminData;
+      // A newer cross-tab identity may already be persisted before its event arrives.
+      if (expectedStaffId !== undefined && current["staffId"] !== expectedStaffId) return;
       const payload = {
-        ...this.legacyAdminData,
+        ...current,
         staffId: null,
       };
       this.storage.setItem(ADMIN_STORAGE_KEY, JSON.stringify(payload));

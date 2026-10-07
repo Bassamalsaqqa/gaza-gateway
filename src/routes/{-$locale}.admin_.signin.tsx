@@ -59,7 +59,11 @@ function AdminSignInPage() {
     }
     const result = await signIn(email, pass);
     if (!result.ok) {
-      setError(result.error === "pass" ? t("adm.signin.errPass") : t("adm.signin.errUnknown"));
+      const errorKey = result.error === "pass" ? "adm.signin.errPass"
+        : result.error === "directory_unavailable" ? "adm.signin.errDirectory"
+        : result.error === "storage_unavailable" ? "adm.signin.errStorage"
+        : "adm.signin.errUnknown";
+      setError(t(errorKey));
       setErrorField(result.error === "pass" ? "pass" : "form");
       return;
     }

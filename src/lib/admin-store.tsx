@@ -25,7 +25,7 @@ type AdminValue = {
   role: AdminRole | undefined;
   directoryUnavailable: boolean;
   actor: ActivityActorSnapshot | null;
-  signIn: (email: string, passphrase: string, onAuditWarning?: () => void) => Promise<{ ok: boolean; error?: "unknown" | "pass" | "storage_unavailable" }>;
+  signIn: (email: string, passphrase: string, onAuditWarning?: () => void) => Promise<{ ok: boolean; error?: "unknown" | "pass" | "storage_unavailable" | "directory_unavailable" }>;
   signOut: () => void;
   can: (permission: Permission) => boolean;
   toasts: Toast[];

@@ -30,6 +30,11 @@ export interface BookingMutationReceipt {
   changed: boolean;
 }
 
+export interface BookingContactMutationReceipt extends BookingMutationReceipt {
+  /** Detached contact sampled inside the canonical transaction, before mutation. */
+  beforeContact: Booking["contact"];
+}
+
 export interface BookingRepository {
   /** Retrieves all confirmed and cancelled bookings. */
   list(): Promise<Booking[]>;
@@ -53,7 +58,7 @@ export interface BookingRepository {
   updateContact(ref: string, contact: { email: string; phone?: string }): Promise<Booking>;
 
   /** Updates passenger contact details, returning a transaction receipt. */
-  updateContactWithReceipt(ref: string, contact: { email: string; phone?: string }): Promise<BookingMutationReceipt>;
+  updateContactWithReceipt(ref: string, contact: { email: string; phone?: string }): Promise<BookingContactMutationReceipt>;
 
   /** Updates seat assignments and canonically recalculates totals. Rejects if booking cancelled, modifying checked-in seats, invalid seat format/cabin/availability, duplicate seats, or infant/invalid passenger. */
   updateSeats(ref: string, seats: Record<string, string>): Promise<Booking>;
