@@ -693,7 +693,7 @@ function AdminAirportPage() {
             { id: "sources", label: t("a2.ap.tab.sources"), count: effectiveSources.length },
             { id: "media", label: t("a2.ap.tab.media"), count: intakeRecords.length },
           ]}
-        />
+        >
 
         <div className="space-y-4 p-4">
           {["past", "present", "future"].includes(tab) && (
@@ -1434,7 +1434,7 @@ function AdminAirportPage() {
                   <div className="flex min-w-0 items-start gap-3">
                     <AlertTriangle aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-destructive" />
                     <div className="min-w-0">
-                      <h4 className="text-sm font-bold text-foreground">{t("adm.common.error")}</h4>
+                      <h4 className="text-sm font-bold text-foreground">{t("error.title")}</h4>
                       <p className="mt-0.5 text-xs text-muted-foreground">{t("archive.edit.storageError")}</p>
                     </div>
                   </div>
@@ -1486,7 +1486,7 @@ function AdminAirportPage() {
                   <div className="flex min-w-0 items-start gap-3">
                     <AlertTriangle aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-destructive" />
                     <div className="min-w-0">
-                      <h4 className="text-sm font-bold text-foreground">{t("adm.common.error")}</h4>
+                      <h4 className="text-sm font-bold text-foreground">{t("error.title")}</h4>
                       <p className="mt-0.5 text-xs text-muted-foreground">{t("archive.edit.storageError")}</p>
                     </div>
                   </div>
@@ -1541,6 +1541,7 @@ function AdminAirportPage() {
             />
           )}
         </div>
+        </AdminTabs>
       </AdminPanel>
 
       <ConfirmDialog open={navigationBlocker.status === "blocked"} title={t("cms.unsaved.title")}

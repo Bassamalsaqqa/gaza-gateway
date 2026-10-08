@@ -309,7 +309,7 @@ function AdminBookingDetailPage() {
             { id: "checkin", label: t("a2.bd.tab.checkin") },
             { id: "history", label: t("a2.bd.tab.history") },
           ]}
-        />
+        >
 
         <div className="p-4">
           {tab === "overview" ? (
@@ -653,6 +653,7 @@ function AdminBookingDetailPage() {
             </ol>
           ) : null}
         </div>
+        </AdminTabs>
       </AdminPanel>
 
       <GazaSheet

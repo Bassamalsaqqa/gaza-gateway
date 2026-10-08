@@ -112,7 +112,7 @@ function AdminActivityPage() {
       case "fleet":
         return t("adm.nav.products");
       case "commercial":
-        return t("adm.nav.commercial");
+        return t("adm.nav.products");
       case "inbox":
         return t("a2.in.title");
       case "staff":

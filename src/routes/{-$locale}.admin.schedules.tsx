@@ -384,9 +384,14 @@ function AdminSchedulesPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t("adm.sch.searchPlaceholder")}
+            aria-label={t("adm.sch.searchLabel")}
             className="w-48"
           />
-          <Select value={dest} onChange={(e) => setDest(e.target.value)}>
+          <Select
+            value={dest}
+            onChange={(e) => setDest(e.target.value)}
+            aria-label={t("adm.sch.destination")}
+          >
             <option value="all">{t("adm.sch.allDest")}</option>
             {destinationOptions.map((d) => (
               <option key={d.code} value={d.code}>
@@ -460,7 +465,7 @@ function AdminSchedulesPage() {
                     <GazaTableHead>{t("adm.sch.effective")}</GazaTableHead>
                     <GazaTableHead>{t("adm.sch.exceptions")}</GazaTableHead>
                     <GazaTableHead>{t("adm.sch.state")}</GazaTableHead>
-                    <GazaTableHead className="text-end">{t("adm.common.actions")}</GazaTableHead>
+                    <GazaTableHead className="text-end">{t("adm.col.actions")}</GazaTableHead>
                   </GazaTableRow>
                 </GazaTableHeader>
                 <GazaTableBody>

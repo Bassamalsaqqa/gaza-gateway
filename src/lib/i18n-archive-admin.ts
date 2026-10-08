@@ -135,6 +135,7 @@ export const archiveAdminEn: Record<string, string> = {
 
   /* Source Archival Status */
   "archive.src.status.live": "Live web document",
+  "archive.src.status.unknown": "Not specified",
   "archive.src.status.archived-wayback": "Wayback archival mirror",
   "archive.src.status.official-repository": "Official treaty / UN repository",
   "archive.src.status.print-record": "Print publication record",
@@ -402,6 +403,7 @@ export const archiveAdminAr: Record<string, string> = {
 
   /* Source Archival Status */
   "archive.src.status.live": "وثيقة شبكية حية",
+  "archive.src.status.unknown": "غير محدد",
   "archive.src.status.archived-wayback": "نسخة أرشيفية (Wayback)",
   "archive.src.status.official-repository": "مستودع رسمي / الأمم المتحدة",
   "archive.src.status.print-record": "سجل مطبوع",

@@ -46,6 +46,7 @@ function CheckInEntryPage() {
     if (!cleanIdentifier) {
       setError(t("manage.needIdentifier"));
       setStatus("idle");
+      document.getElementById("ci-identifier")?.focus();
       return;
     }
     setError(null);
@@ -87,6 +88,7 @@ function CheckInEntryPage() {
                 id="ci-pnr"
                 value={ref}
                 onChange={(e) => setRef(e.target.value.toUpperCase())}
+                dir="ltr"
                 className="code-id tracking-[0.16em] uppercase"
                 required
               />
@@ -95,16 +97,18 @@ function CheckInEntryPage() {
               label={t("manage.identifier")}
               htmlFor="ci-identifier"
               hint={t("manage.identifierHint")}
-              {...(error ? { error } : {})}
+              {...(error ? { error, errorId: "ci-identifier-error" } : {})}
             >
               <Input
                 id="ci-identifier"
+                dir="auto"
                 value={identifier}
                 onChange={(e) => {
                   setIdentifier(e.target.value);
                   setError(null);
                 }}
                 aria-invalid={error ? true : undefined}
+                aria-describedby={error ? "ci-identifier-error" : undefined}
                 required
               />
             </Field>

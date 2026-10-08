@@ -257,6 +257,7 @@ export function AirportCombobox({
         className="w-[calc(100vw-2rem)] sm:w-[320px] max-w-[340px] p-0 shadow-[var(--shadow-lift)] rounded-xl border border-border bg-popover z-50 overflow-hidden"
       >
         <Command
+          label={searchPlaceholder || t("search.searchAirport")}
           filter={airportFilter}
           defaultValue={value}
           loop
@@ -269,6 +270,7 @@ export function AirportCombobox({
             <Search className="size-4 shrink-0 text-muted-foreground opacity-50 me-2" />
             <CommandPrimitive.Input
               ref={inputRef}
+              dir="auto"
               value={search}
               onValueChange={setSearch}
               placeholder={searchPlaceholder || t("search.searchAirport")}

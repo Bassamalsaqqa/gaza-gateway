@@ -1,5 +1,5 @@
 import { useFlightsQuery } from "@/lib/repositories";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AppLink } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
 import { ArrowRight, Building2, Calendar, Clock, Luggage, Plane, Ticket } from "lucide-react";
@@ -286,57 +286,66 @@ function Home() {
                 </TabsTrigger>
               ))}
             </TabsList>
-          </Tabs>
 
-          {boardQuery.isLoading || boardQuery.isError || flights.length === 0 ? (
-            <p role={boardQuery.isError ? "alert" : "status"} className="mt-5 text-sm text-muted-foreground">
-              {t(boardQuery.isError ? "services.error.unavailable" : boardQuery.isLoading ? "services.loading" : "services.empty")}
-              {boardQuery.isError && <button type="button" className={btnClass("ghost", "sm")} onClick={() => void boardQuery.refetch()}>{t("adm.ops.retry")}</button>}
-            </p>
-          ) : null}
-          {/* Desktop Tabular View */}
-          <div className="mt-5 hidden sm:block overflow-x-auto">
-            <FlightTable flights={flights} mode={board} compact />
-          </div>
-
-          {/* Mobile Reflow Cards View (320px - 639px) for Zero Horizontal Clipping */}
-          <div className="mt-4 space-y-3 sm:hidden">
-            {flights.map((flight) => {
-              const other =
-                airportByCode(
-                  board === "departures" ? flight.destinationCode : flight.originCode,
-                ) ?? GZA;
-              const time = board === "departures" ? flight.departTime : flight.arriveTime;
-              return (
-                <div
-                  key={flight.id}
-                  className="flex flex-col gap-2.5 rounded-xl border border-border bg-sand/60 p-3.5"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="code-id text-base font-bold text-foreground">{time}</span>
-                    <StatusBadge status={flight.status} />
-                  </div>
-                  <div className="flex items-baseline justify-between gap-2 border-t border-border/60 pt-2 text-sm">
-                    <span className="font-semibold text-foreground">
-                      {pick(lang, other.city)}{" "}
-                      <Code className="text-xs text-muted-foreground">{other.code}</Code>
-                    </span>
-                    <span className="code-id text-xs text-muted-foreground">{flight.number}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>{flight.gate}</span>
-                    <AppLink
-                      to="/flight/$flightId"
-                      params={{ flightId: flight.id }}
-                      className="font-semibold text-primary hover:underline"
-                    >
-                      {t("flights.details")} →
-                    </AppLink>
-                  </div>
+            {(["departures", "arrivals"] as const).map((mode) => (
+              <TabsContent
+                key={mode}
+                value={mode}
+                forceMount
+                className="mt-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring data-[state=inactive]:hidden"
+              >
+                {boardQuery.isLoading || boardQuery.isError || (mode === board && flights.length === 0) ? (
+                  <p role={boardQuery.isError ? "alert" : "status"} className="mt-5 text-sm text-muted-foreground">
+                    {t(boardQuery.isError ? "services.error.unavailable" : boardQuery.isLoading ? "services.loading" : "services.empty")}
+                    {boardQuery.isError && <button type="button" className={btnClass("ghost", "sm")} onClick={() => void boardQuery.refetch()}>{t("adm.ops.retry")}</button>}
+                  </p>
+                ) : null}
+                {/* Desktop Tabular View */}
+                <div className="mt-5 hidden sm:block overflow-x-auto">
+                  <FlightTable flights={mode === board ? flights : []} mode={mode} compact />
                 </div>
-              );
-            })}
-          </div>
+
+                {/* Mobile Reflow Cards View (320px - 639px) for Zero Horizontal Clipping */}
+                <div className="mt-4 space-y-3 sm:hidden">
+                  {(mode === board ? flights : []).map((flight) => {
+                    const other =
+                      airportByCode(
+                        mode === "departures" ? flight.destinationCode : flight.originCode,
+                      ) ?? GZA;
+                    const time = mode === "departures" ? flight.departTime : flight.arriveTime;
+                    return (
+                      <div
+                        key={flight.id}
+                        className="flex flex-col gap-2.5 rounded-xl border border-border bg-sand/60 p-3.5"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="code-id text-base font-bold text-foreground">{time}</span>
+                          <StatusBadge status={flight.status} />
+                        </div>
+                        <div className="flex items-baseline justify-between gap-2 border-t border-border/60 pt-2 text-sm">
+                          <span className="font-semibold text-foreground">
+                            {pick(lang, other.city)}{" "}
+                            <Code className="text-xs text-muted-foreground">{other.code}</Code>
+                          </span>
+                          <span className="code-id text-xs text-muted-foreground">{flight.number}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span>{flight.gate}</span>
+                          <AppLink
+                            to="/flight/$flightId"
+                            params={{ flightId: flight.id }}
+                            className="font-semibold text-primary hover:underline"
+                          >
+                            {t("flights.details")} →
+                          </AppLink>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </TabsContent>
+            ))}
+          </Tabs>
         </div>
       </Container>
 

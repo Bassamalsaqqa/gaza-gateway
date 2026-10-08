@@ -191,19 +191,21 @@ it("all authoritative current headers and roadmap distinguish C2A foundation fro
   }
 });
 
-it("living docs record accepted editorial source, owner deployment and Phase 8 review boundary", () => {
+it("living docs record accepted Phase 8, owner deployment and Phase 9 review boundary", () => {
   const files = ["README.md", "PRODUCT.md", "roadmap.md", ...["ARCHITECTURE", "CANONICAL_REPOSITORIES", "DATA_FLOW", "SCHEDULE_MODEL", "SETTINGS_MODEL", "NETWORK_MODEL", "FLEET_MODEL", "DATED_SERVICE_MODEL", "COMMERCIAL_MODEL", "CONTENT_MODEL", "CONTACT_MODEL"].map(name => `docs/${name}.md`)];
   for (const file of files) {
     const text = readFileSync(file, "utf8");
-    const current = text.split("## Current checkpoint — Phase 8")[1];
+    const current = text.split("## Current checkpoint — Phase 9")[1];
     assert.ok(current, file);
     assert.match(current, /Phase 6, Phase 7 and Phase 7B are \*\*Complete \/ Accepted Source/);
     assert.ok(current.includes("deb9f6e2a4246f4f5c70ca1b56797ccf0588388e"), file);
     assert.ok(current.includes("f68adcc60ec195f8099252b0d2d78da9a7c5ef4e"), file);
     assert.match(current, /product owner's instruction/);
     assert.match(current, /no cPanel deployment or independent live verification/);
-    assert.match(current, /Phase 9 remains Planned \/ Unstarted/);
-    assert.match(current, /Phase 8 — Visual System & Assets Finalization: Implemented \/ Awaiting Independent Review/);
+    assert.ok(current.includes("55981908a75a38de31538c387d103e548c04f91d"), file);
+    assert.match(current, /Phase 8 — Visual System & Assets Finalization: Complete \/ Accepted Source/);
+    assert.match(current, /Phase 9 — Arabic, RTL, Accessibility & Responsive Certification: Implemented \/ Awaiting Independent Review/);
+    assert.match(current, /Phases 10 and 11 remain Planned \/ Unstarted/);
     assert.match(current, /Earlier milestone sections are historical/);
     for (const historicalSha of [
       "d5dd2942fad517cc5f1be353ad206511cc0724cc",

@@ -283,16 +283,18 @@ export function AdminField({
   hint,
   children,
   className,
+  labelClassName,
 }: {
   label: string;
   htmlFor?: string | undefined;
   hint?: string | undefined;
   children: ReactNode;
   className?: string;
+  labelClassName?: string;
 }) {
   return (
     <div className={cn("flex flex-col gap-1", className)}>
-      <label htmlFor={htmlFor} className="type-label text-muted-foreground">
+      <label htmlFor={htmlFor} className={cn("type-label text-muted-foreground", labelClassName)}>
         {label}
       </label>
       {children}
@@ -392,11 +394,13 @@ export function AdminTabs<T extends string>({
   active,
   onChange,
   label,
+  children,
 }: {
   tabs: { id: T; label: string; count?: number }[];
   active: T;
   onChange: (id: T) => void;
   label: string;
+  children: ReactNode;
 }) {
   const { lang } = useI18n();
   return (
@@ -428,6 +432,27 @@ export function AdminTabs<T extends string>({
           </TabsPrimitive.Trigger>
         ))}
       </TabsPrimitive.List>
+      {tabs.map((tab) =>
+        tab.id === active ? (
+          <TabsPrimitive.Content
+            key={tab.id}
+            value={tab.id}
+            tabIndex={0}
+            className="focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
+            {children}
+          </TabsPrimitive.Content>
+        ) : (
+          <TabsPrimitive.Content
+            key={tab.id}
+            value={tab.id}
+            forceMount
+            hidden
+            tabIndex={-1}
+            style={{ display: "none" }}
+          />
+        ),
+      )}
     </TabsPrimitive.Root>
   );
 }

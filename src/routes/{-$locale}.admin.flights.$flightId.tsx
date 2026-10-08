@@ -190,7 +190,7 @@ function AdminFlightDetailPage() {
             { id: "checkin" as Tab, label: t("adm.fd.tab.checkin") },
             { id: "history" as Tab, label: t("adm.fd.tab.history") },
           ]}
-        />
+        >
 
         <div className="p-4">
           {tab === "overview" ? (
@@ -342,6 +342,7 @@ function AdminFlightDetailPage() {
             )
           ) : null}
         </div>
+        </AdminTabs>
       </AdminPanel>
 
       <FlightQuickEdit flight={edit} onClose={() => setEdit(null)} />

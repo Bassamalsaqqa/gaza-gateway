@@ -62,7 +62,7 @@ function SignInPage() {
         </>
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} aria-describedby={error ? "signin-error" : undefined} className="space-y-4">
         <Field label={t("book.email")} htmlFor="email">
           <Input
             id="email"
@@ -83,7 +83,10 @@ function SignInPage() {
             type="password"
             autoComplete="current-password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setError(null);
+              setPassword(e.target.value);
+            }}
             required
           />
         </Field>
@@ -100,7 +103,7 @@ function SignInPage() {
           {signInMutation.isPending ? t("common.loading") : t("auth.signin")}
         </button>
         {error ? (
-          <p role="alert" className="text-sm font-medium text-destructive">
+          <p id="signin-error" role="alert" className="text-sm font-medium text-destructive">
             {error}
           </p>
         ) : null}

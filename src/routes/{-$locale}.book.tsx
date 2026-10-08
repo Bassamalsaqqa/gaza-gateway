@@ -746,7 +746,7 @@ function BookPage() {
                   <div className="mt-3">
                     {isOutboundError && !isCapacityProof ? <Notice role="alert">{t("services.error.unavailable")}</Notice> : fleetQuery.isError && !isCapacityProof ? <Notice role="alert">{t("fleet.error.unavailable")}</Notice> : isOutboundLoading || (fleetQuery.isPending && !isCapacityProof) ? (
                       <div className="py-8 text-center text-sm text-muted-foreground animate-pulse">
-                        {t("search.searching") || "Searching flights..."}
+                        {t("search.searching")}
                       </div>
                     ) : outboundOptions.length === 0 ? (
                       <EmptyState
@@ -802,7 +802,7 @@ function BookPage() {
                       <div className="mt-3">
                         {fleetQuery.isError ? <Notice role="alert">{t("fleet.error.unavailable")}</Notice> : isInboundLoading || fleetQuery.isPending ? (
                           <div className="py-8 text-center text-sm text-muted-foreground animate-pulse">
-                            {t("search.searching") || "Searching flights..."}
+                            {t("search.searching")}
                           </div>
                         ) : inboundOptions.length === 0 ? (
                           <EmptyState

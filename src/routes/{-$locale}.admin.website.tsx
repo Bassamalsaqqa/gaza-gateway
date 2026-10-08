@@ -772,7 +772,7 @@ function AdminWebsitePage() {
             { id: "pages", label: t("a2.web.tab.pages") },
             { id: "navigation", label: t("a2.web.tab.navigation") },
           ]}
-        />
+        >
 
         <div className="space-y-4 p-4">
           <LangToggle value={editLang} onChange={setEditLang} />
@@ -1222,38 +1222,47 @@ function AdminWebsitePage() {
                               </div>
 
                               <div className="min-w-0 flex-1">
-                                <Input
-                                  id={`tr-pt-${pt.id}-${editLang}`}
-                                  dir={editLang === "ar" ? "rtl" : "ltr"}
-                                  value={pt.text[editLang] ?? ""}
-                                  readOnly={
-                                    !mayEdit ||
-                                    !travelCms.ready ||
-                                    travelCms.saving
-                                  }
-                                  aria-invalid={ptErr ? "true" : "false"}
-                                  aria-describedby={
-                                    ptErr ? `tr-pt-${pt.id}-${editLang}-err` : undefined
-                                  }
-                                  onChange={(e) =>
-                                    updatePoint(
-                                      activeTravelSection.id,
-                                      pt.id,
-                                      "text",
-                                      e.target.value,
-                                    )
-                                  }
-                                  placeholder={t("cms.travel.pointPlaceholder")}
-                                />
-                                {ptErr ? (
-                                  <p
-                                    id={`tr-pt-${pt.id}-${editLang}-err`}
-                                    role="alert"
-                                    className="text-xs text-destructive mt-1"
-                                  >
-                                    {t(ptErr)}
-                                  </p>
-                                ) : null}
+                                <AdminField
+                                  label={t("cms.travel.pointItemLabel", {
+                                    n: ptIdx + 1,
+                                    lang: editLang.toUpperCase(),
+                                  })}
+                                  htmlFor={`tr-pt-${pt.id}-${editLang}`}
+                                  labelClassName="sr-only"
+                                >
+                                  <Input
+                                    id={`tr-pt-${pt.id}-${editLang}`}
+                                    dir={editLang === "ar" ? "rtl" : "ltr"}
+                                    value={pt.text[editLang] ?? ""}
+                                    readOnly={
+                                      !mayEdit ||
+                                      !travelCms.ready ||
+                                      travelCms.saving
+                                    }
+                                    aria-invalid={ptErr ? "true" : "false"}
+                                    aria-describedby={
+                                      ptErr ? `tr-pt-${pt.id}-${editLang}-err` : undefined
+                                    }
+                                    onChange={(e) =>
+                                      updatePoint(
+                                        activeTravelSection.id,
+                                        pt.id,
+                                        "text",
+                                        e.target.value,
+                                      )
+                                    }
+                                    placeholder={t("cms.travel.pointPlaceholder")}
+                                  />
+                                  {ptErr ? (
+                                    <p
+                                      id={`tr-pt-${pt.id}-${editLang}-err`}
+                                      role="alert"
+                                      className="text-xs text-destructive mt-1"
+                                    >
+                                      {t(ptErr)}
+                                    </p>
+                                  ) : null}
+                                </AdminField>
                               </div>
 
                               <div className="flex items-center gap-1">
@@ -1760,6 +1769,7 @@ function AdminWebsitePage() {
             </div>
           ) : null}
         </div>
+        </AdminTabs>
       </AdminPanel>
 
       <ConfirmDialog

@@ -100,15 +100,16 @@ function AdminProductsPage() {
             { id: "meals" as Tab, label: t("adm.prod.tab.meals") },
             { id: "assistance" as Tab, label: t("adm.prod.tab.assistance") },
           ]}
-        />
-        <div className="p-4">
-          {tab === "aircraft" ? <AircraftTab /> : null}
-          {tab === "seatmaps" ? <SeatMapTab /> : null}
-          {tab === "fares" ? <CommercialProductsTab tab="fares" /> : null}
-          {tab === "baggage" ? <CommercialProductsTab tab="baggage" /> : null}
-          {tab === "meals" ? <CommercialProductsTab tab="meals" /> : null}
-          {tab === "assistance" ? <CommercialProductsTab tab="assistance" /> : null}
-        </div>
+        >
+          <div className="p-4">
+            {tab === "aircraft" ? <AircraftTab /> : null}
+            {tab === "seatmaps" ? <SeatMapTab /> : null}
+            {tab === "fares" ? <CommercialProductsTab tab="fares" /> : null}
+            {tab === "baggage" ? <CommercialProductsTab tab="baggage" /> : null}
+            {tab === "meals" ? <CommercialProductsTab tab="meals" /> : null}
+            {tab === "assistance" ? <CommercialProductsTab tab="assistance" /> : null}
+          </div>
+        </AdminTabs>
       </AdminPanel>
     </div>
   );

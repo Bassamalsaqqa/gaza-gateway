@@ -72,7 +72,7 @@ function VerifyEmailPage() {
                 <div className="flex items-center gap-2">
                   <LinkIcon aria-hidden="true" className="size-4 text-clay" />
                   <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {t("manage.bookingRef")}
+                    {t("manage.reference")}
                   </span>
                   <span className="code-id font-mono font-bold">{normalizedRef}</span>
                 </div>
@@ -168,7 +168,7 @@ function VerifyEmailPage() {
               <div className="flex items-center gap-2">
                 <LinkIcon aria-hidden="true" className="size-4 text-brand-deep" />
                 <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  {t("manage.bookingRef")}
+                  {t("manage.reference")}
                 </span>
                 <span className="code-id font-mono font-bold">{normalizedRef}</span>
               </div>

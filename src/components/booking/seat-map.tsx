@@ -385,7 +385,7 @@ export function SeatMap({
           dir="ltr"
           role="grid"
           aria-label={t("book.seatTitle")}
-          aria-rowcount={rows.length}
+          aria-rowcount={rows.length + 1}
           aria-colcount={effectiveLayout.letters.length}
           className="mx-auto w-max rounded-t-[3.5rem] border border-border bg-sand px-3 pt-7 pb-6 sm:px-8 shadow-[var(--shadow-soft)]"
         >
@@ -398,7 +398,7 @@ export function SeatMap({
           </div>
 
           {/* Seat Letters Header */}
-          <div className="mb-3 flex items-center justify-center gap-1.5 sm:gap-2" role="row">
+          <div className="mb-3 flex items-center justify-center gap-1.5 sm:gap-2" role="row" aria-rowindex={1}>
             <span className="w-8 sm:w-9" aria-hidden="true" />
             {effectiveLayout.letters.map((letter, i) => (
               <span
@@ -419,7 +419,7 @@ export function SeatMap({
             <div
               key={row}
               role="row"
-              aria-rowindex={rowIndex + 1}
+              aria-rowindex={rowIndex + 2}
               className="mb-2 flex items-center justify-center gap-1.5 sm:gap-2"
             >
               <span

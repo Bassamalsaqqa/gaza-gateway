@@ -65,6 +65,7 @@ function ManageLookupPage() {
     if (!cleanIdentifier) {
       setError(t("manage.needIdentifier"));
       setNotFound(false);
+      document.getElementById("identifier")?.focus();
       return;
     }
     setError(null);
@@ -102,6 +103,7 @@ function ManageLookupPage() {
                 id="pnr"
                 value={ref}
                 onChange={(e) => setRef(e.target.value.toUpperCase())}
+                dir="ltr"
                 className="code-id tracking-[0.16em] uppercase"
                 required
               />
@@ -110,16 +112,18 @@ function ManageLookupPage() {
               label={t("manage.identifier")}
               htmlFor="identifier"
               hint={t("manage.identifierHint")}
-              {...(error ? { error } : {})}
+              {...(error ? { error, errorId: "identifier-error" } : {})}
             >
               <Input
                 id="identifier"
+                dir="auto"
                 value={identifier}
                 onChange={(e) => {
                   setIdentifier(e.target.value);
                   setError(null);
                 }}
                 aria-invalid={error ? true : undefined}
+                aria-describedby={error ? "identifier-error" : undefined}
                 required
               />
             </Field>

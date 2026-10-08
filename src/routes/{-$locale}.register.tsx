@@ -66,7 +66,7 @@ function RegisterPage() {
         </p>
       ) : null}
 
-      <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+      <form onSubmit={handleSubmit} aria-describedby={error ? "register-error" : undefined} className="mt-4 space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label={t("book.firstName")} htmlFor="r-first">
             <Input
@@ -113,7 +113,10 @@ function RegisterPage() {
             type="password"
             autoComplete="new-password"
             value={form.password}
-            onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
+            onChange={(e) => {
+              setError(null);
+              setForm((prev) => ({ ...prev, password: e.target.value }));
+            }}
             required
           />
         </Field>
@@ -125,7 +128,7 @@ function RegisterPage() {
           {signInMutation.isPending ? t("common.loading") : t("auth.register")}
         </button>
         {error ? (
-          <p role="alert" className="text-sm font-medium text-destructive">
+          <p id="register-error" role="alert" className="text-sm font-medium text-destructive">
             {error}
           </p>
         ) : null}

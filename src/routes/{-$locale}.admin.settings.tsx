@@ -245,7 +245,7 @@ function AdminSettingsPage() {
             { id: "localization", label: t("a2.se.tab.localization") },
             { id: "appearance", label: t("a2.se.tab.appearance") },
           ]}
-        />
+        >
         <div className="p-4">
           {tab === "appearance" ? (
             <Suspense fallback={<div className="p-4 text-xs text-muted-foreground animate-pulse">...</div>}>
@@ -400,6 +400,7 @@ function AdminSettingsPage() {
             </>
           )}
         </div>
+        </AdminTabs>
       </AdminPanel>
     </div>
   );

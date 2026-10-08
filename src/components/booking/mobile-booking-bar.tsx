@@ -1,7 +1,7 @@
-import { useState } from "react";
 import { ArrowRight, ChevronUp } from "lucide-react";
 import {
   Sheet,
+  SheetTrigger,
   SheetContent,
   SheetHeader,
   SheetTitle,
@@ -21,12 +21,11 @@ export interface MobileBookingBarProps {
 
 export function MobileBookingBar({ draft, totals, className }: MobileBookingBarProps) {
   const { t, lang } = useI18n();
-  const [open, setOpen] = useState(false);
 
   const paxTotal = paxCount(draft.criteria);
 
   return (
-    <>
+    <Sheet>
       <div
         className={cn(
           "fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 backdrop-blur-md shadow-[var(--shadow-lift)] lg:hidden",
@@ -50,16 +49,17 @@ export function MobileBookingBar({ draft, totals, className }: MobileBookingBarP
                   : t("search.passengerCount", { n: paxTotal })}
               </span>
             </div>
-            <button
-              type="button"
-              onClick={() => setOpen(true)}
-              className="inline-flex min-h-[44px] min-w-[44px] items-center gap-1.5 text-xs font-semibold text-brand-deep hover:underline cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
-              aria-label={t("book.viewBreakdown")}
-              data-testid="mobile-booking-breakdown-trigger"
-            >
-              <span>{t("book.viewBreakdown")}</span>
-              <ChevronUp aria-hidden="true" className="size-3.5" />
-            </button>
+            <SheetTrigger asChild>
+              <button
+                type="button"
+                className="inline-flex min-h-[44px] min-w-[44px] items-center gap-1.5 text-xs font-semibold text-brand-deep hover:underline cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
+                aria-label={t("book.viewBreakdown")}
+                data-testid="mobile-booking-breakdown-trigger"
+              >
+                <span>{t("book.viewBreakdown")}</span>
+                <ChevronUp aria-hidden="true" className="size-3.5" />
+              </button>
+            </SheetTrigger>
           </div>
 
           {/* Running Total & Breakdown Trigger */}
@@ -75,12 +75,12 @@ export function MobileBookingBar({ draft, totals, className }: MobileBookingBarP
       </div>
 
       {/* Accessible Price Breakdown Sheet */}
-      <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent
           side="bottom"
+          closeLabel={t("common.close")}
           className="max-h-[85vh] overflow-y-auto rounded-t-2xl border-t border-border bg-card p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
         >
-          <SheetHeader className="text-start">
+          <SheetHeader className="text-start pe-10">
             <SheetTitle className="text-lg font-bold text-foreground">
               {t("book.summary")}
             </SheetTitle>
@@ -101,7 +101,6 @@ export function MobileBookingBar({ draft, totals, className }: MobileBookingBarP
             <PriceSummary draft={draft} compact={false} />
           </div>
         </SheetContent>
-      </Sheet>
-    </>
+    </Sheet>
   );
 }

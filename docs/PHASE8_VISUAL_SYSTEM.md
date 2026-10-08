@@ -1,6 +1,6 @@
 # Phase 8 — Visual System & Assets Finalization
 
-Status: Implemented / Awaiting Independent Review on `phase8/visual-system-assets-finalization`.
+Status: Complete / Accepted Source at `55981908a75a38de31538c387d103e548c04f91d`, independently accepted and published to main. No separate release was constructed.
 
 Accepted baseline: `deb9f6e2a4246f4f5c70ca1b56797ccf0588388e` (Phase 7B). The combined editorial release is `f68adcc60ec195f8099252b0d2d78da9a7c5ef4e`, packaging that source. Deployment is recorded on the owner's instruction to consider it done; Codex did not perform a cPanel deployment or independently verify the live bundle.
 
@@ -45,4 +45,4 @@ Final local checks: 34 distinct focused content/status/media tests passed after 
 
 Failures/corrections: the initial evidence directory was missing before a status-test command could start; it was created. Updating PRODUCT's progression omitted accepted C1/C2A labels (two test failures); restoring them then exposed an older negative regex spanning the Phase 8 review label on the same line (one failure). Separating completed milestones from the current lane made the five affected status checks pass without changing assertions. The spot harness used nonexistent Fleet/Baggage route URLs and timed out after 26 successful spots; correcting them to the actual Products tabs completed the remaining three. AGY's Task 3 scratch checks also corrected a hypothetical legacy Flight URL, an overbroad decorative-image selector, and an unseeded admin session. These were harness corrections, not product failures. The card clipping was a real visual issue found and fixed by Codex.
 
-Browser screenshots and worker transcripts are local QA artifacts under `scratch/`; they are not production assets or GitHub CI. This is a representative inspection, not certification of every route/state at every breakpoint. Phase 9 remains Planned / Unstarted and owns the next broader responsive/accessibility completion work. No standalone Phase 8 release is constructed.
+Browser screenshots and worker transcripts are local QA artifacts under `scratch/`; they are not production assets or GitHub CI. This is a representative inspection, not certification of every route/state at every breakpoint. This evidence describes the accepted Phase 8 checkpoint. Phase 9 now owns the subsequent responsive/accessibility completion work. No standalone Phase 8 release is constructed.

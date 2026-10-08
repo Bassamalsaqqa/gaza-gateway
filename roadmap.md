@@ -1,9 +1,9 @@
 # Master Engineering Roadmap — Gaza Airport & Palestinian Airlines
 
 > **Product**: Digital home of Palestinian Airlines operating through Gaza International Airport ([gazaairport.com](https://www.gazaairport.com)), featuring an airport public presence and an administration workspace.
-> **Current Source Status**: Phase 6 Complete / Accepted Source; Phase 6C Complete / Accepted Source; Phase 7 and Phase 7B Complete / Accepted Source. Phase 8 — Visual System & Assets Finalization is Implemented / Awaiting Independent Review. Phase 6B2C1 Complete / Accepted Source; Phase 6B2C2A Complete / Accepted Source; Phase 6B2C2B Complete / Accepted Source. See the current checkpoint below.
+> **Current Source Status**: Phase 6 Complete / Accepted Source; Phase 6C Complete / Accepted Source; Phase 7 and Phase 7B Complete / Accepted Source. Phase 8 — Visual System & Assets Finalization is Complete / Accepted Source. Phase 9 — Arabic, RTL, Accessibility & Responsive Certification is Implemented / Awaiting Independent Review. Phase 6B2C1 Complete / Accepted Source; Phase 6B2C2A Complete / Accepted Source; Phase 6B2C2B Complete / Accepted Source. See the current checkpoint below.
 > **Production / Source Checkpoint**: Combined editorial release `f68adcc60ec195f8099252b0d2d78da9a7c5ef4e`, source `deb9f6e2a4246f4f5c70ca1b56797ccf0588388e`. Deployment recorded on owner instruction; no independent live verification claimed.
-> **Immediate Next Step**: Independent whole-phase review of pushed Phase 8 source; Phase 9 remains unstarted.
+> **Immediate Next Step**: Independent review of pushed Phase 9 source; Phases 10 and 11 remain Planned / Unstarted.
 > **Historical baseline**: Phase 4 began from source commit `9e36b869274830f84c97cbbefe3b3fb0a98c6d2e` and HostPapa release commit `92ad935f8477e1663eefa8282d2770c66b64b8b2`. These are starting milestones, not current branch heads.
 
 
@@ -51,8 +51,8 @@
 | **Phase 6C** | **Admin Directory Staff & Activity Convergence** | **Complete / Accepted Source** | Canonical StaffRepository (gza.staff.v1) with dynamic session authority and last-admin protection; non-persistent CustomerDirectoryService projecting PassengerRepository and BookingRepository with bijective route tokens; canonical ActivityRepository (gza.activity.v1) with retention of the newest 500 events, safe actor snapshots, and non-ACID admin audit orchestration. Accepted engineering at `d5dd2942fad517cc5f1be353ad206511cc0724cc` (Correction 05); original implementation: `3ac3c8a078f7ffa82b411744b656c3575a3955c4`. Included in combined editorial release `f68adcc60ec195f8099252b0d2d78da9a7c5ef4e`; deployment recorded on owner instruction. |
 | **Phase 7** | **CMS Admin Workflows** | **Complete / Accepted Source** | Eight typed documents, audited local drafts, explicit previews and reviewed CMS editors. Accepted at 6b0240f; included in combined editorial release f68adcc. |
 | **Phase 7B** | **Media & Provenance Admin** | **Complete / Accepted Source** | Structured media catalog management with strict truth classification, provenance tagging, and multi-resolution variant inspection. |
-| **Phase 8** | **Visual System & Assets Finalization** | **Implemented / Awaiting Independent Review** | Complete asset delivery optimization, icon audits, and surface grammar token refinements. |
-| **Phase 9** | **Arabic, RTL, Accessibility & Responsive Certification** | **Planned** | Comprehensive multi-breakpoint audit (320px–1920px), keyboard navigation, focus management, and screen-reader semantics. |
+| **Phase 8** | **Visual System & Assets Finalization** | **Complete / Accepted Source** | Accepted at `55981908a75a38de31538c387d103e548c04f91d`; no separate release. |
+| **Phase 9** | **Arabic, RTL, Accessibility & Responsive Certification** | **Implemented / Awaiting Independent Review** | Focused keyboard, semantics, bilingual and responsive corrections; see the Phase 9 evidence document. |
 | **Phase 10** | **Comprehensive Durable Regressions Program** | **Planned** | Expand test coverage with automated mock-state mutation tests, end-to-end user journeys, and regression baselines. |
 | **Phase 11** | **SEO, Performance & HostPapa Production Certification** | **Planned** | Address known SEO gaps (Arabic homepage metadata, route head parity, sitemap, structured data), core web vitals, and HostPapa production deployment. |
 | **Phase 12** | **Backend Readiness & API Contracts Design** | **Planned** | Design REST/RPC API contracts, payload schemas, and backend migration readiness blueprints. |
@@ -177,12 +177,14 @@ The final Phase 6 static package is published on HostPapa at `421101d294674aaa50
 
 Confirmed production remains **Phase 6B - Complete / Accepted Source / Accepted Release / Deployed by Owner**: release `8e3136c22156c9acf800d25e94e8cd3d29a8bfc8`, deployed runtime source `2749c26714258871c32bd2b14a75fc4e87a68b62`. Deployment is confirmed by the product owner. No independent live bundle verification claimed for this reconciliation.
 
-## Current checkpoint — Phase 8
+## Current checkpoint — Phase 9
 
 Phase 6, Phase 7 and Phase 7B are **Complete / Accepted Source**. Phase 7 was independently accepted at `6b0240f1692beecc3f030775c0a25a68758a279b`; Phase 7B was independently accepted and published to main at `deb9f6e2a4246f4f5c70ca1b56797ccf0588388e`.
 
 The combined Phase 7 + 7B HostPapa release is `f68adcc60ec195f8099252b0d2d78da9a7c5ef4e`, packaging source `deb9f6e2a4246f4f5c70ca1b56797ccf0588388e`. Deployment is recorded on the product owner's instruction to consider it done; Codex performed no cPanel deployment or independent live verification. The release also includes accepted Phase 6C.
 
-**Phase 8 — Visual System & Assets Finalization: Implemented / Awaiting Independent Review.** Work remains on its feature branch for independent review; no Phase 8 release is planned separately. Phase 9 remains Planned / Unstarted.
+**Phase 8 — Visual System & Assets Finalization: Complete / Accepted Source**, independently accepted and published to main at `55981908a75a38de31538c387d103e548c04f91d`. No separate Phase 8 release was constructed.
+
+**Phase 9 — Arabic, RTL, Accessibility & Responsive Certification: Implemented / Awaiting Independent Review.** See [Phase 9 implementation and evidence](docs/PHASE9_ACCESSIBILITY_RTL.md). Phases 10 and 11 remain Planned / Unstarted, with a consolidated frontend release at their planned checkpoint.
 
 Editorial and archive proposals remain browser-local drafts, not public publication. HC-2/HC-3 rights, evidence, publication basis and documentary/future media separation remain unchanged. Earlier milestone sections are historical and do not override this checkpoint.

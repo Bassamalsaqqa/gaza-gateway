@@ -410,7 +410,7 @@ export function ReviewStep({
                 (isFixtureFlight || isConfirming) && "opacity-60 cursor-not-allowed",
               )}
             >
-              <span>{isFixtureFlight ? t("book.fixtureNoticeBtn") : isConfirming ? (t("common.processing") || "Confirming...") : t("book.confirm")}</span>
+              <span>{isFixtureFlight ? t("book.fixtureNoticeBtn") : isConfirming ? t("common.processing") : t("book.confirm")}</span>
               <span className="mx-1.5 opacity-60">·</span>
               <span className="tabular-nums">{money(totals.total, lang)}</span>
             </button>

@@ -117,7 +117,7 @@ function AdminCustomerDetailPage() {
   if (isLoading) {
     return (
       <AdminPanel>
-        <p className="p-6 text-sm text-muted-foreground">{t("a2.loading")}</p>
+        <p className="p-6 text-sm text-muted-foreground">{t("common.loading")}</p>
       </AdminPanel>
     );
   }
@@ -360,7 +360,7 @@ function AdminCustomerDetailPage() {
             { id: "prefs", label: t("a2.cu.tab.prefs") },
             { id: "activity", label: t("a2.cu.tab.activity") },
           ]}
-        />
+        >
         <div className="p-4">
           {tab === "profile" ? (
             <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
@@ -458,6 +458,7 @@ function AdminCustomerDetailPage() {
             <CustomerActivity customer={customer} />
           ) : null}
         </div>
+        </AdminTabs>
       </AdminPanel>
 
       {/* Edit Contact Sheet */}
@@ -516,7 +517,7 @@ function AdminCustomerDetailPage() {
           ) : (
             <>
               {customer.bookings.length > 1 && (
-                <Field label={t("a2.bookingRef")} htmlFor="cu-booking-select">
+                <Field label={t("manage.reference")} htmlFor="cu-booking-select">
                   <select
                     id="cu-booking-select"
                     value={selectedBookingRef}
@@ -580,7 +581,7 @@ function AdminCustomerDetailPage() {
       >
         <form onSubmit={handleAttachBooking} className="space-y-4">
           <p className="text-sm text-muted-foreground">{t("a2.cu.attachPrompt")}</p>
-          <Field label={t("a2.bookingRef")} htmlFor="attach-pnr">
+          <Field label={t("manage.reference")} htmlFor="attach-pnr">
             <Input
               id="attach-pnr"
               dir="ltr"
@@ -607,7 +608,7 @@ function AdminCustomerDetailPage() {
 function CustomerActivity({ customer }: { customer: CustomerDetail }) {
   const { t, lang } = useI18n();
   const { data, isLoading, isError, refetch } = useActivityQuery();
-  if (isLoading) return <p className="text-sm text-muted-foreground">{t("a2.loading")}</p>;
+  if (isLoading) return <p className="text-sm text-muted-foreground">{t("common.loading")}</p>;
   if (isError) return (
     <div role="alert" className="space-y-3 text-sm">
       <p>{lang === "ar" ? "تعذر تحميل سجل النشاط في هذا المتصفح." : "Unable to load activity in this browser."}</p>

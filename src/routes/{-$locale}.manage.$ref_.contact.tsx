@@ -36,6 +36,7 @@ function ManageContactPage() {
   });
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   useEffect(() => {
     if (booking?.contact) {
@@ -88,11 +89,14 @@ function ManageContactPage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSaved(false);
+    setError(null);
     if (!/.+@.+\..+/.test(form.email.trim())) {
-      setError(t("book.required"));
+      setEmailError(t("book.errEmailValid"));
+      document.getElementById("c-email")?.focus();
       return;
     }
-    setError(null);
+    setEmailError(null);
     try {
       await updateContactMutation.mutateAsync({
         ref: booking.ref,
@@ -114,17 +118,25 @@ function ManageContactPage() {
 
       <Panel className="mt-6 max-w-xl">
         <form onSubmit={submit} noValidate className="grid gap-4 sm:grid-cols-2">
-          <Field label={t("conf.contactEmail")} htmlFor="c-email" {...(error ? { error } : {})}>
+          <Field
+            label={t("conf.contactEmail")}
+            htmlFor="c-email"
+            {...(emailError ? { error: emailError, errorId: "c-email-error" } : {})}
+          >
             <Input
               id="c-email"
               type="email"
+              dir="ltr"
               autoComplete="email"
               value={form.email}
-              aria-invalid={error ? true : undefined}
+              aria-invalid={emailError ? true : undefined}
+              aria-describedby={emailError ? "c-email-error" : undefined}
+              className="code-id"
               onChange={(e) => {
                 setForm((prev) => ({ ...prev, email: e.target.value }));
                 setSaved(false);
                 setError(null);
+                setEmailError(null);
               }}
             />
           </Field>
@@ -132,8 +144,10 @@ function ManageContactPage() {
             <Input
               id="c-phone"
               type="tel"
+              dir="ltr"
               autoComplete="tel"
               value={form.phone}
+              className="code-id"
               onChange={(e) => {
                 setForm((prev) => ({ ...prev, phone: e.target.value }));
                 setSaved(false);
@@ -148,6 +162,9 @@ function ManageContactPage() {
               {t("common.cancel")}
             </AppLink>
           </div>
+          {error ? (
+            <p role="alert" className="sm:col-span-2 text-sm font-medium text-destructive">{error}</p>
+          ) : null}
           {saved ? (
             <p role="status" className="sm:col-span-2 text-sm font-semibold text-brand-deep">
               {t("common.saved")}

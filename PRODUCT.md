@@ -72,7 +72,7 @@ Success means travelers and observers encounter an intuitive, authentic, and coh
 - **HostPapa Static Deployment**: Target hosting is static file serving on shared Apache cPanel hosting (`public_html/`) without persistent server-side Node.js, SSR runtimes, or build daemons. All public routes and application fallback shells are pre-built to static HTML supported by `.htaccess` rewrite rules.
 - **Provisional Prototype Data**: Specific initial routes (such as regional routes via Amman, Cairo, Istanbul, Doha, Dubai, Jeddah, Riyadh), named fare tiers, aircraft cabin layouts, and menu options represent current prototype examples and design baselines; they are subject to future refinement and do not bind future UX redesigns.
 - **Master Roadmap Progression**: Phase 6, Phase 7 and Phase 7B are Complete / Accepted Source. Phase 6B2C1 Complete / Accepted Source; Phase 6B2C2A Complete / Accepted Source; Phase 6B2C2B Complete / Accepted Source. See the current checkpoint below for exact accepted-source and release provenance.
-- **Current Engineering Lane**: Phase 8 is Implemented / Awaiting Independent Review on its engineering feature branch; Phase 9 is Planned / Unstarted.
+- **Current Engineering Lane**: Phase 8 is Complete / Accepted Source. Phase 9 is Implemented / Awaiting Independent Review on its engineering feature branch; Phases 10 and 11 remain Planned / Unstarted.
 - **Current Production / Source Checkpoint**: Combined Phase 7 + 7B release `f68adcc60ec195f8099252b0d2d78da9a7c5ef4e` packages accepted source `deb9f6e2a4246f4f5c70ca1b56797ccf0588388e`, including Phase 6C. Deployment is recorded on the product owner's instruction to consider it done; no independent live verification is claimed.
 
 ## Brand Commitments
@@ -222,12 +222,14 @@ The final Phase 6 static package is published on HostPapa at `421101d294674aaa50
 
 Confirmed production remains **Phase 6B - Complete / Accepted Source / Accepted Release / Deployed by Owner**: release `8e3136c22156c9acf800d25e94e8cd3d29a8bfc8`, deployed runtime source `2749c26714258871c32bd2b14a75fc4e87a68b62`. Deployment is confirmed by the product owner. No independent live bundle verification claimed for this reconciliation.
 
-## Current checkpoint — Phase 8
+## Current checkpoint — Phase 9
 
 Phase 6, Phase 7 and Phase 7B are **Complete / Accepted Source**. Phase 7 was independently accepted at `6b0240f1692beecc3f030775c0a25a68758a279b`; Phase 7B was independently accepted and published to main at `deb9f6e2a4246f4f5c70ca1b56797ccf0588388e`.
 
 The combined Phase 7 + 7B HostPapa release is `f68adcc60ec195f8099252b0d2d78da9a7c5ef4e`, packaging source `deb9f6e2a4246f4f5c70ca1b56797ccf0588388e`. Deployment is recorded on the product owner's instruction to consider it done; Codex performed no cPanel deployment or independent live verification. The release also includes accepted Phase 6C.
 
-**Phase 8 — Visual System & Assets Finalization: Implemented / Awaiting Independent Review.** Work remains on its feature branch for independent review; no Phase 8 release is planned separately. Phase 9 remains Planned / Unstarted.
+**Phase 8 — Visual System & Assets Finalization: Complete / Accepted Source**, independently accepted and published to main at `55981908a75a38de31538c387d103e548c04f91d`. No separate Phase 8 release was constructed.
+
+**Phase 9 — Arabic, RTL, Accessibility & Responsive Certification: Implemented / Awaiting Independent Review.** See [Phase 9 implementation and evidence](docs/PHASE9_ACCESSIBILITY_RTL.md). Phases 10 and 11 remain Planned / Unstarted, with a consolidated frontend release at their planned checkpoint.
 
 Editorial and archive proposals remain browser-local drafts, not public publication. HC-2/HC-3 rights, evidence, publication basis and documentary/future media separation remain unchanged. Earlier milestone sections are historical and do not override this checkpoint.

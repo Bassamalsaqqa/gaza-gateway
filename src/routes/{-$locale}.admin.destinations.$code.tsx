@@ -376,7 +376,7 @@ function AdminDestinationEditorPage() {
           active={tab}
           onChange={(next) => { if (!editorialCms.saving && !presentationCms.saving) setTab(next as Tab); }}
           tabs={availableTabs}
-        />
+        >
 
         <div className="p-4 space-y-6">
           {/* -------------------- BASICS TAB (Operational) -------------------- */}
@@ -871,6 +871,7 @@ function AdminDestinationEditorPage() {
             </div>
           ) : null}
         </div>
+        </AdminTabs>
       </AdminPanel>
 
       {/* Navigation blocker confirmation */}
