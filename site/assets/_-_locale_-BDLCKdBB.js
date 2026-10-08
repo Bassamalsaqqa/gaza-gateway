@@ -1,1 +1,0 @@
-import{S as e,T as t}from"./useStore-CDudrDac.js";import{n}from"./Match-Dz7mHSvQ.js";import{t as r}from"./jsx-runtime-CL9hujd8.js";import{F as i,N as a}from"./index-C7I3sZCW.js";var o=t(e()),s=r(),c=()=>()=>{};function l(){let{locale:e}=a.useParams();return(0,o.useSyncExternalStore)(c,()=>!0,()=>!1)&&e&&e!==`ar`?(0,s.jsx)(i,{}):(0,s.jsx)(n,{})}export{l as component};

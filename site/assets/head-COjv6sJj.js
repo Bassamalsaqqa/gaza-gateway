@@ -1,1 +1,0 @@
-function e(e,t,n=!1){let r=t===`ar`?`ar`:`en`;return{meta:[{title:e.title[r]},{name:`description`,content:e.description[r]},{property:`og:title`,content:(e.socialTitle??e.title)[r]},{property:`og:description`,content:(e.socialDescription??e.description)[r]},...n?[{property:`og:type`,content:`website`},{name:`twitter:card`,content:`summary`}]:[]]}}export{e as t};

@@ -1,0 +1,1 @@
+import{n as e,u as t}from"./registry-DgsIcncL.js";import{t as n}from"./useQuery-B6ZtP1H8.js";function r(r){let{activity:i}=e();return n({queryKey:t.list(r),queryFn:()=>i.list(r)})}export{r as t};
