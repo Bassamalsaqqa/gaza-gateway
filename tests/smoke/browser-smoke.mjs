@@ -6710,6 +6710,7 @@ async function runBrowserSmoke() {
         // Close via Escape key and verify focus returns to trigger
         await page.keyboard.press("Escape");
         await dialog.waitFor({ state: "hidden", timeout: 5000 });
+        await page.waitForFunction(node => document.activeElement === node, await cardTrigger.elementHandle(), { timeout: 5000 });
         const arFocused = await cardTrigger.evaluate((el) => el === document.activeElement);
         if (!arFocused) {
           throw new Error("Focus did not return to Arabic card trigger after Escape dismissal");
@@ -7126,8 +7127,10 @@ async function runBrowserSmoke() {
         await page.getByRole("button", { name: "Unassign" }).waitFor({ state: "visible", timeout: 5000 });
 
         // 10. Reply Draft
+        await waitForInteractiveInput(page, "#in-reply-draft");
         await page.fill("#in-reply-draft", "Dear Aya, ramp assistance has been noted for your flight.");
         await page.getByRole("button", { name: "Save reply draft" }).click();
+        await page.waitForFunction(id => JSON.parse(localStorage.getItem("gza.contact.v1") || "{}").messages?.find(message => message.id === id)?.replyDraft === "Dear Aya, ramp assistance has been noted for your flight.", submitted.id);
 
         // 11. Reload and verify persistence
         await page.reload({ waitUntil: "domcontentloaded" });
@@ -7135,6 +7138,7 @@ async function runBrowserSmoke() {
         await page.click("button:has-text('Aya Mansour')");
 
         await page.getByText("Contacted passenger via phone.").waitFor({ state: "visible", timeout: 5000 });
+        await page.waitForFunction(() => document.getElementById("in-reply-draft")?.value === "Dear Aya, ramp assistance has been noted for your flight.");
         const draftValue = await page.inputValue("#in-reply-draft");
         if (!draftValue.includes("ramp assistance has been noted")) {
           throw new Error(`Expected persisted reply draft, got: "${draftValue}"`);

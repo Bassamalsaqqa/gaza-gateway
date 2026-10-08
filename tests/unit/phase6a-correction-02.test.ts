@@ -1,6 +1,7 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { phase6HistoricalDocument } from "../helpers/historical-provenance.ts";
 import {
   departuresOn,
   todayISO,
@@ -191,18 +192,18 @@ describe("Phase 6A Correction 02 — truthful commercial presentation", () => {
       assert.ok(text.includes("commercialFieldErrors"));
     }
   });
-  test("Phase 6A documentation records accepted source status", () => {
-    const doc = source("docs/DATA_FLOW.md");
+  test("historical Phase 6A documentation records accepted source status", () => {
+    const doc = phase6HistoricalDocument("docs/DATA_FLOW.md");
     assert.ok(!/Phase 6A is uncommitted and unstaged/.test(doc));
     assert.ok(!/Phase 6A(?:(?!Phase 6B)[^.\n])*Implemented \/ Awaiting Independent Review/.test(doc));
     assert.ok(doc.includes("Complete / Accepted Source"));
     assert.ok(doc.includes("59e2e0ce9b56bc492d7c7a2bfc5a0df15fd58fea"));
     assert.ok(doc.includes("b5cff4db4b6e087907a9733ffd841880439fbfdb"));
     assert.ok(doc.includes("2ae1a876018992649074cbed1ebf0560e4da03ff"));
-    // Phase 6B/6C/7/7B remain Planned / Unstarted
+    // These statuses describe the historical milestone, not today's living checkpoint.
     assert.ok(/Phase (?:6B2|6C|7)[^.]+Planned \/ Unstarted/.test(doc) || /Phase 6B2[^.]+Planned \/ Unstarted/.test(doc));
   });
-  test("authoritative current-status blocks preserve historical Phase 6A and current owner deployment", () => {
+  test("historical authoritative status blocks preserve Phase 6A and its later owner deployment", () => {
     // Scope current metadata, status tables and checkpoint paragraphs, not historical audits.
     const currentBlocks = (doc: string) => doc.split(/\r?\n/).filter((line) =>
       /^> \*\*(?:Engineering Status|Current Status|Document Status|Status|Production \/ Source Checkpoint|Immediate Next Step)\*\*:/.test(line) ||
@@ -232,7 +233,7 @@ describe("Phase 6A Correction 02 — truthful commercial presentation", () => {
       "docs/CANONICAL_REPOSITORIES.md", "docs/DATA_FLOW.md", "docs/SETTINGS_MODEL.md",
       "docs/CONTACT_MODEL.md", "docs/CONTENT_MODEL.md",
     ]) {
-      const doc = source(path);
+      const doc = phase6HistoricalDocument(path);
       const current = currentBlocks(doc);
       assert.ok(current.includes("Complete / Accepted Source / Accepted Release / Deployed by Owner"), path);
       assert.ok(current.includes("59e2e0ce9b56bc492d7c7a2bfc5a0df15fd58fea"), path);

@@ -47,6 +47,7 @@ jobs:
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
@@ -98,7 +99,15 @@ jobs:
       - run: npm ci
       - run: npm exec playwright-core install --with-deps chromium
       - run: npm run build:hostpapa
+      - name: Prove failing process cannot be hidden by log capture
+        shell: bash
+        run: |
+          if node -e 'process.exit(17)' | tee exit-probe.log; then
+            echo '::error::Pipeline concealed a nonzero process exit'
+            exit 1
+          fi
       - run: npm run test:smoke:critical 2>&1 | tee browser.log
+        shell: bash # Explicit bash enables pipefail; tee must never hide a failed journey.
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: failure()
         with:

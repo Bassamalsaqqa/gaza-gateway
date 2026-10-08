@@ -1,6 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { phase6HistoricalDocument } from "../helpers/historical-provenance.ts";
 import {
   LocalScheduleRepository,
   ScheduleIdentityConflictError,
@@ -322,7 +323,7 @@ describe("Phase 6B1 — integration and truth boundaries", () => {
     assert.match(route, /aria-describedby/);
     assert.doesNotMatch(route, /err\.message/);
   });
-  it("owner-deployed docs preserve production provenance and reject stale 6B1 status", () => {
+  it("historical owner-deployed docs preserve provenance and reject stale 6B1 status at that milestone", () => {
     for (const file of [
       "README.md",
       "roadmap.md",
@@ -335,7 +336,7 @@ describe("Phase 6B1 — integration and truth boundaries", () => {
       "docs/CONTACT_MODEL.md",
       "docs/SCHEDULE_MODEL.md",
     ]) {
-      const doc = source(file);
+      const doc = phase6HistoricalDocument(file);
       assert.match(doc, /Phase 6B1[^]*Complete \/ Accepted Source \/ Accepted Release \/ Deployed by Owner/);
       assert.ok(doc.includes("b2e37ba4f7d2b0ae66a444747340acfe818a3832"));
       assert.doesNotMatch(doc, /Phase 6B1(?:(?!Phase 6B2)[^\n])*Implemented \/ Awaiting (?:Independent )?Review/);
