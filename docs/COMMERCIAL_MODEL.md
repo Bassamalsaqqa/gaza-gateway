@@ -2,7 +2,7 @@
 
 **Complete / Accepted Source / Accepted Release / Deployed by Owner**, the historical Phase 6B2A production checkpoint (accepted engineering SHA: `1c5e6b6259add7b59199725f6b23324e8d1c58eb`; deployed runtime source: `ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`; owner-deployed release: `2751e22be91ad74eacc9213489a57a21baf04807`). Phase 6B1 remains a historical completed phase (release `f8c0d0bdc579c5c2719670c8387fa543d8d6a170`, runtime source `bcf284df3f0d7b24ec59372bb038ed9ae1e8c934`).
 
-> **Current Source Status**: Phase 6 Complete / Accepted Source; Phase 6C Complete / Accepted Source; Phase 7 and Phase 7B Complete / Accepted Source. Phase 8 — Visual System & Assets Finalization is Complete / Accepted Source. Phase 9 — Arabic, RTL, Accessibility & Responsive Certification is Implemented / Awaiting Independent Review. Phase 6B2C1 Complete / Accepted Source; Phase 6B2C2A Complete / Accepted Source; Phase 6B2C2B Complete / Accepted Source. See the current checkpoint below.
+> **Current Source Status**: Phase 6 Complete / Accepted Source; Phase 6C Complete / Accepted Source; Phase 7 and Phase 7B Complete / Accepted Source. Phase 8 — Visual System & Assets Finalization is Complete / Accepted Source. Phase 9 — Arabic, RTL, Accessibility & Responsive Certification is Complete / Accepted Source. Phase 10 is Implemented / Awaiting Independent Review. Phase 6B2C1 Complete / Accepted Source; Phase 6B2C2A Complete / Accepted Source; Phase 6B2C2B Complete / Accepted Source. See the current checkpoint below.
 
 ## Authority and persistence
 
@@ -109,7 +109,7 @@ The final Phase 6 static package is published on HostPapa at `421101d294674aaa50
 
 Confirmed production remains **Phase 6B - Complete / Accepted Source / Accepted Release / Deployed by Owner**: release `8e3136c22156c9acf800d25e94e8cd3d29a8bfc8`, deployed runtime source `2749c26714258871c32bd2b14a75fc4e87a68b62`. Deployment is confirmed by the product owner. No independent live bundle verification claimed for this reconciliation.
 
-## Current checkpoint — Phase 9
+## Current checkpoint — Phase 10
 
 Phase 6, Phase 7 and Phase 7B are **Complete / Accepted Source**. Phase 7 was independently accepted at `6b0240f1692beecc3f030775c0a25a68758a279b`; Phase 7B was independently accepted and published to main at `deb9f6e2a4246f4f5c70ca1b56797ccf0588388e`.
 
@@ -117,6 +117,6 @@ The combined Phase 7 + 7B HostPapa release is `f68adcc60ec195f8099252b0d2d78da9a
 
 **Phase 8 — Visual System & Assets Finalization: Complete / Accepted Source**, independently accepted and published to main at `55981908a75a38de31538c387d103e548c04f91d`. No separate Phase 8 release was constructed.
 
-**Phase 9 — Arabic, RTL, Accessibility & Responsive Certification: Implemented / Awaiting Independent Review.** See [Phase 9 implementation and evidence](PHASE9_ACCESSIBILITY_RTL.md). Phases 10 and 11 remain Planned / Unstarted, with a consolidated frontend release at their planned checkpoint.
+**Phase 9 — Arabic, RTL, Accessibility & Responsive Certification: Complete / Accepted Source**, independently accepted and published to main at `f3d7377720c951ea659c076d2e8128d10c1a827a`. See [Phase 9 implementation and evidence](PHASE9_ACCESSIBILITY_RTL.md). **Phase 10 — Durable Regression & CI Hardening: Implemented / Awaiting Independent Review.** See [focused regression and CI policy](REGRESSION_AND_CI.md). Phase 11 remains Planned / Unstarted; the consolidated frontend release remains at its planned checkpoint. No separate Phase 9/10 release or deployment.
 
 Editorial and archive proposals remain browser-local drafts, not public publication. HC-2/HC-3 rights, evidence, publication basis and documentary/future media separation remain unchanged. Earlier milestone sections are historical and do not override this checkpoint.

@@ -33,12 +33,15 @@ import {bookingTotal} from "../../src/lib/domain/pricing.ts";
  *   Dependencies declared in package.json (playwright-core).
  *
  * Usage:
- *   node tests/smoke/browser-smoke.mjs [--url http://localhost:8080]
+ *   npm run test:smoke:public -- --url=http://localhost:8080
  */
 
 import fs from "node:fs";
 import path from "node:path";
-import { chromium } from "playwright-core";
+import { launchSmokeBrowser } from "../helpers/browser-harness.mjs";
+import { createSmokeSelection } from "../helpers/smoke-selection.mjs";
+import { runPhase7ContentPreviewChecks } from "./phase7-content-preview.mjs";
+import { runArchiveDraftChecks } from "./phase7b-task2-drafts.mjs";
 import { preview } from "vite";
 
 async function startServer(port = 4173) {
@@ -139,16 +142,12 @@ async function runBrowserSmoke() {
   console.log(`Target URL: ${baseUrl}`);
   console.log(`========================================\n`);
 
-  // Launch browser using system msedge, chrome, or default chromium
-  let browser;
+  let browser, harnessErrors;
   try {
-    browser = await chromium.launch({ channel: "msedge", headless: true });
-  } catch {
-    try {
-      browser = await chromium.launch({ channel: "chrome", headless: true });
-    } catch {
-      browser = await chromium.launch({ headless: true });
-    }
+    ({ browser, errors: harnessErrors } = await launchSmokeBrowser(baseUrl));
+  } catch (error) {
+    await server?.stop();
+    throw error;
   }
 
   const context = await browser.newContext();
@@ -167,19 +166,18 @@ async function runBrowserSmoke() {
 
   const filterArg = process.argv.find((a) => a.startsWith("--filter="));
   const filter = filterArg ? filterArg.split("=")[1] : process.env.SMOKE_FILTER;
+  const selection = createSmokeSelection({ group: process.env.SMOKE_GROUP ?? "all", filter });
 
   async function checkStep(name, fn) {
-    if (filter && !name.toLowerCase().includes(filter.toLowerCase())) {
-      return;
-    }
-    const t0 = Date.now();
+    if (!selection.accepts(name)) return;
+    const t0 = performance.now();
     try {
       await fn();
-      const duration = Date.now() - t0;
+      const duration = Math.round(performance.now() - t0);
       console.log(`  ✔ ${name} (${duration}ms)`);
       results.push({ name, pass: true, duration });
     } catch (err) {
-      const duration = Date.now() - t0;
+      const duration = Math.round(performance.now() - t0);
       console.error(`  ✖ ${name} (${duration}ms):`, err.message);
       results.push({ name, pass: false, duration, error: err.message });
     }
@@ -1253,18 +1251,18 @@ async function runBrowserSmoke() {
       try {
         await cmsPage.goto(`${baseUrl}/admin/website`, { waitUntil: "domcontentloaded" });
         await cmsPage.getByRole("tab", { name: "Travel information" }).click();
-        await cmsPage.locator("#tr-title").waitFor({ state: "visible" });
-        const publishedTitle = await cmsPage.locator("#tr-title").inputValue();
-        await cmsPage.locator("#tr-title").fill(enDraft);
+        await cmsPage.locator("#tr-intro-title-en").waitFor({ state: "visible" });
+        const publishedTitle = await cmsPage.locator("#tr-intro-title-en").inputValue();
+        await cmsPage.locator("#tr-intro-title-en").fill(enDraft);
         await cmsPage.getByRole("button", { name: "Save draft" }).click();
         await cmsPage.waitForFunction(() => {
           const raw = localStorage.getItem("gza.content.draft.v1");
-          return raw && JSON.parse(raw).drafts.travel.sections[0].title.en === "Phase 4B English draft proof";
+          return raw && JSON.parse(raw).drafts.travel.intro.title.en === "Phase 4B English draft proof";
         });
         await cmsPage.reload({ waitUntil: "domcontentloaded" });
         await cmsPage.getByRole("tab", { name: "Travel information" }).click();
-        await cmsPage.locator("#tr-title").waitFor({ state: "visible" });
-        if (await cmsPage.locator("#tr-title").inputValue() !== enDraft) throw new Error("Saved English draft did not survive reload");
+        await cmsPage.locator("#tr-intro-title-en").waitFor({ state: "visible" });
+        if (await cmsPage.locator("#tr-intro-title-en").inputValue() !== enDraft) throw new Error("Saved English draft did not survive reload");
 
         await cmsPage.goto(`${baseUrl}/travel?contentPreview=1`, { waitUntil: "domcontentloaded" });
         await cmsPage.getByRole("heading", { name: enDraft, exact: true }).waitFor({ state: "visible" });
@@ -1276,14 +1274,14 @@ async function runBrowserSmoke() {
         await cmsPage.goto(`${baseUrl}/admin/website`, { waitUntil: "domcontentloaded" });
         await cmsPage.getByRole("tab", { name: "Travel information" }).click();
         await cmsPage.getByRole("button", { name: "Arabic", exact: true }).click();
-        await cmsPage.locator("#tr-title").fill(arDraft);
+        await cmsPage.locator("#tr-intro-title-ar").fill(arDraft);
         await cmsPage.getByRole("button", { name: "Save draft" }).click();
         await cmsPage.waitForFunction(() => {
           const draft = JSON.parse(localStorage.getItem("gza.content.draft.v1") || "{}").drafts?.travel;
-          return draft?.sections[0]?.title.ar === "مسودة عربية للاختبار";
+          return draft?.intro?.title.ar === "مسودة عربية للاختبار";
         });
         const saved = await cmsPage.evaluate(() => JSON.parse(localStorage.getItem("gza.content.draft.v1")).drafts.travel);
-        if (saved.sections[0].title.en !== enDraft) throw new Error("Arabic edit erased English draft");
+        if (saved.intro.title.en !== enDraft) throw new Error("Arabic edit erased English draft");
         await cmsPage.goto(`${baseUrl}/ar/travel?contentPreview=1`, { waitUntil: "domcontentloaded" });
         await cmsPage.getByRole("heading", { name: arDraft, exact: true }).waitFor({ state: "visible" });
         await cmsPage.goto(`${baseUrl}/ar/travel`, { waitUntil: "domcontentloaded" });
@@ -1292,6 +1290,7 @@ async function runBrowserSmoke() {
         await cmsPage.goto(`${baseUrl}/admin/website`, { waitUntil: "domcontentloaded" });
         await cmsPage.getByRole("tab", { name: "Travel information" }).click();
         await cmsPage.getByRole("button", { name: "Discard draft" }).click();
+        await cmsPage.getByRole("alertdialog").getByRole("button", { name: "Discard draft", exact: true }).click();
         await cmsPage.waitForFunction(() => !JSON.parse(localStorage.getItem("gza.content.draft.v1") || "{}").drafts?.travel);
         await cmsPage.goto(`${baseUrl}/travel?contentPreview=1`, { waitUntil: "domcontentloaded" });
         await cmsPage.getByText(publishedTitle, { exact: true }).first().waitFor({ state: "visible" });
@@ -1348,13 +1347,13 @@ async function runBrowserSmoke() {
       try {
         await failPage.goto(`${baseUrl}/admin/website`, { waitUntil: "domcontentloaded" });
         await failPage.getByRole("tab", { name: "Travel information" }).click();
-        await failPage.locator("#tr-title").fill("Storage failure draft");
+        await failPage.locator("#tr-intro-title-en").fill("Storage failure draft");
         await failPage.evaluate(() => {
           window.__contentOriginalSetItem = Storage.prototype.setItem;
           Storage.prototype.setItem = function () { throw new Error("Storage blocked"); };
         });
         await failPage.getByRole("button", { name: "Save draft" }).click();
-        await failPage.getByRole("alert").filter({ hasText: "Could not save the draft" }).waitFor({ state: "visible" });
+        await failPage.getByRole("alert").filter({ hasText: "The draft could not be saved in this browser. Your edits have been kept." }).waitFor({ state: "visible" });
         const raw = await failPage.evaluate(() => localStorage.getItem("gza.content.draft.v1"));
         if (raw !== null) throw new Error("Failed save wrote a draft");
       } finally {
@@ -1374,8 +1373,8 @@ async function runBrowserSmoke() {
       try {
         await viewerPage.goto(`${baseUrl}/admin/website`, { waitUntil: "domcontentloaded" });
         await viewerPage.getByRole("tab", { name: "Travel information" }).click();
-        await viewerPage.locator("#tr-title").waitFor({ state: "visible" });
-        if (!await viewerPage.locator("#tr-title").evaluate((input) => input.readOnly)) {
+        await viewerPage.locator("#tr-intro-title-en").waitFor({ state: "visible" });
+        if (!await viewerPage.locator("#tr-intro-title-en").evaluate((input) => input.readOnly)) {
           throw new Error("Viewer received an editable Travel field");
         }
         if (!await viewerPage.getByRole("button", { name: "Save draft" }).isDisabled()) {
@@ -1573,19 +1572,19 @@ async function runBrowserSmoke() {
       try {
         // 20a. Navigate to /admin/destinations/IST and change photo to city-dubai
         await adminPage.goto(`${baseUrl}/admin/destinations/IST`, { waitUntil: "domcontentloaded" });
-        await adminPage.locator('button:has-text("Public page")').click();
-        await adminPage.waitForSelector("#de-photo", { timeout: 10000 });
+        await adminPage.getByRole("tab", { name: "Editorial narrative & guide", exact: true }).click();
+        await adminPage.waitForSelector("#dst-pres-IST-photo", { timeout: 10000 });
 
         // Select city-dubai
-        await adminPage.selectOption("#de-photo", "city-dubai");
+        await adminPage.selectOption("#dst-pres-IST-photo", "city-dubai");
 
         // Save image draft
-        const saveDraftBtn = adminPage.getByRole("button", { name: "Save image draft" });
+        const saveDraftBtn = adminPage.getByRole("region", { name: "Visual presentation & photo", exact: true }).getByRole("button", { name: "Save draft", exact: true });
         await saveDraftBtn.waitFor({ state: "visible", timeout: 5000 });
         await saveDraftBtn.click();
 
         // Verify draft active message appears
-        await adminPage.getByText("Draft active (stored in this browser, not published)").waitFor({ state: "visible", timeout: 8000 });
+        await adminPage.getByText("Local draft saved", { exact: true }).waitFor({ state: "visible", timeout: 8000 });
 
         // Verify localStorage contains destinations.presentation draft with photoId === "city-dubai" for IST
         const storedDraft = await adminPage.evaluate(() => {
@@ -1599,9 +1598,9 @@ async function runBrowserSmoke() {
 
         // 20b. Reload /admin/destinations/IST and verify draft persists
         await adminPage.reload({ waitUntil: "domcontentloaded" });
-        await adminPage.locator('button:has-text("Public page")').click();
-        await adminPage.waitForSelector("#de-photo", { timeout: 10000 });
-        const selectedVal = await adminPage.locator("#de-photo").inputValue();
+        await adminPage.getByRole("tab", { name: "Editorial narrative & guide", exact: true }).click();
+        await adminPage.waitForSelector("#dst-pres-IST-photo", { timeout: 10000 });
+        const selectedVal = await adminPage.locator("#dst-pres-IST-photo").inputValue();
         if (selectedVal !== "city-dubai") {
           throw new Error(`Draft did not survive reload in admin photo picker: ${selectedVal}`);
         }
@@ -1611,6 +1610,8 @@ async function runBrowserSmoke() {
         await adminPage.waitForSelector('[role="status"]', { timeout: 10000 });
         const previewHero = adminPage.locator('img[data-destination-hero-photo="IST"]');
         await previewHero.waitFor({ state: "visible", timeout: 8000 });
+        // Static SSR initially shows published media. Assert the actual runtime preview adoption.
+        await adminPage.waitForFunction(() => document.querySelector('img[data-destination-hero-photo="IST"]')?.getAttribute("src")?.includes("dubai"));
         const previewHeroSrc = await previewHero.getAttribute("src");
         if (!previewHeroSrc?.includes("dubai")) {
           throw new Error(`Preview route did not overlay Dubai photo draft: ${previewHeroSrc}`);
@@ -1631,11 +1632,12 @@ async function runBrowserSmoke() {
 
         // 20e. Return to Admin and Discard draft
         await adminPage.goto(`${baseUrl}/admin/destinations/IST`, { waitUntil: "domcontentloaded" });
-        await adminPage.locator('button:has-text("Public page")').click();
-        await adminPage.waitForSelector("#de-photo", { timeout: 10000 });
-        const discardBtn = adminPage.getByRole("button", { name: "Discard draft" });
+        await adminPage.getByRole("tab", { name: "Editorial narrative & guide", exact: true }).click();
+        await adminPage.waitForSelector("#dst-pres-IST-photo", { timeout: 10000 });
+        const discardBtn = adminPage.getByRole("region", { name: "Visual presentation & photo", exact: true }).getByRole("button", { name: "Discard draft", exact: true });
         await discardBtn.waitFor({ state: "visible", timeout: 5000 });
         await discardBtn.click();
+        await adminPage.getByRole("alertdialog").getByRole("button", { name: "Discard draft", exact: true }).click();
 
         // Wait until draft is removed from localStorage
         await adminPage.waitForFunction(() => {
@@ -7803,6 +7805,8 @@ async function runBrowserSmoke() {
     await runPhase6CStaffActivityChecks({ checkStep, browser, baseUrl });
     await runPhase6CConvergenceChecks({ checkStep, browser, baseUrl });
     await runPhase6CCorrection05Checks({ checkStep, browser, baseUrl });
+    await runPhase7ContentPreviewChecks({ checkStep, browser, baseUrl });
+    await checkStep("Archive draft administration", () => runArchiveDraftChecks({ browser, baseUrl }));
 
   } finally {
     await browser.close();
@@ -7812,6 +7816,10 @@ async function runBrowserSmoke() {
   }
 
   const failures = results.filter((r) => !r.pass);
+  selection.verify();
+  if (harnessErrors.length) {
+    throw new Error(`Browser runtime/network failures:\n${[...new Set(harnessErrors)].join("\n")}`);
+  }
   console.log(`\n========================================`);
   console.log(`Smoke Results: ${results.length - failures.length}/${results.length} passed`);
   console.log(`========================================\n`);

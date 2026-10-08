@@ -4,7 +4,9 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const releaseDir = path.join(root, ".hostpapa-release");
+// The scheduled release audit inspects a separate static-branch checkout; it never builds/deploys.
+const releaseDir = path.resolve(root, process.env.HOSTPAPA_RELEASE_DIR ?? ".hostpapa-release");
+if (releaseDir === root || !releaseDir.startsWith(root + path.sep)) throw new Error("Release audit directory must be inside this workspace");
 const siteDir = path.join(releaseDir, "site");
 const failures = [];
 
@@ -50,7 +52,11 @@ const forbidden = [
   /^images_assets_to_be_used_in_website_after_proper_placement_and_compression(?:\/|$)/,
   /(^|\/)\.env(?:\.|$)/,
 ];
-for (const file of siteFiles) check(!forbidden.some((pattern) => pattern.test(file)), `Forbidden release path: ${file}`);
+for (const file of siteFiles) {
+  check(!forbidden.some((pattern) => pattern.test(file)), `Forbidden release path: ${file}`);
+  check(!/(?:^|\/)(?:tests|scratch|\.agents|\.github|\.aws|\.claude|\.codex|node_modules)(?:\/|$)/i.test(file), `Development contamination: ${file}`);
+  check(!/\.(?:map|php|tsx?|mjs|cjs|mp4|mov|webm|mkv)$/i.test(file), `Prohibited source/media artifact: ${file}`);
+}
 
 const rootEntries = (await readdir(releaseDir)).sort();
 const allowedRootEntries = [".cpanel.yml", "SOURCE_COMMIT.txt", "deploy-hostpapa.sh", "release-manifest.txt", "site"].sort();
@@ -64,6 +70,7 @@ for (const file of manifest) check(file && !file.startsWith("/") && !file.split(
 
 const sourceCommit = (await readFile(path.join(releaseDir, "SOURCE_COMMIT.txt"), "utf8")).trim();
 check(/^[0-9a-f]{40}$/.test(sourceCommit), "SOURCE_COMMIT.txt is not a full Git SHA");
+if (process.env.EXPECTED_SOURCE_COMMIT) check(sourceCommit === process.env.EXPECTED_SOURCE_COMMIT, "SOURCE_COMMIT.txt does not match expected source");
 
 const enShell = await readFile(path.join(siteDir, "_shell.html"), "utf8");
 const arShell = await readFile(path.join(siteDir, "ar", "_shell.html"), "utf8");

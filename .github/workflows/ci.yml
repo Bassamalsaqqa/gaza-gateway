@@ -1,0 +1,107 @@
+name: Regression
+
+on:
+  push:
+    branches: [main, 'phase*/**']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      browser:
+        description: Run focused critical browser journeys
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: regression-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scope:
+    name: Change scope
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      runtime: ${{ steps.scope.outputs.runtime }}
+      browser: ${{ steps.scope.outputs.browser }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.12.0'
+      - run: node --test tests/tooling/ci-scope.test.mjs
+      - id: scope
+        run: node scripts/ci-scope.mjs
+
+  quality:
+    name: Quality gate
+    needs: scope
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.12.0'
+          cache: npm
+      - name: Documentation provenance
+        if: needs.scope.outputs.runtime != 'true'
+        run: node --test --experimental-strip-types tests/unit/network-status.test.ts
+      - name: Lockfile install
+        if: needs.scope.outputs.runtime == 'true'
+        run: npm ci
+      - if: needs.scope.outputs.runtime == 'true'
+        run: npm run typecheck
+      - if: needs.scope.outputs.runtime == 'true'
+        run: npm run lint -- --max-warnings=56
+      - if: needs.scope.outputs.runtime == 'true'
+        run: npm test
+      - if: needs.scope.outputs.runtime == 'true'
+        run: npm run build
+      - if: needs.scope.outputs.runtime == 'true'
+        run: npm run build:hostpapa
+      - if: needs.scope.outputs.runtime == 'true'
+        run: npm run hostpapa:prepare
+      - if: needs.scope.outputs.runtime == 'true'
+        run: npm run hostpapa:verify
+      - name: Generated source and whitespace guard
+        run: |
+          git diff --exit-code
+          git diff --check
+
+  browser:
+    name: Critical browser journeys
+    needs: scope
+    if: needs.scope.outputs.browser == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SMOKE_BROWSER: chromium
+      TEST_NOW: '2026-10-08T09:00:00.000Z'
+      TZ: UTC
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.12.0'
+          cache: npm
+      - run: npm ci
+      - run: npm exec playwright-core install --with-deps chromium
+      - run: npm run build:hostpapa
+      - run: npm run test:smoke:critical 2>&1 | tee browser.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: failure()
+        with:
+          name: browser-failure-${{ github.run_id }}
+          path: browser.log
+          retention-days: 7

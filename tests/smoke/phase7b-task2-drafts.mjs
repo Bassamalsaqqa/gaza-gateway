@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { chromium } from "playwright-core";
 import { createServer } from "vite";
 
@@ -28,19 +28,19 @@ async function startServer(port = 4178) {
   };
 }
 
-async function runTask2Smoke() {
+export async function runArchiveDraftChecks({ browser: providedBrowser, baseUrl: providedUrl } = {}) {
   console.log("\n==================================================================");
   console.log("Phase 7B Task 2 — Archive & Source Draft Forms Smoke Tests");
   console.log("==================================================================\n");
 
-  const server = process.env.DRAFTS_TEST_URL
-    ? { url: process.env.DRAFTS_TEST_URL, stop: async () => {} }
+  const server = providedUrl || process.env.DRAFTS_TEST_URL
+    ? { url: providedUrl ?? process.env.DRAFTS_TEST_URL, stop: async () => {} }
     : await startServer(4178);
   const baseUrl = server.url;
   console.log(`Server running at ${baseUrl}`);
 
-  let browser;
-  try {
+  let browser = providedBrowser;
+  if (!browser) try {
     browser = await chromium.launch({ channel: "msedge", headless: true });
   } catch {
     try {
@@ -469,7 +469,7 @@ async function runTask2Smoke() {
 
     await ctxAdmin.close();
   } finally {
-    if (browser) await browser.close();
+    if (browser && !providedBrowser) await browser.close();
     await server.stop();
   }
 
@@ -479,7 +479,7 @@ async function runTask2Smoke() {
   console.log("==================================================================\n");
 }
 
-runTask2Smoke().catch((err) => {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) runArchiveDraftChecks().catch((err) => {
   console.error("Task 2 Smoke Test Failed:", err);
   process.exit(1);
 });

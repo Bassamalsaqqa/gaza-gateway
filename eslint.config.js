@@ -8,6 +8,11 @@ import tseslint from "typescript-eslint";
 export default tseslint.config(
   { ignores: ["dist", ".output", ".vinxi", "visual-skin-system-replication-kit/**", "scratch/**"] },
   {
+    files: ["scripts/ci-scope.mjs", "scripts/test-*.mjs", "tests/helpers/*.mjs", "tests/tooling/*.mjs"],
+    extends: [js.configs.recommended],
+    languageOptions: { ecmaVersion: "latest", globals: { ...globals.node, ...globals.browser } },
+  },
+  {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
     languageOptions: {
