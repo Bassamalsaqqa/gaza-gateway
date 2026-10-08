@@ -7060,6 +7060,7 @@ async function runBrowserSmoke() {
         await page.waitForSelector("#c-name", { timeout: 10000 });
 
         // 2. Fill form
+        await waitForInteractiveInput(page, "#c-name");
         await page.fill("#c-name", "Aya Mansour");
         await page.fill("#c-email", "aya.mansour@example.ps");
         await page.selectOption("#c-subject", "booking");
