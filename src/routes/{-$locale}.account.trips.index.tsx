@@ -8,17 +8,24 @@ import { pick, useI18n } from "@/lib/i18n";
 import { useState } from "react";
 import { passCount } from "@/lib/domain/booking";
 import { useMyBookings } from "@/lib/passenger";
+import { pageHead } from "@/lib/head";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/{-$locale}/account/trips/")({
-  head: () => ({
-    meta: [
-      { title: "My trips — Gaza International Airport (GZA)" },
-      { name: "description", content: "All your Palestinian Airlines bookings from Gaza, upcoming and past." },
-      { property: "og:title", content: "My trips — Gaza International Airport" },
-      { property: "og:description", content: "Upcoming and past bookings in one list." },
-    ],
-  }),
+  head: ({ params }) => {
+    const isAr = params.locale === "ar";
+    return pageHead({
+      title: isAr
+        ? "رحلاتي — مطار غزة الدولي (GZA)"
+        : "My trips — Gaza International Airport (GZA)",
+      description: isAr
+        ? "جميع حجوزاتك مع الخطوط الجوية الفلسطينية من غزة، القادمة والسابقة."
+        : "All your Palestinian Airlines bookings from Gaza, upcoming and past.",
+      locale: params.locale,
+      path: "/account/trips",
+      noindex: true,
+    });
+  },
   component: TripsPage,
 });
 

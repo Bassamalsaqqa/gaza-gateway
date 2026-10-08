@@ -42,6 +42,7 @@ import { launchSmokeBrowser } from "../helpers/browser-harness.mjs";
 import { createSmokeSelection } from "../helpers/smoke-selection.mjs";
 import { runPhase7ContentPreviewChecks } from "./phase7-content-preview.mjs";
 import { runArchiveDraftChecks } from "./phase7b-task2-drafts.mjs";
+import { runSeoMetadataChecks } from "./seo-metadata.mjs";
 import { preview } from "vite";
 
 async function startServer(port = 4173) {
@@ -7812,6 +7813,7 @@ async function runBrowserSmoke() {
     await runPhase6CCorrection05Checks({ checkStep, browser, baseUrl });
     await runPhase7ContentPreviewChecks({ checkStep, browser, baseUrl });
     await checkStep("Archive draft administration", () => runArchiveDraftChecks({ browser, baseUrl }));
+    await checkStep("Phase 11 SEO metadata", () => runSeoMetadataChecks({ browser, baseUrl }));
 
   } finally {
     await browser.close();

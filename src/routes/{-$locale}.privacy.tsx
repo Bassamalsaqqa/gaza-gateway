@@ -6,8 +6,22 @@ import { publishedInformationPages } from "@/content/published/information-pages
 import { ContentPreviewNotice, useContentPreview } from "@/content/preview";
 import { pick, useI18n } from "@/lib/i18n";
 
+import { getBreadcrumbSchema } from "@/lib/structured-data";
+
 export const Route = createFileRoute("/{-$locale}/privacy")({
-  head: ({ params }) => compiledContentHead(publishedInformationPages.pages.find((page) => page.id === "privacy")!.seo, params.locale, true),
+  head: ({ params }) => {
+    const isAr = params.locale === "ar";
+    const seo = publishedInformationPages.pages.find((page) => page.id === "privacy")!.seo;
+    return compiledContentHead(seo, params.locale, true, "/privacy", {
+      image: "/social/gaza-airport.jpg",
+      schema: [
+        getBreadcrumbSchema([
+          { name: isAr ? "الرئيسية" : "Home", path: isAr ? "/ar" : "/" },
+          { name: isAr ? "سياسة الخصوصية" : "Privacy Policy", path: isAr ? "/ar/privacy" : "/privacy" },
+        ]),
+      ],
+    });
+  },
   component: PrivacyPage,
 });
 

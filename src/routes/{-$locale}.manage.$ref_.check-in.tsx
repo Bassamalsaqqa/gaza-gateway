@@ -28,23 +28,24 @@ import {
   useCompleteCheckInMutation,
   getCanonicalOccupiedSeats,
 } from "@/lib/repositories";
+import { pageHead } from "@/lib/head";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/{-$locale}/manage/$ref_/check-in")({
-  head: ({ params }) => ({
-    meta: [
-      { title: `Check in — booking ${params.ref} — Gaza International Airport (GZA)` },
-      {
-        name: "description",
-        content: "Check in for your Palestinian Airlines flight from Gaza: choose the flight, passengers, travel details and seats.",
-      },
-      { property: "og:title", content: "Check in — Palestinian Airlines" },
-      { property: "og:description", content: "Check in one flight at a time and collect your boarding passes." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "robots", content: "noindex" },
-    ],
-  }),
+  head: ({ params }) => {
+    const isAr = params.locale === "ar";
+    return pageHead({
+      title: isAr
+        ? "تسجيل الوصول للحجز — مطار غزة الدولي (GZA)"
+        : "Check in — Gaza International Airport (GZA)",
+      description: isAr
+        ? "سجّل الوصول لرحلتك مع الخطوط الجوية الفلسطينية من غزة: اختر الرحلة والمسافرين وتفاصيل السفر والمقاعد."
+        : "Check in for your Palestinian Airlines flight from Gaza: choose the flight, passengers, travel details and seats.",
+      locale: params.locale,
+      path: "/check-in",
+      noindex: true,
+    });
+  },
   component: CheckInPage,
 });
 

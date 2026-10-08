@@ -23,6 +23,9 @@ type AirportSearch = {
   studioPreview?: 1;
 };
 
+import { pageHead } from "@/lib/head";
+import { getAirportSchema, getBreadcrumbSchema } from "@/lib/structured-data";
+
 export const Route = createFileRoute("/{-$locale}/airport/")({
   validateSearch: (search: Record<string, unknown>): AirportSearch => {
     const out: AirportSearch = {};
@@ -36,18 +39,36 @@ export const Route = createFileRoute("/{-$locale}/airport/")({
     }
     return out;
   },
-  head: () => ({
-    meta: [
-      { title: "The airport — past, present and future of GZA" },
-      {
-        name: "description",
-        content:
+  head: ({ params }) => {
+    const isAr = params.locale === "ar";
+    const lang = isAr ? "ar" : "en";
+    return pageHead({
+      locale: params.locale,
+      path: "/airport",
+      en: {
+        title: "The airport — past, present and future of GZA",
+        description:
           "Gaza International Airport in three chapters: its history and archive, its present-day state, and the vision for its future.",
+        socialTitle: "The airport — Gaza International Airport (GZA)",
+        socialDescription: "History, present state and future vision in three chapters.",
       },
-      { property: "og:title", content: "The airport — Gaza International Airport (GZA)" },
-      { property: "og:description", content: "History, present state and future vision in three chapters." },
-    ],
-  }),
+      ar: {
+        title: "المطار — ماضي وحاضر ومستقبل مطار غزة الدولي (GZA)",
+        description:
+          "مطار غزة الدولي في ثلاثة فصول: تاريخه وأرشيفه، واقعه الراهن، ورؤية مستقبله.",
+        socialTitle: "المطار — مطار غزة الدولي (GZA)",
+        socialDescription: "تاريخ المطار، وواقعه الراهن، ورؤية مستقبله في ثلاثة فصول توثيقية.",
+      },
+      image: "/social/gaza-airport.jpg",
+      schema: [
+        getAirportSchema(lang),
+        getBreadcrumbSchema([
+          { name: isAr ? "الرئيسية" : "Home", path: isAr ? "/ar" : "/" },
+          { name: isAr ? "المطار" : "The Airport", path: isAr ? "/ar/airport" : "/airport" },
+        ]),
+      ],
+    });
+  },
   component: AirportPage,
 });
 

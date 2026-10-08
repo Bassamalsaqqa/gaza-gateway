@@ -2,22 +2,24 @@ import { AppLink } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
 import { btnClass, Notice, Panel } from "@/components/kit";
 import { PassengerAuthShell } from "@/components/passenger-auth-shell";
+import { pageHead } from "@/lib/head";
 import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/{-$locale}/forgot-password")({
-  head: () => ({
-    meta: [
-      { title: "Password assistance — Gaza International Airport (GZA)" },
-      {
-        name: "description",
-        content: "Account guidance for local Palestinian Airlines passenger access.",
-      },
-      { property: "og:title", content: "Password assistance — Gaza International Airport" },
-      { property: "og:description", content: "Information on local passenger accounts." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-    ],
-  }),
+  head: ({ params }) => {
+    const isAr = params.locale === "ar";
+    return pageHead({
+      title: isAr
+        ? "المساعدة في كلمة المرور — مطار غزة الدولي (GZA)"
+        : "Password assistance — Gaza International Airport (GZA)",
+      description: isAr
+        ? "إرشادات استعادة حساب المسافر المحلي للوصول إلى رحلات الخطوط الجوية الفلسطينية."
+        : "Account guidance for local Palestinian Airlines passenger access.",
+      locale: params.locale,
+      path: "/forgot-password",
+      noindex: true,
+    });
+  },
   component: ForgotPasswordPage,
 });
 

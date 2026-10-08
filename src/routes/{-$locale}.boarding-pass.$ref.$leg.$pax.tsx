@@ -3,24 +3,25 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Printer, Ticket } from "lucide-react";
 import { BoardingPassCard, passFor } from "@/components/booking/boarding-pass";
 import { Container, EmptyState, GazaLoadingState, Notice, PageHeader, btnClass } from "@/components/kit";
+import { pageHead } from "@/lib/head";
 import { useI18n } from "@/lib/i18n";
 import { useBookingEffectiveFlights, useBookingQuery } from "@/lib/repositories/queries";
 
 export const Route = createFileRoute("/{-$locale}/boarding-pass/$ref/$leg/$pax")({
-  head: ({ params }) => ({
-    meta: [
-      { title: `Boarding pass ${params.ref} — Gaza International Airport (GZA)` },
-      {
-        name: "description",
-        content: "Boarding pass for a checked-in Palestinian Airlines flight: passenger, flight, seat, terminal and gate.",
-      },
-      { property: "og:title", content: "Boarding pass — Palestinian Airlines" },
-      { property: "og:description", content: "Passenger, flight, seat, terminal and gate details." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "robots", content: "noindex" },
-    ],
-  }),
+  head: ({ params }) => {
+    const isAr = params.locale === "ar";
+    return pageHead({
+      title: isAr
+        ? "بطاقة صعود الطائرة — مطار غزة الدولي (GZA)"
+        : "Boarding pass — Gaza International Airport (GZA)",
+      description: isAr
+        ? "بطاقة صعود الطائرة لرحلة الخطوط الجوية الفلسطينية: المسافر، الرحلة، المقعد، الصالة والبوابة."
+        : "Boarding pass for a checked-in Palestinian Airlines flight: passenger, flight, seat, terminal and gate.",
+      locale: params.locale,
+      path: "/boarding-pass",
+      noindex: true,
+    });
+  },
   component: BoardingPassDetailPage,
 });
 

@@ -7,17 +7,24 @@ import { airportByCode, todayISO } from "@/lib/data";
 import { dateLong } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
 import { passCount } from "@/lib/domain/booking";
+import { pageHead } from "@/lib/head";
 import { useMyBookings, usePassengerTravelers } from "@/lib/passenger";
 
 export const Route = createFileRoute("/{-$locale}/account/")({
-  head: () => ({
-    meta: [
-      { title: "Account overview — Gaza International Airport (GZA)" },
-      { name: "description", content: "Your upcoming Palestinian Airlines trips, boarding passes and saved travellers." },
-      { property: "og:title", content: "Account overview — Gaza International Airport" },
-      { property: "og:description", content: "Trips, boarding passes and travellers at a glance." },
-    ],
-  }),
+  head: ({ params }) => {
+    const isAr = params.locale === "ar";
+    return pageHead({
+      title: isAr
+        ? "نظرة عامة على الحساب — مطار غزة الدولي (GZA)"
+        : "Account overview — Gaza International Airport (GZA)",
+      description: isAr
+        ? "رحلات الخطوط الجوية الفلسطينية القادمة وبطاقات صعود الطائرة والمسافرون المحفوظون."
+        : "Your upcoming Palestinian Airlines trips, boarding passes and saved travellers.",
+      locale: params.locale,
+      path: "/account",
+      noindex: true,
+    });
+  },
   component: AccountOverview,
 });
 

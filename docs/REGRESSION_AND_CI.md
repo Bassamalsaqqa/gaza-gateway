@@ -1,6 +1,6 @@
 # Focused regression and CI policy
 
-Phase 10 — **Implemented / Awaiting Independent Review**.
+Phase 10 — **Complete / Accepted Source** at `277e07a29188ab5ca07df008c011f42ec964641b`. The implementation evidence below records its original review checkpoint.
 Baseline: accepted Phase 9 `f3d7377720c951ea659c076d2e8128d10c1a827a`.
 No application behavior, persistence schema, documentary policy or deployment controls change here.
 

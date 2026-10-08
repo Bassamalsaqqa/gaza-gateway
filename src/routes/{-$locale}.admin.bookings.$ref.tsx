@@ -69,13 +69,13 @@ export const Route = createFileRoute("/{-$locale}/admin/bookings/$ref")({
   head: ({ params }) =>
     pageHead({
       locale: params.locale,
-      path: `/admin/bookings/${params.ref}`,
+      path: "/admin/bookings",
       en: {
-        title: `Booking ${params.ref} — Gaza International Airport administration`,
+        title: "Booking record — Gaza International Airport administration",
         description: "Booking record, passengers, seats, extras and check-in.",
       },
       ar: {
-        title: `الحجز ${params.ref} — إدارة مطار غزة الدولي`,
+        title: "سجل الحجز — إدارة مطار غزة الدولي",
         description: "سجل الحجز والمسافرون والمقاعد والإضافات وتسجيل الوصول.",
       },
       noindex: true,

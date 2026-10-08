@@ -17,7 +17,11 @@ const required = [
   "ar/_shell.html",
   "admin/_shell.html",
   "ar/admin/_shell.html",
+  "sitemap.xml",
+  "robots.txt",
 ];
+
+execFileSync(process.execPath, [path.join(root, "scripts", "generate-sitemap.mjs")], { cwd: root, stdio: "inherit" });
 
 async function requireFile(base, relative) {
   const target = path.join(base, ...relative.split("/"));

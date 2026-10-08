@@ -2,24 +2,25 @@ import { AppLink } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
 import { BookingDetail } from "@/components/booking/booking-detail";
 import { Container, EmptyState, GazaLoadingState, PageHeader, btnClass } from "@/components/kit";
+import { pageHead } from "@/lib/head";
 import { useI18n } from "@/lib/i18n";
 import { useBookingQuery, useCancelBookingMutation } from "@/lib/repositories/queries";
 
 export const Route = createFileRoute("/{-$locale}/manage/$ref")({
-  head: ({ params }) => ({
-    meta: [
-      { title: `Booking ${params.ref} — Gaza International Airport (GZA)` },
-      {
-        name: "description",
-        content: "Your Palestinian Airlines booking: flights, passengers, seats, baggage, contact details and status.",
-      },
-      { property: "og:title", content: "Your booking — Palestinian Airlines" },
-      { property: "og:description", content: "Flights, passengers, seats, baggage and booking status." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "robots", content: "noindex" },
-    ],
-  }),
+  head: ({ params }) => {
+    const isAr = params.locale === "ar";
+    return pageHead({
+      title: isAr
+        ? "تفاصيل الحجز — مطار غزة الدولي (GZA)"
+        : "Manage Booking — Gaza International Airport (GZA)",
+      description: isAr
+        ? "حجز الخطوط الجوية الفلسطينية: الرحلات والمسافرين والمقاعد والأمتعة وبيانات الاتصال وحالة الحجز."
+        : "Your Palestinian Airlines booking: flights, passengers, seats, baggage, contact details and status.",
+      locale: params.locale,
+      path: "/manage",
+      noindex: true,
+    });
+  },
   component: ManageDetailPage,
 });
 

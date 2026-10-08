@@ -1,14 +1,47 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
+# robots.txt for Gaza International Airport & Palestinian Airlines
+# https://www.gazaairport.com
 
 User-agent: *
 Allow: /
+Allow: /ar
+Allow: /airport
+Allow: /destinations
+Allow: /flights
+Allow: /travel
+Allow: /gallery
+Allow: /about
+Allow: /contact
+Allow: /privacy
+Allow: /terms
+
+# Disallow private, administrative, and transactional surfaces
+Disallow: /admin
+Disallow: /ar/admin
+Disallow: /account
+Disallow: /ar/account
+Disallow: /book
+Disallow: /ar/book
+Disallow: /booking-confirmation
+Disallow: /ar/booking-confirmation
+Disallow: /manage
+Disallow: /ar/manage
+Disallow: /check-in
+Disallow: /ar/check-in
+Disallow: /boarding-pass
+Disallow: /ar/boarding-pass
+Disallow: /flight/
+Disallow: /ar/flight/
+Disallow: /signin
+Disallow: /ar/signin
+Disallow: /register
+Disallow: /ar/register
+Disallow: /forgot-password
+Disallow: /ar/forgot-password
+Disallow: /reset-password
+Disallow: /ar/reset-password
+Disallow: /verify-email
+Disallow: /ar/verify-email
+Disallow: /access-denied
+Disallow: /ar/access-denied
+
+Sitemap: https://www.gazaairport.com/sitemap.xml

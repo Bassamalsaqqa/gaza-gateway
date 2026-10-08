@@ -4,7 +4,8 @@ export const smokeGroups = Object.freeze({
   admin: ["10", "60", "61", "135", "136", "137", "138", "139", "140"],
   cms: ["14", "15", "16", "17", "20", "Phase 7"],
   archive: ["46", "47", "48", "52", "Archive draft administration"],
-  critical: ["9", "42", "43", "53", "54", "60", "61", "135", "136", "14", "46", "47", "Archive draft administration"],
+  seo: ["Phase 11 SEO metadata"],
+  critical: ["9", "42", "43", "53", "54", "60", "61", "135", "136", "14", "46", "47", "Archive draft administration", "Phase 11 SEO metadata"],
 });
 
 export function smokeCheckId(name) {

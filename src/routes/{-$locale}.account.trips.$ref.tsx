@@ -2,19 +2,26 @@ import { AppLink } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
 import { BookingDetail } from "@/components/booking/booking-detail";
 import { btnClass, EmptyState, GazaLoadingState } from "@/components/kit";
+import { pageHead } from "@/lib/head";
 import { useI18n } from "@/lib/i18n";
 import { bookingBelongsToAccount, usePassengerAccount } from "@/lib/passenger";
 import { useBookingQuery, useCancelBookingMutation } from "@/lib/repositories/queries";
 
 export const Route = createFileRoute("/{-$locale}/account/trips/$ref")({
-  head: ({ params }) => ({
-    meta: [
-      { title: `Trip ${params.ref} — Gaza International Airport (GZA)` },
-      { name: "description", content: "Trip details: flights, passengers, seats, baggage and management actions." },
-      { property: "og:title", content: "Trip details — Gaza International Airport" },
-      { property: "og:description", content: "Flights, passengers, seats and baggage for this booking." },
-    ],
-  }),
+  head: ({ params }) => {
+    const isAr = params.locale === "ar";
+    return pageHead({
+      title: isAr
+        ? "تفاصيل الرحلة — مطار غزة الدولي (GZA)"
+        : "Trip Details — Gaza International Airport (GZA)",
+      description: isAr
+        ? "تفاصيل الرحلة: الرحلات والمسافرين والمقاعد والأمتعة وإجراءات الإدارة."
+        : "Trip details: flights, passengers, seats, baggage and management actions.",
+      locale: params.locale,
+      path: "/account/trips",
+      noindex: true,
+    });
+  },
   component: TripDetailPage,
 });
 

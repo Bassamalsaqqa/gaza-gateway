@@ -19,6 +19,6 @@ export const unitGroups = Object.freeze({
   ],
   content: ["content", "content-storage", "content-inventory", "content-domains", "content-commands", "cms-website-editor", "cms-translations", "cms-edit-session", "phase7-content-boundaries"],
   archive: ["archive-foundation", "archive-drafts", "archive-admin-editor", "archive-admin-catalog", "phase7b-boundaries"],
-  ui: ["surface-grammar", "studio-protocol", "public-media", "destination-media", "i18n-parity", "format", "phase9-translations", "network-status", "cms-translations"],
+  ui: ["surface-grammar", "studio-protocol", "public-media", "destination-media", "i18n-parity", "format", "phase9-translations", "network-status", "cms-translations", "seo-metadata"],
   tooling: [],
 });

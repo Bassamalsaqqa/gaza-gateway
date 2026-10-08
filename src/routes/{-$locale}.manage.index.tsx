@@ -4,6 +4,7 @@ import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { btnClass, Container, EmptyState, Field, Input } from "@/components/kit";
 import { PublicPhotoHero } from "@/components/media/public-photo-hero";
+import { pageHead } from "@/lib/head";
 import { useI18n } from "@/lib/i18n";
 import { useRepositories } from "@/lib/repositories/registry";
 import { matchesBookingIdentifier, normalizePnr } from "@/lib/domain/booking-lookup";
@@ -14,20 +15,20 @@ export const Route = createFileRoute("/{-$locale}/manage/")({
   validateSearch: (search: Record<string, unknown>): ManageSearch => ({
     ref: typeof search["ref"] === "string" ? (search["ref"] as string) : undefined,
   }),
-  head: () => ({
-    meta: [
-      { title: "Manage booking — Gaza International Airport (GZA)" },
-      {
-        name: "description",
-        content:
-          "Retrieve a Palestinian Airlines booking with your reference and last name to view flights, passengers, seats and baggage.",
-      },
-      { property: "og:title", content: "Manage your booking — Palestinian Airlines" },
-      { property: "og:description", content: "Look up a booking by reference and last name." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-    ],
-  }),
+  head: ({ params }) => {
+    const isAr = params.locale === "ar";
+    return pageHead({
+      title: isAr
+        ? "إدارة الحجز — مطار غزة الدولي (GZA)"
+        : "Manage booking — Gaza International Airport (GZA)",
+      description: isAr
+        ? "استرجع حجز الخطوط الجوية الفلسطينية برقم الحجز واسم العائلة لعرض الرحلات والمسافرين والمقاعد والأمتعة."
+        : "Retrieve a Palestinian Airlines booking with your reference and last name to view flights, passengers, seats and baggage.",
+      locale: params.locale,
+      path: "/manage",
+      noindex: true,
+    });
+  },
   component: ManageLookupPage,
 });
 

@@ -23,6 +23,9 @@ type AirportSearch = {
   baseline?: 1;
 };
 
+import { pageHead } from "@/lib/head";
+import { getArticleSchema, getBreadcrumbSchema } from "@/lib/structured-data";
+
 export const Route = createFileRoute("/{-$locale}/airport/past")({
   validateSearch: (search: Record<string, unknown>): AirportSearch => {
     const out: AirportSearch = {};
@@ -40,17 +43,42 @@ export const Route = createFileRoute("/{-$locale}/airport/past")({
     }
     return out;
   },
-  head: ({ params }) => ({
-    meta: [
-      { title: publishedAirportPast.seo.title[params.locale === "ar" ? "ar" : "en"] },
-      {
-        name: "description",
-        content: publishedAirportPast.seo.description[params.locale === "ar" ? "ar" : "en"],
+  head: ({ params }) => {
+    const isAr = params.locale === "ar";
+    const lang = isAr ? "ar" : "en";
+    const title = publishedAirportPast.seo.title[lang];
+    const description = publishedAirportPast.seo.description[lang];
+    return pageHead({
+      locale: params.locale,
+      path: "/airport/past",
+      en: {
+        title: publishedAirportPast.seo.title.en,
+        description: publishedAirportPast.seo.description.en,
+        socialTitle: "The Past — Gaza International Airport (GZA)",
+        socialDescription: "Construction, opening, operation, closure and memory of Gaza International Airport.",
       },
-      { property: "og:title", content: "The past — Gaza International Airport" },
-      { property: "og:description", content: "Construction, opening, operation, closure and memory." },
-    ],
-  }),
+      ar: {
+        title: publishedAirportPast.seo.title.ar,
+        description: publishedAirportPast.seo.description.ar,
+        socialTitle: "الماضي — مطار غزة الدولي (GZA)",
+        socialDescription: "تاريخ بناء وافتتاح وتشغيل وإغلاق وذاكرة مطار غزة الدولي.",
+      },
+      image: "/social/gaza-airport.jpg",
+      schema: [
+        getArticleSchema({
+          title,
+          description,
+          url: isAr ? "/ar/airport/past" : "/airport/past",
+          lang,
+        }),
+        getBreadcrumbSchema([
+          { name: isAr ? "الرئيسية" : "Home", path: isAr ? "/ar" : "/" },
+          { name: isAr ? "المطار" : "The Airport", path: isAr ? "/ar/airport" : "/airport" },
+          { name: isAr ? "الماضي" : "The Past", path: isAr ? "/ar/airport/past" : "/airport/past" },
+        ]),
+      ],
+    });
+  },
   component: PastPage,
 });
 

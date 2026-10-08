@@ -2,17 +2,24 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { btnClass, Notice, Panel } from "@/components/kit";
 import { useI18n } from "@/lib/i18n";
+import { pageHead } from "@/lib/head";
 import { usePassengerAccount, useSignOutMutation } from "@/lib/passenger";
 
 export const Route = createFileRoute("/{-$locale}/account/security")({
-  head: () => ({
-    meta: [
-      { title: "Security — Gaza International Airport (GZA)" },
-      { name: "description", content: "Review local passenger session and sign out from this device." },
-      { property: "og:title", content: "Security — Gaza International Airport" },
-      { property: "og:description", content: "Local session and sign out." },
-    ],
-  }),
+  head: ({ params }) => {
+    const isAr = params.locale === "ar";
+    return pageHead({
+      title: isAr
+        ? "الأمان والجلسة — مطار غزة الدولي (GZA)"
+        : "Security — Gaza International Airport (GZA)",
+      description: isAr
+        ? "مراجعة جلسة المسافر المحلية وتسجيل الخروج من هذا الجهاز."
+        : "Review local passenger session and sign out from this device.",
+      locale: params.locale,
+      path: "/account/security",
+      noindex: true,
+    });
+  },
   component: SecurityPage,
 });
 

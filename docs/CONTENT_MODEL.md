@@ -1,6 +1,6 @@
 # Typed editorial content model
 
-> **Current Source Status**: Phase 6 Complete / Accepted Source; Phase 6C Complete / Accepted Source; Phase 7 and Phase 7B Complete / Accepted Source. Phase 8 — Visual System & Assets Finalization is Complete / Accepted Source. Phase 9 — Arabic, RTL, Accessibility & Responsive Certification is Complete / Accepted Source. Phase 10 is Implemented / Awaiting Independent Review. Phase 6B2C1 Complete / Accepted Source; Phase 6B2C2A Complete / Accepted Source; Phase 6B2C2B Complete / Accepted Source. See the current checkpoint below.
+> **Current Source Status**: Phase 6 Complete / Accepted Source; Phase 6C Complete / Accepted Source; Phase 7 and Phase 7B Complete / Accepted Source. Phase 8 — Visual System & Assets Finalization is Complete / Accepted Source. Phase 9 — Arabic, RTL, Accessibility & Responsive Certification is Complete / Accepted Source. Phase 10 is Complete / Accepted Source; Phase 11 is Implemented / Awaiting Independent Review. Phase 6B2C1 Complete / Accepted Source; Phase 6B2C2A Complete / Accepted Source; Phase 6B2C2B Complete / Accepted Source. See the current checkpoint below.
 
 Phase 7 expands the typed browser-local editorial model. Compiled source remains the only globally published content; a saved draft is private to that browser and does not publish the static HostPapa site. Phase 7 is Complete / Accepted Source at `6b0240f1692beecc3f030775c0a25a68758a279b`. The separate Phase 7B archive draft model is Implemented / Awaiting Independent Review.
 
@@ -143,7 +143,7 @@ The final Phase 6 static package is published on HostPapa at `421101d294674aaa50
 
 Confirmed production remains **Phase 6B - Complete / Accepted Source / Accepted Release / Deployed by Owner**: release `8e3136c22156c9acf800d25e94e8cd3d29a8bfc8`, deployed runtime source `2749c26714258871c32bd2b14a75fc4e87a68b62`. Deployment is confirmed by the product owner. No independent live bundle verification claimed for this reconciliation.
 
-## Current checkpoint — Phase 10
+## Current checkpoint — Phase 11
 
 Phase 6, Phase 7 and Phase 7B are **Complete / Accepted Source**. Phase 7 was independently accepted at `6b0240f1692beecc3f030775c0a25a68758a279b`; Phase 7B was independently accepted and published to main at `deb9f6e2a4246f4f5c70ca1b56797ccf0588388e`.
 
@@ -151,6 +151,6 @@ The combined Phase 7 + 7B HostPapa release is `f68adcc60ec195f8099252b0d2d78da9a
 
 **Phase 8 — Visual System & Assets Finalization: Complete / Accepted Source**, independently accepted and published to main at `55981908a75a38de31538c387d103e548c04f91d`. No separate Phase 8 release was constructed.
 
-**Phase 9 — Arabic, RTL, Accessibility & Responsive Certification: Complete / Accepted Source**, independently accepted and published to main at `f3d7377720c951ea659c076d2e8128d10c1a827a`. See [Phase 9 implementation and evidence](PHASE9_ACCESSIBILITY_RTL.md). **Phase 10 — Durable Regression & CI Hardening: Implemented / Awaiting Independent Review.** See [focused regression and CI policy](REGRESSION_AND_CI.md). Phase 11 remains Planned / Unstarted; the consolidated frontend release remains at its planned checkpoint. No separate Phase 9/10 release or deployment.
+**Phase 9 — Arabic, RTL, Accessibility & Responsive Certification: Complete / Accepted Source**, independently accepted and published to main at `f3d7377720c951ea659c076d2e8128d10c1a827a`. See [Phase 9 implementation and evidence](PHASE9_ACCESSIBILITY_RTL.md). **Phase 10 — Durable Regression & CI Hardening: Complete / Accepted Source**, independently accepted and published to main at `277e07a29188ab5ca07df008c011f42ec964641b`. **Phase 11 — SEO, Performance & HostPapa Certification: Implemented / Awaiting Independent Review.** See [focused regression and CI policy](REGRESSION_AND_CI.md). Phase 12 remains Planned / Unstarted; the consolidated frontend release remains at its planned checkpoint. No separate Phase 8–11 release or deployment; release publication waits for Phase 11 acceptance.
 
 Editorial and archive proposals remain browser-local drafts, not public publication. HC-2/HC-3 rights, evidence, publication basis and documentary/future media separation remain unchanged. Earlier milestone sections are historical and do not override this checkpoint.

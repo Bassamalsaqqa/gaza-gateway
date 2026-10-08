@@ -13,6 +13,8 @@ import airportFutureBodyImg from "@/assets/media/decorative/airport/airport-futu
 import { publishedAirportFuture } from "@/content/published/airport-future";
 import { ContentPreviewNotice, useContentPreview } from "@/content/preview";
 
+import { getCreativeWorkSchema, getBreadcrumbSchema } from "@/lib/structured-data";
+
 type FutureSearch = {
   contentPreview?: 1;
   skinPreview?: 1;
@@ -38,7 +40,27 @@ export const Route = createFileRoute("/{-$locale}/airport/future")({
     }
     return out;
   },
-  head: ({ params }) => compiledContentHead(publishedAirportFuture.seo, params.locale),
+  head: ({ params }) => {
+    const isAr = params.locale === "ar";
+    const lang = isAr ? "ar" : "en";
+    const seo = publishedAirportFuture.seo;
+    return compiledContentHead(seo, params.locale, false, "/airport/future", {
+      image: "/social/gaza-airport.jpg",
+      schema: [
+        getCreativeWorkSchema({
+          title: seo.title[lang],
+          description: seo.description[lang],
+          url: isAr ? "/ar/airport/future" : "/airport/future",
+          lang,
+        }),
+        getBreadcrumbSchema([
+          { name: isAr ? "الرئيسية" : "Home", path: isAr ? "/ar" : "/" },
+          { name: isAr ? "المطار" : "The Airport", path: isAr ? "/ar/airport" : "/airport" },
+          { name: isAr ? "المستقبل" : "The Future", path: isAr ? "/ar/airport/future" : "/airport/future" },
+        ]),
+      ],
+    });
+  },
   component: FuturePage,
 });
 

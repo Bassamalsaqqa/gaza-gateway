@@ -8,20 +8,38 @@ import { pick, useI18n } from "@/lib/i18n";
 import { publishedDestinationsPresentation } from "@/content/published/destinations-presentation";
 import { ContentPreviewNotice, useContentPreview } from "@/content/preview";
 import { getDestinationPhotoByCode, getDestinationPhotoById } from "@/lib/destination-media";
+import { pageHead } from "@/lib/head";
+import { getBreadcrumbSchema } from "@/lib/structured-data";
 
 export const Route = createFileRoute("/{-$locale}/destinations/")({
-  head: () => ({
-    meta: [
-      { title: "Destinations — Palestinian Airlines from Gaza (GZA)" },
-      {
-        name: "description",
-        content:
+  head: ({ params }) => {
+    const isAr = params.locale === "ar";
+    return pageHead({
+      locale: params.locale,
+      path: "/destinations",
+      en: {
+        title: "Destinations — Palestinian Airlines from Gaza (GZA)",
+        description:
           "Explore the Palestinian Airlines route network from Gaza International Airport: Amman, Cairo, Istanbul, Doha, Dubai, Jeddah and Riyadh.",
+        socialTitle: "Destinations from Gaza International Airport (GZA)",
+        socialDescription: "Seven regional gateways in the opening Palestinian Airlines network from Gaza.",
       },
-      { property: "og:title", content: "Destinations from Gaza International Airport" },
-      { property: "og:description", content: "Seven regional gateways in the opening Palestinian Airlines network." },
-    ],
-  }),
+      ar: {
+        title: "وجهات الرحلات — الخطوط الجوية الفلسطينية من غزة (GZA)",
+        description:
+          "استكشف شبكة وجهات الخطوط الجوية الفلسطينية من مطار غزة الدولي: عمّان، القاهرة، إسطنبول، الدوحة، دبي، جدة، والرياض.",
+        socialTitle: "وجهات الرحلات من مطار غزة الدولي (GZA)",
+        socialDescription: "سبع وجهات إقليمية في شبكة الخطوط الجوية الفلسطينية من غزة.",
+      },
+      image: "/social/gaza-airport.jpg",
+      schema: [
+        getBreadcrumbSchema([
+          { name: isAr ? "الرئيسية" : "Home", path: isAr ? "/ar" : "/" },
+          { name: isAr ? "الوجهات" : "Destinations", path: isAr ? "/ar/destinations" : "/destinations" },
+        ]),
+      ],
+    });
+  },
   component: DestinationsPage,
 });
 

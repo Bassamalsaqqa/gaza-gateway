@@ -30,22 +30,38 @@ import { cn } from "@/lib/utils";
 import galleryFilterToolbarImg from "@/assets/media/decorative/gallery/gallery-filter-toolbar.webp";
 import galleryItemBodyImg from "@/assets/media/decorative/gallery/gallery-item-body.webp";
 
+import { pageHead } from "@/lib/head";
+import { getBreadcrumbSchema } from "@/lib/structured-data";
+
 export const Route = createFileRoute("/{-$locale}/gallery")({
-  head: () => ({
-    meta: [
-      { title: "Archive — Gaza International Airport (GZA)" },
-      {
-        name: "description",
-        content:
+  head: ({ params }) => {
+    const isAr = params.locale === "ar";
+    return pageHead({
+      locale: params.locale,
+      path: "/gallery",
+      en: {
+        title: "Archive & Documentary Gallery — Gaza International Airport (GZA)",
+        description:
           "Browse historical and documentary records of Gaza International Airport: photographs, documents, architecture, and archival footage.",
+        socialTitle: "Archive Gallery — Gaza International Airport (GZA)",
+        socialDescription: "Documentary photographs, records, architecture, and historical footage of GZA.",
       },
-      { property: "og:title", content: "Archive — Gaza International Airport" },
-      {
-        property: "og:description",
-        content: "Historical and documentary records of Gaza International Airport.",
+      ar: {
+        title: "الأرشيف والمعرض التوثيقي — مطار غزة الدولي (GZA)",
+        description:
+          "استعرض السجلات التاريخية والتوثيقية لمطار غزة الدولي: صور فوتوغرافية، وثائق، عمارة، ولقطات أرشيفية.",
+        socialTitle: "المعرض التوثيقي — مطار غزة الدولي (GZA)",
+        socialDescription: "صور توثيقية، وثائق، عمارة، ولقطات تاريخية لمطار غزة الدولي.",
       },
-    ],
-  }),
+      image: "/social/gaza-airport.jpg",
+      schema: [
+        getBreadcrumbSchema([
+          { name: isAr ? "الرئيسية" : "Home", path: isAr ? "/ar" : "/" },
+          { name: isAr ? "المعرض التوثيقي" : "Archive Gallery", path: isAr ? "/ar/gallery" : "/gallery" },
+        ]),
+      ],
+    });
+  },
   component: GalleryPage,
 });
 

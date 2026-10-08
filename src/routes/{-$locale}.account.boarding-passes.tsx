@@ -11,21 +11,23 @@ import { anyCheckedIn } from "@/lib/domain/booking";
 import { useMyBookings } from "@/lib/passenger";
 import { flightKeys } from "@/lib/repositories/keys";
 import { useRepositories } from "@/lib/repositories/registry";
+import { pageHead } from "@/lib/head";
 
 export const Route = createFileRoute("/{-$locale}/account/boarding-passes")({
-  head: () => ({
-    meta: [
-      { title: "Boarding passes — Gaza International Airport (GZA)" },
-      {
-        name: "description",
-        content: "All boarding passes for your checked-in Palestinian Airlines flights, ready to view and print.",
-      },
-      { property: "og:title", content: "Boarding passes — Palestinian Airlines" },
-      { property: "og:description", content: "View and print boarding passes for checked-in flights." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-    ],
-  }),
+  head: ({ params }) => {
+    const isAr = params.locale === "ar";
+    return pageHead({
+      title: isAr
+        ? "بطاقات صعود الطائرة — مطار غزة الدولي (GZA)"
+        : "Boarding passes — Gaza International Airport (GZA)",
+      description: isAr
+        ? "جميع بطاقات صعود الطائرة لرحلات الخطوط الجوية الفلسطينية المسجلة، جاهزة للعرض والطباعة."
+        : "All boarding passes for your checked-in Palestinian Airlines flights, ready to view and print.",
+      locale: params.locale,
+      path: "/account/boarding-passes",
+      noindex: true,
+    });
+  },
   component: BoardingPassesPage,
 });
 

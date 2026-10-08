@@ -50,7 +50,8 @@ function StudioFrameMount() {
 /** Detect locale from pathname safely without requiring I18nProvider. */
 function detectLocale(): "ar" | "en" {
   if (typeof window !== "undefined") {
-    return window.location.pathname.startsWith("/ar") ? "ar" : "en";
+    const p = window.location.pathname;
+    return p === "/ar" || p.startsWith("/ar/") ? "ar" : "en";
   }
   return "en";
 }

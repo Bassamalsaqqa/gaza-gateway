@@ -41,22 +41,39 @@ const chapterBodyImages = {
   future: airportFutureBodyImg,
 } as const;
 
+import { pageHead } from "@/lib/head";
+import { getAirportSchema, getAirlineSchema, getWebSiteSchema } from "@/lib/structured-data";
+
 export const Route = createFileRoute("/{-$locale}/")({
-  head: ({ params }) => ({
-    meta: [
-      { title: publishedHome.seo.title[params.locale === "ar" ? "ar" : "en"] },
-      {
-        name: "description",
-        content: publishedHome.seo.description[params.locale === "ar" ? "ar" : "en"],
+  head: ({ params }) => {
+    const isAr = params.locale === "ar";
+    const lang = isAr ? "ar" : "en";
+    return pageHead({
+      locale: params.locale,
+      path: "/",
+      en: {
+        title: publishedHome.seo.title.en,
+        description: publishedHome.seo.description.en,
+        socialTitle: "Gaza International Airport (GZA) — Palestinian Airlines",
+        socialDescription: "Flights from Gaza with Palestinian Airlines, and the story of the airport they leave from.",
       },
-      { property: "og:title", content: "Gaza International Airport (GZA)" },
-      {
-        property: "og:description",
-        content:
-          "Flights from Gaza with Palestinian Airlines, and the story of the airport they leave from.",
+      ar: {
+        title: publishedHome.seo.title.ar,
+        description: publishedHome.seo.description.ar,
+        socialTitle: "مطار غزة الدولي (GZA) — الخطوط الجوية الفلسطينية",
+        socialDescription: "رحلات من غزة مع الخطوط الجوية الفلسطينية، وقصة المطار وتاريخه ورؤيته.",
       },
-    ],
-  }),
+      image: "/social/gaza-airport.jpg",
+      imageAlt: isAr
+        ? "تصور معماري لمطار غزة الدولي — مفهوم مستقبلي توضيحي"
+        : "Aerial architectural concept of the future Gaza International Airport — illustrative future concept.",
+      schema: [
+        getWebSiteSchema(lang),
+        getAirportSchema(lang),
+        getAirlineSchema(lang),
+      ],
+    });
+  },
   component: Home,
 });
 

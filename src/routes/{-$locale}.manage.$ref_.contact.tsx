@@ -10,14 +10,14 @@ export const Route = createFileRoute("/{-$locale}/manage/$ref_/contact")({
   head: ({ params }) =>
     pageHead({
       locale: params.locale,
-      path: `/manage/${params.ref}/contact`,
+      path: "/manage",
       noindex: true,
       en: {
-        title: `Contact details — booking ${params.ref} — Gaza International Airport (GZA)`,
+        title: "Contact details — Gaza International Airport (GZA)",
         description: "Update the email address and phone number held for this Palestinian Airlines booking.",
       },
       ar: {
-        title: `بيانات التواصل — الحجز ${params.ref} — مطار غزة الدولي`,
+        title: "بيانات التواصل — مطار غزة الدولي (GZA)",
         description: "حدّث البريد الإلكتروني ورقم الهاتف المرتبطين بهذا الحجز.",
       },
     }),

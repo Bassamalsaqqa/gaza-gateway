@@ -90,7 +90,7 @@ export function StudioFrameListener() {
       type: "GZA_STUDIO_FRAME_READY",
       version: STUDIO_PROTOCOL_VERSION,
       path: window.location.pathname + window.location.search,
-      locale: window.location.pathname.startsWith("/ar") ? "ar" : "en",
+      locale: window.location.pathname === "/ar" || window.location.pathname.startsWith("/ar/") ? "ar" : "en",
       availableTargets: available,
     });
   }, [isStudio, discoverTargets, postToParent]);
@@ -189,7 +189,7 @@ export function StudioFrameListener() {
       type: "GZA_STUDIO_ROUTE_CHANGED",
       version: STUDIO_PROTOCOL_VERSION,
       path: pathname + (window.location.search || ""),
-      locale: pathname.startsWith("/ar") ? "ar" : "en",
+      locale: pathname === "/ar" || pathname.startsWith("/ar/") ? "ar" : "en",
     });
   }, [isStudio, pathname, postToParent]);
 

@@ -24,26 +24,79 @@ import { publishedDestinationsEditorial } from "@/content/published/destinations
 import { compiledContentHead } from "@/content/head";
 import { ContentPreviewNotice, useContentPreview } from "@/content/preview";
 
+import { pageHead } from "@/lib/head";
+import { getBreadcrumbSchema } from "@/lib/structured-data";
+
 export const Route = createFileRoute("/{-$locale}/destinations/$code")({
   head: ({ params }) => {
     const destination = destinationByCode(params.code);
-    const editorial = publishedDestinationsEditorial.destinations.find((entry) => entry.code === destination?.code);
-    if (editorial) return compiledContentHead(editorial.seo, params.locale);
-    const city = destination ? destination.city.en : "Destination";
-    const title = destination
-      ? `${city} (${destination.code}) from Gaza — Palestinian Airlines`
-      : "Destination not in the network — GZA";
-    const description = destination
-      ? `Palestinian Airlines flies from Gaza International Airport to ${city}. Flight time, weekly schedule, fares and booking.`
-      : "This destination is not part of the opening Palestinian Airlines network from Gaza.";
-    return {
-      meta: [
-        { title },
-        { name: "description", content: description },
-        { property: "og:title", content: title },
-        { property: "og:description", content: description },
+    const isAr = params.locale === "ar";
+    const editorial = publishedDestinationsEditorial.destinations.find(
+      (entry) => entry.code === destination?.code,
+    );
+    const cityEn = destination ? destination.city.en : "Destination";
+    const cityAr = destination ? destination.city.ar : "الوجهة";
+    const code = destination ? destination.code : params.code.toUpperCase();
+
+    const enTitle =
+      editorial?.seo.title.en ??
+      (destination
+        ? `${cityEn} (${code}) from Gaza — Palestinian Airlines`
+        : "Destination not in network — GZA");
+    const arTitle =
+      editorial?.seo.title.ar ??
+      (destination
+        ? `${cityAr} (${code}) من غزة — الخطوط الجوية الفلسطينية`
+        : "وجهة غير مشمولة بالشبكة — مطار غزة الدولي");
+
+    const enDesc =
+      editorial?.seo.description.en ??
+      (destination
+        ? `Palestinian Airlines flights from Gaza International Airport to ${cityEn}. Route schedule, duration, and information.`
+        : "This destination is not part of the opening Palestinian Airlines network from Gaza.");
+    const arDesc =
+      editorial?.seo.description.ar ??
+      (destination
+        ? `رحلات الخطوط الجوية الفلسطينية من مطار غزة الدولي إلى ${cityAr}. جدول الرحلات، المدة، ومعلومات المسار.`
+        : "هذه الوجهة ليست ضمن شبكة الخطوط الجوية الفلسطينية الافتتاحية من غزة.");
+
+    if (!destination) {
+      return pageHead({
+        locale: params.locale,
+        path: `/destinations/${params.code}`,
+        en: { title: enTitle, description: enDesc },
+        ar: { title: arTitle, description: arDesc },
+        noindex: true,
+      });
+    }
+
+    return pageHead({
+      locale: params.locale,
+      path: `/destinations/${destination.code}`,
+      en: {
+        title: enTitle,
+        description: enDesc,
+        socialTitle: editorial?.seo.socialTitle?.en ?? enTitle,
+        socialDescription: editorial?.seo.socialDescription?.en ?? enDesc,
+      },
+      ar: {
+        title: arTitle,
+        description: arDesc,
+        socialTitle: editorial?.seo.socialTitle?.ar ?? arTitle,
+        socialDescription: editorial?.seo.socialDescription?.ar ?? arDesc,
+      },
+      image: "/social/gaza-airport.jpg",
+      schema: [
+        getBreadcrumbSchema([
+          { name: isAr ? "الرئيسية" : "Home", path: isAr ? "/ar" : "/" },
+          { name: isAr ? "الوجهات" : "Destinations", path: isAr ? "/ar/destinations" : "/destinations" },
+          {
+            name: isAr ? cityAr : cityEn,
+            path: isAr ? `/ar/destinations/${destination.code}` : `/destinations/${destination.code}`,
+          },
+        ]),
       ],
-    };
+    });
   },
   component: DestinationPage,
 });

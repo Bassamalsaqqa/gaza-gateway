@@ -9,8 +9,29 @@ import { ResponsiveImage } from "@/components/responsive-image";
 import { AIRLINE, destinations } from "@/lib/data";
 import { pick, useI18n } from "@/lib/i18n";
 
+import { getArticleSchema, getBreadcrumbSchema } from "@/lib/structured-data";
+
 export const Route = createFileRoute("/{-$locale}/about")({
-  head: ({ params }) => compiledContentHead(publishedInformationPages.pages.find((page) => page.id === "about")!.seo, params.locale),
+  head: ({ params }) => {
+    const isAr = params.locale === "ar";
+    const lang = isAr ? "ar" : "en";
+    const seo = publishedInformationPages.pages.find((page) => page.id === "about")!.seo;
+    return compiledContentHead(seo, params.locale, false, "/about", {
+      image: "/social/gaza-airport.jpg",
+      schema: [
+        getArticleSchema({
+          title: seo.title[lang],
+          description: seo.description[lang],
+          url: isAr ? "/ar/about" : "/about",
+          lang,
+        }),
+        getBreadcrumbSchema([
+          { name: isAr ? "الرئيسية" : "Home", path: isAr ? "/ar" : "/" },
+          { name: isAr ? "عن المطار" : "About", path: isAr ? "/ar/about" : "/about" },
+        ]),
+      ],
+    });
+  },
   component: AboutPage,
 });
 

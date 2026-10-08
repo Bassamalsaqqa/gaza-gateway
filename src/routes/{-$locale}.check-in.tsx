@@ -15,6 +15,7 @@ export const Route = createFileRoute("/{-$locale}/check-in")({
     pageHead({
       locale: params.locale,
       path: "/check-in",
+      noindex: true,
       en: {
         title: "Online check-in — Palestinian Airlines from Gaza (GZA)",
         description:

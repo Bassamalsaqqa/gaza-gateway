@@ -30,6 +30,8 @@ type ContactSearch = {
   settingsPreview?: 1;
 };
 
+import { getBreadcrumbSchema } from "@/lib/structured-data";
+
 export const Route = createFileRoute("/{-$locale}/contact")({
   validateSearch: (search: Record<string, unknown>): ContactSearch => {
     const out: ContactSearch = {};
@@ -39,7 +41,19 @@ export const Route = createFileRoute("/{-$locale}/contact")({
     }
     return out;
   },
-  head: ({ params }) => compiledContentHead(publishedInformationPages.pages.find((page) => page.id === "contact")!.seo, params.locale),
+  head: ({ params }) => {
+    const isAr = params.locale === "ar";
+    const seo = publishedInformationPages.pages.find((page) => page.id === "contact")!.seo;
+    return compiledContentHead(seo, params.locale, false, "/contact", {
+      image: "/social/gaza-airport.jpg",
+      schema: [
+        getBreadcrumbSchema([
+          { name: isAr ? "الرئيسية" : "Home", path: isAr ? "/ar" : "/" },
+          { name: isAr ? "الاتصال بنا" : "Contact", path: isAr ? "/ar/contact" : "/contact" },
+        ]),
+      ],
+    });
+  },
   component: ContactPage,
 });
 

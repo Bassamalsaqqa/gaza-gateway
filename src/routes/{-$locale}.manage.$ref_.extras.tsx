@@ -23,14 +23,14 @@ export const Route = createFileRoute("/{-$locale}/manage/$ref_/extras")({
   head: ({ params }) =>
     pageHead({
       locale: params.locale,
-      path: `/manage/${params.ref}/extras`,
+      path: "/manage",
       noindex: true,
       en: {
-        title: `Bags and extras — booking ${params.ref} — Gaza International Airport (GZA)`,
+        title: "Bags and extras — Gaza International Airport (GZA)",
         description: "Add extra baggage, choose a meal and request assistance for each traveller on your booking.",
       },
       ar: {
-        title: `الأمتعة والإضافات — الحجز ${params.ref} — مطار غزة الدولي`,
+        title: "الأمتعة والإضافات — مطار غزة الدولي (GZA)",
         description: "أضف أمتعة إضافية واختر وجبة واطلب المساعدة لكل مسافر في حجزك.",
       },
     }),

@@ -20,23 +20,24 @@ import {
   useUpdateBookingSeatsMutation,
   getCanonicalOccupiedSeats,
 } from "@/lib/repositories";
+import { pageHead } from "@/lib/head";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/{-$locale}/manage/$ref_/seats")({
-  head: ({ params }) => ({
-    meta: [
-      { title: `Change seats — booking ${params.ref} — Gaza International Airport (GZA)` },
-      {
-        name: "description",
-        content: "Change the seats on your Palestinian Airlines booking for each flight of your trip.",
-      },
-      { property: "og:title", content: "Change seats — Palestinian Airlines" },
-      { property: "og:description", content: "Pick different seats for the flights on your booking." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "robots", content: "noindex" },
-    ],
-  }),
+  head: ({ params }) => {
+    const isAr = params.locale === "ar";
+    return pageHead({
+      title: isAr
+        ? "تغيير المقاعد — مطار غزة الدولي (GZA)"
+        : "Change seats — Gaza International Airport (GZA)",
+      description: isAr
+        ? "غيّر مقاعد حجز الخطوط الجوية الفلسطينية لكل رحلة في مسارك."
+        : "Change the seats on your Palestinian Airlines booking for each flight of your trip.",
+      locale: params.locale,
+      path: "/manage",
+      noindex: true,
+    });
+  },
   component: ManageSeatsPage,
 });
 

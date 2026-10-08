@@ -2,17 +2,24 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { btnClass, Field, Input, Notice, Panel } from "@/components/kit";
 import { useI18n } from "@/lib/i18n";
+import { pageHead } from "@/lib/head";
 import { usePassengerAccount, useUpdateAccountMutation } from "@/lib/passenger";
 
 export const Route = createFileRoute("/{-$locale}/account/profile")({
-  head: () => ({
-    meta: [
-      { title: "Profile — Gaza International Airport (GZA)" },
-      { name: "description", content: "Your name, email and contact number for Palestinian Airlines bookings." },
-      { property: "og:title", content: "Profile — Gaza International Airport" },
-      { property: "og:description", content: "Manage your passenger profile details." },
-    ],
-  }),
+  head: ({ params }) => {
+    const isAr = params.locale === "ar";
+    return pageHead({
+      title: isAr
+        ? "الملف الشخصي — مطار غزة الدولي (GZA)"
+        : "Profile — Gaza International Airport (GZA)",
+      description: isAr
+        ? "الاسم والبريد الإلكتروني ورقم الاتصال لحجوزات الخطوط الجوية الفلسطينية."
+        : "Your name, email and contact number for Palestinian Airlines bookings.",
+      locale: params.locale,
+      path: "/account/profile",
+      noindex: true,
+    });
+  },
   component: ProfilePage,
 });
 

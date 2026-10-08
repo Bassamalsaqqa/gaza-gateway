@@ -11,16 +11,23 @@ import {
   useUpdateTravelerMutation,
   useRemoveTravelerMutation,
 } from "@/lib/passenger";
+import { pageHead } from "@/lib/head";
 
 export const Route = createFileRoute("/{-$locale}/account/travelers")({
-  head: () => ({
-    meta: [
-      { title: "Saved travellers — Gaza International Airport (GZA)" },
-      { name: "description", content: "Save the people you travel with to fill passenger details faster next time." },
-      { property: "og:title", content: "Saved travellers — Gaza International Airport" },
-      { property: "og:description", content: "Store frequent travellers for faster booking." },
-    ],
-  }),
+  head: ({ params }) => {
+    const isAr = params.locale === "ar";
+    return pageHead({
+      title: isAr
+        ? "المسافرون المحفوظون — مطار غزة الدولي (GZA)"
+        : "Saved travellers — Gaza International Airport (GZA)",
+      description: isAr
+        ? "احفظ بيانات المسافرين الذين تسافر معهم لتعبئة بيانات المسافرين بسرعة في المرة القادمة."
+        : "Save the people you travel with to fill passenger details faster next time.",
+      locale: params.locale,
+      path: "/account/travelers",
+      noindex: true,
+    });
+  },
   component: TravelersPage,
 });
 

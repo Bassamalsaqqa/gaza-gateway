@@ -3,21 +3,25 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { btnClass, Field, Input } from "@/components/kit";
 import { PassengerAuthShell } from "@/components/passenger-auth-shell";
+import { pageHead } from "@/lib/head";
 import { useI18n } from "@/lib/i18n";
 import { useSignInMutation } from "@/lib/passenger";
 
 export const Route = createFileRoute("/{-$locale}/signin")({
-  head: () => ({
-    meta: [
-      { title: "Sign in — Gaza International Airport (GZA)" },
-      {
-        name: "description",
-        content: "Sign in to view your Palestinian Airlines trips, boarding passes, saved travellers and preferences.",
-      },
-      { property: "og:title", content: "Sign in — Gaza International Airport" },
-      { property: "og:description", content: "Access your trips and boarding passes." },
-    ],
-  }),
+  head: ({ params }) => {
+    const isAr = params.locale === "ar";
+    return pageHead({
+      title: isAr
+        ? "تسجيل الدخول — مطار غزة الدولي (GZA)"
+        : "Sign in — Gaza International Airport (GZA)",
+      description: isAr
+        ? "سجّل الدخول لعرض رحلاتك وبطاقات صعود الطائرة والمسافرين المحفوظين وتفضيلاتك."
+        : "Sign in to view your Palestinian Airlines trips, boarding passes, saved travellers and preferences.",
+      locale: params.locale,
+      path: "/signin",
+      noindex: true,
+    });
+  },
   component: SignInPage,
 });
 

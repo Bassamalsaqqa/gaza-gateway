@@ -14,6 +14,8 @@ import { cn } from "@/lib/utils";
 import { GazaSurface, SurfaceMedia, useSurfaceRecipe } from "@/design/surfaces";
 import { MEDIA } from "@/lib/media";
 import { useEffect } from "react";
+import { pageHead } from "@/lib/head";
+import { getBreadcrumbSchema } from "@/lib/structured-data";
 
 type TravelSearch = {
   skinPreview?: 1;
@@ -42,20 +44,32 @@ export const Route = createFileRoute("/{-$locale}/travel")({
     }
     return out;
   },
-  head: ({ params }) => ({
-    meta: [
-      { title: publishedTravel.seo.title[params.locale === "ar" ? "ar" : "en"] },
-      {
-        name: "description",
-        content: publishedTravel.seo.description[params.locale === "ar" ? "ar" : "en"],
+  head: ({ params }) => {
+    const isAr = params.locale === "ar";
+    return pageHead({
+      locale: params.locale,
+      path: "/travel",
+      en: {
+        title: publishedTravel.seo.title.en,
+        description: publishedTravel.seo.description.en,
+        socialTitle: "Travel Information — Gaza International Airport (GZA)",
+        socialDescription: "Documents, baggage, accessibility and passenger guidelines.",
       },
-      { property: "og:title", content: "Travel information — Gaza International Airport" },
-      {
-        property: "og:description",
-        content: "Documents, baggage, accessibility and airport guidance for passengers.",
+      ar: {
+        title: publishedTravel.seo.title.ar,
+        description: publishedTravel.seo.description.ar,
+        socialTitle: "إرشادات السفر — مطار غزة الدولي (GZA)",
+        socialDescription: "الوثائق، الأمتعة، إمكانية الوصول وإرشادات المسافرين.",
       },
-    ],
-  }),
+      image: "/social/gaza-airport.jpg",
+      schema: [
+        getBreadcrumbSchema([
+          { name: isAr ? "الرئيسية" : "Home", path: isAr ? "/ar" : "/" },
+          { name: isAr ? "إرشادات السفر" : "Travel Information", path: isAr ? "/ar/travel" : "/travel" },
+        ]),
+      ],
+    });
+  },
   component: TravelPage,
 });
 

@@ -19,22 +19,23 @@ import {
 } from "@/lib/repositories";
 import { bookingBelongsToAccount, normalizeEmailIdentity, usePassengerAccount } from "@/lib/passenger";
 import { passesForBooking } from "@/components/booking/boarding-pass";
+import { pageHead } from "@/lib/head";
 
 export const Route = createFileRoute("/{-$locale}/booking-confirmation/$ref")({
-  head: ({ params }) => ({
-    meta: [
-      { title: `Booking ${params.ref} confirmed — Gaza International Airport (GZA)` },
-      {
-        name: "description",
-        content: "Your Palestinian Airlines booking is confirmed. Keep your booking reference to manage the trip later.",
-      },
-      { property: "og:title", content: "Booking confirmed — Palestinian Airlines" },
-      { property: "og:description", content: "Itinerary, passengers, seats and next steps for your booking." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "robots", content: "noindex" },
-    ],
-  }),
+  head: ({ params }) => {
+    const isAr = params.locale === "ar";
+    return pageHead({
+      title: isAr
+        ? "تأكيد الحجز — مطار غزة الدولي (GZA)"
+        : "Booking Confirmed — Gaza International Airport (GZA)",
+      description: isAr
+        ? "تم تأكيد حجز الخطوط الجوية الفلسطينية. احتفظ برقم الحجز لإدارة الرحلة لاحقاً."
+        : "Your Palestinian Airlines booking is confirmed. Keep your booking reference to manage the trip later.",
+      locale: params.locale,
+      path: "/booking-confirmation",
+      noindex: true,
+    });
+  },
   component: ConfirmationPage,
 });
 

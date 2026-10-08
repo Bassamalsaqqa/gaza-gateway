@@ -12,19 +12,38 @@ import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import flightsSearchToolbarImg from "@/assets/media/decorative/flights/flights-search-toolbar.webp";
 
+import { pageHead } from "@/lib/head";
+import { getBreadcrumbSchema } from "@/lib/structured-data";
+
 export const Route = createFileRoute("/{-$locale}/flights")({
-  head: () => ({
-    meta: [
-      { title: "Departures & Arrivals — Gaza International Airport (GZA)" },
-      {
-        name: "description",
-        content:
+  head: ({ params }) => {
+    const isAr = params.locale === "ar";
+    return pageHead({
+      locale: params.locale,
+      path: "/flights",
+      en: {
+        title: "Departures & Arrivals — Gaza International Airport (GZA)",
+        description:
           "Live-style Palestinian Airlines departure and arrival information at Gaza International Airport, with flight numbers, times, gates and status.",
+        socialTitle: "Flight Status Board — Gaza International Airport (GZA)",
+        socialDescription: "Departures and arrivals information board for Palestinian Airlines flights at GZA.",
       },
-      { property: "og:title", content: "Departures & Arrivals — GZA" },
-      { property: "og:description", content: "Flight information board for Gaza International Airport." },
-    ],
-  }),
+      ar: {
+        title: "المغادرات والوصول — مطار غزة الدولي (GZA)",
+        description:
+          "جدول رحلات الخطوط الجوية الفلسطينية للمغادرة والوصول في مطار غزة الدولي، مع أرقام الرحلات، والمواعيد، والبوابات، وحالة الرحلة.",
+        socialTitle: "لوحة حركة الرحلات — مطار غزة الدولي (GZA)",
+        socialDescription: "جدول رحلات المغادرة والوصول للخطوط الجوية الفلسطينية في مطار غزة الدولي.",
+      },
+      image: "/social/gaza-airport.jpg",
+      schema: [
+        getBreadcrumbSchema([
+          { name: isAr ? "الرئيسية" : "Home", path: isAr ? "/ar" : "/" },
+          { name: isAr ? "الرحلات" : "Flights", path: isAr ? "/ar/flights" : "/flights" },
+        ]),
+      ],
+    });
+  },
   component: FlightsPage,
 });
 

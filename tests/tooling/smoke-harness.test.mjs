@@ -12,7 +12,7 @@ test("focused smoke groups keep critical journeys and exclude unrelated checks",
   assert.equal(smokeCheckId("3b. Fixture isolation"), "3b");
   for (const group of Object.keys(smokeGroups)) {
     const selection = createSmokeSelection({ group });
-    for (const id of smokeGroups[group]) assert.equal(selection.accepts(/^\d/.test(id) ? `Check ${id}: registered` : /^Phase/.test(id) ? `${id} registered` : id), true);
+    for (const id of smokeGroups[group]) assert.equal(selection.accepts(/^\d/.test(id) ? `Check ${id}: registered` : /^Phase (5A|7)$/.test(id) ? `${id} registered` : id), true);
     selection.verify();
   }
 });

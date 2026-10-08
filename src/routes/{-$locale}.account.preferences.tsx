@@ -6,18 +6,25 @@ import { btnClass, Field, Notice, Panel } from "@/components/kit";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+import { pageHead } from "@/lib/head";
 import { pick, useI18n } from "@/lib/i18n";
 import { usePassengerAccount, useUpdateAccountMutation } from "@/lib/passenger";
 
 export const Route = createFileRoute("/{-$locale}/account/preferences")({
-  head: () => ({
-    meta: [
-      { title: "Travel preferences — Gaza International Airport (GZA)" },
-      { name: "description", content: "Set your preferred seat, meal, cabin and language for future bookings." },
-      { property: "og:title", content: "Travel preferences — Gaza International Airport" },
-      { property: "og:description", content: "Seat, meal, cabin and language preferences." },
-    ],
-  }),
+  head: ({ params }) => {
+    const isAr = params.locale === "ar";
+    return pageHead({
+      title: isAr
+        ? "تفضيلات السفر — مطار غزة الدولي (GZA)"
+        : "Travel preferences — Gaza International Airport (GZA)",
+      description: isAr
+        ? "حدد المقعد والوجبة والمقصورة واللغة المفضلة لديك للحجوزات المستقبلية."
+        : "Set your preferred seat, meal, cabin and language for future bookings.",
+      locale: params.locale,
+      path: "/account/preferences",
+      noindex: true,
+    });
+  },
   component: PreferencesPage,
 });
 

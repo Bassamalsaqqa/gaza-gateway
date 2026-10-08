@@ -9,6 +9,8 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "build:hostpapa": "vite build --config vite.config.hostpapa.ts",
+    "sitemap": "node scripts/generate-sitemap.mjs",
+    "test:smoke:seo": "node scripts/test-smoke.mjs seo",
     "hostpapa:prepare": "node scripts/prepare-hostpapa-release.mjs",
     "hostpapa:verify": "node scripts/verify-hostpapa-release.mjs",
     "preview": "vite preview",

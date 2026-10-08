@@ -17,25 +17,31 @@ import { useRepositories } from "@/lib/repositories";
 import { useFleetQuery } from "@/lib/fleet/queries";
 import { layoutSupportsCabin } from "@/lib/fleet/layout";
 
+import { pageHead } from "@/lib/head";
+
 export const Route = createFileRoute("/{-$locale}/flight/$flightId")({
   head: ({ params }) => {
     const flight = legacyFlightById(params.flightId);
-    const title = flight
-      ? `${flight.number} ${flight.originCode}–${flight.destinationCode} — Gaza International Airport (GZA)`
-      : params.locale === "ar" ? "تفاصيل الرحلة — الخطوط الجوية الفلسطينية" : "Flight details — Palestinian Airlines";
-    const description = flight
-      ? `Palestinian Airlines ${flight.number} departs ${flight.originCode} at ${flight.departTime} and arrives ${flight.destinationCode} at ${flight.arriveTime}. Aircraft, terminal, gate and status.`
-      : params.locale === "ar" ? "تفاصيل رحلات الخطوط الجوية الفلسطينية." : "Flight details for Palestinian Airlines services at Gaza International Airport.";
-    return {
-      meta: [
-        { title },
-        { name: "description", content: description },
-        { property: "og:title", content: title },
-        { property: "og:description", content: description },
-        { property: "og:type", content: "website" },
-        { name: "twitter:card", content: "summary_large_image" },
-      ],
-    };
+
+    let enTitle = "Flight details — Palestinian Airlines — Gaza International Airport (GZA)";
+    let arTitle = "تفاصيل الرحلة — الخطوط الجوية الفلسطينية — مطار غزة الدولي (GZA)";
+    let enDesc = "Flight details and schedule information for Palestinian Airlines services at Gaza International Airport.";
+    let arDesc = "تفاصيل ومعلومات رحلات الخطوط الجوية الفلسطينية في مطار غزة الدولي.";
+
+    if (flight) {
+      enTitle = `${flight.number} ${flight.originCode}–${flight.destinationCode} — Gaza International Airport (GZA)`;
+      arTitle = `${flight.number} ${flight.originCode}–${flight.destinationCode} — مطار غزة الدولي (GZA)`;
+      enDesc = `Palestinian Airlines flight ${flight.number} departs ${flight.originCode} at ${flight.departTime} and arrives ${flight.destinationCode} at ${flight.arriveTime}.`;
+      arDesc = `رحلة الخطوط الجوية الفلسطينية ${flight.number} تغادر ${flight.originCode} الساعة ${flight.departTime} وتصل ${flight.destinationCode} الساعة ${flight.arriveTime}.`;
+    }
+
+    return pageHead({
+      locale: params.locale,
+      path: "/flight",
+      en: { title: enTitle, description: enDesc },
+      ar: { title: arTitle, description: arDesc },
+      noindex: true,
+    });
   },
   component: FlightDetailPage,
 });

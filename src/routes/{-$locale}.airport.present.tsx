@@ -7,6 +7,8 @@ import { publishedAirportPresent } from "@/content/published/airport-present";
 import { ContentPreviewNotice, useContentPreview } from "@/content/preview";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { pageHead } from "@/lib/head";
+import { getArticleSchema, getBreadcrumbSchema } from "@/lib/structured-data";
 
 // Decorative WebP skins (nine designer artwork masters)
 import factLocationSkin from "@/assets/media/decorative/airport/present/fact-location.webp";
@@ -46,17 +48,40 @@ export const Route = createFileRoute("/{-$locale}/airport/present")({
   },
   head: ({ params }) => {
     const isAr = (params as Record<string, string>)["locale"] === "ar";
+    const lang = isAr ? "ar" : "en";
     const seo = publishedAirportPresent.seo;
     const title = isAr ? seo.title.ar : seo.title.en;
     const description = isAr ? seo.description.ar : seo.description.en;
-    return {
-      meta: [
-        { title },
-        { name: "description", content: description },
-        { property: "og:title", content: title },
-        { property: "og:description", content: description },
+    return pageHead({
+      locale: params.locale,
+      path: "/airport/present",
+      en: {
+        title: seo.title.en,
+        description: seo.description.en,
+        socialTitle: "The Present — Gaza International Airport (GZA)",
+        socialDescription: "The current state and documented condition of Gaza International Airport.",
+      },
+      ar: {
+        title: seo.title.ar,
+        description: seo.description.ar,
+        socialTitle: "الحاضر — مطار غزة الدولي (GZA)",
+        socialDescription: "الواقع الراهن والحالة الموثقة لمطار غزة الدولي.",
+      },
+      image: "/social/gaza-airport.jpg",
+      schema: [
+        getArticleSchema({
+          title,
+          description,
+          url: isAr ? "/ar/airport/present" : "/airport/present",
+          lang,
+        }),
+        getBreadcrumbSchema([
+          { name: isAr ? "الرئيسية" : "Home", path: isAr ? "/ar" : "/" },
+          { name: isAr ? "المطار" : "The Airport", path: isAr ? "/ar/airport" : "/airport" },
+          { name: isAr ? "الحاضر" : "The Present", path: isAr ? "/ar/airport/present" : "/airport/present" },
+        ]),
       ],
-    };
+    });
   },
   component: PresentPage,
 });

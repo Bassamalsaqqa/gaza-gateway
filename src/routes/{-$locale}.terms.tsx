@@ -6,8 +6,22 @@ import { publishedInformationPages } from "@/content/published/information-pages
 import { ContentPreviewNotice, useContentPreview } from "@/content/preview";
 import { pick, useI18n } from "@/lib/i18n";
 
+import { getBreadcrumbSchema } from "@/lib/structured-data";
+
 export const Route = createFileRoute("/{-$locale}/terms")({
-  head: ({ params }) => compiledContentHead(publishedInformationPages.pages.find((page) => page.id === "terms")!.seo, params.locale, true),
+  head: ({ params }) => {
+    const isAr = params.locale === "ar";
+    const seo = publishedInformationPages.pages.find((page) => page.id === "terms")!.seo;
+    return compiledContentHead(seo, params.locale, true, "/terms", {
+      image: "/social/gaza-airport.jpg",
+      schema: [
+        getBreadcrumbSchema([
+          { name: isAr ? "الرئيسية" : "Home", path: isAr ? "/ar" : "/" },
+          { name: isAr ? "شروط الخدمة" : "Terms of Service", path: isAr ? "/ar/terms" : "/terms" },
+        ]),
+      ],
+    });
+  },
   component: TermsPage,
 });
 

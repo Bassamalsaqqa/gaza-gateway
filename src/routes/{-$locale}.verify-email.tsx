@@ -3,24 +3,26 @@ import { createFileRoute } from "@tanstack/react-router";
 import { CheckCircle2, Link as LinkIcon, ShieldAlert } from "lucide-react";
 import { useEffect, useState } from "react";
 import { btnClass, Container, GazaLoadingState, Notice, Panel } from "@/components/kit";
+import { pageHead } from "@/lib/head";
 import { useI18n } from "@/lib/i18n";
 import { bookingBelongsToAccount, normalizeEmailIdentity, usePassengerAccount } from "@/lib/passenger";
 import { useBookingQuery, useClaimBookingMutation, type ClaimResult } from "@/lib/repositories";
 
 export const Route = createFileRoute("/{-$locale}/verify-email")({
-  head: () => ({
-    meta: [
-      { title: "Account setup — Gaza International Airport (GZA)" },
-      {
-        name: "description",
-        content: "Complete local account setup on this device and link eligible bookings.",
-      },
-      { property: "og:title", content: "Account setup — Gaza International Airport" },
-      { property: "og:description", content: "Complete local passenger account setup." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-    ],
-  }),
+  head: ({ params }) => {
+    const isAr = params.locale === "ar";
+    return pageHead({
+      title: isAr
+        ? "إعداد الحساب — مطار غزة الدولي (GZA)"
+        : "Account setup — Gaza International Airport (GZA)",
+      description: isAr
+        ? "أكمل إعداد الحساب المحلي على هذا الجهاز وربط الحجوزات المؤهلة."
+        : "Complete local account setup on this device and link eligible bookings.",
+      locale: params.locale,
+      path: "/verify-email",
+      noindex: true,
+    });
+  },
   validateSearch: (search: Record<string, unknown>) => ({
     ref: typeof search["ref"] === "string" ? (search["ref"] as string) : undefined,
   }),

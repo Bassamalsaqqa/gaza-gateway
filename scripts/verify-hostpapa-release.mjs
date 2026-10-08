@@ -1,7 +1,9 @@
 import { readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
+import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { buildSitemapXml } from "./generate-sitemap.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // The scheduled release audit inspects a separate static-branch checkout; it never builds/deploys.
@@ -35,6 +37,7 @@ const requiredSiteFiles = [
   "admin/_shell.html", "ar/admin/_shell.html", "flights/index.html",
   "ar/flights/index.html", "destinations/AMM/index.html", "ar/destinations/AMM/index.html",
   "book/index.html", "ar/book/index.html",
+  "robots.txt",
 ];
 for (const relative of requiredSiteFiles) check(await isFile(relative, siteDir), `Missing site file: ${relative}`);
 for (const relative of [".cpanel.yml", "deploy-hostpapa.sh", "SOURCE_COMMIT.txt", "release-manifest.txt"]) {
@@ -95,6 +98,24 @@ check(!/rm\s+-rf\b/.test(deployScript), "Deployment script contains recursive fo
 check(!/\b(?:npm|node|bun|vite|npx)\b/.test(deployScript), "Deployment script requires a build/runtime tool");
 check(deployScript.includes(".gazaairport-deployed-files"), "Deployment script lacks private managed manifest");
 check(deployScript.includes(".well-known"), "Deployment script does not explicitly protect .well-known");
+
+// A weekly audit must still accept an actual pre-Phase-11 source artifact.
+// Unknown/unavailable Git provenance defaults to the stronger SEO checks.
+let sourceRequiresSitemap = true;
+if (/^[0-9a-f]{40}$/.test(sourceCommit)) {
+  try {
+    const sourcePackage = JSON.parse(execFileSync("git", ["show", `${sourceCommit}:package.json`], { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }));
+    sourceRequiresSitemap = Boolean(sourcePackage.scripts?.sitemap);
+  } catch { /* Unknown source: do not relax verification. */ }
+}
+if (sourceRequiresSitemap || await isFile("sitemap.xml", siteDir)) {
+  const sitemapContent = await readFile(path.join(siteDir, "sitemap.xml"), "utf8").catch(() => "");
+  check(sitemapContent.replace(/\r\n/g, "\n") === buildSitemapXml(), "Sitemap does not exactly match the canonical public route inventory and alternates");
+  const robotsContent = await readFile(path.join(siteDir, "robots.txt"), "utf8").catch(() => "");
+  check(robotsContent.includes("Sitemap: https://www.gazaairport.com/sitemap.xml"), "robots.txt lacks canonical Sitemap directive");
+  check(robotsContent.includes("Disallow: /admin"), "robots.txt lacks Disallow for /admin");
+  check(robotsContent.includes("Disallow: /ar/admin"), "robots.txt lacks Disallow for /ar/admin");
+}
 
 if (failures.length) {
   console.error(`HostPapa release verification failed (${failures.length}):`);

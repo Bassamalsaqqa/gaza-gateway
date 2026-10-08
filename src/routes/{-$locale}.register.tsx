@@ -3,21 +3,25 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { btnClass, Field, Input } from "@/components/kit";
 import { PassengerAuthShell } from "@/components/passenger-auth-shell";
+import { pageHead } from "@/lib/head";
 import { useI18n } from "@/lib/i18n";
 import { useSignInMutation } from "@/lib/passenger";
 
 export const Route = createFileRoute("/{-$locale}/register")({
-  head: () => ({
-    meta: [
-      { title: "Create an account — Gaza International Airport (GZA)" },
-      {
-        name: "description",
-        content: "Create a passenger account to keep your Palestinian Airlines trips, travellers and travel preferences together.",
-      },
-      { property: "og:title", content: "Create an account — Gaza International Airport" },
-      { property: "og:description", content: "Keep your trips, travellers and preferences in one place." },
-    ],
-  }),
+  head: ({ params }) => {
+    const isAr = params.locale === "ar";
+    return pageHead({
+      title: isAr
+        ? "إنشاء حساب مسافر — مطار غزة الدولي (GZA)"
+        : "Create an account — Gaza International Airport (GZA)",
+      description: isAr
+        ? "أنشئ حساب مسافر لحفظ رحلات الخطوط الجوية الفلسطينية والمسافرين وتفضيلات السفر في مكان واحد."
+        : "Create a passenger account to keep your Palestinian Airlines trips, travellers and travel preferences together.",
+      locale: params.locale,
+      path: "/register",
+      noindex: true,
+    });
+  },
   validateSearch: (search: Record<string, unknown>) => ({
     ref: typeof search["ref"] === "string" ? (search["ref"] as string) : undefined,
   }),

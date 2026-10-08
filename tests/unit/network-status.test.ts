@@ -191,11 +191,11 @@ it("all authoritative current headers and roadmap distinguish C2A foundation fro
   }
 });
 
-it("living docs record accepted Phase 9, owner deployment and Phase 10 review boundary", () => {
+it("living docs record accepted Phase 9, owner deployment and Phase 11 review boundary", () => {
   const files = ["README.md", "PRODUCT.md", "roadmap.md", ...["ARCHITECTURE", "CANONICAL_REPOSITORIES", "DATA_FLOW", "SCHEDULE_MODEL", "SETTINGS_MODEL", "NETWORK_MODEL", "FLEET_MODEL", "DATED_SERVICE_MODEL", "COMMERCIAL_MODEL", "CONTENT_MODEL", "CONTACT_MODEL"].map(name => `docs/${name}.md`)];
   for (const file of files) {
     const text = readFileSync(file, "utf8");
-    const current = text.split("## Current checkpoint — Phase 10")[1];
+    const current = text.split("## Current checkpoint — Phase 11")[1];
     assert.ok(current, file);
     assert.match(current, /Phase 6, Phase 7 and Phase 7B are \*\*Complete \/ Accepted Source/);
     assert.ok(current.includes("deb9f6e2a4246f4f5c70ca1b56797ccf0588388e"), file);
@@ -206,8 +206,10 @@ it("living docs record accepted Phase 9, owner deployment and Phase 10 review bo
     assert.match(current, /Phase 8 — Visual System & Assets Finalization: Complete \/ Accepted Source/);
     assert.match(current, /Phase 9 — Arabic, RTL, Accessibility & Responsive Certification: Complete \/ Accepted Source/);
     assert.ok(current.includes("f3d7377720c951ea659c076d2e8128d10c1a827a"), file);
-    assert.match(current, /Phase 10 — Durable Regression & CI Hardening: Implemented \/ Awaiting Independent Review/);
-    assert.match(current, /Phase 11 remains Planned \/ Unstarted/);
+    assert.match(current, /Phase 10 — Durable Regression & CI Hardening: Complete \/ Accepted Source/);
+    assert.match(current, /Phase 11 — SEO, Performance & HostPapa Certification: Implemented \/ Awaiting Independent Review/);
+    assert.ok(current.includes("277e07a29188ab5ca07df008c011f42ec964641b"), file);
+    assert.match(current, /Phase 12 remains Planned \/ Unstarted/);
     assert.match(current, /Earlier milestone sections are historical/);
     for (const historicalSha of [
       "d5dd2942fad517cc5f1be353ad206511cc0724cc",

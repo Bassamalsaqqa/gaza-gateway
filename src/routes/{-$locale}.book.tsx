@@ -51,6 +51,7 @@ import {
 } from "@/lib/data";
 import { dateLong, money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
+import { pageHead } from "@/lib/head";
 import {
   bookingTotal,
   emptyPassenger,
@@ -104,18 +105,20 @@ export const Route = createFileRoute("/{-$locale}/book")({
     }
     return out;
   },
-  head: () => ({
-    meta: [
-      { title: "Book a flight — Palestinian Airlines from Gaza (GZA)" },
-      {
-        name: "description",
-        content:
-          "Book Palestinian Airlines flights from Gaza International Airport: choose your flight and fare, add passengers, seats and baggage, then confirm.",
-      },
-      { property: "og:title", content: "Book a flight from Gaza — Palestinian Airlines" },
-      { property: "og:description", content: "Flight search, fares, seat selection and booking confirmation." },
-    ],
-  }),
+  head: ({ params }) => {
+    const isAr = params.locale === "ar";
+    return pageHead({
+      title: isAr
+        ? "حجز رحلة — الخطوط الجوية الفلسطينية من غزة (GZA)"
+        : "Book a flight — Palestinian Airlines from Gaza (GZA)",
+      description: isAr
+        ? "احجز رحلات الخطوط الجوية الفلسطينية من مطار غزة الدولي: اختر رحلتك والدرجة، وأضف المسافرين والمقاعد والأمتعة."
+        : "Book Palestinian Airlines flights from Gaza International Airport: choose your flight and fare, add passengers, seats and baggage, then confirm.",
+      locale: params.locale,
+      path: "/book",
+      noindex: true,
+    });
+  },
   component: BookPage,
 });
 
