@@ -1,6 +1,6 @@
 ﻿# Phase 13 sequencing and production gates
 
-Phase 12 design complete / awaiting independent GitHub review. Phase 13 remains planned. Backend implementation and provisioning are not authorized by this document alone.
+Phase 12 Complete / Accepted Source (independently accepted at `7dab821d7d205b41ae925e013fe9c69a97a7e875`). Phase 13A local foundation is authorized as next implementation stage following prerequisite security work/review. Phase 13 runtime remains Planned / Unstarted. Live backend provisioning, deployment and cutover are not authorized by this document alone.
 
 | Phase                 | Bounded implementation                                                                                                                                                                                                                                                        | Acceptance evidence                                                                                                                                                                                                      |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -22,4 +22,4 @@ Publication follows seal -> pinned snapshot -> build hash receipt -> owner deplo
 
 Owner-only production gates: paid plan/budget and region/residency, mail/storage/provider credentials, merchant suitability, DNS, proxy trust evidence, initial admin recovery custody, retention, backup/restore targets and data cutover. Live aviation/GDS data or operational airline authority has not been supplied; administrative schedules remain owner-maintained authority until a separately accepted real feed.
 
-At this checkpoint stop for manual independent GitHub review. Do not execute Phase 13, merge or deploy.
+Phase 12 is Complete / Accepted Source, independently accepted at `7dab821d7d205b41ae925e013fe9c69a97a7e875` and fast-forwarded to main. Phase 13A local foundation is authorized as next implementation stage following prerequisite security work/review. Phase 13 runtime remains Planned / Unstarted; do not merge, deploy or begin runtime execution without authorization.

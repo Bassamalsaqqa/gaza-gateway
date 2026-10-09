@@ -1,6 +1,6 @@
 ﻿# Versioned API and wire contracts
 
-Status: Phase 12 design complete / awaiting independent GitHub review.
+Status: Phase 12 Complete / Accepted Source (independently accepted at 7dab821d7d205b41ae925e013fe9c69a97a7e875).
 Base path: /api/v1. openapi.v1.json defines wire schemas; operation-policies.v1.json pins exact security alternatives and context predicates. 138 operations, 131 paths and fourteen Phase 13A–G tags. API schemas describe planned server behavior; frontend source-backed adapters are development tooling.
 
 ## Common protocol

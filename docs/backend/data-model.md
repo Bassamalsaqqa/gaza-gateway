@@ -1,6 +1,6 @@
 # Relational Data Model & Concurrency Specification
 
-Status: Phase 12 design complete / awaiting independent GitHub review
+Status: Phase 12 Complete / Accepted Source (independently accepted at 7dab821d7d205b41ae925e013fe9c69a97a7e875).
 **Date**: 2026-10-09
 **Database Engine**: PostgreSQL 17
 **Schema Version**: `1.0.0` (Targeting Phase 13 Foundation)

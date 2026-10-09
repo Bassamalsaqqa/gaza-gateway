@@ -1,6 +1,6 @@
 ﻿# ADR-001: Backend platform and database
 
-Decision date: 2026-10-09. Status: selected Phase 12 design baseline; awaiting independent GitHub review. Services remain unprovisioned.
+Decision date: 2026-10-09. Status: accepted Phase 12 design baseline (independently accepted at 7dab821d7d205b41ae925e013fe9c69a97a7e875). Services remain unprovisioned.
 
 Adopt a modular Laravel 13 / PHP 8.4 API in Docker on paid Render services with managed PostgreSQL 17. Keep the existing static React frontend on HostPapa. Use PostgreSQL for sessions, transactional jobs, idempotency and outbox initially; no Redis requirement. Domains: Identity, Aviation, Commercial, Booking/Inventory, Editorial/Archive, Engagement, Payments and Audit. Controllers validate DTOs and policies; domain services own transactions; provider adapters own external protocols.
 

@@ -49,7 +49,7 @@ Google Fonts responses are explicitly replaced with empty CSS so accepted fallba
 
 The legacy comprehensive file still contains historical scenarios and some shared-context steps. Selective groups use independent contexts for substantive mutations; the complete milestone command is retained, not claimed to be entirely refactored. Legacy standalone matrix/task scripts remain usable but are not all CI browser entry points.
 
-## GitHub Actions
+## GitHub Actions (historical Phase 10 baseline)
 
 `.github/workflows/ci.yml` runs on main, phase feature pushes, main PRs and manual dispatch. Only root/documentation Markdown changes are classified as docs-only. Unknown paths, workflows, tests, dependencies and scripts fail safe to the application gate. Scope errors fail the workflow. The stable **Quality gate** is always present: docs-only runs check provenance and clean diffs without installing application dependencies; code changes run lockfile install, typecheck, lint (existing ceiling 56), all unit/tooling tests, application build, static build and package prepare/verify. Generated source changes fail rather than being silently committed.
 
@@ -57,11 +57,22 @@ The focused critical browser job runs for meaningful main changes, manual reques
 
 `.github/workflows/hostpapa-audit.yml` is a weekly/manual read-only audit of the existing static branch, also run on this Phase 10 bootstrap branch. It exports Git's static tree without checkout metadata and checks manifest/shells/assets/contamination and that packaged source belongs to main. It performs no install, application tests, build, commit or deployment. Scheduled/manual default-branch workflows become available after accepted Phase 10 publication to main; the static branch intentionally contains no source workflow files.
 
-## Git governance
+## Git governance (historical Phase 10 configuration)
 
 Main and HostPapa protection should reject deletion and force pushes and require linear history. Main's selected required check is **Quality gate**. No automatic PR-review requirement is imposed on the existing independent ChatGPT review + linear publication process. The owner/admin retains emergency bypass for ordinary publication/recovery; that does not authorize history rewriting. HostPapa cannot require source CI statuses that are absent from its static-only commits. Release packaging must pass before an owner-authorized linear release push.
 
 Configured active rulesets: [history protection 24698077](https://github.com/Bassamalsaqqa/gaza-gateway/rules/24698077) covers main and HostPapa with no bypass; [main quality gate 24698079](https://github.com/Bassamalsaqqa/gaza-gateway/rules/24698079) requires **Quality gate** from GitHub Actions (integration 15368), with repository-admin bypass. Administrators can change a rule for emergency recovery; no force push or deletion was attempted as a verification technique. Inspect enforcement with `gh api repos/Bassamalsaqqa/gaza-gateway/rulesets` (then each returned ID). Protections are repository settings and do not change branch refs.
+
+## Current owner policy — no automatic Actions and local governance (2026-10-09)
+
+As of 2026-10-09, following accepted Phase 12 publication at `7dab821d7d205b41ae925e013fe9c69a97a7e875`, owner policy mandates zero further GitHub Actions consumption. Automatic workflows and check requirements established in Phase 10 serve as historical reference and are managed as follows:
+
+- **Workflows disabled manually**: `.github/workflows/ci.yml` (Regression, ID 378101423) and `.github/workflows/hostpapa-audit.yml` (Published static package, ID 378101422) are set to `disabled_manually`. Pushing accepted Phase 12 to `main` triggered no new GitHub Actions runs.
+- **Quality gate ruleset disabled**: GitHub ruleset 24698079 ("Accepted main quality gate", requiring `Quality gate` from integration 15368) has its enforcement set to `disabled`.
+- **History protection ruleset active**: GitHub ruleset 24698077 ("Accepted source and static release history") remains `active` on `refs/heads/main` and `refs/heads/hostpapa-deploy`, enforcing `deletion`, `non_fast_forward`, and `required_linear_history` with bypass `never`.
+- **Security settings preserved**: Existing repository security settings (Dependabot security updates, secret scanning, non-provider patterns, push protection, and validity checks) remain preserved in their existing disabled state; they are not enabled, modified, or reconfigured.
+- **Phase 13 governance**: No automatic GitHub Actions will be executed during Phase 13. Workflows must not be re-enabled and automatic CI must not be configured without explicit product owner authorization.
+- **Verification mechanism**: Local focused gates (targeted unit tests, contracts validator, lint, typecheck) and manual independent review by Codex and the product owner replace automatic cloud CI for all ongoing development.
 
 ## Verification cadence
 

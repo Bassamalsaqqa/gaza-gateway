@@ -1,6 +1,6 @@
 ﻿# Phase 12 security and trust-boundary model
 
-Design complete / awaiting independent GitHub review. No WAF, runtime guard, database or external delivery is claimed to be deployed. Normative security/transaction/publication policies live in the three lifecycle manifests and the exact operation registry.
+Status: Phase 12 Complete / Accepted Source (independently accepted at 7dab821d7d205b41ae925e013fe9c69a97a7e875). No WAF, runtime guard, database or external delivery is claimed to be deployed. Normative security/transaction/publication policies live in the three lifecycle manifests and the exact operation registry.
 
 | Threat / boundary                          | Required mitigation                                                                                                                              | Negative production proof                                                                                                                            |
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |

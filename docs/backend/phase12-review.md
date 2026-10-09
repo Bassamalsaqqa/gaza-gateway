@@ -1,7 +1,7 @@
 ﻿# Phase 12 Codex integration review
 
 Date: 2026-10-09.
-Disposition: design/contracts complete; ready for manual independent GitHub review.
+Historical integration disposition: design/contracts complete; ready for manual independent GitHub review. See the dated acceptance record below for the current disposition.
 Baseline: e1b4e3c62238357209990e80b00cc4635f621b76.
 
 ## Architecture decisions
@@ -44,3 +44,11 @@ Fetched origin and verified main and worker baseline remain e1b4e3c6223835720999
 Live cPanel deployment is unverified and separately owner-managed. No main merge, release-ref push, deployment, provisioning or Phase 13 execution occurs. After pushing the Phase 12 feature branch, stop for Bassam's manual ChatGPT independent GitHub review.
 
 Unresolved external gates before Phase 13 production work: paid plan budget/region/residency, real mail/object storage secrets, merchant/provider onboarding, DNS and measured proxy chain, offline first-admin custody, legal data/audit retention, live backup/restore drills and explicit irreversible cutover acceptance. They do not reopen the chosen stack without demonstrated blockers.
+
+## Independent review and acceptance (2026-10-09)
+
+- **Independent disposition**: Phase 12 is **Complete / Accepted Source**, independently accepted by ChatGPT at commit `7dab821d7d205b41ae925e013fe9c69a97a7e875`.
+- **Main fast-forward**: Accepted source `7dab821d7d205b41ae925e013fe9c69a97a7e875` was fast-forwarded to `main` and pushed without triggering new GitHub Actions runs.
+- **Owner CI policy**: Workflows (`.github/workflows/ci.yml` and `.github/workflows/hostpapa-audit.yml`) are `disabled_manually`. Quality gate ruleset 24698079 is `disabled`. History protection ruleset 24698077 remains `active` on `main` and `hostpapa-deploy`. Security settings remain preserved in their existing disabled state. No automatic Actions will run in Phase 13.
+- **Static release status**: Consolidated Phase 8–11 release remains `a47afded49e900b75c907e7230ca4dfef5b3f91e` (sourced from `e1b4e3c62238357209990e80b00cc4635f621b76`); live cPanel deployment remains unverified and owner-managed.
+- **Next stage**: Phase 13A local foundation is authorized as the next implementation stage, following prerequisite security work/review. Phase 13 runtime remains Planned / Unstarted; no live runtime, staging, authentication, booking, payment, or publication services exist.

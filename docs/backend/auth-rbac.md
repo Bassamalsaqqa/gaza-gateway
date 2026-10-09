@@ -1,6 +1,6 @@
 ﻿# Authentication, RBAC and identity lifecycle
 
-Status: Phase 12 design complete; awaiting independent GitHub review. No runtime authentication is implemented.
+Status: Phase 12 Complete / Accepted Source (independently accepted at 7dab821d7d205b41ae925e013fe9c69a97a7e875). No runtime authentication is implemented.
 The closed, versioned identity-lifecycle.v1.json is normative. Its design and relational constraints are checked against independently authored architectural policy in scripts/lib/backend-identity-policy.mjs and backend-identity-relations.mjs. Tests are deterministic development models; they are not proof of real HTTP middleware, cryptography, mail delivery or concurrent database behavior.
 
 ## Realms and browser protocol

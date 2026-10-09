@@ -191,11 +191,11 @@ it("all authoritative current headers and roadmap distinguish C2A foundation fro
   }
 });
 
-it("living docs record accepted Phase 11, owner deployment and Phase 12 review boundary", () => {
+it("living docs record accepted Phase 12, owner deployment and Phase 13 progression boundary", () => {
   const files = ["README.md", "PRODUCT.md", "roadmap.md", ...["ARCHITECTURE", "CANONICAL_REPOSITORIES", "DATA_FLOW", "SCHEDULE_MODEL", "SETTINGS_MODEL", "NETWORK_MODEL", "FLEET_MODEL", "DATED_SERVICE_MODEL", "COMMERCIAL_MODEL", "CONTENT_MODEL", "CONTACT_MODEL"].map(name => `docs/${name}.md`)];
   for (const file of files) {
     const text = readFileSync(file, "utf8");
-    const current = text.split("## Current checkpoint — Phase 11")[1];
+    const current = text.split("## Current checkpoint — Phase 12")[1];
     assert.ok(current, file);
     assert.match(current, /Phase 6, Phase 7 and Phase 7B are \*\*Complete \/ Accepted Source/);
     assert.ok(current.includes("deb9f6e2a4246f4f5c70ca1b56797ccf0588388e"), file);
@@ -209,10 +209,13 @@ it("living docs record accepted Phase 11, owner deployment and Phase 12 review b
     assert.match(current, /Phase 10 — Durable Regression & CI Hardening: Complete \/ Accepted Source/);
     assert.ok(current.includes("277e07a29188ab5ca07df008c011f42ec964641b"), file);
     assert.match(current, /Phase 11 — SEO, Performance & HostPapa Certification: Complete \/ Accepted Source/);
-    assert.match(current, /Phase 12 design is complete and awaiting independent GitHub review/);
+    assert.ok(current.includes("e1b4e3c62238357209990e80b00cc4635f621b76"), file);
+    assert.match(current, /Phase 12 — Backend Readiness & API Contracts: Complete \/ Accepted Source/);
+    assert.ok(current.includes("7dab821d7d205b41ae925e013fe9c69a97a7e875"), file);
     assert.ok(current.includes("a47afded49e900b75c907e7230ca4dfef5b3f91e"), file);
     assert.match(current, /live cPanel deployment remains unverified and owner-managed/);
-    assert.match(current, /Phase 13 remains Planned \/ Unstarted/);
+    assert.match(current, /Phase 13A local foundation is authorized as next implementation stage/);
+    assert.match(current, /Phase 13 runtime remains Planned \/ Unstarted/);
     assert.match(current, /Earlier milestone sections are historical/);
     for (const historicalSha of [
       "d5dd2942fad517cc5f1be353ad206511cc0724cc",
@@ -231,7 +234,8 @@ it("living docs record accepted Phase 11, owner deployment and Phase 12 review b
 
   const phase12Row = roadmap.split("\n").find((line) => line.startsWith("| **Phase 12** |"));
   assert.ok(phase12Row, "roadmap: Phase 12 row");
-  assert.match(phase12Row, /Design Complete \/ Awaiting Independent GitHub Review/);
+  assert.match(phase12Row, /Complete \/ Accepted Source/);
+  assert.ok(phase12Row.includes("7dab821d7d205b41ae925e013fe9c69a97a7e875"), "roadmap: Phase 12 accepted SHA");
 
   const phase13Row = roadmap.split("\n").find((line) => line.startsWith("| **Phase 13** |"));
   assert.ok(phase13Row, "roadmap: Phase 13 row");
@@ -246,7 +250,7 @@ it("living docs record accepted Phase 11, owner deployment and Phase 12 review b
     );
     assert.match(
       text,
-      /Manual independent GitHub review of Phase 12; Phase 13 remains Planned/,
+      /Phase 13A local foundation authorized as next implementation stage following prerequisite security work\/review; Phase 13 runtime remains Planned \/ Unstarted/,
       `${file}: immediate next step header`,
     );
   }
@@ -260,7 +264,7 @@ it("living docs record accepted Phase 11, owner deployment and Phase 12 review b
     );
     assert.match(
       text,
-      /Phase 12 — Backend Readiness & API Contracts is Design Complete \/ Awaiting Independent GitHub Review/,
+      /Phase 12 — Backend Readiness & API Contracts is Complete \/ Accepted Source at 7dab821d7d205b41ae925e013fe9c69a97a7e875/,
       `${file}: header current Phase 12 source status`,
     );
   }

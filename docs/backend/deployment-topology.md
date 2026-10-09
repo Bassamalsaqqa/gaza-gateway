@@ -1,6 +1,6 @@
 ﻿# Deployment topology, isolation and publication
 
-Status: Phase 12 design complete / awaiting independent GitHub review. No service, DNS change, live deployment or backend provisioning occurred.
+Status: Phase 12 Complete / Accepted Source (independently accepted at 7dab821d7d205b41ae925e013fe9c69a97a7e875). No service, DNS change, live deployment or backend provisioning occurred.
 
 ## Services and boundaries
 
