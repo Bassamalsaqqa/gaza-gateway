@@ -1,0 +1,3304 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0.0",
+  "description": "Canonical Operation Authorization Policy Registry for Gaza Gateway API v1",
+  "totalOperations": 138,
+  "operations": [
+    {
+      "operationId": "getHealthLiveness",
+      "method": "GET",
+      "path": "/health",
+      "intent": "public",
+      "allowedSecurity": [],
+      "requiredPermission": null,
+      "branchConditions": []
+    },
+    {
+      "operationId": "getHealthReadiness",
+      "method": "GET",
+      "path": "/health/ready",
+      "intent": "public",
+      "allowedSecurity": [],
+      "requiredPermission": null,
+      "branchConditions": []
+    },
+    {
+      "operationId": "getSystemVersion",
+      "method": "GET",
+      "path": "/version",
+      "intent": "public",
+      "allowedSecurity": [],
+      "requiredPermission": null,
+      "branchConditions": []
+    },
+    {
+      "operationId": "getAuthCsrfBootstrap",
+      "method": "GET",
+      "path": "/auth/csrf",
+      "intent": "protocol",
+      "allowedSecurity": [],
+      "requiredPermission": null,
+      "branchConditions": []
+    },
+    {
+      "operationId": "postPassengerRegister",
+      "method": "POST",
+      "path": "/auth/register",
+      "intent": "protocol",
+      "allowedSecurity": [],
+      "requiredPermission": null,
+      "branchConditions": [],
+      "protocol": {
+        "realm": "anonymous",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postPassengerLogin",
+      "method": "POST",
+      "path": "/auth/login",
+      "intent": "protocol",
+      "allowedSecurity": [],
+      "requiredPermission": null,
+      "branchConditions": [],
+      "protocol": {
+        "realm": "anonymous",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postPassengerLogout",
+      "method": "POST",
+      "path": "/auth/logout",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "PassengerCookieAuth": []
+        }
+      ],
+      "requiredPermission": null,
+      "branchConditions": [
+        {
+          "scheme": "PassengerCookieAuth",
+          "condition": "authenticated_passenger_self"
+        }
+      ],
+      "protocol": {
+        "realm": "passenger",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postPassengerPasswordForgot",
+      "method": "POST",
+      "path": "/auth/password/forgot",
+      "intent": "protocol",
+      "allowedSecurity": [],
+      "requiredPermission": null,
+      "branchConditions": [],
+      "protocol": {
+        "realm": "anonymous",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postPassengerPasswordReset",
+      "method": "POST",
+      "path": "/auth/password/reset",
+      "intent": "protocol",
+      "allowedSecurity": [],
+      "requiredPermission": null,
+      "branchConditions": [],
+      "protocol": {
+        "realm": "anonymous",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postPassengerEmailVerify",
+      "method": "POST",
+      "path": "/auth/email/verify",
+      "intent": "protocol",
+      "allowedSecurity": [],
+      "requiredPermission": null,
+      "branchConditions": [],
+      "protocol": {
+        "realm": "anonymous",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "getPassengerProfile",
+      "method": "GET",
+      "path": "/auth/passenger/profile",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "PassengerCookieAuth": []
+        }
+      ],
+      "requiredPermission": null,
+      "branchConditions": [
+        {
+          "scheme": "PassengerCookieAuth",
+          "condition": "authenticated_passenger_self"
+        }
+      ]
+    },
+    {
+      "operationId": "putPassengerProfile",
+      "method": "PUT",
+      "path": "/auth/passenger/profile",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "PassengerCookieAuth": []
+        }
+      ],
+      "requiredPermission": null,
+      "branchConditions": [
+        {
+          "scheme": "PassengerCookieAuth",
+          "condition": "authenticated_passenger_self"
+        }
+      ],
+      "protocol": {
+        "realm": "passenger",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "getSavedTravelers",
+      "method": "GET",
+      "path": "/auth/passenger/travelers",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "PassengerCookieAuth": []
+        }
+      ],
+      "requiredPermission": null,
+      "branchConditions": [
+        {
+          "scheme": "PassengerCookieAuth",
+          "condition": "authenticated_passenger_self"
+        }
+      ]
+    },
+    {
+      "operationId": "postSavedTraveler",
+      "method": "POST",
+      "path": "/auth/passenger/travelers",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "PassengerCookieAuth": []
+        }
+      ],
+      "requiredPermission": null,
+      "branchConditions": [
+        {
+          "scheme": "PassengerCookieAuth",
+          "condition": "authenticated_passenger_self"
+        }
+      ],
+      "protocol": {
+        "realm": "passenger",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "patchSavedTraveler",
+      "method": "PATCH",
+      "path": "/auth/passenger/travelers/{id}",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "PassengerCookieAuth": []
+        }
+      ],
+      "requiredPermission": null,
+      "branchConditions": [
+        {
+          "scheme": "PassengerCookieAuth",
+          "condition": "authenticated_passenger_self"
+        }
+      ],
+      "protocol": {
+        "realm": "passenger",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "deleteSavedTraveler",
+      "method": "DELETE",
+      "path": "/auth/passenger/travelers/{id}",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "PassengerCookieAuth": []
+        }
+      ],
+      "requiredPermission": null,
+      "branchConditions": [
+        {
+          "scheme": "PassengerCookieAuth",
+          "condition": "authenticated_passenger_self"
+        }
+      ],
+      "protocol": {
+        "realm": "passenger",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "getStaffCsrfBootstrap",
+      "method": "GET",
+      "path": "/staff/csrf",
+      "intent": "protocol",
+      "allowedSecurity": [],
+      "requiredPermission": null,
+      "branchConditions": []
+    },
+    {
+      "operationId": "postStaffLogin",
+      "method": "POST",
+      "path": "/staff/login",
+      "intent": "protocol",
+      "allowedSecurity": [],
+      "requiredPermission": null,
+      "branchConditions": [],
+      "protocol": {
+        "realm": "anonymous",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postStaffLogout",
+      "method": "POST",
+      "path": "/staff/logout",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": null,
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff_self",
+          "requiredPermission": null,
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "getStaffMe",
+      "method": "GET",
+      "path": "/staff/me",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": null,
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff_self",
+          "requiredPermission": null,
+          "requiresActive": true
+        }
+      ]
+    },
+    {
+      "operationId": "postStaffMfaSetup",
+      "method": "POST",
+      "path": "/staff/mfa/setup",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": null,
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff_self",
+          "requiredPermission": null,
+          "requiresActive": true
+        }
+      ],
+      "requiresRecentStepUp": true,
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postStaffMfaChallenge",
+      "method": "POST",
+      "path": "/staff/mfa/challenge",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffPreAuthCookieAuth": []
+        }
+      ],
+      "requiredPermission": null,
+      "branchConditions": [
+        {
+          "scheme": "StaffPreAuthCookieAuth",
+          "condition": "pending_staff_mfa",
+          "purpose": "login_mfa",
+          "allowedEndpoint": "postStaffMfaChallenge",
+          "requiresBoundSession": true,
+          "requiresUnexpired": true,
+          "requiresRevocationValid": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff_pending",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postStaffMfaVerify",
+      "method": "POST",
+      "path": "/staff/mfa/verify",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffPreAuthCookieAuth": []
+        }
+      ],
+      "requiredPermission": null,
+      "branchConditions": [
+        {
+          "scheme": "StaffPreAuthCookieAuth",
+          "condition": "pending_staff_mfa",
+          "purpose": "login_mfa",
+          "allowedEndpoint": "postStaffMfaVerify",
+          "requiresBoundSession": true,
+          "requiresUnexpired": true,
+          "requiresRevocationValid": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff_pending",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "getStaffSessions",
+      "method": "GET",
+      "path": "/staff/sessions",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": null,
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff_self",
+          "requiredPermission": null,
+          "requiresActive": true
+        }
+      ]
+    },
+    {
+      "operationId": "deleteStaffSession",
+      "method": "DELETE",
+      "path": "/staff/sessions/{id}",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": null,
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff_self",
+          "requiredPermission": null,
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "getStaffUsersDirectory",
+      "method": "GET",
+      "path": "/staff/users",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "admin.manage",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "admin.manage",
+          "requiresActive": true
+        }
+      ]
+    },
+    {
+      "operationId": "postStaffUserInvite",
+      "method": "POST",
+      "path": "/staff/users",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "admin.manage",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "admin.manage",
+          "requiresActive": true
+        }
+      ],
+      "requiresRecentStepUp": true,
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "patchStaffUser",
+      "method": "PATCH",
+      "path": "/staff/users/{id}",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "admin.manage",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "admin.manage",
+          "requiresActive": true
+        }
+      ],
+      "requiresRecentStepUp": true,
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "deleteStaffUser",
+      "method": "DELETE",
+      "path": "/staff/users/{id}",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "admin.manage",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "admin.manage",
+          "requiresActive": true
+        }
+      ],
+      "requiresRecentStepUp": true,
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "getAirports",
+      "method": "GET",
+      "path": "/network/airports",
+      "intent": "public",
+      "allowedSecurity": [],
+      "requiredPermission": null,
+      "branchConditions": []
+    },
+    {
+      "operationId": "postAdminAirport",
+      "method": "POST",
+      "path": "/admin/network/airports",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "ops.edit",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "ops.edit",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "patchAdminAirport",
+      "method": "PATCH",
+      "path": "/admin/network/airports/{code}",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "ops.edit",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "ops.edit",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "getFleetAircraft",
+      "method": "GET",
+      "path": "/fleet/aircraft",
+      "intent": "public",
+      "allowedSecurity": [],
+      "requiredPermission": null,
+      "branchConditions": []
+    },
+    {
+      "operationId": "postAdminAircraft",
+      "method": "POST",
+      "path": "/admin/fleet/aircraft",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "ops.edit",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "ops.edit",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "patchAdminAircraft",
+      "method": "PATCH",
+      "path": "/admin/fleet/aircraft/{id}",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "ops.edit",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "ops.edit",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "getSeatLayoutById",
+      "method": "GET",
+      "path": "/fleet/seat-layouts/{id}",
+      "intent": "public",
+      "allowedSecurity": [],
+      "requiredPermission": null,
+      "branchConditions": []
+    },
+    {
+      "operationId": "putAdminSeatLayout",
+      "method": "PUT",
+      "path": "/admin/fleet/seat-layouts/{id}",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "ops.edit",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "ops.edit",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "getSchedules",
+      "method": "GET",
+      "path": "/schedules",
+      "intent": "public",
+      "allowedSecurity": [],
+      "requiredPermission": null,
+      "branchConditions": []
+    },
+    {
+      "operationId": "postAdminSchedule",
+      "method": "POST",
+      "path": "/admin/schedules",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "ops.edit",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "ops.edit",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "patchAdminSchedule",
+      "method": "PATCH",
+      "path": "/admin/schedules/{id}",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "ops.edit",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "ops.edit",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "deleteAdminSchedule",
+      "method": "DELETE",
+      "path": "/admin/schedules/{id}",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "ops.edit",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "ops.edit",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "getCommercialFares",
+      "method": "GET",
+      "path": "/commercial/fares",
+      "intent": "public",
+      "allowedSecurity": [],
+      "requiredPermission": null,
+      "branchConditions": []
+    },
+    {
+      "operationId": "searchDatedServices",
+      "method": "GET",
+      "path": "/dated-services/search",
+      "intent": "public",
+      "allowedSecurity": [],
+      "requiredPermission": null,
+      "branchConditions": []
+    },
+    {
+      "operationId": "getDatedServicesMonthly",
+      "method": "GET",
+      "path": "/dated-services/monthly",
+      "intent": "public",
+      "allowedSecurity": [],
+      "requiredPermission": null,
+      "branchConditions": []
+    },
+    {
+      "operationId": "getDatedServicesDailyBoard",
+      "method": "GET",
+      "path": "/dated-services/daily-board",
+      "intent": "public",
+      "allowedSecurity": [],
+      "requiredPermission": null,
+      "branchConditions": []
+    },
+    {
+      "operationId": "getDatedServiceDetail",
+      "method": "GET",
+      "path": "/dated-services/{id}",
+      "intent": "public",
+      "allowedSecurity": [],
+      "requiredPermission": null,
+      "branchConditions": []
+    },
+    {
+      "operationId": "postFlightOverride",
+      "method": "POST",
+      "path": "/ops/flights/overrides",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "ops.edit",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "ops.edit",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "deleteFlightOverride",
+      "method": "DELETE",
+      "path": "/ops/flights/overrides/{serviceId}",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "ops.edit",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "ops.edit",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postCreateQuote",
+      "method": "POST",
+      "path": "/quotes",
+      "intent": "public",
+      "allowedSecurity": [],
+      "requiredPermission": null,
+      "branchConditions": [],
+      "protocol": {
+        "realm": "anonymous",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postCreateCapacityHold",
+      "method": "POST",
+      "path": "/holds",
+      "intent": "public",
+      "allowedSecurity": [],
+      "requiredPermission": null,
+      "branchConditions": [],
+      "protocol": {
+        "realm": "anonymous",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postCreateBooking",
+      "method": "POST",
+      "path": "/bookings",
+      "intent": "public",
+      "allowedSecurity": [],
+      "requiredPermission": null,
+      "branchConditions": [],
+      "protocol": {
+        "realm": "anonymous",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postCreateGuestChallenge",
+      "method": "POST",
+      "path": "/bookings/{ref}/challenge",
+      "intent": "public",
+      "allowedSecurity": [],
+      "requiredPermission": null,
+      "branchConditions": [],
+      "protocol": {
+        "realm": "anonymous",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postVerifyGuestChallenge",
+      "method": "POST",
+      "path": "/bookings/{ref}/verify-challenge",
+      "intent": "public",
+      "allowedSecurity": [],
+      "requiredPermission": null,
+      "branchConditions": [],
+      "protocol": {
+        "realm": "anonymous",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "getBookingByRef",
+      "method": "GET",
+      "path": "/bookings/{ref}",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "PassengerCookieAuth": []
+        },
+        {
+          "BookingGuestGrantAuth": []
+        },
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "commercial.view",
+      "branchConditions": [
+        {
+          "scheme": "PassengerCookieAuth",
+          "condition": "authenticated_booking_owner",
+          "boundResource": "booking",
+          "referenceParameter": "ref"
+        },
+        {
+          "scheme": "BookingGuestGrantAuth",
+          "condition": "valid_booking_grant",
+          "boundResource": "booking",
+          "referenceParameter": "ref",
+          "action": "getBookingByRef",
+          "requiresUnexpired": true,
+          "requiresRevocationValid": true
+        },
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "commercial.view",
+          "requiresActive": true
+        }
+      ]
+    },
+    {
+      "operationId": "postClaimBookingToAccount",
+      "method": "POST",
+      "path": "/account/bookings/claim",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "PassengerCookieAuth": []
+        }
+      ],
+      "requiredPermission": null,
+      "branchConditions": [
+        {
+          "scheme": "PassengerCookieAuth",
+          "condition": "authenticated_passenger_self"
+        }
+      ],
+      "protocol": {
+        "realm": "passenger",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "getAccountBookingsList",
+      "method": "GET",
+      "path": "/account/bookings",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "PassengerCookieAuth": []
+        }
+      ],
+      "requiredPermission": null,
+      "branchConditions": [
+        {
+          "scheme": "PassengerCookieAuth",
+          "condition": "authenticated_passenger_self"
+        }
+      ]
+    },
+    {
+      "operationId": "patchBookingContact",
+      "method": "PATCH",
+      "path": "/bookings/{ref}/contact",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "PassengerCookieAuth": []
+        },
+        {
+          "BookingGuestGrantAuth": []
+        },
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "commercial.edit",
+      "branchConditions": [
+        {
+          "scheme": "PassengerCookieAuth",
+          "condition": "authenticated_booking_owner",
+          "boundResource": "booking",
+          "referenceParameter": "ref"
+        },
+        {
+          "scheme": "BookingGuestGrantAuth",
+          "condition": "valid_booking_grant",
+          "boundResource": "booking",
+          "referenceParameter": "ref",
+          "action": "patchBookingContact",
+          "requiresUnexpired": true,
+          "requiresRevocationValid": true
+        },
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "commercial.edit",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "mixed",
+        "branch": "deterministic_selection",
+        "allowedBranches": [
+          "cookie",
+          "header_grant"
+        ],
+        "requiresOrigin": true,
+        "requiresCsrf": "conditional_on_cookie",
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "putBookingSeats",
+      "method": "PUT",
+      "path": "/bookings/{ref}/seats",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "PassengerCookieAuth": []
+        },
+        {
+          "BookingGuestGrantAuth": []
+        },
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "commercial.edit",
+      "branchConditions": [
+        {
+          "scheme": "PassengerCookieAuth",
+          "condition": "authenticated_booking_owner",
+          "boundResource": "booking",
+          "referenceParameter": "ref"
+        },
+        {
+          "scheme": "BookingGuestGrantAuth",
+          "condition": "valid_booking_grant",
+          "boundResource": "booking",
+          "referenceParameter": "ref",
+          "action": "putBookingSeats",
+          "requiresUnexpired": true,
+          "requiresRevocationValid": true
+        },
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "commercial.edit",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "mixed",
+        "branch": "deterministic_selection",
+        "allowedBranches": [
+          "cookie",
+          "header_grant"
+        ],
+        "requiresOrigin": true,
+        "requiresCsrf": "conditional_on_cookie",
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "putBookingExtras",
+      "method": "PUT",
+      "path": "/bookings/{ref}/extras",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "PassengerCookieAuth": []
+        },
+        {
+          "BookingGuestGrantAuth": []
+        },
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "commercial.edit",
+      "branchConditions": [
+        {
+          "scheme": "PassengerCookieAuth",
+          "condition": "authenticated_booking_owner",
+          "boundResource": "booking",
+          "referenceParameter": "ref"
+        },
+        {
+          "scheme": "BookingGuestGrantAuth",
+          "condition": "valid_booking_grant",
+          "boundResource": "booking",
+          "referenceParameter": "ref",
+          "action": "putBookingExtras",
+          "requiresUnexpired": true,
+          "requiresRevocationValid": true
+        },
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "commercial.edit",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "mixed",
+        "branch": "deterministic_selection",
+        "allowedBranches": [
+          "cookie",
+          "header_grant"
+        ],
+        "requiresOrigin": true,
+        "requiresCsrf": "conditional_on_cookie",
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postCancelBooking",
+      "method": "POST",
+      "path": "/bookings/{ref}/cancel",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "PassengerCookieAuth": []
+        },
+        {
+          "BookingGuestGrantAuth": []
+        },
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "commercial.edit",
+      "branchConditions": [
+        {
+          "scheme": "PassengerCookieAuth",
+          "condition": "authenticated_booking_owner",
+          "boundResource": "booking",
+          "referenceParameter": "ref"
+        },
+        {
+          "scheme": "BookingGuestGrantAuth",
+          "condition": "valid_booking_grant",
+          "boundResource": "booking",
+          "referenceParameter": "ref",
+          "action": "postCancelBooking",
+          "requiresUnexpired": true,
+          "requiresRevocationValid": true
+        },
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "commercial.edit",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "mixed",
+        "branch": "deterministic_selection",
+        "allowedBranches": [
+          "cookie",
+          "header_grant"
+        ],
+        "requiresOrigin": true,
+        "requiresCsrf": "conditional_on_cookie",
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "getAdminBookingsSearch",
+      "method": "GET",
+      "path": "/admin/bookings",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "commercial.view",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "commercial.view",
+          "requiresActive": true
+        }
+      ]
+    },
+    {
+      "operationId": "getAdminCustomerProjection",
+      "method": "GET",
+      "path": "/admin/customers/{id}",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "commercial.view",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "commercial.view",
+          "requiresActive": true
+        }
+      ]
+    },
+    {
+      "operationId": "postCompleteCheckIn",
+      "method": "POST",
+      "path": "/bookings/{ref}/check-in",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "PassengerCookieAuth": []
+        },
+        {
+          "BookingGuestGrantAuth": []
+        },
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "commercial.edit",
+      "branchConditions": [
+        {
+          "scheme": "PassengerCookieAuth",
+          "condition": "authenticated_booking_owner",
+          "boundResource": "booking",
+          "referenceParameter": "ref"
+        },
+        {
+          "scheme": "BookingGuestGrantAuth",
+          "condition": "valid_booking_grant",
+          "boundResource": "booking",
+          "referenceParameter": "ref",
+          "action": "postCompleteCheckIn",
+          "requiresUnexpired": true,
+          "requiresRevocationValid": true
+        },
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "commercial.edit",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "mixed",
+        "branch": "deterministic_selection",
+        "allowedBranches": [
+          "cookie",
+          "header_grant"
+        ],
+        "requiresOrigin": true,
+        "requiresCsrf": "conditional_on_cookie",
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postUndoCheckIn",
+      "method": "POST",
+      "path": "/bookings/{ref}/check-in/undo",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "PassengerCookieAuth": []
+        },
+        {
+          "BookingGuestGrantAuth": []
+        },
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "commercial.edit",
+      "branchConditions": [
+        {
+          "scheme": "PassengerCookieAuth",
+          "condition": "authenticated_booking_owner",
+          "boundResource": "booking",
+          "referenceParameter": "ref"
+        },
+        {
+          "scheme": "BookingGuestGrantAuth",
+          "condition": "valid_booking_grant",
+          "boundResource": "booking",
+          "referenceParameter": "ref",
+          "action": "postUndoCheckIn",
+          "requiresUnexpired": true,
+          "requiresRevocationValid": true
+        },
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "commercial.edit",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "mixed",
+        "branch": "deterministic_selection",
+        "allowedBranches": [
+          "cookie",
+          "header_grant"
+        ],
+        "requiresOrigin": true,
+        "requiresCsrf": "conditional_on_cookie",
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "getBoardingPasses",
+      "method": "GET",
+      "path": "/bookings/{ref}/boarding-passes",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "PassengerCookieAuth": []
+        },
+        {
+          "BookingGuestGrantAuth": []
+        },
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "commercial.view",
+      "branchConditions": [
+        {
+          "scheme": "PassengerCookieAuth",
+          "condition": "authenticated_booking_owner",
+          "boundResource": "booking",
+          "referenceParameter": "ref"
+        },
+        {
+          "scheme": "BookingGuestGrantAuth",
+          "condition": "valid_booking_grant",
+          "boundResource": "booking",
+          "referenceParameter": "ref",
+          "action": "getBoardingPasses",
+          "requiresUnexpired": true,
+          "requiresRevocationValid": true
+        },
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "commercial.view",
+          "requiresActive": true
+        }
+      ]
+    },
+    {
+      "operationId": "getCmsDocuments",
+      "method": "GET",
+      "path": "/cms/documents",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "content.view",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "content.view",
+          "requiresActive": true
+        }
+      ]
+    },
+    {
+      "operationId": "getCmsDocumentBySlug",
+      "method": "GET",
+      "path": "/cms/documents/{slug}",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "content.view",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "content.view",
+          "requiresActive": true
+        }
+      ]
+    },
+    {
+      "operationId": "putCmsDocumentDraft",
+      "method": "PUT",
+      "path": "/cms/documents/{slug}",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "content.edit",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "content.edit",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "getCmsDocumentPreview",
+      "method": "GET",
+      "path": "/cms/documents/{slug}/preview",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "content.view",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "content.view",
+          "requiresActive": true
+        }
+      ]
+    },
+    {
+      "operationId": "postCmsDocumentUnpublish",
+      "method": "POST",
+      "path": "/cms/documents/{slug}/unpublish",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "content.edit",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "content.edit",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postTriggerPublication",
+      "method": "POST",
+      "path": "/cms/publish",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "content.edit",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "content.edit",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "getCmsPublicationsList",
+      "method": "GET",
+      "path": "/cms/publications",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "content.view",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "content.view",
+          "requiresActive": true
+        }
+      ]
+    },
+    {
+      "operationId": "getArchiveRecords",
+      "method": "GET",
+      "path": "/archive/records",
+      "intent": "public",
+      "allowedSecurity": [],
+      "requiredPermission": null,
+      "branchConditions": []
+    },
+    {
+      "operationId": "postAdminArchiveRecord",
+      "method": "POST",
+      "path": "/admin/archive/records",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "content.edit",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "content.edit",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "putAdminArchiveRecord",
+      "method": "PUT",
+      "path": "/admin/archive/records/{id}",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "content.edit",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "content.edit",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "getArchiveSources",
+      "method": "GET",
+      "path": "/archive/sources",
+      "intent": "public",
+      "allowedSecurity": [],
+      "requiredPermission": null,
+      "branchConditions": []
+    },
+    {
+      "operationId": "postAdminArchiveSource",
+      "method": "POST",
+      "path": "/admin/archive/sources",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "content.edit",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "content.edit",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "putAdminArchiveSource",
+      "method": "PUT",
+      "path": "/admin/archive/sources/{id}",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "content.edit",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "content.edit",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postMediaUpload",
+      "method": "POST",
+      "path": "/media/upload",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "content.edit",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "content.edit",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postContactMessage",
+      "method": "POST",
+      "path": "/contact",
+      "intent": "public",
+      "allowedSecurity": [],
+      "requiredPermission": null,
+      "branchConditions": [],
+      "protocol": {
+        "realm": "anonymous",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "getContactInbox",
+      "method": "GET",
+      "path": "/admin/contact/inbox",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "engagement.view",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "engagement.view",
+          "requiresActive": true
+        }
+      ]
+    },
+    {
+      "operationId": "getContactTicketDetail",
+      "method": "GET",
+      "path": "/admin/contact/inbox/{id}",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "engagement.view",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "engagement.view",
+          "requiresActive": true
+        }
+      ]
+    },
+    {
+      "operationId": "patchContactTicketAssign",
+      "method": "PATCH",
+      "path": "/admin/contact/inbox/{id}/assign",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "engagement.edit",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "engagement.edit",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postContactTicketNote",
+      "method": "POST",
+      "path": "/admin/contact/inbox/{id}/notes",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "engagement.edit",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "engagement.edit",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postCreatePaymentIntent",
+      "method": "POST",
+      "path": "/payments/intents",
+      "intent": "public",
+      "allowedSecurity": [],
+      "requiredPermission": null,
+      "branchConditions": [],
+      "protocol": {
+        "realm": "anonymous",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postPaymentWebhook",
+      "method": "POST",
+      "path": "/payments/webhook",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "WebhookSignatureAuth": []
+        }
+      ],
+      "requiredPermission": null,
+      "branchConditions": [
+        {
+          "scheme": "WebhookSignatureAuth",
+          "condition": "valid_webhook_signature"
+        }
+      ],
+      "protocol": {
+        "realm": "system",
+        "branch": "webhook",
+        "requiresOrigin": false,
+        "requiresCsrf": false,
+        "signatureHeader": "X-Signature",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postAdminPaymentRefund",
+      "method": "POST",
+      "path": "/admin/payments/{id}/refund",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "commercial.edit",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "commercial.edit",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "getAdminPaymentsReconciliation",
+      "method": "GET",
+      "path": "/admin/payments/reconciliation",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "commercial.view",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "commercial.view",
+          "requiresActive": true
+        }
+      ]
+    },
+    {
+      "operationId": "postMigrationPassengerPreview",
+      "method": "POST",
+      "path": "/migration/passenger/preview",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "PassengerCookieAuth": []
+        }
+      ],
+      "requiredPermission": null,
+      "branchConditions": [
+        {
+          "scheme": "PassengerCookieAuth",
+          "condition": "authenticated_passenger_self"
+        }
+      ],
+      "protocol": {
+        "realm": "passenger",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postMigrationPassengerCommit",
+      "method": "POST",
+      "path": "/migration/passenger/commit",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "PassengerCookieAuth": []
+        }
+      ],
+      "requiredPermission": null,
+      "branchConditions": [
+        {
+          "scheme": "PassengerCookieAuth",
+          "condition": "authenticated_passenger_self"
+        }
+      ],
+      "protocol": {
+        "realm": "passenger",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "getMigrationPassengerStatus",
+      "method": "GET",
+      "path": "/migration/passenger/status",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "PassengerCookieAuth": []
+        }
+      ],
+      "requiredPermission": null,
+      "branchConditions": [
+        {
+          "scheme": "PassengerCookieAuth",
+          "condition": "authenticated_passenger_self"
+        }
+      ]
+    },
+    {
+      "operationId": "postAdminMigrationPreview",
+      "method": "POST",
+      "path": "/admin/migration/preview",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "admin.manage",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "admin.manage",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postAdminMigrationCommit",
+      "method": "POST",
+      "path": "/admin/migration/commit",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "admin.manage",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "admin.manage",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      },
+      "requiresRecentStepUp": true
+    },
+    {
+      "operationId": "getCommercialCatalog",
+      "method": "GET",
+      "path": "/commercial/catalog",
+      "intent": "public",
+      "allowedSecurity": [],
+      "requiredPermission": null,
+      "branchConditions": []
+    },
+    {
+      "operationId": "getAdminCommercialCatalog",
+      "method": "GET",
+      "path": "/admin/commercial/catalog",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "commercial.view",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "commercial.view",
+          "requiresActive": true
+        }
+      ]
+    },
+    {
+      "operationId": "patchAdminCommercialFare",
+      "method": "PATCH",
+      "path": "/admin/commercial/fares/{id}",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "commercial.edit",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "commercial.edit",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "patchAdminCommercialCabinPricing",
+      "method": "PATCH",
+      "path": "/admin/commercial/cabins/{id}",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "commercial.edit",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "commercial.edit",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "patchAdminCommercialBaggage",
+      "method": "PATCH",
+      "path": "/admin/commercial/baggage",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "commercial.edit",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "commercial.edit",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postAdminCommercialMeal",
+      "method": "POST",
+      "path": "/admin/commercial/meals",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "commercial.edit",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "commercial.edit",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "patchAdminCommercialMeal",
+      "method": "PATCH",
+      "path": "/admin/commercial/meals/{id}",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "commercial.edit",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "commercial.edit",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "putAdminCommercialMealsOrder",
+      "method": "PUT",
+      "path": "/admin/commercial/meals/order",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "commercial.edit",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "commercial.edit",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "putAdminCommercialMealDefault",
+      "method": "PUT",
+      "path": "/admin/commercial/meals/default",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "commercial.edit",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "commercial.edit",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postAdminCommercialAssistance",
+      "method": "POST",
+      "path": "/admin/commercial/assistance",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "commercial.edit",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "commercial.edit",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "patchAdminCommercialAssistance",
+      "method": "PATCH",
+      "path": "/admin/commercial/assistance/{id}",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "commercial.edit",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "commercial.edit",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "putAdminCommercialAssistanceOrder",
+      "method": "PUT",
+      "path": "/admin/commercial/assistance/order",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "commercial.edit",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "commercial.edit",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "getAdminContactSettings",
+      "method": "GET",
+      "path": "/admin/settings/contact",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "admin.manage",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "admin.manage",
+          "requiresActive": true
+        }
+      ]
+    },
+    {
+      "operationId": "putAdminContactSettingsDraft",
+      "method": "PUT",
+      "path": "/admin/settings/contact/draft",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "admin.manage",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "admin.manage",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postAdminContactSettingsDiscard",
+      "method": "POST",
+      "path": "/admin/settings/contact/discard",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "admin.manage",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "admin.manage",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "getAdminAppearanceSettings",
+      "method": "GET",
+      "path": "/admin/settings/appearance",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "admin.manage",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "admin.manage",
+          "requiresActive": true
+        }
+      ]
+    },
+    {
+      "operationId": "putAdminAppearanceSettingsDraft",
+      "method": "PUT",
+      "path": "/admin/settings/appearance/draft",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "admin.manage",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "admin.manage",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postAdminAppearanceSettingsDiscard",
+      "method": "POST",
+      "path": "/admin/settings/appearance/discard",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "admin.manage",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "admin.manage",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postCmsDocumentDraftDiscard",
+      "method": "POST",
+      "path": "/cms/documents/{slug}/discard",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "content.edit",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "content.edit",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "patchContactStatus",
+      "method": "PATCH",
+      "path": "/admin/contact/inbox/{id}/status",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "engagement.edit",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "engagement.edit",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "putContactReplyDraft",
+      "method": "PUT",
+      "path": "/admin/contact/inbox/{id}/reply-draft",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "engagement.edit",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "engagement.edit",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postPassengerEmailResend",
+      "method": "POST",
+      "path": "/auth/email/resend",
+      "intent": "protocol",
+      "allowedSecurity": [],
+      "requiredPermission": null,
+      "branchConditions": [],
+      "protocol": {
+        "realm": "anonymous",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "getPassengerSessions",
+      "method": "GET",
+      "path": "/auth/passenger/sessions",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "PassengerCookieAuth": []
+        }
+      ],
+      "requiredPermission": null,
+      "branchConditions": [
+        {
+          "scheme": "PassengerCookieAuth",
+          "condition": "authenticated_passenger_self"
+        }
+      ]
+    },
+    {
+      "operationId": "deletePassengerSession",
+      "method": "DELETE",
+      "path": "/auth/passenger/sessions/{id}",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "PassengerCookieAuth": []
+        }
+      ],
+      "requiredPermission": null,
+      "branchConditions": [
+        {
+          "scheme": "PassengerCookieAuth",
+          "condition": "authenticated_passenger_self"
+        }
+      ],
+      "protocol": {
+        "realm": "passenger",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "putPassengerPassword",
+      "method": "PUT",
+      "path": "/auth/passenger/password",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "PassengerCookieAuth": []
+        }
+      ],
+      "requiredPermission": null,
+      "branchConditions": [
+        {
+          "scheme": "PassengerCookieAuth",
+          "condition": "authenticated_passenger_self"
+        }
+      ],
+      "protocol": {
+        "realm": "passenger",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postStaffMfaEnrollmentSetup",
+      "method": "POST",
+      "path": "/staff/mfa/enrollment/setup",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffPreAuthCookieAuth": []
+        }
+      ],
+      "requiredPermission": null,
+      "branchConditions": [
+        {
+          "scheme": "StaffPreAuthCookieAuth",
+          "condition": "pending_staff_mfa",
+          "purpose": "enroll_mfa",
+          "allowedEndpoint": "postStaffMfaEnrollmentSetup",
+          "requiresBoundSession": true,
+          "requiresUnexpired": true,
+          "requiresRevocationValid": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff_pending",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postStaffMfaEnrollmentConfirm",
+      "method": "POST",
+      "path": "/staff/mfa/enrollment/confirm",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffPreAuthCookieAuth": []
+        }
+      ],
+      "requiredPermission": null,
+      "branchConditions": [
+        {
+          "scheme": "StaffPreAuthCookieAuth",
+          "condition": "pending_staff_mfa",
+          "purpose": "enroll_mfa",
+          "allowedEndpoint": "postStaffMfaEnrollmentConfirm",
+          "requiresBoundSession": true,
+          "requiresUnexpired": true,
+          "requiresRevocationValid": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff_pending",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postStaffStepUp",
+      "method": "POST",
+      "path": "/staff/step-up",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": null,
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff_self",
+          "requiredPermission": null,
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postStaffMfaSetupConfirm",
+      "method": "POST",
+      "path": "/staff/mfa/setup/confirm",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": null,
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff_self",
+          "requiredPermission": null,
+          "requiresActive": true
+        }
+      ],
+      "requiresRecentStepUp": true,
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postStaffMfaRecoveryCodesRegenerate",
+      "method": "POST",
+      "path": "/staff/mfa/recovery-codes/regenerate",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": null,
+      "requiresRecentStepUp": true,
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff_self",
+          "requiredPermission": null,
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postStaffPasswordForgot",
+      "method": "POST",
+      "path": "/staff/password/forgot",
+      "intent": "protocol",
+      "allowedSecurity": [],
+      "requiredPermission": null,
+      "branchConditions": [],
+      "protocol": {
+        "realm": "anonymous",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postStaffPasswordReset",
+      "method": "POST",
+      "path": "/staff/password/reset",
+      "intent": "protocol",
+      "allowedSecurity": [],
+      "requiredPermission": null,
+      "branchConditions": [],
+      "protocol": {
+        "realm": "anonymous",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "putStaffPassword",
+      "method": "PUT",
+      "path": "/staff/password",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": null,
+      "requiresRecentStepUp": true,
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff_self",
+          "requiredPermission": null,
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postStaffInvitationAccept",
+      "method": "POST",
+      "path": "/staff/invitations/accept",
+      "intent": "protocol",
+      "allowedSecurity": [],
+      "requiredPermission": null,
+      "branchConditions": [],
+      "protocol": {
+        "realm": "anonymous",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postStaffUserInviteReissue",
+      "method": "POST",
+      "path": "/staff/users/{id}/invite/reissue",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "admin.manage",
+      "requiresRecentStepUp": true,
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "admin.manage",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postStaffUserInviteRevoke",
+      "method": "POST",
+      "path": "/staff/users/{id}/invite/revoke",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "admin.manage",
+      "requiresRecentStepUp": true,
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "admin.manage",
+          "requiresActive": true
+        }
+      ],
+      "protocol": {
+        "realm": "staff",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postCreateClaimChallenge",
+      "method": "POST",
+      "path": "/account/bookings/claim/challenge",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "PassengerCookieAuth": []
+        }
+      ],
+      "requiredPermission": null,
+      "branchConditions": [
+        {
+          "scheme": "PassengerCookieAuth",
+          "condition": "authenticated_passenger_self"
+        }
+      ],
+      "protocol": {
+        "realm": "passenger",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "postVerifyClaimChallenge",
+      "method": "POST",
+      "path": "/account/bookings/claim/verify",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "PassengerCookieAuth": []
+        }
+      ],
+      "requiredPermission": null,
+      "branchConditions": [
+        {
+          "scheme": "PassengerCookieAuth",
+          "condition": "authenticated_passenger_self"
+        }
+      ],
+      "protocol": {
+        "realm": "passenger",
+        "branch": "cookie",
+        "requiresOrigin": true,
+        "requiresCsrf": true,
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store"
+      }
+    },
+    {
+      "operationId": "getBookingReceipt",
+      "method": "GET",
+      "path": "/bookings/{ref}/receipt",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "BookingReceiptGrantAuth": []
+        }
+      ],
+      "requiredPermission": null,
+      "branchConditions": [
+        {
+          "scheme": "BookingReceiptGrantAuth",
+          "condition": "valid_booking_receipt_grant",
+          "boundResource": "booking",
+          "referenceParameter": "ref",
+          "action": "getBookingReceipt",
+          "requiresUnexpired": true,
+          "requiresRevocationValid": true
+        }
+      ]
+    },
+    {
+      "operationId": "getPublicPublicationSnapshot",
+      "method": "GET",
+      "path": "/publication-snapshots/{releaseId}",
+      "intent": "public",
+      "allowedSecurity": [],
+      "requiredPermission": null,
+      "branchConditions": []
+    },
+    {
+      "operationId": "getPublicationSnapshot",
+      "method": "GET",
+      "path": "/cms/publications/{releaseId}/snapshot",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "content.view",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "content.view",
+          "requiresActive": true
+        }
+      ]
+    },
+    {
+      "operationId": "postPublicationBuildReceipt",
+      "method": "POST",
+      "path": "/cms/publications/{releaseId}/build-receipts",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "admin.manage",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "admin.manage",
+          "requiresActive": true
+        }
+      ],
+      "requiresRecentStepUp": true
+    },
+    {
+      "operationId": "postPublicationDeploymentReceipt",
+      "method": "POST",
+      "path": "/cms/publications/{releaseId}/deployment-receipts",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "admin.manage",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "admin.manage",
+          "requiresActive": true
+        }
+      ],
+      "requiresRecentStepUp": true
+    },
+    {
+      "operationId": "postPublicationActivate",
+      "method": "POST",
+      "path": "/cms/publications/{releaseId}/activate",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "admin.manage",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "admin.manage",
+          "requiresActive": true
+        }
+      ],
+      "requiresRecentStepUp": true
+    },
+    {
+      "operationId": "postPublicationRollback",
+      "method": "POST",
+      "path": "/cms/publications/{releaseId}/rollback",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "admin.manage",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "admin.manage",
+          "requiresActive": true
+        }
+      ],
+      "requiresRecentStepUp": true
+    }
+  ]
+}

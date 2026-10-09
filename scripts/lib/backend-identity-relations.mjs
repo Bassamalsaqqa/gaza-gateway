@@ -1,0 +1,361 @@
+// Explicit identity relation contracts. PostgreSQL DDL is deferred to Phase 13B.
+const col = (name, type, nullable = false) => ({ name, type, nullable });
+const fk = (fields, table, target = ["id"]) => ({ fields, table, target, onDelete: "RESTRICT" });
+const common = [
+  col("id", "UUID"),
+  col("token_digest", "CHAR(64)"),
+  col("state", "TEXT"),
+  col("issued_at", "TIMESTAMPTZ"),
+  col("expires_at", "TIMESTAMPTZ"),
+  col("consumed_at", "TIMESTAMPTZ", true),
+  col("revoked_at", "TIMESTAMPTZ", true),
+];
+const proofChecks = [
+  "state IN ('issued','consumed','revoked','expired','exhausted')",
+  "expires_at > issued_at",
+  "(state = 'consumed') = (consumed_at IS NOT NULL)",
+];
+const table = (name, columns, foreignKeys = [], unique = [["id"]], checks = []) => ({
+  name,
+  primary: unique[0],
+  columns,
+  foreignKeys,
+  unique,
+  checks,
+});
+const realmToken = (name, subject, realm) =>
+  table(
+    name,
+    [
+      ...common,
+      col(subject, "UUID"),
+      col("purpose", "TEXT"),
+      col("credential_epoch", "INTEGER"),
+      col("email_snapshot", "VARCHAR(255)"),
+    ],
+    [fk([subject], realm)],
+    [["id"], ["token_digest"]],
+    [
+      ...proofChecks,
+      "credential_epoch >= 1",
+      "purpose = '" +
+        {
+          user_email_verifications: "passenger_email_verification",
+          user_password_resets: "passenger_password_reset",
+          staff_invitations: "staff_invitation",
+          staff_password_resets: "staff_password_reset",
+        }[name] +
+        "'",
+    ],
+  );
+const session = (name, subject, realm) =>
+  table(
+    name,
+    [
+      col("id", "UUID"),
+      col("lookup_digest", "CHAR(64)"),
+      col(subject, "UUID", true),
+      col("auth_level", "TEXT"),
+      col("credential_epoch", "INTEGER", true),
+      col("encrypted_payload", "TEXT"),
+      col("issued_at", "TIMESTAMPTZ"),
+      col("absolute_expires_at", "TIMESTAMPTZ"),
+      col("idle_expires_at", "TIMESTAMPTZ"),
+      col("last_seen_at", "TIMESTAMPTZ"),
+      col("revoked_at", "TIMESTAMPTZ", true),
+      ...(realm === "staff_users"
+        ? [col("mfa_version", "INTEGER", true), col("mfa_verified_at", "TIMESTAMPTZ", true)]
+        : []),
+    ],
+    [
+      fk([subject], realm),
+      ...(realm === "staff_users"
+        ? [fk([subject, "mfa_version"], "staff_mfa_credentials", ["staff_id", "version"])]
+        : []),
+    ],
+    [["id"], ["lookup_digest"]],
+    [
+      "auth_level IN ('anonymous','full')",
+      "absolute_expires_at > issued_at",
+      "idle_expires_at <= absolute_expires_at",
+      "(auth_level = 'full') = (" + subject + " IS NOT NULL)",
+      "auth_level != 'full' OR credential_epoch >= 1",
+      ...(realm === "staff_users"
+        ? ["auth_level != 'full' OR (mfa_version IS NOT NULL AND mfa_verified_at IS NOT NULL)"]
+        : []),
+    ],
+  );
+const grant = (name, scope) =>
+  table(
+    name,
+    [
+      col("id", "UUID"),
+      col("token_digest", "CHAR(64)"),
+      col("booking_id", "UUID"),
+      col("security_epoch", "INTEGER"),
+      col("allowed_actions", "JSONB"),
+      col("scope_version", "INTEGER"),
+      col("issued_at", "TIMESTAMPTZ"),
+      col("expires_at", "TIMESTAMPTZ"),
+      col("revoked_at", "TIMESTAMPTZ", true),
+    ],
+    [fk(["booking_id"], "bookings")],
+    [["id"], ["token_digest"]],
+    [
+      "security_epoch >= 1",
+      "scope_version = 1",
+      "expires_at > issued_at",
+      "jsonb_typeof(allowed_actions) = 'array' AND jsonb_array_length(allowed_actions) > 0 AND allowed_actions <@ '" +
+        JSON.stringify(scope) +
+        "'::jsonb",
+    ],
+  );
+export const IDENTITY_RELATIONS = [
+  table(
+    "users",
+    [
+      col("id", "UUID"),
+      col("email", "VARCHAR(255)"),
+      col("password_hash", "TEXT"),
+      col("status", "TEXT"),
+      col("email_verified_at", "TIMESTAMPTZ", true),
+      col("credential_epoch", "INTEGER"),
+      col("created_at", "TIMESTAMPTZ"),
+      col("updated_at", "TIMESTAMPTZ"),
+    ],
+    [],
+    [["id"], ["lower(email)"]],
+    ["status IN ('unverified','active','suspended')", "credential_epoch >= 1"],
+  ),
+  table(
+    "staff_users",
+    [
+      col("id", "UUID"),
+      col("username", "VARCHAR(64)"),
+      col("email", "VARCHAR(255)"),
+      col("full_name_en", "VARCHAR(128)"),
+      col("full_name_ar", "VARCHAR(128)"),
+      col("password_hash", "TEXT", true),
+      col("role", "TEXT"),
+      col("status", "TEXT"),
+      col("email_verified_at", "TIMESTAMPTZ", true),
+      col("credential_epoch", "INTEGER"),
+      col("mfa_version", "INTEGER", true),
+      col("created_at", "TIMESTAMPTZ"),
+      col("updated_at", "TIMESTAMPTZ"),
+    ],
+    [fk(["id", "mfa_version"], "staff_mfa_credentials", ["staff_id", "version"])],
+    [["id"], ["username"], ["lower(email)"]],
+    [
+      "role IN ('admin','editor','viewer')",
+      "status IN ('invited','pending_enrollment','active','suspended','deactivated')",
+      "credential_epoch >= 1",
+      "status != 'active' OR (email_verified_at IS NOT NULL AND password_hash IS NOT NULL AND mfa_version IS NOT NULL)",
+    ],
+  ),
+  table(
+    "staff_mfa_credentials",
+    [
+      col("staff_id", "UUID"),
+      col("version", "INTEGER"),
+      col("encrypted_secret", "TEXT"),
+      col("confirmed_at", "TIMESTAMPTZ", true),
+      col("revoked_at", "TIMESTAMPTZ", true),
+    ],
+    [fk(["staff_id"], "staff_users")],
+    [["staff_id", "version"]],
+    ["version >= 1"],
+  ),
+  session("passenger_sessions", "user_id", "users"),
+  session("staff_sessions", "staff_id", "staff_users"),
+  table(
+    "staff_pending_auth",
+    [
+      ...common,
+      col("staff_id", "UUID"),
+      col("bound_session_id", "UUID"),
+      col("purpose", "TEXT"),
+      col("credential_epoch", "INTEGER"),
+      col("failed_attempts", "INTEGER"),
+      col("encrypted_staged_secret", "TEXT", true),
+    ],
+    [fk(["staff_id"], "staff_users"), fk(["bound_session_id"], "staff_sessions")],
+    [["id"], ["token_digest"]],
+    [
+      ...proofChecks,
+      "purpose IN ('login_mfa','enroll_mfa')",
+      "failed_attempts BETWEEN 0 AND 5",
+      "credential_epoch >= 1",
+    ],
+  ),
+  realmToken("user_email_verifications", "user_id", "users"),
+  realmToken("user_password_resets", "user_id", "users"),
+  realmToken("staff_invitations", "staff_id", "staff_users"),
+  realmToken("staff_password_resets", "staff_id", "staff_users"),
+  table(
+    "staff_mfa_replacements",
+    [
+      ...common,
+      col("staff_id", "UUID"),
+      col("session_id", "UUID"),
+      col("prior_version", "INTEGER"),
+      col("candidate_version", "INTEGER"),
+      col("step_up_at", "TIMESTAMPTZ"),
+      col("failed_attempts", "INTEGER"),
+    ],
+    [
+      fk(["staff_id"], "staff_users"),
+      fk(["session_id"], "staff_sessions"),
+      fk(["staff_id", "prior_version"], "staff_mfa_credentials", ["staff_id", "version"]),
+      fk(["staff_id", "candidate_version"], "staff_mfa_credentials", ["staff_id", "version"]),
+    ],
+    [["id"], ["token_digest"]],
+    [...proofChecks, "candidate_version > prior_version", "failed_attempts BETWEEN 0 AND 5"],
+  ),
+  table(
+    "staff_mfa_counter_consumptions",
+    [
+      col("staff_id", "UUID"),
+      col("mfa_version", "INTEGER"),
+      col("counter_step", "BIGINT"),
+      col("consumed_at", "TIMESTAMPTZ"),
+    ],
+    [fk(["staff_id", "mfa_version"], "staff_mfa_credentials", ["staff_id", "version"])],
+    [["staff_id", "mfa_version", "counter_step"]],
+    ["counter_step >= 0"],
+  ),
+  table(
+    "staff_mfa_recovery_codes",
+    [
+      col("id", "UUID"),
+      col("staff_id", "UUID"),
+      col("mfa_version", "INTEGER"),
+      col("code_digest", "CHAR(64)"),
+      col("consumed_at", "TIMESTAMPTZ", true),
+      col("revoked_at", "TIMESTAMPTZ", true),
+    ],
+    [fk(["staff_id", "mfa_version"], "staff_mfa_credentials", ["staff_id", "version"])],
+    [["id"], ["staff_id", "mfa_version", "code_digest"]],
+  ),
+  table(
+    "booking_guest_challenges",
+    [
+      col("id", "UUID"),
+      col("booking_id", "UUID", true),
+      col("session_id", "UUID"),
+      col("user_id", "UUID", true),
+      col("purpose", "TEXT"),
+      col("security_epoch", "INTEGER", true),
+      col("code_digest", "CHAR(64)"),
+      col("pepper_version", "INTEGER"),
+      col("state", "TEXT"),
+      col("failed_attempts", "INTEGER"),
+      col("dispatch_status", "TEXT"),
+      col("issued_at", "TIMESTAMPTZ"),
+      col("expires_at", "TIMESTAMPTZ"),
+      col("consumed_at", "TIMESTAMPTZ", true),
+      col("revoked_at", "TIMESTAMPTZ", true),
+    ],
+    [
+      fk(["booking_id"], "bookings"),
+      fk(["session_id"], "passenger_sessions"),
+      fk(["user_id"], "users"),
+    ],
+    [["id"]],
+    [
+      ...proofChecks,
+      "purpose IN ('manage_booking','claim_booking')",
+      "purpose != 'claim_booking' OR user_id IS NOT NULL",
+      "failed_attempts BETWEEN 0 AND 5",
+      "dispatch_status IN ('queued','accepted','failed','scrubbed')",
+      "booking_id IS NULL OR security_epoch >= 1",
+    ],
+  ),
+  grant("booking_guest_grants", [
+    "getBookingByRef",
+    "patchBookingContact",
+    "putBookingSeats",
+    "putBookingExtras",
+    "postCancelBooking",
+    "postCompleteCheckIn",
+    "postUndoCheckIn",
+    "getBoardingPasses",
+  ]),
+  grant("booking_receipt_grants", ["getBookingReceipt"]),
+  table(
+    "booking_claim_proofs",
+    [
+      ...common,
+      col("booking_id", "UUID"),
+      col("user_id", "UUID"),
+      col("session_id", "UUID"),
+      col("security_epoch", "INTEGER"),
+      col("purpose", "TEXT"),
+    ],
+    [
+      fk(["booking_id"], "bookings"),
+      fk(["user_id"], "users"),
+      fk(["session_id"], "passenger_sessions"),
+    ],
+    [["id"], ["token_digest"]],
+    [...proofChecks, "purpose = 'booking_claim_proof'", "security_epoch >= 1"],
+  ),
+  table(
+    "staff_directory_control",
+    [
+      col("id", "INTEGER"),
+      col("last_mutated_at", "TIMESTAMPTZ"),
+      col("mutated_by_staff_id", "UUID", true),
+    ],
+    [fk(["mutated_by_staff_id"], "staff_users")],
+    [["id"]],
+    ["id = 1"],
+  ),
+  table(
+    "security_dispatch_outbox",
+    [
+      col("id", "UUID"),
+      col("user_verification_id", "UUID", true),
+      col("user_reset_id", "UUID", true),
+      col("staff_invitation_id", "UUID", true),
+      col("staff_reset_id", "UUID", true),
+      col("booking_challenge_id", "UUID", true),
+      col("encrypted_payload", "TEXT", true),
+      col("status", "TEXT"),
+      col("provider_message_id", "TEXT", true),
+      col("accepted_at", "TIMESTAMPTZ", true),
+      col("scrubbed_at", "TIMESTAMPTZ", true),
+      col("expires_at", "TIMESTAMPTZ"),
+      col("attempts", "INTEGER"),
+    ],
+    [
+      fk(["user_verification_id"], "user_email_verifications"),
+      fk(["user_reset_id"], "user_password_resets"),
+      fk(["staff_invitation_id"], "staff_invitations"),
+      fk(["staff_reset_id"], "staff_password_resets"),
+      fk(["booking_challenge_id"], "booking_guest_challenges"),
+    ],
+    [["id"]],
+    [
+      "num_nonnulls(user_verification_id,user_reset_id,staff_invitation_id,staff_reset_id,booking_challenge_id) = 1",
+      "status IN ('queued','accepted','failed','expired','scrubbed')",
+      "status != 'accepted' OR (provider_message_id IS NOT NULL AND accepted_at IS NOT NULL)",
+      "status NOT IN ('scrubbed','expired') OR encrypted_payload IS NULL",
+    ],
+  ),
+  table(
+    "security_rate_limits",
+    [
+      col("realm", "TEXT"),
+      col("operation_id", "TEXT"),
+      col("budget_id", "TEXT"),
+      col("key_digest", "CHAR(64)"),
+      col("window_start", "TIMESTAMPTZ"),
+      col("window_end", "TIMESTAMPTZ"),
+      col("count", "INTEGER"),
+    ],
+    [],
+    [["realm", "operation_id", "budget_id", "key_digest", "window_start"]],
+    ["count >= 0", "window_end > window_start"],
+  ),
+];

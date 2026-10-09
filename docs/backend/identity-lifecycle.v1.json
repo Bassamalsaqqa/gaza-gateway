@@ -1,0 +1,2747 @@
+{
+  "version": "1.0.0",
+  "design": {
+    "version": "1.0.0",
+    "cookies": {
+      "passenger": {
+        "name": "gza_session",
+        "path": "/api/v1",
+        "secure": true,
+        "httpOnly": true,
+        "sameSite": "Lax",
+        "hostOnly": true
+      },
+      "staff": {
+        "name": "gza_staff_session",
+        "path": "/api/v1",
+        "secure": true,
+        "httpOnly": true,
+        "sameSite": "Lax",
+        "hostOnly": true
+      },
+      "pending": {
+        "name": "gza_staff_pending",
+        "path": "/api/v1",
+        "secure": true,
+        "httpOnly": true,
+        "sameSite": "Lax",
+        "hostOnly": true,
+        "maxAge": 300
+      }
+    },
+    "sessions": {
+      "passenger": {
+        "absolute": 604800,
+        "idle": 86400
+      },
+      "staff": {
+        "absolute": 28800,
+        "idle": 3600
+      },
+      "anonymous": {
+        "absolute": 1800,
+        "idle": 1800
+      },
+      "pending": {
+        "absolute": 300,
+        "attempts": 5
+      },
+      "stepUp": 300
+    },
+    "passwords": {
+      "passenger": {
+        "min": 15,
+        "max": 128
+      },
+      "staff": {
+        "min": 12,
+        "max": 128
+      },
+      "algorithm": "Argon2id",
+      "memoryKiB": 65536,
+      "timeCost": 4,
+      "parallelism": 1,
+      "trim": false
+    },
+    "mfa": {
+      "algorithm": "HMAC-SHA1",
+      "digits": 6,
+      "period": 30,
+      "skew": 1,
+      "recoveryCount": 10,
+      "recoveryEntropyBits": 128,
+      "encryptedSecret": true,
+      "oneUseCounter": true
+    },
+    "proofs": {
+      "passenger_email_verification": {
+        "realm": "passenger",
+        "ttl": 86400,
+        "entropyBytes": 32,
+        "singleUse": true,
+        "digest": "sha256"
+      },
+      "passenger_password_reset": {
+        "realm": "passenger",
+        "ttl": 1800,
+        "entropyBytes": 32,
+        "singleUse": true,
+        "digest": "sha256"
+      },
+      "staff_invitation": {
+        "realm": "staff",
+        "ttl": 86400,
+        "entropyBytes": 32,
+        "singleUse": true,
+        "digest": "sha256"
+      },
+      "staff_password_reset": {
+        "realm": "staff",
+        "ttl": 1800,
+        "entropyBytes": 32,
+        "singleUse": true,
+        "digest": "sha256"
+      },
+      "manage_booking": {
+        "realm": "passenger",
+        "ttl": 600,
+        "digits": 6,
+        "attempts": 5,
+        "singleUse": true,
+        "digest": "hmac_sha256_with_separate_pepper"
+      },
+      "claim_booking": {
+        "realm": "passenger",
+        "ttl": 600,
+        "digits": 6,
+        "attempts": 5,
+        "singleUse": true,
+        "digest": "hmac_sha256_with_separate_pepper"
+      },
+      "booking_guest_grant": {
+        "realm": "booking",
+        "ttl": 900,
+        "entropyBytes": 32,
+        "singleUse": false,
+        "digest": "sha256"
+      },
+      "booking_claim_proof": {
+        "realm": "passenger",
+        "ttl": 300,
+        "entropyBytes": 32,
+        "singleUse": true,
+        "digest": "sha256"
+      },
+      "booking_receipt_grant": {
+        "realm": "booking",
+        "ttl": 600,
+        "entropyBytes": 32,
+        "singleUse": false,
+        "digest": "sha256"
+      },
+      "login_mfa": {
+        "realm": "staff",
+        "ttl": 300,
+        "attempts": 5,
+        "singleUse": true,
+        "digest": "sha256"
+      },
+      "enroll_mfa": {
+        "realm": "staff",
+        "ttl": 300,
+        "attempts": 5,
+        "singleUse": true,
+        "digest": "sha256"
+      },
+      "replace_mfa": {
+        "realm": "staff",
+        "ttl": 300,
+        "attempts": 5,
+        "singleUse": true,
+        "digest": "sha256"
+      }
+    },
+    "rates": {
+      "login": [
+        {
+          "key": [
+            "subject_digest",
+            "ip"
+          ],
+          "limit": 5,
+          "seconds": 60
+        },
+        {
+          "key": [
+            "ip"
+          ],
+          "limit": 30,
+          "seconds": 300
+        }
+      ],
+      "dispatch": [
+        {
+          "key": [
+            "subject_digest",
+            "ip"
+          ],
+          "limit": 3,
+          "seconds": 900
+        },
+        {
+          "key": [
+            "ip"
+          ],
+          "limit": 20,
+          "seconds": 3600
+        }
+      ],
+      "challenge": [
+        {
+          "key": [
+            "reference_digest",
+            "session_id",
+            "ip"
+          ],
+          "limit": 5,
+          "seconds": 900
+        },
+        {
+          "key": [
+            "ip"
+          ],
+          "limit": 30,
+          "seconds": 3600
+        }
+      ],
+      "proof": [
+        {
+          "key": [
+            "subject_digest",
+            "ip"
+          ],
+          "limit": 10,
+          "seconds": 600
+        }
+      ],
+      "stepUp": [
+        {
+          "key": [
+            "staff_id",
+            "session_id",
+            "ip"
+          ],
+          "limit": 5,
+          "seconds": 600
+        }
+      ]
+    },
+    "roles": [
+      "admin",
+      "editor",
+      "viewer"
+    ],
+    "permissions": {
+      "admin": [
+        "ops.view",
+        "ops.edit",
+        "content.view",
+        "content.edit",
+        "commercial.view",
+        "commercial.edit",
+        "engagement.view",
+        "engagement.edit",
+        "admin.manage",
+        "dashboard.view"
+      ],
+      "editor": [
+        "dashboard.view",
+        "content.view",
+        "content.edit"
+      ],
+      "viewer": [
+        "dashboard.view",
+        "ops.view",
+        "content.view",
+        "commercial.view",
+        "engagement.view"
+      ]
+    },
+    "authority": {
+      "passenger": [
+        "principal_id",
+        "realm_passenger",
+        "active",
+        "verified_email",
+        "exact_epoch",
+        "absolute_expiry",
+        "idle_expiry",
+        "not_revoked"
+      ],
+      "staff": [
+        "principal_id",
+        "realm_staff",
+        "active",
+        "verified_email",
+        "confirmed_current_mfa",
+        "exact_epoch",
+        "absolute_expiry",
+        "idle_expiry",
+        "not_revoked",
+        "server_permission"
+      ],
+      "pending": [
+        "staff_id",
+        "bound_anonymous_staff_session",
+        "exact_epoch",
+        "exact_endpoint_purpose",
+        "absolute_expiry",
+        "remaining_attempts",
+        "not_consumed",
+        "not_revoked"
+      ],
+      "booking": [
+        "booking_id",
+        "exact_reference",
+        "exact_security_epoch",
+        "exact_operation_scope",
+        "absolute_expiry",
+        "not_revoked"
+      ]
+    },
+    "origin": {
+      "production": [
+        "https://www.gazaairport.com",
+        "https://gazaairport.com"
+      ],
+      "wildcard": false,
+      "reflected": false,
+      "requireExplicitEnvironment": true
+    },
+    "sentinel": {
+      "table": "staff_directory_control",
+      "id": 1,
+      "lockOrder": [
+        "sentinel",
+        "staff_id_ascending",
+        "proof_session_id_ascending"
+      ],
+      "postChangeMinimum": 1,
+      "writers": [
+        "role",
+        "status",
+        "delete",
+        "email_verification",
+        "password_availability",
+        "initial_mfa_confirmation",
+        "mfa_replacement",
+        "offline_recovery"
+      ]
+    },
+    "transitions": {
+      "passenger": {
+        "unverified": {
+          "verify": "active",
+          "reset": "unverified"
+        },
+        "active": {
+          "reset": "active",
+          "suspend": "suspended"
+        },
+        "suspended": {
+          "verify": "suspended",
+          "reset": "suspended"
+        }
+      },
+      "proof": {
+        "issued": {
+          "consume": "consumed",
+          "revoke": "revoked",
+          "expire": "expired",
+          "exhaust": "exhausted"
+        },
+        "consumed": {},
+        "revoked": {},
+        "expired": {},
+        "exhausted": {}
+      },
+      "staff": {
+        "invited": {
+          "accept": "pending_enrollment"
+        },
+        "pending_enrollment": {
+          "confirm_mfa": "active",
+          "deactivate": "deactivated"
+        },
+        "active": {
+          "suspend": "suspended",
+          "deactivate": "deactivated",
+          "replace_mfa": "active"
+        },
+        "suspended": {},
+        "deactivated": {}
+      },
+      "dispatch": {
+        "queued": {
+          "provider_accept": "accepted",
+          "provider_fail": "failed",
+          "expire": "expired"
+        },
+        "accepted": {
+          "scrub": "scrubbed"
+        },
+        "failed": {
+          "retry_before_deadline": "queued",
+          "expire": "expired"
+        },
+        "expired": {},
+        "scrubbed": {}
+      }
+    }
+  },
+  "relations": [
+    {
+      "name": "users",
+      "primary": [
+        "id"
+      ],
+      "columns": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "email",
+          "type": "VARCHAR(255)",
+          "nullable": false
+        },
+        {
+          "name": "password_hash",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "email_verified_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true
+        },
+        {
+          "name": "credential_epoch",
+          "type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false
+        }
+      ],
+      "foreignKeys": [],
+      "unique": [
+        [
+          "id"
+        ],
+        [
+          "lower(email)"
+        ]
+      ],
+      "checks": [
+        "status IN ('unverified','active','suspended')",
+        "credential_epoch >= 1"
+      ]
+    },
+    {
+      "name": "staff_users",
+      "primary": [
+        "id"
+      ],
+      "columns": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "username",
+          "type": "VARCHAR(64)",
+          "nullable": false
+        },
+        {
+          "name": "email",
+          "type": "VARCHAR(255)",
+          "nullable": false
+        },
+        {
+          "name": "full_name_en",
+          "type": "VARCHAR(128)",
+          "nullable": false
+        },
+        {
+          "name": "full_name_ar",
+          "type": "VARCHAR(128)",
+          "nullable": false
+        },
+        {
+          "name": "password_hash",
+          "type": "TEXT",
+          "nullable": true
+        },
+        {
+          "name": "role",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "email_verified_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true
+        },
+        {
+          "name": "credential_epoch",
+          "type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "mfa_version",
+          "type": "INTEGER",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "fields": [
+            "id",
+            "mfa_version"
+          ],
+          "table": "staff_mfa_credentials",
+          "target": [
+            "staff_id",
+            "version"
+          ],
+          "onDelete": "RESTRICT"
+        }
+      ],
+      "unique": [
+        [
+          "id"
+        ],
+        [
+          "username"
+        ],
+        [
+          "lower(email)"
+        ]
+      ],
+      "checks": [
+        "role IN ('admin','editor','viewer')",
+        "status IN ('invited','pending_enrollment','active','suspended','deactivated')",
+        "credential_epoch >= 1",
+        "status != 'active' OR (email_verified_at IS NOT NULL AND password_hash IS NOT NULL AND mfa_version IS NOT NULL)"
+      ]
+    },
+    {
+      "name": "staff_mfa_credentials",
+      "primary": [
+        "staff_id",
+        "version"
+      ],
+      "columns": [
+        {
+          "name": "staff_id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "version",
+          "type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "encrypted_secret",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "confirmed_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true
+        },
+        {
+          "name": "revoked_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true
+        }
+      ],
+      "foreignKeys": [
+        {
+          "fields": [
+            "staff_id"
+          ],
+          "table": "staff_users",
+          "target": [
+            "id"
+          ],
+          "onDelete": "RESTRICT"
+        }
+      ],
+      "unique": [
+        [
+          "staff_id",
+          "version"
+        ]
+      ],
+      "checks": [
+        "version >= 1"
+      ]
+    },
+    {
+      "name": "passenger_sessions",
+      "primary": [
+        "id"
+      ],
+      "columns": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "lookup_digest",
+          "type": "CHAR(64)",
+          "nullable": false
+        },
+        {
+          "name": "user_id",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "auth_level",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "credential_epoch",
+          "type": "INTEGER",
+          "nullable": true
+        },
+        {
+          "name": "encrypted_payload",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "issued_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false
+        },
+        {
+          "name": "absolute_expires_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false
+        },
+        {
+          "name": "idle_expires_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false
+        },
+        {
+          "name": "last_seen_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false
+        },
+        {
+          "name": "revoked_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true
+        }
+      ],
+      "foreignKeys": [
+        {
+          "fields": [
+            "user_id"
+          ],
+          "table": "users",
+          "target": [
+            "id"
+          ],
+          "onDelete": "RESTRICT"
+        }
+      ],
+      "unique": [
+        [
+          "id"
+        ],
+        [
+          "lookup_digest"
+        ]
+      ],
+      "checks": [
+        "auth_level IN ('anonymous','full')",
+        "absolute_expires_at > issued_at",
+        "idle_expires_at <= absolute_expires_at",
+        "(auth_level = 'full') = (user_id IS NOT NULL)",
+        "auth_level != 'full' OR credential_epoch >= 1"
+      ]
+    },
+    {
+      "name": "staff_sessions",
+      "primary": [
+        "id"
+      ],
+      "columns": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "lookup_digest",
+          "type": "CHAR(64)",
+          "nullable": false
+        },
+        {
+          "name": "staff_id",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "auth_level",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "credential_epoch",
+          "type": "INTEGER",
+          "nullable": true
+        },
+        {
+          "name": "encrypted_payload",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "issued_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false
+        },
+        {
+          "name": "absolute_expires_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false
+        },
+        {
+          "name": "idle_expires_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false
+        },
+        {
+          "name": "last_seen_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false
+        },
+        {
+          "name": "revoked_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true
+        },
+        {
+          "name": "mfa_version",
+          "type": "INTEGER",
+          "nullable": true
+        },
+        {
+          "name": "mfa_verified_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true
+        }
+      ],
+      "foreignKeys": [
+        {
+          "fields": [
+            "staff_id"
+          ],
+          "table": "staff_users",
+          "target": [
+            "id"
+          ],
+          "onDelete": "RESTRICT"
+        },
+        {
+          "fields": [
+            "staff_id",
+            "mfa_version"
+          ],
+          "table": "staff_mfa_credentials",
+          "target": [
+            "staff_id",
+            "version"
+          ],
+          "onDelete": "RESTRICT"
+        }
+      ],
+      "unique": [
+        [
+          "id"
+        ],
+        [
+          "lookup_digest"
+        ]
+      ],
+      "checks": [
+        "auth_level IN ('anonymous','full')",
+        "absolute_expires_at > issued_at",
+        "idle_expires_at <= absolute_expires_at",
+        "(auth_level = 'full') = (staff_id IS NOT NULL)",
+        "auth_level != 'full' OR credential_epoch >= 1",
+        "auth_level != 'full' OR (mfa_version IS NOT NULL AND mfa_verified_at IS NOT NULL)"
+      ]
+    },
+    {
+      "name": "staff_pending_auth",
+      "primary": [
+        "id"
+      ],
+      "columns": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "token_digest",
+          "type": "CHAR(64)",
+          "nullable": false
+        },
+        {
+          "name": "state",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "issued_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false
+        },
+        {
+          "name": "expires_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false
+        },
+        {
+          "name": "consumed_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true
+        },
+        {
+          "name": "revoked_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true
+        },
+        {
+          "name": "staff_id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "bound_session_id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "purpose",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "credential_epoch",
+          "type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "failed_attempts",
+          "type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "encrypted_staged_secret",
+          "type": "TEXT",
+          "nullable": true
+        }
+      ],
+      "foreignKeys": [
+        {
+          "fields": [
+            "staff_id"
+          ],
+          "table": "staff_users",
+          "target": [
+            "id"
+          ],
+          "onDelete": "RESTRICT"
+        },
+        {
+          "fields": [
+            "bound_session_id"
+          ],
+          "table": "staff_sessions",
+          "target": [
+            "id"
+          ],
+          "onDelete": "RESTRICT"
+        }
+      ],
+      "unique": [
+        [
+          "id"
+        ],
+        [
+          "token_digest"
+        ]
+      ],
+      "checks": [
+        "state IN ('issued','consumed','revoked','expired','exhausted')",
+        "expires_at > issued_at",
+        "(state = 'consumed') = (consumed_at IS NOT NULL)",
+        "purpose IN ('login_mfa','enroll_mfa')",
+        "failed_attempts BETWEEN 0 AND 5",
+        "credential_epoch >= 1"
+      ]
+    },
+    {
+      "name": "user_email_verifications",
+      "primary": [
+        "id"
+      ],
+      "columns": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "token_digest",
+          "type": "CHAR(64)",
+          "nullable": false
+        },
+        {
+          "name": "state",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "issued_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false
+        },
+        {
+          "name": "expires_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false
+        },
+        {
+          "name": "consumed_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true
+        },
+        {
+          "name": "revoked_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true
+        },
+        {
+          "name": "user_id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "purpose",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "credential_epoch",
+          "type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "email_snapshot",
+          "type": "VARCHAR(255)",
+          "nullable": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "fields": [
+            "user_id"
+          ],
+          "table": "users",
+          "target": [
+            "id"
+          ],
+          "onDelete": "RESTRICT"
+        }
+      ],
+      "unique": [
+        [
+          "id"
+        ],
+        [
+          "token_digest"
+        ]
+      ],
+      "checks": [
+        "state IN ('issued','consumed','revoked','expired','exhausted')",
+        "expires_at > issued_at",
+        "(state = 'consumed') = (consumed_at IS NOT NULL)",
+        "credential_epoch >= 1",
+        "purpose = 'passenger_email_verification'"
+      ]
+    },
+    {
+      "name": "user_password_resets",
+      "primary": [
+        "id"
+      ],
+      "columns": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "token_digest",
+          "type": "CHAR(64)",
+          "nullable": false
+        },
+        {
+          "name": "state",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "issued_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false
+        },
+        {
+          "name": "expires_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false
+        },
+        {
+          "name": "consumed_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true
+        },
+        {
+          "name": "revoked_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true
+        },
+        {
+          "name": "user_id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "purpose",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "credential_epoch",
+          "type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "email_snapshot",
+          "type": "VARCHAR(255)",
+          "nullable": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "fields": [
+            "user_id"
+          ],
+          "table": "users",
+          "target": [
+            "id"
+          ],
+          "onDelete": "RESTRICT"
+        }
+      ],
+      "unique": [
+        [
+          "id"
+        ],
+        [
+          "token_digest"
+        ]
+      ],
+      "checks": [
+        "state IN ('issued','consumed','revoked','expired','exhausted')",
+        "expires_at > issued_at",
+        "(state = 'consumed') = (consumed_at IS NOT NULL)",
+        "credential_epoch >= 1",
+        "purpose = 'passenger_password_reset'"
+      ]
+    },
+    {
+      "name": "staff_invitations",
+      "primary": [
+        "id"
+      ],
+      "columns": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "token_digest",
+          "type": "CHAR(64)",
+          "nullable": false
+        },
+        {
+          "name": "state",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "issued_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false
+        },
+        {
+          "name": "expires_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false
+        },
+        {
+          "name": "consumed_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true
+        },
+        {
+          "name": "revoked_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true
+        },
+        {
+          "name": "staff_id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "purpose",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "credential_epoch",
+          "type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "email_snapshot",
+          "type": "VARCHAR(255)",
+          "nullable": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "fields": [
+            "staff_id"
+          ],
+          "table": "staff_users",
+          "target": [
+            "id"
+          ],
+          "onDelete": "RESTRICT"
+        }
+      ],
+      "unique": [
+        [
+          "id"
+        ],
+        [
+          "token_digest"
+        ]
+      ],
+      "checks": [
+        "state IN ('issued','consumed','revoked','expired','exhausted')",
+        "expires_at > issued_at",
+        "(state = 'consumed') = (consumed_at IS NOT NULL)",
+        "credential_epoch >= 1",
+        "purpose = 'staff_invitation'"
+      ]
+    },
+    {
+      "name": "staff_password_resets",
+      "primary": [
+        "id"
+      ],
+      "columns": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "token_digest",
+          "type": "CHAR(64)",
+          "nullable": false
+        },
+        {
+          "name": "state",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "issued_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false
+        },
+        {
+          "name": "expires_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false
+        },
+        {
+          "name": "consumed_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true
+        },
+        {
+          "name": "revoked_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true
+        },
+        {
+          "name": "staff_id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "purpose",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "credential_epoch",
+          "type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "email_snapshot",
+          "type": "VARCHAR(255)",
+          "nullable": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "fields": [
+            "staff_id"
+          ],
+          "table": "staff_users",
+          "target": [
+            "id"
+          ],
+          "onDelete": "RESTRICT"
+        }
+      ],
+      "unique": [
+        [
+          "id"
+        ],
+        [
+          "token_digest"
+        ]
+      ],
+      "checks": [
+        "state IN ('issued','consumed','revoked','expired','exhausted')",
+        "expires_at > issued_at",
+        "(state = 'consumed') = (consumed_at IS NOT NULL)",
+        "credential_epoch >= 1",
+        "purpose = 'staff_password_reset'"
+      ]
+    },
+    {
+      "name": "staff_mfa_replacements",
+      "primary": [
+        "id"
+      ],
+      "columns": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "token_digest",
+          "type": "CHAR(64)",
+          "nullable": false
+        },
+        {
+          "name": "state",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "issued_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false
+        },
+        {
+          "name": "expires_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false
+        },
+        {
+          "name": "consumed_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true
+        },
+        {
+          "name": "revoked_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true
+        },
+        {
+          "name": "staff_id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "session_id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "prior_version",
+          "type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "candidate_version",
+          "type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "step_up_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false
+        },
+        {
+          "name": "failed_attempts",
+          "type": "INTEGER",
+          "nullable": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "fields": [
+            "staff_id"
+          ],
+          "table": "staff_users",
+          "target": [
+            "id"
+          ],
+          "onDelete": "RESTRICT"
+        },
+        {
+          "fields": [
+            "session_id"
+          ],
+          "table": "staff_sessions",
+          "target": [
+            "id"
+          ],
+          "onDelete": "RESTRICT"
+        },
+        {
+          "fields": [
+            "staff_id",
+            "prior_version"
+          ],
+          "table": "staff_mfa_credentials",
+          "target": [
+            "staff_id",
+            "version"
+          ],
+          "onDelete": "RESTRICT"
+        },
+        {
+          "fields": [
+            "staff_id",
+            "candidate_version"
+          ],
+          "table": "staff_mfa_credentials",
+          "target": [
+            "staff_id",
+            "version"
+          ],
+          "onDelete": "RESTRICT"
+        }
+      ],
+      "unique": [
+        [
+          "id"
+        ],
+        [
+          "token_digest"
+        ]
+      ],
+      "checks": [
+        "state IN ('issued','consumed','revoked','expired','exhausted')",
+        "expires_at > issued_at",
+        "(state = 'consumed') = (consumed_at IS NOT NULL)",
+        "candidate_version > prior_version",
+        "failed_attempts BETWEEN 0 AND 5"
+      ]
+    },
+    {
+      "name": "staff_mfa_counter_consumptions",
+      "primary": [
+        "staff_id",
+        "mfa_version",
+        "counter_step"
+      ],
+      "columns": [
+        {
+          "name": "staff_id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "mfa_version",
+          "type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "counter_step",
+          "type": "BIGINT",
+          "nullable": false
+        },
+        {
+          "name": "consumed_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "fields": [
+            "staff_id",
+            "mfa_version"
+          ],
+          "table": "staff_mfa_credentials",
+          "target": [
+            "staff_id",
+            "version"
+          ],
+          "onDelete": "RESTRICT"
+        }
+      ],
+      "unique": [
+        [
+          "staff_id",
+          "mfa_version",
+          "counter_step"
+        ]
+      ],
+      "checks": [
+        "counter_step >= 0"
+      ]
+    },
+    {
+      "name": "staff_mfa_recovery_codes",
+      "primary": [
+        "id"
+      ],
+      "columns": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "staff_id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "mfa_version",
+          "type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "code_digest",
+          "type": "CHAR(64)",
+          "nullable": false
+        },
+        {
+          "name": "consumed_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true
+        },
+        {
+          "name": "revoked_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true
+        }
+      ],
+      "foreignKeys": [
+        {
+          "fields": [
+            "staff_id",
+            "mfa_version"
+          ],
+          "table": "staff_mfa_credentials",
+          "target": [
+            "staff_id",
+            "version"
+          ],
+          "onDelete": "RESTRICT"
+        }
+      ],
+      "unique": [
+        [
+          "id"
+        ],
+        [
+          "staff_id",
+          "mfa_version",
+          "code_digest"
+        ]
+      ],
+      "checks": []
+    },
+    {
+      "name": "booking_guest_challenges",
+      "primary": [
+        "id"
+      ],
+      "columns": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "booking_id",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "session_id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "user_id",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "purpose",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "security_epoch",
+          "type": "INTEGER",
+          "nullable": true
+        },
+        {
+          "name": "code_digest",
+          "type": "CHAR(64)",
+          "nullable": false
+        },
+        {
+          "name": "pepper_version",
+          "type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "state",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "failed_attempts",
+          "type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "dispatch_status",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "issued_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false
+        },
+        {
+          "name": "expires_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false
+        },
+        {
+          "name": "consumed_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true
+        },
+        {
+          "name": "revoked_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true
+        }
+      ],
+      "foreignKeys": [
+        {
+          "fields": [
+            "booking_id"
+          ],
+          "table": "bookings",
+          "target": [
+            "id"
+          ],
+          "onDelete": "RESTRICT"
+        },
+        {
+          "fields": [
+            "session_id"
+          ],
+          "table": "passenger_sessions",
+          "target": [
+            "id"
+          ],
+          "onDelete": "RESTRICT"
+        },
+        {
+          "fields": [
+            "user_id"
+          ],
+          "table": "users",
+          "target": [
+            "id"
+          ],
+          "onDelete": "RESTRICT"
+        }
+      ],
+      "unique": [
+        [
+          "id"
+        ]
+      ],
+      "checks": [
+        "state IN ('issued','consumed','revoked','expired','exhausted')",
+        "expires_at > issued_at",
+        "(state = 'consumed') = (consumed_at IS NOT NULL)",
+        "purpose IN ('manage_booking','claim_booking')",
+        "purpose != 'claim_booking' OR user_id IS NOT NULL",
+        "failed_attempts BETWEEN 0 AND 5",
+        "dispatch_status IN ('queued','accepted','failed','scrubbed')",
+        "booking_id IS NULL OR security_epoch >= 1"
+      ]
+    },
+    {
+      "name": "booking_guest_grants",
+      "primary": [
+        "id"
+      ],
+      "columns": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "token_digest",
+          "type": "CHAR(64)",
+          "nullable": false
+        },
+        {
+          "name": "booking_id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "security_epoch",
+          "type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "allowed_actions",
+          "type": "JSONB",
+          "nullable": false
+        },
+        {
+          "name": "scope_version",
+          "type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "issued_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false
+        },
+        {
+          "name": "expires_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false
+        },
+        {
+          "name": "revoked_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true
+        }
+      ],
+      "foreignKeys": [
+        {
+          "fields": [
+            "booking_id"
+          ],
+          "table": "bookings",
+          "target": [
+            "id"
+          ],
+          "onDelete": "RESTRICT"
+        }
+      ],
+      "unique": [
+        [
+          "id"
+        ],
+        [
+          "token_digest"
+        ]
+      ],
+      "checks": [
+        "security_epoch >= 1",
+        "scope_version = 1",
+        "expires_at > issued_at",
+        "jsonb_typeof(allowed_actions) = 'array' AND jsonb_array_length(allowed_actions) > 0 AND allowed_actions <@ '[\"getBookingByRef\",\"patchBookingContact\",\"putBookingSeats\",\"putBookingExtras\",\"postCancelBooking\",\"postCompleteCheckIn\",\"postUndoCheckIn\",\"getBoardingPasses\"]'::jsonb"
+      ]
+    },
+    {
+      "name": "booking_receipt_grants",
+      "primary": [
+        "id"
+      ],
+      "columns": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "token_digest",
+          "type": "CHAR(64)",
+          "nullable": false
+        },
+        {
+          "name": "booking_id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "security_epoch",
+          "type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "allowed_actions",
+          "type": "JSONB",
+          "nullable": false
+        },
+        {
+          "name": "scope_version",
+          "type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "issued_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false
+        },
+        {
+          "name": "expires_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false
+        },
+        {
+          "name": "revoked_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true
+        }
+      ],
+      "foreignKeys": [
+        {
+          "fields": [
+            "booking_id"
+          ],
+          "table": "bookings",
+          "target": [
+            "id"
+          ],
+          "onDelete": "RESTRICT"
+        }
+      ],
+      "unique": [
+        [
+          "id"
+        ],
+        [
+          "token_digest"
+        ]
+      ],
+      "checks": [
+        "security_epoch >= 1",
+        "scope_version = 1",
+        "expires_at > issued_at",
+        "jsonb_typeof(allowed_actions) = 'array' AND jsonb_array_length(allowed_actions) > 0 AND allowed_actions <@ '[\"getBookingReceipt\"]'::jsonb"
+      ]
+    },
+    {
+      "name": "booking_claim_proofs",
+      "primary": [
+        "id"
+      ],
+      "columns": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "token_digest",
+          "type": "CHAR(64)",
+          "nullable": false
+        },
+        {
+          "name": "state",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "issued_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false
+        },
+        {
+          "name": "expires_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false
+        },
+        {
+          "name": "consumed_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true
+        },
+        {
+          "name": "revoked_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true
+        },
+        {
+          "name": "booking_id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "user_id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "session_id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "security_epoch",
+          "type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "purpose",
+          "type": "TEXT",
+          "nullable": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "fields": [
+            "booking_id"
+          ],
+          "table": "bookings",
+          "target": [
+            "id"
+          ],
+          "onDelete": "RESTRICT"
+        },
+        {
+          "fields": [
+            "user_id"
+          ],
+          "table": "users",
+          "target": [
+            "id"
+          ],
+          "onDelete": "RESTRICT"
+        },
+        {
+          "fields": [
+            "session_id"
+          ],
+          "table": "passenger_sessions",
+          "target": [
+            "id"
+          ],
+          "onDelete": "RESTRICT"
+        }
+      ],
+      "unique": [
+        [
+          "id"
+        ],
+        [
+          "token_digest"
+        ]
+      ],
+      "checks": [
+        "state IN ('issued','consumed','revoked','expired','exhausted')",
+        "expires_at > issued_at",
+        "(state = 'consumed') = (consumed_at IS NOT NULL)",
+        "purpose = 'booking_claim_proof'",
+        "security_epoch >= 1"
+      ]
+    },
+    {
+      "name": "staff_directory_control",
+      "primary": [
+        "id"
+      ],
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "last_mutated_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false
+        },
+        {
+          "name": "mutated_by_staff_id",
+          "type": "UUID",
+          "nullable": true
+        }
+      ],
+      "foreignKeys": [
+        {
+          "fields": [
+            "mutated_by_staff_id"
+          ],
+          "table": "staff_users",
+          "target": [
+            "id"
+          ],
+          "onDelete": "RESTRICT"
+        }
+      ],
+      "unique": [
+        [
+          "id"
+        ]
+      ],
+      "checks": [
+        "id = 1"
+      ]
+    },
+    {
+      "name": "security_dispatch_outbox",
+      "primary": [
+        "id"
+      ],
+      "columns": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "nullable": false
+        },
+        {
+          "name": "user_verification_id",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "user_reset_id",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "staff_invitation_id",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "staff_reset_id",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "booking_challenge_id",
+          "type": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "encrypted_payload",
+          "type": "TEXT",
+          "nullable": true
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "provider_message_id",
+          "type": "TEXT",
+          "nullable": true
+        },
+        {
+          "name": "accepted_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true
+        },
+        {
+          "name": "scrubbed_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true
+        },
+        {
+          "name": "expires_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false
+        },
+        {
+          "name": "attempts",
+          "type": "INTEGER",
+          "nullable": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "fields": [
+            "user_verification_id"
+          ],
+          "table": "user_email_verifications",
+          "target": [
+            "id"
+          ],
+          "onDelete": "RESTRICT"
+        },
+        {
+          "fields": [
+            "user_reset_id"
+          ],
+          "table": "user_password_resets",
+          "target": [
+            "id"
+          ],
+          "onDelete": "RESTRICT"
+        },
+        {
+          "fields": [
+            "staff_invitation_id"
+          ],
+          "table": "staff_invitations",
+          "target": [
+            "id"
+          ],
+          "onDelete": "RESTRICT"
+        },
+        {
+          "fields": [
+            "staff_reset_id"
+          ],
+          "table": "staff_password_resets",
+          "target": [
+            "id"
+          ],
+          "onDelete": "RESTRICT"
+        },
+        {
+          "fields": [
+            "booking_challenge_id"
+          ],
+          "table": "booking_guest_challenges",
+          "target": [
+            "id"
+          ],
+          "onDelete": "RESTRICT"
+        }
+      ],
+      "unique": [
+        [
+          "id"
+        ]
+      ],
+      "checks": [
+        "num_nonnulls(user_verification_id,user_reset_id,staff_invitation_id,staff_reset_id,booking_challenge_id) = 1",
+        "status IN ('queued','accepted','failed','expired','scrubbed')",
+        "status != 'accepted' OR (provider_message_id IS NOT NULL AND accepted_at IS NOT NULL)",
+        "status NOT IN ('scrubbed','expired') OR encrypted_payload IS NULL"
+      ]
+    },
+    {
+      "name": "security_rate_limits",
+      "primary": [
+        "realm",
+        "operation_id",
+        "budget_id",
+        "key_digest",
+        "window_start"
+      ],
+      "columns": [
+        {
+          "name": "realm",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "operation_id",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "budget_id",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "key_digest",
+          "type": "CHAR(64)",
+          "nullable": false
+        },
+        {
+          "name": "window_start",
+          "type": "TIMESTAMPTZ",
+          "nullable": false
+        },
+        {
+          "name": "window_end",
+          "type": "TIMESTAMPTZ",
+          "nullable": false
+        },
+        {
+          "name": "count",
+          "type": "INTEGER",
+          "nullable": false
+        }
+      ],
+      "foreignKeys": [],
+      "unique": [
+        [
+          "realm",
+          "operation_id",
+          "budget_id",
+          "key_digest",
+          "window_start"
+        ]
+      ],
+      "checks": [
+        "count >= 0",
+        "window_end > window_start"
+      ]
+    }
+  ],
+  "operationBindings": {
+    "get /health": {
+      "guard": "public",
+      "permission": null
+    },
+    "get /health/ready": {
+      "guard": "public",
+      "permission": null
+    },
+    "get /version": {
+      "guard": "public",
+      "permission": null
+    },
+    "get /auth/csrf": {
+      "guard": "public",
+      "permission": null
+    },
+    "post /auth/register": {
+      "guard": "public",
+      "permission": null
+    },
+    "post /auth/login": {
+      "guard": "public",
+      "permission": null
+    },
+    "post /auth/password/forgot": {
+      "guard": "public",
+      "permission": null
+    },
+    "post /auth/password/reset": {
+      "guard": "public",
+      "permission": null
+    },
+    "post /auth/email/verify": {
+      "guard": "public",
+      "permission": null
+    },
+    "post /auth/email/resend": {
+      "guard": "public",
+      "permission": null
+    },
+    "get /staff/csrf": {
+      "guard": "public",
+      "permission": null
+    },
+    "post /staff/login": {
+      "guard": "public",
+      "permission": null
+    },
+    "post /staff/password/forgot": {
+      "guard": "public",
+      "permission": null
+    },
+    "post /staff/password/reset": {
+      "guard": "public",
+      "permission": null
+    },
+    "post /staff/invitations/accept": {
+      "guard": "public",
+      "permission": null
+    },
+    "get /network/airports": {
+      "guard": "public",
+      "permission": null
+    },
+    "get /fleet/aircraft": {
+      "guard": "public",
+      "permission": null
+    },
+    "get /fleet/seat-layouts/{id}": {
+      "guard": "public",
+      "permission": null
+    },
+    "get /schedules": {
+      "guard": "public",
+      "permission": null
+    },
+    "get /commercial/fares": {
+      "guard": "public",
+      "permission": null
+    },
+    "get /commercial/catalog": {
+      "guard": "public",
+      "permission": null
+    },
+    "get /dated-services/search": {
+      "guard": "public",
+      "permission": null
+    },
+    "get /dated-services/monthly": {
+      "guard": "public",
+      "permission": null
+    },
+    "get /dated-services/daily-board": {
+      "guard": "public",
+      "permission": null
+    },
+    "get /dated-services/{id}": {
+      "guard": "public",
+      "permission": null
+    },
+    "post /quotes": {
+      "guard": "public",
+      "permission": null
+    },
+    "post /holds": {
+      "guard": "public",
+      "permission": null
+    },
+    "post /bookings": {
+      "guard": "public",
+      "permission": null
+    },
+    "post /bookings/{ref}/challenge": {
+      "guard": "public",
+      "permission": null
+    },
+    "post /bookings/{ref}/verify-challenge": {
+      "guard": "public",
+      "permission": null
+    },
+    "get /archive/records": {
+      "guard": "public",
+      "permission": null
+    },
+    "get /archive/sources": {
+      "guard": "public",
+      "permission": null
+    },
+    "post /contact": {
+      "guard": "public",
+      "permission": null
+    },
+    "post /payments/intents": {
+      "guard": "public",
+      "permission": null
+    },
+    "post /auth/logout": {
+      "guard": "passenger",
+      "permission": null
+    },
+    "get /auth/passenger/profile": {
+      "guard": "passenger",
+      "permission": null
+    },
+    "put /auth/passenger/profile": {
+      "guard": "passenger",
+      "permission": null
+    },
+    "get /auth/passenger/travelers": {
+      "guard": "passenger",
+      "permission": null
+    },
+    "post /auth/passenger/travelers": {
+      "guard": "passenger",
+      "permission": null
+    },
+    "patch /auth/passenger/travelers/{id}": {
+      "guard": "passenger",
+      "permission": null
+    },
+    "delete /auth/passenger/travelers/{id}": {
+      "guard": "passenger",
+      "permission": null
+    },
+    "get /auth/passenger/sessions": {
+      "guard": "passenger",
+      "permission": null
+    },
+    "delete /auth/passenger/sessions/{id}": {
+      "guard": "passenger",
+      "permission": null
+    },
+    "put /auth/passenger/password": {
+      "guard": "passenger",
+      "permission": null
+    },
+    "post /account/bookings/claim": {
+      "guard": "passenger",
+      "permission": null
+    },
+    "post /account/bookings/claim/challenge": {
+      "guard": "passenger",
+      "permission": null
+    },
+    "post /account/bookings/claim/verify": {
+      "guard": "passenger",
+      "permission": null
+    },
+    "get /account/bookings": {
+      "guard": "passenger",
+      "permission": null
+    },
+    "post /migration/passenger/preview": {
+      "guard": "passenger",
+      "permission": null
+    },
+    "post /migration/passenger/commit": {
+      "guard": "passenger",
+      "permission": null
+    },
+    "get /migration/passenger/status": {
+      "guard": "passenger",
+      "permission": null
+    },
+    "post /staff/logout": {
+      "guard": "staff",
+      "permission": null
+    },
+    "get /staff/me": {
+      "guard": "staff",
+      "permission": null
+    },
+    "get /staff/sessions": {
+      "guard": "staff",
+      "permission": null
+    },
+    "delete /staff/sessions/{id}": {
+      "guard": "staff",
+      "permission": null
+    },
+    "post /staff/mfa/setup": {
+      "guard": "staff",
+      "permission": null
+    },
+    "post /staff/mfa/setup/confirm": {
+      "guard": "staff",
+      "permission": null
+    },
+    "post /staff/mfa/recovery-codes/regenerate": {
+      "guard": "staff",
+      "permission": null
+    },
+    "post /staff/step-up": {
+      "guard": "staff",
+      "permission": null
+    },
+    "put /staff/password": {
+      "guard": "staff",
+      "permission": null
+    },
+    "get /bookings/{ref}": {
+      "guard": "mixed_booking",
+      "permission": null
+    },
+    "patch /bookings/{ref}/contact": {
+      "guard": "mixed_booking",
+      "permission": null
+    },
+    "put /bookings/{ref}/seats": {
+      "guard": "mixed_booking",
+      "permission": null
+    },
+    "put /bookings/{ref}/extras": {
+      "guard": "mixed_booking",
+      "permission": null
+    },
+    "post /bookings/{ref}/cancel": {
+      "guard": "mixed_booking",
+      "permission": null
+    },
+    "post /bookings/{ref}/check-in": {
+      "guard": "mixed_booking",
+      "permission": null
+    },
+    "post /bookings/{ref}/check-in/undo": {
+      "guard": "mixed_booking",
+      "permission": null
+    },
+    "get /bookings/{ref}/boarding-passes": {
+      "guard": "mixed_booking",
+      "permission": null
+    },
+    "post /admin/network/airports": {
+      "guard": "staff",
+      "permission": "ops.edit"
+    },
+    "patch /admin/network/airports/{code}": {
+      "guard": "staff",
+      "permission": "ops.edit"
+    },
+    "post /admin/fleet/aircraft": {
+      "guard": "staff",
+      "permission": "ops.edit"
+    },
+    "patch /admin/fleet/aircraft/{id}": {
+      "guard": "staff",
+      "permission": "ops.edit"
+    },
+    "put /admin/fleet/seat-layouts/{id}": {
+      "guard": "staff",
+      "permission": "ops.edit"
+    },
+    "post /admin/schedules": {
+      "guard": "staff",
+      "permission": "ops.edit"
+    },
+    "patch /admin/schedules/{id}": {
+      "guard": "staff",
+      "permission": "ops.edit"
+    },
+    "delete /admin/schedules/{id}": {
+      "guard": "staff",
+      "permission": "ops.edit"
+    },
+    "post /ops/flights/overrides": {
+      "guard": "staff",
+      "permission": "ops.edit"
+    },
+    "delete /ops/flights/overrides/{serviceId}": {
+      "guard": "staff",
+      "permission": "ops.edit"
+    },
+    "patch /admin/commercial/fares/{id}": {
+      "guard": "staff",
+      "permission": "commercial.edit"
+    },
+    "patch /admin/commercial/cabins/{id}": {
+      "guard": "staff",
+      "permission": "commercial.edit"
+    },
+    "patch /admin/commercial/baggage": {
+      "guard": "staff",
+      "permission": "commercial.edit"
+    },
+    "post /admin/commercial/meals": {
+      "guard": "staff",
+      "permission": "commercial.edit"
+    },
+    "patch /admin/commercial/meals/{id}": {
+      "guard": "staff",
+      "permission": "commercial.edit"
+    },
+    "put /admin/commercial/meals/order": {
+      "guard": "staff",
+      "permission": "commercial.edit"
+    },
+    "put /admin/commercial/meals/default": {
+      "guard": "staff",
+      "permission": "commercial.edit"
+    },
+    "post /admin/commercial/assistance": {
+      "guard": "staff",
+      "permission": "commercial.edit"
+    },
+    "patch /admin/commercial/assistance/{id}": {
+      "guard": "staff",
+      "permission": "commercial.edit"
+    },
+    "put /admin/commercial/assistance/order": {
+      "guard": "staff",
+      "permission": "commercial.edit"
+    },
+    "post /admin/payments/{id}/refund": {
+      "guard": "staff",
+      "permission": "commercial.edit"
+    },
+    "get /admin/commercial/catalog": {
+      "guard": "staff",
+      "permission": "commercial.view"
+    },
+    "get /admin/bookings": {
+      "guard": "staff",
+      "permission": "commercial.view"
+    },
+    "get /admin/customers/{id}": {
+      "guard": "staff",
+      "permission": "commercial.view"
+    },
+    "get /admin/payments/reconciliation": {
+      "guard": "staff",
+      "permission": "commercial.view"
+    },
+    "put /cms/documents/{slug}": {
+      "guard": "staff",
+      "permission": "content.edit"
+    },
+    "post /cms/documents/{slug}/unpublish": {
+      "guard": "staff",
+      "permission": "content.edit"
+    },
+    "post /cms/documents/{slug}/discard": {
+      "guard": "staff",
+      "permission": "content.edit"
+    },
+    "post /cms/publish": {
+      "guard": "staff",
+      "permission": "content.edit"
+    },
+    "post /admin/archive/records": {
+      "guard": "staff",
+      "permission": "content.edit"
+    },
+    "put /admin/archive/records/{id}": {
+      "guard": "staff",
+      "permission": "content.edit"
+    },
+    "post /admin/archive/sources": {
+      "guard": "staff",
+      "permission": "content.edit"
+    },
+    "put /admin/archive/sources/{id}": {
+      "guard": "staff",
+      "permission": "content.edit"
+    },
+    "post /media/upload": {
+      "guard": "staff",
+      "permission": "content.edit"
+    },
+    "get /cms/documents": {
+      "guard": "staff",
+      "permission": "content.view"
+    },
+    "get /cms/documents/{slug}": {
+      "guard": "staff",
+      "permission": "content.view"
+    },
+    "get /cms/documents/{slug}/preview": {
+      "guard": "staff",
+      "permission": "content.view"
+    },
+    "get /cms/publications": {
+      "guard": "staff",
+      "permission": "content.view"
+    },
+    "patch /admin/contact/inbox/{id}/assign": {
+      "guard": "staff",
+      "permission": "engagement.edit"
+    },
+    "post /admin/contact/inbox/{id}/notes": {
+      "guard": "staff",
+      "permission": "engagement.edit"
+    },
+    "patch /admin/contact/inbox/{id}/status": {
+      "guard": "staff",
+      "permission": "engagement.edit"
+    },
+    "put /admin/contact/inbox/{id}/reply-draft": {
+      "guard": "staff",
+      "permission": "engagement.edit"
+    },
+    "get /admin/contact/inbox": {
+      "guard": "staff",
+      "permission": "engagement.view"
+    },
+    "get /admin/contact/inbox/{id}": {
+      "guard": "staff",
+      "permission": "engagement.view"
+    },
+    "get /staff/users": {
+      "guard": "staff",
+      "permission": "admin.manage"
+    },
+    "post /staff/users": {
+      "guard": "staff",
+      "permission": "admin.manage"
+    },
+    "patch /staff/users/{id}": {
+      "guard": "staff",
+      "permission": "admin.manage"
+    },
+    "delete /staff/users/{id}": {
+      "guard": "staff",
+      "permission": "admin.manage"
+    },
+    "post /staff/users/{id}/invite/reissue": {
+      "guard": "staff",
+      "permission": "admin.manage"
+    },
+    "post /staff/users/{id}/invite/revoke": {
+      "guard": "staff",
+      "permission": "admin.manage"
+    },
+    "get /admin/settings/contact": {
+      "guard": "staff",
+      "permission": "admin.manage"
+    },
+    "put /admin/settings/contact/draft": {
+      "guard": "staff",
+      "permission": "admin.manage"
+    },
+    "post /admin/settings/contact/discard": {
+      "guard": "staff",
+      "permission": "admin.manage"
+    },
+    "get /admin/settings/appearance": {
+      "guard": "staff",
+      "permission": "admin.manage"
+    },
+    "put /admin/settings/appearance/draft": {
+      "guard": "staff",
+      "permission": "admin.manage"
+    },
+    "post /admin/settings/appearance/discard": {
+      "guard": "staff",
+      "permission": "admin.manage"
+    },
+    "post /admin/migration/preview": {
+      "guard": "staff",
+      "permission": "admin.manage"
+    },
+    "post /admin/migration/commit": {
+      "guard": "staff",
+      "permission": "admin.manage"
+    },
+    "post /payments/webhook": {
+      "guard": "webhook",
+      "permission": null
+    },
+    "get /bookings/{ref}/receipt": {
+      "guard": "receipt",
+      "permission": null
+    },
+    "post /staff/mfa/challenge": {
+      "guard": "pending_login",
+      "permission": null
+    },
+    "post /staff/mfa/verify": {
+      "guard": "pending_login",
+      "permission": null
+    },
+    "post /staff/mfa/enrollment/setup": {
+      "guard": "pending_enrollment",
+      "permission": null
+    },
+    "post /staff/mfa/enrollment/confirm": {
+      "guard": "pending_enrollment",
+      "permission": null
+    },
+    "get /publication-snapshots/{releaseId}": {
+      "guard": "public",
+      "permission": null
+    },
+    "get /cms/publications/{releaseId}/snapshot": {
+      "guard": "staff",
+      "permission": "content.view"
+    },
+    "post /cms/publications/{releaseId}/build-receipts": {
+      "guard": "staff",
+      "permission": "admin.manage"
+    },
+    "post /cms/publications/{releaseId}/deployment-receipts": {
+      "guard": "staff",
+      "permission": "admin.manage"
+    },
+    "post /cms/publications/{releaseId}/activate": {
+      "guard": "staff",
+      "permission": "admin.manage"
+    },
+    "post /cms/publications/{releaseId}/rollback": {
+      "guard": "staff",
+      "permission": "admin.manage"
+    }
+  },
+  "implementationBoundary": "Phase 12 contracts and deterministic models only; Phase 13 requires real HTTP, crypto, delivery and concurrent PostgreSQL verification."
+}

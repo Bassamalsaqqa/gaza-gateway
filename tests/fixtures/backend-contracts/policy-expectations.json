@@ -1,0 +1,209 @@
+{
+  "version": "1.0.0",
+  "representativeOperations": [
+    {
+      "operationId": "getAirports",
+      "method": "GET",
+      "path": "/network/airports",
+      "intent": "public",
+      "expectedSecurity": [],
+      "expectedPermission": null,
+      "expectedBranchConditions": []
+    },
+    {
+      "operationId": "postPassengerLogin",
+      "method": "POST",
+      "path": "/auth/login",
+      "intent": "protocol",
+      "expectedSecurity": [],
+      "expectedPermission": null,
+      "expectedBranchConditions": []
+    },
+    {
+      "operationId": "postPassengerLogout",
+      "method": "POST",
+      "path": "/auth/logout",
+      "intent": "protected",
+      "expectedSecurity": [
+        { "PassengerCookieAuth": [] }
+      ],
+      "expectedPermission": null,
+      "expectedBranchConditions": [
+        { "scheme": "PassengerCookieAuth", "condition": "authenticated_passenger_self" }
+      ]
+    },
+    {
+      "operationId": "getStaffMe",
+      "method": "GET",
+      "path": "/staff/me",
+      "intent": "protected",
+      "expectedSecurity": [
+        { "StaffCookieAuth": [] }
+      ],
+      "expectedPermission": null,
+      "expectedBranchConditions": [
+        { "scheme": "StaffCookieAuth", "condition": "authenticated_staff_self", "requiredPermission": null, "requiresActive": true }
+      ]
+    },
+    {
+      "operationId": "postAdminAirport",
+      "method": "POST",
+      "path": "/admin/network/airports",
+      "intent": "protected",
+      "expectedSecurity": [
+        { "StaffCookieAuth": [] }
+      ],
+      "expectedPermission": "ops.edit",
+      "expectedBranchConditions": [
+        { "scheme": "StaffCookieAuth", "condition": "authenticated_staff", "requiredPermission": "ops.edit", "requiresActive": true }
+      ]
+    },
+    {
+      "operationId": "getCmsDocuments",
+      "method": "GET",
+      "path": "/cms/documents",
+      "intent": "protected",
+      "expectedSecurity": [
+        { "StaffCookieAuth": [] }
+      ],
+      "expectedPermission": "content.view",
+      "expectedBranchConditions": [
+        { "scheme": "StaffCookieAuth", "condition": "authenticated_staff", "requiredPermission": "content.view", "requiresActive": true }
+      ]
+    },
+    {
+      "operationId": "getContactInbox",
+      "method": "GET",
+      "path": "/admin/contact/inbox",
+      "intent": "protected",
+      "expectedSecurity": [
+        { "StaffCookieAuth": [] }
+      ],
+      "expectedPermission": "engagement.view",
+      "expectedBranchConditions": [
+        { "scheme": "StaffCookieAuth", "condition": "authenticated_staff", "requiredPermission": "engagement.view", "requiresActive": true }
+      ]
+    },
+    {
+      "operationId": "getStaffUsersDirectory",
+      "method": "GET",
+      "path": "/staff/users",
+      "intent": "protected",
+      "expectedSecurity": [
+        { "StaffCookieAuth": [] }
+      ],
+      "expectedPermission": "admin.manage",
+      "expectedBranchConditions": [
+        { "scheme": "StaffCookieAuth", "condition": "authenticated_staff", "requiredPermission": "admin.manage", "requiresActive": true }
+      ]
+    },
+    {
+      "operationId": "patchAdminCommercialFare",
+      "method": "PATCH",
+      "path": "/admin/commercial/fares/{id}",
+      "intent": "protected",
+      "expectedSecurity": [
+        { "StaffCookieAuth": [] }
+      ],
+      "expectedPermission": "commercial.edit",
+      "expectedBranchConditions": [
+        { "scheme": "StaffCookieAuth", "condition": "authenticated_staff", "requiredPermission": "commercial.edit", "requiresActive": true }
+      ]
+    },
+    {
+      "operationId": "getCommercialCatalog",
+      "method": "GET",
+      "path": "/commercial/catalog",
+      "intent": "public",
+      "expectedSecurity": [],
+      "expectedPermission": null,
+      "expectedBranchConditions": []
+    },
+    {
+      "operationId": "postAdminCommercialMeal",
+      "method": "POST",
+      "path": "/admin/commercial/meals",
+      "intent": "protected",
+      "expectedSecurity": [
+        { "StaffCookieAuth": [] }
+      ],
+      "expectedPermission": "commercial.edit",
+      "expectedBranchConditions": [
+        { "scheme": "StaffCookieAuth", "condition": "authenticated_staff", "requiredPermission": "commercial.edit", "requiresActive": true }
+      ]
+    },
+    {
+      "operationId": "putAdminCommercialMealsOrder",
+      "method": "PUT",
+      "path": "/admin/commercial/meals/order",
+      "intent": "protected",
+      "expectedSecurity": [
+        { "StaffCookieAuth": [] }
+      ],
+      "expectedPermission": "commercial.edit",
+      "expectedBranchConditions": [
+        { "scheme": "StaffCookieAuth", "condition": "authenticated_staff", "requiredPermission": "commercial.edit", "requiresActive": true }
+      ]
+    },
+    {
+      "operationId": "putAdminCommercialMealDefault",
+      "method": "PUT",
+      "path": "/admin/commercial/meals/default",
+      "intent": "protected",
+      "expectedSecurity": [
+        { "StaffCookieAuth": [] }
+      ],
+      "expectedPermission": "commercial.edit",
+      "expectedBranchConditions": [
+        { "scheme": "StaffCookieAuth", "condition": "authenticated_staff", "requiredPermission": "commercial.edit", "requiresActive": true }
+      ]
+    },
+    {
+      "operationId": "getBookingByRef",
+      "method": "GET",
+      "path": "/bookings/{ref}",
+      "intent": "protected",
+      "expectedSecurity": [
+        { "PassengerCookieAuth": [] },
+        { "BookingGuestGrantAuth": [] },
+        { "StaffCookieAuth": [] }
+      ],
+      "expectedPermission": "commercial.view",
+      "expectedBranchConditions": [
+        { "scheme": "PassengerCookieAuth", "condition": "authenticated_booking_owner", "boundResource": "booking", "referenceParameter": "ref" },
+        { "scheme": "BookingGuestGrantAuth", "condition": "valid_booking_grant", "boundResource": "booking", "referenceParameter": "ref", "action": "getBookingByRef", "requiresUnexpired": true, "requiresRevocationValid": true },
+        { "scheme": "StaffCookieAuth", "condition": "authenticated_staff", "requiredPermission": "commercial.view", "requiresActive": true }
+      ]
+    },
+    {
+      "operationId": "patchBookingContact",
+      "method": "PATCH",
+      "path": "/bookings/{ref}/contact",
+      "intent": "protected",
+      "expectedSecurity": [
+        { "PassengerCookieAuth": [] },
+        { "BookingGuestGrantAuth": [] },
+        { "StaffCookieAuth": [] }
+      ],
+      "expectedPermission": "commercial.edit",
+      "expectedBranchConditions": [
+        { "scheme": "PassengerCookieAuth", "condition": "authenticated_booking_owner", "boundResource": "booking", "referenceParameter": "ref" },
+        { "scheme": "BookingGuestGrantAuth", "condition": "valid_booking_grant", "boundResource": "booking", "referenceParameter": "ref", "action": "patchBookingContact", "requiresUnexpired": true, "requiresRevocationValid": true },
+        { "scheme": "StaffCookieAuth", "condition": "authenticated_staff", "requiredPermission": "commercial.edit", "requiresActive": true }
+      ]
+    },
+    {
+      "operationId": "postPaymentWebhook",
+      "method": "POST",
+      "path": "/payments/webhook",
+      "intent": "protected",
+      "expectedSecurity": [
+        { "WebhookSignatureAuth": [] }
+      ],
+      "expectedPermission": null,
+      "expectedBranchConditions": [
+        { "scheme": "WebhookSignatureAuth", "condition": "valid_webhook_signature" }
+      ]
+    }
+  ]
+}

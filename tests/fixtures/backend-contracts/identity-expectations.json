@@ -1,0 +1,402 @@
+{
+  "version": "1.0.0",
+  "design": {
+    "version": "1.0.0",
+    "cookies": {
+      "passenger": {
+        "name": "gza_session",
+        "path": "/api/v1",
+        "secure": true,
+        "httpOnly": true,
+        "sameSite": "Lax",
+        "hostOnly": true
+      },
+      "staff": {
+        "name": "gza_staff_session",
+        "path": "/api/v1",
+        "secure": true,
+        "httpOnly": true,
+        "sameSite": "Lax",
+        "hostOnly": true
+      },
+      "pending": {
+        "name": "gza_staff_pending",
+        "path": "/api/v1",
+        "secure": true,
+        "httpOnly": true,
+        "sameSite": "Lax",
+        "hostOnly": true,
+        "maxAge": 300
+      }
+    },
+    "sessions": {
+      "passenger": {
+        "absolute": 604800,
+        "idle": 86400
+      },
+      "staff": {
+        "absolute": 28800,
+        "idle": 3600
+      },
+      "anonymous": {
+        "absolute": 1800,
+        "idle": 1800
+      },
+      "pending": {
+        "absolute": 300,
+        "attempts": 5
+      },
+      "stepUp": 300
+    },
+    "passwords": {
+      "passenger": {
+        "min": 15,
+        "max": 128
+      },
+      "staff": {
+        "min": 12,
+        "max": 128
+      },
+      "algorithm": "Argon2id",
+      "memoryKiB": 65536,
+      "timeCost": 4,
+      "parallelism": 1,
+      "trim": false
+    },
+    "mfa": {
+      "algorithm": "HMAC-SHA1",
+      "digits": 6,
+      "period": 30,
+      "skew": 1,
+      "recoveryCount": 10,
+      "recoveryEntropyBits": 128,
+      "encryptedSecret": true,
+      "oneUseCounter": true
+    },
+    "proofs": {
+      "passenger_email_verification": {
+        "realm": "passenger",
+        "ttl": 86400,
+        "entropyBytes": 32,
+        "singleUse": true,
+        "digest": "sha256"
+      },
+      "passenger_password_reset": {
+        "realm": "passenger",
+        "ttl": 1800,
+        "entropyBytes": 32,
+        "singleUse": true,
+        "digest": "sha256"
+      },
+      "staff_invitation": {
+        "realm": "staff",
+        "ttl": 86400,
+        "entropyBytes": 32,
+        "singleUse": true,
+        "digest": "sha256"
+      },
+      "staff_password_reset": {
+        "realm": "staff",
+        "ttl": 1800,
+        "entropyBytes": 32,
+        "singleUse": true,
+        "digest": "sha256"
+      },
+      "manage_booking": {
+        "realm": "passenger",
+        "ttl": 600,
+        "digits": 6,
+        "attempts": 5,
+        "singleUse": true,
+        "digest": "hmac_sha256_with_separate_pepper"
+      },
+      "claim_booking": {
+        "realm": "passenger",
+        "ttl": 600,
+        "digits": 6,
+        "attempts": 5,
+        "singleUse": true,
+        "digest": "hmac_sha256_with_separate_pepper"
+      },
+      "booking_guest_grant": {
+        "realm": "booking",
+        "ttl": 900,
+        "entropyBytes": 32,
+        "singleUse": false,
+        "digest": "sha256"
+      },
+      "booking_claim_proof": {
+        "realm": "passenger",
+        "ttl": 300,
+        "entropyBytes": 32,
+        "singleUse": true,
+        "digest": "sha256"
+      },
+      "booking_receipt_grant": {
+        "realm": "booking",
+        "ttl": 600,
+        "entropyBytes": 32,
+        "singleUse": false,
+        "digest": "sha256"
+      },
+      "login_mfa": {
+        "realm": "staff",
+        "ttl": 300,
+        "attempts": 5,
+        "singleUse": true,
+        "digest": "sha256"
+      },
+      "enroll_mfa": {
+        "realm": "staff",
+        "ttl": 300,
+        "attempts": 5,
+        "singleUse": true,
+        "digest": "sha256"
+      },
+      "replace_mfa": {
+        "realm": "staff",
+        "ttl": 300,
+        "attempts": 5,
+        "singleUse": true,
+        "digest": "sha256"
+      }
+    },
+    "rates": {
+      "login": [
+        {
+          "key": [
+            "subject_digest",
+            "ip"
+          ],
+          "limit": 5,
+          "seconds": 60
+        },
+        {
+          "key": [
+            "ip"
+          ],
+          "limit": 30,
+          "seconds": 300
+        }
+      ],
+      "dispatch": [
+        {
+          "key": [
+            "subject_digest",
+            "ip"
+          ],
+          "limit": 3,
+          "seconds": 900
+        },
+        {
+          "key": [
+            "ip"
+          ],
+          "limit": 20,
+          "seconds": 3600
+        }
+      ],
+      "challenge": [
+        {
+          "key": [
+            "reference_digest",
+            "session_id",
+            "ip"
+          ],
+          "limit": 5,
+          "seconds": 900
+        },
+        {
+          "key": [
+            "ip"
+          ],
+          "limit": 30,
+          "seconds": 3600
+        }
+      ],
+      "proof": [
+        {
+          "key": [
+            "subject_digest",
+            "ip"
+          ],
+          "limit": 10,
+          "seconds": 600
+        }
+      ],
+      "stepUp": [
+        {
+          "key": [
+            "staff_id",
+            "session_id",
+            "ip"
+          ],
+          "limit": 5,
+          "seconds": 600
+        }
+      ]
+    },
+    "roles": [
+      "admin",
+      "editor",
+      "viewer"
+    ],
+    "permissions": {
+      "admin": [
+        "ops.view",
+        "ops.edit",
+        "content.view",
+        "content.edit",
+        "commercial.view",
+        "commercial.edit",
+        "engagement.view",
+        "engagement.edit",
+        "admin.manage",
+        "dashboard.view"
+      ],
+      "editor": [
+        "dashboard.view",
+        "content.view",
+        "content.edit"
+      ],
+      "viewer": [
+        "dashboard.view",
+        "ops.view",
+        "content.view",
+        "commercial.view",
+        "engagement.view"
+      ]
+    },
+    "authority": {
+      "passenger": [
+        "principal_id",
+        "realm_passenger",
+        "active",
+        "verified_email",
+        "exact_epoch",
+        "absolute_expiry",
+        "idle_expiry",
+        "not_revoked"
+      ],
+      "staff": [
+        "principal_id",
+        "realm_staff",
+        "active",
+        "verified_email",
+        "confirmed_current_mfa",
+        "exact_epoch",
+        "absolute_expiry",
+        "idle_expiry",
+        "not_revoked",
+        "server_permission"
+      ],
+      "pending": [
+        "staff_id",
+        "bound_anonymous_staff_session",
+        "exact_epoch",
+        "exact_endpoint_purpose",
+        "absolute_expiry",
+        "remaining_attempts",
+        "not_consumed",
+        "not_revoked"
+      ],
+      "booking": [
+        "booking_id",
+        "exact_reference",
+        "exact_security_epoch",
+        "exact_operation_scope",
+        "absolute_expiry",
+        "not_revoked"
+      ]
+    },
+    "origin": {
+      "production": [
+        "https://www.gazaairport.com",
+        "https://gazaairport.com"
+      ],
+      "wildcard": false,
+      "reflected": false,
+      "requireExplicitEnvironment": true
+    },
+    "sentinel": {
+      "table": "staff_directory_control",
+      "id": 1,
+      "lockOrder": [
+        "sentinel",
+        "staff_id_ascending",
+        "proof_session_id_ascending"
+      ],
+      "postChangeMinimum": 1,
+      "writers": [
+        "role",
+        "status",
+        "delete",
+        "email_verification",
+        "password_availability",
+        "initial_mfa_confirmation",
+        "mfa_replacement",
+        "offline_recovery"
+      ]
+    },
+    "transitions": {
+      "passenger": {
+        "unverified": {
+          "verify": "active",
+          "reset": "unverified"
+        },
+        "active": {
+          "reset": "active",
+          "suspend": "suspended"
+        },
+        "suspended": {
+          "verify": "suspended",
+          "reset": "suspended"
+        }
+      },
+      "proof": {
+        "issued": {
+          "consume": "consumed",
+          "revoke": "revoked",
+          "expire": "expired",
+          "exhaust": "exhausted"
+        },
+        "consumed": {},
+        "revoked": {},
+        "expired": {},
+        "exhausted": {}
+      },
+      "staff": {
+        "invited": {
+          "accept": "pending_enrollment"
+        },
+        "pending_enrollment": {
+          "confirm_mfa": "active",
+          "deactivate": "deactivated"
+        },
+        "active": {
+          "suspend": "suspended",
+          "deactivate": "deactivated",
+          "replace_mfa": "active"
+        },
+        "suspended": {},
+        "deactivated": {}
+      },
+      "dispatch": {
+        "queued": {
+          "provider_accept": "accepted",
+          "provider_fail": "failed",
+          "expire": "expired"
+        },
+        "accepted": {
+          "scrub": "scrubbed"
+        },
+        "failed": {
+          "retry_before_deadline": "queued",
+          "expire": "expired"
+        },
+        "expired": {},
+        "scrubbed": {}
+      }
+    }
+  }
+}

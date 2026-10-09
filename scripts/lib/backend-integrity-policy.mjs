@@ -1,0 +1,236 @@
+// Required production constraints and transaction protocols; not executable migrations.
+export const INTEGRITY_CONTRACT = {
+  version: "1.0.0",
+  clock: "PostgreSQL transaction clock; UTC instants; expires_at <= now is expired",
+  lockOrder: [
+    "dated_services.id ASC COLLATE C",
+    "capacity_holds.id ASC",
+    "bookings.id ASC",
+    "payment_intents.id ASC",
+    "service_seat_claims.seat_code ASC",
+  ],
+  writers: [
+    "hold_create",
+    "hold_expire",
+    "hold_release",
+    "booking_create",
+    "booking_confirm",
+    "seat_change",
+    "check_in",
+    "undo_check_in",
+    "booking_cancel",
+    "equipment_change",
+    "schedule_effect",
+    "payment_event",
+    "refund_event",
+  ],
+  quotes: {
+    ttlSeconds: 300,
+    serverPricing: true,
+    sessionBound: true,
+    immutable: true,
+    seatCount: "paxCount - infantCount",
+  },
+  holds: {
+    ttlSeconds: 600,
+    states: ["active", "attached", "converted", "released", "expired"],
+    oneBookingPerHold: true,
+    allLegsOrNone: true,
+    infantsClaimSeats: false,
+  },
+  idempotency: {
+    scope: ["realm", "actor_id", "operation_id", "key"],
+    hash: "SHA-256 canonical validated command including route identities",
+    retentionSeconds: 86400,
+    processing: "transactional unique reservation, retries lock/read outcome",
+    mismatchStatus: 409,
+    expiredKey: "never replay an expired hold or expose another actor outcome",
+  },
+  payment: {
+    configuredProviderOnly: true,
+    signature:
+      "verify native signature over original raw bytes before normalization; timestamp/replay limits",
+    bind: [
+      "provider_account",
+      "provider_reference",
+      "intent_id",
+      "booking_id",
+      "amount_minor",
+      "currency",
+    ],
+    eventUnique: ["provider", "provider_event_id"],
+    statuses: ["created", "requires_action", "processing", "succeeded", "failed"],
+    bookingStates: ["pending_payment", "confirmed", "compensation_pending", "cancelled"],
+    refundStates: ["requested", "processing", "succeeded", "failed"],
+    lateSuccess: "compensation_pending; durable refund outbox; no reacquisition or overbooking",
+    duplicate: "return stored receipt without repeated effects",
+    outOfOrder:
+      "terminal success never regresses to pending/failed; unknown events recorded for reconciliation",
+    multipleCaptures:
+      "one active intent per booking; excess capture refunded uniquely without cancelling a confirmed booking",
+    refund: "cancel only after verified full refund settlement; failure stays compensation_pending",
+  },
+  constraints: [
+    {
+      table: "quotes",
+      primary: ["id"],
+      unique: [["id", "checkout_session_id"]],
+      foreignKeys: ["checkout_session_id -> passenger_sessions.id"],
+      checks: [
+        "total_minor BETWEEN 0 AND 9007199254740991",
+        "currency = 'USD'",
+        "seat_count = pax_count - infant_count",
+        "expires_at > issued_at",
+      ],
+    },
+    {
+      table: "capacity_holds",
+      primary: ["id"],
+      unique: [["id", "quote_id", "checkout_session_id"]],
+      foreignKeys: [
+        "(quote_id,checkout_session_id) -> quotes(id,checkout_session_id)",
+        "checkout_session_id -> passenger_sessions.id",
+      ],
+      checks: [
+        "seat_count BETWEEN 1 AND 9",
+        "state IN ('active','attached','converted','released','expired')",
+        "expires_at > issued_at",
+      ],
+    },
+    {
+      table: "capacity_hold_items",
+      primary: ["hold_id", "dated_service_id"],
+      unique: [],
+      foreignKeys: ["hold_id -> capacity_holds.id", "dated_service_id -> dated_services.id"],
+      checks: ["seat_count BETWEEN 1 AND 9"],
+    },
+    {
+      table: "bookings",
+      primary: ["id"],
+      unique: [["hold_id"], ["id", "hold_id"], ["id", "total_minor", "currency"]],
+      foreignKeys: [
+        "(hold_id,quote_id,checkout_session_id) -> capacity_holds(id,quote_id,checkout_session_id)",
+        "quote_id -> quotes.id",
+        "owner_user_id -> users.id (nullable)",
+        "checkout_session_id -> passenger_sessions.id",
+      ],
+      checks: [
+        "security_epoch >= 1",
+        "status IN ('pending_payment','confirmed','compensation_pending','cancelled')",
+      ],
+    },
+    {
+      table: "booking_legs",
+      primary: ["id"],
+      unique: [
+        ["booking_id", "dated_service_id"],
+        ["id", "booking_id", "dated_service_id"],
+      ],
+      foreignKeys: ["booking_id -> bookings.id", "dated_service_id -> dated_services.id"],
+      checks: [],
+    },
+    {
+      table: "booking_passengers",
+      primary: ["id"],
+      unique: [["id", "booking_id"]],
+      foreignKeys: [
+        "booking_id -> bookings.id",
+        "(linked_adult_passenger_id,booking_id) -> booking_passengers(id,booking_id)",
+      ],
+      checks: [
+        "type IN ('adult','child','infant')",
+        "(type = 'infant') = (linked_adult_passenger_id IS NOT NULL)",
+        "linked_adult_passenger_id IS NULL OR linked_adult_passenger_id != id",
+      ],
+    },
+    {
+      table: "booking_leg_passengers",
+      primary: ["leg_id", "passenger_id"],
+      unique: [["leg_id", "passenger_id", "booking_id", "dated_service_id"]],
+      foreignKeys: [
+        "(leg_id,booking_id,dated_service_id) -> booking_legs(id,booking_id,dated_service_id)",
+        "(passenger_id,booking_id) -> booking_passengers(id,booking_id)",
+      ],
+      checks: ["seat_code IS NULL OR checked_in_at IS NULL OR boarding_pass_id IS NOT NULL"],
+    },
+    {
+      table: "service_seat_claims",
+      primary: ["dated_service_id", "seat_code"],
+      unique: [],
+      foreignKeys: [
+        "(hold_id,dated_service_id) -> capacity_hold_items(hold_id,dated_service_id)",
+        "(booking_id,hold_id) -> bookings(id,hold_id) (nullable)",
+        "(leg_id,passenger_id,booking_id,dated_service_id) -> booking_leg_passengers(leg_id,passenger_id,booking_id,dated_service_id) (nullable)",
+      ],
+      checks: [
+        "state IN ('held','booked')",
+        "(state = 'held' AND num_nonnulls(booking_id,leg_id,passenger_id) = 0) OR (state = 'booked' AND num_nonnulls(booking_id,leg_id,passenger_id) = 3)",
+        "seat_code != ''",
+      ],
+    },
+    {
+      table: "inventory_conflicts",
+      primary: ["id"],
+      unique: [],
+      foreignKeys: ["dated_service_id -> dated_services.id", "actor_staff_id -> staff_users.id"],
+      checks: ["code = 'blocked_shrink_conflict'", "new_capacity >= 0"],
+    },
+    {
+      table: "idempotency_records",
+      primary: ["id"],
+      unique: [["realm", "actor_id", "operation_id", "key"]],
+      foreignKeys: [],
+      checks: [
+        "state IN ('processing','completed')",
+        "expires_at > created_at",
+        "state != 'completed' OR (response_status IS NOT NULL AND encrypted_response IS NOT NULL)",
+      ],
+    },
+    {
+      table: "payment_intents",
+      primary: ["id"],
+      unique: [["provider", "provider_account", "provider_reference"]],
+      foreignKeys: ["(booking_id,amount_minor,currency) -> bookings(id,total_minor,currency)"],
+      checks: [
+        "amount_minor BETWEEN 0 AND 9007199254740991",
+        "currency = 'USD'",
+        "status IN ('created','requires_action','processing','succeeded','failed')",
+      ],
+      partialUnique: [
+        {
+          fields: ["booking_id"],
+          where: "status IN ('created','requires_action','processing')",
+        },
+      ],
+    },
+    {
+      table: "payment_events",
+      primary: ["id"],
+      unique: [["provider", "provider_event_id"]],
+      foreignKeys: ["payment_intent_id -> payment_intents.id (nullable unmatched intake)"],
+      checks: [
+        "signature_verified = true",
+        "status IN ('applied','duplicate','reconciliation_required')",
+      ],
+    },
+    {
+      table: "payment_refunds",
+      primary: ["id"],
+      unique: [
+        ["payment_intent_id", "reason"],
+        ["provider", "provider_refund_id"],
+      ],
+      foreignKeys: ["payment_intent_id -> payment_intents.id"],
+      checks: ["amount_minor > 0", "status IN ('requested','processing','succeeded','failed')"],
+    },
+    {
+      table: "transactional_outbox",
+      primary: ["id"],
+      unique: [["aggregate_type", "aggregate_id", "event_key"]],
+      foreignKeys: [],
+      checks: ["state IN ('queued','processing','accepted','failed')"],
+    },
+  ],
+  boundary:
+    "Models demonstrate sequential transaction outcomes, not live PostgreSQL contention or payment-provider verification. Phase 13 must implement and test the specified locks, FKs, rollback and provider adapters.",
+};
