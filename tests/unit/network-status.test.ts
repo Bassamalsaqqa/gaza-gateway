@@ -191,7 +191,7 @@ it("all authoritative current headers and roadmap distinguish C2A foundation fro
   }
 });
 
-it("living docs record accepted Phase 9, owner deployment and Phase 11 review boundary", () => {
+it("living docs record accepted Phase 11, owner deployment and Phase 12 review boundary", () => {
   const files = ["README.md", "PRODUCT.md", "roadmap.md", ...["ARCHITECTURE", "CANONICAL_REPOSITORIES", "DATA_FLOW", "SCHEDULE_MODEL", "SETTINGS_MODEL", "NETWORK_MODEL", "FLEET_MODEL", "DATED_SERVICE_MODEL", "COMMERCIAL_MODEL", "CONTENT_MODEL", "CONTACT_MODEL"].map(name => `docs/${name}.md`)];
   for (const file of files) {
     const text = readFileSync(file, "utf8");
@@ -207,9 +207,12 @@ it("living docs record accepted Phase 9, owner deployment and Phase 11 review bo
     assert.match(current, /Phase 9 — Arabic, RTL, Accessibility & Responsive Certification: Complete \/ Accepted Source/);
     assert.ok(current.includes("f3d7377720c951ea659c076d2e8128d10c1a827a"), file);
     assert.match(current, /Phase 10 — Durable Regression & CI Hardening: Complete \/ Accepted Source/);
-    assert.match(current, /Phase 11 — SEO, Performance & HostPapa Certification: Implemented \/ Awaiting Independent Review/);
     assert.ok(current.includes("277e07a29188ab5ca07df008c011f42ec964641b"), file);
-    assert.match(current, /Phase 12 remains Planned \/ Unstarted/);
+    assert.match(current, /Phase 11 — SEO, Performance & HostPapa Certification: Complete \/ Accepted Source/);
+    assert.match(current, /Phase 12 design is complete and awaiting independent GitHub review/);
+    assert.ok(current.includes("a47afded49e900b75c907e7230ca4dfef5b3f91e"), file);
+    assert.match(current, /live cPanel deployment remains unverified and owner-managed/);
+    assert.match(current, /Phase 13 remains Planned \/ Unstarted/);
     assert.match(current, /Earlier milestone sections are historical/);
     for (const historicalSha of [
       "d5dd2942fad517cc5f1be353ad206511cc0724cc",
@@ -218,5 +221,47 @@ it("living docs record accepted Phase 9, owner deployment and Phase 11 review bo
       "8e3136c22156c9acf800d25e94e8cd3d29a8bfc8",
       "2749c26714258871c32bd2b14a75fc4e87a68b62",
     ]) assert.ok(text.includes(historicalSha), `${file}: retained history ${historicalSha}`);
+  }
+
+  const roadmap = readFileSync("roadmap.md", "utf8");
+  const phase11Row = roadmap.split("\n").find((line) => line.startsWith("| **Phase 11** |"));
+  assert.ok(phase11Row, "roadmap: Phase 11 row");
+  assert.match(phase11Row, /Complete \/ Accepted Source/);
+  assert.ok(phase11Row.includes("a47afded49e900b75c907e7230ca4dfef5b3f91e"), "roadmap: Phase 11 release SHA");
+
+  const phase12Row = roadmap.split("\n").find((line) => line.startsWith("| **Phase 12** |"));
+  assert.ok(phase12Row, "roadmap: Phase 12 row");
+  assert.match(phase12Row, /Design Complete \/ Awaiting Independent GitHub Review/);
+
+  const phase13Row = roadmap.split("\n").find((line) => line.startsWith("| **Phase 13** |"));
+  assert.ok(phase13Row, "roadmap: Phase 13 row");
+  assert.match(phase13Row, /Planned/);
+
+  for (const file of ["README.md", "roadmap.md", "docs/ARCHITECTURE.md", "docs/DATA_FLOW.md"]) {
+    const text = readFileSync(file, "utf8");
+    assert.match(
+      text,
+      /Consolidated Phase 8–11 release `a47afded49e900b75c907e7230ca4dfef5b3f91e`, source `e1b4e3c62238357209990e80b00cc4635f621b76`/,
+      `${file}: release and source checkpoint header`,
+    );
+    assert.match(
+      text,
+      /Manual independent GitHub review of Phase 12; Phase 13 remains Planned/,
+      `${file}: immediate next step header`,
+    );
+  }
+
+  for (const file of files.filter((f) => f !== "PRODUCT.md")) {
+    const text = readFileSync(file, "utf8");
+    assert.match(
+      text,
+      /Phase 11 is Complete \/ Accepted Source \(Release Published\)/,
+      `${file}: header current Phase 11 source status`,
+    );
+    assert.match(
+      text,
+      /Phase 12 — Backend Readiness & API Contracts is Design Complete \/ Awaiting Independent GitHub Review/,
+      `${file}: header current Phase 12 source status`,
+    );
   }
 });
