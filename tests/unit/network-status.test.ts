@@ -191,7 +191,7 @@ it("all authoritative current headers and roadmap distinguish C2A foundation fro
   }
 });
 
-it("living docs record accepted Phase 12, owner deployment, proposed Phase 13A local foundation review and Phase 13B–G boundaries", () => {
+it("living docs record accepted Phase 12, owner deployment, accepted Phase 13A local foundation, Phase 13B authorization and Phase 13C–G boundaries", () => {
   const files = ["README.md", "PRODUCT.md", "roadmap.md", ...["ARCHITECTURE", "CANONICAL_REPOSITORIES", "DATA_FLOW", "SCHEDULE_MODEL", "SETTINGS_MODEL", "NETWORK_MODEL", "FLEET_MODEL", "DATED_SERVICE_MODEL", "COMMERCIAL_MODEL", "CONTENT_MODEL", "CONTACT_MODEL"].map(name => `docs/${name}.md`)];
   for (const file of files) {
     const text = readFileSync(file, "utf8");
@@ -216,14 +216,18 @@ it("living docs record accepted Phase 12, owner deployment, proposed Phase 13A l
     assert.match(current, /live cPanel deployment remains unverified and owner-managed/);
     assert.match(
       current,
-      /Phase 13A local backend foundation candidate:\s*Implemented \/ Awaiting Independent Review/,
-      `${file}: Phase 13A local foundation candidate status`,
+      /Phase 13A local backend foundation is Local Engineering Accepted \/ Remote Staging Gates Deferred/,
+      `${file}: Phase 13A local foundation accepted status`,
     );
-    assert.match(current, /not accepted or deployed|not accepted\/deployed/);
+    assert.ok(current.includes("91a918caf0b22e565a43f52e46cf85ca4eb4825c"), `${file}: Phase 13A accepted SHA`);
+    assert.match(current, /independently accepted by owner-supplied ChatGPT review/);
+    assert.match(current, /not deployed; external staging and backend CI gates remain deferred and unmet/);
     for (const stack of [/Laravel 13/, /PHP 8\.4/, /PostgreSQL 17/]) assert.match(current, stack);
     assert.match(current, /Frontend mock repositories remain default/);
-    assert.match(current, /Typed client operates only via explicit nonproduction opt-in without authentication|Typed client only explicit nonproduction opt-in\/noauth/);
-    assert.match(current, /Phase 13B–G remain Planned \/ Unstarted/);
+    assert.match(current, /Typed client operates only via explicit nonproduction opt-in without authentication/);
+    assert.match(current, /Phase 13B identity is authorized \/ preparation underway/);
+    assert.match(current, /no runtime authentication implemented yet/);
+    assert.match(current, /Phase 13C–G remain Planned \/ Unstarted/);
     assert.match(current, /no authentication, domain inventory, booking persistence, payments or CMS publication/);
     assert.match(current, /staging and backend CI definition-of-done gates remain deferred and unmet/);
     assert.match(current, /Local proof does not satisfy remote gates/);
@@ -257,8 +261,20 @@ it("living docs record accepted Phase 12, owner deployment, proposed Phase 13A l
   const phase13Row = roadmap.split("\n").find((line) => line.startsWith("| **Phase 13** |"));
   assert.ok(phase13Row, "roadmap: Phase 13 row");
   assert.match(phase13Row, /In\s*Progress/i);
-  assert.match(phase13Row, /local foundation/i);
+  assert.match(phase13Row, /local foundation accepted/i);
+  assert.ok(phase13Row.includes("91a918caf0b22e565a43f52e46cf85ca4eb4825c"), "roadmap: Phase 13 accepted SHA");
   assert.match(phase13Row, /external.*gates deferred/i);
+
+  const phase13aRow = roadmap.split("\n").find((line) => line.startsWith("| **Phase 13A** |"));
+  assert.ok(phase13aRow, "roadmap: Phase 13A row");
+  assert.match(phase13aRow, /Local Engineering Accepted \/ Remote Staging Gates Deferred/);
+  assert.ok(phase13aRow.includes("91a918caf0b22e565a43f52e46cf85ca4eb4825c"), "roadmap: Phase 13A accepted SHA");
+
+  const phase13bRow = roadmap.split("\n").find((line) => line.startsWith("| **Phase 13B** |"));
+  assert.ok(phase13bRow, "roadmap: Phase 13B row");
+  assert.match(phase13bRow, /Authorized \/ Preparation Underway/);
+  assert.match(phase13bRow, /no runtime authentication implemented yet/);
+  assert.match(phase13bRow, /Phase 13C–G Planned \/ Unstarted/);
 
   for (const file of ["README.md", "roadmap.md", "docs/ARCHITECTURE.md", "docs/DATA_FLOW.md"]) {
     const text = readFileSync(file, "utf8");
@@ -269,7 +285,7 @@ it("living docs record accepted Phase 12, owner deployment, proposed Phase 13A l
     );
     assert.match(
       text,
-      /Proposed Phase 13A local foundation candidate|Phase 13A local foundation candidate/,
+      /Phase 13B authorized \/ preparation underway/,
       `${file}: immediate next step header candidate`,
     );
     assert.match(
@@ -298,8 +314,23 @@ it("living docs record accepted Phase 12, owner deployment, proposed Phase 13A l
     );
     assert.match(
       text,
-      /Phase 13A local backend foundation candidate Implemented \/ Awaiting Independent Review/,
+      /Phase 13A local backend foundation is Local Engineering Accepted \/ Remote Staging Gates Deferred at 91a918caf0b22e565a43f52e46cf85ca4eb4825c/,
       `${file}: header current Phase 13A status`,
+    );
+    assert.match(
+      text,
+      /Phase 13B authorized \/ preparation underway/,
+      `${file}: header Phase 13B status`,
+    );
+    assert.match(
+      text,
+      /no runtime authentication implemented yet/,
+      `${file}: header authentication status`,
+    );
+    assert.match(
+      text,
+      /Phase 13C–G remain Planned \/ Unstarted/,
+      `${file}: header Phase 13C-G status`,
     );
   }
 });

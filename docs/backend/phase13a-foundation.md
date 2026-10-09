@@ -1,6 +1,6 @@
 # Phase 13A Foundation 01 — Implementation & Verification Report
 
-Status: historical local-development checkpoint; see [the integrated local foundation review](phase13a-review.md) for the current candidate. Phase 13A remains in progress; this report does not establish staging deployment or production readiness. The Foundation01 artisan serve image is development-only.
+Status: historical local-development checkpoint; see [the integrated local foundation review](phase13a-review.md) for the accepted local foundation engineering baseline at `91a918caf0b22e565a43f52e46cf85ca4eb4825c` (external staging/CI gates deferred and unmet; Phase 13B authorized / preparation underway; no runtime authentication implemented yet; Phase 13C–G remain Planned / Unstarted). This report retains the original checkpoint evidence and does not establish staging deployment or production readiness. The Foundation01 artisan serve image is development-only.
 
 Codex review clarification: the sixteen HTTP captures were generated in Correction03 under `run_ad4c28132ef74e9d83afc0ace29d8f40`. Correction04 reused them to verify stronger tooling; it did not recapture them. Their original run identity has been restored. The worker's original Correction04 log records its relabelled manifest and is retained only as historical worker evidence. Reproduce current validation with the original capture run ID. Hashes and metadata check internal consistency, not cryptographic proof of network execution.
 
@@ -241,7 +241,7 @@ The complete inventory of proposed product files for Phase 13A Foundation 01 com
 
 1. **GitHub Actions**: Disabled; no remote CI runs triggered.
 2. **Paid Cloud Infrastructure & DNS**: No Render web services, PostgreSQL databases, or DNS records provisioned.
-3. **Phase 13A Status**: Foundation 01 implementation, Correction 01, Correction 02, Correction 03, and Correction 04 completed and verified. Awaiting Codex review. The later typed client, provider interfaces and immutable runtime candidate are indexed in [phase13a-review.md](phase13a-review.md); this report retains the original checkpoint evidence.
+3. **Phase 13A Status**: Foundation 01 implementation, Correction 01, Correction 02, Correction 03, and Correction 04 completed and verified. Phase 13A local backend foundation is Local Engineering Accepted / Remote Staging Gates Deferred at `91a918caf0b22e565a43f52e46cf85ca4eb4825c`, independently accepted by owner-supplied ChatGPT review. The later typed client, provider interfaces and immutable runtime candidate are indexed in [phase13a-review.md](phase13a-review.md); this report retains the original checkpoint evidence. Phase 13B identity is authorized / preparation underway; no runtime authentication implemented yet; Phase 13C–G remain Planned / Unstarted.
 
 ## 7. Fresh local bootstrap
 

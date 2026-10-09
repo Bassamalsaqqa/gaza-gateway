@@ -1,7 +1,7 @@
 # Phase 13A — Frontend System API Client
 
-Status: In Progress (Phase 13A isolated system client foundation).
-Baseline: locally reviewed Foundation01 checkpoint `92b7eb45beab11f701619640b5b5bd5f73d21a5d`; Phase 12 independently accepted at `7dab821d7d205b41ae925e013fe9c69a97a7e875`.
+Status: Local Engineering Accepted / Remote Staging Gates Deferred.
+Baseline: accepted Phase 13A foundation at `91a918caf0b22e565a43f52e46cf85ca4eb4825c`; Phase 12 independently accepted at `7dab821d7d205b41ae925e013fe9c69a97a7e875` (external staging/CI gates deferred and unmet; Phase 13B authorized / preparation underway; no runtime authentication implemented yet; Phase 13C–G remain Planned / Unstarted).
 Scope: isolated typed read-only health/readiness/version frontend client, narrow generated types, and fail-closed validation.
 
 ## 1. Architectural Overview & Boundaries

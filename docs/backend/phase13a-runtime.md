@@ -5,7 +5,7 @@
 Phase 13A Foundation02 delivers an immutable container image candidate and local runtime proof using Laravel 13, PHP 8.4, and PostgreSQL 17 on loopback `127.0.0.1:18086`. The design eliminates reliance on development servers (`artisan serve`), enforcing least-privilege runtime security, fail-closed configuration validation, and bounded database outage deadlines (<= 8s).
 
 > [!IMPORTANT]
-> **Status**: Local immutable-image candidate proof only. Live cloud production services are NOT ready, and Phase 13A is NOT independently accepted. Reachable external staging, remote DNS/TLS, edge proxy trust, and automatic backend CI pipelines remain deferred owner gates. Phase 13B (Authentication) remains strictly unstarted.
+> **Status**: Phase 13A local backend foundation is Local Engineering Accepted / Remote Staging Gates Deferred at `91a918caf0b22e565a43f52e46cf85ca4eb4825c`, independently accepted by owner-supplied ChatGPT review. Reachable external staging, remote DNS/TLS, edge proxy trust, and automatic backend CI pipelines remain deferred and unmet owner gates. Phase 13B (Authentication) is authorized / preparation underway; no runtime authentication implemented yet; Phase 13C–G remain Planned / Unstarted.
 
 ### Primary References
 - [Laravel Deployment Documentation](https://laravel.com/framework/docs/deployment) (FrankenPHP, document root, directory permissions, runtime configuration)
@@ -122,7 +122,7 @@ Harness containment invariants:
 - **Timestamps**: RFC 3339 / ISO 8601 UTC format strictly (`gmdate('Y-m-d\TH:i:s\Z')`).
 - **Identifiers**: Generated request correlation IDs are generated UUIDv4 (`X-Request-Id`). Accepted entity identifiers follow RFC 4122. Domain identity conventions remain Phase 12 codecs (flight numbers e.g. `PS 204`, PNR references e.g. `GZA-7K8P`, IATA airport codes e.g. `GZA`), NOT universal UUIDv4.
 - **Database Migrations**: Expand/contract design pattern. Migrations must be non-breaking and additive. Table/column drops require multi-phase migration steps.
-- **Domain Seeds Boundary**: Phase 13A establishes infrastructure tables (`cache`, `cache_locks`, `jobs`, `failed_jobs`, `job_batches`) only. Domain seeds, booking data, user accounts, and authentication remain deferred to later phases. Phase 13B authentication remains strictly unstarted.
+- **Domain Seeds Boundary**: Phase 13A establishes infrastructure tables (`cache`, `cache_locks`, `jobs`, `failed_jobs`, `job_batches`) only. Domain seeds, booking data, user accounts, and authentication remain deferred to later phases. Phase 13B identity is authorized / preparation underway; no runtime authentication implemented yet; Phase 13C–G remain Planned / Unstarted.
 
 ---
 
