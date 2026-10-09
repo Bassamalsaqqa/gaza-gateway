@@ -1,6 +1,6 @@
 # Phase 13A Foundation 01 — Implementation & Verification Report
 
-Status: local-development checkpoint under Codex review. Phase 13A remains in progress; this report does not establish staging deployment or production readiness. The current artisan serve image is development-only.
+Status: historical local-development checkpoint; see [the integrated local foundation review](phase13a-review.md) for the current candidate. Phase 13A remains in progress; this report does not establish staging deployment or production readiness. The Foundation01 artisan serve image is development-only.
 
 Codex review clarification: the sixteen HTTP captures were generated in Correction03 under `run_ad4c28132ef74e9d83afc0ace29d8f40`. Correction04 reused them to verify stronger tooling; it did not recapture them. Their original run identity has been restored. The worker's original Correction04 log records its relabelled manifest and is retained only as historical worker evidence. Reproduce current validation with the original capture run ID. Hashes and metadata check internal consistency, not cryptographic proof of network execution.
 
@@ -241,11 +241,11 @@ The complete inventory of proposed product files for Phase 13A Foundation 01 com
 
 1. **GitHub Actions**: Disabled; no remote CI runs triggered.
 2. **Paid Cloud Infrastructure & DNS**: No Render web services, PostgreSQL databases, or DNS records provisioned.
-3. **Phase 13A Status**: Foundation 01 implementation, Correction 01, Correction 02, Correction 03, and Correction 04 completed and verified. Awaiting Codex review. Full Phase 13A completion (including typed frontend clients, delivery-storage seams, and production containerization) remains bounded for subsequent assignments.
+3. **Phase 13A Status**: Foundation 01 implementation, Correction 01, Correction 02, Correction 03, and Correction 04 completed and verified. Awaiting Codex review. The later typed client, provider interfaces and immutable runtime candidate are indexed in [phase13a-review.md](phase13a-review.md); this report retains the original checkpoint evidence.
 
 ## 7. Fresh local bootstrap
 
-Run from the repository root in PowerShell with Docker Desktop/Linux containers and Node24. Local Compose credentials are disposable; they are not approved deployment credentials. The nonsuperuser local role has schema creation privileges for migrations. Production runtime/migration roles must be separated later.
+Run from the repository root in PowerShell with Docker Desktop/Linux containers and Node24. Local Compose credentials are disposable; they are not approved deployment credentials. The nonsuperuser local role has schema creation privileges for migrations. The separate immutable runtime recipe uses distinct migration/runtime roles; see [phase13a-runtime.md](phase13a-runtime.md).
 
 ```powershell
 Copy-Item backend/.env.example backend/.env

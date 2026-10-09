@@ -20,7 +20,8 @@
    - Use CSS oklch tokens from `src/styles.css`. Never introduce generic blues, purples, or unbranded utility colors.
 
 5. **Data Layer & Architecture Boundaries**:
-   - **No Backend Yet**: The app is currently client-side state / SSR mock state. Do not create backend databases, Express servers, Prisma, or Supabase integrations.
+   - **Isolated Backend Foundation**: Phase 12 accepted Laravel 13 / PHP 8.4 / PostgreSQL 17 contracts. Phase 13A authorizes the isolated `backend/` local foundation and a read-only system API client behind explicit non-production opt-in. The public and admin frontend remains on existing mock repositories until an independently reviewed cutover. Do not add Express, Prisma, Supabase, authentication, booking inventory, payments or CMS publication outside the authorized phase.
+   - **External Gates**: Paid services, staging/production provisioning, DNS, real credentials, traffic cutover and deployment require owner authorization. Automatic GitHub Actions remain disabled under current owner policy; use focused local gates and independent review.
    - **Mock Repository Transition**: Phase 4 made completed bookings and operational flight overrides canonical through the mock repositories. Account state, `admin-ops`, and most `admin-mock` fixtures remain separate for later phases. Keep migrated UI consumers bound to repository query/mutation hooks.
    - Every enabled user-facing action must eventually perform a real mock mutation (no permanent toast-only or pretend actions).
 
@@ -30,8 +31,8 @@
    - Target WCAG 2.2 AA contrast compliance across light and dark tokens.
 
 7. **Deployment & Hosting Constraints**:
-   - Target host is **HostPapa shared cPanel hosting** (`public_html/`) without persistent Node.js, SSR runtime, Docker, or build daemons.
-   - Deployment workflow is: local build/test → git push → HostPapa git pull/deploy of prebuilt static assets.
+   - The static frontend targets **HostPapa shared cPanel hosting** (`public_html/`) without persistent Node.js, SSR runtime, Docker, or build daemons. The accepted backend target is paid Render services, subject to the external gates above; do not assume HostPapa can run the backend.
+   - Frontend deployment workflow is: local build/test → git push → owner-managed HostPapa git pull/deploy of prebuilt static assets. The Phase 8–11 release remains published separately; live cPanel deployment remains unverified. Backend feature-branch publication does not authorize deployment.
 
 8. **Asset & Content Integrity**:
    - The owner-approved logo and AI-generated Future concepts are integrated through `src/lib/media.ts`.

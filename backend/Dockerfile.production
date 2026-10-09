@@ -1,0 +1,84 @@
+# ==============================================================================
+# Stage 1: Build production vendor dependencies using locked Composer
+# ==============================================================================
+FROM dunglas/frankenphp:1-php8.4@sha256:e9a56d27e7f0c30bb1ad122dfee024a014081c4501782be65424b57016f3104a AS builder
+
+# Copy official pinned Composer 2 binary
+COPY --from=composer:2@sha256:af98f42dfff7c68ba8d53c2164fd9fde1087b7d449514baa38c418b1f6bc4bac /usr/bin/composer /usr/bin/composer
+
+# Install unzip for fast composer package extraction
+RUN apt-get update && apt-get install -y --no-install-recommends unzip && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+# Copy manifest and lockfile only
+COPY composer.json composer.lock ./
+
+# Install locked production dependencies strictly without dev packages
+RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts --no-progress
+
+# ==============================================================================
+# Stage 2: Final immutable production runtime image
+# ==============================================================================
+FROM dunglas/frankenphp:1-php8.4@sha256:e9a56d27e7f0c30bb1ad122dfee024a014081c4501782be65424b57016f3104a AS runtime
+
+# Install verified PHP 8.4 runtime extensions
+RUN install-php-extensions \
+    pdo_pgsql \
+    pgsql \
+    intl \
+    bcmath \
+    zip \
+    pcntl
+
+# Configure explicit Caddyfile for FrankenPHP classic request mode
+COPY docker/Caddyfile /etc/caddy/Caddyfile
+
+# Application working directory
+WORKDIR /var/www/html
+
+# Copy locked vendor from builder stage
+COPY --from=builder /build/vendor /var/www/html/vendor
+
+# Copy application source (tests, phpunit, .env, and scratch files are omitted)
+COPY app /var/www/html/app
+COPY bootstrap/app.php /var/www/html/bootstrap/app.php
+COPY bootstrap/providers.php /var/www/html/bootstrap/providers.php
+COPY config /var/www/html/config
+COPY database /var/www/html/database
+COPY public /var/www/html/public
+COPY routes /var/www/html/routes
+COPY artisan /var/www/html/artisan
+COPY composer.json /var/www/html/composer.json
+
+# Copy entrypoint script
+COPY docker/entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Ensure required storage, bootstrap cache, and Caddy ephemeral directories exist
+RUN mkdir -p /var/www/html/storage/app \
+    /var/www/html/storage/framework/cache/data \
+    /var/www/html/storage/framework/sessions \
+    /var/www/html/storage/framework/views \
+    /var/www/html/storage/logs \
+    /var/www/html/bootstrap/cache \
+    /config/caddy \
+    /data/caddy
+
+# Invariant: Root-owned application source, writable ephemeral runtime directories only
+RUN chown -R root:root /var/www/html && \
+    chmod -R 755 /var/www/html && \
+    chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /config /data && \
+    chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache /config /data
+
+# Unprivileged non-root runtime
+USER www-data
+
+ENV PORT=10000
+EXPOSE 10000
+
+# Disable inherited Caddy admin healthcheck from base image
+HEALTHCHECK NONE
+
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+CMD ["web"]

@@ -191,12 +191,12 @@ it("all authoritative current headers and roadmap distinguish C2A foundation fro
   }
 });
 
-it("living docs record accepted Phase 12, owner deployment and Phase 13 progression boundary", () => {
+it("living docs record accepted Phase 12, owner deployment, proposed Phase 13A local foundation review and Phase 13B–G boundaries", () => {
   const files = ["README.md", "PRODUCT.md", "roadmap.md", ...["ARCHITECTURE", "CANONICAL_REPOSITORIES", "DATA_FLOW", "SCHEDULE_MODEL", "SETTINGS_MODEL", "NETWORK_MODEL", "FLEET_MODEL", "DATED_SERVICE_MODEL", "COMMERCIAL_MODEL", "CONTENT_MODEL", "CONTACT_MODEL"].map(name => `docs/${name}.md`)];
   for (const file of files) {
     const text = readFileSync(file, "utf8");
-    const current = text.split("## Current checkpoint — Phase 12")[1];
-    assert.ok(current, file);
+    const current = text.split("## Current checkpoint — Phase 13A")[1];
+    assert.ok(current, `${file}: missing Current checkpoint — Phase 13A`);
     assert.match(current, /Phase 6, Phase 7 and Phase 7B are \*\*Complete \/ Accepted Source/);
     assert.ok(current.includes("deb9f6e2a4246f4f5c70ca1b56797ccf0588388e"), file);
     assert.ok(current.includes("f68adcc60ec195f8099252b0d2d78da9a7c5ef4e"), file);
@@ -214,8 +214,25 @@ it("living docs record accepted Phase 12, owner deployment and Phase 13 progress
     assert.ok(current.includes("7dab821d7d205b41ae925e013fe9c69a97a7e875"), file);
     assert.ok(current.includes("a47afded49e900b75c907e7230ca4dfef5b3f91e"), file);
     assert.match(current, /live cPanel deployment remains unverified and owner-managed/);
-    assert.match(current, /Phase 13A local foundation is authorized as next implementation stage/);
-    assert.match(current, /Phase 13 runtime remains Planned \/ Unstarted/);
+    assert.match(
+      current,
+      /Phase 13A local backend foundation candidate:\s*Implemented \/ Awaiting Independent Review/,
+      `${file}: Phase 13A local foundation candidate status`,
+    );
+    assert.match(current, /not accepted or deployed|not accepted\/deployed/);
+    for (const stack of [/Laravel 13/, /PHP 8\.4/, /PostgreSQL 17/]) assert.match(current, stack);
+    assert.match(current, /Frontend mock repositories remain default/);
+    assert.match(current, /Typed client operates only via explicit nonproduction opt-in without authentication|Typed client only explicit nonproduction opt-in\/noauth/);
+    assert.match(current, /Phase 13B–G remain Planned \/ Unstarted/);
+    assert.match(current, /no authentication, domain inventory, booking persistence, payments or CMS publication/);
+    assert.match(current, /staging and backend CI definition-of-done gates remain deferred and unmet/);
+    assert.match(current, /Local proof does not satisfy remote gates/);
+    assert.match(current, /no paid services, DNS, real credentials, or traffic cutover/i);
+    assert.match(current, /phase13a-foundation\.md/);
+    assert.match(current, /phase13a-runtime\.md/);
+    assert.match(current, /phase13a-system-client\.md/);
+    assert.match(current, /phase13a-provider-seams\.md/);
+    assert.doesNotMatch(current, /Phase 13 runtime remains Planned \/ Unstarted/);
     assert.match(current, /Earlier milestone sections are historical/);
     for (const historicalSha of [
       "d5dd2942fad517cc5f1be353ad206511cc0724cc",
@@ -239,7 +256,9 @@ it("living docs record accepted Phase 12, owner deployment and Phase 13 progress
 
   const phase13Row = roadmap.split("\n").find((line) => line.startsWith("| **Phase 13** |"));
   assert.ok(phase13Row, "roadmap: Phase 13 row");
-  assert.match(phase13Row, /Planned/);
+  assert.match(phase13Row, /In\s*Progress/i);
+  assert.match(phase13Row, /local foundation/i);
+  assert.match(phase13Row, /external.*gates deferred/i);
 
   for (const file of ["README.md", "roadmap.md", "docs/ARCHITECTURE.md", "docs/DATA_FLOW.md"]) {
     const text = readFileSync(file, "utf8");
@@ -250,8 +269,18 @@ it("living docs record accepted Phase 12, owner deployment and Phase 13 progress
     );
     assert.match(
       text,
-      /Phase 13A local foundation authorized as next implementation stage following prerequisite security work\/review; Phase 13 runtime remains Planned \/ Unstarted/,
-      `${file}: immediate next step header`,
+      /Proposed Phase 13A local foundation candidate|Phase 13A local foundation candidate/,
+      `${file}: immediate next step header candidate`,
+    );
+    assert.match(
+      text,
+      /external staging\/CI gates remain deferred|external staging and backend CI gates remain deferred/,
+      `${file}: external gates deferred in immediate next step header`,
+    );
+    assert.doesNotMatch(
+      text.split("## Master Progression")[0] ?? text.split("## 1. Technical Stack")[0] ?? text.split("## System Data Flow Architecture")[0] ?? text.split("## Original Product Design Brief")[0] ?? text,
+      /Phase 13 runtime remains Planned \/ Unstarted/,
+      `${file}: header does not claim Phase 13 runtime remains Planned / Unstarted`,
     );
   }
 
@@ -266,6 +295,11 @@ it("living docs record accepted Phase 12, owner deployment and Phase 13 progress
       text,
       /Phase 12 — Backend Readiness & API Contracts is Complete \/ Accepted Source at 7dab821d7d205b41ae925e013fe9c69a97a7e875/,
       `${file}: header current Phase 12 source status`,
+    );
+    assert.match(
+      text,
+      /Phase 13A local backend foundation candidate Implemented \/ Awaiting Independent Review/,
+      `${file}: header current Phase 13A status`,
     );
   }
 });

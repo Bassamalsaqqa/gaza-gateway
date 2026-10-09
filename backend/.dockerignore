@@ -11,3 +11,11 @@ storage/framework/sessions/*
 !storage/framework/sessions/.gitkeep
 storage/framework/views/*
 !storage/framework/views/.gitkeep
+bootstrap/cache/*.php
+!bootstrap/cache/.gitkeep
+tests/
+phpunit.xml
+scratch/
+*.key
+*.crt
+*.pem

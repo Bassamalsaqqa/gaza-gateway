@@ -211,6 +211,12 @@ class ConfigurationValidator
             if (!in_array($sslMode, ['require', 'verify-ca', 'verify-full'], true)) {
                 throw new \RuntimeException("Configuration error: Database sslmode must be 'require', 'verify-ca', or 'verify-full' in deployment.");
             }
+
+            // Database connection and query timeout deadline validation in deployment
+            self::validateTimeouts($effectiveConn, true);
+        } else {
+            // Validate timeouts if explicitly configured or overridden in non-deployment
+            self::validateTimeouts($effectiveConn, false);
         }
 
         if ($isTesting) {
@@ -292,6 +298,101 @@ class ConfigurationValidator
         $lockDbConn = $cacheStoreConfig['lock_connection'] ?? null;
         if ($lockDbConn !== null && $lockDbConn !== $defaultConn) {
             throw new \RuntimeException("Configuration error: Unsupported cross-connection for cache lock.");
+        }
+    }
+
+    /**
+     * Validate PostgreSQL connection and query timeout configuration.
+     * Enforces bounded settings on the actual parameters consumed by the driver:
+     * - options[\PDO::ATTR_TIMEOUT] for connect_timeout (1..5s)
+     * - server_options.statement_timeout (100..5000ms)
+     * - server_options.lock_timeout (100..5000ms)
+     * Rejects contradictory or unbounded top-level / URL overrides.
+     * Sanitizes all error messages so credentials, DSNs, and URLs are never reflected or logged.
+     *
+     * @param  array<string, mixed>  $effectiveConn
+     * @throws \RuntimeException
+     */
+    public static function validateTimeouts(array $effectiveConn, bool $isDeployment): void
+    {
+        // 1. Inspect actual driver-consumed connect timeout in options[\PDO::ATTR_TIMEOUT]
+        $driverConnectTimeout = $effectiveConn['options'][\PDO::ATTR_TIMEOUT] ?? null;
+        if ($driverConnectTimeout !== null) {
+            if (filter_var($driverConnectTimeout, FILTER_VALIDATE_INT) === false || (int) $driverConnectTimeout < 1 || (int) $driverConnectTimeout > 5) {
+                throw new \RuntimeException("Configuration error: Invalid or unbounded database connect timeout.");
+            }
+        } elseif ($isDeployment) {
+            throw new \RuntimeException("Configuration error: Database connect timeout must be configured in deployment.");
+        }
+
+        // 2. Inspect actual driver-consumed statement timeout in server_options['statement_timeout']
+        $driverStatementTimeout = $effectiveConn['server_options']['statement_timeout'] ?? null;
+        if ($driverStatementTimeout !== null) {
+            if (filter_var($driverStatementTimeout, FILTER_VALIDATE_INT) === false || (int) $driverStatementTimeout < 100 || (int) $driverStatementTimeout > 5000) {
+                throw new \RuntimeException("Configuration error: Invalid or unbounded database statement timeout.");
+            }
+        } elseif ($isDeployment) {
+            throw new \RuntimeException("Configuration error: Database statement timeout must be configured in deployment.");
+        }
+
+        // 3. Inspect actual driver-consumed lock timeout in server_options['lock_timeout']
+        $driverLockTimeout = $effectiveConn['server_options']['lock_timeout'] ?? null;
+        if ($driverLockTimeout !== null) {
+            if (filter_var($driverLockTimeout, FILTER_VALIDATE_INT) === false || (int) $driverLockTimeout < 100 || (int) $driverLockTimeout > 5000) {
+                throw new \RuntimeException("Configuration error: Invalid or unbounded database lock timeout.");
+            }
+        } elseif ($isDeployment) {
+            throw new \RuntimeException("Configuration error: Database lock timeout must be configured in deployment.");
+        }
+
+        // 4. Inspect optional driver-consumed idle timeout in server_options
+        $driverIdleTimeout = $effectiveConn['server_options']['idle_in_transaction_session_timeout'] ?? null;
+        if ($driverIdleTimeout !== null) {
+            if (filter_var($driverIdleTimeout, FILTER_VALIDATE_INT) === false || (int) $driverIdleTimeout < 100 || (int) $driverIdleTimeout > 60000) {
+                throw new \RuntimeException("Configuration error: Invalid or unbounded database idle timeout.");
+            }
+        }
+
+        // 5. Inspect top-level aliases (such as those parsed from URL query parameters)
+        // Reject non-integer, unbounded, or contradictory overrides
+        if (isset($effectiveConn['connect_timeout'])) {
+            $aliasConnect = $effectiveConn['connect_timeout'];
+            if (filter_var($aliasConnect, FILTER_VALIDATE_INT) === false || (int) $aliasConnect < 1 || (int) $aliasConnect > 5) {
+                throw new \RuntimeException("Configuration error: Invalid or unbounded database connect timeout.");
+            }
+            if ($driverConnectTimeout !== null && (int) $aliasConnect !== (int) $driverConnectTimeout) {
+                throw new \RuntimeException("Configuration error: Contradictory database connect timeout configuration.");
+            }
+        }
+
+        if (isset($effectiveConn['statement_timeout'])) {
+            $aliasStatement = $effectiveConn['statement_timeout'];
+            if (filter_var($aliasStatement, FILTER_VALIDATE_INT) === false || (int) $aliasStatement < 100 || (int) $aliasStatement > 5000) {
+                throw new \RuntimeException("Configuration error: Invalid or unbounded database statement timeout.");
+            }
+            if ($driverStatementTimeout !== null && (int) $aliasStatement !== (int) $driverStatementTimeout) {
+                throw new \RuntimeException("Configuration error: Contradictory database statement timeout configuration.");
+            }
+        }
+
+        if (isset($effectiveConn['lock_timeout'])) {
+            $aliasLock = $effectiveConn['lock_timeout'];
+            if (filter_var($aliasLock, FILTER_VALIDATE_INT) === false || (int) $aliasLock < 100 || (int) $aliasLock > 5000) {
+                throw new \RuntimeException("Configuration error: Invalid or unbounded database lock timeout.");
+            }
+            if ($driverLockTimeout !== null && (int) $aliasLock !== (int) $driverLockTimeout) {
+                throw new \RuntimeException("Configuration error: Contradictory database lock timeout configuration.");
+            }
+        }
+
+        if (isset($effectiveConn['idle_in_transaction_session_timeout'])) {
+            $aliasIdle = $effectiveConn['idle_in_transaction_session_timeout'];
+            if (filter_var($aliasIdle, FILTER_VALIDATE_INT) === false || (int) $aliasIdle < 100 || (int) $aliasIdle > 60000) {
+                throw new \RuntimeException("Configuration error: Invalid or unbounded database idle timeout.");
+            }
+            if ($driverIdleTimeout !== null && (int) $aliasIdle !== (int) $driverIdleTimeout) {
+                throw new \RuntimeException("Configuration error: Contradictory database idle timeout configuration.");
+            }
         }
     }
 

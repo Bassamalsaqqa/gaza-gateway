@@ -1,0 +1,13 @@
+{
+	admin off
+	auto_https off
+}
+
+:{$PORT:10000} {
+	root * /var/www/html/public
+	log {
+		output discard
+	}
+	encode zstd br gzip
+	php_server
+}

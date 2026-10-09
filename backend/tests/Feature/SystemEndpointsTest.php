@@ -368,6 +368,14 @@ class SystemEndpointsTest extends TestCase
             'username' => 'prod_service_role',
             'password' => 'prod_strong_vault_pass_123',
             'sslmode' => 'require',
+            'options' => [
+                \PDO::ATTR_TIMEOUT => 3,
+            ],
+            'server_options' => [
+                'statement_timeout' => '3000',
+                'lock_timeout' => '3000',
+                'idle_in_transaction_session_timeout' => '3000',
+            ],
         ];
         $config['queue']['default'] = 'database';
         $config['queue']['connections']['database'] = [
@@ -473,9 +481,7 @@ class SystemEndpointsTest extends TestCase
     public function test_configuration_validator_accepts_complete_url_positive_control(): void
     {
         $config = $this->getValidProductionConfig();
-        $config['database']['connections']['pgsql'] = [
-            'url' => 'postgres://synth_user:synth_pass@db.prod.com:5432/gaza_prod?sslmode=require',
-        ];
+        $config['database']['connections']['pgsql']['url'] = 'postgres://synth_user:synth_pass@db.prod.com:5432/gaza_prod?sslmode=require&connect_timeout=3&statement_timeout=3000&lock_timeout=3000';
 
         \App\Support\ConfigurationValidator::validate($config, 'production');
         $this->assertTrue(true);
@@ -613,5 +619,165 @@ class SystemEndpointsTest extends TestCase
 
         $this->assertContains(400, $statuses);
         $this->assertContains(403, $statuses);
+    }
+
+    public function test_configuration_validator_rejects_non_positive_connect_timeout(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Invalid or unbounded database connect timeout');
+
+        $config = $this->getValidProductionConfig();
+        $config['database']['connections']['pgsql']['options'][\PDO::ATTR_TIMEOUT] = 0;
+
+        \App\Support\ConfigurationValidator::validate($config, 'production');
+    }
+
+    public function test_configuration_validator_rejects_excessive_connect_timeout(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Invalid or unbounded database connect timeout');
+
+        $config = $this->getValidProductionConfig();
+        $config['database']['connections']['pgsql']['options'][\PDO::ATTR_TIMEOUT] = 10;
+
+        \App\Support\ConfigurationValidator::validate($config, 'production');
+    }
+
+    public function test_configuration_validator_rejects_non_integer_connect_timeout(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Invalid or unbounded database connect timeout');
+
+        $config = $this->getValidProductionConfig();
+        $config['database']['connections']['pgsql']['options'][\PDO::ATTR_TIMEOUT] = 'abc';
+
+        \App\Support\ConfigurationValidator::validate($config, 'production');
+    }
+
+    public function test_configuration_validator_rejects_missing_connect_timeout_in_deployment(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Database connect timeout must be configured in deployment');
+
+        $config = $this->getValidProductionConfig();
+        unset($config['database']['connections']['pgsql']['options'][\PDO::ATTR_TIMEOUT]);
+
+        \App\Support\ConfigurationValidator::validate($config, 'production');
+    }
+
+    public function test_configuration_validator_rejects_non_positive_statement_timeout(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Invalid or unbounded database statement timeout');
+
+        $config = $this->getValidProductionConfig();
+        $config['database']['connections']['pgsql']['server_options']['statement_timeout'] = '0';
+
+        \App\Support\ConfigurationValidator::validate($config, 'production');
+    }
+
+    public function test_configuration_validator_rejects_excessive_statement_timeout(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Invalid or unbounded database statement timeout');
+
+        $config = $this->getValidProductionConfig();
+        $config['database']['connections']['pgsql']['server_options']['statement_timeout'] = '10000';
+
+        \App\Support\ConfigurationValidator::validate($config, 'production');
+    }
+
+    public function test_configuration_validator_rejects_missing_statement_timeout_in_deployment(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Database statement timeout must be configured in deployment');
+
+        $config = $this->getValidProductionConfig();
+        unset($config['database']['connections']['pgsql']['server_options']['statement_timeout']);
+
+        \App\Support\ConfigurationValidator::validate($config, 'production');
+    }
+
+    public function test_configuration_validator_rejects_missing_lock_timeout_in_deployment(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Database lock timeout must be configured in deployment');
+
+        $config = $this->getValidProductionConfig();
+        unset($config['database']['connections']['pgsql']['server_options']['lock_timeout']);
+
+        \App\Support\ConfigurationValidator::validate($config, 'production');
+    }
+
+    public function test_configuration_validator_rejects_masked_invalid_pdo_timeout_by_alias(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Invalid or unbounded database connect timeout');
+
+        $config = $this->getValidProductionConfig();
+        // Harmless top-level alias must NOT mask invalid actual PDO options
+        $config['database']['connections']['pgsql']['connect_timeout'] = 1;
+        $config['database']['connections']['pgsql']['options'][\PDO::ATTR_TIMEOUT] = 99;
+
+        \App\Support\ConfigurationValidator::validate($config, 'production');
+    }
+
+    public function test_configuration_validator_rejects_masked_invalid_statement_timeout_by_alias(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Invalid or unbounded database statement timeout');
+
+        $config = $this->getValidProductionConfig();
+        // Harmless top-level alias must NOT mask invalid server_options
+        $config['database']['connections']['pgsql']['statement_timeout'] = 3000;
+        $config['database']['connections']['pgsql']['server_options']['statement_timeout'] = 0;
+
+        \App\Support\ConfigurationValidator::validate($config, 'production');
+    }
+
+    public function test_configuration_validator_rejects_contradictory_connect_timeout_override(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Contradictory database connect timeout configuration');
+
+        $config = $this->getValidProductionConfig();
+        $config['database']['connections']['pgsql']['options'][\PDO::ATTR_TIMEOUT] = 3;
+        $config['database']['connections']['pgsql']['url'] = 'postgres://prod_user:prod_pass@db.prod.com:5432/gaza_prod?sslmode=require&connect_timeout=2';
+
+        \App\Support\ConfigurationValidator::validate($config, 'production');
+    }
+
+    public function test_configuration_validator_rejects_contradictory_statement_timeout_override(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Contradictory database statement timeout configuration');
+
+        $config = $this->getValidProductionConfig();
+        $config['database']['connections']['pgsql']['server_options']['statement_timeout'] = '3000';
+        $config['database']['connections']['pgsql']['url'] = 'postgres://prod_user:prod_pass@db.prod.com:5432/gaza_prod?sslmode=require&statement_timeout=2000';
+
+        \App\Support\ConfigurationValidator::validate($config, 'production');
+    }
+
+    public function test_configuration_validator_rejects_invalid_url_timeout_override(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Invalid or unbounded database connect timeout');
+
+        $config = $this->getValidProductionConfig();
+        $config['database']['connections']['pgsql']['url'] = 'postgres://prod_user:prod_pass@db.prod.com:5432/gaza_prod?sslmode=require&connect_timeout=-1';
+
+        \App\Support\ConfigurationValidator::validate($config, 'production');
+    }
+
+    public function test_configuration_validator_accepts_valid_timeout_bounds(): void
+    {
+        $config = $this->getValidProductionConfig();
+        $config['database']['connections']['pgsql']['options'][\PDO::ATTR_TIMEOUT] = 2;
+        $config['database']['connections']['pgsql']['server_options']['statement_timeout'] = '2500';
+        $config['database']['connections']['pgsql']['server_options']['lock_timeout'] = '2000';
+
+        \App\Support\ConfigurationValidator::validate($config, 'production');
+        $this->assertTrue(true);
     }
 }
