@@ -1,0 +1,98 @@
+name: gaza_gateway_phase13a_foundation
+
+services:
+  postgres:
+    image: postgres:17@sha256:2d2b8998d31037bf721cfdf764d76ba74171b4fab3431b7f72c27c56ddbdf9e3
+    environment:
+      POSTGRES_USER: gza_admin
+      POSTGRES_PASSWORD: gza_local_secret
+      POSTGRES_DB: gaza_gateway_dev
+    volumes:
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    # Postgres remains internal to the Docker network; no published host ports
+    expose:
+      - "5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gza_admin -d gaza_gateway_dev"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+    networks:
+      - backend-internal
+
+  app:
+    image: gaza-gateway-backend:phase13a
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # Local loopback only binding on 127.0.0.1:18084
+    ports:
+      - "${APP_PORT_BINDING:-127.0.0.1:18084}:8000"
+    volumes:
+      - ./:/var/www/html
+    environment:
+      APP_NAME: "Gaza Gateway API"
+      APP_ENV: local
+      APP_KEY: "${APP_KEY}"
+      APP_DEBUG: "true"
+      APP_URL: "${APP_URL:-http://127.0.0.1:18084}"
+      APP_VERSION: "${APP_VERSION:-1.0.0-foundation}"
+      APP_COMMIT: "${APP_COMMIT:-unreleased-local}"
+      APP_SCHEMA_VERSION: "${APP_SCHEMA_VERSION:-1}"
+      APP_ALLOWED_HOSTS: "${APP_ALLOWED_HOSTS:-127.0.0.1,localhost,127.0.0.1:18084,localhost:18084}"
+      CORS_ALLOWED_ORIGINS: "${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173,http://127.0.0.1:18084,http://localhost:3000,http://127.0.0.1:3000}"
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: gaza_gateway_dev
+      DB_TEST_DATABASE: gaza_gateway_test
+      DB_USERNAME: gaza_app_user
+      DB_PASSWORD: gaza_app_local_pass
+      CACHE_STORE: database
+      CACHE_PREFIX: gza_cache
+      QUEUE_CONNECTION: database
+      SESSION_DRIVER: array
+    networks:
+      - backend-internal
+
+  worker:
+    image: gaza-gateway-backend:phase13a
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./:/var/www/html
+    environment:
+      APP_NAME: "Gaza Gateway API"
+      APP_ENV: local
+      APP_KEY: "${APP_KEY}"
+      APP_DEBUG: "true"
+      APP_URL: "${APP_URL:-http://127.0.0.1:18084}"
+      APP_VERSION: "${APP_VERSION:-1.0.0-foundation}"
+      APP_COMMIT: "${APP_COMMIT:-unreleased-local}"
+      APP_SCHEMA_VERSION: "${APP_SCHEMA_VERSION:-1}"
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: gaza_gateway_dev
+      DB_TEST_DATABASE: gaza_gateway_test
+      DB_USERNAME: gaza_app_user
+      DB_PASSWORD: gaza_app_local_pass
+      CACHE_STORE: database
+      CACHE_PREFIX: gza_cache
+      QUEUE_CONNECTION: database
+      SESSION_DRIVER: array
+    command: ["php", "artisan", "queue:work", "--sleep=1", "--tries=3"]
+    networks:
+      - backend-internal
+
+networks:
+  backend-internal:
+    driver: bridge

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true">
+    <testsuites>
+        <testsuite name="Feature">
+            <directory>tests/Feature</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory>app</directory>
+        </include>
+    </source>
+    <php>
+        <env name="APP_ENV" value="testing"/>
+        <env name="APP_DEBUG" value="false"/>
+        <env name="CACHE_STORE" value="database"/>
+        <env name="DB_CONNECTION" value="pgsql_test"/>
+        <env name="DB_HOST" value="postgres"/>
+        <env name="DB_PORT" value="5432"/>
+        <env name="DB_TEST_DATABASE" value="gaza_gateway_test"/>
+        <env name="DB_USERNAME" value="gaza_app_user"/>
+        <env name="DB_PASSWORD" value="gaza_app_local_pass"/>
+        <env name="QUEUE_CONNECTION" value="database"/>
+    </php>
+</phpunit>
