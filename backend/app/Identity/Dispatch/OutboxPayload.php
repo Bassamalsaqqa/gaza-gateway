@@ -176,4 +176,3 @@ final class OutboxPayload implements JsonSerializable
         throw new LogicException('Direct deserialization of OutboxPayload is prohibited; use fromJson().');
     }
 }
-

@@ -8,7 +8,7 @@ This Phase 12 specification defined future production behavior and supplied depe
 
 Accepted local engineering baseline: [Phase13A integration review](phase13a-review.md), with separate foundation, runtime, provider and client evidence. External staging and backend CI gates remain deferred and unmet.
 
-Current feature-branch progress (2026-10-10): [Phase 13B reviewed foundations checkpoint](phase13b-review-checkpoint.md), [bootstrap admission correction](phase13b-bootstrap-admission.md) and [independent review disposition](phase13b-review-disposition.md). Identity primitives, cookie/CSRF bootstraps and the 41-operation transport are implemented for review; end-to-end authentication/UI remains incomplete. Proof/outbox retention is blocked and excluded. Owner-authorized source advancement does not close the five normative contract findings in public Issue #1; the disposition distinguishes those records.
+Current feature-branch progress (2026-10-10): [Phase 13B reviewed foundations checkpoint](phase13b-review-checkpoint.md), [bootstrap admission correction](phase13b-bootstrap-admission.md), [corrected proof/outbox primitives](phase13b-lifecycle-primitives.md) and [independent review disposition](phase13b-review-disposition.md). Identity primitives, cookie/CSRF bootstraps and the 41-operation transport are implemented for review; end-to-end authentication/UI remains incomplete. Corrected proof/outbox primitives passed independent focused checks and are included; HTTP integration and final phase certification remain pending. Owner-authorized source advancement does not close the five normative contract findings in public Issue #1; the disposition distinguishes those records.
 
 ## Requirement-to-artifact map
 

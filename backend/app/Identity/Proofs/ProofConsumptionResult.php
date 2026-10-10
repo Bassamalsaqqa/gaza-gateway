@@ -140,4 +140,3 @@ final class ProofConsumptionResult implements JsonSerializable
         $this->emailHolder = null;
     }
 }
-

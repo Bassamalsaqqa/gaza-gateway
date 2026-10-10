@@ -18,7 +18,7 @@ Date: 2026-10-10. Main/base: `93ffaeb5619c6c5115512b57ebf069cbd153e60e`. Reviewe
 
 Earlier bounded-package checks are recorded in their linked evidence; they were not repeated merely to publish this checkpoint. Recent client/protocol checks are independent Codex reruns after the final worker corrections. No full-suite or browser-matrix certification is claimed.
 
-## Excluded worker handback and blocking review finding
+## Historical excluded worker handback and blocking review finding
 
 AGY proof/outbox task `phase13b_lifecycle04_20261010`, run `run_7a1d076ca6d2480fbe5b5f8385392a83`, remains uncommitted in its isolated workspace and is **not included in this branch**. Codex independently reran its focused PHP 8.4.26/PostgreSQL 17 suite: 61 tests, 530 assertions, exit 0.
 
@@ -26,9 +26,9 @@ A further independent failure-injection test failed: when deletion of both the s
 
 ## Remaining roadmap and acceptance gates
 
-PR #2 received changes requested after this checkpoint. [Review disposition](phase13b-review-disposition.md) records the anonymous bootstrap correction, excluded proof package and open Issue #1 ownership. See [bootstrap admission](phase13b-bootstrap-admission.md) for the bounded follow-up and focused evidence; Phase 13B remains incomplete.
+PR #2 received changes requested after this checkpoint. The original excluded handback above is preserved as historical evidence. Corrected proof/outbox primitives were subsequently integrated at `1c9000c98fd645fb06bb0da913a137bd6b24d66e`, with provider wiring still deferred to downstream HTTP integration. [Lifecycle evidence](phase13b-lifecycle-primitives.md) records corrected negative controls and final focused PHP/PostgreSQL results (5 tests / 29 assertions); this is not final phase certification. [Review disposition](phase13b-review-disposition.md) records bootstrap correction and open Issue #1 ownership. Phase 13B remains incomplete.
 
-1. Repair and independently accept proof/outbox retention, concurrency and safe dispatch boundaries.
+1. Integrate reviewed proof/outbox primitives into passenger HTTP coordinators and actual post-commit dispatch/cleanup execution; retain independent PR and final integrated review gates.
 2. Implement passenger registration, verification, recovery, login/logout, profile/travelers, password/session lifecycle and actual post-commit worker/cleanup execution.
 3. Implement staff pending MFA, enrollment, confirmation, step-up and session lifecycle, then directory/invitation/recovery using one closed transaction coordinator and race-safe last-admin enforcement.
 4. Implement guest OTP grants, ownership proof and receipt security hooks without inventing Phase 13D booking workflows.

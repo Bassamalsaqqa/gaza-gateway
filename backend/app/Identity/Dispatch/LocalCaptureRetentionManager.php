@@ -71,4 +71,3 @@ class LocalCaptureRetentionManager
         return $real;
     }
 }
-
