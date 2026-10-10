@@ -1,0 +1,62 @@
+name: gaza_gateway_phase13b_directory03
+
+services:
+  postgres:
+    image: postgres:17@sha256:2d2b8998d31037bf721cfdf764d76ba74171b4fab3431b7f72c27c56ddbdf9e3
+    environment:
+      POSTGRES_USER: gza_admin
+      POSTGRES_PASSWORD: gza_local_secret
+      POSTGRES_DB: gaza_gateway_dev
+    volumes:
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+      - pgdata-directory03-dev:/var/lib/postgresql/data
+    expose:
+      - "5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gza_admin -d gaza_gateway_dev"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+    networks:
+      - directory03-internal
+
+  app:
+    image: gaza-gateway-backend:phase13a
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${APP_PORT_BINDING:-127.0.0.1:18093}:8000"
+    volumes:
+      - ./:/var/www/html
+    environment:
+      APP_NAME: "Gaza Gateway Identity Directory"
+      APP_ENV: testing
+      APP_KEY: "${APP_KEY:?APP_KEY must be provided via environment or local ignored file. Generate with: php artisan key:generate --show}"
+      APP_DEBUG: "true"
+      APP_URL: "${APP_URL:-http://127.0.0.1:18093}"
+      APP_VERSION: "${APP_VERSION:-1.0.0-phase13b-directory03}"
+      APP_COMMIT: "${APP_COMMIT:-unreleased-directory03}"
+      APP_SCHEMA_VERSION: "${APP_SCHEMA_VERSION:-1}"
+      APP_ALLOWED_HOSTS: "${APP_ALLOWED_HOSTS:-127.0.0.1,localhost,127.0.0.1:18093,localhost:18093}"
+      CORS_ALLOWED_ORIGINS: "${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173,http://127.0.0.1:18093}"
+      DB_CONNECTION: pgsql_test
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: gaza_gateway_dev
+      DB_TEST_DATABASE: gaza_gateway_test
+      DB_USERNAME: gaza_app_user
+      DB_PASSWORD: gaza_app_local_pass
+      CACHE_STORE: database
+      CACHE_PREFIX: gza_cache
+      QUEUE_CONNECTION: database
+      SESSION_DRIVER: array
+    networks:
+      - directory03-internal
+
+volumes:
+  pgdata-directory03-dev:
+
+networks:
+  directory03-internal:
+    driver: bridge
