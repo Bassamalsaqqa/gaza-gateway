@@ -24,6 +24,15 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
 
+        $this->assertDisposableDatabaseTarget();
+    }
+
+    final protected function assertDisposableDatabaseTarget(): void
+    {
+        if (getenv('APP_ENV') !== 'testing' || !$this->app->environment('testing')) {
+            throw new \RuntimeException('Fixture admission requires the testing environment.');
+        }
+
         // Guard: Strictly enforce testing environment
         if (!$this->app->environment('testing')) {
             throw new \RuntimeException(
@@ -41,6 +50,16 @@ abstract class TestCase extends BaseTestCase
 
         // Guard: Strictly enforce disposable test database
         $connection = DB::connection();
+        try {
+            $liveTarget = $connection->selectOne('SELECT current_database() AS database_name');
+        } catch (\Throwable) {
+            throw new \RuntimeException('Unable to verify the live disposable database target.');
+        }
+        if ($connection->getName() !== 'pgsql_test'
+            || $connection->getDriverName() !== 'pgsql'
+            || ($liveTarget->database_name ?? null) !== 'gaza_gateway_test') {
+            throw new \RuntimeException('Fixture admission rejected the live database target.');
+        }
         $databaseName = $connection->getDatabaseName();
         if ($databaseName !== 'gaza_gateway_test') {
             throw new \RuntimeException(

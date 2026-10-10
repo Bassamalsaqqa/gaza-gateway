@@ -1,0 +1,1792 @@
+[
+  {
+    "id": "csrf_auth_bootstrap_valid",
+    "family": "CsrfBootstrap",
+    "operationId": "getAuthCsrfBootstrap",
+    "method": "GET",
+    "path": "/auth/csrf",
+    "expectedValid": true,
+    "payload": null,
+    "parameters": {}
+  },
+  {
+    "id": "csrf_auth_bootstrap_unexpected_body",
+    "family": "CsrfBootstrap",
+    "operationId": "getAuthCsrfBootstrap",
+    "method": "GET",
+    "path": "/auth/csrf",
+    "expectedValid": false,
+    "expectedCode": "UNEXPECTED_BODY",
+    "payload": {},
+    "parameters": {}
+  },
+  {
+    "id": "csrf_staff_bootstrap_valid",
+    "family": "CsrfBootstrap",
+    "operationId": "getStaffCsrfBootstrap",
+    "method": "GET",
+    "path": "/staff/csrf",
+    "expectedValid": true,
+    "payload": null,
+    "parameters": {}
+  },
+  {
+    "id": "csrf_staff_bootstrap_unexpected_body",
+    "family": "CsrfBootstrap",
+    "operationId": "getStaffCsrfBootstrap",
+    "method": "GET",
+    "path": "/staff/csrf",
+    "expectedValid": false,
+    "expectedCode": "UNEXPECTED_BODY",
+    "payload": { "token": "test" },
+    "parameters": {}
+  },
+  {
+    "id": "passenger_register_valid_full",
+    "family": "PassengerAuth",
+    "operationId": "postPassengerRegister",
+    "method": "POST",
+    "path": "/auth/register",
+    "expectedValid": true,
+    "payload": {
+      "email": "ahmad.masri@gazaairport.com",
+      "password": "PasswordWith15Chars!",
+      "title": "Mr",
+      "firstName": "Ahmad",
+      "lastName": "Al-Masri",
+      "phone": "+970599123456"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "passenger_register_valid_minimal",
+    "family": "PassengerAuth",
+    "operationId": "postPassengerRegister",
+    "method": "POST",
+    "path": "/auth/register",
+    "expectedValid": true,
+    "payload": {
+      "email": "fatima@example.com",
+      "password": "ValidPassword15#",
+      "firstName": "Fatima",
+      "lastName": "Husseini"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "passenger_register_valid_arabic_codepoints",
+    "family": "PassengerAuth",
+    "operationId": "postPassengerRegister",
+    "method": "POST",
+    "path": "/auth/register",
+    "expectedValid": true,
+    "payload": {
+      "email": "yousef@example.com",
+      "password": "فلسطين_حرّة_123",
+      "firstName": "Yousef",
+      "lastName": "Qudwa"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "passenger_register_valid_max_128_codepoints",
+    "family": "PassengerAuth",
+    "operationId": "postPassengerRegister",
+    "method": "POST",
+    "path": "/auth/register",
+    "expectedValid": true,
+    "payload": {
+      "email": "maxpass@example.com",
+      "password": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "firstName": "Max",
+      "lastName": "Length"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "passenger_register_password_with_spaces_untrimmed",
+    "family": "PassengerAuth",
+    "operationId": "postPassengerRegister",
+    "method": "POST",
+    "path": "/auth/register",
+    "expectedValid": true,
+    "payload": {
+      "email": "spaces@example.com",
+      "password": "  pass word 123  ",
+      "firstName": "Space",
+      "lastName": "Preserved"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "passenger_register_password_short_14",
+    "family": "PassengerAuth",
+    "operationId": "postPassengerRegister",
+    "method": "POST",
+    "path": "/auth/register",
+    "expectedValid": false,
+    "expectedCode": "STRING_TOO_SHORT",
+    "payload": {
+      "email": "short@example.com",
+      "password": "ShortPass1234!",
+      "firstName": "Short",
+      "lastName": "Pass"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "passenger_register_password_long_129",
+    "family": "PassengerAuth",
+    "operationId": "postPassengerRegister",
+    "method": "POST",
+    "path": "/auth/register",
+    "expectedValid": false,
+    "expectedCode": "STRING_TOO_LONG",
+    "payload": {
+      "email": "toolong@example.com",
+      "password": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "firstName": "Too",
+      "lastName": "Long"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "passenger_register_missing_required_email",
+    "family": "PassengerAuth",
+    "operationId": "postPassengerRegister",
+    "method": "POST",
+    "path": "/auth/register",
+    "expectedValid": false,
+    "expectedCode": "REQUIRED_FIELD_MISSING",
+    "payload": {
+      "password": "ValidPassword15#",
+      "firstName": "Fatima",
+      "lastName": "Husseini"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "passenger_register_invalid_email_format",
+    "family": "PassengerAuth",
+    "operationId": "postPassengerRegister",
+    "method": "POST",
+    "path": "/auth/register",
+    "expectedValid": false,
+    "expectedCode": "INVALID_FORMAT",
+    "payload": {
+      "email": "not-an-email",
+      "password": "ValidPassword15#",
+      "firstName": "Fatima",
+      "lastName": "Husseini"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "passenger_register_invalid_title_enum",
+    "family": "PassengerAuth",
+    "operationId": "postPassengerRegister",
+    "method": "POST",
+    "path": "/auth/register",
+    "expectedValid": false,
+    "expectedCode": "INVALID_ENUM",
+    "payload": {
+      "email": "lord@example.com",
+      "password": "ValidPassword15#",
+      "title": "Lord",
+      "firstName": "Lord",
+      "lastName": "Vader"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "passenger_register_empty_firstname_rejected",
+    "family": "PassengerAuth",
+    "operationId": "postPassengerRegister",
+    "method": "POST",
+    "path": "/auth/register",
+    "expectedValid": false,
+    "expectedCode": "STRING_TOO_SHORT",
+    "payload": {
+      "email": "emptyfirst@example.com",
+      "password": "ValidPassword15#",
+      "firstName": "",
+      "lastName": "Husseini"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "passenger_register_disallowed_additional_properties",
+    "family": "PassengerAuth",
+    "operationId": "postPassengerRegister",
+    "method": "POST",
+    "path": "/auth/register",
+    "expectedValid": false,
+    "expectedCode": "ADDITIONAL_PROPERTIES_DISALLOWED",
+    "payload": {
+      "email": "injected@example.com",
+      "password": "ValidPassword15#",
+      "firstName": "Hacker",
+      "lastName": "Attack",
+      "role": "admin",
+      "isAdmin": true
+    },
+    "parameters": {}
+  },
+  {
+    "id": "passenger_register_list_instead_of_object",
+    "family": "PassengerAuth",
+    "operationId": "postPassengerRegister",
+    "method": "POST",
+    "path": "/auth/register",
+    "expectedValid": false,
+    "expectedCode": "INVALID_TYPE",
+    "payload": [],
+    "parameters": {}
+  },
+  {
+    "id": "passenger_login_valid",
+    "family": "PassengerAuth",
+    "operationId": "postPassengerLogin",
+    "method": "POST",
+    "path": "/auth/login",
+    "expectedValid": true,
+    "payload": {
+      "email": "traveler@gazaairport.com",
+      "password": "short"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "passenger_login_missing_password",
+    "family": "PassengerAuth",
+    "operationId": "postPassengerLogin",
+    "method": "POST",
+    "path": "/auth/login",
+    "expectedValid": false,
+    "expectedCode": "REQUIRED_FIELD_MISSING",
+    "payload": {
+      "email": "traveler@gazaairport.com"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "passenger_login_disallowed_property",
+    "family": "PassengerAuth",
+    "operationId": "postPassengerLogin",
+    "method": "POST",
+    "path": "/auth/login",
+    "expectedValid": false,
+    "expectedCode": "ADDITIONAL_PROPERTIES_DISALLOWED",
+    "payload": {
+      "email": "traveler@gazaairport.com",
+      "password": "secret",
+      "rememberMe": true
+    },
+    "parameters": {}
+  },
+  {
+    "id": "passenger_logout_valid_bodyless",
+    "family": "PassengerAuth",
+    "operationId": "postPassengerLogout",
+    "method": "POST",
+    "path": "/auth/logout",
+    "expectedValid": true,
+    "payload": null,
+    "parameters": {}
+  },
+  {
+    "id": "passenger_logout_unexpected_body",
+    "family": "PassengerAuth",
+    "operationId": "postPassengerLogout",
+    "method": "POST",
+    "path": "/auth/logout",
+    "expectedValid": false,
+    "expectedCode": "UNEXPECTED_BODY",
+    "payload": { "session": "all" },
+    "parameters": {}
+  },
+  {
+    "id": "passenger_password_forgot_valid",
+    "family": "PassengerPassword",
+    "operationId": "postPassengerPasswordForgot",
+    "method": "POST",
+    "path": "/auth/password/forgot",
+    "expectedValid": true,
+    "payload": {
+      "email": "recovery@example.com"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "passenger_password_forgot_missing_email",
+    "family": "PassengerPassword",
+    "operationId": "postPassengerPasswordForgot",
+    "method": "POST",
+    "path": "/auth/password/forgot",
+    "expectedValid": false,
+    "expectedCode": "REQUIRED_FIELD_MISSING",
+    "payload": {},
+    "parameters": {}
+  },
+  {
+    "id": "passenger_password_reset_valid",
+    "family": "PassengerPassword",
+    "operationId": "postPassengerPasswordReset",
+    "method": "POST",
+    "path": "/auth/password/reset",
+    "expectedValid": true,
+    "payload": {
+      "token": "32bytesrandomtokenresetproof1234",
+      "email": "user@example.com",
+      "password": "NewValidPassword15!"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "passenger_password_reset_short_password",
+    "family": "PassengerPassword",
+    "operationId": "postPassengerPasswordReset",
+    "method": "POST",
+    "path": "/auth/password/reset",
+    "expectedValid": false,
+    "expectedCode": "STRING_TOO_SHORT",
+    "payload": {
+      "token": "32bytesrandomtokenresetproof1234",
+      "email": "user@example.com",
+      "password": "short"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "passenger_email_verify_valid",
+    "family": "PassengerVerification",
+    "operationId": "postPassengerEmailVerify",
+    "method": "POST",
+    "path": "/auth/email/verify",
+    "expectedValid": true,
+    "payload": {
+      "token": "verification-token-string"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "passenger_email_verify_missing_token",
+    "family": "PassengerVerification",
+    "operationId": "postPassengerEmailVerify",
+    "method": "POST",
+    "path": "/auth/email/verify",
+    "expectedValid": false,
+    "expectedCode": "REQUIRED_FIELD_MISSING",
+    "payload": {},
+    "parameters": {}
+  },
+  {
+    "id": "passenger_email_resend_valid",
+    "family": "PassengerVerification",
+    "operationId": "postPassengerEmailResend",
+    "method": "POST",
+    "path": "/auth/email/resend",
+    "expectedValid": true,
+    "payload": {
+      "email": "resend@example.com"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "passenger_email_resend_invalid_email",
+    "family": "PassengerVerification",
+    "operationId": "postPassengerEmailResend",
+    "method": "POST",
+    "path": "/auth/email/resend",
+    "expectedValid": false,
+    "expectedCode": "INVALID_FORMAT",
+    "payload": {
+      "email": "not-an-email"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "passenger_password_change_valid",
+    "family": "PassengerPassword",
+    "operationId": "putPassengerPassword",
+    "method": "PUT",
+    "path": "/auth/passenger/password",
+    "expectedValid": true,
+    "payload": {
+      "currentPassword": "oldPassword12345",
+      "newPassword": "brandNewPassword15!"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "passenger_password_change_short_new",
+    "family": "PassengerPassword",
+    "operationId": "putPassengerPassword",
+    "method": "PUT",
+    "path": "/auth/passenger/password",
+    "expectedValid": false,
+    "expectedCode": "STRING_TOO_SHORT",
+    "payload": {
+      "currentPassword": "oldPassword12345",
+      "newPassword": "short"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "passenger_profile_get_valid",
+    "family": "PassengerProfile",
+    "operationId": "getPassengerProfile",
+    "method": "GET",
+    "path": "/auth/passenger/profile",
+    "expectedValid": true,
+    "payload": null,
+    "parameters": {}
+  },
+  {
+    "id": "passenger_profile_get_unexpected_body",
+    "family": "PassengerProfile",
+    "operationId": "getPassengerProfile",
+    "method": "GET",
+    "path": "/auth/passenger/profile",
+    "expectedValid": false,
+    "expectedCode": "UNEXPECTED_BODY",
+    "payload": {},
+    "parameters": {}
+  },
+  {
+    "id": "passenger_profile_put_valid_full",
+    "family": "PassengerProfile",
+    "operationId": "putPassengerProfile",
+    "method": "PUT",
+    "path": "/auth/passenger/profile",
+    "expectedValid": true,
+    "payload": {
+      "firstName": "Mariam",
+      "lastName": "Barghouti",
+      "phone": "+970599001122",
+      "seatPreference": "window",
+      "mealPreference": "Vegetarian",
+      "newsletter": true
+    },
+    "parameters": {}
+  },
+  {
+    "id": "passenger_profile_put_valid_empty",
+    "family": "PassengerProfile",
+    "operationId": "putPassengerProfile",
+    "method": "PUT",
+    "path": "/auth/passenger/profile",
+    "expectedValid": true,
+    "payload": {},
+    "parameters": {}
+  },
+  {
+    "id": "passenger_profile_put_invalid_seat_enum",
+    "family": "PassengerProfile",
+    "operationId": "putPassengerProfile",
+    "method": "PUT",
+    "path": "/auth/passenger/profile",
+    "expectedValid": false,
+    "expectedCode": "INVALID_ENUM",
+    "payload": {
+      "seatPreference": "cockpit"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "passenger_profile_put_invalid_newsletter_type",
+    "family": "PassengerProfile",
+    "operationId": "putPassengerProfile",
+    "method": "PUT",
+    "path": "/auth/passenger/profile",
+    "expectedValid": false,
+    "expectedCode": "INVALID_TYPE",
+    "payload": {
+      "newsletter": "true"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "passenger_travelers_get_valid",
+    "family": "PassengerTravelers",
+    "operationId": "getSavedTravelers",
+    "method": "GET",
+    "path": "/auth/passenger/travelers",
+    "expectedValid": true,
+    "payload": null,
+    "parameters": {}
+  },
+  {
+    "id": "passenger_traveler_post_valid",
+    "family": "PassengerTravelers",
+    "operationId": "postSavedTraveler",
+    "method": "POST",
+    "path": "/auth/passenger/travelers",
+    "expectedValid": true,
+    "payload": {
+      "firstName": "Tariq",
+      "lastName": "Ziyad",
+      "dob": "1985-07-20",
+      "nationality": "Palestinian",
+      "document": "P98765432"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "passenger_traveler_post_empty_valid",
+    "family": "PassengerTravelers",
+    "operationId": "postSavedTraveler",
+    "method": "POST",
+    "path": "/auth/passenger/travelers",
+    "expectedValid": true,
+    "payload": {},
+    "parameters": {}
+  },
+  {
+    "id": "passenger_traveler_patch_valid_opaque_id",
+    "family": "PassengerTravelers",
+    "operationId": "patchSavedTraveler",
+    "method": "PATCH",
+    "path": "/auth/passenger/travelers/{id}",
+    "expectedValid": true,
+    "payload": {
+      "firstName": "Tariq Updated"
+    },
+    "parameters": {
+      "id": "traveler-opaque-non-uuid-99"
+    }
+  },
+  {
+    "id": "passenger_traveler_patch_missing_param_id",
+    "family": "PassengerTravelers",
+    "operationId": "patchSavedTraveler",
+    "method": "PATCH",
+    "path": "/auth/passenger/travelers/{id}",
+    "expectedValid": false,
+    "expectedCode": "REQUIRED_FIELD_MISSING",
+    "payload": {
+      "firstName": "Tariq"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "passenger_traveler_delete_valid_opaque_id",
+    "family": "PassengerTravelers",
+    "operationId": "deleteSavedTraveler",
+    "method": "DELETE",
+    "path": "/auth/passenger/travelers/{id}",
+    "expectedValid": true,
+    "payload": null,
+    "parameters": {
+      "id": "opaque-traveler-id-abc"
+    }
+  },
+  {
+    "id": "passenger_traveler_delete_missing_id",
+    "family": "PassengerTravelers",
+    "operationId": "deleteSavedTraveler",
+    "method": "DELETE",
+    "path": "/auth/passenger/travelers/{id}",
+    "expectedValid": false,
+    "expectedCode": "REQUIRED_FIELD_MISSING",
+    "payload": null,
+    "parameters": {}
+  },
+  {
+    "id": "passenger_sessions_get_valid",
+    "family": "PassengerSessions",
+    "operationId": "getPassengerSessions",
+    "method": "GET",
+    "path": "/auth/passenger/sessions",
+    "expectedValid": true,
+    "payload": null,
+    "parameters": {}
+  },
+  {
+    "id": "passenger_session_delete_valid_uuid",
+    "family": "PassengerSessions",
+    "operationId": "deletePassengerSession",
+    "method": "DELETE",
+    "path": "/auth/passenger/sessions/{id}",
+    "expectedValid": true,
+    "payload": null,
+    "parameters": {
+      "id": "123e4567-e89b-12d3-a456-426614174000"
+    }
+  },
+  {
+    "id": "passenger_session_delete_invalid_uuid",
+    "family": "PassengerSessions",
+    "operationId": "deletePassengerSession",
+    "method": "DELETE",
+    "path": "/auth/passenger/sessions/{id}",
+    "expectedValid": false,
+    "expectedCode": "INVALID_FORMAT",
+    "payload": null,
+    "parameters": {
+      "id": "not-a-valid-uuid"
+    }
+  },
+  {
+    "id": "staff_login_valid",
+    "family": "StaffAuth",
+    "operationId": "postStaffLogin",
+    "method": "POST",
+    "path": "/staff/login",
+    "expectedValid": true,
+    "payload": {
+      "username": "admin_gaza",
+      "password": "secureStaffPassword1"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "staff_login_missing_username",
+    "family": "StaffAuth",
+    "operationId": "postStaffLogin",
+    "method": "POST",
+    "path": "/staff/login",
+    "expectedValid": false,
+    "expectedCode": "REQUIRED_FIELD_MISSING",
+    "payload": {
+      "password": "secureStaffPassword1"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "staff_logout_valid_bodyless",
+    "family": "StaffAuth",
+    "operationId": "postStaffLogout",
+    "method": "POST",
+    "path": "/staff/logout",
+    "expectedValid": true,
+    "payload": null,
+    "parameters": {}
+  },
+  {
+    "id": "staff_me_get_valid",
+    "family": "StaffAuth",
+    "operationId": "getStaffMe",
+    "method": "GET",
+    "path": "/staff/me",
+    "expectedValid": true,
+    "payload": null,
+    "parameters": {}
+  },
+  {
+    "id": "staff_mfa_setup_valid_bodyless",
+    "family": "StaffMfa",
+    "operationId": "postStaffMfaSetup",
+    "method": "POST",
+    "path": "/staff/mfa/setup",
+    "expectedValid": true,
+    "payload": null,
+    "parameters": {}
+  },
+  {
+    "id": "staff_mfa_challenge_valid_uuid",
+    "family": "StaffMfa",
+    "operationId": "postStaffMfaChallenge",
+    "method": "POST",
+    "path": "/staff/mfa/challenge",
+    "expectedValid": true,
+    "payload": {
+      "staffSessionChallengeId": "550e8400-e29b-41d4-a716-446655440000"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "staff_mfa_challenge_invalid_uuid",
+    "family": "StaffMfa",
+    "operationId": "postStaffMfaChallenge",
+    "method": "POST",
+    "path": "/staff/mfa/challenge",
+    "expectedValid": false,
+    "expectedCode": "INVALID_FORMAT",
+    "payload": {
+      "staffSessionChallengeId": "non-uuid-string"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "staff_mfa_verify_valid_totp",
+    "family": "StaffMfa",
+    "operationId": "postStaffMfaVerify",
+    "method": "POST",
+    "path": "/staff/mfa/verify",
+    "expectedValid": true,
+    "payload": {
+      "totpCode": "654321"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "staff_mfa_verify_valid_recovery_code",
+    "family": "StaffMfa",
+    "operationId": "postStaffMfaVerify",
+    "method": "POST",
+    "path": "/staff/mfa/verify",
+    "expectedValid": true,
+    "payload": {
+      "recoveryCode": "REC-1234-5678"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "staff_mfa_verify_both_oneof_failed",
+    "family": "StaffMfa",
+    "operationId": "postStaffMfaVerify",
+    "method": "POST",
+    "path": "/staff/mfa/verify",
+    "expectedValid": false,
+    "expectedCode": "ONE_OF_FAILED",
+    "payload": {
+      "totpCode": "654321",
+      "recoveryCode": "REC-1234-5678"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "staff_mfa_verify_neither_oneof_failed",
+    "family": "StaffMfa",
+    "operationId": "postStaffMfaVerify",
+    "method": "POST",
+    "path": "/staff/mfa/verify",
+    "expectedValid": false,
+    "expectedCode": "ONE_OF_FAILED",
+    "payload": {},
+    "parameters": {}
+  },
+  {
+    "id": "staff_mfa_verify_invalid_totp_pattern",
+    "family": "StaffMfa",
+    "operationId": "postStaffMfaVerify",
+    "method": "POST",
+    "path": "/staff/mfa/verify",
+    "expectedValid": false,
+    "expectedCode": "PATTERN_MISMATCH",
+    "payload": {
+      "totpCode": "12345"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "staff_mfa_enrollment_setup_valid",
+    "family": "StaffMfa",
+    "operationId": "postStaffMfaEnrollmentSetup",
+    "method": "POST",
+    "path": "/staff/mfa/enrollment/setup",
+    "expectedValid": true,
+    "payload": null,
+    "parameters": {}
+  },
+  {
+    "id": "staff_mfa_enrollment_confirm_valid",
+    "family": "StaffMfa",
+    "operationId": "postStaffMfaEnrollmentConfirm",
+    "method": "POST",
+    "path": "/staff/mfa/enrollment/confirm",
+    "expectedValid": true,
+    "payload": {
+      "totpCode": "123456"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "staff_step_up_valid_totp",
+    "family": "StaffMfa",
+    "operationId": "postStaffStepUp",
+    "method": "POST",
+    "path": "/staff/step-up",
+    "expectedValid": true,
+    "payload": {
+      "totpCode": "987654"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "staff_step_up_valid_recovery",
+    "family": "StaffMfa",
+    "operationId": "postStaffStepUp",
+    "method": "POST",
+    "path": "/staff/step-up",
+    "expectedValid": true,
+    "payload": {
+      "recoveryCode": "STEPUP-RECOVERY-1"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "staff_step_up_both_failed",
+    "family": "StaffMfa",
+    "operationId": "postStaffStepUp",
+    "method": "POST",
+    "path": "/staff/step-up",
+    "expectedValid": false,
+    "expectedCode": "ONE_OF_FAILED",
+    "payload": {
+      "totpCode": "987654",
+      "recoveryCode": "STEPUP-RECOVERY-1"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "staff_mfa_setup_confirm_valid",
+    "family": "StaffMfa",
+    "operationId": "postStaffMfaSetupConfirm",
+    "method": "POST",
+    "path": "/staff/mfa/setup/confirm",
+    "expectedValid": true,
+    "payload": {
+      "totpCode": "112233"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "staff_mfa_recovery_codes_regen_valid",
+    "family": "StaffMfa",
+    "operationId": "postStaffMfaRecoveryCodesRegenerate",
+    "method": "POST",
+    "path": "/staff/mfa/recovery-codes/regenerate",
+    "expectedValid": true,
+    "payload": null,
+    "parameters": {}
+  },
+  {
+    "id": "staff_users_directory_valid",
+    "family": "StaffDirectory",
+    "operationId": "getStaffUsersDirectory",
+    "method": "GET",
+    "path": "/staff/users",
+    "expectedValid": true,
+    "payload": null,
+    "parameters": {}
+  },
+  {
+    "id": "staff_user_invite_valid",
+    "family": "StaffDirectory",
+    "operationId": "postStaffUserInvite",
+    "method": "POST",
+    "path": "/staff/users",
+    "expectedValid": true,
+    "payload": {
+      "username": "salim_ops",
+      "email": "salim@gazaairport.com",
+      "fullNameEn": "Salim Al-Khatib",
+      "fullNameAr": "سليم الخطيب",
+      "role": "admin"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "staff_user_invite_username_too_short",
+    "family": "StaffDirectory",
+    "operationId": "postStaffUserInvite",
+    "method": "POST",
+    "path": "/staff/users",
+    "expectedValid": false,
+    "expectedCode": "STRING_TOO_SHORT",
+    "payload": {
+      "username": "sa",
+      "email": "salim@gazaairport.com",
+      "fullNameEn": "Salim",
+      "fullNameAr": "سليم",
+      "role": "admin"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "staff_user_patch_valid",
+    "family": "StaffDirectory",
+    "operationId": "patchStaffUser",
+    "method": "PATCH",
+    "path": "/staff/users/{id}",
+    "expectedValid": true,
+    "payload": {
+      "role": "viewer",
+      "isActive": false
+    },
+    "parameters": {
+      "id": "550e8400-e29b-41d4-a716-446655440000"
+    }
+  },
+  {
+    "id": "staff_user_patch_invalid_id_uuid",
+    "family": "StaffDirectory",
+    "operationId": "patchStaffUser",
+    "method": "PATCH",
+    "path": "/staff/users/{id}",
+    "expectedValid": false,
+    "expectedCode": "INVALID_FORMAT",
+    "payload": {
+      "role": "viewer"
+    },
+    "parameters": {
+      "id": "not-uuid"
+    }
+  },
+  {
+    "id": "staff_user_delete_valid",
+    "family": "StaffDirectory",
+    "operationId": "deleteStaffUser",
+    "method": "DELETE",
+    "path": "/staff/users/{id}",
+    "expectedValid": true,
+    "payload": null,
+    "parameters": {
+      "id": "550e8400-e29b-41d4-a716-446655440000"
+    }
+  },
+  {
+    "id": "staff_invitation_accept_valid",
+    "family": "StaffDirectory",
+    "operationId": "postStaffInvitationAccept",
+    "method": "POST",
+    "path": "/staff/invitations/accept",
+    "expectedValid": true,
+    "payload": {
+      "token": "32bytesrandomtokeninvitation1234",
+      "password": "ValidStaff12#"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "staff_invitation_accept_short_password",
+    "family": "StaffDirectory",
+    "operationId": "postStaffInvitationAccept",
+    "method": "POST",
+    "path": "/staff/invitations/accept",
+    "expectedValid": false,
+    "expectedCode": "STRING_TOO_SHORT",
+    "payload": {
+      "token": "32bytesrandomtokeninvitation1234",
+      "password": "short10char"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "staff_user_invite_reissue_valid",
+    "family": "StaffDirectory",
+    "operationId": "postStaffUserInviteReissue",
+    "method": "POST",
+    "path": "/staff/users/{id}/invite/reissue",
+    "expectedValid": true,
+    "payload": null,
+    "parameters": {
+      "id": "staff-inv-id-123"
+    }
+  },
+  {
+    "id": "staff_user_invite_revoke_valid",
+    "family": "StaffDirectory",
+    "operationId": "postStaffUserInviteRevoke",
+    "method": "POST",
+    "path": "/staff/users/{id}/invite/revoke",
+    "expectedValid": true,
+    "payload": null,
+    "parameters": {
+      "id": "staff-inv-id-123"
+    }
+  },
+  {
+    "id": "staff_sessions_get_valid",
+    "family": "StaffSessions",
+    "operationId": "getStaffSessions",
+    "method": "GET",
+    "path": "/staff/sessions",
+    "expectedValid": true,
+    "payload": null,
+    "parameters": {}
+  },
+  {
+    "id": "staff_session_delete_valid",
+    "family": "StaffSessions",
+    "operationId": "deleteStaffSession",
+    "method": "DELETE",
+    "path": "/staff/sessions/{id}",
+    "expectedValid": true,
+    "payload": null,
+    "parameters": {
+      "id": "sess-opaque-string"
+    }
+  },
+  {
+    "id": "staff_password_forgot_valid",
+    "family": "StaffPassword",
+    "operationId": "postStaffPasswordForgot",
+    "method": "POST",
+    "path": "/staff/password/forgot",
+    "expectedValid": true,
+    "payload": {
+      "email": "staff@gazaairport.com"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "staff_password_reset_valid",
+    "family": "StaffPassword",
+    "operationId": "postStaffPasswordReset",
+    "method": "POST",
+    "path": "/staff/password/reset",
+    "expectedValid": true,
+    "payload": {
+      "token": "32bytesrandomtokenstaffreset1234",
+      "newPassword": "ValidStaff12#"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "staff_password_reset_short_password",
+    "family": "StaffPassword",
+    "operationId": "postStaffPasswordReset",
+    "method": "POST",
+    "path": "/staff/password/reset",
+    "expectedValid": false,
+    "expectedCode": "STRING_TOO_SHORT",
+    "payload": {
+      "token": "32bytesrandomtokenstaffreset1234",
+      "newPassword": "short"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "staff_password_put_valid",
+    "family": "StaffPassword",
+    "operationId": "putStaffPassword",
+    "method": "PUT",
+    "path": "/staff/password",
+    "expectedValid": true,
+    "payload": {
+      "currentPassword": "currentStaffPassword",
+      "newPassword": "newStaffPassword123"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "staff_password_put_short_password",
+    "family": "StaffPassword",
+    "operationId": "putStaffPassword",
+    "method": "PUT",
+    "path": "/staff/password",
+    "expectedValid": false,
+    "expectedCode": "STRING_TOO_SHORT",
+    "payload": {
+      "currentPassword": "currentStaffPassword",
+      "newPassword": "short"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "delete_saved_traveler_opaque_plus",
+    "family": "SavedTravelers",
+    "operationId": "deleteSavedTraveler",
+    "method": "DELETE",
+    "path": "/auth/passenger/travelers/{id}",
+    "expectedValid": true,
+    "payload": null,
+    "parameters": {
+      "id": "trv+name"
+    }
+  },
+  {
+    "id": "delete_saved_traveler_literal_percent2f",
+    "family": "SavedTravelers",
+    "operationId": "deleteSavedTraveler",
+    "method": "DELETE",
+    "path": "/auth/passenger/travelers/{id}",
+    "expectedValid": true,
+    "payload": null,
+    "parameters": {
+      "id": "trv%2Fliteral"
+    }
+  },
+  {
+    "id": "delete_saved_traveler_unicode",
+    "family": "SavedTravelers",
+    "operationId": "deleteSavedTraveler",
+    "method": "DELETE",
+    "path": "/auth/passenger/travelers/{id}",
+    "expectedValid": true,
+    "payload": null,
+    "parameters": {
+      "id": "trv_فلسطين_01"
+    }
+  },
+  {
+    "id": "csrf_auth_bootstrap_whitespace",
+    "family": "CsrfBootstrap",
+    "operationId": "getAuthCsrfBootstrap",
+    "method": "GET",
+    "path": "/auth/csrf",
+    "expectedValid": true,
+    "rawJson": "   \n\t  ",
+    "payload": null,
+    "parameters": {}
+  },
+  {
+    "id": "csrf_auth_bootstrap_unexpected_json",
+    "family": "CsrfBootstrap",
+    "operationId": "getAuthCsrfBootstrap",
+    "method": "GET",
+    "path": "/auth/csrf",
+    "expectedValid": false,
+    "expectedCode": "UNEXPECTED_BODY",
+    "rawJson": "{\"token\":\"test\"}",
+    "payload": null,
+    "parameters": {}
+  },
+  {
+    "id": "booking_guest_challenge_valid_baseline",
+    "family": "BookingGuestChallenge",
+    "operationId": "postCreateGuestChallenge",
+    "method": "POST",
+    "path": "/bookings/{ref}/challenge",
+    "expectedValid": true,
+    "payload": {
+      "surname": "Al-Masri"
+    },
+    "parameters": {
+      "ref": "GZA-1234"
+    }
+  },
+  {
+    "id": "booking_guest_challenge_valid_ref_min_6",
+    "family": "BookingGuestChallenge",
+    "operationId": "postCreateGuestChallenge",
+    "method": "POST",
+    "path": "/bookings/{ref}/challenge",
+    "expectedValid": true,
+    "payload": {
+      "surname": "Al-Masri"
+    },
+    "parameters": {
+      "ref": "GZA123"
+    }
+  },
+  {
+    "id": "booking_guest_challenge_valid_ref_max_8",
+    "family": "BookingGuestChallenge",
+    "operationId": "postCreateGuestChallenge",
+    "method": "POST",
+    "path": "/bookings/{ref}/challenge",
+    "expectedValid": true,
+    "payload": {
+      "surname": "Al-Masri"
+    },
+    "parameters": {
+      "ref": "GZA12345"
+    }
+  },
+  {
+    "id": "booking_guest_challenge_invalid_ref_too_short_5",
+    "family": "BookingGuestChallenge",
+    "operationId": "postCreateGuestChallenge",
+    "method": "POST",
+    "path": "/bookings/{ref}/challenge",
+    "expectedValid": false,
+    "expectedCode": "STRING_TOO_SHORT",
+    "payload": {
+      "surname": "Al-Masri"
+    },
+    "parameters": {
+      "ref": "GZA12"
+    }
+  },
+  {
+    "id": "booking_guest_challenge_invalid_ref_too_long_9",
+    "family": "BookingGuestChallenge",
+    "operationId": "postCreateGuestChallenge",
+    "method": "POST",
+    "path": "/bookings/{ref}/challenge",
+    "expectedValid": false,
+    "expectedCode": "STRING_TOO_LONG",
+    "payload": {
+      "surname": "Al-Masri"
+    },
+    "parameters": {
+      "ref": "GZA123456"
+    }
+  },
+  {
+    "id": "booking_guest_challenge_missing_ref_param",
+    "family": "BookingGuestChallenge",
+    "operationId": "postCreateGuestChallenge",
+    "method": "POST",
+    "path": "/bookings/{ref}/challenge",
+    "expectedValid": false,
+    "expectedCode": "REQUIRED_FIELD_MISSING",
+    "payload": {
+      "surname": "Al-Masri"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_guest_challenge_surname_empty",
+    "family": "BookingGuestChallenge",
+    "operationId": "postCreateGuestChallenge",
+    "method": "POST",
+    "path": "/bookings/{ref}/challenge",
+    "expectedValid": false,
+    "expectedCode": "STRING_TOO_SHORT",
+    "payload": {
+      "surname": ""
+    },
+    "parameters": {
+      "ref": "GZA-1234"
+    }
+  },
+  {
+    "id": "booking_guest_challenge_surname_too_long_65",
+    "family": "BookingGuestChallenge",
+    "operationId": "postCreateGuestChallenge",
+    "method": "POST",
+    "path": "/bookings/{ref}/challenge",
+    "expectedValid": false,
+    "expectedCode": "STRING_TOO_LONG",
+    "payload": {
+      "surname": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    },
+    "parameters": {
+      "ref": "GZA-1234"
+    }
+  },
+  {
+    "id": "booking_guest_challenge_missing_surname",
+    "family": "BookingGuestChallenge",
+    "operationId": "postCreateGuestChallenge",
+    "method": "POST",
+    "path": "/bookings/{ref}/challenge",
+    "expectedValid": false,
+    "expectedCode": "REQUIRED_FIELD_MISSING",
+    "payload": {},
+    "parameters": {
+      "ref": "GZA-1234"
+    }
+  },
+  {
+    "id": "booking_guest_challenge_price_injection",
+    "family": "BookingGuestChallenge",
+    "operationId": "postCreateGuestChallenge",
+    "method": "POST",
+    "path": "/bookings/{ref}/challenge",
+    "expectedValid": false,
+    "expectedCode": "ADDITIONAL_PROPERTIES_DISALLOWED",
+    "payload": {
+      "surname": "Al-Masri",
+      "price": 0
+    },
+    "parameters": {
+      "ref": "GZA-1234"
+    }
+  },
+  {
+    "id": "booking_guest_challenge_alias_injection",
+    "family": "BookingGuestChallenge",
+    "operationId": "postCreateGuestChallenge",
+    "method": "POST",
+    "path": "/bookings/{ref}/challenge",
+    "expectedValid": false,
+    "expectedCode": "ADDITIONAL_PROPERTIES_DISALLOWED",
+    "payload": {
+      "surname": "Al-Masri",
+      "bookingToken": "fake_injected_token"
+    },
+    "parameters": {
+      "ref": "GZA-1234"
+    }
+  },
+  {
+    "id": "booking_guest_verify_valid_baseline",
+    "family": "BookingGuestVerify",
+    "operationId": "postVerifyGuestChallenge",
+    "method": "POST",
+    "path": "/bookings/{ref}/verify-challenge",
+    "expectedValid": true,
+    "payload": {
+      "challengeId": "00000000-0000-0000-0000-000000000001",
+      "code": "123456"
+    },
+    "parameters": {
+      "ref": "GZA-1234"
+    }
+  },
+  {
+    "id": "booking_guest_verify_invalid_uuid",
+    "family": "BookingGuestVerify",
+    "operationId": "postVerifyGuestChallenge",
+    "method": "POST",
+    "path": "/bookings/{ref}/verify-challenge",
+    "expectedValid": false,
+    "expectedCode": "INVALID_FORMAT",
+    "payload": {
+      "challengeId": "not-a-valid-uuid",
+      "code": "123456"
+    },
+    "parameters": {
+      "ref": "GZA-1234"
+    }
+  },
+  {
+    "id": "booking_guest_verify_otp_non_numeric",
+    "family": "BookingGuestVerify",
+    "operationId": "postVerifyGuestChallenge",
+    "method": "POST",
+    "path": "/bookings/{ref}/verify-challenge",
+    "expectedValid": false,
+    "expectedCode": "PATTERN_MISMATCH",
+    "payload": {
+      "challengeId": "00000000-0000-0000-0000-000000000001",
+      "code": "12345a"
+    },
+    "parameters": {
+      "ref": "GZA-1234"
+    }
+  },
+  {
+    "id": "booking_guest_verify_otp_short_5",
+    "family": "BookingGuestVerify",
+    "operationId": "postVerifyGuestChallenge",
+    "method": "POST",
+    "path": "/bookings/{ref}/verify-challenge",
+    "expectedValid": false,
+    "expectedCode": "PATTERN_MISMATCH",
+    "payload": {
+      "challengeId": "00000000-0000-0000-0000-000000000001",
+      "code": "12345"
+    },
+    "parameters": {
+      "ref": "GZA-1234"
+    }
+  },
+  {
+    "id": "booking_guest_verify_otp_long_7",
+    "family": "BookingGuestVerify",
+    "operationId": "postVerifyGuestChallenge",
+    "method": "POST",
+    "path": "/bookings/{ref}/verify-challenge",
+    "expectedValid": false,
+    "expectedCode": "PATTERN_MISMATCH",
+    "payload": {
+      "challengeId": "00000000-0000-0000-0000-000000000001",
+      "code": "1234567"
+    },
+    "parameters": {
+      "ref": "GZA-1234"
+    }
+  },
+  {
+    "id": "booking_guest_verify_missing_code",
+    "family": "BookingGuestVerify",
+    "operationId": "postVerifyGuestChallenge",
+    "method": "POST",
+    "path": "/bookings/{ref}/verify-challenge",
+    "expectedValid": false,
+    "expectedCode": "REQUIRED_FIELD_MISSING",
+    "payload": {
+      "challengeId": "00000000-0000-0000-0000-000000000001"
+    },
+    "parameters": {
+      "ref": "GZA-1234"
+    }
+  },
+  {
+    "id": "booking_guest_verify_missing_challenge_id",
+    "family": "BookingGuestVerify",
+    "operationId": "postVerifyGuestChallenge",
+    "method": "POST",
+    "path": "/bookings/{ref}/verify-challenge",
+    "expectedValid": false,
+    "expectedCode": "REQUIRED_FIELD_MISSING",
+    "payload": {
+      "code": "123456"
+    },
+    "parameters": {
+      "ref": "GZA-1234"
+    }
+  },
+  {
+    "id": "booking_guest_verify_claim_proof_injection",
+    "family": "BookingGuestVerify",
+    "operationId": "postVerifyGuestChallenge",
+    "method": "POST",
+    "path": "/bookings/{ref}/verify-challenge",
+    "expectedValid": false,
+    "expectedCode": "ADDITIONAL_PROPERTIES_DISALLOWED",
+    "payload": {
+      "challengeId": "00000000-0000-0000-0000-000000000001",
+      "code": "123456",
+      "claimProof": "injected_claim_proof"
+    },
+    "parameters": {
+      "ref": "GZA-1234"
+    }
+  },
+  {
+    "id": "booking_claim_challenge_valid_baseline",
+    "family": "BookingClaimChallenge",
+    "operationId": "postCreateClaimChallenge",
+    "method": "POST",
+    "path": "/account/bookings/claim/challenge",
+    "expectedValid": true,
+    "payload": {
+      "ref": "GZA-1234",
+      "surname": "Al-Masri"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_challenge_valid_ref_min_6",
+    "family": "BookingClaimChallenge",
+    "operationId": "postCreateClaimChallenge",
+    "method": "POST",
+    "path": "/account/bookings/claim/challenge",
+    "expectedValid": true,
+    "payload": {
+      "ref": "GZA123",
+      "surname": "Al-Masri"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_challenge_valid_ref_max_8",
+    "family": "BookingClaimChallenge",
+    "operationId": "postCreateClaimChallenge",
+    "method": "POST",
+    "path": "/account/bookings/claim/challenge",
+    "expectedValid": true,
+    "payload": {
+      "ref": "GZA12345",
+      "surname": "Al-Masri"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_challenge_invalid_ref_short_5",
+    "family": "BookingClaimChallenge",
+    "operationId": "postCreateClaimChallenge",
+    "method": "POST",
+    "path": "/account/bookings/claim/challenge",
+    "expectedValid": false,
+    "expectedCode": "STRING_TOO_SHORT",
+    "payload": {
+      "ref": "GZA12",
+      "surname": "Al-Masri"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_challenge_invalid_ref_long_9",
+    "family": "BookingClaimChallenge",
+    "operationId": "postCreateClaimChallenge",
+    "method": "POST",
+    "path": "/account/bookings/claim/challenge",
+    "expectedValid": false,
+    "expectedCode": "STRING_TOO_LONG",
+    "payload": {
+      "ref": "GZA123456",
+      "surname": "Al-Masri"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_challenge_missing_ref",
+    "family": "BookingClaimChallenge",
+    "operationId": "postCreateClaimChallenge",
+    "method": "POST",
+    "path": "/account/bookings/claim/challenge",
+    "expectedValid": false,
+    "expectedCode": "REQUIRED_FIELD_MISSING",
+    "payload": {
+      "surname": "Al-Masri"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_challenge_missing_surname",
+    "family": "BookingClaimChallenge",
+    "operationId": "postCreateClaimChallenge",
+    "method": "POST",
+    "path": "/account/bookings/claim/challenge",
+    "expectedValid": false,
+    "expectedCode": "REQUIRED_FIELD_MISSING",
+    "payload": {
+      "ref": "GZA-1234"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_challenge_surname_empty",
+    "family": "BookingClaimChallenge",
+    "operationId": "postCreateClaimChallenge",
+    "method": "POST",
+    "path": "/account/bookings/claim/challenge",
+    "expectedValid": false,
+    "expectedCode": "STRING_TOO_SHORT",
+    "payload": {
+      "ref": "GZA-1234",
+      "surname": ""
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_challenge_price_injection",
+    "family": "BookingClaimChallenge",
+    "operationId": "postCreateClaimChallenge",
+    "method": "POST",
+    "path": "/account/bookings/claim/challenge",
+    "expectedValid": false,
+    "expectedCode": "ADDITIONAL_PROPERTIES_DISALLOWED",
+    "payload": {
+      "ref": "GZA-1234",
+      "surname": "Al-Masri",
+      "discount": 100
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_verify_valid_baseline",
+    "family": "BookingClaimVerify",
+    "operationId": "postVerifyClaimChallenge",
+    "method": "POST",
+    "path": "/account/bookings/claim/verify",
+    "expectedValid": true,
+    "payload": {
+      "challengeId": "00000000-0000-0000-0000-000000000001",
+      "code": "123456"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_verify_invalid_uuid",
+    "family": "BookingClaimVerify",
+    "operationId": "postVerifyClaimChallenge",
+    "method": "POST",
+    "path": "/account/bookings/claim/verify",
+    "expectedValid": false,
+    "expectedCode": "INVALID_FORMAT",
+    "payload": {
+      "challengeId": "bad-uuid",
+      "code": "123456"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_verify_otp_non_numeric",
+    "family": "BookingClaimVerify",
+    "operationId": "postVerifyClaimChallenge",
+    "method": "POST",
+    "path": "/account/bookings/claim/verify",
+    "expectedValid": false,
+    "expectedCode": "PATTERN_MISMATCH",
+    "payload": {
+      "challengeId": "00000000-0000-0000-0000-000000000001",
+      "code": "abcdef"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_verify_otp_short_5",
+    "family": "BookingClaimVerify",
+    "operationId": "postVerifyClaimChallenge",
+    "method": "POST",
+    "path": "/account/bookings/claim/verify",
+    "expectedValid": false,
+    "expectedCode": "PATTERN_MISMATCH",
+    "payload": {
+      "challengeId": "00000000-0000-0000-0000-000000000001",
+      "code": "12345"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_verify_otp_long_7",
+    "family": "BookingClaimVerify",
+    "operationId": "postVerifyClaimChallenge",
+    "method": "POST",
+    "path": "/account/bookings/claim/verify",
+    "expectedValid": false,
+    "expectedCode": "PATTERN_MISMATCH",
+    "payload": {
+      "challengeId": "00000000-0000-0000-0000-000000000001",
+      "code": "1234567"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_verify_missing_code",
+    "family": "BookingClaimVerify",
+    "operationId": "postVerifyClaimChallenge",
+    "method": "POST",
+    "path": "/account/bookings/claim/verify",
+    "expectedValid": false,
+    "expectedCode": "REQUIRED_FIELD_MISSING",
+    "payload": {
+      "challengeId": "00000000-0000-0000-0000-000000000001"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_verify_missing_challenge_id",
+    "family": "BookingClaimVerify",
+    "operationId": "postVerifyClaimChallenge",
+    "method": "POST",
+    "path": "/account/bookings/claim/verify",
+    "expectedValid": false,
+    "expectedCode": "REQUIRED_FIELD_MISSING",
+    "payload": {
+      "code": "123456"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_verify_guest_grant_injection",
+    "family": "BookingClaimVerify",
+    "operationId": "postVerifyClaimChallenge",
+    "method": "POST",
+    "path": "/account/bookings/claim/verify",
+    "expectedValid": false,
+    "expectedCode": "ADDITIONAL_PROPERTIES_DISALLOWED",
+    "payload": {
+      "challengeId": "00000000-0000-0000-0000-000000000001",
+      "code": "123456",
+      "bookingToken": "injected"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_account_valid_baseline",
+    "family": "BookingClaimAccount",
+    "operationId": "postClaimBookingToAccount",
+    "method": "POST",
+    "path": "/account/bookings/claim",
+    "expectedValid": true,
+    "payload": {
+      "ref": "GZA-1234",
+      "claimProof": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_account_valid_proof_min_32",
+    "family": "BookingClaimAccount",
+    "operationId": "postClaimBookingToAccount",
+    "method": "POST",
+    "path": "/account/bookings/claim",
+    "expectedValid": true,
+    "payload": {
+      "ref": "GZA-1234",
+      "claimProof": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_account_valid_proof_max_64",
+    "family": "BookingClaimAccount",
+    "operationId": "postClaimBookingToAccount",
+    "method": "POST",
+    "path": "/account/bookings/claim",
+    "expectedValid": true,
+    "payload": {
+      "ref": "GZA-1234",
+      "claimProof": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_account_invalid_proof_too_short_31",
+    "family": "BookingClaimAccount",
+    "operationId": "postClaimBookingToAccount",
+    "method": "POST",
+    "path": "/account/bookings/claim",
+    "expectedValid": false,
+    "expectedCode": "STRING_TOO_SHORT",
+    "payload": {
+      "ref": "GZA-1234",
+      "claimProof": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_account_invalid_proof_too_long_65",
+    "family": "BookingClaimAccount",
+    "operationId": "postClaimBookingToAccount",
+    "method": "POST",
+    "path": "/account/bookings/claim",
+    "expectedValid": false,
+    "expectedCode": "STRING_TOO_LONG",
+    "payload": {
+      "ref": "GZA-1234",
+      "claimProof": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_account_missing_claim_proof",
+    "family": "BookingClaimAccount",
+    "operationId": "postClaimBookingToAccount",
+    "method": "POST",
+    "path": "/account/bookings/claim",
+    "expectedValid": false,
+    "expectedCode": "REQUIRED_FIELD_MISSING",
+    "payload": {
+      "ref": "GZA-1234"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_account_missing_ref",
+    "family": "BookingClaimAccount",
+    "operationId": "postClaimBookingToAccount",
+    "method": "POST",
+    "path": "/account/bookings/claim",
+    "expectedValid": false,
+    "expectedCode": "REQUIRED_FIELD_MISSING",
+    "payload": {
+      "claimProof": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_account_ref_too_short_5",
+    "family": "BookingClaimAccount",
+    "operationId": "postClaimBookingToAccount",
+    "method": "POST",
+    "path": "/account/bookings/claim",
+    "expectedValid": false,
+    "expectedCode": "STRING_TOO_SHORT",
+    "payload": {
+      "ref": "GZA12",
+      "claimProof": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_account_ref_too_long_9",
+    "family": "BookingClaimAccount",
+    "operationId": "postClaimBookingToAccount",
+    "method": "POST",
+    "path": "/account/bookings/claim",
+    "expectedValid": false,
+    "expectedCode": "STRING_TOO_LONG",
+    "payload": {
+      "ref": "GZA123456",
+      "claimProof": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_account_alias_grant_injection",
+    "family": "BookingClaimAccount",
+    "operationId": "postClaimBookingToAccount",
+    "method": "POST",
+    "path": "/account/bookings/claim",
+    "expectedValid": false,
+    "expectedCode": "ADDITIONAL_PROPERTIES_DISALLOWED",
+    "payload": {
+      "ref": "GZA-1234",
+      "claimProof": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "booking_guest_grant": "token"
+    },
+    "parameters": {}
+  }
+]

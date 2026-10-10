@@ -27,10 +27,34 @@ return Application::configure(basePath: dirname(__DIR__))
             StructuredRequestLogging::class,
             StrictHostGuard::class,
             CustomCorsGuard::class,
+            \App\Http\Middleware\Identity\VerifyApplicationCsrfHeader::class,
             \Illuminate\Foundation\Http\Middleware\PreventRequestsDuringMaintenance::class,
             \Illuminate\Http\Middleware\ValidatePostSize::class,
             \Illuminate\Foundation\Http\Middleware\TrimStrings::class,
             \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
+        ]);
+
+        $isIdentityRequest = static function (Request $request): bool {
+            if ($request->attributes->has('operation_policy')) {
+                return true;
+            }
+            $path = rawurldecode($request->path());
+            return $path === 'api/v1/auth'
+                || str_starts_with($path, 'api/v1/auth/')
+                || $path === 'api/v1/staff'
+                || str_starts_with($path, 'api/v1/staff/')
+                || $path === 'auth'
+                || str_starts_with($path, 'auth/')
+                || $path === 'staff'
+                || str_starts_with($path, 'staff/');
+        };
+
+        $middleware->trimStrings(except: [
+            $isIdentityRequest,
+        ]);
+
+        $middleware->convertEmptyStringsToNull(except: [
+            $isIdentityRequest,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

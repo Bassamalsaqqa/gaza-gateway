@@ -1,0 +1,1116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "canonicalDigest": "sha256:08ab7cce5b78ff4e6f9696721cc5e26b073411f59d998718ddcb91b3c36d75c9",
+  "contractVersion": "1.0.0",
+  "operationCount": 46,
+  "operations": {
+    "deletePassengerSession": {
+      "bodyRequired": false,
+      "hasBody": false,
+      "method": "DELETE",
+      "operationId": "deletePassengerSession",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "id",
+          "required": true,
+          "schema": {
+            "format": "uuid",
+            "type": "string"
+          }
+        }
+      ],
+      "path": "/auth/passenger/sessions/{id}",
+      "requestBodySchema": null
+    },
+    "deleteSavedTraveler": {
+      "bodyRequired": false,
+      "hasBody": false,
+      "method": "DELETE",
+      "operationId": "deleteSavedTraveler",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "id",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "path": "/auth/passenger/travelers/{id}",
+      "requestBodySchema": null
+    },
+    "deleteStaffSession": {
+      "bodyRequired": false,
+      "hasBody": false,
+      "method": "DELETE",
+      "operationId": "deleteStaffSession",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "id",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "path": "/staff/sessions/{id}",
+      "requestBodySchema": null
+    },
+    "deleteStaffUser": {
+      "bodyRequired": false,
+      "hasBody": false,
+      "method": "DELETE",
+      "operationId": "deleteStaffUser",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "id",
+          "required": true,
+          "schema": {
+            "format": "uuid",
+            "type": "string"
+          }
+        }
+      ],
+      "path": "/staff/users/{id}",
+      "requestBodySchema": null
+    },
+    "getAuthCsrfBootstrap": {
+      "bodyRequired": false,
+      "hasBody": false,
+      "method": "GET",
+      "operationId": "getAuthCsrfBootstrap",
+      "parameters": [],
+      "path": "/auth/csrf",
+      "requestBodySchema": null
+    },
+    "getPassengerProfile": {
+      "bodyRequired": false,
+      "hasBody": false,
+      "method": "GET",
+      "operationId": "getPassengerProfile",
+      "parameters": [],
+      "path": "/auth/passenger/profile",
+      "requestBodySchema": null
+    },
+    "getPassengerSessions": {
+      "bodyRequired": false,
+      "hasBody": false,
+      "method": "GET",
+      "operationId": "getPassengerSessions",
+      "parameters": [],
+      "path": "/auth/passenger/sessions",
+      "requestBodySchema": null
+    },
+    "getSavedTravelers": {
+      "bodyRequired": false,
+      "hasBody": false,
+      "method": "GET",
+      "operationId": "getSavedTravelers",
+      "parameters": [],
+      "path": "/auth/passenger/travelers",
+      "requestBodySchema": null
+    },
+    "getStaffCsrfBootstrap": {
+      "bodyRequired": false,
+      "hasBody": false,
+      "method": "GET",
+      "operationId": "getStaffCsrfBootstrap",
+      "parameters": [],
+      "path": "/staff/csrf",
+      "requestBodySchema": null
+    },
+    "getStaffMe": {
+      "bodyRequired": false,
+      "hasBody": false,
+      "method": "GET",
+      "operationId": "getStaffMe",
+      "parameters": [],
+      "path": "/staff/me",
+      "requestBodySchema": null
+    },
+    "getStaffSessions": {
+      "bodyRequired": false,
+      "hasBody": false,
+      "method": "GET",
+      "operationId": "getStaffSessions",
+      "parameters": [],
+      "path": "/staff/sessions",
+      "requestBodySchema": null
+    },
+    "getStaffUsersDirectory": {
+      "bodyRequired": false,
+      "hasBody": false,
+      "method": "GET",
+      "operationId": "getStaffUsersDirectory",
+      "parameters": [],
+      "path": "/staff/users",
+      "requestBodySchema": null
+    },
+    "patchSavedTraveler": {
+      "bodyRequired": true,
+      "hasBody": true,
+      "method": "PATCH",
+      "operationId": "patchSavedTraveler",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "id",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "path": "/auth/passenger/travelers/{id}",
+      "requestBodySchema": {
+        "$ref": "#/components/schemas/PatchTravelerRequest"
+      }
+    },
+    "patchStaffUser": {
+      "bodyRequired": true,
+      "hasBody": true,
+      "method": "PATCH",
+      "operationId": "patchStaffUser",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "id",
+          "required": true,
+          "schema": {
+            "format": "uuid",
+            "type": "string"
+          }
+        }
+      ],
+      "path": "/staff/users/{id}",
+      "requestBodySchema": {
+        "$ref": "#/components/schemas/PatchStaffUserRequest"
+      }
+    },
+    "postClaimBookingToAccount": {
+      "bodyRequired": true,
+      "hasBody": true,
+      "method": "POST",
+      "operationId": "postClaimBookingToAccount",
+      "parameters": [],
+      "path": "/account/bookings/claim",
+      "requestBodySchema": {
+        "$ref": "#/components/schemas/ClaimBookingRequest"
+      }
+    },
+    "postCreateClaimChallenge": {
+      "bodyRequired": true,
+      "hasBody": true,
+      "method": "POST",
+      "operationId": "postCreateClaimChallenge",
+      "parameters": [],
+      "path": "/account/bookings/claim/challenge",
+      "requestBodySchema": {
+        "$ref": "#/components/schemas/BookingClaimChallengeRequest"
+      }
+    },
+    "postCreateGuestChallenge": {
+      "bodyRequired": true,
+      "hasBody": true,
+      "method": "POST",
+      "operationId": "postCreateGuestChallenge",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "ref",
+          "required": true,
+          "schema": {
+            "maxLength": 8,
+            "minLength": 6,
+            "type": "string"
+          }
+        }
+      ],
+      "path": "/bookings/{ref}/challenge",
+      "requestBodySchema": {
+        "$ref": "#/components/schemas/BookingChallengeRequest"
+      }
+    },
+    "postPassengerEmailResend": {
+      "bodyRequired": true,
+      "hasBody": true,
+      "method": "POST",
+      "operationId": "postPassengerEmailResend",
+      "parameters": [],
+      "path": "/auth/email/resend",
+      "requestBodySchema": {
+        "$ref": "#/components/schemas/PassengerEmailResendRequest"
+      }
+    },
+    "postPassengerEmailVerify": {
+      "bodyRequired": true,
+      "hasBody": true,
+      "method": "POST",
+      "operationId": "postPassengerEmailVerify",
+      "parameters": [],
+      "path": "/auth/email/verify",
+      "requestBodySchema": {
+        "$ref": "#/components/schemas/EmailVerifyRequest"
+      }
+    },
+    "postPassengerLogin": {
+      "bodyRequired": true,
+      "hasBody": true,
+      "method": "POST",
+      "operationId": "postPassengerLogin",
+      "parameters": [],
+      "path": "/auth/login",
+      "requestBodySchema": {
+        "$ref": "#/components/schemas/LoginRequest"
+      }
+    },
+    "postPassengerLogout": {
+      "bodyRequired": false,
+      "hasBody": false,
+      "method": "POST",
+      "operationId": "postPassengerLogout",
+      "parameters": [],
+      "path": "/auth/logout",
+      "requestBodySchema": null
+    },
+    "postPassengerPasswordForgot": {
+      "bodyRequired": true,
+      "hasBody": true,
+      "method": "POST",
+      "operationId": "postPassengerPasswordForgot",
+      "parameters": [],
+      "path": "/auth/password/forgot",
+      "requestBodySchema": {
+        "$ref": "#/components/schemas/PasswordForgotRequest"
+      }
+    },
+    "postPassengerPasswordReset": {
+      "bodyRequired": true,
+      "hasBody": true,
+      "method": "POST",
+      "operationId": "postPassengerPasswordReset",
+      "parameters": [],
+      "path": "/auth/password/reset",
+      "requestBodySchema": {
+        "$ref": "#/components/schemas/PasswordResetRequest"
+      }
+    },
+    "postPassengerRegister": {
+      "bodyRequired": true,
+      "hasBody": true,
+      "method": "POST",
+      "operationId": "postPassengerRegister",
+      "parameters": [],
+      "path": "/auth/register",
+      "requestBodySchema": {
+        "$ref": "#/components/schemas/RegisterRequest"
+      }
+    },
+    "postSavedTraveler": {
+      "bodyRequired": true,
+      "hasBody": true,
+      "method": "POST",
+      "operationId": "postSavedTraveler",
+      "parameters": [],
+      "path": "/auth/passenger/travelers",
+      "requestBodySchema": {
+        "$ref": "#/components/schemas/CreateTravelerRequest"
+      }
+    },
+    "postStaffInvitationAccept": {
+      "bodyRequired": true,
+      "hasBody": true,
+      "method": "POST",
+      "operationId": "postStaffInvitationAccept",
+      "parameters": [],
+      "path": "/staff/invitations/accept",
+      "requestBodySchema": {
+        "$ref": "#/components/schemas/StaffInvitationAcceptRequest"
+      }
+    },
+    "postStaffLogin": {
+      "bodyRequired": true,
+      "hasBody": true,
+      "method": "POST",
+      "operationId": "postStaffLogin",
+      "parameters": [],
+      "path": "/staff/login",
+      "requestBodySchema": {
+        "$ref": "#/components/schemas/StaffLoginRequest"
+      }
+    },
+    "postStaffLogout": {
+      "bodyRequired": false,
+      "hasBody": false,
+      "method": "POST",
+      "operationId": "postStaffLogout",
+      "parameters": [],
+      "path": "/staff/logout",
+      "requestBodySchema": null
+    },
+    "postStaffMfaChallenge": {
+      "bodyRequired": true,
+      "hasBody": true,
+      "method": "POST",
+      "operationId": "postStaffMfaChallenge",
+      "parameters": [],
+      "path": "/staff/mfa/challenge",
+      "requestBodySchema": {
+        "$ref": "#/components/schemas/StaffMfaChallengeRequest"
+      }
+    },
+    "postStaffMfaEnrollmentConfirm": {
+      "bodyRequired": true,
+      "hasBody": true,
+      "method": "POST",
+      "operationId": "postStaffMfaEnrollmentConfirm",
+      "parameters": [],
+      "path": "/staff/mfa/enrollment/confirm",
+      "requestBodySchema": {
+        "$ref": "#/components/schemas/StaffMfaEnrollmentConfirmRequest"
+      }
+    },
+    "postStaffMfaEnrollmentSetup": {
+      "bodyRequired": false,
+      "hasBody": false,
+      "method": "POST",
+      "operationId": "postStaffMfaEnrollmentSetup",
+      "parameters": [],
+      "path": "/staff/mfa/enrollment/setup",
+      "requestBodySchema": null
+    },
+    "postStaffMfaRecoveryCodesRegenerate": {
+      "bodyRequired": false,
+      "hasBody": false,
+      "method": "POST",
+      "operationId": "postStaffMfaRecoveryCodesRegenerate",
+      "parameters": [],
+      "path": "/staff/mfa/recovery-codes/regenerate",
+      "requestBodySchema": null
+    },
+    "postStaffMfaSetup": {
+      "bodyRequired": false,
+      "hasBody": false,
+      "method": "POST",
+      "operationId": "postStaffMfaSetup",
+      "parameters": [],
+      "path": "/staff/mfa/setup",
+      "requestBodySchema": null
+    },
+    "postStaffMfaSetupConfirm": {
+      "bodyRequired": true,
+      "hasBody": true,
+      "method": "POST",
+      "operationId": "postStaffMfaSetupConfirm",
+      "parameters": [],
+      "path": "/staff/mfa/setup/confirm",
+      "requestBodySchema": {
+        "$ref": "#/components/schemas/StaffMfaSetupConfirmRequest"
+      }
+    },
+    "postStaffMfaVerify": {
+      "bodyRequired": true,
+      "hasBody": true,
+      "method": "POST",
+      "operationId": "postStaffMfaVerify",
+      "parameters": [],
+      "path": "/staff/mfa/verify",
+      "requestBodySchema": {
+        "$ref": "#/components/schemas/StaffMfaVerifyRequest"
+      }
+    },
+    "postStaffPasswordForgot": {
+      "bodyRequired": true,
+      "hasBody": true,
+      "method": "POST",
+      "operationId": "postStaffPasswordForgot",
+      "parameters": [],
+      "path": "/staff/password/forgot",
+      "requestBodySchema": {
+        "$ref": "#/components/schemas/StaffPasswordForgotRequest"
+      }
+    },
+    "postStaffPasswordReset": {
+      "bodyRequired": true,
+      "hasBody": true,
+      "method": "POST",
+      "operationId": "postStaffPasswordReset",
+      "parameters": [],
+      "path": "/staff/password/reset",
+      "requestBodySchema": {
+        "$ref": "#/components/schemas/StaffPasswordResetRequest"
+      }
+    },
+    "postStaffStepUp": {
+      "bodyRequired": true,
+      "hasBody": true,
+      "method": "POST",
+      "operationId": "postStaffStepUp",
+      "parameters": [],
+      "path": "/staff/step-up",
+      "requestBodySchema": {
+        "$ref": "#/components/schemas/StaffStepUpRequest"
+      }
+    },
+    "postStaffUserInvite": {
+      "bodyRequired": true,
+      "hasBody": true,
+      "method": "POST",
+      "operationId": "postStaffUserInvite",
+      "parameters": [],
+      "path": "/staff/users",
+      "requestBodySchema": {
+        "$ref": "#/components/schemas/CreateStaffUserRequest"
+      }
+    },
+    "postStaffUserInviteReissue": {
+      "bodyRequired": false,
+      "hasBody": false,
+      "method": "POST",
+      "operationId": "postStaffUserInviteReissue",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "id",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "path": "/staff/users/{id}/invite/reissue",
+      "requestBodySchema": null
+    },
+    "postStaffUserInviteRevoke": {
+      "bodyRequired": false,
+      "hasBody": false,
+      "method": "POST",
+      "operationId": "postStaffUserInviteRevoke",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "id",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "path": "/staff/users/{id}/invite/revoke",
+      "requestBodySchema": null
+    },
+    "postVerifyClaimChallenge": {
+      "bodyRequired": true,
+      "hasBody": true,
+      "method": "POST",
+      "operationId": "postVerifyClaimChallenge",
+      "parameters": [],
+      "path": "/account/bookings/claim/verify",
+      "requestBodySchema": {
+        "$ref": "#/components/schemas/BookingClaimVerifyRequest"
+      }
+    },
+    "postVerifyGuestChallenge": {
+      "bodyRequired": true,
+      "hasBody": true,
+      "method": "POST",
+      "operationId": "postVerifyGuestChallenge",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "ref",
+          "required": true,
+          "schema": {
+            "maxLength": 8,
+            "minLength": 6,
+            "type": "string"
+          }
+        }
+      ],
+      "path": "/bookings/{ref}/verify-challenge",
+      "requestBodySchema": {
+        "$ref": "#/components/schemas/BookingVerifyChallengeRequest"
+      }
+    },
+    "putPassengerPassword": {
+      "bodyRequired": true,
+      "hasBody": true,
+      "method": "PUT",
+      "operationId": "putPassengerPassword",
+      "parameters": [],
+      "path": "/auth/passenger/password",
+      "requestBodySchema": {
+        "$ref": "#/components/schemas/PassengerPasswordChangeRequest"
+      }
+    },
+    "putPassengerProfile": {
+      "bodyRequired": true,
+      "hasBody": true,
+      "method": "PUT",
+      "operationId": "putPassengerProfile",
+      "parameters": [],
+      "path": "/auth/passenger/profile",
+      "requestBodySchema": {
+        "$ref": "#/components/schemas/UpdatePassengerProfileRequest"
+      }
+    },
+    "putStaffPassword": {
+      "bodyRequired": true,
+      "hasBody": true,
+      "method": "PUT",
+      "operationId": "putStaffPassword",
+      "parameters": [],
+      "path": "/staff/password",
+      "requestBodySchema": {
+        "$ref": "#/components/schemas/StaffPasswordChangeRequest"
+      }
+    }
+  },
+  "phase": "13B",
+  "schemas": {
+    "#/components/schemas/BookingChallengeRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "surname": {
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "surname"
+      ],
+      "type": "object"
+    },
+    "#/components/schemas/BookingClaimChallengeRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "ref": {
+          "maxLength": 8,
+          "minLength": 6,
+          "type": "string"
+        },
+        "surname": {
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "ref",
+        "surname"
+      ],
+      "type": "object"
+    },
+    "#/components/schemas/BookingClaimVerifyRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "challengeId": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "code": {
+          "pattern": "^[0-9]{6}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "challengeId",
+        "code"
+      ],
+      "type": "object"
+    },
+    "#/components/schemas/BookingVerifyChallengeRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "challengeId": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "code": {
+          "pattern": "^[0-9]{6}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "challengeId",
+        "code"
+      ],
+      "type": "object"
+    },
+    "#/components/schemas/ClaimBookingRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "claimProof": {
+          "maxLength": 64,
+          "minLength": 32,
+          "type": "string"
+        },
+        "ref": {
+          "maxLength": 8,
+          "minLength": 6,
+          "type": "string"
+        }
+      },
+      "required": [
+        "ref",
+        "claimProof"
+      ],
+      "type": "object"
+    },
+    "#/components/schemas/CreateStaffUserRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "email": {
+          "format": "email",
+          "type": "string"
+        },
+        "fullNameAr": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "fullNameEn": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "admin",
+            "editor",
+            "viewer"
+          ],
+          "type": "string"
+        },
+        "username": {
+          "minLength": 3,
+          "type": "string"
+        }
+      },
+      "required": [
+        "username",
+        "email",
+        "fullNameEn",
+        "fullNameAr",
+        "role"
+      ],
+      "type": "object"
+    },
+    "#/components/schemas/CreateTravelerRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "dob": {
+          "type": "string"
+        },
+        "document": {
+          "type": "string"
+        },
+        "firstName": {
+          "type": "string"
+        },
+        "lastName": {
+          "type": "string"
+        },
+        "nationality": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "#/components/schemas/EmailVerifyRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "token": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "token"
+      ],
+      "type": "object"
+    },
+    "#/components/schemas/LoginRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "email": {
+          "format": "email",
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "email",
+        "password"
+      ],
+      "type": "object"
+    },
+    "#/components/schemas/PassengerEmailResendRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "email": {
+          "format": "email",
+          "type": "string"
+        }
+      },
+      "required": [
+        "email"
+      ],
+      "type": "object"
+    },
+    "#/components/schemas/PassengerPasswordChangeRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "currentPassword": {
+          "type": "string"
+        },
+        "newPassword": {
+          "maxLength": 128,
+          "minLength": 15,
+          "type": "string"
+        }
+      },
+      "required": [
+        "currentPassword",
+        "newPassword"
+      ],
+      "type": "object"
+    },
+    "#/components/schemas/PasswordForgotRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "email": {
+          "format": "email",
+          "type": "string"
+        }
+      },
+      "required": [
+        "email"
+      ],
+      "type": "object"
+    },
+    "#/components/schemas/PasswordResetRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "email": {
+          "format": "email",
+          "type": "string"
+        },
+        "password": {
+          "maxLength": 128,
+          "minLength": 15,
+          "type": "string"
+        },
+        "token": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "token",
+        "email",
+        "password"
+      ],
+      "type": "object"
+    },
+    "#/components/schemas/PatchStaffUserRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "fullNameAr": {
+          "type": "string"
+        },
+        "fullNameEn": {
+          "type": "string"
+        },
+        "isActive": {
+          "type": "boolean"
+        },
+        "role": {
+          "enum": [
+            "admin",
+            "editor",
+            "viewer"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "#/components/schemas/PatchTravelerRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "dob": {
+          "type": "string"
+        },
+        "document": {
+          "type": "string"
+        },
+        "firstName": {
+          "type": "string"
+        },
+        "lastName": {
+          "type": "string"
+        },
+        "nationality": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "#/components/schemas/RegisterRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "email": {
+          "format": "email",
+          "type": "string"
+        },
+        "firstName": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "lastName": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "password": {
+          "maxLength": 128,
+          "minLength": 15,
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "title": {
+          "enum": [
+            "Mr",
+            "Mrs",
+            "Ms",
+            "Dr"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "email",
+        "password",
+        "firstName",
+        "lastName"
+      ],
+      "type": "object"
+    },
+    "#/components/schemas/StaffInvitationAcceptRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "password": {
+          "maxLength": 128,
+          "minLength": 12,
+          "type": "string"
+        },
+        "token": {
+          "maxLength": 64,
+          "minLength": 32,
+          "type": "string"
+        }
+      },
+      "required": [
+        "token",
+        "password"
+      ],
+      "type": "object"
+    },
+    "#/components/schemas/StaffLoginRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "password": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "username": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "username",
+        "password"
+      ],
+      "type": "object"
+    },
+    "#/components/schemas/StaffMfaChallengeRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "staffSessionChallengeId": {
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "staffSessionChallengeId"
+      ],
+      "type": "object"
+    },
+    "#/components/schemas/StaffMfaEnrollmentConfirmRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "totpCode": {
+          "pattern": "^[0-9]{6}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "totpCode"
+      ],
+      "type": "object"
+    },
+    "#/components/schemas/StaffMfaSetupConfirmRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "totpCode": {
+          "pattern": "^[0-9]{6}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "totpCode"
+      ],
+      "type": "object"
+    },
+    "#/components/schemas/StaffMfaVerifyRequest": {
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "required": [
+            "totpCode"
+          ]
+        },
+        {
+          "required": [
+            "recoveryCode"
+          ]
+        }
+      ],
+      "properties": {
+        "recoveryCode": {
+          "maxLength": 32,
+          "minLength": 8,
+          "type": "string"
+        },
+        "totpCode": {
+          "pattern": "^[0-9]{6}$",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "#/components/schemas/StaffPasswordChangeRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "currentPassword": {
+          "type": "string"
+        },
+        "newPassword": {
+          "maxLength": 128,
+          "minLength": 12,
+          "type": "string"
+        }
+      },
+      "required": [
+        "currentPassword",
+        "newPassword"
+      ],
+      "type": "object"
+    },
+    "#/components/schemas/StaffPasswordForgotRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "email": {
+          "format": "email",
+          "type": "string"
+        }
+      },
+      "required": [
+        "email"
+      ],
+      "type": "object"
+    },
+    "#/components/schemas/StaffPasswordResetRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "newPassword": {
+          "maxLength": 128,
+          "minLength": 12,
+          "type": "string"
+        },
+        "token": {
+          "maxLength": 64,
+          "minLength": 32,
+          "type": "string"
+        }
+      },
+      "required": [
+        "token",
+        "newPassword"
+      ],
+      "type": "object"
+    },
+    "#/components/schemas/StaffStepUpRequest": {
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "required": [
+            "totpCode"
+          ]
+        },
+        {
+          "required": [
+            "recoveryCode"
+          ]
+        }
+      ],
+      "properties": {
+        "recoveryCode": {
+          "maxLength": 32,
+          "minLength": 8,
+          "type": "string"
+        },
+        "totpCode": {
+          "pattern": "^[0-9]{6}$",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "#/components/schemas/UpdatePassengerProfileRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "firstName": {
+          "type": "string"
+        },
+        "lastName": {
+          "type": "string"
+        },
+        "mealPreference": {
+          "type": "string"
+        },
+        "newsletter": {
+          "type": "boolean"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "seatPreference": {
+          "enum": [
+            "none",
+            "window",
+            "aisle"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  }
+}

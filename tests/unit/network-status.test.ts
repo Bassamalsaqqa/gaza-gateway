@@ -272,8 +272,10 @@ it("living docs record accepted Phase 12, owner deployment, accepted Phase 13A l
 
   const phase13bRow = roadmap.split("\n").find((line) => line.startsWith("| **Phase 13B** |"));
   assert.ok(phase13bRow, "roadmap: Phase 13B row");
-  assert.match(phase13bRow, /Authorized \/ Preparation Underway/);
-  assert.match(phase13bRow, /no runtime authentication implemented yet/);
+  assert.match(phase13bRow, /In Progress \/ Reviewed Foundations Checkpoint/);
+  assert.match(phase13bRow, /End-to-end passenger\/staff authentication and UI integration remain unimplemented/);
+  assert.match(phase13bRow, /proof\/outbox retention is blocked and excluded/);
+  assert.match(phase13bRow, /awaiting independent review/);
   assert.match(phase13bRow, /Phase 13C–G Planned \/ Unstarted/);
 
   for (const file of ["README.md", "roadmap.md", "docs/ARCHITECTURE.md", "docs/DATA_FLOW.md"]) {
