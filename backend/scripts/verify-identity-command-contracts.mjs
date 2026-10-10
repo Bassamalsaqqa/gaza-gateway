@@ -43,7 +43,7 @@ const spec = JSON.parse(fs.readFileSync(OPENAPI_PATH, 'utf8'));
 // 2. Load Static Specimens
 const staticSpecimens = JSON.parse(fs.readFileSync(SPECIMENS_PATH, 'utf8'));
 
-// 3. Build Dynamic Matrix for ALL 22 Command Request Schemas
+// 3. Build Dynamic Matrix for ALL 27 Command Request Schemas
 const BASE_DATA = {
   postPassengerRegister: {
     email: 'ahmad.masri@example.com',
@@ -139,18 +139,60 @@ const BASE_DATA = {
     token: 'a'.repeat(32),
     password: 'AcceptedPassword12345',
   },
+  postCreateGuestChallenge: {
+    surname: 'Al-Masri',
+  },
+  postVerifyGuestChallenge: {
+    challengeId: '00000000-0000-0000-0000-000000000001',
+    code: '123456',
+  },
+  postCreateClaimChallenge: {
+    ref: 'GZA-1234',
+    surname: 'Al-Masri',
+  },
+  postVerifyClaimChallenge: {
+    challengeId: '00000000-0000-0000-0000-000000000001',
+    code: '123456',
+  },
+  postClaimBookingToAccount: {
+    ref: 'GZA-1234',
+    claimProof: 'a'.repeat(43),
+  },
 };
 
 const OPERATION_PARAMS = {
   patchSavedTraveler: { id: 'trv_01' },
   patchStaffUser: { id: '00000000-0000-0000-0000-000000000001' },
+  postCreateGuestChallenge: { ref: 'GZA-1234' },
+  postVerifyGuestChallenge: { ref: 'GZA-1234' },
 };
+
+const ACCEPTED_BOOKING_OPERATION_TUPLES = new Set([
+  'POST /bookings/{ref}/challenge postCreateGuestChallenge',
+  'POST /bookings/{ref}/verify-challenge postVerifyGuestChallenge',
+  'POST /account/bookings/claim/challenge postCreateClaimChallenge',
+  'POST /account/bookings/claim/verify postVerifyClaimChallenge',
+  'POST /account/bookings/claim postClaimBookingToAccount',
+]);
 
 const dynamicSpecimens = [];
 for (const [p, item] of Object.entries(spec.paths)) {
-  if (!p.startsWith('/auth/') && !p.startsWith('/staff/')) continue;
+  const isPrefix = p.startsWith('/auth/') || p.startsWith('/staff/');
+  const isExplicit = [
+    '/bookings/{ref}/challenge',
+    '/bookings/{ref}/verify-challenge',
+    '/account/bookings/claim/challenge',
+    '/account/bookings/claim/verify',
+    '/account/bookings/claim',
+  ].includes(p);
+  if (!isPrefix && !isExplicit) continue;
+
   for (const [m, op] of Object.entries(item)) {
     if (!['get', 'post', 'put', 'patch', 'delete'].includes(m) || !op.requestBody) continue;
+    if (!isPrefix) {
+      const tuple = `${m.toUpperCase()} ${p} ${op.operationId}`;
+      if (!ACCEPTED_BOOKING_OPERATION_TUPLES.has(tuple)) continue;
+    }
 
     const opId = op.operationId;
     const base = BASE_DATA[opId];

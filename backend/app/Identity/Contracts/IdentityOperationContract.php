@@ -18,6 +18,14 @@ use App\Identity\Contracts\Exceptions\InvalidCommandSchemaException;
  */
 final class IdentityOperationContract
 {
+    public const array ACCEPTED_BOOKING_OPERATION_TUPLES = [
+        'POST /bookings/{ref}/challenge postCreateGuestChallenge' => true,
+        'POST /bookings/{ref}/verify-challenge postVerifyGuestChallenge' => true,
+        'POST /account/bookings/claim/challenge postCreateClaimChallenge' => true,
+        'POST /account/bookings/claim/verify postVerifyClaimChallenge' => true,
+        'POST /account/bookings/claim postClaimBookingToAccount' => true,
+    ];
+
     private const array ALLOWED_OPERATION_FIELDS = [
         'operationId' => true,
         'method' => true,
@@ -82,11 +90,17 @@ final class IdentityOperationContract
             throw new InvalidCommandSchemaException('Invalid HTTP method in operation contract');
         }
 
-        if (
-            !is_string($data['path']) ||
-            (!str_starts_with($data['path'], '/auth/') && !str_starts_with($data['path'], '/staff/'))
-        ) {
+        $path = $data['path'];
+        if (!is_string($path)) {
             throw new InvalidCommandSchemaException('Invalid route path in operation contract');
+        }
+
+        $isIdentityPath = str_starts_with($path, '/auth/') || str_starts_with($path, '/staff/');
+        if (!$isIdentityPath) {
+            $tuple = strtoupper($data['method']) . " {$path} {$data['operationId']}";
+            if (!isset(self::ACCEPTED_BOOKING_OPERATION_TUPLES[$tuple])) {
+                throw new InvalidCommandSchemaException('Invalid route path in operation contract');
+            }
         }
 
         if (!is_bool($data['hasBody'])) {
@@ -178,6 +192,24 @@ final class IdentityOperationContract
                 'required' => $param['required'],
                 'schema' => $param['schema'],
             ];
+        }
+
+        // The canonical parser owns path-template/declaration consistency.
+        preg_match_all('/\{([^}]+)\}/', $path, $matches);
+        $templateParams = $matches[1] ?? [];
+        $pathParamNames = array_column(
+            array_filter($parameters, static fn (array $param): bool => $param['in'] === 'path'),
+            'name',
+        );
+        foreach ($templateParams as $name) {
+            if (!in_array($name, $pathParamNames, true)) {
+                throw new InvalidCommandSchemaException('Path template parameter missing from declared path parameters');
+            }
+        }
+        foreach ($pathParamNames as $name) {
+            if (!in_array($name, $templateParams, true)) {
+                throw new InvalidCommandSchemaException('Path parameter is not present in path template');
+            }
         }
 
         return new self(

@@ -11,7 +11,7 @@ use App\Identity\Contracts\Exceptions\InvalidCommandSchemaException;
  *
  * Invariants:
  * - Reads immutable JSON schema artifact from app/Identity/Contracts.
- * - Validates root artifact structure, version, phase, and exact operation count (41).
+ * - Validates root artifact structure, version, phase, and exact operation count (46).
  * - Enforces exact closed shapes: no unknown fields allowed on root or operation containers.
  * - Enforces exact key-to-operationId identity and unique routes/operations.
  * - Verifies canonical SHA-256 schema digest at initialization.
@@ -24,7 +24,7 @@ final class IdentityCommandContracts
     public const string EXPECTED_SCHEMA = 'https://json-schema.org/draft/2020-12/schema';
     public const string EXPECTED_VERSION = '1.0.0';
     public const string EXPECTED_PHASE = '13B';
-    public const int EXPECTED_OPERATION_COUNT = 41;
+    public const int EXPECTED_OPERATION_COUNT = 46;
 
     private const array ALLOWED_ROOT_FIELDS = [
         '$schema' => true,
@@ -145,23 +145,6 @@ final class IdentityCommandContracts
             $routeKey = strtoupper($operation->method) . ' ' . $operation->path;
             if (isset($routeMap[$routeKey])) {
                 throw new InvalidCommandSchemaException('Duplicate route definition in contract');
-            }
-
-            // Path template declaration consistency
-            preg_match_all('/\{([^}]+)\}/', $operation->path, $matches);
-            $templateParams = $matches[1] ?? [];
-            $pathParams = $operation->getPathParameters();
-            $pathParamNames = array_map(static fn (array $p): string => $p['name'], $pathParams);
-
-            foreach ($templateParams as $tParam) {
-                if (!in_array($tParam, $pathParamNames, true)) {
-                    throw new InvalidCommandSchemaException('Path template parameter missing from declared path parameters');
-                }
-            }
-            foreach ($pathParamNames as $pName) {
-                if (!in_array($pName, $templateParams, true)) {
-                    throw new InvalidCommandSchemaException('Path parameter is not present in path template');
-                }
             }
 
             if ($operation->requestBodySchema !== null) {

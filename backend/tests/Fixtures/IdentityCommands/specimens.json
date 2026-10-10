@@ -1134,5 +1134,659 @@
     "rawJson": "{\"token\":\"test\"}",
     "payload": null,
     "parameters": {}
+  },
+  {
+    "id": "booking_guest_challenge_valid_baseline",
+    "family": "BookingGuestChallenge",
+    "operationId": "postCreateGuestChallenge",
+    "method": "POST",
+    "path": "/bookings/{ref}/challenge",
+    "expectedValid": true,
+    "payload": {
+      "surname": "Al-Masri"
+    },
+    "parameters": {
+      "ref": "GZA-1234"
+    }
+  },
+  {
+    "id": "booking_guest_challenge_valid_ref_min_6",
+    "family": "BookingGuestChallenge",
+    "operationId": "postCreateGuestChallenge",
+    "method": "POST",
+    "path": "/bookings/{ref}/challenge",
+    "expectedValid": true,
+    "payload": {
+      "surname": "Al-Masri"
+    },
+    "parameters": {
+      "ref": "GZA123"
+    }
+  },
+  {
+    "id": "booking_guest_challenge_valid_ref_max_8",
+    "family": "BookingGuestChallenge",
+    "operationId": "postCreateGuestChallenge",
+    "method": "POST",
+    "path": "/bookings/{ref}/challenge",
+    "expectedValid": true,
+    "payload": {
+      "surname": "Al-Masri"
+    },
+    "parameters": {
+      "ref": "GZA12345"
+    }
+  },
+  {
+    "id": "booking_guest_challenge_invalid_ref_too_short_5",
+    "family": "BookingGuestChallenge",
+    "operationId": "postCreateGuestChallenge",
+    "method": "POST",
+    "path": "/bookings/{ref}/challenge",
+    "expectedValid": false,
+    "expectedCode": "STRING_TOO_SHORT",
+    "payload": {
+      "surname": "Al-Masri"
+    },
+    "parameters": {
+      "ref": "GZA12"
+    }
+  },
+  {
+    "id": "booking_guest_challenge_invalid_ref_too_long_9",
+    "family": "BookingGuestChallenge",
+    "operationId": "postCreateGuestChallenge",
+    "method": "POST",
+    "path": "/bookings/{ref}/challenge",
+    "expectedValid": false,
+    "expectedCode": "STRING_TOO_LONG",
+    "payload": {
+      "surname": "Al-Masri"
+    },
+    "parameters": {
+      "ref": "GZA123456"
+    }
+  },
+  {
+    "id": "booking_guest_challenge_missing_ref_param",
+    "family": "BookingGuestChallenge",
+    "operationId": "postCreateGuestChallenge",
+    "method": "POST",
+    "path": "/bookings/{ref}/challenge",
+    "expectedValid": false,
+    "expectedCode": "REQUIRED_FIELD_MISSING",
+    "payload": {
+      "surname": "Al-Masri"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_guest_challenge_surname_empty",
+    "family": "BookingGuestChallenge",
+    "operationId": "postCreateGuestChallenge",
+    "method": "POST",
+    "path": "/bookings/{ref}/challenge",
+    "expectedValid": false,
+    "expectedCode": "STRING_TOO_SHORT",
+    "payload": {
+      "surname": ""
+    },
+    "parameters": {
+      "ref": "GZA-1234"
+    }
+  },
+  {
+    "id": "booking_guest_challenge_surname_too_long_65",
+    "family": "BookingGuestChallenge",
+    "operationId": "postCreateGuestChallenge",
+    "method": "POST",
+    "path": "/bookings/{ref}/challenge",
+    "expectedValid": false,
+    "expectedCode": "STRING_TOO_LONG",
+    "payload": {
+      "surname": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    },
+    "parameters": {
+      "ref": "GZA-1234"
+    }
+  },
+  {
+    "id": "booking_guest_challenge_missing_surname",
+    "family": "BookingGuestChallenge",
+    "operationId": "postCreateGuestChallenge",
+    "method": "POST",
+    "path": "/bookings/{ref}/challenge",
+    "expectedValid": false,
+    "expectedCode": "REQUIRED_FIELD_MISSING",
+    "payload": {},
+    "parameters": {
+      "ref": "GZA-1234"
+    }
+  },
+  {
+    "id": "booking_guest_challenge_price_injection",
+    "family": "BookingGuestChallenge",
+    "operationId": "postCreateGuestChallenge",
+    "method": "POST",
+    "path": "/bookings/{ref}/challenge",
+    "expectedValid": false,
+    "expectedCode": "ADDITIONAL_PROPERTIES_DISALLOWED",
+    "payload": {
+      "surname": "Al-Masri",
+      "price": 0
+    },
+    "parameters": {
+      "ref": "GZA-1234"
+    }
+  },
+  {
+    "id": "booking_guest_challenge_alias_injection",
+    "family": "BookingGuestChallenge",
+    "operationId": "postCreateGuestChallenge",
+    "method": "POST",
+    "path": "/bookings/{ref}/challenge",
+    "expectedValid": false,
+    "expectedCode": "ADDITIONAL_PROPERTIES_DISALLOWED",
+    "payload": {
+      "surname": "Al-Masri",
+      "bookingToken": "fake_injected_token"
+    },
+    "parameters": {
+      "ref": "GZA-1234"
+    }
+  },
+  {
+    "id": "booking_guest_verify_valid_baseline",
+    "family": "BookingGuestVerify",
+    "operationId": "postVerifyGuestChallenge",
+    "method": "POST",
+    "path": "/bookings/{ref}/verify-challenge",
+    "expectedValid": true,
+    "payload": {
+      "challengeId": "00000000-0000-0000-0000-000000000001",
+      "code": "123456"
+    },
+    "parameters": {
+      "ref": "GZA-1234"
+    }
+  },
+  {
+    "id": "booking_guest_verify_invalid_uuid",
+    "family": "BookingGuestVerify",
+    "operationId": "postVerifyGuestChallenge",
+    "method": "POST",
+    "path": "/bookings/{ref}/verify-challenge",
+    "expectedValid": false,
+    "expectedCode": "INVALID_FORMAT",
+    "payload": {
+      "challengeId": "not-a-valid-uuid",
+      "code": "123456"
+    },
+    "parameters": {
+      "ref": "GZA-1234"
+    }
+  },
+  {
+    "id": "booking_guest_verify_otp_non_numeric",
+    "family": "BookingGuestVerify",
+    "operationId": "postVerifyGuestChallenge",
+    "method": "POST",
+    "path": "/bookings/{ref}/verify-challenge",
+    "expectedValid": false,
+    "expectedCode": "PATTERN_MISMATCH",
+    "payload": {
+      "challengeId": "00000000-0000-0000-0000-000000000001",
+      "code": "12345a"
+    },
+    "parameters": {
+      "ref": "GZA-1234"
+    }
+  },
+  {
+    "id": "booking_guest_verify_otp_short_5",
+    "family": "BookingGuestVerify",
+    "operationId": "postVerifyGuestChallenge",
+    "method": "POST",
+    "path": "/bookings/{ref}/verify-challenge",
+    "expectedValid": false,
+    "expectedCode": "PATTERN_MISMATCH",
+    "payload": {
+      "challengeId": "00000000-0000-0000-0000-000000000001",
+      "code": "12345"
+    },
+    "parameters": {
+      "ref": "GZA-1234"
+    }
+  },
+  {
+    "id": "booking_guest_verify_otp_long_7",
+    "family": "BookingGuestVerify",
+    "operationId": "postVerifyGuestChallenge",
+    "method": "POST",
+    "path": "/bookings/{ref}/verify-challenge",
+    "expectedValid": false,
+    "expectedCode": "PATTERN_MISMATCH",
+    "payload": {
+      "challengeId": "00000000-0000-0000-0000-000000000001",
+      "code": "1234567"
+    },
+    "parameters": {
+      "ref": "GZA-1234"
+    }
+  },
+  {
+    "id": "booking_guest_verify_missing_code",
+    "family": "BookingGuestVerify",
+    "operationId": "postVerifyGuestChallenge",
+    "method": "POST",
+    "path": "/bookings/{ref}/verify-challenge",
+    "expectedValid": false,
+    "expectedCode": "REQUIRED_FIELD_MISSING",
+    "payload": {
+      "challengeId": "00000000-0000-0000-0000-000000000001"
+    },
+    "parameters": {
+      "ref": "GZA-1234"
+    }
+  },
+  {
+    "id": "booking_guest_verify_missing_challenge_id",
+    "family": "BookingGuestVerify",
+    "operationId": "postVerifyGuestChallenge",
+    "method": "POST",
+    "path": "/bookings/{ref}/verify-challenge",
+    "expectedValid": false,
+    "expectedCode": "REQUIRED_FIELD_MISSING",
+    "payload": {
+      "code": "123456"
+    },
+    "parameters": {
+      "ref": "GZA-1234"
+    }
+  },
+  {
+    "id": "booking_guest_verify_claim_proof_injection",
+    "family": "BookingGuestVerify",
+    "operationId": "postVerifyGuestChallenge",
+    "method": "POST",
+    "path": "/bookings/{ref}/verify-challenge",
+    "expectedValid": false,
+    "expectedCode": "ADDITIONAL_PROPERTIES_DISALLOWED",
+    "payload": {
+      "challengeId": "00000000-0000-0000-0000-000000000001",
+      "code": "123456",
+      "claimProof": "injected_claim_proof"
+    },
+    "parameters": {
+      "ref": "GZA-1234"
+    }
+  },
+  {
+    "id": "booking_claim_challenge_valid_baseline",
+    "family": "BookingClaimChallenge",
+    "operationId": "postCreateClaimChallenge",
+    "method": "POST",
+    "path": "/account/bookings/claim/challenge",
+    "expectedValid": true,
+    "payload": {
+      "ref": "GZA-1234",
+      "surname": "Al-Masri"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_challenge_valid_ref_min_6",
+    "family": "BookingClaimChallenge",
+    "operationId": "postCreateClaimChallenge",
+    "method": "POST",
+    "path": "/account/bookings/claim/challenge",
+    "expectedValid": true,
+    "payload": {
+      "ref": "GZA123",
+      "surname": "Al-Masri"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_challenge_valid_ref_max_8",
+    "family": "BookingClaimChallenge",
+    "operationId": "postCreateClaimChallenge",
+    "method": "POST",
+    "path": "/account/bookings/claim/challenge",
+    "expectedValid": true,
+    "payload": {
+      "ref": "GZA12345",
+      "surname": "Al-Masri"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_challenge_invalid_ref_short_5",
+    "family": "BookingClaimChallenge",
+    "operationId": "postCreateClaimChallenge",
+    "method": "POST",
+    "path": "/account/bookings/claim/challenge",
+    "expectedValid": false,
+    "expectedCode": "STRING_TOO_SHORT",
+    "payload": {
+      "ref": "GZA12",
+      "surname": "Al-Masri"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_challenge_invalid_ref_long_9",
+    "family": "BookingClaimChallenge",
+    "operationId": "postCreateClaimChallenge",
+    "method": "POST",
+    "path": "/account/bookings/claim/challenge",
+    "expectedValid": false,
+    "expectedCode": "STRING_TOO_LONG",
+    "payload": {
+      "ref": "GZA123456",
+      "surname": "Al-Masri"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_challenge_missing_ref",
+    "family": "BookingClaimChallenge",
+    "operationId": "postCreateClaimChallenge",
+    "method": "POST",
+    "path": "/account/bookings/claim/challenge",
+    "expectedValid": false,
+    "expectedCode": "REQUIRED_FIELD_MISSING",
+    "payload": {
+      "surname": "Al-Masri"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_challenge_missing_surname",
+    "family": "BookingClaimChallenge",
+    "operationId": "postCreateClaimChallenge",
+    "method": "POST",
+    "path": "/account/bookings/claim/challenge",
+    "expectedValid": false,
+    "expectedCode": "REQUIRED_FIELD_MISSING",
+    "payload": {
+      "ref": "GZA-1234"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_challenge_surname_empty",
+    "family": "BookingClaimChallenge",
+    "operationId": "postCreateClaimChallenge",
+    "method": "POST",
+    "path": "/account/bookings/claim/challenge",
+    "expectedValid": false,
+    "expectedCode": "STRING_TOO_SHORT",
+    "payload": {
+      "ref": "GZA-1234",
+      "surname": ""
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_challenge_price_injection",
+    "family": "BookingClaimChallenge",
+    "operationId": "postCreateClaimChallenge",
+    "method": "POST",
+    "path": "/account/bookings/claim/challenge",
+    "expectedValid": false,
+    "expectedCode": "ADDITIONAL_PROPERTIES_DISALLOWED",
+    "payload": {
+      "ref": "GZA-1234",
+      "surname": "Al-Masri",
+      "discount": 100
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_verify_valid_baseline",
+    "family": "BookingClaimVerify",
+    "operationId": "postVerifyClaimChallenge",
+    "method": "POST",
+    "path": "/account/bookings/claim/verify",
+    "expectedValid": true,
+    "payload": {
+      "challengeId": "00000000-0000-0000-0000-000000000001",
+      "code": "123456"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_verify_invalid_uuid",
+    "family": "BookingClaimVerify",
+    "operationId": "postVerifyClaimChallenge",
+    "method": "POST",
+    "path": "/account/bookings/claim/verify",
+    "expectedValid": false,
+    "expectedCode": "INVALID_FORMAT",
+    "payload": {
+      "challengeId": "bad-uuid",
+      "code": "123456"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_verify_otp_non_numeric",
+    "family": "BookingClaimVerify",
+    "operationId": "postVerifyClaimChallenge",
+    "method": "POST",
+    "path": "/account/bookings/claim/verify",
+    "expectedValid": false,
+    "expectedCode": "PATTERN_MISMATCH",
+    "payload": {
+      "challengeId": "00000000-0000-0000-0000-000000000001",
+      "code": "abcdef"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_verify_otp_short_5",
+    "family": "BookingClaimVerify",
+    "operationId": "postVerifyClaimChallenge",
+    "method": "POST",
+    "path": "/account/bookings/claim/verify",
+    "expectedValid": false,
+    "expectedCode": "PATTERN_MISMATCH",
+    "payload": {
+      "challengeId": "00000000-0000-0000-0000-000000000001",
+      "code": "12345"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_verify_otp_long_7",
+    "family": "BookingClaimVerify",
+    "operationId": "postVerifyClaimChallenge",
+    "method": "POST",
+    "path": "/account/bookings/claim/verify",
+    "expectedValid": false,
+    "expectedCode": "PATTERN_MISMATCH",
+    "payload": {
+      "challengeId": "00000000-0000-0000-0000-000000000001",
+      "code": "1234567"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_verify_missing_code",
+    "family": "BookingClaimVerify",
+    "operationId": "postVerifyClaimChallenge",
+    "method": "POST",
+    "path": "/account/bookings/claim/verify",
+    "expectedValid": false,
+    "expectedCode": "REQUIRED_FIELD_MISSING",
+    "payload": {
+      "challengeId": "00000000-0000-0000-0000-000000000001"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_verify_missing_challenge_id",
+    "family": "BookingClaimVerify",
+    "operationId": "postVerifyClaimChallenge",
+    "method": "POST",
+    "path": "/account/bookings/claim/verify",
+    "expectedValid": false,
+    "expectedCode": "REQUIRED_FIELD_MISSING",
+    "payload": {
+      "code": "123456"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_verify_guest_grant_injection",
+    "family": "BookingClaimVerify",
+    "operationId": "postVerifyClaimChallenge",
+    "method": "POST",
+    "path": "/account/bookings/claim/verify",
+    "expectedValid": false,
+    "expectedCode": "ADDITIONAL_PROPERTIES_DISALLOWED",
+    "payload": {
+      "challengeId": "00000000-0000-0000-0000-000000000001",
+      "code": "123456",
+      "bookingToken": "injected"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_account_valid_baseline",
+    "family": "BookingClaimAccount",
+    "operationId": "postClaimBookingToAccount",
+    "method": "POST",
+    "path": "/account/bookings/claim",
+    "expectedValid": true,
+    "payload": {
+      "ref": "GZA-1234",
+      "claimProof": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_account_valid_proof_min_32",
+    "family": "BookingClaimAccount",
+    "operationId": "postClaimBookingToAccount",
+    "method": "POST",
+    "path": "/account/bookings/claim",
+    "expectedValid": true,
+    "payload": {
+      "ref": "GZA-1234",
+      "claimProof": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_account_valid_proof_max_64",
+    "family": "BookingClaimAccount",
+    "operationId": "postClaimBookingToAccount",
+    "method": "POST",
+    "path": "/account/bookings/claim",
+    "expectedValid": true,
+    "payload": {
+      "ref": "GZA-1234",
+      "claimProof": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_account_invalid_proof_too_short_31",
+    "family": "BookingClaimAccount",
+    "operationId": "postClaimBookingToAccount",
+    "method": "POST",
+    "path": "/account/bookings/claim",
+    "expectedValid": false,
+    "expectedCode": "STRING_TOO_SHORT",
+    "payload": {
+      "ref": "GZA-1234",
+      "claimProof": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_account_invalid_proof_too_long_65",
+    "family": "BookingClaimAccount",
+    "operationId": "postClaimBookingToAccount",
+    "method": "POST",
+    "path": "/account/bookings/claim",
+    "expectedValid": false,
+    "expectedCode": "STRING_TOO_LONG",
+    "payload": {
+      "ref": "GZA-1234",
+      "claimProof": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_account_missing_claim_proof",
+    "family": "BookingClaimAccount",
+    "operationId": "postClaimBookingToAccount",
+    "method": "POST",
+    "path": "/account/bookings/claim",
+    "expectedValid": false,
+    "expectedCode": "REQUIRED_FIELD_MISSING",
+    "payload": {
+      "ref": "GZA-1234"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_account_missing_ref",
+    "family": "BookingClaimAccount",
+    "operationId": "postClaimBookingToAccount",
+    "method": "POST",
+    "path": "/account/bookings/claim",
+    "expectedValid": false,
+    "expectedCode": "REQUIRED_FIELD_MISSING",
+    "payload": {
+      "claimProof": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_account_ref_too_short_5",
+    "family": "BookingClaimAccount",
+    "operationId": "postClaimBookingToAccount",
+    "method": "POST",
+    "path": "/account/bookings/claim",
+    "expectedValid": false,
+    "expectedCode": "STRING_TOO_SHORT",
+    "payload": {
+      "ref": "GZA12",
+      "claimProof": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_account_ref_too_long_9",
+    "family": "BookingClaimAccount",
+    "operationId": "postClaimBookingToAccount",
+    "method": "POST",
+    "path": "/account/bookings/claim",
+    "expectedValid": false,
+    "expectedCode": "STRING_TOO_LONG",
+    "payload": {
+      "ref": "GZA123456",
+      "claimProof": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "parameters": {}
+  },
+  {
+    "id": "booking_claim_account_alias_grant_injection",
+    "family": "BookingClaimAccount",
+    "operationId": "postClaimBookingToAccount",
+    "method": "POST",
+    "path": "/account/bookings/claim",
+    "expectedValid": false,
+    "expectedCode": "ADDITIONAL_PROPERTIES_DISALLOWED",
+    "payload": {
+      "ref": "GZA-1234",
+      "claimProof": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "booking_guest_grant": "token"
+    },
+    "parameters": {}
   }
 ]

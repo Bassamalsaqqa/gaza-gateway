@@ -87,6 +87,14 @@ const SUPPORTED_TYPES = new Set([
   'null',
 ]);
 
+const ACCEPTED_BOOKING_OPERATION_TUPLES = new Set([
+  'POST /bookings/{ref}/challenge postCreateGuestChallenge',
+  'POST /bookings/{ref}/verify-challenge postVerifyGuestChallenge',
+  'POST /account/bookings/claim/challenge postCreateClaimChallenge',
+  'POST /account/bookings/claim/verify postVerifyClaimChallenge',
+  'POST /account/bookings/claim postClaimBookingToAccount',
+]);
+
 /**
  * Deep equality helper matching JSON Schema rules.
  */
@@ -408,9 +416,20 @@ export function generateContracts(spec) {
   const operations = {};
   const referencedSchemas = new Set();
   const seenRouteKeys = new Set();
+  const matchedBookingTuples = new Set();
+  const matchedIdentityOperations = new Set();
 
   for (const [routePath, pathItem] of Object.entries(spec.paths || {})) {
-    if (!routePath.startsWith('/auth/') && !routePath.startsWith('/staff/')) {
+    const isPrefixAllowed = routePath.startsWith('/auth/') || routePath.startsWith('/staff/');
+    const isExplicitPath = [
+      '/bookings/{ref}/challenge',
+      '/bookings/{ref}/verify-challenge',
+      '/account/bookings/claim/challenge',
+      '/account/bookings/claim/verify',
+      '/account/bookings/claim',
+    ].includes(routePath);
+
+    if (!isPrefixAllowed && !isExplicitPath) {
       continue;
     }
 
@@ -432,6 +451,16 @@ export function generateContracts(spec) {
       const operationId = op.operationId;
       if (!operationId || typeof operationId !== 'string') {
         throw new Error(`Missing or invalid operationId at ${methodUpper} ${routePath}`);
+      }
+
+      if (!isPrefixAllowed) {
+        const tuple = `${methodUpper} ${routePath} ${operationId}`;
+        if (!ACCEPTED_BOOKING_OPERATION_TUPLES.has(tuple)) {
+          continue;
+        }
+        matchedBookingTuples.add(tuple);
+      } else {
+        matchedIdentityOperations.add(operationId);
       }
 
       if (operations[operationId]) {
@@ -538,6 +567,21 @@ export function generateContracts(spec) {
         parameters,
       };
     }
+  }
+
+  for (const expectedTuple of ACCEPTED_BOOKING_OPERATION_TUPLES) {
+    if (!matchedBookingTuples.has(expectedTuple)) {
+      throw new Error(`Expected booking operation tuple missing: '${expectedTuple}'`);
+    }
+  }
+  if (matchedBookingTuples.size !== 5) {
+    throw new Error(`Expected exactly 5 booking operation tuples, found ${matchedBookingTuples.size}`);
+  }
+  if (matchedIdentityOperations.size !== 41) {
+    throw new Error(`Expected exactly 41 identity operations, found ${matchedIdentityOperations.size}`);
+  }
+  if (Object.keys(operations).length !== 46) {
+    throw new Error(`Expected exactly 46 total operations, found ${Object.keys(operations).length}`);
   }
 
   // Transitively collect all referenced components

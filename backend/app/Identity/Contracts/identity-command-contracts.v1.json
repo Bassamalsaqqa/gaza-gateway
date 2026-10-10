@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "canonicalDigest": "sha256:d9f531bbc40e8d7908e0ea4feb730ec93ca4a530df21a3a2ed428ce9f28bd852",
+  "canonicalDigest": "sha256:08ab7cce5b78ff4e6f9696721cc5e26b073411f59d998718ddcb91b3c36d75c9",
   "contractVersion": "1.0.0",
-  "operationCount": 41,
+  "operationCount": 46,
   "operations": {
     "deletePassengerSession": {
       "bodyRequired": false,
@@ -189,6 +189,50 @@
       "path": "/staff/users/{id}",
       "requestBodySchema": {
         "$ref": "#/components/schemas/PatchStaffUserRequest"
+      }
+    },
+    "postClaimBookingToAccount": {
+      "bodyRequired": true,
+      "hasBody": true,
+      "method": "POST",
+      "operationId": "postClaimBookingToAccount",
+      "parameters": [],
+      "path": "/account/bookings/claim",
+      "requestBodySchema": {
+        "$ref": "#/components/schemas/ClaimBookingRequest"
+      }
+    },
+    "postCreateClaimChallenge": {
+      "bodyRequired": true,
+      "hasBody": true,
+      "method": "POST",
+      "operationId": "postCreateClaimChallenge",
+      "parameters": [],
+      "path": "/account/bookings/claim/challenge",
+      "requestBodySchema": {
+        "$ref": "#/components/schemas/BookingClaimChallengeRequest"
+      }
+    },
+    "postCreateGuestChallenge": {
+      "bodyRequired": true,
+      "hasBody": true,
+      "method": "POST",
+      "operationId": "postCreateGuestChallenge",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "ref",
+          "required": true,
+          "schema": {
+            "maxLength": 8,
+            "minLength": 6,
+            "type": "string"
+          }
+        }
+      ],
+      "path": "/bookings/{ref}/challenge",
+      "requestBodySchema": {
+        "$ref": "#/components/schemas/BookingChallengeRequest"
       }
     },
     "postPassengerEmailResend": {
@@ -459,6 +503,39 @@
       "path": "/staff/users/{id}/invite/revoke",
       "requestBodySchema": null
     },
+    "postVerifyClaimChallenge": {
+      "bodyRequired": true,
+      "hasBody": true,
+      "method": "POST",
+      "operationId": "postVerifyClaimChallenge",
+      "parameters": [],
+      "path": "/account/bookings/claim/verify",
+      "requestBodySchema": {
+        "$ref": "#/components/schemas/BookingClaimVerifyRequest"
+      }
+    },
+    "postVerifyGuestChallenge": {
+      "bodyRequired": true,
+      "hasBody": true,
+      "method": "POST",
+      "operationId": "postVerifyGuestChallenge",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "ref",
+          "required": true,
+          "schema": {
+            "maxLength": 8,
+            "minLength": 6,
+            "type": "string"
+          }
+        }
+      ],
+      "path": "/bookings/{ref}/verify-challenge",
+      "requestBodySchema": {
+        "$ref": "#/components/schemas/BookingVerifyChallengeRequest"
+      }
+    },
     "putPassengerPassword": {
       "bodyRequired": true,
       "hasBody": true,
@@ -495,6 +572,96 @@
   },
   "phase": "13B",
   "schemas": {
+    "#/components/schemas/BookingChallengeRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "surname": {
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "surname"
+      ],
+      "type": "object"
+    },
+    "#/components/schemas/BookingClaimChallengeRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "ref": {
+          "maxLength": 8,
+          "minLength": 6,
+          "type": "string"
+        },
+        "surname": {
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "ref",
+        "surname"
+      ],
+      "type": "object"
+    },
+    "#/components/schemas/BookingClaimVerifyRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "challengeId": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "code": {
+          "pattern": "^[0-9]{6}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "challengeId",
+        "code"
+      ],
+      "type": "object"
+    },
+    "#/components/schemas/BookingVerifyChallengeRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "challengeId": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "code": {
+          "pattern": "^[0-9]{6}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "challengeId",
+        "code"
+      ],
+      "type": "object"
+    },
+    "#/components/schemas/ClaimBookingRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "claimProof": {
+          "maxLength": 64,
+          "minLength": 32,
+          "type": "string"
+        },
+        "ref": {
+          "maxLength": 8,
+          "minLength": 6,
+          "type": "string"
+        }
+      },
+      "required": [
+        "ref",
+        "claimProof"
+      ],
+      "type": "object"
+    },
     "#/components/schemas/CreateStaffUserRequest": {
       "additionalProperties": false,
       "properties": {

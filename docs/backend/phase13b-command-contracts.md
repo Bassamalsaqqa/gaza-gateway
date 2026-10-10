@@ -12,9 +12,9 @@ This package is bounded and independent:
 
 ---
 
-## Accepted Scope: 41 Identity Operations
+## Accepted Scope: 46 Operations (41 Identity + 5 Booking Guest/Claim)
 
-The package selects every accepted operation in `docs/backend/openapi.v1.json` whose path starts with `/auth/` or `/staff/`. There are exactly **41 operations** across **26 paths**:
+The package selects every accepted operation in `docs/backend/openapi.v1.json` whose path starts with `/auth/` or `/staff/`, plus exactly five deterministic booking guest/claim operation tuples. There are exactly **46 operations** across **41 paths**:
 
 | Operation ID | Method | Path | Request Body | Parameters |
 |---|---|---|---|---|
@@ -59,6 +59,19 @@ The package selects every accepted operation in `docs/backend/openapi.v1.json` w
 | `postStaffInvitationAccept` | POST | `/staff/invitations/accept` | `StaffInvitationAcceptRequest` | `X-Request-Id`, `X-CSRF-TOKEN` |
 | `postStaffUserInviteReissue` | POST | `/staff/users/{id}/invite/reissue` | None (bodyless) | `id` (path, string), `X-Request-Id`, `X-CSRF-TOKEN` |
 | `postStaffUserInviteRevoke` | POST | `/staff/users/{id}/invite/revoke` | None (bodyless) | `id` (path, string), `X-Request-Id`, `X-CSRF-TOKEN` |
+| `postCreateGuestChallenge` | POST | `/bookings/{ref}/challenge` | `BookingChallengeRequest` | `ref` (path, string, min: 6, max: 8), `X-Request-Id`, `X-CSRF-TOKEN` |
+| `postVerifyGuestChallenge` | POST | `/bookings/{ref}/verify-challenge` | `BookingVerifyChallengeRequest` | `ref` (path, string, min: 6, max: 8), `X-Request-Id`, `X-CSRF-TOKEN` |
+| `postCreateClaimChallenge` | POST | `/account/bookings/claim/challenge` | `BookingClaimChallengeRequest` | `X-Request-Id`, `X-CSRF-TOKEN` |
+| `postVerifyClaimChallenge` | POST | `/account/bookings/claim/verify` | `BookingClaimVerifyRequest` | `X-Request-Id`, `X-CSRF-TOKEN` |
+| `postClaimBookingToAccount` | POST | `/account/bookings/claim` | `ClaimBookingRequest` | `X-Request-Id`, `X-CSRF-TOKEN` |
+
+### OpaqueToken Realm & Purpose Pairs Extension
+In addition to the core identity token realms and purposes, `App\Identity\Tokens\OpaqueToken::VALID_PAIRS` has been extended by exactly three accepted pairs for guest/claim identity contracts:
+1. `booking` / `booking_guest_grant`
+2. `booking` / `booking_receipt_grant`
+3. `passenger` / `booking_claim_proof`
+
+All tokens preserve 32 cryptographic random bytes, canonical 43-character base64url encoding, and digest-only redacted representation across debug, serialization, export, and JSON formats.
 
 ---
 
@@ -116,20 +129,22 @@ The package selects every accepted operation in `docs/backend/openapi.v1.json` w
 
 1. **Artifact Generation**:
    `node backend/scripts/generate-identity-command-contracts.mjs`
-   Reads `docs/backend/openapi.v1.json`, produces `backend/app/Identity/Contracts/identity-command-contracts.v1.json` with deterministic LF line endings and canonical SHA-256 schema digest (`sha256:d9f531bbc40e8d7908e0ea4feb730ec93ca4a530df21a3a2ed428ce9f28bd852`).
+   Reads `docs/backend/openapi.v1.json`, produces `backend/app/Identity/Contracts/identity-command-contracts.v1.json` with deterministic LF line endings and canonical SHA-256 schema digest (`sha256:08ab7cce5b78ff4e6f9696721cc5e26b073411f59d998718ddcb91b3c36d75c9`).
    `node backend/scripts/generate-identity-command-contracts.mjs --check` exits non-zero if the artifact is missing, stale, or tampered.
 
 2. **Cross-Language Parity Harness & Isolated Corruption Probes**:
    `node backend/scripts/verify-identity-command-contracts.mjs`
-   - Evaluates 358 test specimens (89 static + 269 dynamic) covering all 41 accepted operations and all 22 command request schemas across both PHP (via `backend/scripts/probe-identity-command-validation.php`) and Node (`scripts/lib/backend-contract-validation.mjs`), confirming 100% agreement.
+   - Evaluates 455 test specimens (135 static + 320 dynamic) covering all 46 accepted operations and all 27 command request schemas across both PHP (via `backend/scripts/probe-identity-command-validation.php`) and Node (`scripts/lib/backend-contract-validation.mjs`), confirming 100% agreement.
    - Dynamically evaluates every declared property with null values, type mismatches, required property deletions, and optional property omissions across both runtimes.
    - Executes 12 isolated subprocess corruption probes testing missing artifact, stale artifact, changed bound, changed ref sibling, changed format, duplicate required keys, duplicate enum items, invalid additionalProperties shape, array-form items tuple, `type: null`, `not: { minProperties: 1 }`, and `multipleOf: -1`. All 12 probes fail closed with non-zero exit codes.
 
 3. **PHPUnit Test Suite**:
    Runs under PHPUnit 13.4.1 and PHP 8.4.26 inside Docker (`gaza-gateway-backend:phase13a`) with `--network none`:
    `vendor/bin/phpunit --configuration phpunit.xml --do-not-record-test-run-history --fail-on-phpunit-deprecation tests/Unit/IdentityCommands`
-   Result: **141 tests, 591 assertions, 0 failures, 0 deprecations**.
+   Result: **197 tests, 902 assertions, 0 failures, 0 deprecations**.
+   - `vendor/bin/phpunit --configuration phpunit.xml --do-not-record-test-run-history --fail-on-phpunit-deprecation tests/Unit/Identity/OpaqueTokenTest.php`
+     Result: **10 tests, 144 assertions, 0 failures, 0 deprecations**.
 
 ## Independent package review
 
-Codex independently ran 141 PHP tests / 591 assertions, six targeted positive/negative probes, the generator check, focused lint and 358 dual-runtime specimens with 12 corruption controls. The portable parity script is retained under backend/scripts; it uses this checkout's locked backend/vendor by default, with IDENTITY_CONTRACT_VENDOR_PATH available for a reviewed read-only vendor tree. Docker access is required, and runtime validation itself has no Node/Docker dependency. This bounded package does not implement authentication or HTTP middleware. Shared input limits apply to direct payload plus parameters; the raw JSON path first bounds raw bytes plus parameters, then separately validates the decoded instance safety and structural limits. The raw encoding conservatively bounds decoded content.
+Codex independently verified 197 PHP command tests / 902 assertions, 10 token tests / 144 assertions, the generator check, focused lint and 455 dual-runtime specimens with 12 corruption controls. The portable parity script is retained under backend/scripts; it uses this checkout's locked backend/vendor by default, with IDENTITY_CONTRACT_VENDOR_PATH available for a reviewed read-only vendor tree. Docker access is required, and runtime validation itself has no Node/Docker dependency. This bounded package does not implement authentication or HTTP middleware. Shared input limits apply to direct payload plus parameters; the raw JSON path first bounds raw bytes plus parameters, then separately validates the decoded instance safety and structural limits. The raw encoding conservatively bounds decoded content.

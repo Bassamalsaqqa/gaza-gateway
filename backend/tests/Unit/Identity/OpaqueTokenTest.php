@@ -270,4 +270,104 @@ final class OpaqueTokenTest extends TestCase
         $this->assertNotSame($token1->getSecretToken(), $token2->getSecretToken());
         $this->assertNotSame($token1->digest, $token2->digest);
     }
+
+    public function test_booking_manifest_pairs_generate_and_validate_canonically(): void
+    {
+        $pairs = [
+            ['booking', 'booking_guest_grant'],
+            ['booking', 'booking_receipt_grant'],
+            ['passenger', 'booking_claim_proof'],
+        ];
+
+        foreach ($pairs as [$realm, $purpose]) {
+            $token = OpaqueToken::generate($realm, $purpose);
+            $secret = $token->getSecretToken();
+
+            $this->assertSame(43, strlen($secret));
+            $this->assertMatchesRegularExpression('/^[A-Za-z0-9_-]{43}$/', $secret);
+            $this->assertSame(64, strlen($token->digest));
+            $this->assertSame(hash('sha256', $secret), $token->digest);
+            $this->assertSame($realm, $token->realm);
+            $this->assertSame($purpose, $token->purpose);
+
+            // Reconstruct from secret
+            $reconstructed = OpaqueToken::fromSecret($realm, $purpose, $secret);
+            $this->assertSame($token->digest, $reconstructed->digest);
+            $this->assertSame($secret, $reconstructed->getSecretToken());
+
+            // digestOf matches
+            $this->assertSame($token->digest, OpaqueToken::digestOf($secret));
+        }
+    }
+
+    public function test_booking_manifest_pairs_redaction_and_confidentiality(): void
+    {
+        $pairs = [
+            ['booking', 'booking_guest_grant'],
+            ['booking', 'booking_receipt_grant'],
+            ['passenger', 'booking_claim_proof'],
+        ];
+
+        foreach ($pairs as [$realm, $purpose]) {
+            $token = OpaqueToken::generate($realm, $purpose);
+            $secret = $token->getSecretToken();
+            $digest = $token->getDigest();
+
+            // 1. __debugInfo
+            $debug = $token->__debugInfo();
+            $this->assertArrayNotHasKey('secret', $debug);
+            $this->assertArrayNotHasKey('digest', $debug);
+            $this->assertSame($realm, $debug['realm']);
+            $this->assertSame($purpose, $debug['purpose']);
+
+            // 2. String casting
+            $asString = (string) $token;
+            $this->assertStringNotContainsString($secret, $asString);
+            $this->assertStringNotContainsString($digest, $asString);
+
+            // 3. json_encode
+            $json = json_encode($token, JSON_THROW_ON_ERROR);
+            $this->assertStringNotContainsString($secret, $json);
+            $this->assertStringNotContainsString($digest, $json);
+
+            // 4. serialize
+            $serialized = serialize($token);
+            $this->assertStringNotContainsString($secret, $serialized);
+            $this->assertStringNotContainsString($digest, $serialized);
+
+            // 5. var_export
+            $exported = var_export($token, true);
+            $this->assertStringNotContainsString($secret, $exported);
+            $this->assertStringNotContainsString($digest, $exported);
+        }
+    }
+
+    public function test_booking_manifest_pairs_reject_invalid_aliases_and_cross_realm_pairs(): void
+    {
+        $invalidPairs = [
+            ['booking', 'session'],
+            ['booking', 'proof'],
+            ['booking', 'csrf'],
+            ['booking', 'guest_grant'],
+            ['booking', 'receipt_grant'],
+            ['booking', 'booking_claim_proof'],
+            ['booking', '*'],
+            ['booking', ''],
+            ['bookings', 'booking_guest_grant'],
+            ['passenger', 'booking_guest_grant'],
+            ['passenger', 'booking_receipt_grant'],
+            ['staff', 'booking_guest_grant'],
+            ['staff', 'booking_receipt_grant'],
+            ['staff', 'booking_claim_proof'],
+        ];
+
+        foreach ($invalidPairs as [$realm, $purpose]) {
+            try {
+                OpaqueToken::generate($realm, $purpose);
+                $this->fail("Should have rejected invalid pair: {$realm}/{$purpose}");
+            } catch (\InvalidArgumentException $e) {
+                $this->assertSame('Invalid realm and purpose pair.', $e->getMessage());
+            }
+        }
+    }
 }

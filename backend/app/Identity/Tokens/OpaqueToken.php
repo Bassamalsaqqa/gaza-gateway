@@ -21,6 +21,7 @@ final class OpaqueToken implements JsonSerializable
             'dispatch',
             'passenger_email_verification',
             'passenger_password_reset',
+            'booking_claim_proof',
         ],
         'staff' => [
             'session',
@@ -35,6 +36,10 @@ final class OpaqueToken implements JsonSerializable
             'staff_invitation',
             'staff_password_reset',
             'staff_mfa_replacement',
+        ],
+        'booking' => [
+            'booking_guest_grant',
+            'booking_receipt_grant',
         ],
     ];
 

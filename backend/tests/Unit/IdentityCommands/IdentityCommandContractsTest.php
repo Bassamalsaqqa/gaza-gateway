@@ -12,11 +12,11 @@ use PHPUnit\Framework\TestCase;
 
 final class IdentityCommandContractsTest extends TestCase
 {
-    public function testLoadsAll41AcceptedIdentityOperations(): void
+    public function testLoadsAll46AcceptedIdentityOperations(): void
     {
         $contracts = IdentityCommandContracts::default();
 
-        $this->assertSame(41, $contracts->getOperationCount());
+        $this->assertSame(46, $contracts->getOperationCount());
         $this->assertStringStartsWith('sha256:', $contracts->getDigest());
 
         // Verify key representative operations exist
@@ -29,6 +29,13 @@ final class IdentityCommandContractsTest extends TestCase
         $this->assertTrue($contracts->hasOperation('postStaffMfaVerify'));
         $this->assertTrue($contracts->hasOperation('patchStaffUser'));
         $this->assertTrue($contracts->hasOperation('deleteSavedTraveler'));
+
+        // Verify exact 5 booking operations exist
+        $this->assertTrue($contracts->hasOperation('postCreateGuestChallenge'));
+        $this->assertTrue($contracts->hasOperation('postVerifyGuestChallenge'));
+        $this->assertTrue($contracts->hasOperation('postCreateClaimChallenge'));
+        $this->assertTrue($contracts->hasOperation('postVerifyClaimChallenge'));
+        $this->assertTrue($contracts->hasOperation('postClaimBookingToAccount'));
     }
 
     public function testRouteMappingResolvesCorrectOperations(): void
@@ -51,6 +58,42 @@ final class IdentityCommandContractsTest extends TestCase
         $this->assertSame('deleteStaffSession', $deleteSessionOp->operationId);
         $this->assertFalse($deleteSessionOp->hasBody);
         $this->assertCount(1, $deleteSessionOp->getPathParameters());
+
+        // Booking routes
+        $guestChallengeOp = $contracts->getOperationByRoute('POST', '/bookings/{ref}/challenge');
+        $this->assertNotNull($guestChallengeOp);
+        $this->assertSame('postCreateGuestChallenge', $guestChallengeOp->operationId);
+        $this->assertTrue($guestChallengeOp->hasBody);
+        $this->assertTrue($guestChallengeOp->bodyRequired);
+        $this->assertCount(1, $guestChallengeOp->getPathParameters());
+
+        $guestVerifyOp = $contracts->getOperationByRoute('POST', '/bookings/{ref}/verify-challenge');
+        $this->assertNotNull($guestVerifyOp);
+        $this->assertSame('postVerifyGuestChallenge', $guestVerifyOp->operationId);
+        $this->assertTrue($guestVerifyOp->hasBody);
+        $this->assertTrue($guestVerifyOp->bodyRequired);
+        $this->assertCount(1, $guestVerifyOp->getPathParameters());
+
+        $claimChallengeOp = $contracts->getOperationByRoute('POST', '/account/bookings/claim/challenge');
+        $this->assertNotNull($claimChallengeOp);
+        $this->assertSame('postCreateClaimChallenge', $claimChallengeOp->operationId);
+        $this->assertTrue($claimChallengeOp->hasBody);
+        $this->assertTrue($claimChallengeOp->bodyRequired);
+        $this->assertCount(0, $claimChallengeOp->getPathParameters());
+
+        $claimVerifyOp = $contracts->getOperationByRoute('POST', '/account/bookings/claim/verify');
+        $this->assertNotNull($claimVerifyOp);
+        $this->assertSame('postVerifyClaimChallenge', $claimVerifyOp->operationId);
+        $this->assertTrue($claimVerifyOp->hasBody);
+        $this->assertTrue($claimVerifyOp->bodyRequired);
+        $this->assertCount(0, $claimVerifyOp->getPathParameters());
+
+        $claimOp = $contracts->getOperationByRoute('POST', '/account/bookings/claim');
+        $this->assertNotNull($claimOp);
+        $this->assertSame('postClaimBookingToAccount', $claimOp->operationId);
+        $this->assertTrue($claimOp->hasBody);
+        $this->assertTrue($claimOp->bodyRequired);
+        $this->assertCount(0, $claimOp->getPathParameters());
     }
 
     public function testTamperedDigestThrowsException(): void
@@ -512,4 +555,260 @@ final class IdentityCommandContractsTest extends TestCase
         $this->assertTrue($op->requestBodySchema);
         $this->assertFalse($op->parameters[0]['schema']);
     }
+
+    public function testBookingOperationRejectsWrongOperationId(): void
+    {
+        $this->expectException(InvalidCommandSchemaException::class);
+        $this->expectExceptionMessage('Invalid route path in operation contract');
+
+        IdentityOperationContract::fromArray([
+            'operationId' => 'wrongBookingOperationId',
+            'method' => 'POST',
+            'path' => '/bookings/{ref}/challenge',
+            'hasBody' => true,
+            'bodyRequired' => true,
+            'requestBodySchema' => ['type' => 'object'],
+            'parameters' => [
+                [
+                    'name' => 'ref',
+                    'in' => 'path',
+                    'required' => true,
+                    'schema' => ['type' => 'string'],
+                ],
+            ],
+        ]);
+    }
+
+    public function testBookingOperationRejectsWrongMethod(): void
+    {
+        $this->expectException(InvalidCommandSchemaException::class);
+        $this->expectExceptionMessage('Invalid route path in operation contract');
+
+        IdentityOperationContract::fromArray([
+            'operationId' => 'postCreateGuestChallenge',
+            'method' => 'GET',
+            'path' => '/bookings/{ref}/challenge',
+            'hasBody' => true,
+            'bodyRequired' => true,
+            'requestBodySchema' => ['type' => 'object'],
+            'parameters' => [
+                [
+                    'name' => 'ref',
+                    'in' => 'path',
+                    'required' => true,
+                    'schema' => ['type' => 'string'],
+                ],
+            ],
+        ]);
+    }
+
+    public function testBookingOperationRejectsUnacceptedPath(): void
+    {
+        $this->expectException(InvalidCommandSchemaException::class);
+        $this->expectExceptionMessage('Invalid route path in operation contract');
+
+        IdentityOperationContract::fromArray([
+            'operationId' => 'postCancelBooking',
+            'method' => 'POST',
+            'path' => '/bookings/{ref}/cancel',
+            'hasBody' => true,
+            'bodyRequired' => true,
+            'requestBodySchema' => ['type' => 'object'],
+            'parameters' => [
+                [
+                    'name' => 'ref',
+                    'in' => 'path',
+                    'required' => true,
+                    'schema' => ['type' => 'string'],
+                ],
+            ],
+        ]);
+    }
+
+    public function testBookingOperationRejectsPathParameterWithRequiredFalse(): void
+    {
+        $this->expectException(InvalidCommandSchemaException::class);
+        $this->expectExceptionMessage('Path parameter must have required: true in operation contract');
+
+        IdentityOperationContract::fromArray([
+            'operationId' => 'postCreateGuestChallenge',
+            'method' => 'POST',
+            'path' => '/bookings/{ref}/challenge',
+            'hasBody' => true,
+            'bodyRequired' => true,
+            'requestBodySchema' => ['type' => 'object'],
+            'parameters' => [
+                [
+                    'name' => 'ref',
+                    'in' => 'path',
+                    'required' => false,
+                    'schema' => ['type' => 'string'],
+                ],
+            ],
+        ]);
+    }
+
+    public function testBookingOperationRejectsPathParameterMissingSchema(): void
+    {
+        $this->expectException(InvalidCommandSchemaException::class);
+        $this->expectExceptionMessage('Parameter has invalid or missing schema in operation contract');
+
+        IdentityOperationContract::fromArray([
+            'operationId' => 'postCreateGuestChallenge',
+            'method' => 'POST',
+            'path' => '/bookings/{ref}/challenge',
+            'hasBody' => true,
+            'bodyRequired' => true,
+            'requestBodySchema' => ['type' => 'object'],
+            'parameters' => [
+                [
+                    'name' => 'ref',
+                    'in' => 'path',
+                    'required' => true,
+                    'schema' => null,
+                ],
+            ],
+        ]);
+    }
+
+    public function testBookingOperationRejectsInvalidParameterLocation(): void
+    {
+        $this->expectException(InvalidCommandSchemaException::class);
+        $this->expectExceptionMessage('Parameter has invalid in location in operation contract');
+
+        IdentityOperationContract::fromArray([
+            'operationId' => 'postCreateGuestChallenge',
+            'method' => 'POST',
+            'path' => '/bookings/{ref}/challenge',
+            'hasBody' => true,
+            'bodyRequired' => true,
+            'requestBodySchema' => ['type' => 'object'],
+            'parameters' => [
+                [
+                    'name' => 'ref',
+                    'in' => 'header',
+                    'required' => true,
+                    'schema' => ['type' => 'string'],
+                ],
+            ],
+        ]);
+    }
+
+    public function testBookingOperationRejectsMissingRefParameterDeclaration(): void
+    {
+        $tempFile = tempnam(sys_get_temp_dir(), 'contract_missing_ref_');
+        $this->assertNotFalse($tempFile);
+
+        try {
+            $defaultJson = (string) file_get_contents(IdentityCommandContracts::DEFAULT_CONTRACT_FILE);
+            /** @var array<string, mixed> $data */
+            $data = json_decode($defaultJson, true);
+
+            // Strip parameters from postCreateGuestChallenge
+            $data['operations']['postCreateGuestChallenge']['parameters'] = [];
+
+            $payload = [
+                'operations' => $data['operations'],
+                'schemas' => $data['schemas'],
+            ];
+            $canonicalJson = (string) json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            $data['canonicalDigest'] = 'sha256:' . hash('sha256', $canonicalJson);
+
+            file_put_contents($tempFile, json_encode($data));
+
+            $this->expectException(InvalidCommandSchemaException::class);
+            $this->expectExceptionMessage('Path template parameter missing from declared path parameters');
+
+            new IdentityCommandContracts($tempFile);
+        } finally {
+            @unlink($tempFile);
+        }
+    }
+
+    public function testBookingOperationRejectsUndeclaredPathParameterInTemplate(): void
+    {
+        $tempFile = tempnam(sys_get_temp_dir(), 'contract_undeclared_ref_');
+        $this->assertNotFalse($tempFile);
+
+        try {
+            $defaultJson = (string) file_get_contents(IdentityCommandContracts::DEFAULT_CONTRACT_FILE);
+            /** @var array<string, mixed> $data */
+            $data = json_decode($defaultJson, true);
+
+            // Add an undeclared path parameter to postCreateGuestChallenge
+            $data['operations']['postCreateGuestChallenge']['parameters'][] = [
+                'name' => 'extraParam',
+                'in' => 'path',
+                'required' => true,
+                'schema' => ['type' => 'string'],
+            ];
+
+            $payload = [
+                'operations' => $data['operations'],
+                'schemas' => $data['schemas'],
+            ];
+            $canonicalJson = (string) json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            $data['canonicalDigest'] = 'sha256:' . hash('sha256', $canonicalJson);
+
+            file_put_contents($tempFile, json_encode($data));
+
+            $this->expectException(InvalidCommandSchemaException::class);
+            $this->expectExceptionMessage('Path parameter is not present in path template');
+
+            new IdentityCommandContracts($tempFile);
+        } finally {
+            @unlink($tempFile);
+        }
+    }
+
+    public function testDeclaredPathParametersHaveRequiredPathSchemaMetadata(): void
+    {
+        $contracts = IdentityCommandContracts::default();
+
+        foreach ($contracts->getOperations() as $operation) {
+            preg_match_all('/\{([^}]+)\}/', $operation->path, $matches);
+            $templateParams = $matches[1] ?? [];
+
+            if (empty($templateParams)) {
+                $this->assertEmpty($operation->getPathParameters());
+                continue;
+            }
+
+            $pathParams = $operation->getPathParameters();
+            $this->assertCount(count($templateParams), $pathParams);
+
+            foreach ($templateParams as $paramName) {
+                $param = $operation->getParameter($paramName, 'path');
+                $this->assertNotNull($param, "Missing path parameter declaration for {{$paramName}} in {$operation->operationId}");
+                $this->assertTrue($param['required'], "Path parameter {{$paramName}} in {$operation->operationId} must have required: true");
+                $this->assertIsArray($param['schema'], "Path parameter {{$paramName}} in {$operation->operationId} must have a schema array");
+                $this->assertSame('string', $param['schema']['type'], "Path parameter {{$paramName}} schema type must be string");
+            }
+        }
+    }
+    public function testCanonicalParserRejectsInconsistentPathDeclarations(): void
+    {
+        $artifact = json_decode((string) file_get_contents(IdentityCommandContracts::DEFAULT_CONTRACT_FILE), true, 512, JSON_THROW_ON_ERROR);
+        $base = $artifact['operations']['postCreateGuestChallenge'];
+        $this->assertSame('postCreateGuestChallenge', \App\Identity\Contracts\IdentityOperationContract::fromArray($base)->operationId);
+        $cases = [];
+        $candidate = $base;
+        $candidate['parameters'] = [];
+        $cases[] = $candidate;
+        $candidate = $base;
+        $candidate['parameters'][0]['in'] = 'query';
+        $cases[] = $candidate;
+        $candidate = $base;
+        $candidate['parameters'][0]['name'] = 'other';
+        $cases[] = $candidate;
+        foreach ($cases as $candidate) {
+            try {
+                \App\Identity\Contracts\IdentityOperationContract::fromArray($candidate);
+                $this->fail('Inconsistent path parameter declaration was accepted.');
+            } catch (InvalidCommandSchemaException $exception) {
+                $this->assertSame('Path template parameter missing from declared path parameters', $exception->getMessage());
+            }
+        }
+    }
+
 }
