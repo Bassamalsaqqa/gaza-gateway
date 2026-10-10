@@ -1,0 +1,723 @@
+{
+  "$schema": "identity-api-contract-v1",
+  "version": "1.0.0",
+  "description": "Narrow contract extraction for 12 accepted Phase 13B identity transport operations",
+  "digest": "cd708898441a440fd7e5d4c007f4739d90fb0f3b648e8cb5ae9b2d37fd30adb8",
+  "operations": [
+    {
+      "operationId": "getAuthCsrfBootstrap",
+      "method": "GET",
+      "path": "/auth/csrf",
+      "expectedStatus": 200,
+      "realm": "passenger",
+      "requiresCsrf": false,
+      "isAuthChanging": false,
+      "requestSchemaName": null,
+      "responseSchemaName": "CsrfTokenResponse"
+    },
+    {
+      "operationId": "postPassengerRegister",
+      "method": "POST",
+      "path": "/auth/register",
+      "expectedStatus": 202,
+      "realm": "passenger",
+      "requiresCsrf": true,
+      "isAuthChanging": false,
+      "requestSchemaName": "RegisterRequest",
+      "responseSchemaName": "PassengerRegisterReceiptResponse"
+    },
+    {
+      "operationId": "postPassengerLogin",
+      "method": "POST",
+      "path": "/auth/login",
+      "expectedStatus": 200,
+      "realm": "passenger",
+      "requiresCsrf": true,
+      "isAuthChanging": true,
+      "requestSchemaName": "LoginRequest",
+      "responseSchemaName": "PassengerAuthResponse"
+    },
+    {
+      "operationId": "postPassengerLogout",
+      "method": "POST",
+      "path": "/auth/logout",
+      "expectedStatus": 200,
+      "realm": "passenger",
+      "requiresCsrf": true,
+      "isAuthChanging": true,
+      "requestSchemaName": null,
+      "responseSchemaName": "PassengerLogoutResponse"
+    },
+    {
+      "operationId": "postPassengerPasswordForgot",
+      "method": "POST",
+      "path": "/auth/password/forgot",
+      "expectedStatus": 202,
+      "realm": "passenger",
+      "requiresCsrf": true,
+      "isAuthChanging": false,
+      "requestSchemaName": "PasswordForgotRequest",
+      "responseSchemaName": "PasswordForgotResponse"
+    },
+    {
+      "operationId": "postPassengerPasswordReset",
+      "method": "POST",
+      "path": "/auth/password/reset",
+      "expectedStatus": 200,
+      "realm": "passenger",
+      "requiresCsrf": true,
+      "isAuthChanging": true,
+      "requestSchemaName": "PasswordResetRequest",
+      "responseSchemaName": "PasswordResetResponse"
+    },
+    {
+      "operationId": "postPassengerEmailVerify",
+      "method": "POST",
+      "path": "/auth/email/verify",
+      "expectedStatus": 200,
+      "realm": "passenger",
+      "requiresCsrf": true,
+      "isAuthChanging": false,
+      "requestSchemaName": "EmailVerifyRequest",
+      "responseSchemaName": "EmailVerifyResponse"
+    },
+    {
+      "operationId": "postPassengerEmailResend",
+      "method": "POST",
+      "path": "/auth/email/resend",
+      "expectedStatus": 202,
+      "realm": "passenger",
+      "requiresCsrf": true,
+      "isAuthChanging": false,
+      "requestSchemaName": "PassengerEmailResendRequest",
+      "responseSchemaName": "PassengerRegisterReceiptResponse"
+    },
+    {
+      "operationId": "getStaffCsrfBootstrap",
+      "method": "GET",
+      "path": "/staff/csrf",
+      "expectedStatus": 200,
+      "realm": "staff",
+      "requiresCsrf": false,
+      "isAuthChanging": false,
+      "requestSchemaName": null,
+      "responseSchemaName": "CsrfTokenResponse"
+    },
+    {
+      "operationId": "postStaffLogin",
+      "method": "POST",
+      "path": "/staff/login",
+      "expectedStatus": 200,
+      "realm": "staff",
+      "requiresCsrf": true,
+      "isAuthChanging": true,
+      "requestSchemaName": "StaffLoginRequest",
+      "responseSchemaName": "StaffPendingAuthResponse"
+    },
+    {
+      "operationId": "postStaffLogout",
+      "method": "POST",
+      "path": "/staff/logout",
+      "expectedStatus": 200,
+      "realm": "staff",
+      "requiresCsrf": true,
+      "isAuthChanging": true,
+      "requestSchemaName": null,
+      "responseSchemaName": "StaffLogoutResponse"
+    },
+    {
+      "operationId": "getStaffMe",
+      "method": "GET",
+      "path": "/staff/me",
+      "expectedStatus": 200,
+      "realm": "staff",
+      "requiresCsrf": false,
+      "isAuthChanging": false,
+      "requestSchemaName": null,
+      "responseSchemaName": "StaffMeResponse"
+    }
+  ],
+  "schemas": {
+    "RegisterRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email"
+        },
+        "password": {
+          "type": "string",
+          "minLength": 15,
+          "maxLength": 128
+        },
+        "title": {
+          "type": "string",
+          "enum": [
+            "Mr",
+            "Mrs",
+            "Ms",
+            "Dr"
+          ]
+        },
+        "firstName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lastName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "phone": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "email",
+        "password",
+        "firstName",
+        "lastName"
+      ],
+      "additionalProperties": false
+    },
+    "LoginRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email"
+        },
+        "password": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "email",
+        "password"
+      ],
+      "additionalProperties": false
+    },
+    "PasswordForgotRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email"
+        }
+      },
+      "required": [
+        "email"
+      ],
+      "additionalProperties": false
+    },
+    "PasswordResetRequest": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string",
+          "format": "email"
+        },
+        "password": {
+          "type": "string",
+          "minLength": 15,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "token",
+        "email",
+        "password"
+      ],
+      "additionalProperties": false
+    },
+    "EmailVerifyRequest": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "token"
+      ],
+      "additionalProperties": false
+    },
+    "PassengerEmailResendRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email"
+        }
+      },
+      "required": [
+        "email"
+      ],
+      "additionalProperties": false
+    },
+    "StaffLoginRequest": {
+      "type": "object",
+      "properties": {
+        "username": {
+          "type": "string",
+          "minLength": 1
+        },
+        "password": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "username",
+        "password"
+      ],
+      "additionalProperties": false
+    },
+    "PassengerRegisterReceiptResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "const": true
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": [
+                "verification_dispatched"
+              ]
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "status",
+            "message"
+          ],
+          "additionalProperties": false
+        },
+        "meta": {
+          "$ref": "#/components/schemas/SuccessMeta"
+        }
+      },
+      "required": [
+        "success",
+        "data",
+        "meta"
+      ],
+      "additionalProperties": false
+    },
+    "PassengerAuthResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "const": true
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "user": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "email": {
+                  "type": "string",
+                  "format": "email"
+                },
+                "firstName": {
+                  "type": "string"
+                },
+                "lastName": {
+                  "type": "string"
+                },
+                "emailVerified": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "email",
+                "firstName",
+                "lastName",
+                "emailVerified"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "user"
+          ],
+          "additionalProperties": false
+        },
+        "meta": {
+          "$ref": "#/components/schemas/SuccessMeta"
+        }
+      },
+      "required": [
+        "success",
+        "data",
+        "meta"
+      ],
+      "additionalProperties": false
+    },
+    "StaffPendingAuthResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "const": true
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": [
+                "mfa_required",
+                "enrollment_required"
+              ]
+            },
+            "expiresAt": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "required": [
+            "status",
+            "expiresAt"
+          ],
+          "additionalProperties": false
+        },
+        "meta": {
+          "$ref": "#/components/schemas/SuccessMeta"
+        }
+      },
+      "required": [
+        "success",
+        "data",
+        "meta"
+      ],
+      "additionalProperties": false
+    },
+    "StaffMeResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "const": true
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "username": {
+              "type": "string"
+            },
+            "email": {
+              "type": "string",
+              "format": "email"
+            },
+            "fullNameEn": {
+              "type": "string"
+            },
+            "fullNameAr": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string",
+              "enum": [
+                "admin",
+                "editor",
+                "viewer"
+              ]
+            },
+            "permissions": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "mfaEnabled": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "id",
+            "username",
+            "email",
+            "fullNameEn",
+            "fullNameAr",
+            "role",
+            "permissions",
+            "mfaEnabled"
+          ],
+          "additionalProperties": false
+        },
+        "meta": {
+          "$ref": "#/components/schemas/SuccessMeta"
+        }
+      },
+      "required": [
+        "success",
+        "data",
+        "meta"
+      ],
+      "additionalProperties": false
+    },
+    "ErrorResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "const": false
+        },
+        "error": {
+          "$ref": "#/components/schemas/ErrorDetail"
+        },
+        "meta": {
+          "type": "object",
+          "properties": {
+            "requestId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "timestamp": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "required": [
+            "requestId",
+            "timestamp"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "success",
+        "error",
+        "meta"
+      ],
+      "additionalProperties": false
+    },
+    "ErrorDetail": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "example": "validation_error"
+        },
+        "message": {
+          "type": "string",
+          "example": "The given data was invalid."
+        },
+        "fields": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "additionalProperties": false
+    },
+    "SuccessMeta": {
+      "type": "object",
+      "properties": {
+        "requestId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "requestId",
+        "timestamp"
+      ],
+      "additionalProperties": false
+    },
+    "CsrfTokenResponse": {
+      "type": "object",
+      "properties": {
+        "csrfToken": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "csrfToken"
+      ],
+      "additionalProperties": false
+    },
+    "PassengerLogoutResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "const": true
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "message"
+          ],
+          "additionalProperties": false
+        },
+        "meta": {
+          "$ref": "#/components/schemas/SuccessMeta"
+        }
+      },
+      "required": [
+        "success",
+        "data",
+        "meta"
+      ],
+      "additionalProperties": false
+    },
+    "PasswordForgotResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "const": true
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "message"
+          ],
+          "additionalProperties": false
+        },
+        "meta": {
+          "$ref": "#/components/schemas/SuccessMeta"
+        }
+      },
+      "required": [
+        "success",
+        "data",
+        "meta"
+      ],
+      "additionalProperties": false
+    },
+    "PasswordResetResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "const": true
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "message"
+          ],
+          "additionalProperties": false
+        },
+        "meta": {
+          "$ref": "#/components/schemas/SuccessMeta"
+        }
+      },
+      "required": [
+        "success",
+        "data",
+        "meta"
+      ],
+      "additionalProperties": false
+    },
+    "EmailVerifyResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "const": true
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "verified": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "verified"
+          ],
+          "additionalProperties": false
+        },
+        "meta": {
+          "$ref": "#/components/schemas/SuccessMeta"
+        }
+      },
+      "required": [
+        "success",
+        "data",
+        "meta"
+      ],
+      "additionalProperties": false
+    },
+    "StaffLogoutResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "const": true
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "message"
+          ],
+          "additionalProperties": false
+        },
+        "meta": {
+          "$ref": "#/components/schemas/SuccessMeta"
+        }
+      },
+      "required": [
+        "success",
+        "data",
+        "meta"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
