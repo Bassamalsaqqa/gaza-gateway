@@ -578,12 +578,21 @@ class OwnedCaptureRetentionLedger
     /**
      * Retrieve active capture ID for an outbox ID.
      */
-    public function getActiveCaptureId(string $outboxId): ?string
+    public function getActiveCaptureId(string $outboxId, ?CarbonImmutable $now = null): ?string
     {
+        $currentTime = $now ?? CarbonImmutable::now('UTC');
         $ledger = $this->loadLedger();
         foreach ($ledger as $entry) {
             if ($entry['outbox_id'] === $outboxId && empty($entry['revoked']) && (!isset($entry['state']) || $entry['state'] === 'captured')) {
-                return (string) $entry['capture_id'];
+                $expiresAt = self::parseStrictRfc3339($entry['expires_at']);
+                if ($currentTime->greaterThanOrEqualTo($expiresAt)) {
+                    continue;
+                }
+                $filename = $entry['capture_id'] . '.json';
+                $filePath = $this->ownedRoot . DIRECTORY_SEPARATOR . $filename;
+                if (file_exists($filePath) && is_file($filePath) && !is_link($filePath)) {
+                    return (string) $entry['capture_id'];
+                }
             }
         }
         return null;
@@ -666,6 +675,99 @@ class OwnedCaptureRetentionLedger
             }
 
             return $revokedCount;
+        });
+    }
+
+    /**
+     * Reconcile revocation or expiration for a specific outbox ID.
+     * Erases raw capture remnants and updates ledger metadata.
+     * Enforces fair bounded attempt budget (<= 100), preserving unprocessed and failed entries.
+     * Retains entry marked failed_cleanup if unlinking fails (preserving deadline, not counted as cleaned).
+     */
+    public function reconcileOutboxRevocation(
+        string $outboxId,
+        ?CarbonImmutable $now = null,
+        int $batchLimit = 100,
+    ): int {
+        if (!preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $outboxId)) {
+            return 0;
+        }
+
+        return $this->withLedgerLock(function () use ($outboxId, $now, $batchLimit) {
+            $maxAttempts = min(max($batchLimit, 1), 100);
+            $currentTime = $now ?? CarbonImmutable::now('UTC');
+            $ledger = $this->loadLedger();
+            if (empty($ledger)) {
+                return 0;
+            }
+
+            // Identify matching entry indices for this outbox ID
+            $matchingIndices = [];
+            foreach ($ledger as $idx => $entry) {
+                if ($entry['outbox_id'] === $outboxId) {
+                    $matchingIndices[] = $idx;
+                }
+            }
+
+            if (empty($matchingIndices)) {
+                return 0;
+            }
+
+            // Round-robin fairness: examine entries never attempted or attempted longest ago first
+            usort($matchingIndices, function ($a, $b) use ($ledger) {
+                $timeA = $ledger[$a]['last_attempted_at'] ?? '';
+                $timeB = $ledger[$b]['last_attempted_at'] ?? '';
+                if ($timeA !== $timeB) {
+                    return $timeA <=> $timeB;
+                }
+                return ($ledger[$a]['expires_at'] ?? '') <=> ($ledger[$b]['expires_at'] ?? '');
+            });
+
+            $candidatesToExamine = array_slice($matchingIndices, 0, $maxAttempts);
+            $reconciledCount = 0;
+            $toRemove = [];
+            $hasUpdates = false;
+
+            foreach ($candidatesToExamine as $idx) {
+                $entry = &$ledger[$idx];
+                $finalPath = $this->ownedRoot . DIRECTORY_SEPARATOR . $entry['capture_id'] . '.json';
+                $tempPath = $this->ownedRoot . DIRECTORY_SEPARATOR . $entry['capture_id'] . '.tmp';
+                $hasRaw = (file_exists($finalPath) || is_link($finalPath) || file_exists($tempPath) || is_link($tempPath));
+
+                if (!$hasRaw) {
+                    $toRemove[$entry['capture_id']] = true;
+                    $reconciledCount++;
+                    continue;
+                }
+
+                $unlinked = $this->eraseCaptureRemnants((string) $entry['capture_id']);
+                if ($unlinked) {
+                    $toRemove[$entry['capture_id']] = true;
+                    $reconciledCount++;
+                    continue;
+                }
+
+                // Erase failure: retain entry in ledger to retry on subsequent run (NOT counted as cleaned)
+                $entry['state'] = 'failed_cleanup';
+                $entry['revoked'] = true;
+                $entry['updated_at'] = $currentTime->toRfc3339String();
+                $entry['last_attempted_at'] = $currentTime->toRfc3339String();
+                $hasUpdates = true;
+            }
+            unset($entry);
+
+            // Preserve all entries not in $toRemove (including unexamined entries and failed entries)
+            if (!empty($toRemove) || $hasUpdates) {
+                $newLedger = [];
+                foreach ($ledger as $entry) {
+                    if (!isset($toRemove[$entry['capture_id']])) {
+                        $newLedger[] = $entry;
+                    }
+                }
+                $this->saveLedger($newLedger);
+            }
+
+            return $reconciledCount;
         });
     }
 

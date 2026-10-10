@@ -6,9 +6,7 @@ namespace App\Identity\Dispatch;
 
 use App\Contracts\Mail\Exceptions\InvalidMailMessageException;
 use App\Contracts\Mail\Exceptions\MailCaptureException;
-use App\Contracts\Mail\Exceptions\UnconfiguredMailProviderException;
 use App\Contracts\Mail\MailMessage;
-use App\Contracts\Mail\MailReceipt;
 use App\Contracts\Mail\MailSubmissionInterface;
 use App\Identity\Dispatch\Exceptions\DispatchException;
 use Carbon\CarbonImmutable;
@@ -30,8 +28,9 @@ use Throwable;
  * - Local capture with MailSubmissionInterface stays 'queued' in PostgreSQL:
  *   MUST NOT set accepted, provider_message_id, accepted_at, or scrubbed for local capture.
  * - Linearizes local capture under ledger file lock and canonical DB row locks with LocalProofCaptureCoordinator.
- * - Deduplicates prior captures before submitting and cleans up obsolete raw files.
- * - Remote unconfigured adapter fails closed without simulated success.
+ * - Deduplicates prior captures strictly behind canonical row locks and authority revalidation.
+ * - Cleans up obsolete and revoked raw files through durable ledger, preserving failed-deletion metadata and original deadlines.
+ * - Remote unconfigured and unsupported adapters fail closed before submit(), payload decryption or external I/O.
  * - Transient failure transitions: failed -> queued before deadline.
  * - Expired entries erase encrypted ciphertext completely (encrypted_payload = NULL).
  */
@@ -92,6 +91,14 @@ class OutboxDispatcher
             throw new DispatchException('Retention ledger is required for local mail capture.');
         }
 
+        $isLocalCapture = ($this->mailSubmission instanceof \App\Services\Foundation\Mail\LocalFileMailGateway && $this->captureLedger !== null);
+
+        // Bounded reconciliation of omitted or previously scrubbed/consumed/revoked entries
+        // strictly for accepted local mail capture mode
+        if ($isLocalCapture) {
+            $this->captureLedger->cleanupExpired(now: null, batchLimit: $limit, conn: $db);
+        }
+
         // 1. Identify candidate batch of queued items before deadline (non-authoritative index query)
         $candidateIds = $db->table('security_dispatch_outbox')
             ->where('status', 'queued')
@@ -111,36 +118,28 @@ class OutboxDispatcher
         foreach ($candidateIds as $id) {
             $processedCount++;
 
-            if ($this->captureLedger !== null) {
+            if ($isLocalCapture) {
                 // Local bounded capture linearization:
                 // Total ordering: File Lock -> Canonical DB Row Locks (Principal -> Booking -> Session -> Proof -> Outbox)
                 $this->captureLedger->withLedgerLock(function () use (
                     $db,
                     $id,
+                    $limit,
                     &$capturedLocallyCount,
                     &$failedCount,
                     &$expiredCount,
                     &$captureIds,
                     &$errorCodes,
                 ) {
-                    // 1. Fast dedupe under ledger file lock
-                    if ($this->captureLedger->hasActiveCapture($id)) {
-                        $capturedLocallyCount++;
-                        $existingCapId = $this->captureLedger->getActiveCaptureId($id);
-                        if ($existingCapId !== null) {
-                            $captureIds[] = $existingCapId;
-                        }
-                        return;
-                    }
-
-                    // 2. Open DB transaction reacquiring canonical row locks and live clock
                     $dispatchOutcome = null;
                     $failureReason = null;
+                    $liveNowCapture = null;
 
                     try {
                         $db->transaction(function (ConnectionInterface $tx) use (
                             $id,
                             &$dispatchOutcome,
+                            &$liveNowCapture,
                         ) {
                             $tx->statement("SET LOCAL statement_timeout = '5s'");
                             $tx->statement("SET LOCAL lock_timeout = '3s'");
@@ -239,6 +238,7 @@ class OutboxDispatcher
                             // Live clock derivation strictly AFTER acquiring all locks
                             $liveNowRow = $tx->selectOne('SELECT clock_timestamp() AS now');
                             $liveNow = CarbonImmutable::parse($liveNowRow->now);
+                            $liveNowCapture = $liveNow;
                             $expiresAt = CarbonImmutable::parse($row->expires_at);
 
                             if ($liveNow->greaterThanOrEqualTo($expiresAt)) {
@@ -321,6 +321,18 @@ class OutboxDispatcher
                                 return;
                             }
 
+                            // Authoritative dedupe check: post-lock wait under validated authority with fresh database time
+                            if ($this->captureLedger->hasActiveCapture($id, $liveNow)) {
+                                $existingCapId = $this->captureLedger->getActiveCaptureId($id, $liveNow);
+                                if ($existingCapId !== null) {
+                                    $dispatchOutcome = [
+                                        'status' => 'captured',
+                                        'capture_id' => $existingCapId,
+                                    ];
+                                    return;
+                                }
+                            }
+
                             $targetId = $row->user_verification_id
                                 ?? $row->user_reset_id
                                 ?? $row->staff_invitation_id
@@ -393,10 +405,12 @@ class OutboxDispatcher
 
                     if ($dispatchOutcome['status'] === 'expired') {
                         $expiredCount++;
+                        $this->captureLedger->reconcileOutboxRevocation($id, $liveNowCapture, $limit);
                         return;
                     }
 
                     if ($dispatchOutcome['status'] === 'scrubbed') {
+                        $this->captureLedger->reconcileOutboxRevocation($id, $liveNowCapture, $limit);
                         return;
                     }
 
@@ -408,8 +422,8 @@ class OutboxDispatcher
                 continue;
             }
 
-            // Remote provider dispatch mode (deferred external delivery)
-            $extracted = $db->transaction(function (ConnectionInterface $tx) use ($id) {
+            // Unsupported non-local dispatch: fails closed BEFORE submit(), payload decryption or external I/O
+            $outcome = $db->transaction(function (ConnectionInterface $tx) use ($id) {
                 $tx->statement("SET LOCAL statement_timeout = '5s'");
                 $tx->statement("SET LOCAL lock_timeout = '3s'");
 
@@ -418,7 +432,7 @@ class OutboxDispatcher
                     ->first();
 
                 if (!$candidate || $candidate->status !== 'queued') {
-                    return null;
+                    return 'skipped';
                 }
 
                 $proofFkMap = [
@@ -491,7 +505,7 @@ class OutboxDispatcher
                     ->first();
 
                 if (!$row || $row->status !== 'queued' || $row->encrypted_payload === null) {
-                    return null;
+                    return 'skipped';
                 }
 
                 $liveNowRow = $tx->selectOne('SELECT clock_timestamp() AS now');
@@ -505,7 +519,7 @@ class OutboxDispatcher
                             'status' => 'expired',
                             'encrypted_payload' => null,
                         ]);
-                    return ['expired' => true];
+                    return 'expired';
                 }
 
                 $isAuthorityValid = true;
@@ -572,73 +586,37 @@ class OutboxDispatcher
                             'scrubbed_at' => $tx->raw('clock_timestamp()'),
                             'encrypted_payload' => null,
                         ]);
-                    return ['scrubbed' => true];
+                    return 'scrubbed';
                 }
 
+                // Non-local dispatch rejected fail-closed BEFORE submit(), payload decryption or external I/O
                 $tx->table('security_dispatch_outbox')
                     ->where('id', $id)
                     ->update([
+                        'status' => 'failed',
                         'attempts' => (int) $row->attempts + 1,
                     ]);
 
-                return [
-                    'id' => $id,
-                    'encrypted_payload' => (string) $row->encrypted_payload,
-                    'expires_at' => $expiresAt,
-                ];
+                return 'failed_unconfigured';
             });
 
-            if ($extracted === null) {
+            if ($outcome === 'skipped') {
                 continue;
             }
 
-            if (!empty($extracted['expired'])) {
+            if ($outcome === 'expired') {
                 $expiredCount++;
                 continue;
             }
 
-            if (!empty($extracted['scrubbed'])) {
+            if ($outcome === 'scrubbed') {
                 continue;
             }
 
-            try {
-                $decryptedJson = $this->encrypter->decrypt($extracted['encrypted_payload']);
-                $payload = OutboxPayload::fromJson($decryptedJson);
-            } catch (Throwable) {
-                $failedCount++;
-                $errorCodes[] = 'ERR_PAYLOAD_DECRYPTION';
-                $this->markFailed($id, 'ERR_PAYLOAD_DECRYPTION');
-                continue;
-            }
-
-            try {
-                $message = new MailMessage(
-                    recipient: $payload->getRecipient(),
-                    subject: $payload->getSubject(),
-                    body: $payload->getBody(),
-                );
-
-                $receipt = $this->mailSubmission->submit($message);
-
-                if ($receipt->status === MailReceipt::STATUS_DELIVERED) {
-                    // Remote provider delivery (when configured in future phases)
-                }
-            } catch (UnconfiguredMailProviderException) {
+            if ($outcome === 'failed_unconfigured') {
                 $failedCount++;
                 $errorCodes[] = 'ERR_UNCONFIGURED_PROVIDER';
-                $this->markFailed($id, 'ERR_UNCONFIGURED_PROVIDER');
-            } catch (InvalidMailMessageException) {
-                $failedCount++;
-                $errorCodes[] = 'ERR_INVALID_MAIL_MESSAGE';
-                $this->markFailed($id, 'ERR_INVALID_MAIL_MESSAGE');
-            } catch (MailCaptureException) {
-                $failedCount++;
-                $errorCodes[] = 'ERR_MAIL_CAPTURE_IO';
-                $this->markFailed($id, 'ERR_MAIL_CAPTURE_IO');
-            } catch (Throwable) {
-                $failedCount++;
-                $errorCodes[] = 'ERR_TRANSIENT_DISPATCH_FAILURE';
-                $this->markFailed($id, 'ERR_TRANSIENT_DISPATCH_FAILURE');
+                continue;
             }
         }
 
