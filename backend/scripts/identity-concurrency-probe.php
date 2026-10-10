@@ -273,6 +273,50 @@ try {
         exit(0);
     }
 
+    if ($mode === 'bootstrap-admit') {
+        $realm = $input['realm'] ?? 'passenger';
+        $ip = $input['ip'] ?? '127.0.0.1';
+        $ipLimit = isset($input['ip_limit']) ? (int) $input['ip_limit'] : null;
+        $globalLimit = isset($input['global_limit']) ? (int) $input['global_limit'] : null;
+        $retainedCap = isset($input['retained_cap']) ? (int) $input['retained_cap'] : null;
+        $windowSeconds = isset($input['window_seconds']) ? (int) $input['window_seconds'] : null;
+
+        /** @var \App\Identity\RateLimiting\AnonymousBootstrapAdmission $admission */
+        $admission = $app->make(\App\Identity\RateLimiting\AnonymousBootstrapAdmission::class);
+        if ($ipLimit !== null || $globalLimit !== null || $retainedCap !== null || $windowSeconds !== null) {
+            $admission->setTestLimits($ipLimit, $globalLimit, $retainedCap, $windowSeconds);
+        }
+
+        $request = \Illuminate\Http\Request::create('/api/v1/auth/csrf', 'GET', server: [
+            'REMOTE_ADDR' => $ip,
+        ]);
+
+        $result = $admission->admitAndIssueAnonymous($realm, $request);
+
+        echo json_encode([
+            'allowed' => $result->allowed,
+            'reason' => $result->reason,
+            'retry_after' => $result->retryAfterSeconds,
+            'session_id' => $result->receipt?->sessionId,
+        ]);
+        exit(0);
+    }
+
+    if ($mode === 'bootstrap-cleanup') {
+        $realm = $input['realm'] ?? 'passenger';
+        $batchSize = (int) ($input['batch_size'] ?? 100);
+
+        /** @var \App\Identity\Sessions\AnonymousSessionCleanup $cleaner */
+        $cleaner = $app->make(\App\Identity\Sessions\AnonymousSessionCleanup::class);
+        $deleted = $cleaner->cleanRealmBatch($realm, $batchSize);
+
+        echo json_encode([
+            'success' => true,
+            'deleted' => $deleted,
+        ]);
+        exit(0);
+    }
+
     fwrite(STDERR, "Unsupported mode\n");
     exit(1);
 } catch (IdentityException $e) {

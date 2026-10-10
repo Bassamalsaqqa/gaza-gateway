@@ -106,4 +106,23 @@ return [
             'staff_session_ip' => ['limit' => 5, 'window' => 600],
         ],
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Additive Bootstrap Resource Admission & Durable Cleanup (Phase 13B)
+    |--------------------------------------------------------------------------
+    |
+    | Server-owned limits for anonymous bootstrap CSRF routes. Prevents unmetered
+    | persistent anonymous session growth and key explosion under attack.
+    |
+    */
+    'bootstrap' => [
+        'ip_limit' => 10,
+        'global_limit' => 300,
+        'window_seconds' => 300,
+        'retained_cap' => 10000,
+        'cleanup_batch_size' => 100,
+        'command_max_batches' => 10,
+        'bucket_cleanup_horizon_seconds' => 3600,
+    ],
 ];

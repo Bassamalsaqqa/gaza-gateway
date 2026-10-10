@@ -81,6 +81,20 @@ final class IdentityServiceProvider extends ServiceProvider
             );
         });
 
+        $this->app->singleton(\App\Identity\Sessions\AnonymousSessionCleanup::class, function () {
+            return new \App\Identity\Sessions\AnonymousSessionCleanup(
+                db: DB::connection(),
+            );
+        });
+
+        $this->app->singleton(\App\Identity\RateLimiting\AnonymousBootstrapAdmission::class, function ($app) {
+            return new \App\Identity\RateLimiting\AnonymousBootstrapAdmission(
+                db: DB::connection(),
+                encrypter: $app->make(Encrypter::class),
+                cleanupService: $app->make(\App\Identity\Sessions\AnonymousSessionCleanup::class),
+            );
+        });
+
         $this->app->singleton(\App\Http\Middleware\Identity\VerifyApplicationCsrfHeader::class, function ($app) {
             return new \App\Http\Middleware\Identity\VerifyApplicationCsrfHeader(
                 passengerStore: $app->make(PassengerSessionStore::class),

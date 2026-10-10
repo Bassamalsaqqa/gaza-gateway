@@ -82,3 +82,16 @@ Artisan::command('probe:check-job {probeId}', function (string $probeId) {
     $this->info("Job {$probeId} result found: " . json_encode($result));
     return 0;
 })->purpose('Check if a dispatched probe job has executed');
+
+/*
+|--------------------------------------------------------------------------
+| Identity Scheduler Registration (Phase 13B)
+|--------------------------------------------------------------------------
+|
+| Documented Laravel scheduler registration for durable PostgreSQL cleanup
+| of expired/revoked anonymous sessions and stale bootstrap rate limit buckets.
+|
+*/
+\Illuminate\Support\Facades\Schedule::command('identity:clean-anonymous')
+    ->hourly()
+    ->withoutOverlapping();

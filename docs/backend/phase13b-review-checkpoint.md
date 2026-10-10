@@ -26,6 +26,8 @@ A further independent failure-injection test failed: when deletion of both the s
 
 ## Remaining roadmap and acceptance gates
 
+PR #2 received changes requested after this checkpoint. [Review disposition](phase13b-review-disposition.md) records the anonymous bootstrap correction, excluded proof package and open Issue #1 ownership. See [bootstrap admission](phase13b-bootstrap-admission.md) for the bounded follow-up and focused evidence; Phase 13B remains incomplete.
+
 1. Repair and independently accept proof/outbox retention, concurrency and safe dispatch boundaries.
 2. Implement passenger registration, verification, recovery, login/logout, profile/travelers, password/session lifecycle and actual post-commit worker/cleanup execution.
 3. Implement staff pending MFA, enrollment, confirmation, step-up and session lifecycle, then directory/invitation/recovery using one closed transaction coordinator and race-safe last-admin enforcement.
@@ -37,7 +39,7 @@ Remote staging, real mail-provider acceptance/delivery, paid infrastructure, ini
 
 ## Git, CI and deployment truth
 
-Phase 12 remains accepted at `7dab821d7d205b41ae925e013fe9c69a97a7e875`; Phase 13A local engineering remains accepted at `91a918caf0b22e565a43f52e46cf85ca4eb4825c`. Feature commits preserve ordinary linear ancestry from main; no published history rewrite.
+Phase 12 source advancement at `7dab821d7d205b41ae925e013fe9c69a97a7e875` followed owner-supplied acceptance instructions. Public Issue #1 accepted Correction 01 specifically and retains five normative contract findings; overall public acceptance attribution requires reconciliation, as documented in the review disposition. Phase 13A local engineering remains accepted at `91a918caf0b22e565a43f52e46cf85ca4eb4825c`. Feature commits preserve ordinary linear ancestry from main; no published history rewrite.
 
 Fresh GitHub inspection confirmed Regression and Published static package workflows are disabled, the Quality gate ruleset is disabled, and linear-history/deletion/non-fast-forward protections remain active. No Actions are intentionally triggered. Dependabot alert #1 is fixed on main (`source-map-js@1.2.2`, GHSA-68fv-2mgg-jv7q; fixed_at 2026-10-09T20:04:35Z); it was not dismissed.
 

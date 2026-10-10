@@ -6,12 +6,15 @@ namespace App\Http\Controllers\Identity;
 
 use App\Http\Controllers\Controller;
 use App\Identity\Protocol\CookieSecurity;
+use App\Identity\RateLimiting\AnonymousBootstrapAdmission;
 use App\Identity\Sessions\PassengerSessionStore;
 use App\Identity\Sessions\StaffSessionStore;
 use App\Identity\Tokens\OpaqueToken;
 use App\Support\RequestCorrelation;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use PDOException;
 use Symfony\Component\HttpFoundation\Response;
 
 final class IdentityBootstrapController extends Controller
@@ -19,6 +22,7 @@ final class IdentityBootstrapController extends Controller
     public function __construct(
         private readonly PassengerSessionStore $passengerStore,
         private readonly StaffSessionStore $staffStore,
+        private readonly AnonymousBootstrapAdmission $admission,
     ) {
     }
 
@@ -29,6 +33,9 @@ final class IdentityBootstrapController extends Controller
     public function passengerCsrf(Request $request): JsonResponse|Response
     {
         $requestId = RequestCorrelation::fromRequest($request);
+        if (!$this->hasAllowedBootstrapOrigin($request)) {
+            return $this->errorResponse(403, 'forbidden', 'Origin is not authorized for identity bootstrap.', $requestId);
+        }
 
         // 1. Check for duplicate expected cookie header -> fail closed
         if (CookieSecurity::hasDuplicateCookie($request, CookieSecurity::COOKIE_PASSENGER)) {
@@ -41,9 +48,44 @@ final class IdentityBootstrapController extends Controller
             );
         }
 
-        // 2. Genuinely absent expected cookie -> create anonymous session
+        // 2. Genuinely absent expected cookie -> create anonymous session via admission coordinator
         if (!CookieSecurity::isCookiePresent($request, CookieSecurity::COOKIE_PASSENGER)) {
-            $receipt = $this->passengerStore->issueAnonymous();
+            try {
+                $admissionResult = $this->admission->admitAndIssueAnonymous(
+                    AnonymousBootstrapAdmission::REALM_PASSENGER,
+                    $request
+                );
+            } catch (\Throwable) {
+                // Outage, driver failure, or cleanup error -> safe canonical 503, no fallback, no cookie
+                return $this->errorResponse(
+                    status: 503,
+                    code: 'service_unavailable',
+                    message: 'Authentication service temporarily unavailable.',
+                    requestId: $requestId
+                );
+            }
+
+            if (!$admissionResult->allowed) {
+                // Admission denial -> canonical 429 with bounded positive Retry-After, no token/cookie
+                return $this->errorResponse(
+                    status: 429,
+                    code: 'rate_limited',
+                    message: 'Too many requests. Please try again later.',
+                    requestId: $requestId,
+                    retryAfterSeconds: $admissionResult->retryAfterSeconds
+                );
+            }
+
+            $receipt = $admissionResult->receipt;
+            if ($receipt === null) {
+                return $this->errorResponse(
+                    status: 503,
+                    code: 'service_unavailable',
+                    message: 'Authentication service temporarily unavailable.',
+                    requestId: $requestId
+                );
+            }
+
             $cookie = CookieSecurity::createCookie(
                 name: CookieSecurity::COOKIE_PASSENGER,
                 value: $receipt->getRawToken(),
@@ -87,6 +129,14 @@ final class IdentityBootstrapController extends Controller
         // 4. Resolve current valid same-realm session
         try {
             $context = $this->passengerStore->read($rawCookie);
+        } catch (QueryException|PDOException) {
+            // Distinguish database outage from invalid session authority: safe canonical 503
+            return $this->errorResponse(
+                status: 503,
+                code: 'service_unavailable',
+                message: 'Database service unavailable.',
+                requestId: $requestId
+            );
         } catch (\Throwable) {
             return $this->errorResponse(
                 status: 401,
@@ -142,6 +192,9 @@ final class IdentityBootstrapController extends Controller
     public function staffCsrf(Request $request): JsonResponse|Response
     {
         $requestId = RequestCorrelation::fromRequest($request);
+        if (!$this->hasAllowedBootstrapOrigin($request)) {
+            return $this->errorResponse(403, 'forbidden', 'Origin is not authorized for identity bootstrap.', $requestId);
+        }
 
         // 1. Check for duplicate expected cookie header -> fail closed
         if (CookieSecurity::hasDuplicateCookie($request, CookieSecurity::COOKIE_STAFF)) {
@@ -154,9 +207,44 @@ final class IdentityBootstrapController extends Controller
             );
         }
 
-        // 2. Genuinely absent expected cookie -> create anonymous staff session
+        // 2. Genuinely absent expected cookie -> create anonymous staff session via admission coordinator
         if (!CookieSecurity::isCookiePresent($request, CookieSecurity::COOKIE_STAFF)) {
-            $receipt = $this->staffStore->issueAnonymous();
+            try {
+                $admissionResult = $this->admission->admitAndIssueAnonymous(
+                    AnonymousBootstrapAdmission::REALM_STAFF,
+                    $request
+                );
+            } catch (\Throwable) {
+                // Outage, driver failure, or cleanup error -> safe canonical 503, no fallback, no cookie
+                return $this->errorResponse(
+                    status: 503,
+                    code: 'service_unavailable',
+                    message: 'Authentication service temporarily unavailable.',
+                    requestId: $requestId
+                );
+            }
+
+            if (!$admissionResult->allowed) {
+                // Admission denial -> canonical 429 with bounded positive Retry-After, no token/cookie
+                return $this->errorResponse(
+                    status: 429,
+                    code: 'rate_limited',
+                    message: 'Too many requests. Please try again later.',
+                    requestId: $requestId,
+                    retryAfterSeconds: $admissionResult->retryAfterSeconds
+                );
+            }
+
+            $receipt = $admissionResult->receipt;
+            if ($receipt === null) {
+                return $this->errorResponse(
+                    status: 503,
+                    code: 'service_unavailable',
+                    message: 'Authentication service temporarily unavailable.',
+                    requestId: $requestId
+                );
+            }
+
             $cookie = CookieSecurity::createCookie(
                 name: CookieSecurity::COOKIE_STAFF,
                 value: $receipt->getRawToken(),
@@ -199,6 +287,13 @@ final class IdentityBootstrapController extends Controller
         // 4. Resolve current valid same-realm staff session
         try {
             $context = $this->staffStore->read($rawCookie);
+        } catch (QueryException|PDOException) {
+            return $this->errorResponse(
+                status: 503,
+                code: 'service_unavailable',
+                message: 'Database service unavailable.',
+                requestId: $requestId
+            );
         } catch (\Throwable) {
             return $this->errorResponse(
                 status: 401,
@@ -253,8 +348,18 @@ final class IdentityBootstrapController extends Controller
         string $code,
         string $message,
         string $requestId,
-        ?\Symfony\Component\HttpFoundation\Cookie $clearingCookie = null
+        ?\Symfony\Component\HttpFoundation\Cookie $clearingCookie = null,
+        ?int $retryAfterSeconds = null
     ): JsonResponse {
+        $headers = [
+            'Cache-Control' => 'no-store, private',
+            'X-Request-Id' => $requestId,
+        ];
+
+        if ($retryAfterSeconds !== null) {
+            $headers['Retry-After'] = (string) $retryAfterSeconds;
+        }
+
         $response = response()->json([
             'success' => false,
             'error' => [
@@ -265,15 +370,20 @@ final class IdentityBootstrapController extends Controller
                 'requestId' => $requestId,
                 'timestamp' => gmdate('Y-m-d\TH:i:s\Z'),
             ],
-        ], $status, [
-            'Cache-Control' => 'no-store, private',
-            'X-Request-Id' => $requestId,
-        ]);
+        ], $status, $headers);
 
         if ($clearingCookie !== null) {
             $response->withCookie($clearingCookie);
         }
 
         return $response;
+    }
+
+    private function hasAllowedBootstrapOrigin(Request $request): bool
+    {
+        $origins = $request->headers->all('origin');
+        // Safe direct GETs may omit Origin. A supplied origin must be exact and singular.
+        return $origins === [] || (count($origins) === 1 && is_string($origins[0])
+            && in_array($origins[0], (array) config('cors.allowed_origins', []), true));
     }
 }

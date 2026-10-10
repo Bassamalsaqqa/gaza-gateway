@@ -417,10 +417,3 @@ final class DurableRateLimiter
         return hash('sha256', self::canonicalKey($keyPairs));
     }
 }
-
-/**
- * Internal exception used to trigger whole-transaction retry on window drift under lock contention.
- */
-final class WindowDriftException extends \RuntimeException
-{
-}
