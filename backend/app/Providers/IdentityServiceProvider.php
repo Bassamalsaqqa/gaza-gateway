@@ -80,6 +80,15 @@ final class IdentityServiceProvider extends ServiceProvider
                 db: DB::connection(),
             );
         });
+
+        $this->app->singleton(\App\Http\Middleware\Identity\VerifyApplicationCsrfHeader::class, function ($app) {
+            return new \App\Http\Middleware\Identity\VerifyApplicationCsrfHeader(
+                passengerStore: $app->make(PassengerSessionStore::class),
+                staffStore: $app->make(StaffSessionStore::class),
+                rbacPolicy: $app->make(RbacPolicy::class),
+                db: DB::connection(),
+            );
+        });
     }
 
     /**
@@ -87,5 +96,23 @@ final class IdentityServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        \Illuminate\Support\Facades\Auth::extend('passenger_session', function ($app, $name, array $config) {
+            $guard = new \App\Identity\Guards\PassengerSessionGuard(
+                store: $app->make(PassengerSessionStore::class),
+                request: $app->make('request'),
+            );
+            $app->refresh('request', $guard, 'setRequest');
+            return $guard;
+        });
+
+        \Illuminate\Support\Facades\Auth::extend('staff_session', function ($app, $name, array $config) {
+            $guard = new \App\Identity\Guards\StaffSessionGuard(
+                store: $app->make(StaffSessionStore::class),
+                rbacPolicy: $app->make(RbacPolicy::class),
+                request: $app->make('request'),
+            );
+            $app->refresh('request', $guard, 'setRequest');
+            return $guard;
+        });
     }
 }

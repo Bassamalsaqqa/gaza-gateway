@@ -16,4 +16,7 @@ Route::prefix('v1')->group(function () {
         // Version reports configuration and build metadata
         Route::get('/version', [SystemController::class, 'version']);
     });
+
+    // Identity protocol routes (Phase 13B)
+    require __DIR__ . '/identity.php';
 });
