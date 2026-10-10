@@ -1372,4 +1372,3 @@ final class ConcurrentIdentityRacesTest extends TestCase
         $this->assertSame(5, (int) $ipRowAfter->count, 'Sibling budget count must NOT increment when another budget denies');
     }
 }
-

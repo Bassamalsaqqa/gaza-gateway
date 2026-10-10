@@ -8,6 +8,8 @@ This Phase 12 specification defined future production behavior and supplied depe
 
 Accepted local engineering baseline: [Phase13A integration review](phase13a-review.md), with separate foundation, runtime, provider and client evidence. External staging and backend CI gates remain deferred and unmet.
 
+Current feature-branch progress (2026-10-10): [Phase 13B reviewed foundations checkpoint](phase13b-review-checkpoint.md). Identity primitives, cookie/CSRF bootstraps and the 41-operation transport are implemented for review; end-to-end authentication/UI remains incomplete. Proof/outbox retention is blocked and excluded. Phase 12 and Phase 13A acceptance statuses above remain unchanged.
+
 ## Requirement-to-artifact map
 
 | Requirement                                           | Authoritative artifacts                                                           | Focused evidence                                                                                                |
