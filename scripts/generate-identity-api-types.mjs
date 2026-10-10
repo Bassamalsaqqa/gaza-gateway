@@ -22,143 +22,1537 @@ const SUPPORTED_SCHEMA_KEYS = new Set([
   "enum",
   "minLength",
   "maxLength",
+  "pattern",
+  "minItems",
+  "maxItems",
   "$ref",
   "description",
 ]);
 
+
+export function deepEqual(a, b) {
+  if (a === b) return true;
+  if (typeof a !== typeof b) return false;
+  if (a === null || b === null || typeof a !== "object") return false;
+  if (Array.isArray(a) !== Array.isArray(b)) return false;
+  if (Array.isArray(a)) {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+      if (!deepEqual(a[i], b[i])) return false;
+    }
+    return true;
+  }
+  const keysA = Object.keys(a);
+  const keysB = Object.keys(b);
+  if (keysA.length !== keysB.length) return false;
+  for (const k of keysA) {
+    if (!Object.prototype.hasOwnProperty.call(b, k)) return false;
+    if (!deepEqual(a[k], b[k])) return false;
+  }
+  return true;
+}
+
 export const ACCEPTED_IDENTITY_OPERATIONS = Object.freeze([
   {
-    operationId: "getAuthCsrfBootstrap",
-    method: "GET",
-    path: "/auth/csrf",
-    expectedStatus: 200,
-    realm: "passenger",
-    requiresCsrf: false,
-    isAuthChanging: false,
-    requestSchemaName: null,
-    responseSchemaName: "CsrfTokenResponse",
+    "operationId": "getAuthCsrfBootstrap",
+    "method": "GET",
+    "path": "/auth/csrf",
+    "successStatuses": [
+      "200"
+    ],
+    "security": [],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "anonymous_passenger",
+          "origin": "read",
+          "csrf": "not_applicable"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": null
+    },
+    "expectedStatus": 200,
+    "realm": "anonymous_passenger",
+    "requiresCsrf": false,
+    "isAuthChanging": false,
+    "requestSchemaName": null,
+    "responseSchemaName": "CsrfTokenResponse",
+    "authorizationBranches": []
   },
   {
-    operationId: "postPassengerRegister",
-    method: "POST",
-    path: "/auth/register",
-    expectedStatus: 202,
-    realm: "passenger",
-    requiresCsrf: true,
-    isAuthChanging: false,
-    requestSchemaName: "RegisterRequest",
-    responseSchemaName: "PassengerRegisterReceiptResponse",
+    "operationId": "postPassengerRegister",
+    "method": "POST",
+    "path": "/auth/register",
+    "successStatuses": [
+      "202"
+    ],
+    "security": [],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "anonymous_passenger",
+          "origin": "configured_frontend",
+          "csrf": "anonymous_passenger"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": null
+    },
+    "expectedStatus": 202,
+    "realm": "anonymous_passenger",
+    "requiresCsrf": true,
+    "isAuthChanging": false,
+    "requestSchemaName": "RegisterRequest",
+    "responseSchemaName": "PassengerRegisterReceiptResponse",
+    "authorizationBranches": []
   },
   {
-    operationId: "postPassengerLogin",
-    method: "POST",
-    path: "/auth/login",
-    expectedStatus: 200,
-    realm: "passenger",
-    requiresCsrf: true,
-    isAuthChanging: true,
-    requestSchemaName: "LoginRequest",
-    responseSchemaName: "PassengerAuthResponse",
+    "operationId": "postPassengerLogin",
+    "method": "POST",
+    "path": "/auth/login",
+    "successStatuses": [
+      "200"
+    ],
+    "security": [],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "anonymous_passenger",
+          "origin": "configured_frontend",
+          "csrf": "anonymous_passenger"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": null
+    },
+    "expectedStatus": 200,
+    "realm": "anonymous_passenger",
+    "requiresCsrf": true,
+    "isAuthChanging": true,
+    "requestSchemaName": "LoginRequest",
+    "responseSchemaName": "PassengerAuthResponse",
+    "authorizationBranches": []
   },
   {
-    operationId: "postPassengerLogout",
-    method: "POST",
-    path: "/auth/logout",
-    expectedStatus: 200,
-    realm: "passenger",
-    requiresCsrf: true,
-    isAuthChanging: true,
-    requestSchemaName: null,
-    responseSchemaName: "PassengerLogoutResponse",
+    "operationId": "postPassengerLogout",
+    "method": "POST",
+    "path": "/auth/logout",
+    "successStatuses": [
+      "200"
+    ],
+    "security": [
+      {
+        "PassengerCookieAuth": []
+      }
+    ],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "passenger",
+          "origin": "configured_frontend",
+          "csrf": "passenger"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": null
+    },
+    "expectedStatus": 200,
+    "realm": "passenger",
+    "requiresCsrf": true,
+    "isAuthChanging": true,
+    "requestSchemaName": null,
+    "responseSchemaName": "PassengerLogoutResponse",
+    "authorizationBranches": [
+      {
+        "scheme": "PassengerCookieAuth",
+        "condition": "authenticated_passenger_self"
+      }
+    ]
   },
   {
-    operationId: "postPassengerPasswordForgot",
-    method: "POST",
-    path: "/auth/password/forgot",
-    expectedStatus: 202,
-    realm: "passenger",
-    requiresCsrf: true,
-    isAuthChanging: false,
-    requestSchemaName: "PasswordForgotRequest",
-    responseSchemaName: "PasswordForgotResponse",
+    "operationId": "postPassengerPasswordForgot",
+    "method": "POST",
+    "path": "/auth/password/forgot",
+    "successStatuses": [
+      "202"
+    ],
+    "security": [],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "anonymous_passenger",
+          "origin": "configured_frontend",
+          "csrf": "anonymous_passenger"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": null
+    },
+    "expectedStatus": 202,
+    "realm": "anonymous_passenger",
+    "requiresCsrf": true,
+    "isAuthChanging": false,
+    "requestSchemaName": "PasswordForgotRequest",
+    "responseSchemaName": "PasswordForgotResponse",
+    "authorizationBranches": []
   },
   {
-    operationId: "postPassengerPasswordReset",
-    method: "POST",
-    path: "/auth/password/reset",
-    expectedStatus: 200,
-    realm: "passenger",
-    requiresCsrf: true,
-    isAuthChanging: true,
-    requestSchemaName: "PasswordResetRequest",
-    responseSchemaName: "PasswordResetResponse",
+    "operationId": "postPassengerPasswordReset",
+    "method": "POST",
+    "path": "/auth/password/reset",
+    "successStatuses": [
+      "200"
+    ],
+    "security": [],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "anonymous_passenger",
+          "origin": "configured_frontend",
+          "csrf": "anonymous_passenger"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": null
+    },
+    "expectedStatus": 200,
+    "realm": "anonymous_passenger",
+    "requiresCsrf": true,
+    "isAuthChanging": true,
+    "requestSchemaName": "PasswordResetRequest",
+    "responseSchemaName": "PasswordResetResponse",
+    "authorizationBranches": []
   },
   {
-    operationId: "postPassengerEmailVerify",
-    method: "POST",
-    path: "/auth/email/verify",
-    expectedStatus: 200,
-    realm: "passenger",
-    requiresCsrf: true,
-    isAuthChanging: false,
-    requestSchemaName: "EmailVerifyRequest",
-    responseSchemaName: "EmailVerifyResponse",
+    "operationId": "postPassengerEmailVerify",
+    "method": "POST",
+    "path": "/auth/email/verify",
+    "successStatuses": [
+      "200"
+    ],
+    "security": [],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "anonymous_passenger",
+          "origin": "configured_frontend",
+          "csrf": "anonymous_passenger"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": null
+    },
+    "expectedStatus": 200,
+    "realm": "anonymous_passenger",
+    "requiresCsrf": true,
+    "isAuthChanging": false,
+    "requestSchemaName": "EmailVerifyRequest",
+    "responseSchemaName": "EmailVerifyResponse",
+    "authorizationBranches": []
   },
   {
-    operationId: "postPassengerEmailResend",
-    method: "POST",
-    path: "/auth/email/resend",
-    expectedStatus: 202,
-    realm: "passenger",
-    requiresCsrf: true,
-    isAuthChanging: false,
-    requestSchemaName: "PassengerEmailResendRequest",
-    responseSchemaName: "PassengerRegisterReceiptResponse",
+    "operationId": "getPassengerProfile",
+    "method": "GET",
+    "path": "/auth/passenger/profile",
+    "successStatuses": [
+      "200"
+    ],
+    "security": [
+      {
+        "PassengerCookieAuth": []
+      }
+    ],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "passenger",
+          "origin": "read",
+          "csrf": "not_applicable"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": null
+    },
+    "expectedStatus": 200,
+    "realm": "passenger",
+    "requiresCsrf": false,
+    "isAuthChanging": false,
+    "requestSchemaName": null,
+    "responseSchemaName": "PassengerProfileResponse",
+    "authorizationBranches": [
+      {
+        "scheme": "PassengerCookieAuth",
+        "condition": "authenticated_passenger_self"
+      }
+    ]
   },
   {
-    operationId: "getStaffCsrfBootstrap",
-    method: "GET",
-    path: "/staff/csrf",
-    expectedStatus: 200,
-    realm: "staff",
-    requiresCsrf: false,
-    isAuthChanging: false,
-    requestSchemaName: null,
-    responseSchemaName: "CsrfTokenResponse",
+    "operationId": "putPassengerProfile",
+    "method": "PUT",
+    "path": "/auth/passenger/profile",
+    "successStatuses": [
+      "200"
+    ],
+    "security": [
+      {
+        "PassengerCookieAuth": []
+      }
+    ],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "passenger",
+          "origin": "configured_frontend",
+          "csrf": "passenger"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": null
+    },
+    "expectedStatus": 200,
+    "realm": "passenger",
+    "requiresCsrf": true,
+    "isAuthChanging": false,
+    "requestSchemaName": "UpdatePassengerProfileRequest",
+    "responseSchemaName": "PassengerProfileReceiptResponse",
+    "authorizationBranches": [
+      {
+        "scheme": "PassengerCookieAuth",
+        "condition": "authenticated_passenger_self"
+      }
+    ]
   },
   {
-    operationId: "postStaffLogin",
-    method: "POST",
-    path: "/staff/login",
-    expectedStatus: 200,
-    realm: "staff",
-    requiresCsrf: true,
-    isAuthChanging: true,
-    requestSchemaName: "StaffLoginRequest",
-    responseSchemaName: "StaffPendingAuthResponse",
+    "operationId": "getSavedTravelers",
+    "method": "GET",
+    "path": "/auth/passenger/travelers",
+    "successStatuses": [
+      "200"
+    ],
+    "security": [
+      {
+        "PassengerCookieAuth": []
+      }
+    ],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "passenger",
+          "origin": "read",
+          "csrf": "not_applicable"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": null
+    },
+    "expectedStatus": 200,
+    "realm": "passenger",
+    "requiresCsrf": false,
+    "isAuthChanging": false,
+    "requestSchemaName": null,
+    "responseSchemaName": "SavedTravelersResponse",
+    "authorizationBranches": [
+      {
+        "scheme": "PassengerCookieAuth",
+        "condition": "authenticated_passenger_self"
+      }
+    ]
   },
   {
-    operationId: "postStaffLogout",
-    method: "POST",
-    path: "/staff/logout",
-    expectedStatus: 200,
-    realm: "staff",
-    requiresCsrf: true,
-    isAuthChanging: true,
-    requestSchemaName: null,
-    responseSchemaName: "StaffLogoutResponse",
+    "operationId": "postSavedTraveler",
+    "method": "POST",
+    "path": "/auth/passenger/travelers",
+    "successStatuses": [
+      "201"
+    ],
+    "security": [
+      {
+        "PassengerCookieAuth": []
+      }
+    ],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "passenger",
+          "origin": "configured_frontend",
+          "csrf": "passenger"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": null
+    },
+    "expectedStatus": 201,
+    "realm": "passenger",
+    "requiresCsrf": true,
+    "isAuthChanging": false,
+    "requestSchemaName": "CreateTravelerRequest",
+    "responseSchemaName": "SavedTravelerResponse",
+    "authorizationBranches": [
+      {
+        "scheme": "PassengerCookieAuth",
+        "condition": "authenticated_passenger_self"
+      }
+    ]
   },
   {
-    operationId: "getStaffMe",
-    method: "GET",
-    path: "/staff/me",
-    expectedStatus: 200,
-    realm: "staff",
-    requiresCsrf: false,
-    isAuthChanging: false,
-    requestSchemaName: null,
-    responseSchemaName: "StaffMeResponse",
+    "operationId": "deleteSavedTraveler",
+    "method": "DELETE",
+    "path": "/auth/passenger/travelers/{id}",
+    "successStatuses": [
+      "200"
+    ],
+    "security": [
+      {
+        "PassengerCookieAuth": []
+      }
+    ],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "passenger",
+          "origin": "configured_frontend",
+          "csrf": "passenger"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": null
+    },
+    "expectedStatus": 200,
+    "realm": "passenger",
+    "requiresCsrf": true,
+    "isAuthChanging": false,
+    "requestSchemaName": null,
+    "responseSchemaName": "DeleteTravelerResponse",
+    "authorizationBranches": [
+      {
+        "scheme": "PassengerCookieAuth",
+        "condition": "authenticated_passenger_self"
+      }
+    ]
   },
+  {
+    "operationId": "patchSavedTraveler",
+    "method": "PATCH",
+    "path": "/auth/passenger/travelers/{id}",
+    "successStatuses": [
+      "200"
+    ],
+    "security": [
+      {
+        "PassengerCookieAuth": []
+      }
+    ],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "passenger",
+          "origin": "configured_frontend",
+          "csrf": "passenger"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": null
+    },
+    "expectedStatus": 200,
+    "realm": "passenger",
+    "requiresCsrf": true,
+    "isAuthChanging": false,
+    "requestSchemaName": "PatchTravelerRequest",
+    "responseSchemaName": "SavedTravelerResponse",
+    "authorizationBranches": [
+      {
+        "scheme": "PassengerCookieAuth",
+        "condition": "authenticated_passenger_self"
+      }
+    ]
+  },
+  {
+    "operationId": "getStaffCsrfBootstrap",
+    "method": "GET",
+    "path": "/staff/csrf",
+    "successStatuses": [
+      "200"
+    ],
+    "security": [],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "anonymous_staff",
+          "origin": "read",
+          "csrf": "not_applicable"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": null
+    },
+    "expectedStatus": 200,
+    "realm": "anonymous_staff",
+    "requiresCsrf": false,
+    "isAuthChanging": false,
+    "requestSchemaName": null,
+    "responseSchemaName": "CsrfTokenResponse",
+    "authorizationBranches": []
+  },
+  {
+    "operationId": "postStaffLogin",
+    "method": "POST",
+    "path": "/staff/login",
+    "successStatuses": [
+      "200"
+    ],
+    "security": [],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "anonymous_staff",
+          "origin": "configured_frontend",
+          "csrf": "anonymous_staff"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": null
+    },
+    "expectedStatus": 200,
+    "realm": "anonymous_staff",
+    "requiresCsrf": true,
+    "isAuthChanging": true,
+    "requestSchemaName": "StaffLoginRequest",
+    "responseSchemaName": "StaffPendingAuthResponse",
+    "authorizationBranches": []
+  },
+  {
+    "operationId": "postStaffLogout",
+    "method": "POST",
+    "path": "/staff/logout",
+    "successStatuses": [
+      "200"
+    ],
+    "security": [
+      {
+        "StaffCookieAuth": []
+      }
+    ],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "staff",
+          "origin": "configured_frontend",
+          "csrf": "staff"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": null
+    },
+    "expectedStatus": 200,
+    "realm": "staff",
+    "requiresCsrf": true,
+    "isAuthChanging": true,
+    "requestSchemaName": null,
+    "responseSchemaName": "StaffLogoutResponse",
+    "authorizationBranches": [
+      {
+        "scheme": "StaffCookieAuth",
+        "condition": "authenticated_staff_self",
+        "requiredPermission": null,
+        "requiresActive": true
+      }
+    ]
+  },
+  {
+    "operationId": "getStaffMe",
+    "method": "GET",
+    "path": "/staff/me",
+    "successStatuses": [
+      "200"
+    ],
+    "security": [
+      {
+        "StaffCookieAuth": []
+      }
+    ],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "staff",
+          "origin": "read",
+          "csrf": "not_applicable"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": null
+    },
+    "expectedStatus": 200,
+    "realm": "staff",
+    "requiresCsrf": false,
+    "isAuthChanging": false,
+    "requestSchemaName": null,
+    "responseSchemaName": "StaffMeResponse",
+    "authorizationBranches": [
+      {
+        "scheme": "StaffCookieAuth",
+        "condition": "authenticated_staff_self",
+        "requiredPermission": null,
+        "requiresActive": true
+      }
+    ]
+  },
+  {
+    "operationId": "postStaffMfaSetup",
+    "method": "POST",
+    "path": "/staff/mfa/setup",
+    "successStatuses": [
+      "200"
+    ],
+    "security": [
+      {
+        "StaffCookieAuth": []
+      }
+    ],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "staff",
+          "origin": "configured_frontend",
+          "csrf": "staff"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": 300
+    },
+    "expectedStatus": 200,
+    "realm": "staff",
+    "requiresCsrf": true,
+    "isAuthChanging": false,
+    "requestSchemaName": null,
+    "responseSchemaName": "StaffMfaSetupResponse",
+    "authorizationBranches": [
+      {
+        "scheme": "StaffCookieAuth",
+        "condition": "authenticated_staff_self",
+        "requiredPermission": null,
+        "requiresActive": true
+      }
+    ]
+  },
+  {
+    "operationId": "postStaffMfaChallenge",
+    "method": "POST",
+    "path": "/staff/mfa/challenge",
+    "successStatuses": [
+      "200"
+    ],
+    "security": [
+      {
+        "StaffPreAuthCookieAuth": []
+      }
+    ],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "pending_staff",
+          "origin": "configured_frontend",
+          "csrf": "anonymous_staff"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": null
+    },
+    "expectedStatus": 200,
+    "realm": "pending_staff",
+    "requiresCsrf": true,
+    "isAuthChanging": false,
+    "requestSchemaName": "StaffMfaChallengeRequest",
+    "responseSchemaName": "StaffMfaChallengeResponse",
+    "authorizationBranches": [
+      {
+        "scheme": "StaffPreAuthCookieAuth",
+        "condition": "pending_staff_mfa",
+        "purpose": "login_mfa",
+        "allowedEndpoint": "postStaffMfaChallenge",
+        "requiresBoundSession": true,
+        "requiresUnexpired": true,
+        "requiresRevocationValid": true
+      }
+    ]
+  },
+  {
+    "operationId": "postStaffMfaVerify",
+    "method": "POST",
+    "path": "/staff/mfa/verify",
+    "successStatuses": [
+      "200"
+    ],
+    "security": [
+      {
+        "StaffPreAuthCookieAuth": []
+      }
+    ],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "pending_staff",
+          "origin": "configured_frontend",
+          "csrf": "anonymous_staff"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": null
+    },
+    "expectedStatus": 200,
+    "realm": "pending_staff",
+    "requiresCsrf": true,
+    "isAuthChanging": true,
+    "requestSchemaName": "StaffMfaVerifyRequest",
+    "responseSchemaName": "StaffAuthResponse",
+    "authorizationBranches": [
+      {
+        "scheme": "StaffPreAuthCookieAuth",
+        "condition": "pending_staff_mfa",
+        "purpose": "login_mfa",
+        "allowedEndpoint": "postStaffMfaVerify",
+        "requiresBoundSession": true,
+        "requiresUnexpired": true,
+        "requiresRevocationValid": true
+      }
+    ]
+  },
+  {
+    "operationId": "getStaffSessions",
+    "method": "GET",
+    "path": "/staff/sessions",
+    "successStatuses": [
+      "200"
+    ],
+    "security": [
+      {
+        "StaffCookieAuth": []
+      }
+    ],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "staff",
+          "origin": "read",
+          "csrf": "not_applicable"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": null
+    },
+    "expectedStatus": 200,
+    "realm": "staff",
+    "requiresCsrf": false,
+    "isAuthChanging": false,
+    "requestSchemaName": null,
+    "responseSchemaName": "StaffSessionsListResponse",
+    "authorizationBranches": [
+      {
+        "scheme": "StaffCookieAuth",
+        "condition": "authenticated_staff_self",
+        "requiredPermission": null,
+        "requiresActive": true
+      }
+    ]
+  },
+  {
+    "operationId": "deleteStaffSession",
+    "method": "DELETE",
+    "path": "/staff/sessions/{id}",
+    "successStatuses": [
+      "200"
+    ],
+    "security": [
+      {
+        "StaffCookieAuth": []
+      }
+    ],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "staff",
+          "origin": "configured_frontend",
+          "csrf": "staff"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": null
+    },
+    "expectedStatus": 200,
+    "realm": "staff",
+    "requiresCsrf": true,
+    "isAuthChanging": true,
+    "requestSchemaName": null,
+    "responseSchemaName": "DeleteStaffSessionResponse",
+    "authorizationBranches": [
+      {
+        "scheme": "StaffCookieAuth",
+        "condition": "authenticated_staff_self",
+        "requiredPermission": null,
+        "requiresActive": true
+      }
+    ]
+  },
+  {
+    "operationId": "getStaffUsersDirectory",
+    "method": "GET",
+    "path": "/staff/users",
+    "successStatuses": [
+      "200"
+    ],
+    "security": [
+      {
+        "StaffCookieAuth": []
+      }
+    ],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "staff",
+          "origin": "read",
+          "csrf": "not_applicable"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": null
+    },
+    "expectedStatus": 200,
+    "realm": "staff",
+    "requiresCsrf": false,
+    "isAuthChanging": false,
+    "requestSchemaName": null,
+    "responseSchemaName": "StaffUsersListResponse",
+    "authorizationBranches": [
+      {
+        "scheme": "StaffCookieAuth",
+        "condition": "authenticated_staff",
+        "requiredPermission": "admin.manage",
+        "requiresActive": true
+      }
+    ]
+  },
+  {
+    "operationId": "postStaffUserInvite",
+    "method": "POST",
+    "path": "/staff/users",
+    "successStatuses": [
+      "201"
+    ],
+    "security": [
+      {
+        "StaffCookieAuth": []
+      }
+    ],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "staff",
+          "origin": "configured_frontend",
+          "csrf": "staff"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": 300
+    },
+    "expectedStatus": 201,
+    "realm": "staff",
+    "requiresCsrf": true,
+    "isAuthChanging": false,
+    "requestSchemaName": "CreateStaffUserRequest",
+    "responseSchemaName": "StaffUserResponse",
+    "authorizationBranches": [
+      {
+        "scheme": "StaffCookieAuth",
+        "condition": "authenticated_staff",
+        "requiredPermission": "admin.manage",
+        "requiresActive": true
+      }
+    ]
+  },
+  {
+    "operationId": "patchStaffUser",
+    "method": "PATCH",
+    "path": "/staff/users/{id}",
+    "successStatuses": [
+      "200"
+    ],
+    "security": [
+      {
+        "StaffCookieAuth": []
+      }
+    ],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "staff",
+          "origin": "configured_frontend",
+          "csrf": "staff"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": 300
+    },
+    "expectedStatus": 200,
+    "realm": "staff",
+    "requiresCsrf": true,
+    "isAuthChanging": false,
+    "requestSchemaName": "PatchStaffUserRequest",
+    "responseSchemaName": "StaffUserResponse",
+    "authorizationBranches": [
+      {
+        "scheme": "StaffCookieAuth",
+        "condition": "authenticated_staff",
+        "requiredPermission": "admin.manage",
+        "requiresActive": true
+      }
+    ]
+  },
+  {
+    "operationId": "deleteStaffUser",
+    "method": "DELETE",
+    "path": "/staff/users/{id}",
+    "successStatuses": [
+      "200"
+    ],
+    "security": [
+      {
+        "StaffCookieAuth": []
+      }
+    ],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "staff",
+          "origin": "configured_frontend",
+          "csrf": "staff"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": 300
+    },
+    "expectedStatus": 200,
+    "realm": "staff",
+    "requiresCsrf": true,
+    "isAuthChanging": false,
+    "requestSchemaName": null,
+    "responseSchemaName": "DeleteStaffUserResponse",
+    "authorizationBranches": [
+      {
+        "scheme": "StaffCookieAuth",
+        "condition": "authenticated_staff",
+        "requiredPermission": "admin.manage",
+        "requiresActive": true
+      }
+    ]
+  },
+  {
+    "operationId": "postPassengerEmailResend",
+    "method": "POST",
+    "path": "/auth/email/resend",
+    "successStatuses": [
+      "202"
+    ],
+    "security": [],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "anonymous_passenger",
+          "origin": "configured_frontend",
+          "csrf": "anonymous_passenger"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": null
+    },
+    "expectedStatus": 202,
+    "realm": "anonymous_passenger",
+    "requiresCsrf": true,
+    "isAuthChanging": false,
+    "requestSchemaName": "PassengerEmailResendRequest",
+    "responseSchemaName": "PassengerRegisterReceiptResponse",
+    "authorizationBranches": []
+  },
+  {
+    "operationId": "getPassengerSessions",
+    "method": "GET",
+    "path": "/auth/passenger/sessions",
+    "successStatuses": [
+      "200"
+    ],
+    "security": [
+      {
+        "PassengerCookieAuth": []
+      }
+    ],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "passenger",
+          "origin": "read",
+          "csrf": "not_applicable"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": null
+    },
+    "expectedStatus": 200,
+    "realm": "passenger",
+    "requiresCsrf": false,
+    "isAuthChanging": false,
+    "requestSchemaName": null,
+    "responseSchemaName": "PassengerSessionListResponse",
+    "authorizationBranches": [
+      {
+        "scheme": "PassengerCookieAuth",
+        "condition": "authenticated_passenger_self"
+      }
+    ]
+  },
+  {
+    "operationId": "deletePassengerSession",
+    "method": "DELETE",
+    "path": "/auth/passenger/sessions/{id}",
+    "successStatuses": [
+      "200"
+    ],
+    "security": [
+      {
+        "PassengerCookieAuth": []
+      }
+    ],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "passenger",
+          "origin": "configured_frontend",
+          "csrf": "passenger"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": null
+    },
+    "expectedStatus": 200,
+    "realm": "passenger",
+    "requiresCsrf": true,
+    "isAuthChanging": true,
+    "requestSchemaName": null,
+    "responseSchemaName": "PassengerSessionRevokeResponse",
+    "authorizationBranches": [
+      {
+        "scheme": "PassengerCookieAuth",
+        "condition": "authenticated_passenger_self"
+      }
+    ]
+  },
+  {
+    "operationId": "putPassengerPassword",
+    "method": "PUT",
+    "path": "/auth/passenger/password",
+    "successStatuses": [
+      "200"
+    ],
+    "security": [
+      {
+        "PassengerCookieAuth": []
+      }
+    ],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "passenger",
+          "origin": "configured_frontend",
+          "csrf": "passenger"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": null
+    },
+    "expectedStatus": 200,
+    "realm": "passenger",
+    "requiresCsrf": true,
+    "isAuthChanging": true,
+    "requestSchemaName": "PassengerPasswordChangeRequest",
+    "responseSchemaName": "PassengerPasswordChangeResponse",
+    "authorizationBranches": [
+      {
+        "scheme": "PassengerCookieAuth",
+        "condition": "authenticated_passenger_self"
+      }
+    ]
+  },
+  {
+    "operationId": "postStaffMfaEnrollmentSetup",
+    "method": "POST",
+    "path": "/staff/mfa/enrollment/setup",
+    "successStatuses": [
+      "200"
+    ],
+    "security": [
+      {
+        "StaffPreAuthCookieAuth": []
+      }
+    ],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "pending_staff",
+          "origin": "configured_frontend",
+          "csrf": "anonymous_staff"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": null
+    },
+    "expectedStatus": 200,
+    "realm": "pending_staff",
+    "requiresCsrf": true,
+    "isAuthChanging": false,
+    "requestSchemaName": null,
+    "responseSchemaName": "StaffMfaEnrollmentSetupResponse",
+    "authorizationBranches": [
+      {
+        "scheme": "StaffPreAuthCookieAuth",
+        "condition": "pending_staff_mfa",
+        "purpose": "enroll_mfa",
+        "allowedEndpoint": "postStaffMfaEnrollmentSetup",
+        "requiresBoundSession": true,
+        "requiresUnexpired": true,
+        "requiresRevocationValid": true
+      }
+    ]
+  },
+  {
+    "operationId": "postStaffMfaEnrollmentConfirm",
+    "method": "POST",
+    "path": "/staff/mfa/enrollment/confirm",
+    "successStatuses": [
+      "200"
+    ],
+    "security": [
+      {
+        "StaffPreAuthCookieAuth": []
+      }
+    ],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "pending_staff",
+          "origin": "configured_frontend",
+          "csrf": "anonymous_staff"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": null
+    },
+    "expectedStatus": 200,
+    "realm": "pending_staff",
+    "requiresCsrf": true,
+    "isAuthChanging": true,
+    "requestSchemaName": "StaffMfaEnrollmentConfirmRequest",
+    "responseSchemaName": "StaffMfaEnrollmentConfirmResponse",
+    "authorizationBranches": [
+      {
+        "scheme": "StaffPreAuthCookieAuth",
+        "condition": "pending_staff_mfa",
+        "purpose": "enroll_mfa",
+        "allowedEndpoint": "postStaffMfaEnrollmentConfirm",
+        "requiresBoundSession": true,
+        "requiresUnexpired": true,
+        "requiresRevocationValid": true
+      }
+    ]
+  },
+  {
+    "operationId": "postStaffStepUp",
+    "method": "POST",
+    "path": "/staff/step-up",
+    "successStatuses": [
+      "200"
+    ],
+    "security": [
+      {
+        "StaffCookieAuth": []
+      }
+    ],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "staff",
+          "origin": "configured_frontend",
+          "csrf": "staff"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": null
+    },
+    "expectedStatus": 200,
+    "realm": "staff",
+    "requiresCsrf": true,
+    "isAuthChanging": false,
+    "requestSchemaName": "StaffStepUpRequest",
+    "responseSchemaName": "StaffStepUpResponse",
+    "authorizationBranches": [
+      {
+        "scheme": "StaffCookieAuth",
+        "condition": "authenticated_staff_self",
+        "requiredPermission": null,
+        "requiresActive": true
+      }
+    ]
+  },
+  {
+    "operationId": "postStaffMfaSetupConfirm",
+    "method": "POST",
+    "path": "/staff/mfa/setup/confirm",
+    "successStatuses": [
+      "200"
+    ],
+    "security": [
+      {
+        "StaffCookieAuth": []
+      }
+    ],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "staff",
+          "origin": "configured_frontend",
+          "csrf": "staff"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": 300
+    },
+    "expectedStatus": 200,
+    "realm": "staff",
+    "requiresCsrf": true,
+    "isAuthChanging": true,
+    "requestSchemaName": "StaffMfaSetupConfirmRequest",
+    "responseSchemaName": "StaffMfaSetupConfirmResponse",
+    "authorizationBranches": [
+      {
+        "scheme": "StaffCookieAuth",
+        "condition": "authenticated_staff_self",
+        "requiredPermission": null,
+        "requiresActive": true
+      }
+    ]
+  },
+  {
+    "operationId": "postStaffMfaRecoveryCodesRegenerate",
+    "method": "POST",
+    "path": "/staff/mfa/recovery-codes/regenerate",
+    "successStatuses": [
+      "200"
+    ],
+    "security": [
+      {
+        "StaffCookieAuth": []
+      }
+    ],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "staff",
+          "origin": "configured_frontend",
+          "csrf": "staff"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": 300
+    },
+    "expectedStatus": 200,
+    "realm": "staff",
+    "requiresCsrf": true,
+    "isAuthChanging": true,
+    "requestSchemaName": null,
+    "responseSchemaName": "StaffRecoveryCodesRegenerateResponse",
+    "authorizationBranches": [
+      {
+        "scheme": "StaffCookieAuth",
+        "condition": "authenticated_staff_self",
+        "requiredPermission": null,
+        "requiresActive": true
+      }
+    ]
+  },
+  {
+    "operationId": "postStaffPasswordForgot",
+    "method": "POST",
+    "path": "/staff/password/forgot",
+    "successStatuses": [
+      "202"
+    ],
+    "security": [],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "anonymous_staff",
+          "origin": "configured_frontend",
+          "csrf": "anonymous_staff"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": null
+    },
+    "expectedStatus": 202,
+    "realm": "anonymous_staff",
+    "requiresCsrf": true,
+    "isAuthChanging": false,
+    "requestSchemaName": "StaffPasswordForgotRequest",
+    "responseSchemaName": "StaffPasswordForgotReceiptResponse",
+    "authorizationBranches": []
+  },
+  {
+    "operationId": "postStaffPasswordReset",
+    "method": "POST",
+    "path": "/staff/password/reset",
+    "successStatuses": [
+      "200"
+    ],
+    "security": [],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "anonymous_staff",
+          "origin": "configured_frontend",
+          "csrf": "anonymous_staff"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": null
+    },
+    "expectedStatus": 200,
+    "realm": "anonymous_staff",
+    "requiresCsrf": true,
+    "isAuthChanging": true,
+    "requestSchemaName": "StaffPasswordResetRequest",
+    "responseSchemaName": "StaffPasswordResetResponse",
+    "authorizationBranches": []
+  },
+  {
+    "operationId": "putStaffPassword",
+    "method": "PUT",
+    "path": "/staff/password",
+    "successStatuses": [
+      "200"
+    ],
+    "security": [
+      {
+        "StaffCookieAuth": []
+      }
+    ],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "staff",
+          "origin": "configured_frontend",
+          "csrf": "staff"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": 300
+    },
+    "expectedStatus": 200,
+    "realm": "staff",
+    "requiresCsrf": true,
+    "isAuthChanging": true,
+    "requestSchemaName": "StaffPasswordChangeRequest",
+    "responseSchemaName": "StaffPasswordChangeResponse",
+    "authorizationBranches": [
+      {
+        "scheme": "StaffCookieAuth",
+        "condition": "authenticated_staff_self",
+        "requiredPermission": null,
+        "requiresActive": true
+      }
+    ]
+  },
+  {
+    "operationId": "postStaffInvitationAccept",
+    "method": "POST",
+    "path": "/staff/invitations/accept",
+    "successStatuses": [
+      "200"
+    ],
+    "security": [],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "anonymous_staff",
+          "origin": "configured_frontend",
+          "csrf": "anonymous_staff"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": null
+    },
+    "expectedStatus": 200,
+    "realm": "anonymous_staff",
+    "requiresCsrf": true,
+    "isAuthChanging": true,
+    "requestSchemaName": "StaffInvitationAcceptRequest",
+    "responseSchemaName": "StaffInvitationAcceptResponse",
+    "authorizationBranches": []
+  },
+  {
+    "operationId": "postStaffUserInviteReissue",
+    "method": "POST",
+    "path": "/staff/users/{id}/invite/reissue",
+    "successStatuses": [
+      "200"
+    ],
+    "security": [
+      {
+        "StaffCookieAuth": []
+      }
+    ],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "staff",
+          "origin": "configured_frontend",
+          "csrf": "staff"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": 300
+    },
+    "expectedStatus": 200,
+    "realm": "staff",
+    "requiresCsrf": true,
+    "isAuthChanging": false,
+    "requestSchemaName": null,
+    "responseSchemaName": "StaffInviteReissueResponse",
+    "authorizationBranches": [
+      {
+        "scheme": "StaffCookieAuth",
+        "condition": "authenticated_staff",
+        "requiredPermission": "admin.manage",
+        "requiresActive": true
+      }
+    ]
+  },
+  {
+    "operationId": "postStaffUserInviteRevoke",
+    "method": "POST",
+    "path": "/staff/users/{id}/invite/revoke",
+    "successStatuses": [
+      "200"
+    ],
+    "security": [
+      {
+        "StaffCookieAuth": []
+      }
+    ],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "staff",
+          "origin": "configured_frontend",
+          "csrf": "staff"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": 300
+    },
+    "expectedStatus": 200,
+    "realm": "staff",
+    "requiresCsrf": true,
+    "isAuthChanging": false,
+    "requestSchemaName": null,
+    "responseSchemaName": "StaffInviteRevokeResponse",
+    "authorizationBranches": [
+      {
+        "scheme": "StaffCookieAuth",
+        "condition": "authenticated_staff",
+        "requiredPermission": "admin.manage",
+        "requiresActive": true
+      }
+    ]
+  }
 ]);
 
 /**
@@ -171,6 +1565,25 @@ export function validateSupportedSchema(schema, pathTrace = "root") {
   }
 
   for (const key of Object.keys(schema)) {
+    if (key === "oneOf") {
+      const isSupportedOneOf =
+        schema.type === "object" &&
+        Array.isArray(schema.oneOf) &&
+        schema.oneOf.length > 0 &&
+        schema.oneOf.every(
+          (branch) =>
+            branch &&
+            typeof branch === "object" &&
+            !Array.isArray(branch) &&
+            Array.isArray(branch.required) &&
+            branch.required.every((r) => typeof r === "string") &&
+            Object.keys(branch).length === 1
+        );
+      if (!isSupportedOneOf) {
+        throw new Error(`Unsupported schema keyword 'oneOf' at ${pathTrace}. Generator fails closed.`);
+      }
+      continue;
+    }
     if (!SUPPORTED_SCHEMA_KEYS.has(key)) {
       throw new Error(`Unsupported schema keyword '${key}' at ${pathTrace}. Generator fails closed.`);
     }
@@ -373,14 +1786,14 @@ function generateInterfaceFromSchema(interfaceName, schema, spec, propertyTypeOv
 }
 
 /**
- * Generates narrow TypeScript types for the 12 accepted Identity API operations.
+ * Generates narrow TypeScript types for all 41 accepted Identity API operations.
  */
 export function generateIdentityApiTypes(spec) {
   if (!spec || typeof spec !== "object") {
     throw new Error("Invalid OpenAPI specification object");
   }
 
-  // 1. Verify existence of all 12 accepted operations in OpenAPI spec
+  // 1. Verify existence of all 41 accepted operations in OpenAPI spec
   const rootSchemas = [];
   for (const op of ACCEPTED_IDENTITY_OPERATIONS) {
     const methodLower = op.method.toLowerCase();
@@ -396,6 +1809,34 @@ export function generateIdentityApiTypes(spec) {
       throw new Error(
         `Operation ID mismatch for '${op.method} ${op.path}': expected '${op.operationId}', got '${opItem.operationId}'`
       );
+    }
+
+    // Verify exact x-authorization-branches
+    const actualBranches = opItem["x-authorization-branches"] ?? [];
+    if (!deepEqual(actualBranches, op.authorizationBranches)) {
+      throw new Error(
+        `Authorization branches mismatch for operation '${op.operationId}': expected ${JSON.stringify(op.authorizationBranches)}, got ${JSON.stringify(actualBranches)}`
+      );
+    }
+
+    // Verify exact security
+    const actualSecurity = opItem.security ?? [];
+    if (!deepEqual(actualSecurity, op.security)) {
+      throw new Error(
+        `Security mismatch for operation '${op.operationId}': expected ${JSON.stringify(op.security)}, got ${JSON.stringify(actualSecurity)}`
+      );
+    }
+
+    // Verify path parameters
+    const pathParamMatches = op.path.match(/\{([a-zA-Z0-9_-]+)\}/g) || [];
+    for (const match of pathParamMatches) {
+      const pName = match.slice(1, -1);
+      const paramDef = (opItem.parameters || []).find((p) => p && p.name === pName && p.in === "path");
+      if (!paramDef || paramDef.required !== true) {
+        throw new Error(
+          `Missing or unrequired path parameter '${pName}' on operation '${op.operationId}'`
+        );
+      }
     }
 
     if (op.requestSchemaName) {
@@ -444,132 +1885,132 @@ export function generateIdentityApiTypes(spec) {
   const successMetaCode = generateInterfaceFromSchema("SuccessMeta", successMetaSchema, spec);
   const csrfTokenCode = generateInterfaceFromSchema("CsrfTokenResponse", csrfTokenSchema, spec);
 
-  // Request DTOs
-  const registerReqSchema = spec.components?.schemas?.["RegisterRequest"];
-  if (!registerReqSchema) throw new Error("Missing RegisterRequest schema");
-  const registerReqCode = generateInterfaceFromSchema("RegisterRequest", registerReqSchema, spec);
+  // --- Request DTOs ---
+  const registerReqCode = generateInterfaceFromSchema("RegisterRequest", spec.components.schemas["RegisterRequest"], spec);
+  const loginReqCode = generateInterfaceFromSchema("LoginRequest", spec.components.schemas["LoginRequest"], spec);
+  const forgotReqCode = generateInterfaceFromSchema("PasswordForgotRequest", spec.components.schemas["PasswordForgotRequest"], spec);
+  const resetReqCode = generateInterfaceFromSchema("PasswordResetRequest", spec.components.schemas["PasswordResetRequest"], spec);
+  const emailVerifyReqCode = generateInterfaceFromSchema("EmailVerifyRequest", spec.components.schemas["EmailVerifyRequest"], spec);
+  const emailResendReqCode = generateInterfaceFromSchema("PassengerEmailResendRequest", spec.components.schemas["PassengerEmailResendRequest"], spec);
+  const updatePassengerProfileReqCode = generateInterfaceFromSchema("UpdatePassengerProfileRequest", spec.components.schemas["UpdatePassengerProfileRequest"], spec);
+  const createTravelerReqCode = generateInterfaceFromSchema("CreateTravelerRequest", spec.components.schemas["CreateTravelerRequest"], spec);
+  const patchTravelerReqCode = generateInterfaceFromSchema("PatchTravelerRequest", spec.components.schemas["PatchTravelerRequest"], spec);
+  const passengerPasswordChangeReqCode = generateInterfaceFromSchema("PassengerPasswordChangeRequest", spec.components.schemas["PassengerPasswordChangeRequest"], spec);
+  const staffLoginReqCode = generateInterfaceFromSchema("StaffLoginRequest", spec.components.schemas["StaffLoginRequest"], spec);
+  const staffMfaChallengeReqCode = generateInterfaceFromSchema("StaffMfaChallengeRequest", spec.components.schemas["StaffMfaChallengeRequest"], spec);
+  const staffMfaVerifyReqCode = generateInterfaceFromSchema("StaffMfaVerifyRequest", spec.components.schemas["StaffMfaVerifyRequest"], spec);
+  const createStaffUserReqCode = generateInterfaceFromSchema("CreateStaffUserRequest", spec.components.schemas["CreateStaffUserRequest"], spec);
+  const patchStaffUserReqCode = generateInterfaceFromSchema("PatchStaffUserRequest", spec.components.schemas["PatchStaffUserRequest"], spec);
+  const staffMfaEnrollmentConfirmReqCode = generateInterfaceFromSchema("StaffMfaEnrollmentConfirmRequest", spec.components.schemas["StaffMfaEnrollmentConfirmRequest"], spec);
+  const staffStepUpReqCode = generateInterfaceFromSchema("StaffStepUpRequest", spec.components.schemas["StaffStepUpRequest"], spec);
+  const staffMfaSetupConfirmReqCode = generateInterfaceFromSchema("StaffMfaSetupConfirmRequest", spec.components.schemas["StaffMfaSetupConfirmRequest"], spec);
+  const staffPasswordForgotReqCode = generateInterfaceFromSchema("StaffPasswordForgotRequest", spec.components.schemas["StaffPasswordForgotRequest"], spec);
+  const staffPasswordResetReqCode = generateInterfaceFromSchema("StaffPasswordResetRequest", spec.components.schemas["StaffPasswordResetRequest"], spec);
+  const staffPasswordChangeReqCode = generateInterfaceFromSchema("StaffPasswordChangeRequest", spec.components.schemas["StaffPasswordChangeRequest"], spec);
+  const staffInvitationAcceptReqCode = generateInterfaceFromSchema("StaffInvitationAcceptRequest", spec.components.schemas["StaffInvitationAcceptRequest"], spec);
 
-  const loginReqSchema = spec.components?.schemas?.["LoginRequest"];
-  if (!loginReqSchema) throw new Error("Missing LoginRequest schema");
-  const loginReqCode = generateInterfaceFromSchema("LoginRequest", loginReqSchema, spec);
+  // --- Response Data DTOs ---
+  const passengerReceiptSchema = spec.components.schemas["PassengerRegisterReceiptResponse"];
+  const passengerReceiptDataCode = generateInterfaceFromSchema("PassengerRegisterReceiptData", passengerReceiptSchema.properties.data, spec);
+  const passengerReceiptResponseCode = generateInterfaceFromSchema("PassengerRegisterReceiptResponse", passengerReceiptSchema, spec, { data: "PassengerRegisterReceiptData" });
 
-  const forgotReqSchema = spec.components?.schemas?.["PasswordForgotRequest"];
-  if (!forgotReqSchema) throw new Error("Missing PasswordForgotRequest schema");
-  const forgotReqCode = generateInterfaceFromSchema("PasswordForgotRequest", forgotReqSchema, spec);
+  const passengerAuthSchema = spec.components.schemas["PassengerAuthResponse"];
+  const passengerProfileCode = generateInterfaceFromSchema("PassengerProfile", passengerAuthSchema.properties.data.properties.user, spec);
+  const passengerAuthDataCode = generateInterfaceFromSchema("PassengerAuthData", passengerAuthSchema.properties.data, spec, { user: "PassengerProfile" });
+  const passengerAuthResponseCode = generateInterfaceFromSchema("PassengerAuthResponse", passengerAuthSchema, spec, { data: "PassengerAuthData" });
 
-  const resetReqSchema = spec.components?.schemas?.["PasswordResetRequest"];
-  if (!resetReqSchema) throw new Error("Missing PasswordResetRequest schema");
-  const resetReqCode = generateInterfaceFromSchema("PasswordResetRequest", resetReqSchema, spec);
+  const passengerProfileDtoCode = generateInterfaceFromSchema("PassengerProfileDto", spec.components.schemas["PassengerProfileDto"], spec);
+  const passengerProfileResponseCode = generateInterfaceFromSchema("PassengerProfileResponse", spec.components.schemas["PassengerProfileResponse"], spec);
 
-  const emailVerifyReqSchema = spec.components?.schemas?.["EmailVerifyRequest"];
-  if (!emailVerifyReqSchema) throw new Error("Missing EmailVerifyRequest schema");
-  const emailVerifyReqCode = generateInterfaceFromSchema("EmailVerifyRequest", emailVerifyReqSchema, spec);
+  const passengerProfileReceiptDtoCode = generateInterfaceFromSchema("PassengerProfileReceiptDto", spec.components.schemas["PassengerProfileReceiptDto"], spec);
+  const passengerProfileReceiptResponseCode = generateInterfaceFromSchema("PassengerProfileReceiptResponse", spec.components.schemas["PassengerProfileReceiptResponse"], spec);
 
-  const emailResendReqSchema = spec.components?.schemas?.["PassengerEmailResendRequest"];
-  if (!emailResendReqSchema) throw new Error("Missing PassengerEmailResendRequest schema");
-  const emailResendReqCode = generateInterfaceFromSchema("PassengerEmailResendRequest", emailResendReqSchema, spec);
+  const travelerDtoCode = generateInterfaceFromSchema("TravelerDto", spec.components.schemas["TravelerDto"], spec);
+  const savedTravelersResponseCode = generateInterfaceFromSchema("SavedTravelersResponse", spec.components.schemas["SavedTravelersResponse"], spec);
+  const savedTravelerResponseCode = generateInterfaceFromSchema("SavedTravelerResponse", spec.components.schemas["SavedTravelerResponse"], spec);
+  const deleteTravelerResponseCode = generateInterfaceFromSchema("DeleteTravelerResponse", spec.components.schemas["DeleteTravelerResponse"], spec, { data: "{ deleted: boolean }" });
 
-  const staffLoginReqSchema = spec.components?.schemas?.["StaffLoginRequest"];
-  if (!staffLoginReqSchema) throw new Error("Missing StaffLoginRequest schema");
-  const staffLoginReqCode = generateInterfaceFromSchema("StaffLoginRequest", staffLoginReqSchema, spec);
-
-  // Response DTOs
-  const passengerReceiptSchema = spec.components?.schemas?.["PassengerRegisterReceiptResponse"];
-  if (!passengerReceiptSchema) throw new Error("Missing PassengerRegisterReceiptResponse schema");
-  const passengerReceiptDataCode = generateInterfaceFromSchema(
-    "PassengerRegisterReceiptData",
-    passengerReceiptSchema.properties.data,
-    spec
-  );
-  const passengerReceiptResponseCode = generateInterfaceFromSchema(
-    "PassengerRegisterReceiptResponse",
-    passengerReceiptSchema,
-    spec,
-    { data: "PassengerRegisterReceiptData" }
-  );
-
-  const passengerAuthSchema = spec.components?.schemas?.["PassengerAuthResponse"];
-  if (!passengerAuthSchema) throw new Error("Missing PassengerAuthResponse schema");
-  const passengerProfileSchema = passengerAuthSchema.properties.data.properties.user;
-  const passengerProfileCode = generateInterfaceFromSchema("PassengerProfile", passengerProfileSchema, spec);
-  const passengerAuthDataCode = generateInterfaceFromSchema(
-    "PassengerAuthData",
-    passengerAuthSchema.properties.data,
-    spec,
-    { user: "PassengerProfile" }
-  );
-  const passengerAuthResponseCode = generateInterfaceFromSchema(
-    "PassengerAuthResponse",
-    passengerAuthSchema,
-    spec,
-    { data: "PassengerAuthData" }
-  );
+  const passengerSessionDtoCode = generateInterfaceFromSchema("PassengerSessionDto", spec.components.schemas["PassengerSessionDto"], spec);
+  const passengerSessionListResponseCode = generateInterfaceFromSchema("PassengerSessionListResponse", spec.components.schemas["PassengerSessionListResponse"], spec, { data: "{ sessions: PassengerSessionDto[] }" });
+  const passengerSessionRevokeResponseCode = generateInterfaceFromSchema("PassengerSessionRevokeResponse", spec.components.schemas["PassengerSessionRevokeResponse"], spec, { data: "{ revoked: true }" });
+  const passengerPasswordChangeResponseCode = generateInterfaceFromSchema("PassengerPasswordChangeResponse", spec.components.schemas["PassengerPasswordChangeResponse"], spec, { data: "{ changed: true }" });
 
   // Inline passenger responses
   const passengerLogoutResponse = spec.paths["/auth/logout"].post.responses["200"].content["application/json"].schema;
-  const passengerLogoutResponseCode = generateInterfaceFromSchema(
-    "PassengerLogoutResponse",
-    passengerLogoutResponse,
-    spec,
-    { data: "{ message: string }" }
-  );
+  const passengerLogoutResponseCode = generateInterfaceFromSchema("PassengerLogoutResponse", passengerLogoutResponse, spec, { data: "{ message: string }" });
 
   const passwordForgotResponse = spec.paths["/auth/password/forgot"].post.responses["202"].content["application/json"].schema;
-  const passwordForgotResponseCode = generateInterfaceFromSchema(
-    "PasswordForgotResponse",
-    passwordForgotResponse,
-    spec,
-    { data: "{ message: string }" }
-  );
+  const passwordForgotResponseCode = generateInterfaceFromSchema("PasswordForgotResponse", passwordForgotResponse, spec, { data: "{ message: string }" });
 
   const passwordResetResponse = spec.paths["/auth/password/reset"].post.responses["200"].content["application/json"].schema;
-  const passwordResetResponseCode = generateInterfaceFromSchema(
-    "PasswordResetResponse",
-    passwordResetResponse,
-    spec,
-    { data: "{ message: string }" }
-  );
+  const passwordResetResponseCode = generateInterfaceFromSchema("PasswordResetResponse", passwordResetResponse, spec, { data: "{ message: string }" });
 
   const emailVerifyResponse = spec.paths["/auth/email/verify"].post.responses["200"].content["application/json"].schema;
-  const emailVerifyResponseCode = generateInterfaceFromSchema(
-    "EmailVerifyResponse",
-    emailVerifyResponse,
-    spec,
-    { data: "{ verified: boolean }" }
-  );
+  const emailVerifyResponseCode = generateInterfaceFromSchema("EmailVerifyResponse", emailVerifyResponse, spec, { data: "{ verified: boolean }" });
 
   // Staff responses
-  const staffPendingAuthSchema = spec.components?.schemas?.["StaffPendingAuthResponse"];
-  if (!staffPendingAuthSchema) throw new Error("Missing StaffPendingAuthResponse schema");
-  const staffPendingAuthDataCode = generateInterfaceFromSchema(
-    "StaffPendingAuthData",
-    staffPendingAuthSchema.properties.data,
-    spec
-  );
-  const staffPendingAuthResponseCode = generateInterfaceFromSchema(
-    "StaffPendingAuthResponse",
-    staffPendingAuthSchema,
-    spec,
-    { data: "StaffPendingAuthData" }
-  );
+  const staffPendingAuthSchema = spec.components.schemas["StaffPendingAuthResponse"];
+  const staffPendingAuthDataCode = generateInterfaceFromSchema("StaffPendingAuthData", staffPendingAuthSchema.properties.data, spec);
+  const staffPendingAuthResponseCode = generateInterfaceFromSchema("StaffPendingAuthResponse", staffPendingAuthSchema, spec, { data: "StaffPendingAuthData" });
 
   const staffLogoutResponse = spec.paths["/staff/logout"].post.responses["200"].content["application/json"].schema;
-  const staffLogoutResponseCode = generateInterfaceFromSchema(
-    "StaffLogoutResponse",
-    staffLogoutResponse,
-    spec,
-    { data: "{ message: string }" }
-  );
+  const staffLogoutResponseCode = generateInterfaceFromSchema("StaffLogoutResponse", staffLogoutResponse, spec, { data: "{ message: string }" });
 
-  const staffMeSchema = spec.components?.schemas?.["StaffMeResponse"];
-  if (!staffMeSchema) throw new Error("Missing StaffMeResponse schema");
+  const staffMeSchema = spec.components.schemas["StaffMeResponse"];
   const staffProfileCode = generateInterfaceFromSchema("StaffProfile", staffMeSchema.properties.data, spec);
-  const staffMeResponseCode = generateInterfaceFromSchema(
-    "StaffMeResponse",
-    staffMeSchema,
-    spec,
-    { data: "StaffProfile" }
-  );
+  const staffMeResponseCode = generateInterfaceFromSchema("StaffMeResponse", staffMeSchema, spec, { data: "StaffProfile" });
+
+  const staffMfaSetupResponseCode = generateInterfaceFromSchema("StaffMfaSetupResponse", spec.components.schemas["StaffMfaSetupResponse"], spec, { data: "{ secret: string; qrCodeUri: string }" });
+
+  const staffMfaChallengeResponseSchema = spec.paths["/staff/mfa/challenge"].post.responses["200"].content["application/json"].schema;
+  const staffMfaChallengeResponseCode = generateInterfaceFromSchema("StaffMfaChallengeResponse", staffMfaChallengeResponseSchema, spec, { data: "{ status: string; expiresAt: string }" });
+
+  const staffAuthSchema = spec.components.schemas["StaffAuthResponse"];
+  const staffAuthUserCode = generateInterfaceFromSchema("StaffAuthUser", staffAuthSchema.properties.data.properties.staff, spec);
+  const staffAuthDataCode = generateInterfaceFromSchema("StaffAuthData", staffAuthSchema.properties.data, spec, { staff: "StaffAuthUser" });
+  const staffAuthResponseCode = generateInterfaceFromSchema("StaffAuthResponse", staffAuthSchema, spec, { data: "StaffAuthData" });
+
+  const staffSessionDtoCode = generateInterfaceFromSchema("StaffSessionDto", spec.components.schemas["StaffSessionsListResponse"].properties.data.items, spec);
+  const staffSessionsListResponseCode = generateInterfaceFromSchema("StaffSessionsListResponse", spec.components.schemas["StaffSessionsListResponse"], spec, { data: "StaffSessionDto[]" });
+
+  const deleteStaffSessionSchema = spec.paths["/staff/sessions/{id}"].delete.responses["200"].content["application/json"].schema;
+  const deleteStaffSessionResponseCode = generateInterfaceFromSchema("DeleteStaffSessionResponse", deleteStaffSessionSchema, spec, { data: "{ revoked: boolean }" });
+
+  const staffUserDirectoryDtoCode = generateInterfaceFromSchema("StaffUserDirectoryDto", spec.components.schemas["StaffUserDirectoryDto"], spec);
+  const staffUsersListResponseCode = generateInterfaceFromSchema("StaffUsersListResponse", spec.components.schemas["StaffUsersListResponse"], spec);
+  const staffUserResponseCode = generateInterfaceFromSchema("StaffUserResponse", spec.components.schemas["StaffUserResponse"], spec);
+
+  const deleteStaffUserSchema = spec.paths["/staff/users/{id}"].delete.responses["200"].content["application/json"].schema;
+  const deleteStaffUserResponseCode = generateInterfaceFromSchema("DeleteStaffUserResponse", deleteStaffUserSchema, spec, { data: "{ deactivated: boolean }" });
+
+  const staffDtoCode = generateInterfaceFromSchema("StaffDto", spec.components.schemas["StaffDto"], spec);
+
+  const staffMfaEnrollmentSetupResponseCode = generateInterfaceFromSchema("StaffMfaEnrollmentSetupResponse", spec.components.schemas["StaffMfaEnrollmentSetupResponse"], spec, { data: "{ secret: string; qrCodeUri: string; expiresAt: string }" });
+
+  const staffMfaEnrollmentConfirmDataCode = generateInterfaceFromSchema("StaffMfaEnrollmentConfirmData", spec.components.schemas["StaffMfaEnrollmentConfirmResponse"].properties.data, spec, {
+    enrolled: "true",
+    recoveryCodes: "string[]",
+    user: "StaffDto",
+  });
+  const staffMfaEnrollmentConfirmResponseCode = generateInterfaceFromSchema("StaffMfaEnrollmentConfirmResponse", spec.components.schemas["StaffMfaEnrollmentConfirmResponse"], spec, { data: "StaffMfaEnrollmentConfirmData" });
+
+  const staffStepUpResponseCode = generateInterfaceFromSchema("StaffStepUpResponse", spec.components.schemas["StaffStepUpResponse"], spec, { data: "{ verified: true; expiresAt: string }" });
+
+  const staffMfaSetupConfirmResponseCode = generateInterfaceFromSchema("StaffMfaSetupConfirmResponse", spec.components.schemas["StaffMfaSetupConfirmResponse"], spec, { data: "{ confirmed: true; recoveryCodes: string[] }" });
+
+  const staffRecoveryCodesRegenerateResponseCode = generateInterfaceFromSchema("StaffRecoveryCodesRegenerateResponse", spec.components.schemas["StaffRecoveryCodesRegenerateResponse"], spec, { data: "{ recoveryCodes: string[] }" });
+
+  const staffPasswordForgotReceiptResponseCode = generateInterfaceFromSchema("StaffPasswordForgotReceiptResponse", spec.components.schemas["StaffPasswordForgotReceiptResponse"], spec, { data: "{ status: \"reset_dispatched\"; message: string }" });
+
+  const staffPasswordResetResponseCode = generateInterfaceFromSchema("StaffPasswordResetResponse", spec.components.schemas["StaffPasswordResetResponse"], spec, { data: "{ reset: true }" });
+
+  const staffPasswordChangeResponseCode = generateInterfaceFromSchema("StaffPasswordChangeResponse", spec.components.schemas["StaffPasswordChangeResponse"], spec, { data: "{ changed: true }" });
+
+  const staffInvitationAcceptResponseCode = generateInterfaceFromSchema("StaffInvitationAcceptResponse", spec.components.schemas["StaffInvitationAcceptResponse"], spec, { data: "{ status: \"enrollment_required\"; expiresAt: string }" });
+
+  const staffInviteReissueResponseCode = generateInterfaceFromSchema("StaffInviteReissueResponse", spec.components.schemas["StaffInviteReissueResponse"], spec, { data: "{ reissued: true; expiresAt: string }" });
+
+  const staffInviteRevokeResponseCode = generateInterfaceFromSchema("StaffInviteRevokeResponse", spec.components.schemas["StaffInviteRevokeResponse"], spec, { data: "{ revoked: true }" });
 
   // Error schema
   const errorDetailCode = generateInterfaceFromSchema("ErrorDetail", errorDetailSchema, spec);
@@ -605,7 +2046,37 @@ export function generateIdentityApiTypes(spec) {
     "",
     emailResendReqCode,
     "",
+    updatePassengerProfileReqCode,
+    "",
+    createTravelerReqCode,
+    "",
+    patchTravelerReqCode,
+    "",
+    passengerPasswordChangeReqCode,
+    "",
     staffLoginReqCode,
+    "",
+    staffMfaChallengeReqCode,
+    "",
+    staffMfaVerifyReqCode,
+    "",
+    createStaffUserReqCode,
+    "",
+    patchStaffUserReqCode,
+    "",
+    staffMfaEnrollmentConfirmReqCode,
+    "",
+    staffStepUpReqCode,
+    "",
+    staffMfaSetupConfirmReqCode,
+    "",
+    staffPasswordForgotReqCode,
+    "",
+    staffPasswordResetReqCode,
+    "",
+    staffPasswordChangeReqCode,
+    "",
+    staffInvitationAcceptReqCode,
     "",
     "// --- Response Data & Envelopes ---",
     passengerReceiptDataCode,
@@ -628,6 +2099,30 @@ export function generateIdentityApiTypes(spec) {
     "",
     "export type PassengerEmailResendResponse = PassengerRegisterReceiptResponse;",
     "",
+    passengerProfileDtoCode,
+    "",
+    passengerProfileResponseCode,
+    "",
+    passengerProfileReceiptDtoCode,
+    "",
+    passengerProfileReceiptResponseCode,
+    "",
+    travelerDtoCode,
+    "",
+    savedTravelerResponseCode,
+    "",
+    savedTravelersResponseCode,
+    "",
+    deleteTravelerResponseCode,
+    "",
+    passengerSessionDtoCode,
+    "",
+    passengerSessionListResponseCode,
+    "",
+    passengerSessionRevokeResponseCode,
+    "",
+    passengerPasswordChangeResponseCode,
+    "",
     staffPendingAuthDataCode,
     "",
     staffPendingAuthResponseCode,
@@ -637,6 +2132,56 @@ export function generateIdentityApiTypes(spec) {
     staffProfileCode,
     "",
     staffMeResponseCode,
+    "",
+    staffMfaSetupResponseCode,
+    "",
+    staffMfaChallengeResponseCode,
+    "",
+    staffAuthUserCode,
+    "",
+    staffAuthDataCode,
+    "",
+    staffAuthResponseCode,
+    "",
+    staffSessionDtoCode,
+    "",
+    staffSessionsListResponseCode,
+    "",
+    deleteStaffSessionResponseCode,
+    "",
+    staffUserDirectoryDtoCode,
+    "",
+    staffUsersListResponseCode,
+    "",
+    staffUserResponseCode,
+    "",
+    deleteStaffUserResponseCode,
+    "",
+    staffDtoCode,
+    "",
+    staffMfaEnrollmentSetupResponseCode,
+    "",
+    staffMfaEnrollmentConfirmDataCode,
+    "",
+    staffMfaEnrollmentConfirmResponseCode,
+    "",
+    staffStepUpResponseCode,
+    "",
+    staffMfaSetupConfirmResponseCode,
+    "",
+    staffRecoveryCodesRegenerateResponseCode,
+    "",
+    staffPasswordForgotReceiptResponseCode,
+    "",
+    staffPasswordResetResponseCode,
+    "",
+    staffPasswordChangeResponseCode,
+    "",
+    staffInvitationAcceptResponseCode,
+    "",
+    staffInviteReissueResponseCode,
+    "",
+    staffInviteRevokeResponseCode,
     "",
     "// --- Error Structures ---",
     errorDetailCode,
@@ -653,9 +2198,36 @@ export function generateIdentityApiTypes(spec) {
     "  | PasswordForgotResponse",
     "  | PasswordResetResponse",
     "  | EmailVerifyResponse",
+    "  | PassengerProfileResponse",
+    "  | PassengerProfileReceiptResponse",
+    "  | SavedTravelerResponse",
+    "  | SavedTravelersResponse",
+    "  | DeleteTravelerResponse",
+    "  | PassengerSessionListResponse",
+    "  | PassengerSessionRevokeResponse",
+    "  | PassengerPasswordChangeResponse",
     "  | StaffPendingAuthResponse",
     "  | StaffLogoutResponse",
-    "  | StaffMeResponse;",
+    "  | StaffMeResponse",
+    "  | StaffMfaSetupResponse",
+    "  | StaffMfaChallengeResponse",
+    "  | StaffAuthResponse",
+    "  | StaffSessionsListResponse",
+    "  | DeleteStaffSessionResponse",
+    "  | StaffUsersListResponse",
+    "  | StaffUserResponse",
+    "  | DeleteStaffUserResponse",
+    "  | StaffMfaEnrollmentSetupResponse",
+    "  | StaffMfaEnrollmentConfirmResponse",
+    "  | StaffStepUpResponse",
+    "  | StaffMfaSetupConfirmResponse",
+    "  | StaffRecoveryCodesRegenerateResponse",
+    "  | StaffPasswordForgotReceiptResponse",
+    "  | StaffPasswordResetResponse",
+    "  | StaffPasswordChangeResponse",
+    "  | StaffInvitationAcceptResponse",
+    "  | StaffInviteReissueResponse",
+    "  | StaffInviteRevokeResponse;",
     "",
   ];
 
@@ -663,7 +2235,7 @@ export function generateIdentityApiTypes(spec) {
 }
 
 /**
- * Generates the narrow contract JSON artifact for the 12 identity operations.
+ * Generates the narrow contract JSON artifact for all 41 identity operations.
  */
 export function generateIdentityApiContract(spec) {
   if (!spec || typeof spec !== "object") {
@@ -680,11 +2252,57 @@ export function generateIdentityApiContract(spec) {
     PasswordResetRequest: spec.components?.schemas?.["PasswordResetRequest"],
     EmailVerifyRequest: spec.components?.schemas?.["EmailVerifyRequest"],
     PassengerEmailResendRequest: spec.components?.schemas?.["PassengerEmailResendRequest"],
+    UpdatePassengerProfileRequest: spec.components?.schemas?.["UpdatePassengerProfileRequest"],
+    CreateTravelerRequest: spec.components?.schemas?.["CreateTravelerRequest"],
+    PatchTravelerRequest: spec.components?.schemas?.["PatchTravelerRequest"],
+    PassengerPasswordChangeRequest: spec.components?.schemas?.["PassengerPasswordChangeRequest"],
     StaffLoginRequest: spec.components?.schemas?.["StaffLoginRequest"],
+    StaffMfaChallengeRequest: spec.components?.schemas?.["StaffMfaChallengeRequest"],
+    StaffMfaVerifyRequest: spec.components?.schemas?.["StaffMfaVerifyRequest"],
+    CreateStaffUserRequest: spec.components?.schemas?.["CreateStaffUserRequest"],
+    PatchStaffUserRequest: spec.components?.schemas?.["PatchStaffUserRequest"],
+    StaffMfaEnrollmentConfirmRequest: spec.components?.schemas?.["StaffMfaEnrollmentConfirmRequest"],
+    StaffStepUpRequest: spec.components?.schemas?.["StaffStepUpRequest"],
+    StaffMfaSetupConfirmRequest: spec.components?.schemas?.["StaffMfaSetupConfirmRequest"],
+    StaffPasswordForgotRequest: spec.components?.schemas?.["StaffPasswordForgotRequest"],
+    StaffPasswordResetRequest: spec.components?.schemas?.["StaffPasswordResetRequest"],
+    StaffPasswordChangeRequest: spec.components?.schemas?.["StaffPasswordChangeRequest"],
+    StaffInvitationAcceptRequest: spec.components?.schemas?.["StaffInvitationAcceptRequest"],
     PassengerRegisterReceiptResponse: spec.components?.schemas?.["PassengerRegisterReceiptResponse"],
     PassengerAuthResponse: spec.components?.schemas?.["PassengerAuthResponse"],
+    PassengerProfileDto: spec.components?.schemas?.["PassengerProfileDto"],
+    PassengerProfileReceiptDto: spec.components?.schemas?.["PassengerProfileReceiptDto"],
+    PassengerProfileReceiptResponse: spec.components?.schemas?.["PassengerProfileReceiptResponse"],
+    PassengerProfileResponse: spec.components?.schemas?.["PassengerProfileResponse"],
+    TravelerDto: spec.components?.schemas?.["TravelerDto"],
+    SavedTravelerResponse: spec.components?.schemas?.["SavedTravelerResponse"],
+    SavedTravelersResponse: spec.components?.schemas?.["SavedTravelersResponse"],
+    DeleteTravelerResponse: spec.components?.schemas?.["DeleteTravelerResponse"],
+    PassengerSessionDto: spec.components?.schemas?.["PassengerSessionDto"],
+    PassengerSessionListResponse: spec.components?.schemas?.["PassengerSessionListResponse"],
+    PassengerSessionRevokeResponse: spec.components?.schemas?.["PassengerSessionRevokeResponse"],
+    PassengerPasswordChangeResponse: spec.components?.schemas?.["PassengerPasswordChangeResponse"],
     StaffPendingAuthResponse: spec.components?.schemas?.["StaffPendingAuthResponse"],
     StaffMeResponse: spec.components?.schemas?.["StaffMeResponse"],
+    StaffMfaSetupResponse: spec.components?.schemas?.["StaffMfaSetupResponse"],
+    StaffAuthResponse: spec.components?.schemas?.["StaffAuthResponse"],
+    StaffSessionDto: spec.components?.schemas?.["StaffSessionsListResponse"]?.properties?.data?.items,
+    StaffSessionsListResponse: spec.components?.schemas?.["StaffSessionsListResponse"],
+    StaffUserDirectoryDto: spec.components?.schemas?.["StaffUserDirectoryDto"],
+    StaffUsersListResponse: spec.components?.schemas?.["StaffUsersListResponse"],
+    StaffUserResponse: spec.components?.schemas?.["StaffUserResponse"],
+    StaffDto: spec.components?.schemas?.["StaffDto"],
+    StaffMfaEnrollmentSetupResponse: spec.components?.schemas?.["StaffMfaEnrollmentSetupResponse"],
+    StaffMfaEnrollmentConfirmResponse: spec.components?.schemas?.["StaffMfaEnrollmentConfirmResponse"],
+    StaffStepUpResponse: spec.components?.schemas?.["StaffStepUpResponse"],
+    StaffMfaSetupConfirmResponse: spec.components?.schemas?.["StaffMfaSetupConfirmResponse"],
+    StaffRecoveryCodesRegenerateResponse: spec.components?.schemas?.["StaffRecoveryCodesRegenerateResponse"],
+    StaffPasswordForgotReceiptResponse: spec.components?.schemas?.["StaffPasswordForgotReceiptResponse"],
+    StaffPasswordResetResponse: spec.components?.schemas?.["StaffPasswordResetResponse"],
+    StaffPasswordChangeResponse: spec.components?.schemas?.["StaffPasswordChangeResponse"],
+    StaffInvitationAcceptResponse: spec.components?.schemas?.["StaffInvitationAcceptResponse"],
+    StaffInviteReissueResponse: spec.components?.schemas?.["StaffInviteReissueResponse"],
+    StaffInviteRevokeResponse: spec.components?.schemas?.["StaffInviteRevokeResponse"],
     ErrorResponse: spec.components?.schemas?.["ErrorResponse"],
     ErrorDetail: spec.components?.schemas?.["ErrorDetail"],
     SuccessMeta: spec.components?.schemas?.["SuccessMeta"],
@@ -694,6 +2312,9 @@ export function generateIdentityApiContract(spec) {
     PasswordResetResponse: spec.paths?.["/auth/password/reset"]?.post?.responses?.["200"]?.content?.["application/json"]?.schema,
     EmailVerifyResponse: spec.paths?.["/auth/email/verify"]?.post?.responses?.["200"]?.content?.["application/json"]?.schema,
     StaffLogoutResponse: spec.paths?.["/staff/logout"]?.post?.responses?.["200"]?.content?.["application/json"]?.schema,
+    StaffMfaChallengeResponse: spec.paths?.["/staff/mfa/challenge"]?.post?.responses?.["200"]?.content?.["application/json"]?.schema,
+    DeleteStaffSessionResponse: spec.paths?.["/staff/sessions/{id}"]?.delete?.responses?.["200"]?.content?.["application/json"]?.schema,
+    DeleteStaffUserResponse: spec.paths?.["/staff/users/{id}"]?.delete?.responses?.["200"]?.content?.["application/json"]?.schema,
   };
 
   function canonicalStringify(obj) {
@@ -707,16 +2328,25 @@ export function generateIdentityApiContract(spec) {
     return "{" + keys.map((k) => JSON.stringify(k) + ":" + canonicalStringify(obj[k])).join(",") + "}";
   }
 
-  const schemaDigest = crypto.createHash("sha256").update(canonicalStringify(reachableSchemas)).digest("hex");
+  const contractOperations = ACCEPTED_IDENTITY_OPERATIONS.map((op) => {
+    const methodLower = op.method.toLowerCase();
+    const specOp = spec.paths?.[op.path]?.[methodLower];
+    return {
+      ...op,
+      authorizationBranches: specOp?.["x-authorization-branches"] ?? op.authorizationBranches,
+    };
+  });
+
+  const schemaDigest = crypto.createHash("sha256").update(canonicalStringify({ operations: contractOperations, schemas: reachableSchemas })).digest("hex");
 
   return (
     JSON.stringify(
       {
         $schema: "identity-api-contract-v1",
         version: "1.0.0",
-        description: "Narrow contract extraction for 12 accepted Phase 13B identity transport operations",
+        description: "Narrow contract extraction for 41 accepted Phase 13B identity transport operations",
         digest: schemaDigest,
-        operations: ACCEPTED_IDENTITY_OPERATIONS,
+        operations: contractOperations,
         schemas: reachableSchemas,
       },
       null,
@@ -764,17 +2394,26 @@ export function checkIdentityApiTypes(
  * CLI Entrypoint
  */
 export function runCli(argv = process.argv.slice(2)) {
-  for (const arg of argv) {
-    if (arg !== "--check") {
+  let isCheck = false;
+  let specPath = DEFAULT_SPEC_PATH;
+  let typesPath = DEFAULT_TYPES_OUTPUT_PATH;
+  let contractPath = DEFAULT_CONTRACT_OUTPUT_PATH;
+
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === "--check") {
+      isCheck = true;
+    } else if (arg === "--spec" && i + 1 < argv.length) {
+      specPath = path.resolve(process.cwd(), argv[++i]);
+    } else if (arg === "--types" && i + 1 < argv.length) {
+      typesPath = path.resolve(process.cwd(), argv[++i]);
+    } else if (arg === "--contract" && i + 1 < argv.length) {
+      contractPath = path.resolve(process.cwd(), argv[++i]);
+    } else {
       console.error(`Unknown argument '${arg}'. Supported argument: '--check'.`);
       return 1;
     }
   }
-
-  const isCheck = argv.includes("--check");
-  const specPath = DEFAULT_SPEC_PATH;
-  const typesPath = DEFAULT_TYPES_OUTPUT_PATH;
-  const contractPath = DEFAULT_CONTRACT_OUTPUT_PATH;
 
   if (isCheck) {
     const result = checkIdentityApiTypes(typesPath, contractPath, specPath);
@@ -787,6 +2426,10 @@ export function runCli(argv = process.argv.slice(2)) {
     return 0;
   }
 
+  if (!fs.existsSync(specPath)) {
+    console.error(`✗ Spec not found: ${specPath}`);
+    return 1;
+  }
   const spec = JSON.parse(fs.readFileSync(specPath, "utf8"));
   const typesContent = generateIdentityApiTypes(spec);
   const contractContent = generateIdentityApiContract(spec);

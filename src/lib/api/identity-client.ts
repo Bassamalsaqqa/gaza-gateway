@@ -1,3 +1,4 @@
+import { validateOperationRequest, validateOperationResponse } from "./identity-schema-validation.ts";
 /**
  * Gaza Gateway / Palestinian Airlines
  * Phase 13B Identity API — Isolated Non-Production Identity Client
@@ -17,7 +18,22 @@ import type {
   PasswordResetRequest,
   EmailVerifyRequest,
   PassengerEmailResendRequest,
+  UpdatePassengerProfileRequest,
+  CreateTravelerRequest,
+  PatchTravelerRequest,
+  PassengerPasswordChangeRequest,
   StaffLoginRequest,
+  StaffMfaChallengeRequest,
+  StaffMfaVerifyRequest,
+  CreateStaffUserRequest,
+  PatchStaffUserRequest,
+  StaffMfaEnrollmentConfirmRequest,
+  StaffStepUpRequest,
+  StaffMfaSetupConfirmRequest,
+  StaffPasswordForgotRequest,
+  StaffPasswordResetRequest,
+  StaffPasswordChangeRequest,
+  StaffInvitationAcceptRequest,
   PassengerRegisterReceiptResponse,
   PassengerAuthResponse,
   PassengerLogoutResponse,
@@ -25,9 +41,36 @@ import type {
   PasswordResetResponse,
   EmailVerifyResponse,
   PassengerEmailResendResponse,
+  PassengerProfileResponse,
+  PassengerProfileReceiptResponse,
+  SavedTravelersResponse,
+  SavedTravelerResponse,
+  DeleteTravelerResponse,
+  PassengerSessionListResponse,
+  PassengerSessionRevokeResponse,
+  PassengerPasswordChangeResponse,
   StaffPendingAuthResponse,
   StaffLogoutResponse,
   StaffMeResponse,
+  StaffMfaSetupResponse,
+  StaffMfaChallengeResponse,
+  StaffAuthResponse,
+  StaffSessionsListResponse,
+  DeleteStaffSessionResponse,
+  StaffUsersListResponse,
+  StaffUserResponse,
+  DeleteStaffUserResponse,
+  StaffMfaEnrollmentSetupResponse,
+  StaffMfaEnrollmentConfirmResponse,
+  StaffStepUpResponse,
+  StaffMfaSetupConfirmResponse,
+  StaffRecoveryCodesRegenerateResponse,
+  StaffPasswordForgotReceiptResponse,
+  StaffPasswordResetResponse,
+  StaffPasswordChangeResponse,
+  StaffInvitationAcceptResponse,
+  StaffInviteReissueResponse,
+  StaffInviteRevokeResponse,
 } from "./identity-types.ts";
 import { IdentityApiError, isIdentityApiError } from "./identity-client-errors.ts";
 import {
@@ -45,6 +88,8 @@ import {
   parseRetryAfter,
   countUnicodeCodePoints,
   isWellFormedUnicode,
+  validatePathUuid,
+  validatePathId,
   validateRequestOptions,
   generateCryptographicUuid,
   isPlainObject,
@@ -54,15 +99,56 @@ import {
   validatePasswordResetRequest,
   validateEmailVerifyRequest,
   validatePassengerEmailResendRequest,
+  validateUpdatePassengerProfileRequest,
+  validateCreateTravelerRequest,
+  validatePatchTravelerRequest,
+  validatePassengerPasswordChangeRequest,
   validateStaffLoginRequest,
+  validateStaffMfaChallengeRequest,
+  validateStaffMfaVerifyRequest,
+  validateCreateStaffUserRequest,
+  validatePatchStaffUserRequest,
+  validateStaffMfaEnrollmentConfirmRequest,
+  validateStaffStepUpRequest,
+  validateStaffMfaSetupConfirmRequest,
+  validateStaffPasswordForgotRequest,
+  validateStaffPasswordResetRequest,
+  validateStaffPasswordChangeRequest,
+  validateStaffInvitationAcceptRequest,
   validateSuccessMeta,
   validateCsrfTokenResponse,
   validatePassengerRegisterReceiptData,
   validatePassengerAuthData,
   validateMessageData,
   validateEmailVerifyData,
+  validatePassengerProfileData,
+  validatePassengerProfileReceiptData,
+  validateTravelerData,
+  validateSavedTravelersData,
+  validateDeleteTravelerData,
+  validatePassengerSessionsData,
+  validatePassengerSessionRevokeData,
+  validateBooleanChangedData,
   validateStaffPendingAuthData,
   validateStaffMeData,
+  validateStaffMfaSetupData,
+  validateStaffMfaChallengeData,
+  validateStaffAuthData,
+  validateStaffSessionsData,
+  validateDeleteStaffSessionData,
+  validateStaffUsersDirectoryData,
+  validateStaffUserData,
+  validateDeleteStaffUserData,
+  validateStaffMfaEnrollmentSetupData,
+  validateStaffMfaEnrollmentConfirmData,
+  validateStaffStepUpData,
+  validateStaffMfaSetupConfirmData,
+  validateStaffRecoveryCodesData,
+  validateStaffPasswordForgotReceiptData,
+  validateStaffPasswordResetData,
+  validateStaffInvitationAcceptData,
+  validateStaffInviteReissueData,
+  validateStaffInviteRevokeData,
   tryParseCanonicalError,
 } from "./identity-client-validators.ts";
 
@@ -78,6 +164,8 @@ export {
   parseRetryAfter,
   countUnicodeCodePoints,
   isWellFormedUnicode,
+  validatePathUuid,
+  validatePathId,
   validateRequestOptions,
   generateCryptographicUuid,
 };
@@ -94,84 +182,61 @@ export interface IdentityApiClient {
   readonly baseUrl: string | null;
   readonly isDisposed: boolean;
 
-  // Passenger Realm Operations
+  // 41 Core Identity Operations
   getAuthCsrfBootstrap(options?: IdentityApiRequestOptions): Promise<CsrfTokenResponse>;
-  getAuthCsrf(options?: IdentityApiRequestOptions): Promise<CsrfTokenResponse>;
-
-  postPassengerRegister(
-    body: RegisterRequest,
-    options?: IdentityApiRequestOptions
-  ): Promise<PassengerRegisterReceiptResponse>;
-  registerPassenger(
-    body: RegisterRequest,
-    options?: IdentityApiRequestOptions
-  ): Promise<PassengerRegisterReceiptResponse>;
-
-  postPassengerLogin(
-    body: LoginRequest,
-    options?: IdentityApiRequestOptions
-  ): Promise<PassengerAuthResponse>;
-  loginPassenger(
-    body: LoginRequest,
-    options?: IdentityApiRequestOptions
-  ): Promise<PassengerAuthResponse>;
-
+  postPassengerRegister(body: RegisterRequest, options?: IdentityApiRequestOptions): Promise<PassengerRegisterReceiptResponse>;
+  postPassengerLogin(body: LoginRequest, options?: IdentityApiRequestOptions): Promise<PassengerAuthResponse>;
   postPassengerLogout(options?: IdentityApiRequestOptions): Promise<PassengerLogoutResponse>;
-  logoutPassenger(options?: IdentityApiRequestOptions): Promise<PassengerLogoutResponse>;
-
-  postPassengerPasswordForgot(
-    body: PasswordForgotRequest,
-    options?: IdentityApiRequestOptions
-  ): Promise<PasswordForgotResponse>;
-  forgotPassengerPassword(
-    body: PasswordForgotRequest,
-    options?: IdentityApiRequestOptions
-  ): Promise<PasswordForgotResponse>;
-
-  postPassengerPasswordReset(
-    body: PasswordResetRequest,
-    options?: IdentityApiRequestOptions
-  ): Promise<PasswordResetResponse>;
-  resetPassengerPassword(
-    body: PasswordResetRequest,
-    options?: IdentityApiRequestOptions
-  ): Promise<PasswordResetResponse>;
-
-  postPassengerEmailVerify(
-    body: EmailVerifyRequest,
-    options?: IdentityApiRequestOptions
-  ): Promise<EmailVerifyResponse>;
-  verifyPassengerEmail(
-    body: EmailVerifyRequest,
-    options?: IdentityApiRequestOptions
-  ): Promise<EmailVerifyResponse>;
-
-  postPassengerEmailResend(
-    body: PassengerEmailResendRequest,
-    options?: IdentityApiRequestOptions
-  ): Promise<PassengerEmailResendResponse>;
-  resendPassengerEmail(
-    body: PassengerEmailResendRequest,
-    options?: IdentityApiRequestOptions
-  ): Promise<PassengerEmailResendResponse>;
-
-  // Staff Realm Operations
+  postPassengerPasswordForgot(body: PasswordForgotRequest, options?: IdentityApiRequestOptions): Promise<PasswordForgotResponse>;
+  postPassengerPasswordReset(body: PasswordResetRequest, options?: IdentityApiRequestOptions): Promise<PasswordResetResponse>;
+  postPassengerEmailVerify(body: EmailVerifyRequest, options?: IdentityApiRequestOptions): Promise<EmailVerifyResponse>;
+  getPassengerProfile(options?: IdentityApiRequestOptions): Promise<PassengerProfileResponse>;
+  putPassengerProfile(body: UpdatePassengerProfileRequest, options?: IdentityApiRequestOptions): Promise<PassengerProfileReceiptResponse>;
+  getSavedTravelers(options?: IdentityApiRequestOptions): Promise<SavedTravelersResponse>;
+  postSavedTraveler(body: CreateTravelerRequest, options?: IdentityApiRequestOptions): Promise<SavedTravelerResponse>;
+  deleteSavedTraveler(id: string, options?: IdentityApiRequestOptions): Promise<DeleteTravelerResponse>;
+  patchSavedTraveler(id: string, body: PatchTravelerRequest, options?: IdentityApiRequestOptions): Promise<SavedTravelerResponse>;
   getStaffCsrfBootstrap(options?: IdentityApiRequestOptions): Promise<CsrfTokenResponse>;
-  getStaffCsrf(options?: IdentityApiRequestOptions): Promise<CsrfTokenResponse>;
-
-  postStaffLogin(
-    body: StaffLoginRequest,
-    options?: IdentityApiRequestOptions
-  ): Promise<StaffPendingAuthResponse>;
-  loginStaff(
-    body: StaffLoginRequest,
-    options?: IdentityApiRequestOptions
-  ): Promise<StaffPendingAuthResponse>;
-
+  postStaffLogin(body: StaffLoginRequest, options?: IdentityApiRequestOptions): Promise<StaffPendingAuthResponse>;
   postStaffLogout(options?: IdentityApiRequestOptions): Promise<StaffLogoutResponse>;
-  logoutStaff(options?: IdentityApiRequestOptions): Promise<StaffLogoutResponse>;
-
   getStaffMe(options?: IdentityApiRequestOptions): Promise<StaffMeResponse>;
+  postStaffMfaSetup(options?: IdentityApiRequestOptions): Promise<StaffMfaSetupResponse>;
+  postStaffMfaChallenge(body: StaffMfaChallengeRequest, options?: IdentityApiRequestOptions): Promise<StaffMfaChallengeResponse>;
+  postStaffMfaVerify(body: StaffMfaVerifyRequest, options?: IdentityApiRequestOptions): Promise<StaffAuthResponse>;
+  getStaffSessions(options?: IdentityApiRequestOptions): Promise<StaffSessionsListResponse>;
+  deleteStaffSession(id: string, options?: IdentityApiRequestOptions): Promise<DeleteStaffSessionResponse>;
+  getStaffUsersDirectory(options?: IdentityApiRequestOptions): Promise<StaffUsersListResponse>;
+  postStaffUserInvite(body: CreateStaffUserRequest, options?: IdentityApiRequestOptions): Promise<StaffUserResponse>;
+  patchStaffUser(id: string, body: PatchStaffUserRequest, options?: IdentityApiRequestOptions): Promise<StaffUserResponse>;
+  deleteStaffUser(id: string, options?: IdentityApiRequestOptions): Promise<DeleteStaffUserResponse>;
+  postPassengerEmailResend(body: PassengerEmailResendRequest, options?: IdentityApiRequestOptions): Promise<PassengerRegisterReceiptResponse>;
+  getPassengerSessions(options?: IdentityApiRequestOptions): Promise<PassengerSessionListResponse>;
+  deletePassengerSession(id: string, options?: IdentityApiRequestOptions): Promise<PassengerSessionRevokeResponse>;
+  putPassengerPassword(body: PassengerPasswordChangeRequest, options?: IdentityApiRequestOptions): Promise<PassengerPasswordChangeResponse>;
+  postStaffMfaEnrollmentSetup(options?: IdentityApiRequestOptions): Promise<StaffMfaEnrollmentSetupResponse>;
+  postStaffMfaEnrollmentConfirm(body: StaffMfaEnrollmentConfirmRequest, options?: IdentityApiRequestOptions): Promise<StaffMfaEnrollmentConfirmResponse>;
+  postStaffStepUp(body: StaffStepUpRequest, options?: IdentityApiRequestOptions): Promise<StaffStepUpResponse>;
+  postStaffMfaSetupConfirm(body: StaffMfaSetupConfirmRequest, options?: IdentityApiRequestOptions): Promise<StaffMfaSetupConfirmResponse>;
+  postStaffMfaRecoveryCodesRegenerate(options?: IdentityApiRequestOptions): Promise<StaffRecoveryCodesRegenerateResponse>;
+  postStaffPasswordForgot(body: StaffPasswordForgotRequest, options?: IdentityApiRequestOptions): Promise<StaffPasswordForgotReceiptResponse>;
+  postStaffPasswordReset(body: StaffPasswordResetRequest, options?: IdentityApiRequestOptions): Promise<StaffPasswordResetResponse>;
+  putStaffPassword(body: StaffPasswordChangeRequest, options?: IdentityApiRequestOptions): Promise<StaffPasswordChangeResponse>;
+  postStaffInvitationAccept(body: StaffInvitationAcceptRequest, options?: IdentityApiRequestOptions): Promise<StaffInvitationAcceptResponse>;
+  postStaffUserInviteReissue(id: string, options?: IdentityApiRequestOptions): Promise<StaffInviteReissueResponse>;
+  postStaffUserInviteRevoke(id: string, options?: IdentityApiRequestOptions): Promise<StaffInviteRevokeResponse>;
+
+  // Ergonomic Operation Aliases (12 original operations)
+  getAuthCsrf(options?: IdentityApiRequestOptions): Promise<CsrfTokenResponse>;
+  registerPassenger(body: RegisterRequest, options?: IdentityApiRequestOptions): Promise<PassengerRegisterReceiptResponse>;
+  loginPassenger(body: LoginRequest, options?: IdentityApiRequestOptions): Promise<PassengerAuthResponse>;
+  logoutPassenger(options?: IdentityApiRequestOptions): Promise<PassengerLogoutResponse>;
+  forgotPassengerPassword(body: PasswordForgotRequest, options?: IdentityApiRequestOptions): Promise<PasswordForgotResponse>;
+  resetPassengerPassword(body: PasswordResetRequest, options?: IdentityApiRequestOptions): Promise<PasswordResetResponse>;
+  verifyPassengerEmail(body: EmailVerifyRequest, options?: IdentityApiRequestOptions): Promise<EmailVerifyResponse>;
+  resendPassengerEmail(body: PassengerEmailResendRequest, options?: IdentityApiRequestOptions): Promise<PassengerEmailResendResponse>;
+  getStaffCsrf(options?: IdentityApiRequestOptions): Promise<CsrfTokenResponse>;
+  loginStaff(body: StaffLoginRequest, options?: IdentityApiRequestOptions): Promise<StaffPendingAuthResponse>;
+  logoutStaff(options?: IdentityApiRequestOptions): Promise<StaffLogoutResponse>;
 
   // Diagnostics & Lifecycle
   toJSON(): { isEnabled: boolean; mode: "mock" | "live"; baseUrl: string | null; isDisposed: boolean };
@@ -732,14 +797,14 @@ class IdentityApiClientImpl implements IdentityApiClient {
     return generateCryptographicUuid();
   }
 
+
   // ==========================================
-  // 1. GET /auth/csrf
+  // GET /auth/csrf (getAuthCsrfBootstrap)
   // ==========================================
   async getAuthCsrfBootstrap(options?: IdentityApiRequestOptions): Promise<CsrfTokenResponse> {
     validateRequestOptions(options);
     this.#ensureEnabled();
     this.#ensureNotDisposed();
-
     const budget = this.#createBudget(options?.timeoutMs, options?.signal);
     try {
       return await this.#passengerQueue.runExclusive(
@@ -754,223 +819,255 @@ class IdentityApiClientImpl implements IdentityApiClient {
     }
   }
 
-  getAuthCsrf(options?: IdentityApiRequestOptions): Promise<CsrfTokenResponse> {
-    return this.getAuthCsrfBootstrap(options);
-  }
-
   // ==========================================
-  // 2. POST /auth/register
+  // POST /auth/register (postPassengerRegister)
   // ==========================================
-  async postPassengerRegister(
-    body: RegisterRequest,
-    options?: IdentityApiRequestOptions
-  ): Promise<PassengerRegisterReceiptResponse> {
+  async postPassengerRegister(body: RegisterRequest, options?: IdentityApiRequestOptions): Promise<PassengerRegisterReceiptResponse> {
     validateRequestOptions(options);
     this.#ensureEnabled();
     this.#ensureNotDisposed();
     const validatedBody = validateRegisterRequest(body);
-
     return this.executeLiveMutation<PassengerRegisterReceiptResponse>(
+      "postPassengerRegister",
       "passenger",
       "/auth/register",
       validatedBody,
       202,
       validatePassengerRegisterReceiptData,
-      false, // not auth-changing
-      options
+      false,
+      options,
+      "POST"
     );
   }
 
-  registerPassenger(
-    body: RegisterRequest,
-    options?: IdentityApiRequestOptions
-  ): Promise<PassengerRegisterReceiptResponse> {
-    return this.postPassengerRegister(body, options);
-  }
-
   // ==========================================
-  // 3. POST /auth/login
+  // POST /auth/login (postPassengerLogin)
   // ==========================================
-  async postPassengerLogin(
-    body: LoginRequest,
-    options?: IdentityApiRequestOptions
-  ): Promise<PassengerAuthResponse> {
+  async postPassengerLogin(body: LoginRequest, options?: IdentityApiRequestOptions): Promise<PassengerAuthResponse> {
     validateRequestOptions(options);
     this.#ensureEnabled();
     this.#ensureNotDisposed();
     const validatedBody = validateLoginRequest(body);
-
     return this.executeLiveMutation<PassengerAuthResponse>(
+      "postPassengerLogin",
       "passenger",
       "/auth/login",
       validatedBody,
       200,
       validatePassengerAuthData,
-      true, // auth-changing: rotates session & drops CSRF
-      options
+      true,
+      options,
+      "POST"
     );
   }
 
-  loginPassenger(
-    body: LoginRequest,
-    options?: IdentityApiRequestOptions
-  ): Promise<PassengerAuthResponse> {
-    return this.postPassengerLogin(body, options);
-  }
-
   // ==========================================
-  // 4. POST /auth/logout
+  // POST /auth/logout (postPassengerLogout)
   // ==========================================
-  async postPassengerLogout(
-    options?: IdentityApiRequestOptions
-  ): Promise<PassengerLogoutResponse> {
+  async postPassengerLogout(options?: IdentityApiRequestOptions): Promise<PassengerLogoutResponse> {
     validateRequestOptions(options);
     this.#ensureEnabled();
     this.#ensureNotDisposed();
-
     return this.executeLiveMutation<PassengerLogoutResponse>(
+      "postPassengerLogout",
       "passenger",
       "/auth/logout",
       undefined,
       200,
       validateMessageData,
-      true, // auth-changing: revokes session & drops CSRF
-      options
+      true,
+      options,
+      "POST"
     );
   }
 
-  logoutPassenger(options?: IdentityApiRequestOptions): Promise<PassengerLogoutResponse> {
-    return this.postPassengerLogout(options);
-  }
-
   // ==========================================
-  // 5. POST /auth/password/forgot
+  // POST /auth/password/forgot (postPassengerPasswordForgot)
   // ==========================================
-  async postPassengerPasswordForgot(
-    body: PasswordForgotRequest,
-    options?: IdentityApiRequestOptions
-  ): Promise<PasswordForgotResponse> {
+  async postPassengerPasswordForgot(body: PasswordForgotRequest, options?: IdentityApiRequestOptions): Promise<PasswordForgotResponse> {
     validateRequestOptions(options);
     this.#ensureEnabled();
     this.#ensureNotDisposed();
     const validatedBody = validatePasswordForgotRequest(body);
-
     return this.executeLiveMutation<PasswordForgotResponse>(
+      "postPassengerPasswordForgot",
       "passenger",
       "/auth/password/forgot",
       validatedBody,
       202,
       validateMessageData,
-      false, // not auth-changing
-      options
+      false,
+      options,
+      "POST"
     );
   }
 
-  forgotPassengerPassword(
-    body: PasswordForgotRequest,
-    options?: IdentityApiRequestOptions
-  ): Promise<PasswordForgotResponse> {
-    return this.postPassengerPasswordForgot(body, options);
-  }
-
   // ==========================================
-  // 6. POST /auth/password/reset
+  // POST /auth/password/reset (postPassengerPasswordReset)
   // ==========================================
-  async postPassengerPasswordReset(
-    body: PasswordResetRequest,
-    options?: IdentityApiRequestOptions
-  ): Promise<PasswordResetResponse> {
+  async postPassengerPasswordReset(body: PasswordResetRequest, options?: IdentityApiRequestOptions): Promise<PasswordResetResponse> {
     validateRequestOptions(options);
     this.#ensureEnabled();
     this.#ensureNotDisposed();
     const validatedBody = validatePasswordResetRequest(body);
-
     return this.executeLiveMutation<PasswordResetResponse>(
+      "postPassengerPasswordReset",
       "passenger",
       "/auth/password/reset",
       validatedBody,
       200,
       validateMessageData,
-      true, // auth-changing: rotates credential epoch & drops CSRF
-      options
+      true,
+      options,
+      "POST"
     );
   }
 
-  resetPassengerPassword(
-    body: PasswordResetRequest,
-    options?: IdentityApiRequestOptions
-  ): Promise<PasswordResetResponse> {
-    return this.postPassengerPasswordReset(body, options);
-  }
-
   // ==========================================
-  // 7. POST /auth/email/verify
+  // POST /auth/email/verify (postPassengerEmailVerify)
   // ==========================================
-  async postPassengerEmailVerify(
-    body: EmailVerifyRequest,
-    options?: IdentityApiRequestOptions
-  ): Promise<EmailVerifyResponse> {
+  async postPassengerEmailVerify(body: EmailVerifyRequest, options?: IdentityApiRequestOptions): Promise<EmailVerifyResponse> {
     validateRequestOptions(options);
     this.#ensureEnabled();
     this.#ensureNotDisposed();
     const validatedBody = validateEmailVerifyRequest(body);
-
     return this.executeLiveMutation<EmailVerifyResponse>(
+      "postPassengerEmailVerify",
       "passenger",
       "/auth/email/verify",
       validatedBody,
       200,
       validateEmailVerifyData,
-      false, // not auth-changing
-      options
+      false,
+      options,
+      "POST"
     );
   }
 
-  verifyPassengerEmail(
-    body: EmailVerifyRequest,
-    options?: IdentityApiRequestOptions
-  ): Promise<EmailVerifyResponse> {
-    return this.postPassengerEmailVerify(body, options);
-  }
-
   // ==========================================
-  // 8. POST /auth/email/resend
+  // GET /auth/passenger/profile (getPassengerProfile)
   // ==========================================
-  async postPassengerEmailResend(
-    body: PassengerEmailResendRequest,
-    options?: IdentityApiRequestOptions
-  ): Promise<PassengerEmailResendResponse> {
+  async getPassengerProfile(options?: IdentityApiRequestOptions): Promise<PassengerProfileResponse> {
     validateRequestOptions(options);
     this.#ensureEnabled();
     this.#ensureNotDisposed();
-    const validatedBody = validatePassengerEmailResendRequest(body);
-
-    return this.executeLiveMutation<PassengerEmailResendResponse>(
+    return this.executeLiveRead<PassengerProfileResponse>(
+      "getPassengerProfile",
       "passenger",
-      "/auth/email/resend",
-      validatedBody,
-      202,
-      validatePassengerRegisterReceiptData,
-      false, // not auth-changing
+      "/auth/passenger/profile",
+      validatePassengerProfileData,
       options
     );
   }
 
-  resendPassengerEmail(
-    body: PassengerEmailResendRequest,
-    options?: IdentityApiRequestOptions
-  ): Promise<PassengerEmailResendResponse> {
-    return this.postPassengerEmailResend(body, options);
+  // ==========================================
+  // PUT /auth/passenger/profile (putPassengerProfile)
+  // ==========================================
+  async putPassengerProfile(body: UpdatePassengerProfileRequest, options?: IdentityApiRequestOptions): Promise<PassengerProfileReceiptResponse> {
+    validateRequestOptions(options);
+    this.#ensureEnabled();
+    this.#ensureNotDisposed();
+    const validatedBody = validateUpdatePassengerProfileRequest(body);
+    return this.executeLiveMutation<PassengerProfileReceiptResponse>(
+      "putPassengerProfile",
+      "passenger",
+      "/auth/passenger/profile",
+      validatedBody,
+      200,
+      validatePassengerProfileReceiptData,
+      false,
+      options,
+      "PUT"
+    );
   }
 
   // ==========================================
-  // 9. GET /staff/csrf
+  // GET /auth/passenger/travelers (getSavedTravelers)
+  // ==========================================
+  async getSavedTravelers(options?: IdentityApiRequestOptions): Promise<SavedTravelersResponse> {
+    validateRequestOptions(options);
+    this.#ensureEnabled();
+    this.#ensureNotDisposed();
+    return this.executeLiveRead<SavedTravelersResponse>(
+      "getSavedTravelers",
+      "passenger",
+      "/auth/passenger/travelers",
+      validateSavedTravelersData,
+      options
+    );
+  }
+
+  // ==========================================
+  // POST /auth/passenger/travelers (postSavedTraveler)
+  // ==========================================
+  async postSavedTraveler(body: CreateTravelerRequest, options?: IdentityApiRequestOptions): Promise<SavedTravelerResponse> {
+    validateRequestOptions(options);
+    this.#ensureEnabled();
+    this.#ensureNotDisposed();
+    const validatedBody = validateCreateTravelerRequest(body);
+    return this.executeLiveMutation<SavedTravelerResponse>(
+      "postSavedTraveler",
+      "passenger",
+      "/auth/passenger/travelers",
+      validatedBody,
+      201,
+      validateTravelerData,
+      false,
+      options,
+      "POST"
+    );
+  }
+
+  // ==========================================
+  // DELETE /auth/passenger/travelers/{id} (deleteSavedTraveler)
+  // ==========================================
+  async deleteSavedTraveler(id: string, options?: IdentityApiRequestOptions): Promise<DeleteTravelerResponse> {
+    validateRequestOptions(options);
+    this.#ensureEnabled();
+    this.#ensureNotDisposed();
+    const encodedId = validatePathId(id, "id");
+    return this.executeLiveMutation<DeleteTravelerResponse>(
+      "deleteSavedTraveler",
+      "passenger",
+      `/auth/passenger/travelers/${encodedId}`,
+      undefined,
+      200,
+      validateDeleteTravelerData,
+      false,
+      options,
+      "DELETE"
+    );
+  }
+
+  // ==========================================
+  // PATCH /auth/passenger/travelers/{id} (patchSavedTraveler)
+  // ==========================================
+  async patchSavedTraveler(id: string, body: PatchTravelerRequest, options?: IdentityApiRequestOptions): Promise<SavedTravelerResponse> {
+    validateRequestOptions(options);
+    this.#ensureEnabled();
+    this.#ensureNotDisposed();
+    const encodedId = validatePathId(id, "id");
+    const validatedBody = validatePatchTravelerRequest(body);
+    return this.executeLiveMutation<SavedTravelerResponse>(
+      "patchSavedTraveler",
+      "passenger",
+      `/auth/passenger/travelers/${encodedId}`,
+      validatedBody,
+      200,
+      validateTravelerData,
+      false,
+      options,
+      "PATCH"
+    );
+  }
+
+  // ==========================================
+  // GET /staff/csrf (getStaffCsrfBootstrap)
   // ==========================================
   async getStaffCsrfBootstrap(options?: IdentityApiRequestOptions): Promise<CsrfTokenResponse> {
     validateRequestOptions(options);
     this.#ensureEnabled();
     this.#ensureNotDisposed();
-
     const budget = this.#createBudget(options?.timeoutMs, options?.signal);
     try {
       return await this.#staffQueue.runExclusive(
@@ -985,77 +1082,595 @@ class IdentityApiClientImpl implements IdentityApiClient {
     }
   }
 
-  getStaffCsrf(options?: IdentityApiRequestOptions): Promise<CsrfTokenResponse> {
-    return this.getStaffCsrfBootstrap(options);
-  }
-
   // ==========================================
-  // 10. POST /staff/login
+  // POST /staff/login (postStaffLogin)
   // ==========================================
-  async postStaffLogin(
-    body: StaffLoginRequest,
-    options?: IdentityApiRequestOptions
-  ): Promise<StaffPendingAuthResponse> {
+  async postStaffLogin(body: StaffLoginRequest, options?: IdentityApiRequestOptions): Promise<StaffPendingAuthResponse> {
     validateRequestOptions(options);
     this.#ensureEnabled();
     this.#ensureNotDisposed();
     const validatedBody = validateStaffLoginRequest(body);
-
     return this.executeLiveMutation<StaffPendingAuthResponse>(
+      "postStaffLogin",
       "staff",
       "/staff/login",
       validatedBody,
       200,
       validateStaffPendingAuthData,
-      true, // auth-changing: issues pending MFA proof & drops CSRF
-      options
+      true,
+      options,
+      "POST"
     );
   }
 
-  loginStaff(
-    body: StaffLoginRequest,
-    options?: IdentityApiRequestOptions
-  ): Promise<StaffPendingAuthResponse> {
-    return this.postStaffLogin(body, options);
-  }
-
   // ==========================================
-  // 11. POST /staff/logout
+  // POST /staff/logout (postStaffLogout)
   // ==========================================
   async postStaffLogout(options?: IdentityApiRequestOptions): Promise<StaffLogoutResponse> {
     validateRequestOptions(options);
     this.#ensureEnabled();
     this.#ensureNotDisposed();
-
     return this.executeLiveMutation<StaffLogoutResponse>(
+      "postStaffLogout",
       "staff",
       "/staff/logout",
       undefined,
       200,
       validateMessageData,
-      true, // auth-changing: revokes staff session & drops CSRF
-      options
+      true,
+      options,
+      "POST"
     );
   }
 
-  logoutStaff(options?: IdentityApiRequestOptions): Promise<StaffLogoutResponse> {
-    return this.postStaffLogout(options);
-  }
-
   // ==========================================
-  // 12. GET /staff/me
+  // GET /staff/me (getStaffMe)
   // ==========================================
   async getStaffMe(options?: IdentityApiRequestOptions): Promise<StaffMeResponse> {
     validateRequestOptions(options);
     this.#ensureEnabled();
     this.#ensureNotDisposed();
-
     return this.executeLiveRead<StaffMeResponse>(
+      "getStaffMe",
       "staff",
       "/staff/me",
       validateStaffMeData,
       options
     );
+  }
+
+  // ==========================================
+  // POST /staff/mfa/setup (postStaffMfaSetup)
+  // ==========================================
+  async postStaffMfaSetup(options?: IdentityApiRequestOptions): Promise<StaffMfaSetupResponse> {
+    validateRequestOptions(options);
+    this.#ensureEnabled();
+    this.#ensureNotDisposed();
+    return this.executeLiveMutation<StaffMfaSetupResponse>(
+      "postStaffMfaSetup",
+      "staff",
+      "/staff/mfa/setup",
+      undefined,
+      200,
+      validateStaffMfaSetupData,
+      false,
+      options,
+      "POST"
+    );
+  }
+
+  // ==========================================
+  // POST /staff/mfa/challenge (postStaffMfaChallenge)
+  // ==========================================
+  async postStaffMfaChallenge(body: StaffMfaChallengeRequest, options?: IdentityApiRequestOptions): Promise<StaffMfaChallengeResponse> {
+    validateRequestOptions(options);
+    this.#ensureEnabled();
+    this.#ensureNotDisposed();
+    const validatedBody = validateStaffMfaChallengeRequest(body);
+    return this.executeLiveMutation<StaffMfaChallengeResponse>(
+      "postStaffMfaChallenge",
+      "staff",
+      "/staff/mfa/challenge",
+      validatedBody,
+      200,
+      validateStaffMfaChallengeData,
+      false,
+      options,
+      "POST"
+    );
+  }
+
+  // ==========================================
+  // POST /staff/mfa/verify (postStaffMfaVerify)
+  // ==========================================
+  async postStaffMfaVerify(body: StaffMfaVerifyRequest, options?: IdentityApiRequestOptions): Promise<StaffAuthResponse> {
+    validateRequestOptions(options);
+    this.#ensureEnabled();
+    this.#ensureNotDisposed();
+    const validatedBody = validateStaffMfaVerifyRequest(body);
+    return this.executeLiveMutation<StaffAuthResponse>(
+      "postStaffMfaVerify",
+      "staff",
+      "/staff/mfa/verify",
+      validatedBody,
+      200,
+      validateStaffAuthData,
+      true,
+      options,
+      "POST"
+    );
+  }
+
+  // ==========================================
+  // GET /staff/sessions (getStaffSessions)
+  // ==========================================
+  async getStaffSessions(options?: IdentityApiRequestOptions): Promise<StaffSessionsListResponse> {
+    validateRequestOptions(options);
+    this.#ensureEnabled();
+    this.#ensureNotDisposed();
+    return this.executeLiveRead<StaffSessionsListResponse>(
+      "getStaffSessions",
+      "staff",
+      "/staff/sessions",
+      validateStaffSessionsData,
+      options
+    );
+  }
+
+  // ==========================================
+  // DELETE /staff/sessions/{id} (deleteStaffSession)
+  // ==========================================
+  async deleteStaffSession(id: string, options?: IdentityApiRequestOptions): Promise<DeleteStaffSessionResponse> {
+    validateRequestOptions(options);
+    this.#ensureEnabled();
+    this.#ensureNotDisposed();
+    const encodedId = validatePathId(id, "id");
+    return this.executeLiveMutation<DeleteStaffSessionResponse>(
+      "deleteStaffSession",
+      "staff",
+      `/staff/sessions/${encodedId}`,
+      undefined,
+      200,
+      validateDeleteStaffSessionData,
+      true,
+      options,
+      "DELETE"
+    );
+  }
+
+  // ==========================================
+  // GET /staff/users (getStaffUsersDirectory)
+  // ==========================================
+  async getStaffUsersDirectory(options?: IdentityApiRequestOptions): Promise<StaffUsersListResponse> {
+    validateRequestOptions(options);
+    this.#ensureEnabled();
+    this.#ensureNotDisposed();
+    return this.executeLiveRead<StaffUsersListResponse>(
+      "getStaffUsersDirectory",
+      "staff",
+      "/staff/users",
+      validateStaffUsersDirectoryData,
+      options
+    );
+  }
+
+  // ==========================================
+  // POST /staff/users (postStaffUserInvite)
+  // ==========================================
+  async postStaffUserInvite(body: CreateStaffUserRequest, options?: IdentityApiRequestOptions): Promise<StaffUserResponse> {
+    validateRequestOptions(options);
+    this.#ensureEnabled();
+    this.#ensureNotDisposed();
+    const validatedBody = validateCreateStaffUserRequest(body);
+    return this.executeLiveMutation<StaffUserResponse>(
+      "postStaffUserInvite",
+      "staff",
+      "/staff/users",
+      validatedBody,
+      201,
+      validateStaffUserData,
+      false,
+      options,
+      "POST"
+    );
+  }
+
+  // ==========================================
+  // PATCH /staff/users/{id} (patchStaffUser)
+  // ==========================================
+  async patchStaffUser(id: string, body: PatchStaffUserRequest, options?: IdentityApiRequestOptions): Promise<StaffUserResponse> {
+    validateRequestOptions(options);
+    this.#ensureEnabled();
+    this.#ensureNotDisposed();
+    const encodedId = validatePathUuid(id, "id");
+    const validatedBody = validatePatchStaffUserRequest(body);
+    return this.executeLiveMutation<StaffUserResponse>(
+      "patchStaffUser",
+      "staff",
+      `/staff/users/${encodedId}`,
+      validatedBody,
+      200,
+      validateStaffUserData,
+      false,
+      options,
+      "PATCH"
+    );
+  }
+
+  // ==========================================
+  // DELETE /staff/users/{id} (deleteStaffUser)
+  // ==========================================
+  async deleteStaffUser(id: string, options?: IdentityApiRequestOptions): Promise<DeleteStaffUserResponse> {
+    validateRequestOptions(options);
+    this.#ensureEnabled();
+    this.#ensureNotDisposed();
+    const encodedId = validatePathUuid(id, "id");
+    return this.executeLiveMutation<DeleteStaffUserResponse>(
+      "deleteStaffUser",
+      "staff",
+      `/staff/users/${encodedId}`,
+      undefined,
+      200,
+      validateDeleteStaffUserData,
+      false,
+      options,
+      "DELETE"
+    );
+  }
+
+  // ==========================================
+  // POST /auth/email/resend (postPassengerEmailResend)
+  // ==========================================
+  async postPassengerEmailResend(body: PassengerEmailResendRequest, options?: IdentityApiRequestOptions): Promise<PassengerRegisterReceiptResponse> {
+    validateRequestOptions(options);
+    this.#ensureEnabled();
+    this.#ensureNotDisposed();
+    const validatedBody = validatePassengerEmailResendRequest(body);
+    return this.executeLiveMutation<PassengerRegisterReceiptResponse>(
+      "postPassengerEmailResend",
+      "passenger",
+      "/auth/email/resend",
+      validatedBody,
+      202,
+      validatePassengerRegisterReceiptData,
+      false,
+      options,
+      "POST"
+    );
+  }
+
+  // ==========================================
+  // GET /auth/passenger/sessions (getPassengerSessions)
+  // ==========================================
+  async getPassengerSessions(options?: IdentityApiRequestOptions): Promise<PassengerSessionListResponse> {
+    validateRequestOptions(options);
+    this.#ensureEnabled();
+    this.#ensureNotDisposed();
+    return this.executeLiveRead<PassengerSessionListResponse>(
+      "getPassengerSessions",
+      "passenger",
+      "/auth/passenger/sessions",
+      validatePassengerSessionsData,
+      options
+    );
+  }
+
+  // ==========================================
+  // DELETE /auth/passenger/sessions/{id} (deletePassengerSession)
+  // ==========================================
+  async deletePassengerSession(id: string, options?: IdentityApiRequestOptions): Promise<PassengerSessionRevokeResponse> {
+    validateRequestOptions(options);
+    this.#ensureEnabled();
+    this.#ensureNotDisposed();
+    const encodedId = validatePathUuid(id, "id");
+    return this.executeLiveMutation<PassengerSessionRevokeResponse>(
+      "deletePassengerSession",
+      "passenger",
+      `/auth/passenger/sessions/${encodedId}`,
+      undefined,
+      200,
+      validatePassengerSessionRevokeData,
+      true,
+      options,
+      "DELETE"
+    );
+  }
+
+  // ==========================================
+  // PUT /auth/passenger/password (putPassengerPassword)
+  // ==========================================
+  async putPassengerPassword(body: PassengerPasswordChangeRequest, options?: IdentityApiRequestOptions): Promise<PassengerPasswordChangeResponse> {
+    validateRequestOptions(options);
+    this.#ensureEnabled();
+    this.#ensureNotDisposed();
+    const validatedBody = validatePassengerPasswordChangeRequest(body);
+    return this.executeLiveMutation<PassengerPasswordChangeResponse>(
+      "putPassengerPassword",
+      "passenger",
+      "/auth/passenger/password",
+      validatedBody,
+      200,
+      validateBooleanChangedData,
+      true,
+      options,
+      "PUT"
+    );
+  }
+
+  // ==========================================
+  // POST /staff/mfa/enrollment/setup (postStaffMfaEnrollmentSetup)
+  // ==========================================
+  async postStaffMfaEnrollmentSetup(options?: IdentityApiRequestOptions): Promise<StaffMfaEnrollmentSetupResponse> {
+    validateRequestOptions(options);
+    this.#ensureEnabled();
+    this.#ensureNotDisposed();
+    return this.executeLiveMutation<StaffMfaEnrollmentSetupResponse>(
+      "postStaffMfaEnrollmentSetup",
+      "staff",
+      "/staff/mfa/enrollment/setup",
+      undefined,
+      200,
+      validateStaffMfaEnrollmentSetupData,
+      false,
+      options,
+      "POST"
+    );
+  }
+
+  // ==========================================
+  // POST /staff/mfa/enrollment/confirm (postStaffMfaEnrollmentConfirm)
+  // ==========================================
+  async postStaffMfaEnrollmentConfirm(body: StaffMfaEnrollmentConfirmRequest, options?: IdentityApiRequestOptions): Promise<StaffMfaEnrollmentConfirmResponse> {
+    validateRequestOptions(options);
+    this.#ensureEnabled();
+    this.#ensureNotDisposed();
+    const validatedBody = validateStaffMfaEnrollmentConfirmRequest(body);
+    return this.executeLiveMutation<StaffMfaEnrollmentConfirmResponse>(
+      "postStaffMfaEnrollmentConfirm",
+      "staff",
+      "/staff/mfa/enrollment/confirm",
+      validatedBody,
+      200,
+      validateStaffMfaEnrollmentConfirmData,
+      true,
+      options,
+      "POST"
+    );
+  }
+
+  // ==========================================
+  // POST /staff/step-up (postStaffStepUp)
+  // ==========================================
+  async postStaffStepUp(body: StaffStepUpRequest, options?: IdentityApiRequestOptions): Promise<StaffStepUpResponse> {
+    validateRequestOptions(options);
+    this.#ensureEnabled();
+    this.#ensureNotDisposed();
+    const validatedBody = validateStaffStepUpRequest(body);
+    return this.executeLiveMutation<StaffStepUpResponse>(
+      "postStaffStepUp",
+      "staff",
+      "/staff/step-up",
+      validatedBody,
+      200,
+      validateStaffStepUpData,
+      false,
+      options,
+      "POST"
+    );
+  }
+
+  // ==========================================
+  // POST /staff/mfa/setup/confirm (postStaffMfaSetupConfirm)
+  // ==========================================
+  async postStaffMfaSetupConfirm(body: StaffMfaSetupConfirmRequest, options?: IdentityApiRequestOptions): Promise<StaffMfaSetupConfirmResponse> {
+    validateRequestOptions(options);
+    this.#ensureEnabled();
+    this.#ensureNotDisposed();
+    const validatedBody = validateStaffMfaSetupConfirmRequest(body);
+    return this.executeLiveMutation<StaffMfaSetupConfirmResponse>(
+      "postStaffMfaSetupConfirm",
+      "staff",
+      "/staff/mfa/setup/confirm",
+      validatedBody,
+      200,
+      validateStaffMfaSetupConfirmData,
+      true,
+      options,
+      "POST"
+    );
+  }
+
+  // ==========================================
+  // POST /staff/mfa/recovery-codes/regenerate (postStaffMfaRecoveryCodesRegenerate)
+  // ==========================================
+  async postStaffMfaRecoveryCodesRegenerate(options?: IdentityApiRequestOptions): Promise<StaffRecoveryCodesRegenerateResponse> {
+    validateRequestOptions(options);
+    this.#ensureEnabled();
+    this.#ensureNotDisposed();
+    return this.executeLiveMutation<StaffRecoveryCodesRegenerateResponse>(
+      "postStaffMfaRecoveryCodesRegenerate",
+      "staff",
+      "/staff/mfa/recovery-codes/regenerate",
+      undefined,
+      200,
+      validateStaffRecoveryCodesData,
+      true,
+      options,
+      "POST"
+    );
+  }
+
+  // ==========================================
+  // POST /staff/password/forgot (postStaffPasswordForgot)
+  // ==========================================
+  async postStaffPasswordForgot(body: StaffPasswordForgotRequest, options?: IdentityApiRequestOptions): Promise<StaffPasswordForgotReceiptResponse> {
+    validateRequestOptions(options);
+    this.#ensureEnabled();
+    this.#ensureNotDisposed();
+    const validatedBody = validateStaffPasswordForgotRequest(body);
+    return this.executeLiveMutation<StaffPasswordForgotReceiptResponse>(
+      "postStaffPasswordForgot",
+      "staff",
+      "/staff/password/forgot",
+      validatedBody,
+      202,
+      validateStaffPasswordForgotReceiptData,
+      false,
+      options,
+      "POST"
+    );
+  }
+
+  // ==========================================
+  // POST /staff/password/reset (postStaffPasswordReset)
+  // ==========================================
+  async postStaffPasswordReset(body: StaffPasswordResetRequest, options?: IdentityApiRequestOptions): Promise<StaffPasswordResetResponse> {
+    validateRequestOptions(options);
+    this.#ensureEnabled();
+    this.#ensureNotDisposed();
+    const validatedBody = validateStaffPasswordResetRequest(body);
+    return this.executeLiveMutation<StaffPasswordResetResponse>(
+      "postStaffPasswordReset",
+      "staff",
+      "/staff/password/reset",
+      validatedBody,
+      200,
+      validateStaffPasswordResetData,
+      true,
+      options,
+      "POST"
+    );
+  }
+
+  // ==========================================
+  // PUT /staff/password (putStaffPassword)
+  // ==========================================
+  async putStaffPassword(body: StaffPasswordChangeRequest, options?: IdentityApiRequestOptions): Promise<StaffPasswordChangeResponse> {
+    validateRequestOptions(options);
+    this.#ensureEnabled();
+    this.#ensureNotDisposed();
+    const validatedBody = validateStaffPasswordChangeRequest(body);
+    return this.executeLiveMutation<StaffPasswordChangeResponse>(
+      "putStaffPassword",
+      "staff",
+      "/staff/password",
+      validatedBody,
+      200,
+      validateBooleanChangedData,
+      true,
+      options,
+      "PUT"
+    );
+  }
+
+  // ==========================================
+  // POST /staff/invitations/accept (postStaffInvitationAccept)
+  // ==========================================
+  async postStaffInvitationAccept(body: StaffInvitationAcceptRequest, options?: IdentityApiRequestOptions): Promise<StaffInvitationAcceptResponse> {
+    validateRequestOptions(options);
+    this.#ensureEnabled();
+    this.#ensureNotDisposed();
+    const validatedBody = validateStaffInvitationAcceptRequest(body);
+    return this.executeLiveMutation<StaffInvitationAcceptResponse>(
+      "postStaffInvitationAccept",
+      "staff",
+      "/staff/invitations/accept",
+      validatedBody,
+      200,
+      validateStaffInvitationAcceptData,
+      true,
+      options,
+      "POST"
+    );
+  }
+
+  // ==========================================
+  // POST /staff/users/{id}/invite/reissue (postStaffUserInviteReissue)
+  // ==========================================
+  async postStaffUserInviteReissue(id: string, options?: IdentityApiRequestOptions): Promise<StaffInviteReissueResponse> {
+    validateRequestOptions(options);
+    this.#ensureEnabled();
+    this.#ensureNotDisposed();
+    const encodedId = validatePathUuid(id, "id");
+    return this.executeLiveMutation<StaffInviteReissueResponse>(
+      "postStaffUserInviteReissue",
+      "staff",
+      `/staff/users/${encodedId}/invite/reissue`,
+      undefined,
+      200,
+      validateStaffInviteReissueData,
+      false,
+      options,
+      "POST"
+    );
+  }
+
+  // ==========================================
+  // POST /staff/users/{id}/invite/revoke (postStaffUserInviteRevoke)
+  // ==========================================
+  async postStaffUserInviteRevoke(id: string, options?: IdentityApiRequestOptions): Promise<StaffInviteRevokeResponse> {
+    validateRequestOptions(options);
+    this.#ensureEnabled();
+    this.#ensureNotDisposed();
+    const encodedId = validatePathUuid(id, "id");
+    return this.executeLiveMutation<StaffInviteRevokeResponse>(
+      "postStaffUserInviteRevoke",
+      "staff",
+      `/staff/users/${encodedId}/invite/revoke`,
+      undefined,
+      200,
+      validateStaffInviteRevokeData,
+      false,
+      options,
+      "POST"
+    );
+  }
+
+  // ==========================================
+  // Aliases for backwards-compatibility
+  // ==========================================
+  getAuthCsrf(options?: IdentityApiRequestOptions): Promise<CsrfTokenResponse> {
+    return this.getAuthCsrfBootstrap(options);
+  }
+
+  registerPassenger(body: RegisterRequest, options?: IdentityApiRequestOptions): Promise<PassengerRegisterReceiptResponse> {
+    return this.postPassengerRegister(body, options);
+  }
+
+  loginPassenger(body: LoginRequest, options?: IdentityApiRequestOptions): Promise<PassengerAuthResponse> {
+    return this.postPassengerLogin(body, options);
+  }
+
+  logoutPassenger(options?: IdentityApiRequestOptions): Promise<PassengerLogoutResponse> {
+    return this.postPassengerLogout(options);
+  }
+
+  forgotPassengerPassword(body: PasswordForgotRequest, options?: IdentityApiRequestOptions): Promise<PasswordForgotResponse> {
+    return this.postPassengerPasswordForgot(body, options);
+  }
+
+  resetPassengerPassword(body: PasswordResetRequest, options?: IdentityApiRequestOptions): Promise<PasswordResetResponse> {
+    return this.postPassengerPasswordReset(body, options);
+  }
+
+  verifyPassengerEmail(body: EmailVerifyRequest, options?: IdentityApiRequestOptions): Promise<EmailVerifyResponse> {
+    return this.postPassengerEmailVerify(body, options);
+  }
+
+  resendPassengerEmail(body: PassengerEmailResendRequest, options?: IdentityApiRequestOptions): Promise<PassengerEmailResendResponse> {
+    return this.postPassengerEmailResend(body, options);
+  }
+
+  getStaffCsrf(options?: IdentityApiRequestOptions): Promise<CsrfTokenResponse> {
+    return this.getStaffCsrfBootstrap(options);
+  }
+
+  loginStaff(body: StaffLoginRequest, options?: IdentityApiRequestOptions): Promise<StaffPendingAuthResponse> {
+    return this.postStaffLogin(body, options);
+  }
+
+  logoutStaff(options?: IdentityApiRequestOptions): Promise<StaffLogoutResponse> {
+    return this.postStaffLogout(options);
   }
 
   // ==========================================
@@ -1105,6 +1720,11 @@ class IdentityApiClientImpl implements IdentityApiClient {
       this.#verifyResponseTransport(response, bodyText, 200, requestId, true /* requireHeaderCorrelation */);
 
       const parsed: unknown = JSON.parse(bodyText);
+      validateOperationResponse(
+        realm === "passenger" ? "getAuthCsrfBootstrap" : "getStaffCsrfBootstrap",
+        response.status,
+        parsed
+      );
       const tokenResp = validateCsrfTokenResponse(parsed);
 
       if (this.#isDisposed) {
@@ -1140,11 +1760,13 @@ class IdentityApiClientImpl implements IdentityApiClient {
   }
 
   private async executeLiveRead<T extends { success: true; data: unknown; meta: SuccessMeta }>(
+    operationId: string,
     realm: "passenger" | "staff",
     endpointPath: string,
     validateData: (data: unknown) => T["data"],
     options?: IdentityApiRequestOptions
   ): Promise<T> {
+    validateOperationRequest(operationId, undefined);
     const budget = this.#createBudget(options?.timeoutMs, options?.signal);
     const requestId = this.#resolveRequestId(options?.requestId);
     const url = `${this.baseUrl}${endpointPath}`;
@@ -1175,6 +1797,7 @@ class IdentityApiClientImpl implements IdentityApiClient {
       this.#verifyResponseTransport(response, bodyText, 200, requestId, false);
 
       const parsed: unknown = JSON.parse(bodyText);
+      validateOperationResponse(operationId, response.status, parsed);
       return this.#validateEnvelopeAndData<T>(parsed, validateData, requestId, response.status);
     } catch (err) {
       if (realm === "passenger") {
@@ -1191,14 +1814,17 @@ class IdentityApiClientImpl implements IdentityApiClient {
   private async executeLiveMutation<
     T extends { success: true; data: unknown; meta: SuccessMeta },
   >(
+    operationId: string,
     realm: "passenger" | "staff",
     endpointPath: string,
     body: unknown,
     expectedStatus: number,
     validateData: (data: unknown) => T["data"],
     isAuthChanging: boolean,
-    options?: IdentityApiRequestOptions
+    options?: IdentityApiRequestOptions,
+    httpMethod: "POST" | "PUT" | "PATCH" | "DELETE" = "POST"
   ): Promise<T> {
+    validateOperationRequest(operationId, body);
     const queue = realm === "passenger" ? this.#passengerQueue : this.#staffQueue;
     const budget = this.#createBudget(options?.timeoutMs, options?.signal);
 
@@ -1264,7 +1890,7 @@ class IdentityApiClientImpl implements IdentityApiClient {
           }
 
           const init: RequestInit = {
-            method: "POST",
+            method: httpMethod,
             headers,
             credentials: "include",
             redirect: "error",
@@ -1284,6 +1910,7 @@ class IdentityApiClientImpl implements IdentityApiClient {
             this.#verifyResponseTransport(response, bodyText, expectedStatus, requestId, false);
 
             const parsed: unknown = JSON.parse(bodyText);
+            validateOperationResponse(operationId, response.status, parsed);
             const result = this.#validateEnvelopeAndData<T>(
               parsed,
               validateData,
