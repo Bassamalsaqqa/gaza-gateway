@@ -233,6 +233,7 @@ final class MaintainLocalIdentity extends Command
 
             // Expired source/subject budgets have a bounded durable retention path.
             $prunedRateCount = (new \App\Identity\RateLimiting\DurableRateLimiter($db))->pruneExpired($limit);
+            $expiredStaffCount = (new \App\Identity\Staff\StaffTransientCleanup($db))->expire($limit);
 
             // 4. Authoritative check of retained owned ledger entries via actual loadLedger API
             $failedCleanupCount = 0;
@@ -261,6 +262,7 @@ final class MaintainLocalIdentity extends Command
                 'capture_cleaned_count' => $cleanedCount,
                 'failed_cleanup_count' => $failedCleanupCount,
                 'rate_buckets_pruned_count' => $prunedRateCount,
+                'staff_transient_expired_count' => $expiredStaffCount,
             ];
             if ($hasPartialFailure) {
                 $payload['category'] = 'partial_failure';

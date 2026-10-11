@@ -21,8 +21,13 @@ maintenance; both registration and recovery account classes perform common nativ
 work. [Source, PostgreSQL growth and local timing evidence](phase13b-abuse-controls-review.md)
 records 3 new tests / 123 assertions. Both review threads remain open for independent confirmation.
 
-Staff enrollment/replacement/recovery/password/directory/invitations, guest grants/claims,
-EN/AR identity UI and the final integrated PHP/PostgreSQL/HTTPS/browser gate remain pending.
+The subsequent [staff lifecycle package](phase13b-staff-lifecycle.md) implements all fifteen
+remaining staff credential/enrollment/directory/MFA operations with 18 new focused tests /
+171 assertions, including real invitation/reset/replacement replay races and the two-admin
+demotion race. Audit-failure rollback and expired staged-secret cleanup are covered.
+These are cumulative local checks, not final exact-head integrated certification.
+
+Guest grants/claims, EN/AR identity UI and the final integrated PHP/PostgreSQL/HTTPS/browser gate remain pending.
 Default frontend mock authority remains unchanged. Remote staging, real delivery, scheduler,
 administrator custody and production exposure gates remain deferred. Phases 13C–G unstarted.
 
