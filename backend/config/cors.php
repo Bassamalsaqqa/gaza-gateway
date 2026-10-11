@@ -23,6 +23,7 @@ return [
 
     'allowed_headers' => [
         'Accept',
+        'Cache-Control',
         'Authorization',
         'Content-Type',
         'Origin',

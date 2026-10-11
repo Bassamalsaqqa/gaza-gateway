@@ -1,7 +1,7 @@
 {
   "$schema": "identity-api-contract-v1",
   "version": "1.0.0",
-  "description": "Narrow contract extraction for 41 accepted Phase 13B identity transport operations",
+  "description": "Narrow contract extraction for 46 accepted Phase 13B identity transport operations",
   "digest": "a83111c1330f7a7fa2d85704938e0b0619b34b19d4ad28ffc0cf148671640ba6",
   "operations": [
     {

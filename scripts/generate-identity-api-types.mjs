@@ -2395,7 +2395,7 @@ export function generateIdentityApiContract(spec) {
       {
         $schema: "identity-api-contract-v1",
         version: "1.0.0",
-        description: "Narrow contract extraction for 41 accepted Phase 13B identity transport operations",
+        description: "Narrow contract extraction for 46 accepted Phase 13B identity transport operations",
         digest: schemaDigest,
         operations: contractOperations,
         schemas: reachableSchemas,

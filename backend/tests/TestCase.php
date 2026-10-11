@@ -31,6 +31,7 @@ abstract class TestCase extends BaseTestCase
         parent::setUp();
 
         $this->assertDisposableDatabaseTarget();
+        \Tests\Fixtures\IdentityFinal\HttpCaptureRecorder::install($this->app);
     }
 
     final protected function assertDisposableDatabaseTarget(): void

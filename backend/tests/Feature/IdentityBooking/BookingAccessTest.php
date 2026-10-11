@@ -192,6 +192,33 @@ final class BookingAccessTest extends TestCase
         $this->assertSame(5, DB::table('booking_guest_challenges')->where('session_id', $session->sessionId)->count());
     }
 
+    public function test_real_wrong_surname_and_unknown_reference_share_bounded_response_floor(): void
+    {
+        $samples = ['real' => [], 'surname_decoy' => [], 'unknown_decoy' => []];
+        foreach (range(0, 3) as $round) {
+            $order = $round % 2 === 0 ? array_keys($samples) : array_reverse(array_keys($samples));
+            foreach ($order as $kind) {
+                $booking = $this->booking(); $session = $this->guestSession();
+                $ref = $kind === 'unknown_decoy' ? 'UNKNOWN1' : $booking->pnr;
+                $surname = $kind === 'surname_decoy' ? 'Mismatch' : 'Al-Ghefari';
+                $start = hrtime(true);
+                $response = $this->request('/bookings/' . $ref . '/challenge', $session, ['surname' => $surname])->assertStatus(202);
+                $elapsed = (hrtime(true) - $start) / 1_000_000;
+                $samples[$kind][] = round($elapsed, 2);
+                $this->assertGreaterThanOrEqual(250, $elapsed);
+                $this->assertLessThan(3000, $elapsed, 'Local timing fixture exceeded the documented bounded ordinary path.');
+                $response->assertJsonPath('data.message', 'If the booking details match, verification instructions have been queued for dispatch.');
+                $id = $response->json('data.challengeId');
+                $row = DB::table('booking_guest_challenges')->where('id', $id)->first();
+                $this->assertSame($kind === 'real' ? $booking->id : null, $row->booking_id);
+                $this->assertSame($kind === 'real' ? 1 : 0,
+                    DB::table('security_dispatch_outbox')->where('booking_challenge_id', $id)->count());
+            }
+        }
+        // Only aggregate synthetic timings, never challenge IDs, PNRs, emails or OTPs.
+        fwrite(STDOUT, 'Booking challenge timing milliseconds: ' . json_encode($samples, JSON_THROW_ON_ERROR) . PHP_EOL);
+    }
+
     public function test_missing_pepper_fails_closed_before_any_proof_write(): void
     {
         config(['identity-guest.pepper_base64' => null]);

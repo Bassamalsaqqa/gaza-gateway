@@ -43,6 +43,7 @@ final class BookingAccessCoordinator
             : ['subject' => $input['challengeId'] ?? $input['claimProof'] ?? '', 'ip' => $ip];
         $charge = $this->limiter->charge('booking', $create ? 'challenge' : 'proof', $keys);
         if (!$charge->allowed) { throw new RateLimitExceededException($charge->retryAfterSeconds); }
+        $challengeStarted = $create ? hrtime(true) : null;
         $result = $this->db->transaction(function () use ($operation, $input, $ref, $context, $cookie, $csrf, $create, $claim, $requestId) {
             $this->db->statement("SET LOCAL lock_timeout = '3000ms'");
             $this->db->statement("SET LOCAL statement_timeout = '5000ms'");
@@ -118,6 +119,13 @@ final class BookingAccessCoordinator
             $this->event($operation, $claim ? $user->id : null, $booking->id, $requestId);
             return new StaffOperationResult($data);
         });
+        if ($challengeStarted !== null && $result !== null) {
+            // After admission and commit, obscure ordinary real/decoy enqueue latency.
+            // Never retain database locks while waiting. Slow/failed transactions are
+            // not disguised; remote timing and edge admission remain exposure gates.
+            $remainingMicros = 250_000 - intdiv(hrtime(true) - $challengeStarted, 1000);
+            if ($remainingMicros > 0) { usleep($remainingMicros); }
+        }
         return $result ?? throw new BookingAccessException();
     }
 

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="../vendor/autoload.php" colors="false">
+    <testsuites>
+        <testsuite name="Identity integration and security">
+            <file>Feature/IdentityProtocol/AnonymousBootstrapConcurrencyTest.php</file>
+            <file>Feature/IdentityProtocol/AnonymousBootstrapAdmissionFeatureTest.php</file>
+            <file>Feature/IdentityProtocol/AnonymousCleanupFeatureTest.php</file>
+            <file>Feature/IdentityProtocol/VerifyApplicationCsrfHeaderFeatureTest.php</file>
+            <file>Feature/IdentityProtocol/BrowserCorsHeaderTest.php</file>
+            <file>Feature/IdentityPersistence/CatalogConstraintTest.php</file>
+            <file>Feature/IdentityPersistence/RemainingIdentityRelationsTest.php</file>
+            <file>Feature/IdentityLifecycle/CodexRetentionCheckpointReviewTest.php</file>
+            <file>Feature/IdentityLifecycle/CodexRetentionCrashReviewTest.php</file>
+            <file>Feature/IdentityLifecycle/CodexCaptureExecutionBoundTest.php</file>
+            <file>Feature/IdentityLifecycle/OutboxAuthorityReviewTest.php</file>
+            <file>Feature/IdentityLifecycle/ProofConcurrencyTest.php</file>
+            <file>Feature/IdentityPassenger/PassengerAuthContractCaptureTest.php</file>
+            <file>Feature/IdentityPassenger/PassengerActionAuthorityReviewTest.php</file>
+            <file>Feature/IdentityPassenger/PassengerConcurrencyFeatureTest.php</file>
+            <file>Feature/IdentityPassengerProfile/PassengerProfileContractCaptureTest.php</file>
+            <file>Feature/IdentityPassengerProfile/PassengerProfileSecurityAndConcurrencyTest.php</file>
+            <file>Feature/IdentityStaff/StaffAuthenticationTest.php</file>
+            <file>Feature/IdentityStaff/StaffLifecycleTest.php</file>
+            <file>Feature/IdentityStaff/StaffDirectoryTest.php</file>
+            <file>Feature/IdentityBooking/BookingAccessTest.php</file>
+            <file>Unit/Identity/RbacPolicyTest.php</file>
+            <file>Unit/Identity/Argon2idPasswordHasherTest.php</file>
+            <file>Unit/IdentityMfa/TotpServiceTest.php</file>
+        </testsuite>
+    </testsuites>
+</phpunit>

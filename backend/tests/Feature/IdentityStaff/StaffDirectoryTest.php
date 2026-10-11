@@ -110,6 +110,17 @@ final class StaffDirectoryTest extends TestCase
         $this->request('PATCH', '/staff/users/' . $target['owner'], $admin, ['fullNameAr' => ''])->assertStatus(422);
     }
 
+    public function test_explicit_suspend_and_reactivate_routes_revoke_old_sessions(): void
+    {
+        $admin = $this->staff(); $target = $this->staff('editor');
+        $this->request('POST', '/staff/users/' . $target['owner'] . '/suspend', $admin)->assertStatus(200);
+        $this->assertSame('suspended', DB::table('staff_users')->where('id', $target['owner'])->value('status'));
+        $this->assertNull($this->app->make(StaffSessionStore::class)->read($target['cookie']));
+        $this->request('POST', '/staff/users/' . $target['owner'] . '/reactivate', $admin)->assertStatus(200);
+        $this->assertSame('active', DB::table('staff_users')->where('id', $target['owner'])->value('status'));
+        $this->assertNull($this->app->make(StaffSessionStore::class)->read($target['cookie']));
+    }
+
     public function test_concurrent_self_demotions_preserve_exactly_one_eligible_admin(): void
     {
         $eligibility = new StaffEligibilityPredicate(DB::connection());

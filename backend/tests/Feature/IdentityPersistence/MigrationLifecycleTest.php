@@ -65,8 +65,17 @@ class MigrationLifecycleTest extends TestCase
 
     public function test_rollback_removes_13_relations_leaving_core_and_infrastructure_intact(): void
     {
-        // Rollback the 3 persistence migrations (3 batches or 3 steps)
-        Artisan::call('migrate:rollback', ['--step' => 3]);
+        if (getenv('IDENTITY_MIGRATION_DISPOSABLE_INSTANCE') !== '1') {
+            throw new \RuntimeException('Migration roundtrip requires a separate disposable PostgreSQL instance.');
+        }
+        // Include the later dependent cleanup indexes, never the accepted core.
+        $paths = [
+            'database/migrations/2026_10_10_000001_create_identity_dependency_relations.php',
+            'database/migrations/2026_10_10_000002_create_identity_remaining_persistence.php',
+            'database/migrations/2026_10_10_000003_create_identity_profile_audit.php',
+            'database/migrations/2026_10_10_000004_create_bootstrap_cleanup_indexes.php',
+        ];
+        $this->assertSame(0, Artisan::call('migrate:rollback', ['--step' => count($paths), '--path' => $paths]));
 
         $tablesAfterRollback = DB::select("
             SELECT table_name
@@ -90,7 +99,7 @@ class MigrationLifecycleTest extends TestCase
         $this->assertContains('jobs', $tableNamesAfter, 'Expected jobs table to remain intact.');
 
         // Re-apply the migrations for remaining tests
-        Artisan::call('migrate');
+        $this->assertSame(0, Artisan::call('migrate', ['--path' => $paths]));
 
         $tablesAfterReapply = DB::select("
             SELECT table_name

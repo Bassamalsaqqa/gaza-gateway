@@ -22,6 +22,7 @@ class CustomCorsGuard
         $allowedMethods = config('cors.allowed_methods', ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']);
         $allowedHeaders = config('cors.allowed_headers', [
             'Accept',
+            'Cache-Control',
             'Authorization',
             'Content-Type',
             'Origin',
