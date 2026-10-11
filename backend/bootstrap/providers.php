@@ -8,4 +8,5 @@ return [
     App\Providers\PassengerProfileServiceProvider::class,
     App\Providers\StaffIdentityServiceProvider::class,
     App\Providers\BookingIdentityServiceProvider::class,
+    App\Providers\ReferenceServiceProvider::class,
 ];
