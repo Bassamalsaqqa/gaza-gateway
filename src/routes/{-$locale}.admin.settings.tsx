@@ -5,18 +5,21 @@ import { Input, Select, Button } from "@/components/kit";
 import { AdminField, AdminPageHeader, AdminPanel, AdminStickyActions, AdminTabs, PermissionButton } from "@/components/admin/admin-kit";
 import { AdminDenied } from "@/components/admin/admin-denied";
 import { useAdmin } from "@/lib/admin-store";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, pick } from "@/lib/i18n";
 import { pageHead } from "@/lib/head";
 import { settingsRepository, computeExternalSettingsSync } from "@/lib/settings";
 import type { ContactSettings } from "@/lib/settings";
 import { PUBLISHED_CONTACT_SETTINGS } from "@/lib/settings/defaults";
 import { validateContactSettings } from "@/lib/settings/validation";
 
+import { StaffIdentityWorkspace } from "@/components/identity/staff-workspace";
+import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
+
 const AppearanceLab = lazy(() =>
   import("@/components/admin/appearance-lab").then((m) => ({ default: m.AppearanceLab })),
 );
 
-type Tab = "airport" | "service" | "contact" | "localization" | "appearance";
+type Tab = "airport" | "service" | "contact" | "localization" | "appearance" | "security";
 
 type SettingsSearch = {
   tab?: Tab;
@@ -28,7 +31,7 @@ export const Route = createFileRoute("/{-$locale}/admin/settings")({
   validateSearch: (search: Record<string, unknown>): SettingsSearch => {
     const out: SettingsSearch = {};
     const raw = search["tab"];
-    if (raw === "airport" || raw === "service" || raw === "contact" || raw === "localization" || raw === "appearance") {
+    if (raw === "airport" || raw === "service" || raw === "contact" || raw === "localization" || raw === "appearance" || raw === "security") {
       out.tab = raw;
     }
     const rawPreview = search["skinPreview"];
@@ -53,7 +56,15 @@ export const Route = createFileRoute("/{-$locale}/admin/settings")({
 });
 
 function AdminSettingsPage() {
+  return identityUiRequested ? <ServerStaffSettings /> : <MockAdminSettingsPage />;
+}
+function ServerStaffSettings() {
   const { t } = useI18n();
+  return <div className="space-y-4"><AdminPageHeader title={t("a2.se.title")} />
+    <AdminPanel><StaffIdentityWorkspace /></AdminPanel></div>;
+}
+function MockAdminSettingsPage() {
+  const { t, lang } = useI18n();
   const { can, toast } = useAdmin();
   const search = Route.useSearch();
   const [tab, setTab] = useState<Tab>(search.tab ?? "airport");
@@ -221,7 +232,14 @@ function AdminSettingsPage() {
         title={t("a2.se.title")}
         description={t("a2.se.sub")}
         meta={
-          tab === "contact" || tab === "appearance" ? (
+          tab === "security" ? (
+            <p className="text-xs text-muted-foreground font-medium">
+              {pick(lang, {
+                en: "Staff credentials, passkeys, MFA enrollment and active session management.",
+                ar: "بيانات اعتماد الموظفين والمفاتيح وتفعيل التحقق الثنائي وإدارة الجلسات النشطة.",
+              })}
+            </p>
+          ) : tab === "contact" || tab === "appearance" ? (
             <p className="text-xs font-medium text-status-delayed">
               {t("a2.se.metaDraft") || "Local, unpublished draft. Changes are stored in this browser only."}
             </p>
@@ -244,10 +262,30 @@ function AdminSettingsPage() {
             { id: "contact", label: t("a2.se.tab.contact") },
             { id: "localization", label: t("a2.se.tab.localization") },
             { id: "appearance", label: t("a2.se.tab.appearance") },
+            { id: "security", label: pick(lang, { en: "Security & Sessions", ar: "الأمان والجلسات" }) },
           ]}
         >
         <div className="p-4">
-          {tab === "appearance" ? (
+          {tab === "security" ? (
+            identityUiRequested ? (
+              <StaffIdentityWorkspace />
+            ) : (
+              <div className="py-8 text-center text-sm text-muted-foreground">
+                <p className="font-semibold text-foreground">
+                  {pick(lang, {
+                    en: "Staff Credentials & Active Sessions",
+                    ar: "بيانات اعتماد الموظفين والجلسات النشطة",
+                  })}
+                </p>
+                <p className="mt-1">
+                  {pick(lang, {
+                    en: "Live staff identity management is active in server preview mode.",
+                    ar: "تتوفر إدارة جلسات وهوية الموظفين المباشرة في وضع معاينة الخادم.",
+                  })}
+                </p>
+              </div>
+            )
+          ) : tab === "appearance" ? (
             <Suspense fallback={<div className="p-4 text-xs text-muted-foreground animate-pulse">...</div>}>
               <AppearanceLab />
             </Suspense>

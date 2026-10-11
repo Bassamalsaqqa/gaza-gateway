@@ -1,7 +1,7 @@
 import type { ZodType } from "zod";
 import type { IdentityApiClient } from "./identity-client.ts";
-import { resolveIdentityApiClientConfig, type IdentityApiClientConfig } from "./identity-client-config.ts";
-import { generateCryptographicUuid, tryParseCanonicalError, validateSuccessMeta } from "./identity-client-validators.ts";
+import { resolveIdentityApiClientConfig, validateTimeoutMs, type IdentityApiClientConfig } from "./identity-client-config.ts";
+import { generateCryptographicUuid, isValidUuid, tryParseCanonicalError, validateSuccessMeta } from "./identity-client-validators.ts";
 
 export class MvpApiError extends Error {
   readonly status: number | undefined;
@@ -21,8 +21,12 @@ export interface MvpRequest<T> {
   schema: ZodType<T>;
   body?: unknown;
   statuses?: readonly number[];
-  signal?: AbortSignal;
+  signal?: AbortSignal | undefined;
+  requestId?: string | undefined;
+  timeoutMs?: number | undefined;
 }
+
+export interface MvpEnvelope<T> { success: true; data: T; meta: { requestId: string; timestamp: string } }
 
 /** Shared MVP transport. Cookies/CSRF come from the accepted identity client; never persisted here. */
 export function createMvpApiClient(config: IdentityApiClientConfig, identity: () => Pick<IdentityApiClient, "getStaffCsrfBootstrap" | "getAuthCsrfBootstrap">) {
@@ -30,9 +34,10 @@ export function createMvpApiClient(config: IdentityApiClientConfig, identity: ()
   const active = new Set<AbortController>();
   let disposed = false;
 
-  async function request<T>(input: MvpRequest<T>): Promise<T> {
+  async function requestEnvelope<T>(input: MvpRequest<T>): Promise<MvpEnvelope<T>> {
     if (!resolved.enabled || !resolved.baseUrl || disposed) throw new MvpApiError("disabled");
     if (input.signal?.aborted) throw new MvpApiError("aborted");
+    if (input.requestId !== undefined && !isValidUuid(input.requestId)) throw new MvpApiError("protocol");
     // Adapters use fixed route templates and opaque route-safe IDs, never arbitrary URLs.
     if (input.path.length > 2048 || !/^\/[A-Za-z0-9_./-]+(?:\?[A-Za-z0-9_=&%+-]+)?$/.test(input.path)
       || input.path.includes("//") || input.path.split("?")[0]!.split("/").some(part => part === "." || part === "..")
@@ -44,10 +49,10 @@ export function createMvpApiClient(config: IdentityApiClientConfig, identity: ()
     const cancelled = new Promise<never>((_, reject) => { rejectAbort = reject; });
     const onAbort = () => rejectAbort(new MvpApiError("aborted"));
     controller.signal.addEventListener("abort", onAbort, { once: true });
-    const timer = setTimeout(abort, resolved.timeoutMs);
+    const timer = setTimeout(abort, input.timeoutMs === undefined ? resolved.timeoutMs : validateTimeoutMs(input.timeoutMs));
     try {
-      const operation = async (): Promise<T> => {
-        const requestId = generateCryptographicUuid();
+      const operation = async (): Promise<MvpEnvelope<T>> => {
+        const requestId = input.requestId ?? generateCryptographicUuid();
         const headers: Record<string, string> = { Accept: "application/json", "X-Request-Id": requestId };
         if (input.method !== "GET") {
           const client = identity();
@@ -94,7 +99,7 @@ export function createMvpApiClient(config: IdentityApiClientConfig, identity: ()
         if (record["success"] !== true || Object.keys(record).sort().join(",") !== "data,meta,success") throw new MvpApiError("protocol");
         const result = input.schema.safeParse(record["data"]);
         if (!result.success) throw new MvpApiError("protocol");
-        return result.data;
+        return { success: true, data: result.data, meta: { requestId: meta.requestId, timestamp: meta.timestamp } };
       };
       return await Promise.race([operation(), cancelled]);
     } catch (error) {
@@ -105,7 +110,8 @@ export function createMvpApiClient(config: IdentityApiClientConfig, identity: ()
       controller.signal.removeEventListener("abort", onAbort); active.delete(controller);
     }
   }
-  return { request, dispose() { disposed = true; for (const controller of active) controller.abort(); active.clear(); } };
+  async function request<T>(input: MvpRequest<T>): Promise<T> { return (await requestEnvelope(input)).data; }
+  return { request, requestEnvelope, dispose() { disposed = true; for (const controller of active) controller.abort(); active.clear(); } };
 }
 
 export type MvpApiClient = ReturnType<typeof createMvpApiClient>;

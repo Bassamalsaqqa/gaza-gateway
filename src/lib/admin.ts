@@ -147,4 +147,16 @@ export const adminNav: AdminNavGroup[] = [
   },
 ];
 
+/**
+ * In server mode (W1), only Fleet management and Settings (Security) are wired.
+ * All other administrative domains are guarded to prevent silent mock writes/reads.
+ */
+export function isDomainAvailableInServerMode(path: string | null): boolean {
+  if (!path) return false;
+  if (path === "/admin" || path === "/admin/") return true;
+  if (path.startsWith("/admin/products")) return true;
+  if (path.startsWith("/admin/settings")) return true;
+  return false;
+}
+
 // Editorial search/attention now projects typed content through src/content/inventory.ts.

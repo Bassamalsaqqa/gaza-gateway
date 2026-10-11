@@ -91,7 +91,7 @@ export function PassengerIdentityAuth({ initial = "signin" }: { initial?: Passen
 }
 
 type StaffFlow = "signin" | "forgot" | "reset" | "invite";
-export function StaffIdentityAuth() {
+export function StaffIdentityAuth({ onAuthenticated }: { onAuthenticated?: () => Promise<void> }) {
   const { lang } = useI18n(); const navigate = useAppNavigate();
   const [flow, setFlow] = useState<StaffFlow>("signin"); const [pending, setPending] = useState<"login" | "enroll" | null>(null);
   const [expires, setExpires] = useState<string | null>(null); const [secret, setSecret] = useState<string | null>(null);
@@ -138,7 +138,7 @@ export function StaffIdentityAuth() {
       setCodes(result.data.recoveryCodes); setPending(null); setSecret(null); setExpires(null);
     } else {
       await getIdentityUiClient().postStaffMfaVerify(recovery ? { recoveryCode: v["recoveryCode"]! } : { totpCode: v["totpCode"]! });
-      setPending(null); setExpires(null); await navigate({ to: "/admin" });
+      setPending(null); setExpires(null); await onAuthenticated?.(); await navigate({ to: "/admin" });
     }
   };
   return <PassengerAuthShell title={pick(lang, "Staff account preview", "معاينة حساب الموظف")}
@@ -166,7 +166,7 @@ export function StaffIdentityAuth() {
     {error && <p role="alert" className="mt-4 text-clay">{error}</p>}
     {codes.length > 0 && <div className="space-y-4"><p>{pick(lang, "Keep these recovery codes privately. They are shown only now.", "احفظ رموز الاسترداد بشكل خاص. تُعرض الآن فقط.")}</p>
       <ul dir="ltr" className="font-mono">{codes.map((code) => <li key={code}>{code}</li>)}</ul>
-      <AppLink to="/admin" className={btnClass("primary", "md")} onClick={() => setCodes([])}>{pick(lang, "Continue", "متابعة")}</AppLink>
+      <button type="button" className={btnClass("primary", "md")} onClick={() => { setCodes([]); void (async () => { await onAuthenticated?.(); await navigate({ to: "/admin" }); })().catch(failure => setError(identityErrorText(failure, lang))); }}>{pick(lang, "Continue", "متابعة")}</button>
     </div>}
   </PassengerAuthShell>;
 }

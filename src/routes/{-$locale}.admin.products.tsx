@@ -17,6 +17,8 @@ import {
 import { AdminDenied } from "@/components/admin/admin-denied";
 import { useAdmin } from "@/lib/admin-store";
 import { useI18n } from "@/lib/i18n";
+import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
+import { AdminUnavailableDomainNotice } from "./{-$locale}.admin";
 import { type CabinId } from "@/lib/data";
 import {
   useFleetQuery,
@@ -34,7 +36,11 @@ import {
 } from "@/lib/fleet";
 import { SeatMap } from "@/components/booking/seat-map";
 import { useRepositories } from "@/lib/repositories/registry";
-import { executeAuditedAdminCommand } from "@/lib/activity";
+import { executeAuditedAdminCommand as executeMockAuditedCommand, type AuditedCommandOptions } from "@/lib/activity";
+
+function executeAuditedAdminCommand<T>(options: AuditedCommandOptions<T>): Promise<T> {
+  return identityUiRequested ? options.domainCommand() : executeMockAuditedCommand(options);
+}
 import { pageHead } from "@/lib/head";
 
 type Tab = "aircraft" | "seatmaps" | "fares" | "baggage" | "meals" | "assistance";
@@ -81,7 +87,9 @@ function AdminProductsPage() {
     }
   }, [search.tab]);
 
-  if (!can("commercial.view")) return <AdminDenied area={t("adm.prod.title")} permission="commercial.view" />;
+  if (!can("commercial.view") && !can("ops.view")) {
+    return <AdminDenied area={t("adm.prod.title")} permission="commercial.view" />;
+  }
 
   return (
     <div className="space-y-4">
@@ -92,22 +100,33 @@ function AdminProductsPage() {
           label={t("adm.prod.tabs")}
           active={tab}
           onChange={setTab}
-          tabs={[
+          tabs={(identityUiRequested ? [
+            { id: "aircraft" as Tab, label: t("adm.prod.tab.aircraft") },
+            { id: "seatmaps" as Tab, label: t("adm.prod.tab.seatmaps") },
+          ] : [
             { id: "aircraft" as Tab, label: t("adm.prod.tab.aircraft") },
             { id: "seatmaps" as Tab, label: t("adm.prod.tab.seatmaps") },
             { id: "fares" as Tab, label: t("adm.prod.tab.fares") },
             { id: "baggage" as Tab, label: t("adm.prod.tab.baggage") },
             { id: "meals" as Tab, label: t("adm.prod.tab.meals") },
             { id: "assistance" as Tab, label: t("adm.prod.tab.assistance") },
-          ]}
+          ])}
         >
           <div className="p-4">
             {tab === "aircraft" ? <AircraftTab /> : null}
             {tab === "seatmaps" ? <SeatMapTab /> : null}
-            {tab === "fares" ? <CommercialProductsTab tab="fares" /> : null}
-            {tab === "baggage" ? <CommercialProductsTab tab="baggage" /> : null}
-            {tab === "meals" ? <CommercialProductsTab tab="meals" /> : null}
-            {tab === "assistance" ? <CommercialProductsTab tab="assistance" /> : null}
+            {tab === "fares" ? (
+              identityUiRequested ? <AdminUnavailableDomainNotice /> : <CommercialProductsTab tab="fares" />
+            ) : null}
+            {tab === "baggage" ? (
+              identityUiRequested ? <AdminUnavailableDomainNotice /> : <CommercialProductsTab tab="baggage" />
+            ) : null}
+            {tab === "meals" ? (
+              identityUiRequested ? <AdminUnavailableDomainNotice /> : <CommercialProductsTab tab="meals" />
+            ) : null}
+            {tab === "assistance" ? (
+              identityUiRequested ? <AdminUnavailableDomainNotice /> : <CommercialProductsTab tab="assistance" />
+            ) : null}
           </div>
         </AdminTabs>
       </AdminPanel>
@@ -121,7 +140,7 @@ function AircraftTab() {
   const { t } = useI18n();
   const { can, toast, actor } = useAdmin();
   const { activity: activityRepo } = useRepositories();
-  const mayEdit = can("commercial.edit");
+  const mayEdit = identityUiRequested ? can("ops.edit") : can("commercial.edit");
   const fleetQuery = useFleetQuery();
   const createAircraftMutation = useCreateAircraftMutation();
   const updateAircraftMutation = useUpdateAircraftMutation();
@@ -393,7 +412,7 @@ function SeatMapTab() {
   const { t } = useI18n();
   const { can, toast, actor } = useAdmin();
   const { activity: activityRepo } = useRepositories();
-  const mayEdit = can("commercial.edit");
+  const mayEdit = identityUiRequested ? can("ops.edit") : can("commercial.edit");
   const fleetQuery = useFleetQuery();
   const updateLayoutMutation = useUpdateLayoutMutation();
 

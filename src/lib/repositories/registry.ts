@@ -38,7 +38,11 @@ import { RepoStorageCoordinator, type RepoStorageV1 } from "./storage.ts";
 import { LocalPassengerRepository } from "../passenger/repository.ts";
 import type { PassengerRepository } from "../passenger/repository.ts";
 import { HttpPassengerRepository } from "../passenger/http-repository.ts";
-import { identityUiRequested, getIdentityUiClient } from "../api/identity-ui-runtime.ts";
+import type { FleetRepository } from "../fleet/types.ts";
+import { HttpFleetRepository } from "../fleet/http-repository.ts";
+import { identityUiRequested, getIdentityUiClient, discardIdentityUiClient } from "../api/identity-ui-runtime.ts";
+import { getReferenceUiClient, discardReferenceUiClient } from "../api/reference-client.ts";
+import type { BookingRepository } from "./types.ts";
 import { PassengerStorageCoordinator, type PassengerStorageV1 } from "../passenger/storage.ts";
 import { LocalBookingDraftRepository } from "../booking-draft/repository.ts";
 import { BookingDraftStorageCoordinator } from "../booking-draft/storage.ts";
@@ -71,6 +75,8 @@ export interface CreateRepositoriesOptions {
   scheduleCoordinator?: ScheduleStorageCoordinator | undefined;
   storage?: Storage | null | undefined;
   commercialCoordinator?: CommercialStorageCoordinator | undefined;
+  fleetRepository?: FleetRepository | undefined;
+  blockMockBookingWrites?: boolean | undefined;
   initialCommercialCatalog?: import("../commercial/types.ts").CommercialCatalog | undefined;
   fleetCoordinator?: FleetStorageCoordinator | undefined;
   initialFleetData?: import("../fleet/types.ts").FleetEnvelopeV1 | undefined;
@@ -134,7 +140,7 @@ export function createRepositories(options?: CreateRepositoriesOptions): Reposit
       ...(options?.initialSchedules !== undefined ? { initialSchedules: options.initialSchedules } : {}),
     });
 
-  const fleetCoordinator =
+  const fleetCoordinator = options?.fleetRepository ? undefined :
     options?.fleetCoordinator ??
     new FleetStorageCoordinator({
       ...(options?.inMemoryOnly !== undefined ? { inMemoryOnly: options.inMemoryOnly } : {}),
@@ -143,13 +149,16 @@ export function createRepositories(options?: CreateRepositoriesOptions): Reposit
     });
 
   const commercial = new LocalCommercialCatalogRepository(options?.commercialCoordinator ?? new CommercialStorageCoordinator({ inMemoryOnly: options?.inMemoryOnly, storage: options?.storage, initialCatalog: options?.initialCommercialCatalog }));
-  const fleet = new LocalFleetRepository(fleetCoordinator);
+  const fleet = options?.fleetRepository ?? new LocalFleetRepository(fleetCoordinator!);
   const network = new LocalNetworkRepository(options?.networkCoordinator ?? new NetworkStorageCoordinator({
     inMemoryOnly: options?.inMemoryOnly, storage: options?.storage, initialData: options?.initialNetworkData,
   }));
   const schedule = new LocalScheduleRepository(scheduleCoordinator, fleet, network);
   const resolver = options?.serviceResolver ?? new LocalDatedServiceResolver(schedule, network);
-  const booking = new LocalBookingRepository(coordinator, { commercial, fleet, resolver });
+  const rawBooking = new LocalBookingRepository(coordinator, { commercial, fleet, resolver });
+  const booking = options?.blockMockBookingWrites
+    ? createMockWriteBlockedBookingRepository(rawBooking)
+    : rawBooking;
   const flight = new LocalFlightRepository(coordinator, {
     fleet,
     resolver,
@@ -220,8 +229,38 @@ export function resetIsolatedStudioRepositories(): void {
   studioRepositories = null;
 }
 
+function createMockWriteBlockedBookingRepository(inner: BookingRepository): BookingRepository {
+  const blocked = async () => {
+    throw new Error("Booking mutations are disabled in server preview mode (domain not wired).");
+  };
+  return {
+    list: blocked,
+    getByRef: blocked,
+    create: blocked,
+    createWithReceipt: blocked,
+    cancel: blocked,
+    cancelWithReceipt: blocked,
+    updateContact: blocked,
+    updateContactWithReceipt: blocked,
+    updateSeats: blocked,
+    updateSeatsWithReceipt: blocked,
+    updateExtras: blocked,
+    updateExtrasWithReceipt: blocked,
+    completeCheckIn: blocked,
+    completeCheckInWithReceipt: blocked,
+    undoCheckIn: blocked,
+    undoCheckInWithReceipt: blocked,
+    claim: blocked,
+    getOccupiedSeats: blocked,
+    delete: blocked,
+    subscribe: (listener) => inner.subscribe(listener),
+  };
+}
+
 export function resetDefaultRepositories(): void {
   browserRepositories = null;
+  discardIdentityUiClient();
+  discardReferenceUiClient();
 }
 
 /**
@@ -234,7 +273,12 @@ export function getDefaultRepositories(): RepositoryRegistry {
   }
   if (!browserRepositories) {
     browserRepositories = createRepositories(identityUiRequested
-      ? { passengerRepository: new HttpPassengerRepository(getIdentityUiClient) } : undefined);
+      ? {
+          passengerRepository: new HttpPassengerRepository(getIdentityUiClient),
+          fleetRepository: new HttpFleetRepository(getReferenceUiClient),
+          blockMockBookingWrites: true,
+        }
+      : undefined);
   }
   return browserRepositories;
 }

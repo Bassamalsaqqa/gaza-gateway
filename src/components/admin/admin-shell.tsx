@@ -18,8 +18,9 @@ import {
 import { AppLink, usePathname } from "@/components/app-link";
 import { pick, useI18n } from "@/lib/i18n";
 import { stripLocale } from "@/lib/locale";
-import { adminNav, type AdminNavItem, type AdminRole } from "@/lib/admin";
+import { adminNav, isDomainAvailableInServerMode, type AdminNavItem, type AdminRole } from "@/lib/admin";
 import { useAdmin } from "@/lib/admin-store";
+import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
 import { useContactNewCount } from "@/lib/contact";
 import { MARK_DARK_SRC, MARK_DARK_1X_SRC, MARK_DARK_2X_SRC } from "@/lib/media";
 import { cn } from "@/lib/utils";
@@ -78,7 +79,9 @@ function NavLink({
     collapsed ? "h-10 w-full justify-center px-0" : "min-h-10 px-3 py-2",
   );
 
-  if (!item.to || !permitted) {
+  const isServerUnavailable = identityUiRequested && !isDomainAvailableInServerMode(item.to);
+
+  if (!item.to || !permitted || isServerUnavailable) {
     const reason = !permitted ? t("adm.shell.noAccess") : t("adm.shell.laterBatch");
     if (collapsed) {
       return (
@@ -121,6 +124,8 @@ function NavLink({
     );
   }
 
+  const destination = item.to;
+
   const activeClasses = active
     ? "bg-[var(--admin-nav-active)] text-[var(--admin-nav-foreground)] border-s-[3px] border-s-[var(--admin-nav-accent)] font-semibold"
     : "text-[var(--admin-nav-muted)] border-s-[3px] border-s-transparent hover:bg-[var(--admin-nav-active)]/60 hover:text-[var(--admin-nav-foreground)]";
@@ -135,7 +140,7 @@ function NavLink({
       <Tooltip>
         <TooltipTrigger asChild>
           <AppLink
-            to={item.to}
+            to={destination}
             onClick={onNavigate}
             aria-label={fullLabel}
             aria-current={active ? "page" : undefined}
@@ -159,7 +164,7 @@ function NavLink({
 
   return (
     <AppLink
-      to={item.to}
+      to={destination}
       onClick={onNavigate}
       aria-current={active ? "page" : undefined}
       className={cn(base, activeClasses)}
@@ -292,10 +297,16 @@ function AccountMenu() {
             {staff.email}
           </span>
           <span className="block text-xs font-normal text-muted-foreground">
-            {pick(lang, staff.title)} • {t(`adm.role.${staff.role}`)}
+            {staff.title ? `${pick(lang, staff.title)} • ` : ""}{t(`adm.role.${staff.role}`)}
           </span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <AppLink to="/admin/settings?tab=security" className="flex items-center gap-2 cursor-pointer font-medium">
+            <Lock aria-hidden="true" className="size-4 text-muted-foreground" />
+            <span>{pick(lang, { en: "Security & Sessions", ar: "الأمان والجلسات" })}</span>
+          </AppLink>
+        </DropdownMenuItem>
         <DropdownMenuItem onSelect={signOut} className="font-semibold cursor-pointer">
           {t("adm.shell.signOut")}
         </DropdownMenuItem>
@@ -459,7 +470,7 @@ function AttentionBell() {
 
 /** Admin chrome: Operational Desk with sticky sidebar, compact topbar, mobile drawer, search and toasts. */
 export function AdminShell({ children, breadcrumb }: { children: ReactNode; breadcrumb?: string }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { toasts, dismissToast } = useAdmin();
   const [collapsed, setCollapsedState] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
@@ -635,8 +646,8 @@ export function AdminShell({ children, breadcrumb }: { children: ReactNode; brea
                 </nav>
               ) : null}
               <span className="hidden sm:inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                <span className="size-1.5 rounded-full bg-muted-foreground/60" aria-hidden="true" />
-                {t("adm.shell.simulation")}
+                <span className={cn("size-1.5 rounded-full", identityUiRequested ? "bg-clay" : "bg-muted-foreground/60")} aria-hidden="true" />
+                {identityUiRequested ? pick(lang, { en: "Server Preview (W1)", ar: "معاينة الخادم (W1)" }) : t("adm.shell.simulation")}
               </span>
             </div>
 
@@ -664,10 +675,10 @@ export function AdminShell({ children, breadcrumb }: { children: ReactNode; brea
             </button>
 
             {/* Quick create (+ New) */}
-            <QuickCreateMenu />
+            {identityUiRequested ? null : <QuickCreateMenu />}
 
             {/* Attention bell */}
-            <AttentionBell />
+            {identityUiRequested ? null : <AttentionBell />}
 
             {/* Direct alternate language */}
             <DirectLanguageButton />

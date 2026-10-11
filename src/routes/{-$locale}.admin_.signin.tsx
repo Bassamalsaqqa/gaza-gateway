@@ -32,7 +32,16 @@ export const Route = createFileRoute("/{-$locale}/admin_/signin")({
 });
 
 function AdminSignInPage() {
-  return identityUiRequested ? <StaffIdentityAuth /> : <MockAdminSignInPage />;
+  const { staff, refreshStaff } = useAdmin();
+  const navigate = useAppNavigate();
+
+  useEffect(() => {
+    if (staff) {
+      void navigate({ to: "/admin", replace: true });
+    }
+  }, [staff, navigate]);
+
+  return identityUiRequested ? <StaffIdentityAuth onAuthenticated={refreshStaff} /> : <MockAdminSignInPage />;
 }
 
 function MockAdminSignInPage() {
