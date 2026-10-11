@@ -16,4 +16,6 @@ Passwords, OTPs, verification/reset tokens and recovery codes are cleared after 
 
 Focused package checks: nine new boundary/guest transport tests passed; the two affected client metadata/negative-matrix tests passed with 46 operations. These fetch fixtures test client behavior and are explicitly not server or mail-delivery evidence. TypeScript passed after integration. Final exact-source PHP/PostgreSQL, real HTTPS/browser evidence and independent review are still required. Earlier partial edit checks failed on missing route imports and an incorrect locale helper signature; those defects were corrected before this package's successful typecheck.
 
+The subsequent [final local gate](phase13b-final-local-gate.md) records cumulative PHP/PostgreSQL, all 46 actual-operation response checks and thirteen focused trusted-HTTPS Chromium checks. Those results supplement the package checks above; they do not constitute a single uninterrupted broad green suite, a full viewport/browser matrix or independent acceptance.
+
 This preview does not activate real mail delivery, paid services, owner administrator custody, DNS, deployment, Actions or Phase 13C. Local synthetic proof delivery fixtures cannot prove a remote provider accepted mail.

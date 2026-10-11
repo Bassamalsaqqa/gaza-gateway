@@ -2,7 +2,7 @@
 
 ## Current local checkpoint — 2026-10-11
 
-Phase 13B remains **In Progress / Awaiting Independent Review**; PR #2 stays draft
+Phase 13B is **Local Identity Implemented / Awaiting Independent Review**; PR #2 stays draft
 and the original CHANGES REQUESTED disposition remains in force. Current implementation
 includes passenger authentication/profile/travelers, corrected durable proofs/outbox and
 bounded manual maintenance. Passenger source is `3697c65b0614860be293e422be4c067b84e41057`.
@@ -27,14 +27,14 @@ remaining staff credential/enrollment/directory/MFA operations with 18 new focus
 demotion race. Audit-failure rollback and expired staged-secret cleanup are covered.
 These are cumulative local checks, not final exact-head integrated certification.
 
-The [booking identity package](phase13b-booking-identity.md) at `f5fc2b01f4ba9ced9326d4a87a19f4d051974490` now implements the five guest/claim HTTP operations, transactional guest/receipt hooks and bounded expiry cleanup. Eleven distinct focused test cases passed cumulatively, including real OTP/claim races; provider acceptance is explicitly synthetic test state, not mail delivery. Checkout/receipt itinerary projection remains a booking-domain dependency. EN/AR identity UI and the final integrated PHP/PostgreSQL/HTTPS/browser gate remain pending. The latest PR review's staff lifecycle/directory contention finding is corrected in [narrow authority locks](phase13b-staff-lock-scope-review.md); its thread stays open for independent confirmation.
+The [booking identity package](phase13b-booking-identity.md) at `f5fc2b01f4ba9ced9326d4a87a19f4d051974490` now implements the five guest/claim HTTP operations, transactional guest/receipt hooks and bounded expiry cleanup. Eleven distinct focused test cases passed cumulatively, including real OTP/claim races; provider acceptance is explicitly synthetic test state, not mail delivery. Checkout/receipt itinerary projection remains a booking-domain dependency. The isolated EN/AR preview is implemented at 4e23ef003209b97ff7222e32860ffdec7a604622. The final local evidence is cumulative: see [gate, failures and focused recovery](phase13b-final-local-gate.md). All 46 actual HTTP operation responses validate; this is not a single uninterrupted green suite or remote delivery/staging certification. The latest PR review's staff lifecycle/directory contention finding is corrected in [narrow authority locks](phase13b-staff-lock-scope-review.md); its thread stays open for independent confirmation.
 Default frontend mock authority remains unchanged. Remote staging, real delivery, scheduler,
 administrator custody and production exposure gates remain deferred. Phases 13C–G unstarted.
 
 The sections below preserve earlier checkpoint provenance. Earlier exclusions and pending
 lists describe their dated source state and do not override this current section.
 
-Status: **In Progress / Awaiting Independent Review**. This is a partial engineering checkpoint, not Phase 13B acceptance or a deployable identity product.
+Historical status below describes the earlier partial checkpoint. The current local candidate above still awaits independent acceptance and is not a deployed identity product.
 
 Date: 2026-10-10. Main/base: `93ffaeb5619c6c5115512b57ebf069cbd153e60e`. Reviewed code checkpoint: `a5b7c6fba1ab8dfad872d5903541576c7f70930f`. The following documentation commit records this assessment without adding runtime functionality.
 

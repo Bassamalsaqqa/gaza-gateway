@@ -31,3 +31,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Owned local identity gate evidence and tracked-file staging snapshots
+/scratch/gaza_identity_gate_*/
+/scratch/identity-recovery-filter.txt

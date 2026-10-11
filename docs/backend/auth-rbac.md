@@ -1,6 +1,6 @@
 ﻿# Authentication, RBAC and identity lifecycle
 
-Status: Phase 12 Complete / Accepted Source (independently accepted at 7dab821d7d205b41ae925e013fe9c69a97a7e875). This is the accepted design baseline. Phase 13B now implements local passenger/staff authentication and booking identity proofs for review; UI, integrated certification and remote delivery/staging gates remain incomplete. See [current checkpoint](phase13b-review-checkpoint.md) and [booking identity package](phase13b-booking-identity.md).
+Status: Phase 12 Complete / Accepted Source (source advanced under owner-supplied acceptance instructions at 7dab821d7d205b41ae925e013fe9c69a97a7e875). This is the accepted design baseline. Phase 13B now implements local passenger/staff authentication and booking identity proofs for review; isolated EN/AR UI is implemented; independent acceptance and remote delivery/staging gates remain pending. See [current checkpoint](phase13b-review-checkpoint.md) and [booking identity package](phase13b-booking-identity.md).
 The closed, versioned identity-lifecycle.v1.json is normative. Its design and relational constraints are checked against independently authored architectural policy in scripts/lib/backend-identity-policy.mjs and backend-identity-relations.mjs. Tests are deterministic development models; they are not proof of real HTTP middleware, cryptography, mail delivery or concurrent database behavior.
 
 ## Realms and browser protocol

@@ -4,13 +4,13 @@ Status: **In Progress / Changes Requested**. PR #2 remains draft. This record as
 
 Review: [PR #2 changes requested](https://github.com/Bassamalsaqqa/gaza-gateway/pull/2#pullrequestreview-5479158852), [anonymous bootstrap follow-up](https://github.com/Bassamalsaqqa/gaza-gateway/pull/2#pullrequestreview-5479690765), [roadmap ownership thread](https://github.com/Bassamalsaqqa/gaza-gateway/pull/2#discussion_r4238213069), [Issue #1](https://github.com/Bassamalsaqqa/gaza-gateway/issues/1). Inspected 2026-10-10: the follow-up regards the original bootstrap finding as substantively addressed in source; the later independent review accepts the narrow phase-ownership correction at `b8e86d642216d56fa815b80ea12e3f9def071dbe`. Integrated and staging gates remain pending, and the prior changes-requested disposition still applies. Codex has not resolved either inline thread on the reviewer's behalf.
 
-## Current Phase 13B blockers
+## Current local implementation and remaining gates
 
-- Anonymous CSRF bootstrap admission and durable cleanup: source correction received a scoped positive independent follow-up; see [design and evidence](phase13b-bootstrap-admission.md). The thread remains open, with final integrated verification and measured proxy/edge admission behavior required before external exposure.
-- Proof/outbox: shared primitives integrated at `1c9000c98fd645fb06bb0da913a137bd6b24d66e` after independent correction review. Mandatory pre-write reservations, failed-deletion accounting, owned test roots, bounded subprocess I/O and retained child locks replace the failing handback. The final narrowed PHP/PostgreSQL gate passed 5 tests / 29 assertions, including double erasure and a genuine two-process revocation/dispatch race; see [evidence and durability limits](phase13b-lifecycle-primitives.md). Full HTTP lifecycle, scheduled dispatch/cleanup wiring, final integrated certification and independent PR review remain pending. Local capture never proves provider acceptance.
-- Passenger, staff MFA/directory, guest access/ownership HTTP lifecycles and EN/AR opt-in identity UI: incomplete. Existing persistence, command schemas and browser clients do not establish implemented routes.
-- Guest/ownership write protection: explicit operation-bound Origin, CSRF, grant and ownership predicates must be verified before those routes are enabled. Existing middleware coverage of auth/staff routes is not evidence for future guest writes.
-- Final integrated local gate: deferred until the complete Phase 13B head; require independently reproducible PHP/PostgreSQL, real races, HTTP/cookie and focused browser evidence with source/artifact provenance. Automatic GitHub Actions remain disabled.
+All 46 accepted identity/guest/claim HTTP operations and an isolated EN/AR nonproduction identity preview are implemented. Default frontend repositories remain mock. [Cumulative final local evidence](phase13b-final-local-gate.md) records real PHP/PostgreSQL, failed checks and bounded recovery, all-operation response validation, HTTPS cookies and focused browser checks. No single uninterrupted full green run is claimed.
+
+Bootstrap admission/cleanup, proof-capture retention, durable source budgets, replay/epoch/MFA/last-admin protection and narrow staff locks are corrected locally. Original inline threads remain unresolved for independent confirmation. Guest challenge timing now has a 250 ms successful-response floor after commit; cold/contended/remote timing and measured proxy/edge admission are not certified.
+
+PR #2 remains draft / CHANGES REQUESTED. Independent phase acceptance, remote delivery/provider idempotency, scheduler supervision, initial-admin custody, proxy/edge attribution, staging TLS/secrets and exposure gates remain pending. Receipt/itinerary consumers and booking mutations are Phase 13D dependencies. Automatic Actions remain disabled.
 
 ## Issue #1 cross-phase findings
 

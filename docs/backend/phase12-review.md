@@ -47,8 +47,12 @@ Unresolved external gates before Phase 13 production work: paid plan budget/regi
 
 ## Independent review and acceptance (2026-10-09)
 
-- **Independent disposition**: Phase 12 is **Complete / Accepted Source**, independently accepted by ChatGPT at commit `7dab821d7d205b41ae925e013fe9c69a97a7e875`.
+- **Source advancement disposition**: Phase 12 is recorded as **Complete / Accepted Source** under owner-supplied conversation instructions at commit `7dab821d7d205b41ae925e013fe9c69a97a7e875`.
 - **Main fast-forward**: Accepted source `7dab821d7d205b41ae925e013fe9c69a97a7e875` was fast-forwarded to `main` and pushed without triggering new GitHub Actions runs.
 - **Owner CI policy**: Workflows (`.github/workflows/ci.yml` and `.github/workflows/hostpapa-audit.yml`) are `disabled_manually`. Quality gate ruleset 24698079 is `disabled`. History protection ruleset 24698077 remains `active` on `main` and `hostpapa-deploy`. Security settings remain preserved in their existing disabled state. No automatic Actions will run in Phase 13.
 - **Static release status**: Consolidated Phase 8–11 release remains `a47afded49e900b75c907e7230ca4dfef5b3f91e` (sourced from `e1b4e3c62238357209990e80b00cc4635f621b76`); live cPanel deployment remains unverified and owner-managed.
 - **Next stage**: Phase 13A local foundation is authorized as the next implementation stage, following prerequisite security work/review. Phase 13 runtime remains Planned / Unstarted; no live runtime, staging, authentication, booking, payment, or publication services exist.
+
+## Public review provenance clarification — 2026-10-11
+
+The owner supplied an overall acceptance/kickoff instruction in this conversation. The independently published [Issue #1 review](https://github.com/Bassamalsaqqa/gaza-gateway/issues/1#issuecomment-6080555457) accepted only Correction 01 (CI/status) at 7dab821d. It expressly retains five normative contract findings. Source advancement is historical fact; it does not establish public closure of those findings or a separately linked favorable overall review. [Cross-phase ownership and required gates](phase13b-review-disposition.md) keep all five findings OPEN for 13D/13E/13F and additional 13G activation checks.
