@@ -1,5 +1,7 @@
 # Phase 12 — Backend readiness, API and database contracts
 
+> **Current progression — 2026-10-11:** Phase 13B is **Local Engineering Accepted / Owner-Authorized Source Integration / Remote Production Gates Deferred** at implementation `f122b6d7db51c887883a402356dd09bee8de3e0d` plus documentation `94b4c7f3b08569678831547cfc39886585deff6a`, normally fast-forwarded into main under explicit owner override. PR #2 is MERGED; CHANGES_REQUESTED and ten unresolved threads remain on record, without a claim of reviewer approval. Phase 13C planning/first manual AGY package is authorized; runtime implementation is unstarted. Phase 13D–G remain unstarted. Default mock authority, disabled live identity cutover, disabled Actions and deferred remote gates are preserved. [Integration record](phase13b-source-integration.md) · [Phase 13C plan](phase13c-reference-plan.md). Earlier checkpoint/status paragraphs below are historical source snapshots superseded by this notice.
+
 Status: Complete / Accepted Source (owner-supplied review authorization at 7dab821d7d205b41ae925e013fe9c69a97a7e875; public cross-phase findings remain open).
 Baseline: accepted Phase 11 source e1b4e3c62238357209990e80b00cc4635f621b76.
 Architecture: modular Laravel 13 / PHP 8.4 API, PostgreSQL 17, paid Render web/worker/cron; existing HostPapa static frontend.

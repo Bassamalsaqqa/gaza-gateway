@@ -1,6 +1,6 @@
 # Phase 13B independent review disposition
 
-Status: **Local Engineering Accepted / Remote Gates Deferred** at `f122b6d7db51c887883a402356dd09bee8de3e0d`, by the owner's local-progression acceptance instruction. PR #2 remains draft with the original **CHANGES_REQUESTED** review preserved. Acceptance is not merge or exposure approval; this record does not close threads or Issue #1.
+Status: **Local Engineering Accepted / Owner-Authorized Source Integration / Remote Production Gates Deferred**. Accepted runtime `f122b6d7db51c887883a402356dd09bee8de3e0d` and documentation `94b4c7f3b08569678831547cfc39886585deff6a` are integrated into main under the explicit [owner governance override](phase13b-source-integration.md). PR #2 is MERGED; original **CHANGES_REQUESTED** and ten unresolved threads remain preserved. This is not independent GitHub reviewer approval or production acceptance.
 
 Review: [PR #2 changes requested](https://github.com/Bassamalsaqqa/gaza-gateway/pull/2#pullrequestreview-5479158852), [anonymous bootstrap follow-up](https://github.com/Bassamalsaqqa/gaza-gateway/pull/2#pullrequestreview-5479690765), [roadmap ownership thread](https://github.com/Bassamalsaqqa/gaza-gateway/pull/2#discussion_r4238213069), [Issue #1](https://github.com/Bassamalsaqqa/gaza-gateway/issues/1). Inspected 2026-10-10: the follow-up regards the original bootstrap finding as substantively addressed in source; the later independent review accepts the narrow phase-ownership correction at `b8e86d642216d56fa815b80ea12e3f9def071dbe`. Integrated and staging gates remain pending, and the prior changes-requested disposition still applies. Codex has not resolved either inline thread on the reviewer's behalf.
 
@@ -10,7 +10,7 @@ All 46 identity/guest/claim HTTP operations and an isolated EN/AR nonproduction 
 
 Bootstrap admission/cleanup, proof-capture retention, durable source budgets, replay/epoch/MFA/last-admin protection and narrow staff locks are corrected locally. Original inline threads remain unresolved for independent confirmation. Guest challenge timing now has a 250 ms successful-response floor after commit; cold/contended/remote timing and measured proxy/edge admission are not certified.
 
-PR #2 remains draft / CHANGES REQUESTED despite local progression acceptance. Formal reviewer disposition, reviewer confirmation of source-corrected threads and owner merge authorization remain pending. Remote delivery/provider idempotency, scheduler supervision, initial-admin custody, proxy/edge attribution, staging TLS/secrets and exposure gates remain deferred/unmet. Receipt/itinerary consumers and booking mutations are Phase 13D dependencies. Automatic Actions remain disabled.
+PR #2 was integrated under explicit owner override despite the formally unresolved CHANGES_REQUESTED review. Reviewer confirmation of source-corrected threads remains pending; none were resolved by Codex. Remote delivery/provider idempotency, scheduler supervision, initial-admin custody, proxy/edge attribution, staging TLS/secrets and exposure gates remain deferred/unmet. Receipt/itinerary consumers and booking mutations are Phase 13D dependencies. Automatic Actions remain disabled.
 
 ## Issue #1 cross-phase findings
 

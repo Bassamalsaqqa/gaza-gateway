@@ -1,6 +1,6 @@
 # Phase 13B local identity review gate
 
-Status: **Local Engineering Accepted / Remote Gates Deferred** at `f122b6d7db51c887883a402356dd09bee8de3e0d`, under the owner's Phase 13B Local Acceptance Finalization instruction. This accepts local engineering progression only. PR #2 remains draft; CHANGES REQUESTED has not been withdrawn, and merge clearance is unresolved. This documentation change does not retest its own later SHA or authorize exposure.
+Status: **Local Engineering Accepted / Owner-Authorized Source Integration / Remote Production Gates Deferred**. Accepted runtime is `f122b6d7db51c887883a402356dd09bee8de3e0d`; documentation head `94b4c7f3b08569678831547cfc39886585deff6a` was fast-forwarded into main on 2026-10-11 under the explicit [owner governance override](phase13b-source-integration.md). PR #2 is MERGED; the original CHANGES_REQUESTED review and ten unresolved threads remain preserved. No GitHub reviewer approval or production acceptance is claimed.
 
 ## Accepted source and final evidence — 2026-10-11
 
@@ -10,7 +10,7 @@ The passing private receipt SHA-256 is `796ad6a040bf9fee06e1a1120515d757120dc3ee
 
 The [independent GitHub follow-up](https://github.com/Bassamalsaqqa/gaza-gateway/pull/2#pullrequestreview-5483266404) positively assessed the source corrections and found no new runtime regression. ChatGPT did **not** execute PHP, PostgreSQL, Docker, Node or Chromium, or verify private receipt/JUnit bytes. Do not attribute Codex's local results to independent reviewer execution. Per-class isolation preserves same-class PostgreSQL concurrency but does not certify accumulated cross-class state, the complete repository suite, remote performance or external delivery. Earlier thirteen HTTPS browser checks remain cumulative at their recorded checkpoints, not a fresh browser run at the accepted SHA.
 
-Local source acceptance does not withdraw the original review, resolve ten threads or authorize merge. Reviewer confirmation and then owner merge authorization are required. Default mock frontend authority and live identity cutover remain disabled. Remote provider, timing, edge/proxy, scheduler, owner custody and staging gates remain open; Issue #1's five findings retain their assigned phases. Phase 13C planning awaits merge clearance. No tests or Actions were rerun for this documentation-only record.
+The original local-acceptance instruction did not authorize merge. The subsequent owner instruction explicitly overrode the unresolved reviewer disposition for source integration only; it does not withdraw the original review or resolve ten threads. Default mock frontend authority and live identity cutover remain disabled. Remote provider, timing, edge/proxy, scheduler, owner custody and staging gates remain open; Issue #1's five findings retain their assigned phases. Phase 13C planning and bounded manual AGY implementation are now owner-authorized. No tests or Actions were rerun for this documentation-only record.
 
 ## Reproduction and scope
 
