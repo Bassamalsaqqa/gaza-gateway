@@ -34,6 +34,7 @@ final class StaffDirectoryTest extends TestCase
             DB::table('staff_users')->where('id', $id)->update(['status' => 'suspended']);
             DB::table('staff_sessions')->where('staff_id', $id)->whereNull('revoked_at')->update(['revoked_at' => DB::raw('clock_timestamp()')]);
             $this->app->make(ProofService::class)->revokeAll(ProofPurpose::StaffInvitation, $id);
+            $this->app->make(ProofService::class)->revokeAll(ProofPurpose::StaffPasswordReset, $id);
         }
         parent::tearDown();
     }
@@ -246,6 +247,29 @@ final class StaffDirectoryTest extends TestCase
             $this->fail('Stale admission snapshot must not authorize directory mutation.');
         } catch (\App\Identity\Staff\StaffAuthenticationException) { $this->assertTrue(true); }
         $this->assertSame(0, DB::table('staff_invitations')->where('staff_id', $admin['owner'])->count());
+    }
+
+    public function test_directory_reads_and_mfa_setup_ignore_global_writer_and_history_locks(): void
+    {
+        $admin = $this->staff(); $unrelated = $this->staff('viewer');
+        $anonymousReceipt = $this->app->make(StaffSessionStore::class)->issueAnonymous();
+        $anonymous = ['cookie' => $anonymousReceipt->getRawToken(), 'csrf' => $anonymousReceipt->getCsrfToken(), 'id' => $anonymousReceipt->sessionId];
+        $email = DB::table('staff_users')->where('id', $admin['owner'])->value('email');
+        $blocker = \Tests\Fixtures\IdentityStaff\StaffHistoryBlocker::hold($admin['id'], true, $unrelated['owner']);
+        try {
+            $this->request('GET', '/staff/users', $admin)->assertStatus(200);
+            $this->request('POST', '/staff/mfa/setup', $admin)->assertStatus(200);
+            $this->request('POST', '/staff/mfa/recovery-codes/regenerate', $admin)->assertStatus(200)->assertJsonCount(10, 'data.recoveryCodes');
+            $this->request('POST', '/staff/password/forgot', $anonymous, ['email' => $email])->assertStatus(202);
+            // Eligibility mutations still require the separately held sentinel; no global-lock bypass.
+            $this->request('PATCH', '/staff/users/' . $admin['owner'], $admin, ['role' => 'viewer'])->assertStatus(503);
+            $this->assertSame('admin', DB::table('staff_users')->where('id', $admin['owner'])->value('role'));
+        } finally { $blocker->rollBack(); DB::purge($blocker->getName()); }
+        $blocker = \Tests\Fixtures\IdentityStaff\StaffHistoryBlocker::hold($admin['id']);
+        try {
+            $this->request('PATCH', '/staff/users/' . $admin['owner'], $admin, ['fullNameEn' => 'Updated Without History Lock'])->assertStatus(200);
+            $this->request('GET', '/staff/users', $admin)->assertStatus(200);
+        } finally { $blocker->rollBack(); DB::purge($blocker->getName()); }
     }
 
     public function test_bounded_cleanup_erases_expired_enrollment_and_replacement_only(): void

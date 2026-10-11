@@ -205,6 +205,45 @@ final class StaffLifecycleTest extends TestCase
         $this->assertSame('consumed', DB::table('staff_password_resets')->where('id', $proof->proofId)->value('state'));
     }
 
+    public function test_active_authority_overflow_fails_without_consuming_reset_or_changing_password(): void
+    {
+        $staff = $this->staff(true); $anonymous = $this->anonymous();
+        $current = $this->app->make(StaffSessionStore::class)->issueFull($staff->id, 1, 1, new \DateTimeImmutable());
+        $base = (array) DB::table('staff_sessions')->where('id', $current->sessionId)->first(); $rows = [];
+        for ($i = 0; $i < \App\Identity\Staff\StaffAuthorityRows::LIMIT; $i++) {
+            $row = $base; $row['id'] = (string) Str::uuid(); $row['lookup_digest'] = hash('sha256', random_bytes(32)); $rows[] = $row;
+        }
+        DB::table('staff_sessions')->insert($rows);
+        $proof = $this->app->make(ProofService::class)->issue(ProofPurpose::StaffPasswordReset, $staff->id);
+        $this->request('POST', '/staff/password/reset', $anonymous,
+            ['token' => $proof->getRawToken(), 'newPassword' => self::NEW_PASSWORD])->assertStatus(503);
+        $this->assertSame(1, DB::table('staff_users')->where('id', $staff->id)->value('credential_epoch'));
+        $this->assertSame($staff->password_hash, DB::table('staff_users')->where('id', $staff->id)->value('password_hash'));
+        $this->assertSame('issued', DB::table('staff_password_resets')->where('id', $proof->proofId)->value('state'));
+    }
+
+    public function test_recovery_ignores_global_writer_and_historical_session_locks(): void
+    {
+        $staff = $this->staff(true); $other = $this->staff(true); $anonymous = $this->anonymous();
+        $receipt = $this->app->make(StaffSessionStore::class)->issueFull($staff->id, 1, 1, new \DateTimeImmutable());
+        $blocker = \Tests\Fixtures\IdentityStaff\StaffHistoryBlocker::hold($receipt->sessionId, true, $other->id);
+        try {
+            $known = $this->request('POST', '/staff/password/forgot', $anonymous, ['email' => $staff->email])->assertStatus(202);
+            $unknown = $this->request('POST', '/staff/password/forgot', $anonymous, ['email' => Str::uuid() . '@example.invalid'])->assertStatus(202);
+            $this->assertSame($known->json('data'), $unknown->json('data'));
+            $proof = DB::table('staff_password_resets')->where('staff_id', $staff->id)->where('state', 'issued')->first();
+            $this->assertNotNull($proof);
+            $outbox = DB::table('security_dispatch_outbox')->where('staff_reset_id', $proof->id)->first();
+            $token = OutboxPayload::fromJson($this->app->make(Encrypter::class)->decrypt($outbox->encrypted_payload))->getTokenOrCode();
+        } finally { $blocker->rollBack(); DB::purge($blocker->getName()); }
+        $blocker = \Tests\Fixtures\IdentityStaff\StaffHistoryBlocker::hold($receipt->sessionId);
+        try {
+            $this->request('POST', '/staff/password/reset', $anonymous, ['token' => $token, 'newPassword' => self::NEW_PASSWORD])->assertStatus(200);
+            $this->assertSame(2, DB::table('staff_users')->where('id', $staff->id)->value('credential_epoch'));
+            $this->assertNull($this->app->make(StaffSessionStore::class)->read($receipt->getRawToken()));
+        } finally { $blocker->rollBack(); DB::purge($blocker->getName()); }
+    }
+
     public function test_enrollment_failed_attempts_exhaust_and_erase_staged_secret(): void
     {
         $staff = $this->staff(); $session = $this->anonymous(); $pending = $this->invitation($staff, $session);

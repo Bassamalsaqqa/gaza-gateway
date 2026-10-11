@@ -1,0 +1,17 @@
+# Staff lifecycle and directory lock scope correction
+
+Review: PR #2 submission `5482427227`, inline finding `4240759839` at `f8f5ed1d692a4bf0f1244f4b6f9afe1088105377`. Status: corrected locally / Awaiting Independent Review. The thread remains open; this does not accept the phase.
+
+The earlier package unnecessarily locked the whole staff directory and historical sessions. Anonymous forgotten-password dispatch and enrollment setup now lock only their candidate principal/current anonymous session; neither changes administrator eligibility or acquires the sentinel. Directory GET and self-service MFA candidate setup/recovery regeneration also avoid the sentinel, lock only their acting principal/current session and do not lock unrelated directory rows. The directory response reads a maximum of 1001 rows; more than 1000 returns explicit 503 rather than silently truncating the unpaginated contract.
+
+Eligibility-changing transitions retain the directory sentinel before ascending actor/target principal rows. Counts remain exact under that serialization; historical principal/audit records remain intact. Password reset/change, invitation acceptance, directory authority changes and confirmed factor replacement lock their current action plus only live target/bound-pending sessions in UUID order. `StaffAuthorityRows` caps both live pending bindings and selected live authority at 100 (101-row overflow detection); overflow is a fixed canonical 503 before authority mutation/proof consumption. Historical expired/revoked sessions are neither locked nor updated. Credential epoch changes still invalidate all older authority, including expired records. Only live pending records are immediately revoked; expired staged secrets remain subject to the existing bounded cleanup.
+
+This is an explicit local operation capacity, not production sizing certification. Larger live-session populations require an independently reviewed bounded bulk-revocation/pagination design. Proof and MFA replay locks, recent-step-up checks, audit rollback and canonical last-admin counting remain enforced. Recovery of one account may legitimately wait for a mutation of that same principal; unrelated accounts do not share the global read/recovery lock.
+
+Focused real PostgreSQL evidence:
+
+- `staff-lifecycle-lock-review01-gate.log`: new recovery contention case and affected two-process last-admin race passed. The directory case initially failed because the database's idle-in-transaction timeout released its blocker before the negative assertion; that was a test-lifetime error, not evidence of sentinel bypass.
+- `staff-lifecycle-lock-review01-repaired-blocker-gate.log`: only the failed case reran, PASS (1 test / 9 assertions). The owned independent blocker has an explicit finite 60-second idle ceiling. While it holds the sentinel, unrelated principal and 300 historical sessions, directory GET/MFA setup/recovery regeneration/forgot-password complete; an eligibility mutation still returns 503 and cannot demote the sole admin. With only history locked, a names-only mutation succeeds.
+- A separate active-authority overflow case verifies canonical 503 leaves password, credential epoch and reset proof unchanged. Its exact result is recorded in `staff-lifecycle-lock-review01-capacity-gate.log`.
+
+No full suite was repeated. Final integrated exact-head certification, UI and external gates remain pending. No Actions, merge, deployment or Phase 13C work occurred.

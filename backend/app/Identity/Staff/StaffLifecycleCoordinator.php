@@ -19,10 +19,9 @@ use App\Identity\Tokens\OpaqueToken;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Encryption\Encrypter;
 use Illuminate\Database\ConnectionInterface;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
-/** Closed staff credential transitions, all within the directory sentinel transaction. */
+/** Sentinel only for eligibility mutations, then exact principal/current/live authority. */
 final class StaffLifecycleCoordinator
 {
     public const OPERATIONS = ['postStaffPasswordForgot', 'postStaffPasswordReset', 'putStaffPassword',
@@ -59,24 +58,23 @@ final class StaffLifecycleCoordinator
         $result = $this->db->transaction(function () use ($operation, $input, $context, $cookie, $csrf, $pendingCookie, $requestId, $newHash) {
             $this->db->statement("SET LOCAL lock_timeout = '3000ms'");
             $this->db->statement("SET LOCAL statement_timeout = '5000ms'");
-            if (!$this->db->table('staff_directory_control')->where('id', 1)->lockForUpdate()->first()) {
-                throw new \LogicException('Staff directory sentinel is unavailable.');
-            }
-            $directory = $this->db->table('staff_users')->orderBy('id')->lockForUpdate()->get();
-            $eligibility = new StaffEligibilityPredicate($this->db);
-            $before = $eligibility->countEligibleAdmins();
-
             $purpose = $operation === 'postStaffInvitationAccept' ? ProofPurpose::StaffInvitation : ProofPurpose::StaffPasswordReset;
             $candidateProof = isset($input['token']) ? $this->db->table($purpose->table())->where('token_digest', hash('sha256', $input['token']))->first() : null;
             $candidatePending = $pendingCookie === null ? null : $this->db->table('staff_pending_auth')->where('token_digest', hash('sha256', $pendingCookie))->first();
             $staffId = match ($operation) {
-                'postStaffPasswordForgot' => $directory->first(fn ($row) => strtolower($row->email) === strtolower(trim($input['email'])))?->id,
+                'postStaffPasswordForgot' => $this->db->table('staff_users')->where('email', strtolower(trim($input['email'])))->value('id'),
                 'postStaffInvitationAccept', 'postStaffPasswordReset' => $candidateProof?->staff_id,
                 'postStaffMfaEnrollmentSetup', 'postStaffMfaEnrollmentConfirm' => $candidatePending?->staff_id,
                 default => $context->getStaffId(),
             };
-            $staff = $directory->firstWhere('id', $staffId);
-            $locked = $this->lockSessions($staffId, $context->sessionId);
+            $eligibleMutation = !in_array($operation, ['postStaffPasswordForgot', 'postStaffMfaEnrollmentSetup'], true);
+            if ($eligibleMutation && !$this->db->table('staff_directory_control')->where('id', 1)->lockForUpdate()->first()) {
+                throw new \LogicException('Staff directory sentinel is unavailable.');
+            }
+            $staff = $staffId === null ? null : $this->db->table('staff_users')->where('id', $staffId)->lockForUpdate()->first();
+            $before = $eligibleMutation ? (new StaffEligibilityPredicate($this->db))->countEligibleAdmins() : 0;
+            $revokes = in_array($operation, ['postStaffInvitationAccept', 'postStaffPasswordReset', 'putStaffPassword'], true);
+            $locked = StaffAuthorityRows::lockSessions($this->db, $context->sessionId, $revokes ? $staffId : null);
             $session = $locked->firstWhere('id', $context->sessionId);
             $full = $operation === 'putStaffPassword';
             $now = $this->now();
@@ -183,15 +181,6 @@ final class StaffLifecycleCoordinator
         return $result ?? throw new StaffAuthenticationException();
     }
 
-    private function lockSessions(?string $staffId, string $currentId): Collection
-    {
-        $bound = $staffId === null ? [] : $this->db->table('staff_pending_auth')->where('staff_id', $staffId)->pluck('bound_session_id')->all();
-        return $this->db->table('staff_sessions')->where(function ($q) use ($staffId, $currentId, $bound) {
-            $q->where('id', $currentId)->orWhereIn('id', $bound);
-            if ($staffId !== null) { $q->orWhere('staff_id', $staffId); }
-        })->orderBy('id')->lockForUpdate()->get();
-    }
-
     private function validSession(?object $session, StaffSessionContext $context, #[\SensitiveParameter] string $cookie,
         #[\SensitiveParameter] string $csrf, CarbonImmutable $now, bool $full): bool
     {
@@ -222,12 +211,9 @@ final class StaffLifecycleCoordinator
 
     private function revokeAuthority(string $id, CarbonImmutable $now): void
     {
-        $bound = $this->db->table('staff_pending_auth')->where('staff_id', $id)->where('state', 'issued')
-            ->orderBy('id')->lockForUpdate()->pluck('bound_session_id');
-        $this->db->table('staff_sessions')->where(function ($q) use ($id, $bound) {
-            $q->where('staff_id', $id)->orWhereIn('id', $bound);
-        })->whereNull('revoked_at')->update(['revoked_at' => $now]);
+        StaffAuthorityRows::revokeLiveSessions($this->db, $id, $now);
         $this->db->table('staff_pending_auth')->where('staff_id', $id)->where('state', 'issued')
+            ->where('expires_at', '>', $this->db->raw('clock_timestamp()'))
             ->update(['state' => 'revoked', 'revoked_at' => $now, 'encrypted_staged_secret' => null]);
         $this->proofs->revokeAll(ProofPurpose::StaffPasswordReset, $id, $this->db);
         $this->proofs->revokeAll(ProofPurpose::StaffInvitation, $id, $this->db);

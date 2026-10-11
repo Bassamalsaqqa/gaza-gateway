@@ -28,6 +28,7 @@ final class StaffDirectoryCoordinator
         'deleteStaffUser', 'postStaffUserInviteReissue', 'postStaffUserInviteRevoke',
         'postStaffMfaSetup', 'postStaffMfaSetupConfirm', 'postStaffMfaRecoveryCodesRegenerate'];
     private const MFA_OPERATIONS = ['postStaffMfaSetup', 'postStaffMfaSetupConfirm', 'postStaffMfaRecoveryCodesRegenerate'];
+    public const DIRECTORY_LIMIT = 1000;
 
     public function __construct(private readonly ConnectionInterface $db, private readonly Encrypter $encrypter,
         private readonly DurableRateLimiter $limiter, private readonly ProofService $proofs,
@@ -47,34 +48,41 @@ final class StaffDirectoryCoordinator
         $result = $this->db->transaction(function () use ($operation, $input, $targetId, $context, $cookie, $csrf, $requestId, $write) {
             $this->db->statement("SET LOCAL lock_timeout = '3000ms'");
             $this->db->statement("SET LOCAL statement_timeout = '5000ms'");
-            if (!$this->db->table('staff_directory_control')->where('id', 1)->lockForUpdate()->first()) {
+            $mfa = in_array($operation, self::MFA_OPERATIONS, true);
+            $eligibleMutation = $write && (!$mfa || $operation === 'postStaffMfaSetupConfirm');
+            if ($eligibleMutation && !$this->db->table('staff_directory_control')->where('id', 1)->lockForUpdate()->first()) {
                 throw new \LogicException('Staff directory sentinel is unavailable.');
             }
-            $directory = $this->db->table('staff_users')->orderBy('id')->lockForUpdate()->get();
-            $before = (new StaffEligibilityPredicate($this->db))->countEligibleAdmins();
-            $actor = $directory->firstWhere('id', $context->getStaffId());
             $ids = array_values(array_filter([$context->getStaffId(), $targetId]));
-            $bound = $this->db->table('staff_pending_auth')->whereIn('staff_id', $ids)->pluck('bound_session_id');
-            $sessions = $this->db->table('staff_sessions')->where(function ($q) use ($ids, $bound, $context) {
-                $q->whereIn('staff_id', $ids)->orWhereIn('id', $bound)->orWhere('id', $context->sessionId);
-            })->orderBy('id')->lockForUpdate()->get();
+            $principals = $this->db->table('staff_users')->whereIn('id', $ids)->orderBy('id')->lockForUpdate()->get();
+            $before = $eligibleMutation ? (new StaffEligibilityPredicate($this->db))->countEligibleAdmins() : 0;
+            $actor = $principals->firstWhere('id', $context->getStaffId());
+            $target = $targetId === null ? null : $principals->firstWhere('id', $targetId);
+            $revokes = $operation === 'postStaffMfaSetupConfirm' ? $actor?->id
+                : (in_array($operation, ['deleteStaffUser', 'postStaffUserInviteReissue', 'postStaffUserInviteRevoke'], true)
+                    || ($operation === 'patchStaffUser' && (isset($input['role']) || array_key_exists('isActive', $input))) ? $target?->id : null);
+            $sessions = StaffAuthorityRows::lockSessions($this->db, $context->sessionId, $revokes);
             $session = $sessions->firstWhere('id', $context->sessionId);
             $now = $this->now();
-            $mfa = in_array($operation, self::MFA_OPERATIONS, true);
             $this->authorize($actor, $session, $cookie, $csrf, $now, $write, !$mfa);
             if ($mfa) {
                 $result = $this->mfa($operation, $input, $actor, $session, $now);
                 if ($result === null) { return null; } // Durable failed candidate attempt must commit.
-                $eligible = (new StaffEligibilityPredicate($this->db))->countEligibleAdmins();
-                if ($before > 0 && $eligible < 1) { throw new LastAdminConflictException($eligible); }
+                if ($eligibleMutation) {
+                    $eligible = (new StaffEligibilityPredicate($this->db))->countEligibleAdmins();
+                    if ($before > 0 && $eligible < 1) { throw new LastAdminConflictException($eligible); }
+                }
                 $this->audit->record(AuditActor::staff($actor->id), $operation, AuditOutcome::Success,
                     AuditTargetType::StaffUser, $actor->id, ['success' => true], $requestId, $this->db);
                 return $result;
             }
             if ($operation === 'getStaffUsersDirectory') {
+                $directory = $this->db->table('staff_users')->orderBy('id')->limit(self::DIRECTORY_LIMIT + 1)->get();
+                if ($directory->count() > self::DIRECTORY_LIMIT) {
+                    throw new \Symfony\Component\HttpKernel\Exception\ServiceUnavailableHttpException(null, 'Staff directory exceeds the bounded projection capacity.');
+                }
                 return new StaffOperationResult($directory->map(fn ($row) => $this->dto($row))->all());
             }
-            $target = $targetId === null ? null : $directory->firstWhere('id', $targetId);
             if ($operation !== 'postStaffUserInvite' && !$target) { throw new StaffDirectoryException(404, 'not_found'); }
             if ($operation === 'postStaffUserInvite') {
                 $username = trim($input['username']); $email = strtolower(trim($input['email']));
@@ -83,7 +91,7 @@ final class StaffDirectoryCoordinator
                     || !filter_var($email, FILTER_VALIDATE_EMAIL)) { throw new \InvalidArgumentException('Invalid staff identity.'); }
                 $this->validateNames($en, $ar);
                 if (!$this->rbac->isValidRole($input['role'])) { throw new \InvalidArgumentException('Invalid staff role.'); }
-                if ($directory->contains(fn ($row) => $row->username === $username || strtolower($row->email) === $email)) {
+                if ($this->db->table('staff_users')->where(fn ($q) => $q->where('username', $username)->orWhere('email', $email))->exists()) {
                     throw new StaffDirectoryException(409, 'conflict');
                 }
                 $targetId = (string) Str::uuid();
@@ -260,11 +268,9 @@ final class StaffDirectoryCoordinator
 
     private function revoke(string $id, CarbonImmutable $now): void
     {
-        $bound = $this->db->table('staff_pending_auth')->where('staff_id', $id)->where('state', 'issued')
-            ->orderBy('id')->lockForUpdate()->pluck('bound_session_id');
-        $this->db->table('staff_sessions')->where(fn ($q) => $q->where('staff_id', $id)->orWhereIn('id', $bound))
-            ->whereNull('revoked_at')->update(['revoked_at' => $now]);
+        StaffAuthorityRows::revokeLiveSessions($this->db, $id, $now);
         $this->db->table('staff_pending_auth')->where('staff_id', $id)->where('state', 'issued')
+            ->where('expires_at', '>', $this->db->raw('clock_timestamp()'))
             ->update(['state' => 'revoked', 'revoked_at' => $now, 'encrypted_staged_secret' => null]);
         $this->proofs->revokeAll(ProofPurpose::StaffInvitation, $id, $this->db);
         $this->proofs->revokeAll(ProofPurpose::StaffPasswordReset, $id, $this->db);
