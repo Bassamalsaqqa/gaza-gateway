@@ -19,4 +19,5 @@ Route::prefix('v1')->group(function () {
 
     // Identity protocol routes (Phase 13B)
     require __DIR__ . '/identity.php';
+    require __DIR__ . '/passenger-profile.php';
 });
