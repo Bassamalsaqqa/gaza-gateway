@@ -34,7 +34,19 @@ const captureRoot = path.join(root, "backend/storage/app/private", `final-identi
 const isolatedSource = path.join(output, "source");
 try {
   const head = command("source-head", "git", ["rev-parse", "HEAD"]).trim();
+  if (command("source-clean", "git", ["status", "--porcelain", "--untracked-files=normal"]).trim()) {
+    throw new Error("The identity gate requires a clean committed candidate.");
+  }
   command("source-whitespace", "git", ["diff", "--check"]);
+  const suite = fs.readFileSync(path.join(root, "backend/tests/identity-final.xml"), "utf8");
+  for (const group of ["Feature", "Unit"]) {
+    for (const entry of fs.readdirSync(path.join(root, "backend/tests", group), { withFileTypes: true })) {
+      if (entry.isDirectory() && entry.name.startsWith("Identity")
+          && !suite.includes(`>${group}/${entry.name}</directory>`)) {
+        throw new Error(`Identity suite directory omitted: ${group}/${entry.name}`);
+      }
+    }
+  }
   // Snapshot tracked product files only. Windows bind-mount realpath/permission semantics
   // are unsuitable for retention symlink probes and multi-process framework boot.
   const sourceFiles = command("source-inventory", "git", ["ls-files", "backend", "docs/backend", "scripts/lib", "src/lib/api"]).trim().split(/\r?\n/);
@@ -75,8 +87,15 @@ try {
     : phpCommand("migration-roundtrip", ["php", "vendor/bin/phpunit", "tests/Feature/IdentityPersistence/MigrationLifecycleTest.php"], 180000);
   const catalog = phpCommand("migration-status", ["php", "artisan", "migrate:status"]);
   phpCommand("csrf-live-captures", ["php", "tests/Fixtures/IdentityFinal/capture-bootstraps.php"]);
-  const tests = phpCommand("identity-php-postgres", ["php", "vendor/bin/phpunit", "--configuration", "tests/identity-final.xml",
-    ...(filter ? ["--filter", filter] : []), "--log-junit", "/tmp/identity-final.xml"], 900000);
+  let tests;
+  try {
+    tests = phpCommand("identity-php-postgres", ["php", "vendor/bin/phpunit", "--configuration", "tests/identity-final.xml",
+      ...(filter ? ["--filter", filter] : []), "--log-junit", "/tmp/identity-final.xml"], 900000);
+  } catch (error) {
+    // Preserve failed JUnit before destroying the exclusively owned test instance.
+    docker("failed-junit-copy", ["cp", `${php}:/tmp/identity-final.xml`, path.join(output, "identity-final.xml")]);
+    throw error;
+  }
   docker("junit-copy", ["cp", `${php}:/tmp/identity-final.xml`, path.join(output, "identity-final.xml")]);
   docker("response-copy", ["cp", `${php}:/workspace/backend/storage/app/private/final-identity-${run}`, captureRoot]);
   const spec = JSON.parse(fs.readFileSync(path.join(root, "docs/backend/openapi.v1.json"), "utf8"));
@@ -100,10 +119,10 @@ try {
   }
   // Independent closed runtime registry, not a count-only declaration.
   const expected = contract.operations.map(operation => operation.operationId);
-  if (expected.length !== 46 || expected.some(id => !captures.some(c => c.operationId === id)) || captures.length !== 46) {
+  if (expected.length !== 46 || (!filter && (expected.some(id => !captures.some(c => c.operationId === id)) || captures.length !== 46))) {
     throw new Error(`Actual operation coverage incomplete: ${captures.length}/46; missing ${expected.filter(id => !captures.some(c => c.operationId === id)).join(", ")}`);
   }
-  console.log("PASS actual OpenAPI responses and negative controls: 46/46");
+  console.log(`PASS actual OpenAPI responses and negative controls: ${captures.length}/46${filter ? " (focused selection; not an acceptance gate)" : ""}`);
   if (!filter) {
     command("identity-types", "node", ["scripts/generate-identity-api-types.mjs", "--check"]);
     command("backend-contracts", "node", ["scripts/validate-backend-contracts.mjs"]);

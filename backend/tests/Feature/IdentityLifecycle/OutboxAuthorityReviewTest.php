@@ -224,7 +224,15 @@ final class OutboxAuthorityReviewTest extends TestCase
         $this->assertSame(0, $spyGateway->submitCalls, 'Unsupported normal-returning gateway must have zero submit calls.');
         $this->assertSame($candidates->count(), $result->processedCount);
         $this->assertSame(0, $result->capturedLocallyCount);
-        $this->assertSame($candidates->count(), $result->failedCount);
+        // Earlier fixtures may leave queued records whose authority is now revoked.
+        // Those must be scrubbed, not counted as provider failures or delivered.
+        $processedRows = DB::table('security_dispatch_outbox')->whereIn('id', $candidates->all())->get();
+        $this->assertSame($processedRows->where('status', 'failed')->count(), $result->failedCount);
+        foreach ($processedRows as $processedRow) {
+            $this->assertContains($processedRow->status, ['failed', 'scrubbed', 'expired']);
+            $this->assertNull($processedRow->accepted_at);
+            $this->assertNull($processedRow->provider_message_id);
+        }
         $this->assertContains('ERR_UNCONFIGURED_PROVIDER', $result->errorCodes);
 
         $row = DB::table('security_dispatch_outbox')->where('id', $outboxId)->first();
