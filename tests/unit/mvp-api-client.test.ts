@@ -3,9 +3,40 @@ import { test } from "node:test";
 import { z } from "zod";
 import { createMvpApiClient, MvpApiError } from "../../src/lib/api/mvp-client.ts";
 import type { IdentityApiClientConfig } from "../../src/lib/api/identity-client-config.ts";
+import { IdentityApiError } from "../../src/lib/api/identity-client-errors.ts";
 
 const schema = z.object({ revision: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER) }).strict();
 const read = { method: "GET", realm: "public", path: "/meals", schema } as const;
+
+for (const realm of ["staff", "passenger"] as const) for (const [status, code] of [[401, "unauthorized"], [403, "forbidden"], [429, "too_many_requests"], [503, "service_unavailable"]] as const) {
+  test(`bootstrap review preserves ${realm} ${status} without dispatching a mutation`, async () => {
+    const f = fixture();
+    const fail = async () => { throw new IdentityApiError({ kind: "http_error", status, code, message: "private-sentinel" }); };
+    const client = createMvpApiClient(f.config, () => ({ getStaffCsrfBootstrap: fail, getAuthCsrfBootstrap: fail }));
+    await assert.rejects(client.request({ ...read, method: "POST", realm, body: {} }), (error: unknown) =>
+      error instanceof MvpApiError && error.status === status && error.code === code && !error.message.includes("private-sentinel"));
+    assert.equal(f.calls.length, 0);
+  });
+}
+for (const [kind, code] of [["abort", "aborted"], ["timeout", "timeout"], ["network", "network"], ["protocol", "protocol"]] as const) {
+  test(`bootstrap review preserves ${kind} classification without dispatch`, async () => {
+    const f = fixture(); const fail = async () => { throw new IdentityApiError({ kind, message: "private-sentinel" }); };
+    const client = createMvpApiClient(f.config, () => ({ getStaffCsrfBootstrap: fail, getAuthCsrfBootstrap: fail }));
+    await assert.rejects(client.request({ ...read, method: "POST", realm: "staff", body: {} }), (error: unknown) =>
+      error instanceof MvpApiError && error.code === code && !error.message.includes("private-sentinel"));
+    assert.equal(f.calls.length, 0);
+  });
+}
+test("bootstrap review distinguishes elapsed deadline from caller cancellation", async () => {
+  const f = fixture(); const pending = () => new Promise<never>(() => {});
+  const client = createMvpApiClient({ ...f.config, timeoutMs: 10 }, () => ({ getStaffCsrfBootstrap: pending, getAuthCsrfBootstrap: pending }));
+  await assert.rejects(client.request({ ...read, method: "POST", realm: "staff", body: {} }), (error: unknown) => error instanceof MvpApiError && error.code === "timeout");
+  const cancellation = new AbortController();
+  const request = client.request({ ...read, method: "POST", realm: "staff", body: {}, signal: cancellation.signal });
+  cancellation.abort();
+  await assert.rejects(request, (error: unknown) => error instanceof MvpApiError && error.code === "aborted");
+  assert.equal(f.calls.length, 0);
+});
 function fixture(overrides: { status?: number; contentType?: string; body?: (id: string) => unknown } = {}) {
   const calls: RequestInit[] = [];
   const fetcher: typeof fetch = async (_url, init) => {

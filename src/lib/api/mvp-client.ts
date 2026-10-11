@@ -1,5 +1,6 @@
 import type { ZodType } from "zod";
 import type { IdentityApiClient } from "./identity-client.ts";
+import { IdentityApiError } from "./identity-client-errors.ts";
 import { resolveIdentityApiClientConfig, validateTimeoutMs, type IdentityApiClientConfig } from "./identity-client-config.ts";
 import { generateCryptographicUuid, isValidUuid, tryParseCanonicalError, validateSuccessMeta } from "./identity-client-validators.ts";
 
@@ -43,13 +44,14 @@ export function createMvpApiClient(config: IdentityApiClientConfig, identity: ()
       || input.path.includes("//") || input.path.split("?")[0]!.split("/").some(part => part === "." || part === "..")
       || (input.realm === "public" && input.method !== "GET")) throw new MvpApiError("invalid_request");
     const controller = new AbortController(); active.add(controller);
+    let timedOut = false;
     const abort = () => controller.abort();
     input.signal?.addEventListener("abort", abort, { once: true });
     let rejectAbort: (error: MvpApiError) => void = () => {};
     const cancelled = new Promise<never>((_, reject) => { rejectAbort = reject; });
-    const onAbort = () => rejectAbort(new MvpApiError("aborted"));
+    const onAbort = () => rejectAbort(new MvpApiError(timedOut ? "timeout" : "aborted"));
     controller.signal.addEventListener("abort", onAbort, { once: true });
-    const timer = setTimeout(abort, input.timeoutMs === undefined ? resolved.timeoutMs : validateTimeoutMs(input.timeoutMs));
+    const timer = setTimeout(() => { timedOut = true; abort(); }, input.timeoutMs === undefined ? resolved.timeoutMs : validateTimeoutMs(input.timeoutMs));
     try {
       const operation = async (): Promise<MvpEnvelope<T>> => {
         const requestId = input.requestId ?? generateCryptographicUuid();
@@ -104,6 +106,13 @@ export function createMvpApiClient(config: IdentityApiClientConfig, identity: ()
       return await Promise.race([operation(), cancelled]);
     } catch (error) {
       if (error instanceof MvpApiError) throw error;
+      if (controller.signal.aborted) throw new MvpApiError(timedOut ? "timeout" : "aborted");
+      if (error instanceof IdentityApiError) {
+        if (error.kind === "http_error" && error.status !== undefined && error.status >= 400 && error.status <= 599)
+          throw new MvpApiError(error.code ?? "http_error", error.status);
+        if (error.kind === "timeout" || error.kind === "network") throw new MvpApiError(error.kind);
+        if (error.kind === "abort") throw new MvpApiError("aborted");
+      }
       throw new MvpApiError(controller.signal.aborted ? "aborted" : "protocol");
     } finally {
       clearTimeout(timer); input.signal?.removeEventListener("abort", abort);
