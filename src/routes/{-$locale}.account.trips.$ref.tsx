@@ -1,3 +1,5 @@
+import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
+import { ReservationView } from "@/components/booking/mvp-reservation-views";
 import { AppLink } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
 import { BookingDetail } from "@/components/booking/booking-detail";
@@ -26,6 +28,11 @@ export const Route = createFileRoute("/{-$locale}/account/trips/$ref")({
 });
 
 function TripDetailPage() {
+  const { ref } = Route.useParams();
+  return identityUiRequested ? <ReservationView reference={ref} /> : <MockTripDetailPage />;
+}
+
+function MockTripDetailPage() {
   const { ref } = Route.useParams();
   const { t } = useI18n();
   const { data: account, isLoading: accountLoading } = usePassengerAccount();

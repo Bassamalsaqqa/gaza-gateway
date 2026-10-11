@@ -1,3 +1,5 @@
+import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
+import { ReservationList } from "@/components/booking/mvp-reservation-views";
 import { useCommercialOptions } from "@/lib/commercial/queries";
 import { GazaTable, GazaTableBody, GazaTableCaption, GazaTableCell, GazaTableHead, GazaTableHeader, GazaTableRow } from "@/components/gaza-table";
 import { createFileRoute } from "@tanstack/react-router";
@@ -42,6 +44,10 @@ export function bookingStatusChip(status: MockBookingStatus) {
 }
 
 function AdminBookingsPage() {
+  return identityUiRequested ? <ReservationList staff /> : <MockAdminBookingsPage />;
+}
+
+function MockAdminBookingsPage() {
   const { t, lang } = useI18n();
   const { can } = useAdmin();
   const { fares } = useCommercialOptions();

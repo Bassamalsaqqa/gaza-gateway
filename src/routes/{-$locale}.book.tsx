@@ -1,3 +1,6 @@
+import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
+import { MvpFreeBooking } from "@/components/booking/mvp-free-booking";
+import { decodeDatedOfferingId } from "@/lib/offerings/codec";
 import { useCommercialOptions } from "@/lib/commercial/queries";
 import { previewBookingTotal, pricingSnapshot, validateServiceSelections, resolvePreviewSeatLayouts } from "@/lib/commercial/pricing";
 import { CommercialCatalogError, catalogErrorKey } from "@/lib/commercial/types";
@@ -73,6 +76,7 @@ import { cn } from "@/lib/utils";
 
 
 type BookSearch = {
+  offering?: string;
   step?: BookingStep;
   skinPreview?: "1" | 1;
   studioPreview?: "1" | 1;
@@ -83,6 +87,7 @@ type BookSearch = {
 export const Route = createFileRoute("/{-$locale}/book")({
   validateSearch: (search: Record<string, unknown>): BookSearch => {
     const out: BookSearch = {};
+    if (typeof search["offering"] === "string" && decodeDatedOfferingId(search["offering"])) out.offering = search["offering"];
     const rawStep = search["step"];
     if (typeof rawStep === "string" && (bookingSteps as readonly string[]).includes(rawStep)) {
       out.step = rawStep as BookingStep;
@@ -124,6 +129,11 @@ export const Route = createFileRoute("/{-$locale}/book")({
 
 
 function BookPage() {
+  const { offering } = Route.useSearch();
+  return identityUiRequested ? <MvpFreeBooking offeringId={offering} /> : <MockBookPage />;
+}
+
+function MockBookPage() {
   const { t, lang } = useI18n();
   const commercial = useCommercialOptions();
   const navigate = useAppNavigate();

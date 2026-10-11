@@ -1,3 +1,4 @@
+import { AppLink } from "@/components/app-link";
 import { useState } from "react";
 import { useI18n, pick } from "@/lib/i18n";
 import { useOfferingsQuery } from "@/lib/offerings/queries";
@@ -31,7 +32,7 @@ export function MvpOfferingBoard() {
       return <li key={item.id} className="flex flex-wrap items-center gap-4 rounded-xl border border-border p-4">
         <div className="min-w-36 flex-1"><Code>{item.number}</Code><p className="mt-1 font-semibold">{airport ? pick(lang, airport.city) : code}</p><Code>{item.originCode} → {item.destinationCode}</Code></div>
         <div><Code>{item.departTime} → {item.arriveTime}</Code><p className="mt-1 text-sm text-muted-foreground">{item.aircraft}</p></div>
-        <span className={btnClass("outline", "sm")} aria-disabled="true">{ar ? "الحجز قريباً" : "Booking coming soon"}</span>
+        <AppLink to="/book" search={{ offering: item.id }} className={btnClass("primary", "sm")}>{ar ? "حجز مجاني" : "Book free"}</AppLink>
       </li>;
     })}</ul> : null}
   </section>;

@@ -1,3 +1,5 @@
+import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
+import { MvpBookingAccess } from "@/components/booking/mvp-booking-access";
 import { createFileRoute } from "@tanstack/react-router";
 import { Luggage, Plane, Search, Ticket } from "lucide-react";
 import { useState } from "react";
@@ -31,6 +33,10 @@ export const Route = createFileRoute("/{-$locale}/check-in")({
 });
 
 function CheckInEntryPage() {
+  return identityUiRequested ? <MvpBookingAccess checkIn /> : <MockCheckInEntryPage />;
+}
+
+function MockCheckInEntryPage() {
   const { t } = useI18n();
   const navigate = useAppNavigate();
   const { booking: bookingRepo } = useRepositories();

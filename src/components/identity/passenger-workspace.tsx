@@ -10,7 +10,8 @@ import { discardIdentityUiClient, getIdentityUiClient } from "@/lib/api/identity
 import type { PassengerProfileDto, PassengerSessionDto, TravelerDto } from "@/lib/api/identity-types";
 import { IdentityForm } from "./identity-forms";
 import { passwordField, identityErrorText, type IdentityField } from "@/lib/api/identity-ui-fields";
-import { BookingIdentityProof } from "./booking-proof";
+import { Outlet } from "@tanstack/react-router";
+import { ReservationList } from "@/components/booking/mvp-reservation-views";
 
 const nameFields: IdentityField[] = [{ name: "firstName", en: "First name", ar: "الاسم الأول", optional: true },
   { name: "lastName", en: "Last name", ar: "اسم العائلة", optional: true }];
@@ -22,7 +23,7 @@ export function PassengerIdentityWorkspace() {
   const [travelers, setTravelers] = useState<TravelerDto[]>([]); const [sessions, setSessions] = useState<PassengerSessionDto[]>([]);
   const [loading, setLoading] = useState(true); const [error, setError] = useState<unknown>(null);
   const generation = useRef(0);
-  const clear = useCallback(() => { generation.current++; setProfile(null); setTravelers([]); setSessions([]); query.removeQueries({ queryKey: passengerKeys.all }); }, [query]);
+  const clear = useCallback(() => { generation.current++; setProfile(null); setTravelers([]); setSessions([]); void query.cancelQueries({ queryKey: ["mvp", "reservations"] }); query.removeQueries({ queryKey: ["mvp", "reservations"] }); query.removeQueries({ queryKey: passengerKeys.all }); }, [query]);
   const load = useCallback(async (signal?: AbortSignal) => {
     const ticket = ++generation.current;
     setLoading(true); setError(null);
@@ -33,10 +34,14 @@ export function PassengerIdentityWorkspace() {
       const confirm = await api.getPassengerProfile(options);
       if (account.data.email !== confirm.data.email) { throw new Error("Account context changed."); }
       if (signal?.aborted || ticket !== generation.current) return;
+      await query.cancelQueries({ queryKey: ["mvp", "reservations"] });
+      query.removeQueries({ queryKey: ["mvp", "reservations"] });
+      query.removeQueries({ queryKey: passengerKeys.all });
+      if (signal?.aborted || ticket !== generation.current) return;
       setProfile(confirm.data); setTravelers(people.data); setSessions(active.data.sessions);
     } catch (failure) { if (!signal?.aborted && ticket === generation.current) { setProfile(null); setTravelers([]); setSessions([]); setError(failure); } }
     finally { if (!signal?.aborted && ticket === generation.current) setLoading(false); }
-  }, []);
+  }, [query]);
   useEffect(() => {
     const abort = new AbortController(); void load(abort.signal);
     const focus = () => { void load(abort.signal); }; window.addEventListener("focus", focus);
@@ -59,14 +64,14 @@ export function PassengerIdentityWorkspace() {
       <p dir="ltr" className="mt-3 break-all text-sm">{profile.email}</p>
       <div className="my-5 flex flex-wrap gap-2">
         {[["/account", "Overview", "نظرة عامة"], ["/account/profile", "Profile", "الملف الشخصي"],
-          ["/account/travelers", "Saved travelers", "المسافرون المحفوظون"], ["/account/security", "Security", "الأمان"]].map(([to, en, ar]) =>
+          ["/account/trips", "My bookings", "حجوزاتي"], ["/account/travelers", "Saved travelers", "المسافرون المحفوظون"], ["/account/security", "Security", "الأمان"]].map(([to, en, ar]) =>
           <AppLink key={to} to={to!} className={btnClass("outline", "sm")}>{pick(lang, en!, ar!)}</AppLink>)}
         <button type="button" disabled={loading} className={btnClass("outline", "sm")} onClick={() => void logout()}>{pick(lang, "Sign out", "تسجيل الخروج")}</button>
         <button type="button" disabled={loading} className={btnClass("outline", "sm")} onClick={() => void load()}>{pick(lang, "Refresh session", "تحديث الجلسة")}</button>
-        {!loading && <Panel><BookingIdentityProof key={profile.email} mode="claim" /></Panel>}
+
       </div>
       <div className="max-w-3xl space-y-5" aria-busy={loading}>
-        {loading ? null : path === "/account/profile" || path === "/account/preferences" ? <Panel>
+        {loading ? null : path === "/account/trips" || path.startsWith("/account/trips/") ? <Outlet /> : path === "/account" || path === "/account/" ? <ReservationList /> : path === "/account/profile" || path === "/account/preferences" ? <Panel>
           <IdentityForm key={profile.email} fields={[...nameFields.map((field) => ({ ...field, initial: profile[field.name as "firstName" | "lastName"] })),
             { name: "phone", en: "Phone", ar: "الهاتف", optional: true, initial: profile.phone }]}
             submit={async (values) => { await getIdentityUiClient().putPassengerProfile({ firstName: values["firstName"]!, lastName: values["lastName"]!, phone: values["phone"]! }); await load(); }}
@@ -103,8 +108,8 @@ export function PassengerIdentityWorkspace() {
                 button={pick(lang, "Revoke session", "إلغاء الجلسة")} />
             </div>)}
           </Panel>
-        </> : <Panel><p>{pick(lang, "Your profile and saved travelers are available. Trip and boarding-pass services are not enabled in this account preview.",
-          "ملفك الشخصي والمسافرون المحفوظون متاحون. خدمات الرحلات وبطاقات الصعود غير مفعلة في معاينة الحساب هذه.")}</p></Panel>}
+        </> : <Panel><p>{pick(lang, "This operational account service is not enabled for commemorative bookings. Your booking tickets are available under My bookings.",
+          "هذه الخدمة التشغيلية غير مفعلة للحجوزات التذكارية. تذاكرك متاحة ضمن حجوزاتي.")}</p></Panel>}
       </div>
     </>}
   </Container>;

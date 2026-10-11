@@ -1,3 +1,5 @@
+import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
+import { ReservationView } from "@/components/booking/mvp-reservation-views";
 import { validateBookingExtras } from "@/lib/domain/booking-validation";
 import { serviceOptions } from "@/lib/commercial/pricing";
 import { useCommercialOptions } from "@/lib/commercial/queries";
@@ -99,6 +101,11 @@ function statusTone(status: MockBookingStatus) {
 }
 
 function AdminBookingDetailPage() {
+  const { ref } = Route.useParams();
+  return identityUiRequested ? <ReservationView reference={ref} staff /> : <MockAdminBookingDetailPage />;
+}
+
+function MockAdminBookingDetailPage() {
   const { ref } = Route.useParams();
   const { t, lang } = useI18n();
   const commercial = useCommercialOptions();

@@ -66,7 +66,7 @@ export function PassengerIdentityAuth({ initial = "signin" }: { initial?: Passen
     const api = getIdentityUiClient();
     if (flow === "signin") {
       await api.postPassengerLogin({ email: v["email"]!, password: v["password"]! });
-      query.removeQueries({ queryKey: passengerKeys.all });
+      await query.cancelQueries({ queryKey: ["mvp", "reservations"] }); query.removeQueries({ queryKey: ["mvp", "reservations"] }); query.removeQueries({ queryKey: passengerKeys.all });
       await navigate({ to: "/account" }); return;
     }
     if (flow === "register") await api.postPassengerRegister({ email: v["email"]!, password: v["password"]!, firstName: v["firstName"]!, lastName: v["lastName"]! });
@@ -74,12 +74,12 @@ export function PassengerIdentityAuth({ initial = "signin" }: { initial?: Passen
     if (flow === "reset") await api.postPassengerPasswordReset({ email: v["email"]!, token: v["token"]!, password: v["password"]! });
     if (flow === "verify") await api.postPassengerEmailVerify({ token: v["token"]! });
     if (flow === "resend") await api.postPassengerEmailResend({ email: v["email"]! });
-    setReceipt(true); query.removeQueries({ queryKey: passengerKeys.all });
+    setReceipt(true); await query.cancelQueries({ queryKey: ["mvp", "reservations"] }); query.removeQueries({ queryKey: ["mvp", "reservations"] }); query.removeQueries({ queryKey: passengerKeys.all });
   };
   return <PassengerAuthShell title={pick(lang, ...titles[flow])}
     description={pick(lang, "Account preview. Your account is verified by the account service.", "معاينة الحساب. تتحقق خدمة الحساب من هويتك.")}>
     <div className="mb-5 flex flex-wrap gap-2" aria-label={pick(lang, "Account actions", "إجراءات الحساب")}>
-      {(Object.keys(titles) as PassengerFlow[]).filter((item) => item !== flow).map((item) => <button key={item} type="button"
+      {(Object.keys(titles) as PassengerFlow[]).filter((item) => item !== flow && item !== "guest").map((item) => <button key={item} type="button"
         className={btnClass("outline", "sm")} onClick={() => { setFlow(item); setReceipt(false); }}>{pick(lang, ...titles[item])}</button>)}
     </div>
     {flow === "guest" ? <BookingIdentityProof mode="guest" /> : <IdentityForm key={flow} fields={fields} submit={submit} button={pick(lang, ...titles[flow])}

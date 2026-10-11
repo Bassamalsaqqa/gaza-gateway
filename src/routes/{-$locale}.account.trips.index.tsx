@@ -1,3 +1,5 @@
+import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
+import { ReservationList } from "@/components/booking/mvp-reservation-views";
 import { AppLink } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
 import { StatusBadge } from "@/components/flight-status";
@@ -32,6 +34,10 @@ export const Route = createFileRoute("/{-$locale}/account/trips/")({
 type Group = "upcoming" | "past" | "cancelled";
 
 function TripsPage() {
+  return identityUiRequested ? <ReservationList /> : <MockTripsPage />;
+}
+
+function MockTripsPage() {
   const { t, lang } = useI18n();
   const { data: bookings } = useMyBookings();
   const [group, setGroup] = useState<Group>("upcoming");

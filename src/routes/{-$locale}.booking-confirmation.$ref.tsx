@@ -1,3 +1,5 @@
+import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
+import { ReservationView } from "@/components/booking/mvp-reservation-views";
 import { resolveBookingPricing } from "@/lib/commercial/pricing";
 import { useCommercialOptions } from "@/lib/commercial/queries";
 import { CommercialCatalogState } from "@/components/commercial-catalog-state";
@@ -40,6 +42,11 @@ export const Route = createFileRoute("/{-$locale}/booking-confirmation/$ref")({
 });
 
 function ConfirmationPage() {
+  const { ref } = Route.useParams();
+  return identityUiRequested ? <ReservationView reference={ref} /> : <MockConfirmationPage />;
+}
+
+function MockConfirmationPage() {
   const { ref } = Route.useParams();
   const normalizedRef = (ref || "").trim().toUpperCase();
   const { t, lang } = useI18n();
