@@ -527,3 +527,57 @@ export type IdentityResponse =
   | StaffInvitationAcceptResponse
   | StaffInviteReissueResponse
   | StaffInviteRevokeResponse;
+
+export interface BookingChallengeRequest {
+  surname: string;
+}
+
+export interface BookingChallengeResponse {
+  success: true;
+  data: { challengeId: string; expiresAt: string; message: string };
+  meta: SuccessMeta;
+}
+
+export interface BookingVerifyChallengeRequest {
+  challengeId: string;
+  code: string;
+}
+
+export interface BookingVerifyChallengeResponse {
+  success: true;
+  data: { bookingToken: string; pnr: string; expiresAt: string; allowedActions: (string)[] };
+  meta: SuccessMeta;
+}
+
+export interface ClaimBookingRequest {
+  ref: string;
+  claimProof: string;
+}
+
+export interface BookingDetailResponse {
+  success: true;
+  data: { id: string; pnr: string; status: "pending_payment" | "confirmed" | "cancelled" | "compensation_pending"; contactName: string; contactEmail: string; contactPhone: string; fareId: "essential" | "classic" | "flex"; cabin?: "economy" | "premium" | "business"; totalAmountMinor: number; currency: string; passengers: ({ id: string; title?: string; firstName: string; lastName: string; type: "adult" | "child" | "infant"; linkedAdultPassengerId?: string })[]; legs: ({ id: string; legType: "outbound" | "inbound"; datedServiceId: string; flightNumber: string; origin: string; destination: string; departureDate: string; seats?: ({ passengerId: string; seatCode: string })[] })[]; createdAt: string };
+  meta: SuccessMeta;
+}
+
+export interface BookingClaimChallengeRequest {
+  ref: string;
+  surname: string;
+}
+
+export interface BookingClaimChallengeResponse {
+  success: true;
+  data: { challengeId: string; expiresAt: string; message: string };
+  meta: SuccessMeta;
+}
+
+export interface BookingClaimVerifyRequest {
+  challengeId: string;
+  code: string;
+}
+
+export interface BookingClaimVerifyResponse {
+  success: true;
+  data: { claimProof: string; expiresAt: string };
+  meta: SuccessMeta;
+}

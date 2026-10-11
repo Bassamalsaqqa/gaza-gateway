@@ -1,9 +1,10 @@
+import type { BookingChallengeRequest, BookingChallengeResponse, BookingVerifyChallengeRequest, BookingVerifyChallengeResponse, BookingClaimChallengeRequest, BookingClaimChallengeResponse, BookingClaimVerifyRequest, BookingClaimVerifyResponse, ClaimBookingRequest, BookingDetailResponse } from "./identity-types.ts";
 import { validateOperationRequest, validateOperationResponse } from "./identity-schema-validation.ts";
 /**
  * Gaza Gateway / Palestinian Airlines
  * Phase 13B Identity API — Isolated Non-Production Identity Client
  *
- * Implements 12 accepted identity operations over HTTPS-only transport.
+ * Implements 46 accepted identity operations over HTTPS-only transport.
  * Credentials included ('include'), redirects rejected ('error'), cache: 'no-store',
  * request UUID correlation enforced, bounded fetch timeout (covering body read),
  * strict per-realm CSRF isolation & write serialization, generation/disposal guards.
@@ -182,7 +183,12 @@ export interface IdentityApiClient {
   readonly baseUrl: string | null;
   readonly isDisposed: boolean;
 
-  // 41 Core Identity Operations
+  // 46 Core Identity Operations
+  postCreateGuestChallenge(ref: string, body: BookingChallengeRequest, options?: IdentityApiRequestOptions): Promise<BookingChallengeResponse>;
+  postVerifyGuestChallenge(ref: string, body: BookingVerifyChallengeRequest, options?: IdentityApiRequestOptions): Promise<BookingVerifyChallengeResponse>;
+  postCreateClaimChallenge(body: BookingClaimChallengeRequest, options?: IdentityApiRequestOptions): Promise<BookingClaimChallengeResponse>;
+  postVerifyClaimChallenge(body: BookingClaimVerifyRequest, options?: IdentityApiRequestOptions): Promise<BookingClaimVerifyResponse>;
+  postClaimBookingToAccount(body: ClaimBookingRequest, options?: IdentityApiRequestOptions): Promise<BookingDetailResponse>;
   getAuthCsrfBootstrap(options?: IdentityApiRequestOptions): Promise<CsrfTokenResponse>;
   postPassengerRegister(body: RegisterRequest, options?: IdentityApiRequestOptions): Promise<PassengerRegisterReceiptResponse>;
   postPassengerLogin(body: LoginRequest, options?: IdentityApiRequestOptions): Promise<PassengerAuthResponse>;
@@ -1674,6 +1680,36 @@ class IdentityApiClientImpl implements IdentityApiClient {
   }
 
   // ==========================================
+  async postCreateGuestChallenge(ref: string, body: BookingChallengeRequest, options?: IdentityApiRequestOptions): Promise<BookingChallengeResponse> {
+    validateRequestOptions(options); this.#ensureEnabled(); this.#ensureNotDisposed();
+    if ([...ref].length < 6 || [...ref].length > 8) throw new IdentityApiError({ kind: "protocol", message: "Booking reference is invalid." });
+    return this.executeLiveMutation<BookingChallengeResponse>("postCreateGuestChallenge", "passenger", `/bookings/${validatePathId(ref)}/challenge`, body, 202, (data) => data as BookingChallengeResponse["data"], false, options);
+  }
+
+  async postVerifyGuestChallenge(ref: string, body: BookingVerifyChallengeRequest, options?: IdentityApiRequestOptions): Promise<BookingVerifyChallengeResponse> {
+    validateRequestOptions(options); this.#ensureEnabled(); this.#ensureNotDisposed();
+    if ([...ref].length < 6 || [...ref].length > 8) throw new IdentityApiError({ kind: "protocol", message: "Booking reference is invalid." });
+    return this.executeLiveMutation<BookingVerifyChallengeResponse>("postVerifyGuestChallenge", "passenger", `/bookings/${validatePathId(ref)}/verify-challenge`, body, 200, (data) => data as BookingVerifyChallengeResponse["data"], false, options);
+  }
+
+  async postCreateClaimChallenge(body: BookingClaimChallengeRequest, options?: IdentityApiRequestOptions): Promise<BookingClaimChallengeResponse> {
+    validateRequestOptions(options); this.#ensureEnabled(); this.#ensureNotDisposed();
+
+    return this.executeLiveMutation<BookingClaimChallengeResponse>("postCreateClaimChallenge", "passenger", `/account/bookings/claim/challenge`, body, 202, (data) => data as BookingClaimChallengeResponse["data"], false, options);
+  }
+
+  async postVerifyClaimChallenge(body: BookingClaimVerifyRequest, options?: IdentityApiRequestOptions): Promise<BookingClaimVerifyResponse> {
+    validateRequestOptions(options); this.#ensureEnabled(); this.#ensureNotDisposed();
+
+    return this.executeLiveMutation<BookingClaimVerifyResponse>("postVerifyClaimChallenge", "passenger", `/account/bookings/claim/verify`, body, 200, (data) => data as BookingClaimVerifyResponse["data"], false, options);
+  }
+
+  async postClaimBookingToAccount(body: ClaimBookingRequest, options?: IdentityApiRequestOptions): Promise<BookingDetailResponse> {
+    validateRequestOptions(options); this.#ensureEnabled(); this.#ensureNotDisposed();
+
+    return this.executeLiveMutation<BookingDetailResponse>("postClaimBookingToAccount", "passenger", `/account/bookings/claim`, body, 200, (data) => data as BookingDetailResponse["data"], false, options);
+  }
+
   // Live Transport Execution
   // ==========================================
   private async executeCsrfBootstrap(

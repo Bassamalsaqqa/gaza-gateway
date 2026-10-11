@@ -36,6 +36,9 @@ import { LocalBookingRepository } from "./booking-repository.ts";
 import { LocalFlightRepository } from "./flight-repository.ts";
 import { RepoStorageCoordinator, type RepoStorageV1 } from "./storage.ts";
 import { LocalPassengerRepository } from "../passenger/repository.ts";
+import type { PassengerRepository } from "../passenger/repository.ts";
+import { HttpPassengerRepository } from "../passenger/http-repository.ts";
+import { identityUiRequested, getIdentityUiClient } from "../api/identity-ui-runtime.ts";
 import { PassengerStorageCoordinator, type PassengerStorageV1 } from "../passenger/storage.ts";
 import { LocalBookingDraftRepository } from "../booking-draft/repository.ts";
 import { BookingDraftStorageCoordinator } from "../booking-draft/storage.ts";
@@ -52,6 +55,7 @@ import { contactKeys } from "../contact/keys.ts";
 import { scheduleKeys } from "../schedules/keys.ts";
 
 export interface CreateRepositoriesOptions {
+  passengerRepository?: PassengerRepository;
   /** Fixture resolver injection is restricted to explicitly isolated memory registries. */
   serviceResolver?: DatedServiceResolver | undefined;
   inMemoryOnly?: boolean | undefined;
@@ -99,9 +103,8 @@ export function createRepositories(options?: CreateRepositoriesOptions): Reposit
       storage: options?.storage,
     });
 
-  const passengerCoordinator =
-    options?.passengerCoordinator ??
-    new PassengerStorageCoordinator({
+  const passengerCoordinator = options?.passengerRepository ? undefined :
+    options?.passengerCoordinator ?? new PassengerStorageCoordinator({
       inMemoryOnly: options?.inMemoryOnly,
       initialData: options?.initialPassengerData,
       storage: options?.storage,
@@ -152,7 +155,7 @@ export function createRepositories(options?: CreateRepositoriesOptions): Reposit
     resolver,
     ...(options?.storage !== undefined ? { storage: options.storage } : {}),
   });
-  const passenger = new LocalPassengerRepository(passengerCoordinator, commercial);
+  const passenger = options?.passengerRepository ?? new LocalPassengerRepository(passengerCoordinator!, commercial);
   const bookingDraft = new LocalBookingDraftRepository(bookingDraftCoordinator, commercial, fleet);
   const contact = new LocalContactRepository({ coordinator: contactCoordinator });
   const staffCoordinator =
@@ -226,11 +229,12 @@ export function resetDefaultRepositories(): void {
  * automatically redirecting to isolated in-memory repositories when in Studio preview.
  */
 export function getDefaultRepositories(): RepositoryRegistry {
-  if (isStudioPreviewActive()) {
+  if (isStudioPreviewActive() && !identityUiRequested) {
     return getIsolatedStudioRepositories();
   }
   if (!browserRepositories) {
-    browserRepositories = createRepositories();
+    browserRepositories = createRepositories(identityUiRequested
+      ? { passengerRepository: new HttpPassengerRepository(getIdentityUiClient) } : undefined);
   }
   return browserRepositories;
 }
@@ -246,7 +250,7 @@ export function RepositoryProvider({
   children,
   repositories,
 }: RepositoryProviderProps) {
-  const isStudio = isStudioPreviewActive();
+  const isStudio = isStudioPreviewActive() && !identityUiRequested;
   const value = useMemo(
     () => repositories ?? (isStudio ? getIsolatedStudioRepositories() : getDefaultRepositories()),
     [repositories, isStudio],

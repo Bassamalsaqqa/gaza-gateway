@@ -1,3 +1,5 @@
+import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
+import { PassengerIdentityWorkspace } from "@/components/identity/passenger-workspace";
 import { AppLink } from "@/components/app-link";
 import { Outlet, createFileRoute } from "@tanstack/react-router";
 import { Container, EmptyState, GazaLoadingState, PageHeader, btnClass } from "@/components/kit";
@@ -21,6 +23,10 @@ const links = [
 ] as const;
 
 function AccountLayout() {
+  return identityUiRequested ? <PassengerIdentityWorkspace /> : <MockAccountLayout />;
+}
+
+function MockAccountLayout() {
   const { t } = useI18n();
   const { data: account, isLoading } = usePassengerAccount();
   const signOutMutation = useSignOutMutation();

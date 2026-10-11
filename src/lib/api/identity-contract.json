@@ -2,7 +2,7 @@
   "$schema": "identity-api-contract-v1",
   "version": "1.0.0",
   "description": "Narrow contract extraction for 41 accepted Phase 13B identity transport operations",
-  "digest": "c077303feebd8ff5293e2af5412856dff7494ec26d638869ff372d71803063e4",
+  "digest": "a83111c1330f7a7fa2d85704938e0b0619b34b19d4ad28ffc0cf148671640ba6",
   "operations": [
     {
       "operationId": "getAuthCsrfBootstrap",
@@ -1501,6 +1501,178 @@
           "condition": "authenticated_staff",
           "requiredPermission": "admin.manage",
           "requiresActive": true
+        }
+      ]
+    },
+    {
+      "operationId": "postCreateGuestChallenge",
+      "method": "POST",
+      "path": "/bookings/{ref}/challenge",
+      "successStatuses": [
+        "202"
+      ],
+      "security": [],
+      "protocol": {
+        "branches": [
+          {
+            "realm": "anonymous_passenger",
+            "origin": "configured_frontend",
+            "csrf": "anonymous_passenger"
+          }
+        ],
+        "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store",
+        "stepUpSeconds": null
+      },
+      "expectedStatus": 202,
+      "realm": "passenger",
+      "requiresCsrf": true,
+      "isAuthChanging": false,
+      "requestSchemaName": "BookingChallengeRequest",
+      "responseSchemaName": "BookingChallengeResponse",
+      "authorizationBranches": []
+    },
+    {
+      "operationId": "postVerifyGuestChallenge",
+      "method": "POST",
+      "path": "/bookings/{ref}/verify-challenge",
+      "successStatuses": [
+        "200"
+      ],
+      "security": [],
+      "protocol": {
+        "branches": [
+          {
+            "realm": "anonymous_passenger",
+            "origin": "configured_frontend",
+            "csrf": "anonymous_passenger"
+          }
+        ],
+        "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store",
+        "stepUpSeconds": null
+      },
+      "expectedStatus": 200,
+      "realm": "passenger",
+      "requiresCsrf": true,
+      "isAuthChanging": false,
+      "requestSchemaName": "BookingVerifyChallengeRequest",
+      "responseSchemaName": "BookingVerifyChallengeResponse",
+      "authorizationBranches": []
+    },
+    {
+      "operationId": "postClaimBookingToAccount",
+      "method": "POST",
+      "path": "/account/bookings/claim",
+      "successStatuses": [
+        "200"
+      ],
+      "security": [
+        {
+          "PassengerCookieAuth": []
+        }
+      ],
+      "protocol": {
+        "branches": [
+          {
+            "realm": "passenger",
+            "origin": "configured_frontend",
+            "csrf": "passenger"
+          }
+        ],
+        "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store",
+        "stepUpSeconds": null
+      },
+      "expectedStatus": 200,
+      "realm": "passenger",
+      "requiresCsrf": true,
+      "isAuthChanging": false,
+      "requestSchemaName": "ClaimBookingRequest",
+      "responseSchemaName": "BookingDetailResponse",
+      "authorizationBranches": [
+        {
+          "scheme": "PassengerCookieAuth",
+          "condition": "authenticated_passenger_self"
+        }
+      ]
+    },
+    {
+      "operationId": "postCreateClaimChallenge",
+      "method": "POST",
+      "path": "/account/bookings/claim/challenge",
+      "successStatuses": [
+        "202"
+      ],
+      "security": [
+        {
+          "PassengerCookieAuth": []
+        }
+      ],
+      "protocol": {
+        "branches": [
+          {
+            "realm": "passenger",
+            "origin": "configured_frontend",
+            "csrf": "passenger"
+          }
+        ],
+        "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store",
+        "stepUpSeconds": null
+      },
+      "expectedStatus": 202,
+      "realm": "passenger",
+      "requiresCsrf": true,
+      "isAuthChanging": false,
+      "requestSchemaName": "BookingClaimChallengeRequest",
+      "responseSchemaName": "BookingClaimChallengeResponse",
+      "authorizationBranches": [
+        {
+          "scheme": "PassengerCookieAuth",
+          "condition": "authenticated_passenger_self"
+        }
+      ]
+    },
+    {
+      "operationId": "postVerifyClaimChallenge",
+      "method": "POST",
+      "path": "/account/bookings/claim/verify",
+      "successStatuses": [
+        "200"
+      ],
+      "security": [
+        {
+          "PassengerCookieAuth": []
+        }
+      ],
+      "protocol": {
+        "branches": [
+          {
+            "realm": "passenger",
+            "origin": "configured_frontend",
+            "csrf": "passenger"
+          }
+        ],
+        "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+        "csrfHeader": "X-CSRF-TOKEN",
+        "cacheControl": "no-store",
+        "stepUpSeconds": null
+      },
+      "expectedStatus": 200,
+      "realm": "passenger",
+      "requiresCsrf": true,
+      "isAuthChanging": false,
+      "requestSchemaName": "BookingClaimVerifyRequest",
+      "responseSchemaName": "BookingClaimVerifyResponse",
+      "authorizationBranches": [
+        {
+          "scheme": "PassengerCookieAuth",
+          "condition": "authenticated_passenger_self"
         }
       ]
     }
@@ -3537,6 +3709,450 @@
           },
           "required": [
             "deactivated"
+          ],
+          "additionalProperties": false
+        },
+        "meta": {
+          "$ref": "#/components/schemas/SuccessMeta"
+        }
+      },
+      "required": [
+        "success",
+        "data",
+        "meta"
+      ],
+      "additionalProperties": false
+    },
+    "BookingChallengeRequest": {
+      "type": "object",
+      "properties": {
+        "surname": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
+      },
+      "required": [
+        "surname"
+      ],
+      "additionalProperties": false
+    },
+    "BookingChallengeResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "const": true
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "challengeId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "expiresAt": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "challengeId",
+            "expiresAt",
+            "message"
+          ],
+          "additionalProperties": false
+        },
+        "meta": {
+          "$ref": "#/components/schemas/SuccessMeta"
+        }
+      },
+      "required": [
+        "success",
+        "data",
+        "meta"
+      ],
+      "additionalProperties": false
+    },
+    "BookingVerifyChallengeRequest": {
+      "type": "object",
+      "properties": {
+        "challengeId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "code": {
+          "type": "string",
+          "pattern": "^[0-9]{6}$"
+        }
+      },
+      "required": [
+        "challengeId",
+        "code"
+      ],
+      "additionalProperties": false
+    },
+    "BookingVerifyChallengeResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "const": true
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "bookingToken": {
+              "type": "string"
+            },
+            "pnr": {
+              "type": "string"
+            },
+            "expiresAt": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "allowedActions": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "bookingToken",
+            "pnr",
+            "expiresAt",
+            "allowedActions"
+          ],
+          "additionalProperties": false
+        },
+        "meta": {
+          "$ref": "#/components/schemas/SuccessMeta"
+        }
+      },
+      "required": [
+        "success",
+        "data",
+        "meta"
+      ],
+      "additionalProperties": false
+    },
+    "ClaimBookingRequest": {
+      "type": "object",
+      "properties": {
+        "ref": {
+          "type": "string",
+          "minLength": 6,
+          "maxLength": 8
+        },
+        "claimProof": {
+          "type": "string",
+          "minLength": 32,
+          "maxLength": 64
+        }
+      },
+      "required": [
+        "ref",
+        "claimProof"
+      ],
+      "additionalProperties": false
+    },
+    "BookingDetailResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "const": true
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "pnr": {
+              "type": "string",
+              "minLength": 6,
+              "maxLength": 8
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "pending_payment",
+                "confirmed",
+                "cancelled",
+                "compensation_pending"
+              ]
+            },
+            "contactName": {
+              "type": "string"
+            },
+            "contactEmail": {
+              "type": "string"
+            },
+            "contactPhone": {
+              "type": "string"
+            },
+            "fareId": {
+              "type": "string",
+              "enum": [
+                "essential",
+                "classic",
+                "flex"
+              ]
+            },
+            "cabin": {
+              "type": "string",
+              "enum": [
+                "economy",
+                "premium",
+                "business"
+              ]
+            },
+            "totalAmountMinor": {
+              "type": "integer"
+            },
+            "currency": {
+              "type": "string"
+            },
+            "passengers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "firstName": {
+                    "type": "string"
+                  },
+                  "lastName": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "adult",
+                      "child",
+                      "infant"
+                    ]
+                  },
+                  "linkedAdultPassengerId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "firstName",
+                  "lastName",
+                  "type"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "legs": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "legType": {
+                    "type": "string",
+                    "enum": [
+                      "outbound",
+                      "inbound"
+                    ]
+                  },
+                  "datedServiceId": {
+                    "type": "string"
+                  },
+                  "flightNumber": {
+                    "type": "string"
+                  },
+                  "origin": {
+                    "type": "string"
+                  },
+                  "destination": {
+                    "type": "string"
+                  },
+                  "departureDate": {
+                    "type": "string"
+                  },
+                  "seats": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "passengerId": {
+                          "type": "string"
+                        },
+                        "seatCode": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "passengerId",
+                        "seatCode"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "id",
+                  "legType",
+                  "datedServiceId",
+                  "flightNumber",
+                  "origin",
+                  "destination",
+                  "departureDate"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "createdAt": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "required": [
+            "id",
+            "pnr",
+            "status",
+            "contactName",
+            "contactEmail",
+            "contactPhone",
+            "fareId",
+            "totalAmountMinor",
+            "currency",
+            "passengers",
+            "legs",
+            "createdAt"
+          ],
+          "additionalProperties": false
+        },
+        "meta": {
+          "$ref": "#/components/schemas/SuccessMeta"
+        }
+      },
+      "required": [
+        "success",
+        "data",
+        "meta"
+      ],
+      "additionalProperties": false
+    },
+    "BookingClaimChallengeRequest": {
+      "type": "object",
+      "properties": {
+        "ref": {
+          "type": "string",
+          "minLength": 6,
+          "maxLength": 8
+        },
+        "surname": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
+      },
+      "required": [
+        "ref",
+        "surname"
+      ],
+      "additionalProperties": false
+    },
+    "BookingClaimChallengeResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "const": true
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "challengeId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "expiresAt": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "challengeId",
+            "expiresAt",
+            "message"
+          ],
+          "additionalProperties": false
+        },
+        "meta": {
+          "$ref": "#/components/schemas/SuccessMeta"
+        }
+      },
+      "required": [
+        "success",
+        "data",
+        "meta"
+      ],
+      "additionalProperties": false
+    },
+    "BookingClaimVerifyRequest": {
+      "type": "object",
+      "properties": {
+        "challengeId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "code": {
+          "type": "string",
+          "pattern": "^[0-9]{6}$"
+        }
+      },
+      "required": [
+        "challengeId",
+        "code"
+      ],
+      "additionalProperties": false
+    },
+    "BookingClaimVerifyResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "const": true
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "claimProof": {
+              "type": "string",
+              "minLength": 32,
+              "maxLength": 64
+            },
+            "expiresAt": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "required": [
+            "claimProof",
+            "expiresAt"
           ],
           "additionalProperties": false
         },

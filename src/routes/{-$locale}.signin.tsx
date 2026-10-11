@@ -1,3 +1,5 @@
+import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
+import { PassengerIdentityAuth } from "@/components/identity/identity-forms";
 import { AppLink, useAppNavigate } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
@@ -26,6 +28,10 @@ export const Route = createFileRoute("/{-$locale}/signin")({
 });
 
 function SignInPage() {
+  return identityUiRequested ? <PassengerIdentityAuth /> : <MockSignInPage />;
+}
+
+function MockSignInPage() {
   const { t } = useI18n();
   const navigate = useAppNavigate();
   const signInMutation = useSignInMutation();

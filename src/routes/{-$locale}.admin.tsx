@@ -1,3 +1,5 @@
+import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
+import { StaffIdentityWorkspace } from "@/components/identity/staff-workspace";
 import { Outlet, createFileRoute } from "@tanstack/react-router";
 import { AppLink, usePathname } from "@/components/app-link";
 import { btnClass } from "@/components/kit";
@@ -12,6 +14,10 @@ export const Route = createFileRoute("/{-$locale}/admin")({
 });
 
 function AdminLayout() {
+  return identityUiRequested ? <StaffIdentityWorkspace /> : <MockAdminLayout />;
+}
+
+function MockAdminLayout() {
   const { t } = useI18n();
   const { ready, staff } = useAdmin();
   const path = stripLocale(usePathname());

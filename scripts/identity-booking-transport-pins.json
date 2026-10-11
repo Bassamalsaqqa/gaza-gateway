@@ -1,0 +1,174 @@
+[
+  {
+    "operationId": "postCreateGuestChallenge",
+    "method": "POST",
+    "path": "/bookings/{ref}/challenge",
+    "successStatuses": [
+      "202"
+    ],
+    "security": [],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "anonymous_passenger",
+          "origin": "configured_frontend",
+          "csrf": "anonymous_passenger"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": null
+    },
+    "expectedStatus": 202,
+    "realm": "passenger",
+    "requiresCsrf": true,
+    "isAuthChanging": false,
+    "requestSchemaName": "BookingChallengeRequest",
+    "responseSchemaName": "BookingChallengeResponse",
+    "authorizationBranches": []
+  },
+  {
+    "operationId": "postVerifyGuestChallenge",
+    "method": "POST",
+    "path": "/bookings/{ref}/verify-challenge",
+    "successStatuses": [
+      "200"
+    ],
+    "security": [],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "anonymous_passenger",
+          "origin": "configured_frontend",
+          "csrf": "anonymous_passenger"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": null
+    },
+    "expectedStatus": 200,
+    "realm": "passenger",
+    "requiresCsrf": true,
+    "isAuthChanging": false,
+    "requestSchemaName": "BookingVerifyChallengeRequest",
+    "responseSchemaName": "BookingVerifyChallengeResponse",
+    "authorizationBranches": []
+  },
+  {
+    "operationId": "postClaimBookingToAccount",
+    "method": "POST",
+    "path": "/account/bookings/claim",
+    "successStatuses": [
+      "200"
+    ],
+    "security": [
+      {
+        "PassengerCookieAuth": []
+      }
+    ],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "passenger",
+          "origin": "configured_frontend",
+          "csrf": "passenger"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": null
+    },
+    "expectedStatus": 200,
+    "realm": "passenger",
+    "requiresCsrf": true,
+    "isAuthChanging": false,
+    "requestSchemaName": "ClaimBookingRequest",
+    "responseSchemaName": "BookingDetailResponse",
+    "authorizationBranches": [
+      {
+        "scheme": "PassengerCookieAuth",
+        "condition": "authenticated_passenger_self"
+      }
+    ]
+  },
+  {
+    "operationId": "postCreateClaimChallenge",
+    "method": "POST",
+    "path": "/account/bookings/claim/challenge",
+    "successStatuses": [
+      "202"
+    ],
+    "security": [
+      {
+        "PassengerCookieAuth": []
+      }
+    ],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "passenger",
+          "origin": "configured_frontend",
+          "csrf": "passenger"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": null
+    },
+    "expectedStatus": 202,
+    "realm": "passenger",
+    "requiresCsrf": true,
+    "isAuthChanging": false,
+    "requestSchemaName": "BookingClaimChallengeRequest",
+    "responseSchemaName": "BookingClaimChallengeResponse",
+    "authorizationBranches": [
+      {
+        "scheme": "PassengerCookieAuth",
+        "condition": "authenticated_passenger_self"
+      }
+    ]
+  },
+  {
+    "operationId": "postVerifyClaimChallenge",
+    "method": "POST",
+    "path": "/account/bookings/claim/verify",
+    "successStatuses": [
+      "200"
+    ],
+    "security": [
+      {
+        "PassengerCookieAuth": []
+      }
+    ],
+    "protocol": {
+      "branches": [
+        {
+          "realm": "passenger",
+          "origin": "configured_frontend",
+          "csrf": "passenger"
+        }
+      ],
+      "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+      "csrfHeader": "X-CSRF-TOKEN",
+      "cacheControl": "no-store",
+      "stepUpSeconds": null
+    },
+    "expectedStatus": 200,
+    "realm": "passenger",
+    "requiresCsrf": true,
+    "isAuthChanging": false,
+    "requestSchemaName": "BookingClaimVerifyRequest",
+    "responseSchemaName": "BookingClaimVerifyResponse",
+    "authorizationBranches": [
+      {
+        "scheme": "PassengerCookieAuth",
+        "condition": "authenticated_passenger_self"
+      }
+    ]
+  }
+]

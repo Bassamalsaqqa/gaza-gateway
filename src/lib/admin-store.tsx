@@ -14,6 +14,7 @@ import { useRepositories } from "./repositories/registry";
 import { type ActivityActorSnapshot } from "./activity/index.ts";
 import { AdminSessionCoordinator, type AdminSessionState } from "./staff/index.ts";
 import { useI18n } from "./i18n";
+import { identityUiRequested } from "./api/identity-ui-runtime";
 
 export type { FlightOverride } from "./domain/flight";
 
@@ -36,6 +37,18 @@ type AdminValue = {
 const AdminContext = createContext<AdminValue | null>(null);
 
 export function AdminProvider({ children }: { children: ReactNode }) {
+  // Server preview has its own authoritative workspace. Never initialize mock staff sessions.
+  return identityUiRequested ? <AdminContext.Provider value={blockedMockIdentity}>{children}</AdminContext.Provider>
+    : <MockAdminProvider>{children}</MockAdminProvider>;
+}
+
+const blockedMockIdentity: AdminValue = {
+  ready: true, staff: null, role: undefined, directoryUnavailable: true, actor: null,
+  signIn: async () => ({ ok: false, error: "directory_unavailable" }), signOut: () => {},
+  can: () => false, toasts: [], toast: () => {}, dismissToast: () => {},
+};
+
+function MockAdminProvider({ children }: { children: ReactNode }) {
   const { t } = useI18n();
   const { staff: staffRepo, activity: activityRepo } = useRepositories();
   const coordinatorRef = useRef<AdminSessionCoordinator | null>(null);

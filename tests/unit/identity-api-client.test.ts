@@ -2581,7 +2581,7 @@ describe("Generator & Metadata Corruption Subprocesses (Exit Code 1)", () => {
 
   it("verifies full generated contract operations include complete security, protocol, and authorization branch metadata", () => {
     const contract = JSON.parse(fs.readFileSync("src/lib/api/identity-contract.json", "utf8"));
-    assert.equal(contract.operations.length, 41, "Must contain exactly 41 operations");
+    assert.equal(contract.operations.length, 46, "Must contain exactly 46 operations");
     for (const op of contract.operations) {
       assert.ok(Array.isArray(op.security), `op ${op.operationId} must have security array`);
       assert.ok(op.protocol, `op ${op.operationId} must have protocol metadata`);
@@ -2879,9 +2879,9 @@ describe("IdentityApiClient — Mutation Behaviors, CSRF Reset, Realm Isolation,
   });
 });
 
-describe("IdentityApiClient — Independent 41 Operations Request & Response Schema Gate Negative Matrix", () => {
-  it("enforces negative validation matrix across all 41 operations (const, additional property, missing required, wrong type, wrong enum, status mismatch, property null)", () => {
-    assert.equal(identityContract.operations.length, 41);
+describe("IdentityApiClient — Independent 46 Operations Request & Response Schema Gate Negative Matrix", () => {
+  it("enforces negative validation matrix across all 46 operations (const, additional property, missing required, wrong type, wrong enum, status mismatch, property null)", () => {
+    assert.equal(identityContract.operations.length, 46);
 
     for (const op of identityContract.operations) {
       const opId = op.operationId;

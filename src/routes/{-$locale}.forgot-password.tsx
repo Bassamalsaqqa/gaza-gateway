@@ -1,3 +1,5 @@
+import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
+import { PassengerIdentityAuth } from "@/components/identity/identity-forms";
 import { AppLink } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
 import { btnClass, Notice, Panel } from "@/components/kit";
@@ -24,6 +26,10 @@ export const Route = createFileRoute("/{-$locale}/forgot-password")({
 });
 
 function ForgotPasswordPage() {
+  return identityUiRequested ? <PassengerIdentityAuth initial="forgot" /> : <MockForgotPasswordPage />;
+}
+
+function MockForgotPasswordPage() {
   const { t } = useI18n();
 
   return (

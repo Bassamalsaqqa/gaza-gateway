@@ -1,3 +1,5 @@
+import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
+import { StaffIdentityAuth } from "@/components/identity/identity-forms";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Eye, EyeOff, LockKeyhole, ShieldCheck } from "lucide-react";
@@ -30,6 +32,10 @@ export const Route = createFileRoute("/{-$locale}/admin_/signin")({
 });
 
 function AdminSignInPage() {
+  return identityUiRequested ? <StaffIdentityAuth /> : <MockAdminSignInPage />;
+}
+
+function MockAdminSignInPage() {
   const { t, lang } = useI18n();
   const { signIn, staff } = useAdmin();
   const navigate = useAppNavigate();

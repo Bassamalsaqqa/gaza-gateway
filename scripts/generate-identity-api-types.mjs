@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import bookingTransportPins from "./identity-booking-transport-pins.json" with { type: "json" };
 import path from "node:path";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
@@ -11,6 +12,8 @@ export const DEFAULT_TYPES_OUTPUT_PATH = path.join(repositoryRoot, "src/lib/api/
 export const DEFAULT_CONTRACT_OUTPUT_PATH = path.join(repositoryRoot, "src/lib/api/identity-contract.json");
 
 const SUPPORTED_SCHEMA_KEYS = new Set([
+  "minimum",
+  "maximum",
   "type",
   "properties",
   "required",
@@ -1552,7 +1555,8 @@ export const ACCEPTED_IDENTITY_OPERATIONS = Object.freeze([
         "requiresActive": true
       }
     ]
-  }
+  },
+  ...bookingTransportPins,
 ]);
 
 /**
@@ -1786,14 +1790,14 @@ function generateInterfaceFromSchema(interfaceName, schema, spec, propertyTypeOv
 }
 
 /**
- * Generates narrow TypeScript types for all 41 accepted Identity API operations.
+ * Generates narrow TypeScript types for all 46 accepted Identity API operations.
  */
 export function generateIdentityApiTypes(spec) {
   if (!spec || typeof spec !== "object") {
     throw new Error("Invalid OpenAPI specification object");
   }
 
-  // 1. Verify existence of all 41 accepted operations in OpenAPI spec
+  // 1. Verify existence of all 46 accepted operations in OpenAPI spec
   const rootSchemas = [];
   for (const op of ACCEPTED_IDENTITY_OPERATIONS) {
     const methodLower = op.method.toLowerCase();
@@ -2231,11 +2235,41 @@ export function generateIdentityApiTypes(spec) {
     "",
   ];
 
+  const emitted = new Set(sections.join("\n").matchAll(/export interface (\w+)/g).map((match) => match[1]));
+  const bookingType = (node) => {
+    if (node.$ref) return node.$ref.split("/").pop();
+    if (node.type === "object" && node.properties) {
+      return "{ " + Object.entries(node.properties).map(([key, value]) =>
+        `${key}${node.required?.includes(key) ? "" : "?"}: ${bookingType(value)}`).join("; ") + " }";
+    }
+    if (node.type === "array") return `(${bookingType(node.items)})[]`;
+    return resolveTypeScriptType(node, spec, "booking proof schema");
+  };
+  const visit = (node) => {
+    if (!node || typeof node !== "object") return;
+    if (node.$ref) {
+      const name = node.$ref.split("/").pop();
+      if (!emitted.has(name)) {
+        emitted.add(name);
+        const schema = spec.components.schemas[name];
+        visit(schema);
+        const overrides = Object.fromEntries(Object.entries(schema.properties ?? {}).map(([key, value]) => [key, bookingType(value)]));
+        sections.push(generateInterfaceFromSchema(name, schema, spec, overrides), "");
+      }
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit); else if (value && typeof value === "object") visit(value);
+    }
+  };
+  for (const pin of bookingTransportPins) {
+    visit({ $ref: "#/components/schemas/" + pin.requestSchemaName });
+    visit({ $ref: "#/components/schemas/" + pin.responseSchemaName });
+  }
   return sections.join("\n");
 }
 
 /**
- * Generates the narrow contract JSON artifact for all 41 identity operations.
+ * Generates the narrow contract JSON artifact for all 46 identity operations.
  */
 export function generateIdentityApiContract(spec) {
   if (!spec || typeof spec !== "object") {
@@ -2317,6 +2351,23 @@ export function generateIdentityApiContract(spec) {
     DeleteStaffUserResponse: spec.paths?.["/staff/users/{id}"]?.delete?.responses?.["200"]?.content?.["application/json"]?.schema,
   };
 
+  const collect = (node) => {
+    if (!node || typeof node !== "object") return;
+    if (node.$ref) {
+      const name = node.$ref.split("/").pop();
+      if (!reachableSchemas[name]) {
+        reachableSchemas[name] = spec.components.schemas[name];
+        collect(reachableSchemas[name]);
+      }
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(collect); else if (value && typeof value === "object") collect(value);
+    }
+  };
+  for (const pin of bookingTransportPins) {
+    collect({ $ref: "#/components/schemas/" + pin.requestSchemaName });
+    collect({ $ref: "#/components/schemas/" + pin.responseSchemaName });
+  }
   function canonicalStringify(obj) {
     if (obj === null || typeof obj !== "object") {
       return JSON.stringify(obj);
