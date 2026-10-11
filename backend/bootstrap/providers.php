@@ -6,4 +6,5 @@ return [
     App\Providers\IdentityServiceProvider::class,
     App\Providers\IdentityLifecycleServiceProvider::class,
     App\Providers\PassengerProfileServiceProvider::class,
+    App\Providers\StaffIdentityServiceProvider::class,
 ];

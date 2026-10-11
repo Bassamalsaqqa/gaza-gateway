@@ -36,6 +36,7 @@ return [
     ],
 
     'exposed_headers' => [
+        'X-Staff-Challenge-Id',
         'X-Request-Id',
         'ETag',
         'Idempotency-Replay',
