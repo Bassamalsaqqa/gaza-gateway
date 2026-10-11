@@ -42,3 +42,9 @@ Earlier failed runs are retained, including trigger syntax/generated-expression 
 ## Remaining roadmap
 
 C02 network/routes, C03 schedule/dated-service truth, C04 commercial authority, C05 opt-in frontend adapters and C06 final consolidated certification remain unfinished. The unknown operational fields in the accepted dated-service contract require a narrow architectural reconciliation before C03; fixture simulation must never fill them. Phase 13C requires independent acceptance before 13D. No merge, Actions, remote provisioning, HostPapa release change or deployment is authorized by this checkpoint.
+
+## Committed-source attestation
+
+Implementation checkpoint: 7dc51d8b7580f18e1c306b4436b818ee024f0a7f, direct child of c7be134bfa87ef58dcfae142b770da639863e4b3. Codex compared all 19 changed backend runtime/test/gate Git blobs with the passing receipt's SHA-256 source hashes; all match exactly. Subsequent checkpoint documentation changes do not alter those tested bytes. This is byte equivalence to the bounded local run, not a claim that the gate was executed from a clean committed checkout.
+
+The existing Regression and Published static package workflows were checked and remain disabled_manually. Main remains c7be134bfa87ef58dcfae142b770da639863e4b3; the HostPapa branch remains a47afded49e900b75c907e7230ca4dfef5b3f91e. C01 is a feature-branch checkpoint for review, not a merge or completed Phase 13C handback.
