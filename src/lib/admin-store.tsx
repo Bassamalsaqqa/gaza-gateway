@@ -51,6 +51,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 }
 
 function RealAdminProvider({ children }: { children: ReactNode }) {
+  const { lang } = useI18n();
   const queryClient = useQueryClient();
   const [ready, setReady] = useState(false);
   const [staffProfile, setStaffProfile] = useState<StaffProfile | null>(null);
@@ -108,8 +109,9 @@ function RealAdminProvider({ children }: { children: ReactNode }) {
     ++admission.current.generation; admission.current.controller?.abort();
     setStaffProfile(null); lastStaffIdRef.current = null; purge();
     try { await getIdentityUiClient().postStaffLogout(); }
+    catch { toast(lang === "ar" ? "تعذر تأكيد تسجيل الخروج على الخادم. أغلق المتصفح أو أعد المحاولة." : "Server sign-out could not be confirmed. Close the browser or retry."); }
     finally { discardIdentityUiClient(); }
-  }, [purge]);
+  }, [purge, toast, lang]);
 
   const signIn = useCallback(async () => {
     // Staff authentication in server mode uses the official /admin/signin route (StaffIdentityAuth)

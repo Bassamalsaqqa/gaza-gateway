@@ -12,7 +12,7 @@
       "plan": "../production/GAZA_GATEWAY_FINAL_MVP_DELIVERY_PLAN_v2.md",
       "paymentAuthority": "excluded-disabled",
       "bookingAuthority": "free-authenticated-reservations",
-      "historicalContracts": "Existing payment/quote/hold/check-in schemas are retained for traceability, not enabled MVP endpoints. Free reservation operations are specified in the active MVP API contract as each vertical slice is implemented."
+      "historicalContracts": "Historical payment/quote/hold/airline-booking/check-in/guest-claim operations are explicitly excluded-disabled for the free authenticated MVP. Metadata is classification, not runtime route enforcement. Active reservation operations have a separate reviewed extension; legacy exposure is independently tested before cutover."
     }
   },
   "servers": [
@@ -4078,7 +4078,9 @@
           "requiresLivePassengerSession": true,
           "resourceSessionMustMatch": true,
           "clientIdentityNeverAuthoritative": true
-        }
+        },
+        "x-mvp-disposition": "excluded-disabled",
+        "x-mvp-reason": "Historical airline booking/check-in or optional guest identity contract. Not an active free-reservation MVP endpoint; retain for accepted source provenance."
       }
     },
     "/bookings/{ref}/challenge": {
@@ -4148,7 +4150,9 @@
           "cacheControl": "no-store",
           "stepUpSeconds": null
         },
-        "x-authority-policy": "public"
+        "x-authority-policy": "public",
+        "x-mvp-disposition": "excluded-disabled",
+        "x-mvp-reason": "Historical airline booking/check-in or optional guest identity contract. Not an active free-reservation MVP endpoint; retain for accepted source provenance."
       }
     },
     "/bookings/{ref}/verify-challenge": {
@@ -4221,7 +4225,9 @@
           "cacheControl": "no-store",
           "stepUpSeconds": null
         },
-        "x-authority-policy": "public"
+        "x-authority-policy": "public",
+        "x-mvp-disposition": "excluded-disabled",
+        "x-mvp-reason": "Historical airline booking/check-in or optional guest identity contract. Not an active free-reservation MVP endpoint; retain for accepted source provenance."
       }
     },
     "/bookings/{ref}": {
@@ -4324,7 +4330,9 @@
           "cacheControl": "no-store",
           "stepUpSeconds": null
         },
-        "x-authority-policy": "mixed_booking"
+        "x-authority-policy": "mixed_booking",
+        "x-mvp-disposition": "excluded-disabled",
+        "x-mvp-reason": "Historical airline booking/check-in or optional guest identity contract. Not an active free-reservation MVP endpoint; retain for accepted source provenance."
       }
     },
     "/account/bookings/claim": {
@@ -4394,7 +4402,9 @@
           "cacheControl": "no-store",
           "stepUpSeconds": null
         },
-        "x-authority-policy": "passenger"
+        "x-authority-policy": "passenger",
+        "x-mvp-disposition": "excluded-disabled",
+        "x-mvp-reason": "Historical airline booking/check-in or optional guest identity contract. Not an active free-reservation MVP endpoint; retain for accepted source provenance."
       }
     },
     "/account/bookings": {
@@ -4448,7 +4458,9 @@
           "cacheControl": "no-store",
           "stepUpSeconds": null
         },
-        "x-authority-policy": "passenger"
+        "x-authority-policy": "passenger",
+        "x-mvp-disposition": "excluded-disabled",
+        "x-mvp-reason": "Historical airline booking/check-in or optional guest identity contract. Not an active free-reservation MVP endpoint; retain for accepted source provenance."
       }
     },
     "/bookings/{ref}/contact": {
@@ -4561,7 +4573,9 @@
           "cacheControl": "no-store",
           "stepUpSeconds": null
         },
-        "x-authority-policy": "mixed_booking"
+        "x-authority-policy": "mixed_booking",
+        "x-mvp-disposition": "excluded-disabled",
+        "x-mvp-reason": "Historical airline booking/check-in or optional guest identity contract. Not an active free-reservation MVP endpoint; retain for accepted source provenance."
       }
     },
     "/bookings/{ref}/seats": {
@@ -4671,7 +4685,9 @@
           "cacheControl": "no-store",
           "stepUpSeconds": null
         },
-        "x-authority-policy": "mixed_booking"
+        "x-authority-policy": "mixed_booking",
+        "x-mvp-disposition": "excluded-disabled",
+        "x-mvp-reason": "Historical airline booking/check-in or optional guest identity contract. Not an active free-reservation MVP endpoint; retain for accepted source provenance."
       }
     },
     "/bookings/{ref}/extras": {
@@ -4778,7 +4794,9 @@
           "cacheControl": "no-store",
           "stepUpSeconds": null
         },
-        "x-authority-policy": "mixed_booking"
+        "x-authority-policy": "mixed_booking",
+        "x-mvp-disposition": "excluded-disabled",
+        "x-mvp-reason": "Historical airline booking/check-in or optional guest identity contract. Not an active free-reservation MVP endpoint; retain for accepted source provenance."
       }
     },
     "/bookings/{ref}/cancel": {
@@ -4891,7 +4909,9 @@
           "cacheControl": "no-store",
           "stepUpSeconds": null
         },
-        "x-authority-policy": "mixed_booking"
+        "x-authority-policy": "mixed_booking",
+        "x-mvp-disposition": "excluded-disabled",
+        "x-mvp-reason": "Historical airline booking/check-in or optional guest identity contract. Not an active free-reservation MVP endpoint; retain for accepted source provenance."
       }
     },
     "/admin/bookings": {
@@ -4967,7 +4987,9 @@
           "cacheControl": "no-store",
           "stepUpSeconds": null
         },
-        "x-authority-policy": "staff"
+        "x-authority-policy": "staff",
+        "x-mvp-disposition": "excluded-disabled",
+        "x-mvp-reason": "Historical airline booking/check-in or optional guest identity contract. Not an active free-reservation MVP endpoint; retain for accepted source provenance."
       }
     },
     "/admin/customers/{id}": {
@@ -5149,7 +5171,8 @@
           "stepUpSeconds": null
         },
         "x-authority-policy": "mixed_booking",
-        "x-mvp-disposition": "excluded-disabled"
+        "x-mvp-disposition": "excluded-disabled",
+        "x-mvp-reason": "Historical airline booking/check-in or optional guest identity contract. Not an active free-reservation MVP endpoint; retain for accepted source provenance."
       }
     },
     "/bookings/{ref}/check-in/undo": {
@@ -5290,7 +5313,8 @@
           "stepUpSeconds": null
         },
         "x-authority-policy": "mixed_booking",
-        "x-mvp-disposition": "excluded-disabled"
+        "x-mvp-disposition": "excluded-disabled",
+        "x-mvp-reason": "Historical airline booking/check-in or optional guest identity contract. Not an active free-reservation MVP endpoint; retain for accepted source provenance."
       }
     },
     "/bookings/{ref}/boarding-passes": {
@@ -5387,7 +5411,9 @@
           "cacheControl": "no-store",
           "stepUpSeconds": null
         },
-        "x-authority-policy": "mixed_booking"
+        "x-authority-policy": "mixed_booking",
+        "x-mvp-disposition": "excluded-disabled",
+        "x-mvp-reason": "Historical airline booking/check-in or optional guest identity contract. Not an active free-reservation MVP endpoint; retain for accepted source provenance."
       }
     },
     "/cms/documents": {
@@ -10265,7 +10291,9 @@
           "cacheControl": "no-store",
           "stepUpSeconds": null
         },
-        "x-authority-policy": "passenger"
+        "x-authority-policy": "passenger",
+        "x-mvp-disposition": "excluded-disabled",
+        "x-mvp-reason": "Historical airline booking/check-in or optional guest identity contract. Not an active free-reservation MVP endpoint; retain for accepted source provenance."
       }
     },
     "/account/bookings/claim/verify": {
@@ -10335,7 +10363,9 @@
           "cacheControl": "no-store",
           "stepUpSeconds": null
         },
-        "x-authority-policy": "passenger"
+        "x-authority-policy": "passenger",
+        "x-mvp-disposition": "excluded-disabled",
+        "x-mvp-reason": "Historical airline booking/check-in or optional guest identity contract. Not an active free-reservation MVP endpoint; retain for accepted source provenance."
       }
     },
     "/bookings/{ref}/receipt": {
@@ -10407,7 +10437,9 @@
           "cacheControl": "no-store",
           "stepUpSeconds": null
         },
-        "x-authority-policy": "receipt"
+        "x-authority-policy": "receipt",
+        "x-mvp-disposition": "excluded-disabled",
+        "x-mvp-reason": "Historical airline booking/check-in or optional guest identity contract. Not an active free-reservation MVP endpoint; retain for accepted source provenance."
       }
     },
     "/publication-snapshots/{releaseId}": {

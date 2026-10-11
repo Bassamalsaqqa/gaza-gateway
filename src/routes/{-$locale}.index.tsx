@@ -1,3 +1,7 @@
+import { MvpOfferingBoard } from "@/components/mvp-offering-board";
+import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
+import { useNetworkQuery } from "@/lib/network/queries";
+import { NetworkReadState } from "@/components/network-read-state";
 import { useFlightsQuery } from "@/lib/repositories";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AppLink } from "@/components/app-link";
@@ -78,12 +82,14 @@ export const Route = createFileRoute("/{-$locale}/")({
 });
 
 function Home() {
+  const network = useNetworkQuery(identityUiRequested);
+  const publicDestinations = identityUiRequested ? (!network.isError ? network.data ?? [] : []).map(item => ({ code: item.code, city: item.city, country: item.country, flightMinutes: item.blockMinutes })) : destinations;
   const { t, lang } = useI18n();
   const { content, previewing, previewError, previewLoading } = useContentPreview("home", publishedHome);
   const { content: destPresentation, previewError: destinationPreviewError, previewLoading: destinationPreviewLoading } = useContentPreview("destinations.presentation", publishedDestinationsPresentation);
   const today = todayISO();
   const [board, setBoard] = useState<"departures" | "arrivals">("departures");
-  const boardQuery = useFlightsQuery(today, board === "departures" ? "dep" : "arr");
+  const boardQuery = useFlightsQuery(today, board === "departures" ? "dep" : "arr", !identityUiRequested);
   const flights = !boardQuery.isError ? (boardQuery.data ?? []).slice(0, 5) : [];
   const archive = useMemo(() => getFeaturedArchiveRecords(6), []);
 
@@ -159,7 +165,7 @@ function Home() {
 
       {/* 2. Integrated Flight Search Console (Overlapping Hero Boundary) */}
       <Container className="-mt-20 sm:-mt-28 lg:-mt-32">
-        <FlightSearchForm context="home" />
+        {identityUiRequested ? <MvpOfferingBoard /> : <FlightSearchForm context="home" />}
       </Container>
 
       {/* 3. Integrated passenger utility rail */}
@@ -191,7 +197,7 @@ function Home() {
           </AppLink>
 
           {/* 02. Online Check-in */}
-          <AppLink
+          {!identityUiRequested ? <AppLink
             to="/check-in"
             data-utility-card="check-in"
             className="group relative flex min-h-16 items-center gap-3.5 overflow-hidden border-b border-border bg-sand-deep/70 px-4 py-3.5 transition-colors hover:bg-sand-deep focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-ring sm:min-h-18 lg:border-b-0 lg:border-e"
@@ -215,7 +221,7 @@ function Home() {
               aria-hidden="true"
               className="relative z-10 ms-auto size-4 text-brand-deep/80 rtl:rotate-180 shrink-0"
             />
-          </AppLink>
+          </AppLink> : null}
 
           {/* 03. Travel Guidelines */}
           <AppLink
@@ -265,6 +271,7 @@ function Home() {
         </div>
       </Container>
 
+      {!identityUiRequested ? <>
       {/* 4. Today at GZA / Flight Schedule Matrix */}
       <Container className="mt-12 sm:mt-16">
         <SectionHeader
@@ -366,6 +373,7 @@ function Home() {
         </div>
       </Container>
 
+      </> : null}
       {/* 5. Living Heritage Spotlight (First-Class Structural Chapter Bridge) */}
       <section className="mt-20 sm:mt-24 border-y border-border bg-ambient-sand py-16 sm:py-20">
         <Container>
@@ -479,8 +487,9 @@ function Home() {
             </AppLink>
           }
         />
+        {identityUiRequested && <NetworkReadState loading={network.isPending} error={network.isError} onRetry={() => void network.refetch()} />}
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {destinations.slice(0, 6).map((destination) => {
+          {publicDestinations.slice(0, 6).map((destination) => {
             const assignment = destPresentation.assignments.find((a) => a.code === destination.code);
             const photo = (assignment && getDestinationPhotoById(assignment.photoId)) ?? getDestinationPhotoByCode(destination.code);
             return (

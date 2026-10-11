@@ -1,3 +1,6 @@
+import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
+import { useNetworkQuery } from "@/lib/network/queries";
+import { NetworkReadState } from "@/components/network-read-state";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { DestinationCard } from "@/components/destination-card";
@@ -46,6 +49,7 @@ export const Route = createFileRoute("/{-$locale}/destinations/")({
 function DestinationsPage() {
   const { t, lang } = useI18n();
   const [query, setQuery] = useState("");
+  const network = useNetworkQuery(identityUiRequested);
 
   const { content: presentation, previewing, previewError, previewLoading } = useContentPreview(
     "destinations.presentation",
@@ -54,11 +58,12 @@ function DestinationsPage() {
 
   const list = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return destinations;
-    return destinations.filter((d) =>
+    const source = identityUiRequested ? (network.data ?? []).map(item => ({ code: item.code, city: item.city, country: item.country, flightMinutes: item.blockMinutes })) : destinations;
+    if (!q) return source;
+    return source.filter((d) =>
       [d.code, d.city.en, d.city.ar, d.country.en, d.country.ar].join(" ").toLowerCase().includes(q),
     );
-  }, [query]);
+  }, [query, network.data]);
 
   return (
     <>
@@ -84,7 +89,7 @@ function DestinationsPage() {
       </PublicPhotoHero>
 
       <Container className="py-10">
-        {list.length === 0 ? (
+        {identityUiRequested && (network.isPending || network.isError) ? <NetworkReadState loading={network.isPending} error={network.isError} onRetry={() => void network.refetch()} /> : list.length === 0 ? (
           <p className="py-16 text-center text-sm text-muted-foreground">{t("gallery.empty")}</p>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

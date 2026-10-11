@@ -3,9 +3,9 @@ import { useRepositories } from "../repositories/registry.ts";
 import { networkKeys } from "./keys.ts";
 import type { NetworkDestinationPatch, NetworkMutationReceipt } from "./types.ts";
 
-export function useNetworkQuery() {
+export function useNetworkQuery(enabled = true) {
   const { network } = useRepositories();
-  return useQuery({ queryKey: networkKeys.list(), queryFn: () => network.list(), retry: false });
+  return useQuery({ queryKey: networkKeys.list(), enabled, queryFn: () => network.list(), retry: false });
 }
 export function useNetworkDestinationQuery(code: string) {
   const { network } = useRepositories();

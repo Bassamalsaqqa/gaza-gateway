@@ -18,7 +18,7 @@ export function DestinationCard({
   photoOverride,
   focalOverride,
 }: {
-  destination: Destination;
+  destination: Pick<Destination, "code" | "city" | "country" | "flightMinutes"> & { priceFrom?: number };
   size?: "md" | "lg" | undefined;
   photoOverride?: DestinationPhoto | undefined;
   focalOverride?: { x: number; y: number } | undefined;
@@ -81,7 +81,7 @@ export function DestinationCard({
               <span className="numeral">{minutesToLabel(destination.flightMinutes, lang)}</span>
             </span>
             <span className="inline-flex items-center gap-1.5 font-semibold text-secondary">
-              {t("dest.from")} {money(destination.priceFrom, lang)}
+              {destination.priceFrom !== undefined ? <>{t("dest.from")} {money(destination.priceFrom, lang)}</> : pick(lang, { en: "Explore", ar: "استكشف" })}
               <ArrowRight aria-hidden="true" className="size-4 rtl:rotate-180" />
             </span>
           </div>

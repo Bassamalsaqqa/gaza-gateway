@@ -1,3 +1,7 @@
+import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
+import { useNetworkQuery } from "@/lib/network/queries";
+import { NetworkReadState } from "@/components/network-read-state";
+import type { Destination, Airport } from "@/lib/data";
 import { AppLink } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
 import { ArrowRight, Clock, Info, Plane } from "lucide-react";
@@ -104,7 +108,11 @@ export const Route = createFileRoute("/{-$locale}/destinations/$code")({
 function DestinationPage() {
   const { code } = Route.useParams();
   const { t, lang } = useI18n();
-  const destination = destinationByCode(code);
+  const network = useNetworkQuery(identityUiRequested);
+  type DestinationView = Airport & { flightMinutes: number } & Partial<Pick<Destination, "priceFrom" | "weeklyFlights" | "days">>;
+  const source: DestinationView[] = identityUiRequested ? (network.data ?? []).map(item => ({ code: item.code, city: item.city, country: item.country,
+    name: item.airportName, tz: item.timezone, flightMinutes: item.blockMinutes })) : destinations;
+  const destination = identityUiRequested ? source.find(item => item.code === code) : destinationByCode(code);
   const { content: editorialContent, previewError: editorialError, previewLoading: editorialLoading } = useContentPreview("destinations.editorial", publishedDestinationsEditorial);
   const editorial = editorialContent.destinations.find((entry) => entry.code === code.toUpperCase());
 
@@ -112,6 +120,8 @@ function DestinationPage() {
     "destinations.presentation",
     publishedDestinationsPresentation,
   );
+
+  if (identityUiRequested && (network.isPending || network.isError)) return <Container className="py-20"><NetworkReadState loading={network.isPending} error={network.isError} onRetry={() => void network.refetch()} /></Container>;
 
   if (!destination) {
     return (
@@ -135,7 +145,7 @@ function DestinationPage() {
     getDestinationPhotoByCode(destination.code);
   const focal = assignment?.focalPoint ?? photo?.defaultFocalPoint ?? { x: 50, y: 50 };
 
-  const others = destinations.filter((d) => d.code !== destination.code).slice(0, 3);
+  const others = source.filter((d) => d.code !== destination.code).slice(0, 3);
   const city = pick(lang, destination.city);
 
   return (
@@ -175,33 +185,33 @@ function DestinationPage() {
               <dt className="eyebrow text-ink-muted">{t("dest.flightTime")}</dt>
               <dd className="numeral mt-1 text-xl font-bold">{minutesToLabel(destination.flightMinutes, lang)}</dd>
             </div>
-            <div>
+            {!identityUiRequested && <div>
               <dt className="eyebrow text-ink-muted">{t("dest.from")}</dt>
-              <dd className="mt-1 text-xl font-bold">{money(destination.priceFrom, lang)}</dd>
-            </div>
-            <div>
+              <dd className="mt-1 text-xl font-bold">{money(destination.priceFrom!, lang)}</dd>
+            </div>}
+            {!identityUiRequested && <div>
               <dt className="eyebrow text-ink-muted">{t("dest.frequency")}</dt>
               <dd className="numeral mt-1 text-xl font-bold">
                 {destination.weeklyFlights}× {pick(lang, { en: "weekly", ar: "أسبوعياً" })}
               </dd>
-            </div>
+            </div>}
           </dl>
         </Container>
       </section>
 
-      <Container className="-mt-10">
+      {!identityUiRequested && <Container className="-mt-10">
         <FlightSearchForm initial={{ origin: GZA.code, destination: destination.code }} />
-      </Container>
+      </Container>}
 
       <Container className="mt-14 grid gap-8 lg:grid-cols-[1.6fr_1fr]">
         <div>
           <h2 className="text-2xl font-bold">{t("dest.about")}</h2>
           <p className="mt-3 text-base leading-relaxed text-muted-foreground">{pick(lang, editorial!.blurb)}</p>
 
-          <h3 className="mt-10 text-lg font-bold">{t("dest.schedule")}</h3>
+          {!identityUiRequested && <><h3 className="mt-10 text-lg font-bold">{t("dest.schedule")}</h3>
           <div className="mt-4 flex flex-wrap gap-2">
             {Array.from({ length: 7 }, (_, i) => i).map((day) => {
-              const active = destination.days.includes(day);
+              const active = destination.days?.includes(day) ?? false;
               return (
                 <span
                   key={day}
@@ -225,7 +235,7 @@ function DestinationPage() {
                 ar: "الجداول والأسعار في هذه الصفحة عناصر توضيحية مؤقتة لأغراض التصميم.",
               })}
             </Notice>
-          </div>
+          </div></>}
         </div>
 
         <aside className="space-y-4">
@@ -243,7 +253,7 @@ function DestinationPage() {
               ))}
             </ul>
           </div>
-          <div className="surface p-5">
+          {!identityUiRequested && <div className="surface p-5">
             <h3 className="flex items-center gap-2 text-sm font-bold">
               <Plane aria-hidden="true" className="size-4 text-brand-deep rtl:-scale-x-100" />
               <Code>PS</Code> {t("brand.airline")}
@@ -258,7 +268,8 @@ function DestinationPage() {
               {t("dest.bookTo", { city })}
               <ArrowRight aria-hidden="true" className="size-4 rtl:rotate-180" />
             </AppLink>
-          </div>
+          </div>}
+          {identityUiRequested && <AppLink to="/flights" className={btnClass("primary", "md", "w-full")}>{t("nav.flights")}</AppLink>}
         </aside>
       </Container>
 

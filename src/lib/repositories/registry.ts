@@ -8,6 +8,9 @@ import { commercialCatalogKeys } from "../commercial/keys.ts";
 import { LocalFleetRepository } from "../fleet/repository.ts";
 import { FleetStorageCoordinator } from "../fleet/storage.ts";
 import { fleetKeys } from "../fleet/keys.ts";
+import { HttpNetworkRepository } from "../network/http-repository.ts";
+import { getMvpUiClient } from "../api/mvp-ui-runtime.ts";
+import type { NetworkRepository } from "../network/types.ts";
 import { LocalNetworkRepository } from "../network/repository.ts";
 import { NetworkStorageCoordinator } from "../network/storage.ts";
 import { networkKeys } from "../network/keys.ts";
@@ -50,6 +53,8 @@ import type { Draft } from "../booking-draft/types.ts";
 import { LocalContactRepository } from "../contact/repository.ts";
 import { ContactStorageCoordinator } from "../contact/storage.ts";
 import type { ContactEnvelope } from "../contact/types.ts";
+import { HttpScheduleRepository } from "../schedules/http-repository.ts";
+import type { ScheduleRepository } from "../schedules/types.ts";
 import { LocalScheduleRepository } from "../schedules/repository.ts";
 import { ScheduleStorageCoordinator } from "../schedules/storage.ts";
 import { isStudioPreviewActive } from "../studio-preview.ts";
@@ -72,10 +77,12 @@ export interface CreateRepositoriesOptions {
   bookingDraftCoordinator?: BookingDraftStorageCoordinator | undefined;
   contactCoordinator?: ContactStorageCoordinator | undefined;
   initialSchedules?: import("../schedules/types.ts").Schedule[] | undefined;
+  scheduleRepository?: ScheduleRepository | undefined;
   scheduleCoordinator?: ScheduleStorageCoordinator | undefined;
   storage?: Storage | null | undefined;
   commercialCoordinator?: CommercialStorageCoordinator | undefined;
   fleetRepository?: FleetRepository | undefined;
+  networkRepository?: NetworkRepository | undefined;
   blockMockBookingWrites?: boolean | undefined;
   initialCommercialCatalog?: import("../commercial/types.ts").CommercialCatalog | undefined;
   fleetCoordinator?: FleetStorageCoordinator | undefined;
@@ -132,7 +139,7 @@ export function createRepositories(options?: CreateRepositoriesOptions): Reposit
       storage: options?.storage,
     });
 
-  const scheduleCoordinator =
+  const scheduleCoordinator = options?.scheduleRepository ? undefined :
     options?.scheduleCoordinator ??
     new ScheduleStorageCoordinator({
       ...(options?.inMemoryOnly !== undefined ? { inMemoryOnly: options.inMemoryOnly } : {}),
@@ -150,10 +157,10 @@ export function createRepositories(options?: CreateRepositoriesOptions): Reposit
 
   const commercial = new LocalCommercialCatalogRepository(options?.commercialCoordinator ?? new CommercialStorageCoordinator({ inMemoryOnly: options?.inMemoryOnly, storage: options?.storage, initialCatalog: options?.initialCommercialCatalog }));
   const fleet = options?.fleetRepository ?? new LocalFleetRepository(fleetCoordinator!);
-  const network = new LocalNetworkRepository(options?.networkCoordinator ?? new NetworkStorageCoordinator({
+  const network = options?.networkRepository ?? new LocalNetworkRepository(options?.networkCoordinator ?? new NetworkStorageCoordinator({
     inMemoryOnly: options?.inMemoryOnly, storage: options?.storage, initialData: options?.initialNetworkData,
   }));
-  const schedule = new LocalScheduleRepository(scheduleCoordinator, fleet, network);
+  const schedule = options?.scheduleRepository ?? new LocalScheduleRepository(scheduleCoordinator!, fleet, network);
   const resolver = options?.serviceResolver ?? new LocalDatedServiceResolver(schedule, network);
   const rawBooking = new LocalBookingRepository(coordinator, { commercial, fleet, resolver });
   const booking = options?.blockMockBookingWrites
@@ -276,6 +283,8 @@ export function getDefaultRepositories(): RepositoryRegistry {
       ? {
           passengerRepository: new HttpPassengerRepository(getIdentityUiClient),
           fleetRepository: new HttpFleetRepository(getReferenceUiClient),
+          networkRepository: new HttpNetworkRepository(getMvpUiClient),
+          scheduleRepository: new HttpScheduleRepository(getMvpUiClient),
           blockMockBookingWrites: true,
         }
       : undefined);

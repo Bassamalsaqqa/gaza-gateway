@@ -1,3 +1,5 @@
+import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
+import { scheduleWireSchema } from "@/lib/offerings/schema";
 import { ScheduleExceptionEditor } from "@/components/admin/schedule-exception-editor";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -204,6 +206,17 @@ function AdminSchedulesPage() {
     setSaveError(null);
     setFieldErrors({});
     try {
+      if (identityUiRequested) {
+        const validated = scheduleWireSchema.parse(draft);
+        if (isNew) await createSchedule.mutateAsync(validated);
+        else {
+          const { id, destination: _destination, direction: _direction, ...patch } = validated;
+          await updateSchedule.mutateAsync({ id, patch });
+        }
+        toast(t("adm.sch.saved", { number: draft.number }));
+        setDraft(null);
+        return;
+      }
       if (isNew) {
         await executeAuditedAdminCommand({
           domainCommand: () =>

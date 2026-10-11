@@ -11,7 +11,7 @@ export function useSchedulesQuery() {
 
 export function useScheduleQuery(id: string | null | undefined) {
   const { schedule } = useRepositories();
-  const cleanId = id?.trim() ?? "";
+  const cleanId = id ?? "";
   return useQuery({
     queryKey: scheduleKeys.detail(cleanId),
     queryFn: () => schedule.getById(cleanId),

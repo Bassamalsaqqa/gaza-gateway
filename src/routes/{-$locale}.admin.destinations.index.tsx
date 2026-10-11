@@ -1,3 +1,5 @@
+import { MvpNetworkEditor } from "@/components/admin/mvp-network-editor";
+import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
 import { GazaTable, GazaTableBody, GazaTableCaption, GazaTableCell, GazaTableHead, GazaTableHeader, GazaTableRow } from "@/components/gaza-table";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
@@ -40,6 +42,10 @@ export const Route = createFileRoute("/{-$locale}/admin/destinations/")({
 });
 
 function AdminDestinationsPage() {
+  return identityUiRequested ? <MvpNetworkEditor /> : <MockAdminDestinationsPage />;
+}
+
+function MockAdminDestinationsPage() {
   const { t, lang } = useI18n();
   const { can } = useAdmin();
   const network = useNetworkQuery();

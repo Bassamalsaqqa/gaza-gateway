@@ -334,6 +334,7 @@ export function useCheckInFlightsQuery(date: string) {
 export function useFlightsQuery(
   date: string,
   direction?: "dep" | "arr",
+  enabled = true,
 ): UseQueryResult<Flight[], Error> {
   const { flight: flightRepo } = useRepositories();
 
@@ -341,7 +342,7 @@ export function useFlightsQuery(
   return useQuery({
     queryKey: flightKeys.list(date, direction),
     queryFn: () => flightRepo.getFlights(date, direction),
-    enabled: Boolean(date),
+    enabled: enabled && Boolean(date),
   });
 }
 

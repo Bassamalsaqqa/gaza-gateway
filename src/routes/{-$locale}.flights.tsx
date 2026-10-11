@@ -1,3 +1,5 @@
+import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
+import { MvpOfferingBoard } from "@/components/mvp-offering-board";
 import { createFileRoute } from "@tanstack/react-router";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { PlaneLanding, PlaneTakeoff, Search } from "lucide-react";
@@ -48,6 +50,10 @@ export const Route = createFileRoute("/{-$locale}/flights")({
 });
 
 function FlightsPage() {
+  return identityUiRequested ? <Container className="py-8"><MvpOfferingBoard /></Container> : <MockFlightsPage />;
+}
+
+function MockFlightsPage() {
   const { t, lang } = useI18n();
   const shouldReduceMotion = useReducedMotion();
   const today = todayISO();

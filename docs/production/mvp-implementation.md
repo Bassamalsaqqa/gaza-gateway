@@ -78,3 +78,11 @@ Independent disposable PHP 8.4/PostgreSQL 17 evidence: schedules 11 tests / 147 
 ### PR review: CSRF bootstrap error semantics
 
 Trusted IdentityApiError HTTP classifications from passenger/staff CSRF bootstrap now preserve canonical status/code without propagating upstream messages. Timeout and caller cancellation remain distinct; no mutation is dispatched when bootstrap fails. Thirteen new focused Node probes passed (both realms: 401/403/429/503, typed abort/timeout/network/protocol, elapsed deadline and caller cancellation); affected-file ESLint and whitespace checks passed. Existing transport tests were not repeated. This is a bounded client correction, not remote provider or browser certification. Reviewer thread remains open for confirmation.
+
+### Original Admin and public reference adapters
+
+Network, meals and schedules now use shared schema-checked API authority in explicit nonproduction backend mode. Original destination, product and schedule editors issue server commands and consume server receipts; public destination cards and curated dated offerings use the same persisted references. Backend-mode flight views omit fictional gates/status, prices and online check-in controls. Mock mode remains the default. Booking controls remain visibly unavailable until W2 is joined.
+
+Eight network/meal boundary tests passed before schedule edits; four new schedule/offering tests passed separately, without repeating the earlier tests. Typecheck passes; touched-file ESLint reports zero errors and one existing Fast Refresh warning; whitespace passes. These are transport/source checks, not a two-browser certification. Seventeen historical paid/guest/check-in operations are annotated excluded-disabled in the normative API; metadata is explicitly not a runtime guard, and joined free-booking route isolation is still required.
+
+AGY quota-failed W1/W2/W3/W4 runs are preserved as partial evidence. Codex completed and independently checked this adapter slice directly; no worker completion or final MVP acceptance is claimed. Next: durable free reservations and CMS/publication UI, then tickets/mail/settings and the consolidated acceptance gate. No Actions, merge, deployment or provisioning occurred.

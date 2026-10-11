@@ -1,3 +1,4 @@
+import { MvpMealsEditor } from "@/components/admin/mvp-meals-editor";
 import { CommercialProductsTab } from "@/components/admin/commercial-catalog-editor";
 import { Switch } from "@/components/ui/switch";
 import { createFileRoute } from "@tanstack/react-router";
@@ -103,6 +104,7 @@ function AdminProductsPage() {
           tabs={(identityUiRequested ? [
             { id: "aircraft" as Tab, label: t("adm.prod.tab.aircraft") },
             { id: "seatmaps" as Tab, label: t("adm.prod.tab.seatmaps") },
+            { id: "meals" as Tab, label: t("adm.prod.tab.meals") },
           ] : [
             { id: "aircraft" as Tab, label: t("adm.prod.tab.aircraft") },
             { id: "seatmaps" as Tab, label: t("adm.prod.tab.seatmaps") },
@@ -122,7 +124,7 @@ function AdminProductsPage() {
               identityUiRequested ? <AdminUnavailableDomainNotice /> : <CommercialProductsTab tab="baggage" />
             ) : null}
             {tab === "meals" ? (
-              identityUiRequested ? <AdminUnavailableDomainNotice /> : <CommercialProductsTab tab="meals" />
+              identityUiRequested ? <MvpMealsEditor /> : <CommercialProductsTab tab="meals" />
             ) : null}
             {tab === "assistance" ? (
               identityUiRequested ? <AdminUnavailableDomainNotice /> : <CommercialProductsTab tab="assistance" />
