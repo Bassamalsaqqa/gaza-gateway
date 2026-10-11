@@ -23,6 +23,7 @@ final class VerifyApplicationCsrfHeaderFeatureTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        config(['cors.allowed_origins' => [$this->validOrigin]]);
 
         self::$capturedPassword = null;
         self::$capturedEmptyField = null;

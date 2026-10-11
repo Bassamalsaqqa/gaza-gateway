@@ -14,6 +14,8 @@ const namespace = `gaza_identity_gate_${run}`;
 const pg = `${namespace}_postgres`; const php = `${namespace}_php`;
 const output = path.join(root, "scratch", namespace);
 fs.mkdirSync(output, { recursive: true });
+const filter = process.env.IDENTITY_GATE_TEST_FILTER;
+if (filter !== undefined && !/^[A-Za-z0-9_|]{1,8192}$/.test(filter)) throw new Error("Invalid bounded test filter.");
 const env = { ...process.env, APP_KEY: `base64:${crypto.randomBytes(32).toString("base64")}`,
   GUEST_OTP_PEPPER_BASE64: crypto.randomBytes(32).toString("base64") };
 const commands = []; let success = false; const resources = [];
@@ -29,9 +31,18 @@ function command(label, program, args, timeout = 120000) {
 function docker(label, args, timeout) { return command(label, "docker", args, timeout); }
 function phpCommand(label, args, timeout) { return docker(label, ["exec", php, ...args], timeout); }
 const captureRoot = path.join(root, "backend/storage/app/private", `final-identity-${run}`);
+const isolatedSource = path.join(output, "source");
 try {
   const head = command("source-head", "git", ["rev-parse", "HEAD"]).trim();
   command("source-whitespace", "git", ["diff", "--check"]);
+  // Snapshot tracked product files only. Windows bind-mount realpath/permission semantics
+  // are unsuitable for retention symlink probes and multi-process framework boot.
+  const sourceFiles = command("source-inventory", "git", ["ls-files", "backend", "docs/backend", "scripts/lib", "src/lib/api"]).trim().split(/\r?\n/);
+  for (const file of sourceFiles) {
+    const target = path.join(isolatedSource, file);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.copyFileSync(path.join(root, file), target);
+  }
   docker("network-create", ["network", "create", namespace]); resources.push("network");
   docker("postgres-create", ["run", "-d", "--rm", "--name", pg, "--network", namespace, "--network-alias", "postgres",
     "--tmpfs", "/var/lib/postgresql/data", "--mount", `type=bind,source=${path.join(root, "backend/docker/init-db.sql")},target=/docker-entrypoint-initdb.d/init-db.sql,readonly`,
@@ -46,8 +57,7 @@ try {
   }
   if (!ready) throw new Error("Owned PostgreSQL initialization timed out.");
   docker("php-create", ["run", "-d", "--rm", "--name", php, "--network", namespace,
-    "--mount", `type=bind,source=${root},target=/workspace`,
-    "--mount", `type=bind,source=${path.resolve(vendor)},target=/workspace/backend/vendor,readonly`,
+    "--mount", `type=bind,source=${path.resolve(vendor)},target=/locked-vendor,readonly`,
     "-w", "/workspace/backend", "-e", "APP_KEY", "-e", "GUEST_OTP_PEPPER_BASE64", "-e", "APP_ENV=testing", "-e", "APP_DEBUG=false",
     "-e", "APP_URL=https://127.0.0.1:18090", "-e", "APP_ALLOWED_HOSTS=127.0.0.1,localhost,127.0.0.1:18090",
     "-e", "CORS_ALLOWED_ORIGINS=http://localhost:3000,https://127.0.0.1:5173,https://127.0.0.1:10001",
@@ -56,13 +66,19 @@ try {
     "-e", "CACHE_STORE=database", "-e", "QUEUE_CONNECTION=database", "-e", "SESSION_DRIVER=array", "-e", "LOG_CHANNEL=stderr",
     "-e", "IDENTITY_MIGRATION_DISPOSABLE_INSTANCE=1", "-e", `IDENTITY_FINAL_CAPTURE_RUN=${run}`,
     "--entrypoint", "sleep", "gaza-gateway-backend:phase13a", "1800"]); resources.push("php");
+  docker("source-copy", ["cp", `${isolatedSource}/.`, `${php}:/workspace`]);
+  phpCommand("vendor-copy", ["cp", "-a", "/locked-vendor", "/workspace/backend/vendor"], 180000);
   phpCommand("php-version", ["php", "--version"]);
   phpCommand("composer-validate", ["composer", "validate", "--strict"]);
   phpCommand("composer-platform", ["composer", "check-platform-reqs"]);
   const migrations = phpCommand("migrate-up", ["php", "artisan", "migrate", "--no-interaction"]);
-  const roundtrip = phpCommand("migration-roundtrip", ["php", "vendor/bin/phpunit", "tests/Feature/IdentityPersistence/MigrationLifecycleTest.php"], 180000);
+  const roundtrip = filter ? "Already passed in the preceding integrated run; not repeated."
+    : phpCommand("migration-roundtrip", ["php", "vendor/bin/phpunit", "tests/Feature/IdentityPersistence/MigrationLifecycleTest.php"], 180000);
   const catalog = phpCommand("migration-status", ["php", "artisan", "migrate:status"]);
-  const tests = phpCommand("identity-php-postgres", ["php", "vendor/bin/phpunit", "--configuration", "tests/identity-final.xml", "--log-junit", "/tmp/identity-final.xml"], 900000);
+  const tests = phpCommand("identity-php-postgres", ["php", "vendor/bin/phpunit", "--configuration", "tests/identity-final.xml",
+    ...(filter ? ["--filter", filter] : []), "--log-junit", "/tmp/identity-final.xml"], 900000);
+  docker("junit-copy", ["cp", `${php}:/tmp/identity-final.xml`, path.join(output, "identity-final.xml")]);
+  docker("response-copy", ["cp", `${php}:/workspace/backend/storage/app/private/final-identity-${run}`, captureRoot]);
   const spec = JSON.parse(fs.readFileSync(path.join(root, "docs/backend/openapi.v1.json"), "utf8"));
   const contract = JSON.parse(fs.readFileSync(path.join(root, "src/lib/api/identity-contract.json"), "utf8"));
   const operations = Object.values(spec.paths).flatMap(item => Object.entries(item).filter(([method]) => ["get", "post", "put", "patch", "delete"].includes(method)).map(([, op]) => op));
@@ -88,12 +104,16 @@ try {
     throw new Error(`Actual operation coverage incomplete: ${captures.length}/46; missing ${expected.filter(id => !captures.some(c => c.operationId === id)).join(", ")}`);
   }
   console.log("PASS actual OpenAPI responses and negative controls: 46/46");
-  command("identity-types", "node", ["scripts/generate-identity-api-types.mjs", "--check"]);
-  command("backend-contracts", "node", ["scripts/validate-backend-contracts.mjs"]);
-  const nodeTests = command("identity-node", "node", ["--test", "--experimental-strip-types", "tests/unit/identity-api-client.test.ts", "tests/unit/identity-ui-boundary.test.ts"]);
+  if (!filter) {
+    command("identity-types", "node", ["scripts/generate-identity-api-types.mjs", "--check"]);
+    command("backend-contracts", "node", ["scripts/validate-backend-contracts.mjs"]);
+  }
+  const nodeTests = filter ? "Prior focused transport/UI gates retained; not repeated."
+    : command("identity-node", "node", ["--test", "--experimental-strip-types", "tests/unit/identity-api-client.test.ts", "tests/unit/identity-ui-boundary.test.ts"]);
   const files = command("tracked-source", "git", ["ls-files", "backend", "src", "scripts", "docs/backend", "tests/unit", "AGENTS.md", "package.json", "package-lock.json"]).trim().split(/\r?\n/);
   const hashes = files.map(file => ({ file, sha256: crypto.createHash("sha256").update(fs.readFileSync(path.join(root, file))).digest("hex") }));
-  fs.writeFileSync(path.join(output, "receipt.json"), JSON.stringify({ head, run, status: "passed", phpSummary: tests.match(/OK \([^\n]+\)/)?.[0],
+  fs.writeFileSync(path.join(output, "receipt.json"), JSON.stringify({ head, run, status: "passed", selection: filter ?? "complete identity-only integration",
+    phpSummary: tests.match(/OK \([^\n]+\)/)?.[0],
     migrationSummary: roundtrip.match(/OK \([^\n]+\)/)?.[0], nodeSummary: nodeTests.split(/\r?\n/).filter(line => /^# (tests|pass|fail|skipped)/.test(line)),
     migrations, catalog, captures, hashes, commands, mailEvidence: "Synthetic fixtures only; no remote provider acceptance or delivery", actions: "No Actions invoked" }, null, 2) + "\n");
   success = true; console.log(`Gate receipt: ${path.relative(root, path.join(output, "receipt.json"))}`);

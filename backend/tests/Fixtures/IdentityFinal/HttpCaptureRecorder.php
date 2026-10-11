@@ -37,6 +37,9 @@ final class HttpCaptureRecorder
             }
         } finally { umask($mask); }
         $app['events']->listen(RequestHandled::class, static function (RequestHandled $event) use ($root): void {
+            // Protocol tests install synthetic Closure handlers. Only production
+            // controller actions provide implementation response evidence.
+            if ($event->request->route()?->getAction('uses') instanceof \Closure) { return; }
             $policy = IdentityOperationPolicies::find($event->request->method(), $event->request->getPathInfo());
             $status = $event->response->getStatusCode();
             if ($policy === null || $status < 200 || $status >= 300) { return; }

@@ -215,12 +215,16 @@ final class OutboxAuthorityReviewTest extends TestCase
         $proof = $this->issueTrackedProof(ProofPurpose::PassengerEmailVerification, $userId);
         $outboxId = $this->enqueueTrackedProof($proof);
 
+        // This batch operates on the shared disposable database, not just our fixture.
+        $candidates = DB::table('security_dispatch_outbox')->where('status', 'queued')
+            ->where('expires_at', '>', DB::raw('clock_timestamp()'))->orderBy('id')->limit(10)->pluck('id');
+        $this->assertContains($outboxId, $candidates->all());
         $result = $dispatcher->dispatchBatch(limit: 10);
 
         $this->assertSame(0, $spyGateway->submitCalls, 'Unsupported normal-returning gateway must have zero submit calls.');
-        $this->assertSame(1, $result->processedCount);
+        $this->assertSame($candidates->count(), $result->processedCount);
         $this->assertSame(0, $result->capturedLocallyCount);
-        $this->assertSame(1, $result->failedCount);
+        $this->assertSame($candidates->count(), $result->failedCount);
         $this->assertContains('ERR_UNCONFIGURED_PROVIDER', $result->errorCodes);
 
         $row = DB::table('security_dispatch_outbox')->where('id', $outboxId)->first();
