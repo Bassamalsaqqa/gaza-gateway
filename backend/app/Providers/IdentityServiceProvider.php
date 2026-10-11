@@ -95,6 +95,20 @@ final class IdentityServiceProvider extends ServiceProvider
             );
         });
 
+        $this->app->singleton(\App\Identity\Passenger\PassengerAuthCoordinator::class, function ($app) {
+            return new \App\Identity\Passenger\PassengerAuthCoordinator(
+                db: DB::connection(),
+                hasher: $app->make(Argon2idPasswordHasher::class),
+                passwordPolicy: $app->make(PasswordPolicy::class),
+                sessionStore: $app->make(PassengerSessionStore::class),
+                rateLimiter: $app->make(DurableRateLimiter::class),
+                proofService: $app->make(\App\Identity\Proofs\ProofService::class),
+                outboxService: $app->make(\App\Identity\Dispatch\OutboxService::class),
+                auditWriter: $app->make(\App\Identity\Audit\AuditWriter::class),
+                encrypter: $app->make(Encrypter::class),
+            );
+        });
+
         $this->app->singleton(\App\Http\Middleware\Identity\VerifyApplicationCsrfHeader::class, function ($app) {
             return new \App\Http\Middleware\Identity\VerifyApplicationCsrfHeader(
                 passengerStore: $app->make(PassengerSessionStore::class),

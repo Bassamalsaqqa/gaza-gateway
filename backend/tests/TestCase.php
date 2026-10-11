@@ -17,6 +17,12 @@ abstract class TestCase extends BaseTestCase
             $_SERVER['APP_KEY'] = $disposableKey;
         }
 
+        if (empty(env('APP_URL'))) {
+            putenv('APP_URL=https://127.0.0.1:18090');
+            $_ENV['APP_URL'] = 'https://127.0.0.1:18090';
+            $_SERVER['APP_URL'] = 'https://127.0.0.1:18090';
+        }
+
         return parent::createApplication();
     }
 
