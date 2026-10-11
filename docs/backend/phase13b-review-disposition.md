@@ -1,16 +1,16 @@
 # Phase 13B independent review disposition
 
-Status: **In Progress / Changes Requested**. PR #2 remains draft. This record assigns open findings; it does not accept Phase 13B or close Issue #1.
+Status: **Local Engineering Accepted / Remote Gates Deferred** at `f122b6d7db51c887883a402356dd09bee8de3e0d`, by the owner's local-progression acceptance instruction. PR #2 remains draft with the original **CHANGES_REQUESTED** review preserved. Acceptance is not merge or exposure approval; this record does not close threads or Issue #1.
 
 Review: [PR #2 changes requested](https://github.com/Bassamalsaqqa/gaza-gateway/pull/2#pullrequestreview-5479158852), [anonymous bootstrap follow-up](https://github.com/Bassamalsaqqa/gaza-gateway/pull/2#pullrequestreview-5479690765), [roadmap ownership thread](https://github.com/Bassamalsaqqa/gaza-gateway/pull/2#discussion_r4238213069), [Issue #1](https://github.com/Bassamalsaqqa/gaza-gateway/issues/1). Inspected 2026-10-10: the follow-up regards the original bootstrap finding as substantively addressed in source; the later independent review accepts the narrow phase-ownership correction at `b8e86d642216d56fa815b80ea12e3f9def071dbe`. Integrated and staging gates remain pending, and the prior changes-requested disposition still applies. Codex has not resolved either inline thread on the reviewer's behalf.
 
 ## Current local implementation and remaining gates
 
-All 46 accepted identity/guest/claim HTTP operations and an isolated EN/AR nonproduction identity preview are implemented. Default frontend repositories remain mock. [Cumulative final local evidence](phase13b-final-local-gate.md) records real PHP/PostgreSQL, failed checks and bounded recovery, all-operation response validation, HTTPS cookies and focused browser checks. No single uninterrupted full green run is claimed.
+All 46 identity/guest/claim HTTP operations and an isolated EN/AR nonproduction identity preview are implemented. Default frontend repositories remain mock. The [accepted local gate record](phase13b-final-local-gate.md) now records the unfiltered exact-source passing identity gate: 766 PHP tests / 5261 assertions, 46 actual response contracts, migrations, generated parity and 85 Node tests. Prior failures and thirteen cumulative HTTPS browser checks remain separately attributed. This is a class-isolated identity gate, not an uninterrupted common-state full-repository or remote certification. The [public attestation](phase13b-local-acceptance.v1.json) is derived from private local artifacts; ChatGPT inspected source without executing or verifying private receipt bytes.
 
 Bootstrap admission/cleanup, proof-capture retention, durable source budgets, replay/epoch/MFA/last-admin protection and narrow staff locks are corrected locally. Original inline threads remain unresolved for independent confirmation. Guest challenge timing now has a 250 ms successful-response floor after commit; cold/contended/remote timing and measured proxy/edge admission are not certified.
 
-PR #2 remains draft / CHANGES REQUESTED. Independent phase acceptance, remote delivery/provider idempotency, scheduler supervision, initial-admin custody, proxy/edge attribution, staging TLS/secrets and exposure gates remain pending. Receipt/itinerary consumers and booking mutations are Phase 13D dependencies. Automatic Actions remain disabled.
+PR #2 remains draft / CHANGES REQUESTED despite local progression acceptance. Formal reviewer disposition, reviewer confirmation of source-corrected threads and owner merge authorization remain pending. Remote delivery/provider idempotency, scheduler supervision, initial-admin custody, proxy/edge attribution, staging TLS/secrets and exposure gates remain deferred/unmet. Receipt/itinerary consumers and booking mutations are Phase 13D dependencies. Automatic Actions remain disabled.
 
 ## Issue #1 cross-phase findings
 

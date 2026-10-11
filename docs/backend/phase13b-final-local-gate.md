@@ -1,6 +1,16 @@
 # Phase 13B local identity review gate
 
-Status: local identity implemented / Awaiting Independent Review. This record does not accept the phase or authorize remote exposure. PR #2 remains draft; CHANGES REQUESTED has not been withdrawn.
+Status: **Local Engineering Accepted / Remote Gates Deferred** at `f122b6d7db51c887883a402356dd09bee8de3e0d`, under the owner's Phase 13B Local Acceptance Finalization instruction. This accepts local engineering progression only. PR #2 remains draft; CHANGES REQUESTED has not been withdrawn, and merge clearance is unresolved. This documentation change does not retest its own later SHA or authorize exposure.
+
+## Accepted source and final evidence — 2026-10-11
+
+The definitive unfiltered `node backend/scripts/run-identity-gate.mjs` run `3fab2337ae842d5da20aaa2c4ff6b99b` passed at exact accepted source `f122b6d7db51c887883a402356dd09bee8de3e0d`: **66 classes / 766 PHP tests / 5261 assertions**, zero errors, failures or skips; migration up/rollback/reapply **2 tests / 73 assertions**; all **46 actual successful controller response contracts** and canonical negative controls; generated client parity and backend policy/schema verification; **85 identity client/UI Node tests**. The additional accepted identity-contract file passed **29 tests** once at the same SHA. No acceptance filter was used.
+
+The passing private receipt SHA-256 is `796ad6a040bf9fee06e1a1120515d757120dc3eef29221683c160716fb9516e8`; combined JUnit SHA-256 is `7eaeaecddbbcaa28abfe62e36bdbb0115c530da8f5f78797b5eb192cc1526257`. Codex verified all 1176 recorded source hashes and 285 successful command-log hashes against retained local artifacts. The [public secret-free attestation](phase13b-local-acceptance.v1.json) contains derived per-class counts/hashes and response artifact metadata; it is not the original private receipt or JUnit. Raw synthetic authority captures and run-owned containers/network were removed. Earlier failures remain preserved.
+
+The [independent GitHub follow-up](https://github.com/Bassamalsaqqa/gaza-gateway/pull/2#pullrequestreview-5483266404) positively assessed the source corrections and found no new runtime regression. ChatGPT did **not** execute PHP, PostgreSQL, Docker, Node or Chromium, or verify private receipt/JUnit bytes. Do not attribute Codex's local results to independent reviewer execution. Per-class isolation preserves same-class PostgreSQL concurrency but does not certify accumulated cross-class state, the complete repository suite, remote performance or external delivery. Earlier thirteen HTTPS browser checks remain cumulative at their recorded checkpoints, not a fresh browser run at the accepted SHA.
+
+Local source acceptance does not withdraw the original review, resolve ten threads or authorize merge. Reviewer confirmation and then owner merge authorization are required. Default mock frontend authority and live identity cutover remain disabled. Remote provider, timing, edge/proxy, scheduler, owner custody and staging gates remain open; Issue #1's five findings retain their assigned phases. Phase 13C planning awaits merge clearance. No tests or Actions were rerun for this documentation-only record.
 
 ## Reproduction and scope
 

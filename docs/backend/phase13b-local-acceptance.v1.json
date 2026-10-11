@@ -1,0 +1,885 @@
+{
+  "version": "1.0.0",
+  "acceptedSourceSha": "f122b6d7db51c887883a402356dd09bee8de3e0d",
+  "runId": "3fab2337ae842d5da20aaa2c4ff6b99b",
+  "executionDate": "2026-10-11",
+  "executor": "Codex local engineering session",
+  "acceptance": {
+    "authority": "Owner-supplied Phase 13B Local Acceptance Finalization instruction",
+    "scope": "Local engineering progression only",
+    "mergeApproved": false,
+    "remoteApproved": false
+  },
+  "provenance": {
+    "kind": "Secret-free summary derived from existing private execution artifacts; not an independent reviewer rerun",
+    "reviewer": "ChatGPT independently inspected GitHub source; did not execute PHP/PostgreSQL/Docker/Chromium or verify private receipt bytes",
+    "reviewerUrl": "https://github.com/Bassamalsaqqa/gaza-gateway/pull/2#pullrequestreview-5483266404"
+  },
+  "command": "node backend/scripts/run-identity-gate.mjs",
+  "testFilter": null,
+  "runtime": {
+    "php": "8.4.26",
+    "postgres": "17",
+    "storage": "Fresh owned tmpfs instance; schema isolated per class; real shared authority inside class concurrency tests",
+    "publicPorts": false
+  },
+  "results": {
+    "classes": 66,
+    "tests": 766,
+    "assertions": 5261,
+    "errors": 0,
+    "failures": 0,
+    "skips": 0,
+    "migrationTests": 2,
+    "migrationAssertions": 73,
+    "actualIdentityResponseContracts": 46,
+    "generatedClientParity": "passed",
+    "negativeResponseControls": "passed",
+    "identityNodeTests": 85,
+    "supplementalIdentityContractTests": 29,
+    "recordedCommands": 285,
+    "sourceHashCount": 1176
+  },
+  "privateArtifactDigests": {
+    "receiptSha256": "796ad6a040bf9fee06e1a1120515d757120dc3eef29221683c160716fb9516e8",
+    "combinedJunitSha256": "7eaeaecddbbcaa28abfe62e36bdbb0115c530da8f5f78797b5eb192cc1526257"
+  },
+  "classes": [
+    {
+      "artifact": "identity-000-ConcurrentIdentityRacesTest.xml",
+      "sha256": "841293ae71aa9b18ea4b5d7833dac4f411ed4090aa983601f8af9d5c0d6219fd",
+      "tests": 13,
+      "assertions": 136,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-001-DurableRateLimiterTest.xml",
+      "sha256": "e14bc38c3372af220cef886c2016bc090a1096645e98940ed39218d2107d03eb",
+      "tests": 13,
+      "assertions": 54,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-002-IdentityDatabaseCatalogAndConstraintsTest.xml",
+      "sha256": "12d48a345ea46d0966965152ccbcb42974ab11330385eaa6478aa49a3cf13d6c",
+      "tests": 10,
+      "assertions": 41,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-003-SessionStoreLifecycleTest.xml",
+      "sha256": "f0d36b6e0b1d7c42b9f846bd95c130386facd9744a9a59fdf628c30993344b39",
+      "tests": 6,
+      "assertions": 51,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-004-BookingAccessTest.xml",
+      "sha256": "9ee75e947d4c95c0e98d5ed8e3673961af589100c37cccb9adff4da87287cd13",
+      "tests": 13,
+      "assertions": 199,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-005-ConcurrentDirectoryRacesTest.xml",
+      "sha256": "ec944847fae4faaa064d96c1113857d1f369680e8b16ce147d759c2c003d0c2a",
+      "tests": 7,
+      "assertions": 75,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-006-DirectoryTransactionGuardIntegrationTest.xml",
+      "sha256": "ac72a3282c3722c5dab66af038e6e1d8363cfce34458c0092a45f4c68f70dbc4",
+      "tests": 18,
+      "assertions": 55,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-007-AuditEventsTest.xml",
+      "sha256": "ee9dfa16a437a706b97ca52ebfb86b61959cd7f636c3b86211babbd58f9f8a4f",
+      "tests": 4,
+      "assertions": 35,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-008-CodexCaptureExecutionBoundTest.xml",
+      "sha256": "d2357561cfeac27ddc26d0e5c6137d4184ff71f428d1810018bcd57df95c7580",
+      "tests": 6,
+      "assertions": 23,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-009-CodexLifecycleCorrection03ReviewTest.xml",
+      "sha256": "2188e0396a35da45efdbb918cdfc4c4623f92b3a9c0f2becd393ad77422ef347",
+      "tests": 3,
+      "assertions": 3,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-010-CodexRetentionAuthorityReviewTest.xml",
+      "sha256": "a432d95dad299b5bc95469e44c14418e57e412aab797721cbfdcf8cd04ec559d",
+      "tests": 4,
+      "assertions": 7,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-011-CodexRetentionCheckpointReviewTest.xml",
+      "sha256": "28f742b2d884e9f51c74ba51394f355ef2e954e714bc179068d440ad1d0011cd",
+      "tests": 8,
+      "assertions": 18,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-012-CodexRetentionCrashReviewTest.xml",
+      "sha256": "3609d37e1b87de11af76e79ae06fe562e86c78a6fb91dc307cb0bbecef88b3b3",
+      "tests": 6,
+      "assertions": 17,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-013-CodexRetentionIntegrityReviewTest.xml",
+      "sha256": "6a7c103ec593880c45e01b4f67fc39c39dd3fe6f4ee0269c12f44bc2067ff428",
+      "tests": 7,
+      "assertions": 17,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-014-OutboxAuthorityReviewTest.xml",
+      "sha256": "3e52f98712b7c256134215c8dcded502598cb31539c1dacdcaf0f1b178f9378e",
+      "tests": 9,
+      "assertions": 87,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-015-OutboxDispatchTest.xml",
+      "sha256": "0546067171ae720c37c9912b66c3a4524874688897e863f4ab059060d1646ed1",
+      "tests": 20,
+      "assertions": 108,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-016-ProofConcurrencyTest.xml",
+      "sha256": "72c427a8b3da60d44b022015bae7581351f6e8f42b5628e6e8477a9cb1e2e4bc",
+      "tests": 7,
+      "assertions": 51,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-017-ProofLifecycleTest.xml",
+      "sha256": "eae0a4a4013313f65c2b22e5ff09b774f1325059cfa2ab335a0bc4a4734a81f0",
+      "tests": 9,
+      "assertions": 80,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-018-MaintainLocalIdentityCommandTest.xml",
+      "sha256": "87df6ed3b50c5428cf90639f9e0a48ad1a5eec301ad2a72db741a2d3fc8f5c31",
+      "tests": 14,
+      "assertions": 115,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-019-PassengerAbuseReviewTest.xml",
+      "sha256": "a29c047a51b8ddd646f5ba2f1cf4ec12fbe3ba030035faeeff731e8f65faacdb",
+      "tests": 3,
+      "assertions": 123,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-020-PassengerActionAuthorityReviewTest.xml",
+      "sha256": "cdabb5cf1002d3843805945802ccd53ae4548fdaeeaede9136a0b3586c556093",
+      "tests": 2,
+      "assertions": 26,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-021-PassengerAuthContractCaptureTest.xml",
+      "sha256": "c9bacdd2d9cab78961774ddb7179f386ba2afb6e41ab4f2c24684d61d4ff9982",
+      "tests": 1,
+      "assertions": 59,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-022-PassengerAuthFeatureTest.xml",
+      "sha256": "1bbc3a62e655399cf4c398d05fefa9c05b31119fb4f1a8ca2856649ed6c44160",
+      "tests": 21,
+      "assertions": 266,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-023-PassengerConcurrencyFeatureTest.xml",
+      "sha256": "21271d1e54b95209b165acd87a03e4f82cfdbafba9fcc058647e4f3f45b26478",
+      "tests": 4,
+      "assertions": 34,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-024-PassengerProfileContractCaptureTest.xml",
+      "sha256": "4ed358e8fdfe6e9502ae1c86381862c1b50bd8e47e911305c59aaf20d9f5abbe",
+      "tests": 1,
+      "assertions": 14,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-025-PassengerProfileOperationsTest.xml",
+      "sha256": "1e2d0e473852ac9ba4cae3526302ecfc7deae1ccf3d80edd330d0858b7ea1d68",
+      "tests": 13,
+      "assertions": 70,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-026-PassengerProfileSecurityAndConcurrencyTest.xml",
+      "sha256": "948f75960d2eeb9380d8777aaa12fe024e22573044f4a8f0ebfd9dca3a5e90b3",
+      "tests": 14,
+      "assertions": 108,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-027-SavedTravelersOperationsTest.xml",
+      "sha256": "81b3d7745e8c29dce7b847ebc85659855b7767a86e8a3a323aeacdd75423354f",
+      "tests": 22,
+      "assertions": 93,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-028-CatalogConstraintTest.xml",
+      "sha256": "e5e0fb3a94fa3ef914f21e69f40b60f83ad7afb4df7c915ec5bc50bcc25fdc19",
+      "tests": 4,
+      "assertions": 97,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-029-ConcurrencyAndIntegrityTest.xml",
+      "sha256": "c350a410f7148427aba6346095d1a6771d98cf549e8a7603dccbce0bd877d4ef",
+      "tests": 9,
+      "assertions": 42,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-030-DomainDependencyConstraintsTest.xml",
+      "sha256": "4097b1ad8de336076fb5c57f347fbec74c8ff98d77ef3ea224adc3b042cecece",
+      "tests": 6,
+      "assertions": 15,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-031-ProfileAndAuditTest.xml",
+      "sha256": "87c2edfa48c218876bdbc3c2b9cb4c1d42432523f4336f4635f51cabdf8a64f1",
+      "tests": 5,
+      "assertions": 43,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-032-RemainingIdentityRelationsTest.xml",
+      "sha256": "b54dac7ee9ae1b9bbe87cb0d538e1ee40e03a3e192eff8a5cbf4dddab41cc890",
+      "tests": 5,
+      "assertions": 16,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-033-AnonymousBootstrapAdmissionFeatureTest.xml",
+      "sha256": "311f045ddeb5ea6ef4b6758fa2dfeed0b4fd84bc172c2fe6a99a80c11f4bf5a3",
+      "tests": 12,
+      "assertions": 154,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-034-AnonymousBootstrapConcurrencyTest.xml",
+      "sha256": "86ff9d5e9f7a1837ece6a344161aecb8e488887416da176c6ca65a9b32a9ec2d",
+      "tests": 12,
+      "assertions": 165,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-035-AnonymousCleanupFeatureTest.xml",
+      "sha256": "17942e5bc58b7c8714a618124414a0386f2a86e27544fbba33954b7981bb2c3c",
+      "tests": 13,
+      "assertions": 47,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-036-BrowserCorsHeaderTest.xml",
+      "sha256": "f633e5e9cf333c250aca2c2d51fac98210a5743f4fde4c7b3802132f97c6596e",
+      "tests": 1,
+      "assertions": 11,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-037-CsrfBootstrapFeatureTest.xml",
+      "sha256": "b9843b49feb2c2206665426ddf5370851a7985c836020390ef9fa6b81249fdfc",
+      "tests": 10,
+      "assertions": 71,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-038-VerifyApplicationCsrfHeaderFeatureTest.xml",
+      "sha256": "5547d544e6d300b79cea575bb558292b4081639aad16efdf56fde6ea0181a5c0",
+      "tests": 31,
+      "assertions": 90,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-039-StaffAuthenticationTest.xml",
+      "sha256": "32e4269c936f4efc3cc8a1e92f2cbd9fb70ff8668f218326740e408874223153",
+      "tests": 9,
+      "assertions": 104,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-040-StaffDirectoryTest.xml",
+      "sha256": "69697a867ad946a333a93554c5ab6d10fc4e66c8dec0b9625f29811d67eb789a",
+      "tests": 13,
+      "assertions": 123,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-041-StaffLifecycleTest.xml",
+      "sha256": "bc313d2c63e5557686b1d3d9c5b3305229c2d76f3877327e144bff8e2e2dc99a",
+      "tests": 9,
+      "assertions": 73,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-042-Argon2idPasswordHasherTest.xml",
+      "sha256": "00da5aaae8c3c7d1bfc720c883bd0e13fd88888810950fadfbb649305123e769",
+      "tests": 11,
+      "assertions": 58,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-043-OpaqueTokenTest.xml",
+      "sha256": "896124a8651661bb80cb0be05c416babf300959eb67ee7461d180e6923981953",
+      "tests": 10,
+      "assertions": 144,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-044-PassengerLoginResultLeakTest.xml",
+      "sha256": "f2a65f617dfe8fa58cf80a4aa4d4d5022c360d231916c767ecdd09f8a4b538cf",
+      "tests": 5,
+      "assertions": 15,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-045-PasswordPolicyTest.xml",
+      "sha256": "d8ec44d048ef25d7b1bf95dc6995e35890964b8d085f86b14ccaf0b4051c807d",
+      "tests": 8,
+      "assertions": 28,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-046-RbacPolicyTest.xml",
+      "sha256": "86f9d03eb76d137a5e6325d34cdd6d64fb8e45c1441ef2a1bf4ca3013fdfe554",
+      "tests": 5,
+      "assertions": 49,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-047-IdentityCommandBoundariesAndSecurityTest.xml",
+      "sha256": "78f0ea1cfae190166c94d9fcfaa05b303ea60ff8642aae64fb1e1b81a26bbbc1",
+      "tests": 34,
+      "assertions": 193,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-048-IdentityCommandContractsTest.xml",
+      "sha256": "1585487e0b878e31a5478b384b56a4ab8ee454ecb2d5c733aa08f956d9c39198",
+      "tests": 28,
+      "assertions": 212,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-049-IdentityCommandValidatorSpecimensTest.xml",
+      "sha256": "9352e52bd178b9d9388df6c64d7317ca0be48090b74cd540d5afc18207d9de0d",
+      "tests": 135,
+      "assertions": 497,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-050-DirectoryMutationResultTest.xml",
+      "sha256": "5f1171ea721251c54ce26cae04bc975655d95e6d61c75255ee685231d1a9a65a",
+      "tests": 6,
+      "assertions": 30,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-051-DirectoryTransactionGuardUnitTest.xml",
+      "sha256": "645fb22c3c71172de578990f239041a66b8da42cf8de6e35fb2eae159be82b49",
+      "tests": 8,
+      "assertions": 15,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-052-StaffEligibilityPredicateTest.xml",
+      "sha256": "1d8a048f545fe4302819258bbf25bed76b53a773851798bc9c28ea12998989a0",
+      "tests": 8,
+      "assertions": 25,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-053-AuditWriterValidationTest.xml",
+      "sha256": "62ac882220858b43516e9ce719aecb8634b35f5dc27b59769ed1ba961b014785",
+      "tests": 6,
+      "assertions": 36,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-054-GuestOtpHelperTest.xml",
+      "sha256": "08bab5d896719284ad4b6ed83563209d24d1c5c20e1bb0ed1ae74f87166f71c8",
+      "tests": 4,
+      "assertions": 162,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-055-OpaqueProofTokenTest.xml",
+      "sha256": "aef2582cc59a8e55812c9bb8365b47886a3d2e8f865ec8b1f0759c8930c852ad",
+      "tests": 3,
+      "assertions": 52,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-056-Base32CodecTest.xml",
+      "sha256": "09f7e2f0ec011026be67ab6dd3c46d42d354bca84bec1183807413130f2856f4",
+      "tests": 14,
+      "assertions": 81,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-057-MfaSecurityInformationHidingTest.xml",
+      "sha256": "54bc998ddf72952617003c6789653efb9405cfde58555a880ccc77ff1a5b9c60",
+      "tests": 3,
+      "assertions": 51,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-058-RecoveryCodeBatchTest.xml",
+      "sha256": "8644e26841f58e204a1e573c90c95c782eae7fb9530501c0a71714300aa44f5d",
+      "tests": 8,
+      "assertions": 144,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-059-RecoveryCodeTest.xml",
+      "sha256": "76b20ba464ead9404453120fd5f66c146c151be239bff38555f9567240a49da6",
+      "tests": 15,
+      "assertions": 49,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-060-TotpSecretTest.xml",
+      "sha256": "6f211014cb22d21a9ff5a6cc6a399cc39e7b41afae4262773be0cca7a2e1204b",
+      "tests": 9,
+      "assertions": 20,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-061-TotpServiceTest.xml",
+      "sha256": "7d120810f256dd4c5ed0aa8592136004e299cd643598002cf313ee464ed29e53",
+      "tests": 21,
+      "assertions": 65,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-062-CookieSecurityTest.xml",
+      "sha256": "4f64a908312dd3cf65e33aaa594db3e88584bec64ab527b82ed1760128d67598",
+      "tests": 6,
+      "assertions": 38,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-063-IdentityOperationPoliciesTest.xml",
+      "sha256": "a3e59d04e20f6cf17630256e2067c9e72337936ab336fed9d9e61f1df908a27f",
+      "tests": 10,
+      "assertions": 198,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-064-IdentityPrincipalTest.xml",
+      "sha256": "14088ead40f7dba4834dd4b39e2d49385f0a48e846dfb6baa7394e3476715959",
+      "tests": 3,
+      "assertions": 22,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    {
+      "artifact": "identity-065-SessionGuardsPrivacyAndHygieneTest.xml",
+      "sha256": "bd83ad9cbe7907cef433c8fc92ffd95677ba9d22b0a1dab21a34be646ada43d3",
+      "tests": 9,
+      "assertions": 61,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    }
+  ],
+  "responseArtifacts": [
+    {
+      "operationId": "deletePassengerSession",
+      "status": 200,
+      "sha256": "3a05a94dbbed512ba731294405b30c9daee49133e2ae7dccc4519eb9a97bcaaa"
+    },
+    {
+      "operationId": "deleteSavedTraveler",
+      "status": 200,
+      "sha256": "6370d42670167713f82cecd66e7965cc93292f30449660c89052c4a65f65e818"
+    },
+    {
+      "operationId": "deleteStaffSession",
+      "status": 200,
+      "sha256": "b2efe9f76f42e000318dc6caae5bc77ed6b6ba0cab0e504f6829fd47079cec0a"
+    },
+    {
+      "operationId": "deleteStaffUser",
+      "status": 200,
+      "sha256": "fa5840e021c7c3a6b16cb3fc77eb21f3f6da2e4c6ae7e0afc1946e6ffe115948"
+    },
+    {
+      "operationId": "getAuthCsrfBootstrap",
+      "status": 200,
+      "sha256": "205fe051808d28348f9d88b2a0e9212961c85d186cd5ac824c3f6a5bd2e2ebf6"
+    },
+    {
+      "operationId": "getPassengerProfile",
+      "status": 200,
+      "sha256": "6024000003529cb4361be2fb34a08260477fbc0be8a4267e6bedf802eb2a477a"
+    },
+    {
+      "operationId": "getPassengerSessions",
+      "status": 200,
+      "sha256": "cca0951319d3aa19d050c0d7d988275cacb8ff4fa1ef6ff8e10370536a6b44f5"
+    },
+    {
+      "operationId": "getSavedTravelers",
+      "status": 200,
+      "sha256": "e19e59486f6674d81141a48f97a3c7fa1d4aaa3eaa6b4a3c0d667ad22435cd2c"
+    },
+    {
+      "operationId": "getStaffCsrfBootstrap",
+      "status": 200,
+      "sha256": "54edaa65d47bbd25498e76e463f44127b27904c5be9764fc56b9c6279bd2987c"
+    },
+    {
+      "operationId": "getStaffMe",
+      "status": 200,
+      "sha256": "87cfb4340c33a5c6af10e4e1884c3cac8c59612fdb0f95dae3723b4d6576840a"
+    },
+    {
+      "operationId": "getStaffSessions",
+      "status": 200,
+      "sha256": "2e18f3d01030871304edba3e9151dbc7bc5211a6771ef823751bf7ea2dee5b90"
+    },
+    {
+      "operationId": "getStaffUsersDirectory",
+      "status": 200,
+      "sha256": "ec99df85b6d58f5917465daf38b482a612cec6031a97186533cbf3f7075e8377"
+    },
+    {
+      "operationId": "patchSavedTraveler",
+      "status": 200,
+      "sha256": "c5ce86d63a84d18785e997f0318ea53f852138abbea3f7d0ed72cf8adad30719"
+    },
+    {
+      "operationId": "patchStaffUser",
+      "status": 200,
+      "sha256": "23cf1d2f94cc27165fb38cd9f532496872c5388036a0b7da9a6d0e79ea6bd5db"
+    },
+    {
+      "operationId": "postClaimBookingToAccount",
+      "status": 200,
+      "sha256": "458285134ee11a902ae089671c2833381b4dfff1ef7a92e47aa2158aa897171a"
+    },
+    {
+      "operationId": "postCreateClaimChallenge",
+      "status": 202,
+      "sha256": "3b441ef72bd9d07461911513b7357c910286bd70704ee1b334328ea3a307026b"
+    },
+    {
+      "operationId": "postCreateGuestChallenge",
+      "status": 202,
+      "sha256": "28d809266eab26cae0c6a39dfe94b6acbe7c382c5f7ff6aef329a1fed70ae9a1"
+    },
+    {
+      "operationId": "postPassengerEmailResend",
+      "status": 202,
+      "sha256": "f10649285ff5ae5d252c45f222d9de2a90d2ebaf7b8f2ee65790e444a07a706f"
+    },
+    {
+      "operationId": "postPassengerEmailVerify",
+      "status": 200,
+      "sha256": "da9e41147a0fddd42861874d318d519e4dbf09dae934f8bafe9f8a965eec4623"
+    },
+    {
+      "operationId": "postPassengerLogin",
+      "status": 200,
+      "sha256": "55d2ee40ebe54ad9c3d3f272a3e74ef5044ab4fb4742fe43f3bae44f49ada14f"
+    },
+    {
+      "operationId": "postPassengerLogout",
+      "status": 200,
+      "sha256": "df1dd060c61adc3a9bbc328dfd52c4e9c33d7b8eff2db2d1324a4c7757a40cf0"
+    },
+    {
+      "operationId": "postPassengerPasswordForgot",
+      "status": 202,
+      "sha256": "7b3085c01aaca9e7a80dafc46deaac0101741c764f8b0c8ced9140da34fe29b2"
+    },
+    {
+      "operationId": "postPassengerPasswordReset",
+      "status": 200,
+      "sha256": "f27b1789e4f153fbc67ab809317208a1b180bc4a82b2f1869461235111765630"
+    },
+    {
+      "operationId": "postPassengerRegister",
+      "status": 202,
+      "sha256": "81217faa267c70fcb5fb9839bea4ed6fbdf3479efa69527ba664c72f1c5993a2"
+    },
+    {
+      "operationId": "postSavedTraveler",
+      "status": 201,
+      "sha256": "5be04384e3087defc4d1df1da3c8330ee38700b3ef5bb5a5880a7d8d65d9f22d"
+    },
+    {
+      "operationId": "postStaffInvitationAccept",
+      "status": 200,
+      "sha256": "04619e2c00fccd433ab5a1edea8e31e0e7015aff32ed4fd3fc125ab01b71938c"
+    },
+    {
+      "operationId": "postStaffLogin",
+      "status": 200,
+      "sha256": "35351915b68fd58306e526d05ebafb4e8bbbba7d7f7f2fb1fcf85aaa54f05437"
+    },
+    {
+      "operationId": "postStaffLogout",
+      "status": 200,
+      "sha256": "0c8de5afe8b7a96c47d406739818819439149f509d6d96cda030e0371432fab2"
+    },
+    {
+      "operationId": "postStaffMfaChallenge",
+      "status": 200,
+      "sha256": "d9c930a4dde714c32b01a0d8de3988c91d34f6a098b0e3ac3208c2dfda0d1542"
+    },
+    {
+      "operationId": "postStaffMfaEnrollmentConfirm",
+      "status": 200,
+      "sha256": "ef1e4be722caec6312b2b9bd4ef7e96035a18dc49a97cfc86668a43d410c0348"
+    },
+    {
+      "operationId": "postStaffMfaEnrollmentSetup",
+      "status": 200,
+      "sha256": "58602231426e003dad9a59341b9c5840d495448eb8e31be9cee8ccee6f187d5d"
+    },
+    {
+      "operationId": "postStaffMfaRecoveryCodesRegenerate",
+      "status": 200,
+      "sha256": "bcc2db92dd9a528361b3b0fbf94c428419e375247db6d1abf2f950abe7b7ae42"
+    },
+    {
+      "operationId": "postStaffMfaSetup",
+      "status": 200,
+      "sha256": "7ca067cdfec27648363f88fc17e9c3f592a7f95b89e0fe70ee3c2797258ada21"
+    },
+    {
+      "operationId": "postStaffMfaSetupConfirm",
+      "status": 200,
+      "sha256": "7c048b9cd032d68d33fa1af3acac5bc3e7c79664d70e27e5301e49f00e6c3076"
+    },
+    {
+      "operationId": "postStaffMfaVerify",
+      "status": 200,
+      "sha256": "b304462901f4850dd2515e53ab3c426f2d048ea285b704463179e4a1895b83a8"
+    },
+    {
+      "operationId": "postStaffPasswordForgot",
+      "status": 202,
+      "sha256": "c3a613edbb720d56456350035e0e1863d66d43c9f521fd47483a8a7fd9253ad1"
+    },
+    {
+      "operationId": "postStaffPasswordReset",
+      "status": 200,
+      "sha256": "e4113c9fa5f4a0fb1dea78d209a5f2166b788f7f13ec419956c854b0160a974b"
+    },
+    {
+      "operationId": "postStaffStepUp",
+      "status": 200,
+      "sha256": "d689654debfc72809503136f3de23d1eccb3783583d6c78611fc76154e0bbeee"
+    },
+    {
+      "operationId": "postStaffUserInvite",
+      "status": 201,
+      "sha256": "e48722ca6f9a58a847a44adcb059b98645b4b0e486248781808c4899857ca01a"
+    },
+    {
+      "operationId": "postStaffUserInviteReissue",
+      "status": 200,
+      "sha256": "e1b40a00af43d2af34582dac2c7582b0ab72d7c11bf5b5ab76e108a6fc76eae5"
+    },
+    {
+      "operationId": "postStaffUserInviteRevoke",
+      "status": 200,
+      "sha256": "52d0f06d844e26ec2c512bf9ea3ccd197ac87685c67e8be26e27393b1d7d326e"
+    },
+    {
+      "operationId": "postVerifyClaimChallenge",
+      "status": 200,
+      "sha256": "5e8a53464eeb44c319bd5539dd78478b44b337e49fc260e3ef114123e70052f5"
+    },
+    {
+      "operationId": "postVerifyGuestChallenge",
+      "status": 200,
+      "sha256": "7b3042d18157724c7c52502786ed625365ee3ec60a539a3c1272e34a35d1c567"
+    },
+    {
+      "operationId": "putPassengerPassword",
+      "status": 200,
+      "sha256": "794ada6083bc25ad3c7392c96f4c498b6ff09ddc9145ec2f34a7aabdaea27ddd"
+    },
+    {
+      "operationId": "putPassengerProfile",
+      "status": 200,
+      "sha256": "f7fd609bb8c7dab3ab08fd148adff1f8e3d6043d09e786498c2750a7bc72b5b9"
+    },
+    {
+      "operationId": "putStaffPassword",
+      "status": 200,
+      "sha256": "e70a970b0eb8c93886d408f531742660c60292bfaa713632657cc4abf77834dc"
+    }
+  ],
+  "limits": [
+    "This publication is a derived attestation, not original private receipt/JUnit bytes or independent execution certification.",
+    "Class-isolated identity gate does not certify accumulated cross-class state, complete repository regression or staging performance.",
+    "Earlier 13 local HTTPS browser checks are cumulative at their recorded source checkpoints, not a browser rerun at the accepted SHA.",
+    "Local capture and synthetically accepted provider fixtures do not certify real provider acceptance or external delivery.",
+    "Cold/long-tail/concurrent/proxy timing, trusted peer/edge admission, scheduler supervision, staging TLS/secrets and administrator custody remain unmet exposure gates."
+  ],
+  "cleanup": "Raw synthetic authority captures and run-owned PHP/PostgreSQL/network removed; retained owner review services preserved",
+  "actions": "Disabled; zero runs at accepted source",
+  "issue1": "Five normative findings remain open for 13D/13E/13F/13G"
+}
