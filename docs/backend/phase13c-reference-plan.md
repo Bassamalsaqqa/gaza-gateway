@@ -1,5 +1,8 @@
 # Phase 13C reference authority implementation plan
 
+> **Active MVP delivery scope (2026-10-11):** [Final MVP plan v2](../production/GAZA_GATEWAY_FINAL_MVP_DELIVERY_PLAN_v2.md) supersedes the payment-heavy delivery path. W0–W5 deliver shared reference authority, the existing Admin panel, logged-in free reservations, runtime CMS publication and queued email tickets. Phase 13F payments are cancelled for this product. Local implementation is authorized; merge, paid provisioning, credentials and deployment are not. Historical milestones below remain preserved.
+
+
 Status: **In Progress / C01 locally implemented and focused verification passed / C02-C06 unfinished** (2026-10-11). See [fleet checkpoint and limitations](phase13c-fleet.md). The owner directed Codex to complete implementation directly; the unfinished manual AGY workspace is preserved.
 
 Baseline: Phase 13B implementation `f122b6d7db51c887883a402356dd09bee8de3e0d`, documentation `94b4c7f3b08569678831547cfc39886585deff6a`, integrated under the [owner governance override](phase13b-source-integration.md). Laravel 13 / PHP 8.4 / PostgreSQL 17 remains the accepted architecture. Automatic Actions, remote provisioning and public backend cutover remain prohibited.

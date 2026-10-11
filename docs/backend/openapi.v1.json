@@ -7,6 +7,12 @@
     "contact": {
       "name": "Bassam Alsaqqa",
       "url": "https://www.gazaairport.com"
+    },
+    "x-mvp-scope": {
+      "plan": "../production/GAZA_GATEWAY_FINAL_MVP_DELIVERY_PLAN_v2.md",
+      "paymentAuthority": "excluded-disabled",
+      "bookingAuthority": "free-authenticated-reservations",
+      "historicalContracts": "Existing payment/quote/hold/check-in schemas are retained for traceability, not enabled MVP endpoints. Free reservation operations are specified in the active MVP API contract as each vertical slice is implemented."
     }
   },
   "servers": [
@@ -3630,7 +3636,8 @@
           "requiresLivePassengerSession": true,
           "resourceSessionMustMatch": true,
           "clientIdentityNeverAuthoritative": true
-        }
+        },
+        "x-mvp-disposition": "excluded-disabled"
       }
     },
     "/holds": {
@@ -3702,7 +3709,8 @@
           "requiresLivePassengerSession": true,
           "resourceSessionMustMatch": true,
           "clientIdentityNeverAuthoritative": true
-        }
+        },
+        "x-mvp-disposition": "excluded-disabled"
       }
     },
     "/bookings": {
@@ -4837,7 +4845,8 @@
           "cacheControl": "no-store",
           "stepUpSeconds": null
         },
-        "x-authority-policy": "mixed_booking"
+        "x-authority-policy": "mixed_booking",
+        "x-mvp-disposition": "excluded-disabled"
       }
     },
     "/bookings/{ref}/check-in/undo": {
@@ -4977,7 +4986,8 @@
           "cacheControl": "no-store",
           "stepUpSeconds": null
         },
-        "x-authority-policy": "mixed_booking"
+        "x-authority-policy": "mixed_booking",
+        "x-mvp-disposition": "excluded-disabled"
       }
     },
     "/bookings/{ref}/boarding-passes": {
@@ -6576,7 +6586,8 @@
           "requiresLivePassengerSession": true,
           "resourceSessionMustMatch": true,
           "clientIdentityNeverAuthoritative": true
-        }
+        },
+        "x-mvp-disposition": "excluded-disabled"
       }
     },
     "/payments/webhook": {
@@ -6671,7 +6682,8 @@
           "stepUpSeconds": null
         },
         "x-authority-policy": "webhook",
-        "description": "Schema describes the normalized provider-adapter event. The configured native provider payload is verified against raw bytes before normalization; actual provider media/signature requirements must be added at Phase 13F onboarding, never accepted from an unsigned client."
+        "description": "Schema describes the normalized provider-adapter event. The configured native provider payload is verified against raw bytes before normalization; actual provider media/signature requirements must be added at Phase 13F onboarding, never accepted from an unsigned client.",
+        "x-mvp-disposition": "excluded-disabled"
       }
     },
     "/admin/payments/{id}/refund": {
@@ -6758,7 +6770,8 @@
           "cacheControl": "no-store",
           "stepUpSeconds": null
         },
-        "x-authority-policy": "staff"
+        "x-authority-policy": "staff",
+        "x-mvp-disposition": "excluded-disabled"
       }
     },
     "/admin/payments/reconciliation": {
@@ -6826,7 +6839,8 @@
           "cacheControl": "no-store",
           "stepUpSeconds": null
         },
-        "x-authority-policy": "staff"
+        "x-authority-policy": "staff",
+        "x-mvp-disposition": "excluded-disabled"
       }
     },
     "/migration/passenger/preview": {
