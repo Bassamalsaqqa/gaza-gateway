@@ -233,8 +233,8 @@ final class DirectoryTestFixture
     {
         $this->assertSafeTestDatabase();
 
-        $this->db->table('staff_sessions')->delete();
         $this->db->table('staff_pending_auth')->delete();
+        $this->db->table('staff_sessions')->delete();
         $this->db->table('staff_invitations')->delete();
         $this->db->table('staff_password_resets')->delete();
         $this->db->table('staff_mfa_replacements')->delete();

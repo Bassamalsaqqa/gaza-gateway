@@ -72,7 +72,7 @@ try {
     "-w", "/workspace/backend", "-e", "APP_KEY", "-e", "GUEST_OTP_PEPPER_BASE64", "-e", "APP_ENV=testing", "-e", "APP_DEBUG=false",
     "-e", "APP_URL=https://127.0.0.1:18090", "-e", "APP_ALLOWED_HOSTS=127.0.0.1,localhost,127.0.0.1:18090",
     "-e", "CORS_ALLOWED_ORIGINS=http://localhost:3000,https://127.0.0.1:5173,https://127.0.0.1:10001",
-    "-e", "DB_CONNECTION=pgsql_test", "-e", "DB_HOST=postgres", "-e", "DB_TEST_DATABASE=gaza_gateway_test",
+    "-e", "DB_CONNECTION=pgsql_test", "-e", "DB_HOST=postgres", "-e", "DB_PORT=5432", "-e", "DB_TEST_DATABASE=gaza_gateway_test",
     "-e", "DB_USERNAME=gaza_app_user", "-e", "DB_PASSWORD=gaza_app_local_pass",
     "-e", "CACHE_STORE=database", "-e", "QUEUE_CONNECTION=database", "-e", "SESSION_DRIVER=array", "-e", "LOG_CHANNEL=stderr",
     "-e", "IDENTITY_MIGRATION_DISPOSABLE_INSTANCE=1", "-e", `IDENTITY_FINAL_CAPTURE_RUN=${run}`,
@@ -87,16 +87,48 @@ try {
     : phpCommand("migration-roundtrip", ["php", "vendor/bin/phpunit", "tests/Feature/IdentityPersistence/MigrationLifecycleTest.php"], 180000);
   const catalog = phpCommand("migration-status", ["php", "artisan", "migrate:status"]);
   phpCommand("csrf-live-captures", ["php", "tests/Fixtures/IdentityFinal/capture-bootstraps.php"]);
-  let tests;
-  try {
-    tests = phpCommand("identity-php-postgres", ["php", "vendor/bin/phpunit", "--configuration", "tests/identity-final.xml",
-      ...(filter ? ["--filter", filter] : []), "--log-junit", "/tmp/identity-final.xml"], 900000);
-  } catch (error) {
-    // Preserve failed JUnit before destroying the exclusively owned test instance.
-    docker("failed-junit-copy", ["cp", `${php}:/tmp/identity-final.xml`, path.join(output, "identity-final.xml")]);
-    throw error;
+  // Each class gets a clean schema in this exclusively owned tmpfs database.
+  // Transactions/processes within a class still share real PostgreSQL authority.
+  // This prevents legacy broad cleanup and foreign fixtures from crossing classes.
+  const registered = [...suite.matchAll(/<directory[^>]*>([^<]+)<\/directory>/g)].flatMap(([, directory]) => {
+    const absolute = path.join(root, "backend/tests", directory);
+    return fs.readdirSync(absolute).filter(file => file.endsWith("Test.php"))
+      .map(file => `${directory}/${file}`);
+  }).filter(file => file !== "Feature/IdentityPersistence/MigrationLifecycleTest.php").sort();
+  const selected = filter ? registered.filter(file => new RegExp(filter).test(file + "\n"
+    + fs.readFileSync(path.join(root, "backend/tests", file), "utf8"))) : registered;
+  if (selected.length === 0) throw new Error("No registered identity tests selected.");
+  const totals = { tests: 0, assertions: 0, errors: 0, failures: 0, skipped: 0, time: 0 };
+  const junitParts = []; const failedClasses = [];
+  for (const [index, file] of selected.entries()) {
+    const label = `identity-${String(index).padStart(3, "0")}-${path.basename(file, ".php")}`;
+    // Superuser access is confined to the randomly named, gate-created instance.
+    // It never connects to retained owner resources or their database/schema.
+    docker(`${label}-schema`, ["exec", pg, "psql", "-U", "gza_admin", "-d", "gaza_gateway_test", "-v", "ON_ERROR_STOP=1", "-c",
+      "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO gza_app_user;"]);
+    phpCommand(`${label}-migrate`, ["php", "artisan", "migrate", "--no-interaction"]);
+    try {
+      phpCommand(label, ["php", "vendor/bin/phpunit", "--configuration", "tests/identity-final.xml", `tests/${file}`,
+        ...(filter ? ["--filter", filter] : []), "--log-junit", `/tmp/${label}.xml`], 180000);
+    } catch { failedClasses.push(file); }
+    const junitFile = path.join(output, `${label}.xml`);
+    docker(`${label}-junit`, ["cp", `${php}:/tmp/${label}.xml`, junitFile]);
+    const xml = fs.readFileSync(junitFile, "utf8");
+    const attributes = xml.match(/<testsuite\b[^>]*>/)?.[0];
+    if (!attributes) throw new Error("Missing class JUnit summary.");
+    for (const key of Object.keys(totals)) {
+      const value = Number(attributes.match(new RegExp(`\\b${key}="([0-9.]+)"`))?.[1] ?? 0);
+      if (!Number.isFinite(value)) throw new Error("Malformed class JUnit summary.");
+      totals[key] += value;
+    }
+    junitParts.push(xml.replace(/^<\?xml[^>]*>\s*<testsuites[^>]*>/, "").replace(/<\/testsuites>\s*$/, ""));
   }
-  docker("junit-copy", ["cp", `${php}:/tmp/identity-final.xml`, path.join(output, "identity-final.xml")]);
+  fs.writeFileSync(path.join(output, "identity-final.xml"), `<?xml version="1.0" encoding="UTF-8"?>\n<testsuites>\n<testsuite name="Complete identity integration and security" ${Object.entries(totals).map(([key, value]) => `${key}="${value}"`).join(" ")}>\n${junitParts.join("\n")}\n</testsuite>\n</testsuites>\n`);
+  if (failedClasses.length || totals.errors || totals.failures || totals.skipped || !totals.tests) {
+    throw new Error(`Identity suite did not pass: ${failedClasses.join(", ")}; inspect preserved class logs and JUnit.`);
+  }
+  const tests = `OK (${totals.tests} tests, ${totals.assertions} assertions)`;
+  console.log(`PASS complete registered identity suite: ${tests}`);
   docker("response-copy", ["cp", `${php}:/workspace/backend/storage/app/private/final-identity-${run}`, captureRoot]);
   const spec = JSON.parse(fs.readFileSync(path.join(root, "docs/backend/openapi.v1.json"), "utf8"));
   const contract = JSON.parse(fs.readFileSync(path.join(root, "src/lib/api/identity-contract.json"), "utf8"));
