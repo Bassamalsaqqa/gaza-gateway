@@ -3,6 +3,7 @@
 export class CmsEditSession<T> {
   draft: T;
   savedDraft: T | null = null;
+  revision: number | undefined;
   ready = false;
   conflict = false;
   busy = false;
@@ -11,7 +12,7 @@ export class CmsEditSession<T> {
   private alive = true;
   private loaded = false;
   private readEpoch = 0;
-  readonly published: T;
+  published: T;
   constructor(published: T) {
     this.published = structuredClone(published);
     this.draft = structuredClone(published);
@@ -21,14 +22,16 @@ export class CmsEditSession<T> {
   activate() { this.alive = true; }
   dispose() { this.alive = false; this.readEpoch++; }
   beginRead() { return ++this.readEpoch; }
-  adoptRemote(remote: T | null, epoch: number, reload = false) {
+  adoptRemote(remote: T | null, epoch: number, reload = false, revision?: number, published?: T) {
     if (!this.alive || epoch !== this.readEpoch || this.busy) return;
     this.error = null;
     this.ready = true;
     if (this.loaded && this.dirty && !reload) {
-      this.conflict = JSON.stringify(remote) !== JSON.stringify(this.savedDraft);
+      this.conflict = JSON.stringify(remote) !== JSON.stringify(this.savedDraft) || (revision !== undefined && revision !== this.revision);
       return;
     }
+    this.revision = revision;
+    if (published !== undefined) this.published = structuredClone(published);
     this.savedDraft = structuredClone(remote);
     this.draft = structuredClone(remote ?? this.published);
     this.ready = true;
@@ -49,10 +52,11 @@ export class CmsEditSession<T> {
     this.readEpoch++;
     this.busy = true;
     this.error = null;
-    return { document: structuredClone(this.draft), expectedDraft: structuredClone(this.savedDraft) };
+    return { document: structuredClone(this.draft), expectedDraft: structuredClone(this.savedDraft), expectedRevision: this.revision };
   }
-  committed(after: T | null, discard = false) {
+  committed(after: T | null, discard = false, revision?: number) {
     if (!this.alive) return;
+    if (revision !== undefined) this.revision = revision;
     this.savedDraft = structuredClone(after);
     if (discard) this.draft = structuredClone(this.published);
     this.conflict = false;

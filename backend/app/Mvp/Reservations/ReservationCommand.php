@@ -70,7 +70,7 @@ final class ReservationCommand
         }
         $encoded = $match[1];
         $schedule = base64_decode(strtr($encoded, '-_', '+/').str_repeat('=', (4 - strlen($encoded) % 4) % 4), true);
-        if ($schedule === false || !mb_check_encoding($schedule, 'UTF-8') || $schedule === ''
+        if ($schedule === false || !mb_check_encoding($schedule, 'UTF-8') || $schedule === '' || str_contains($schedule, "\0")
             || strlen(mb_convert_encoding($schedule, 'UTF-16LE', 'UTF-8')) / 2 > 160
             || rtrim(strtr(base64_encode($schedule), '+/', '-_'), '=') !== $encoded) {
             throw new InvalidArgumentException('Invalid reservation command.');

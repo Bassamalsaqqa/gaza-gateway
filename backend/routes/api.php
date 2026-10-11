@@ -21,9 +21,10 @@ Route::prefix('v1')->group(function () {
     require __DIR__ . '/identity.php';
     require __DIR__ . '/passenger-profile.php';
     require __DIR__ . '/staff-identity.php';
-    require __DIR__ . '/booking-identity.php';
+    if (config('reservations.enabled') !== true) require __DIR__ . '/booking-identity.php';
     require __DIR__ . '/reference.php';
     require __DIR__ . '/meal-reference.php';
     require __DIR__ . '/schedule-reference.php';
     require __DIR__ . '/editorial.php';
+    require __DIR__ . '/reservations.php';
 });

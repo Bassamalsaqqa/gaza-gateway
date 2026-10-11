@@ -1,4 +1,6 @@
 import { LocalCommercialCatalogRepository } from "../commercial/repository.ts";
+import { HttpContentRepository } from "../../content/http-repository.ts";
+import type { ContentRepository } from "../../content/repository.ts";
 import { LocalContentRepository } from "../../content/repository.ts";
 import { LocalArchiveDraftRepository } from "../archive/drafts/repository.ts";
 import { archiveDraftKeys } from "../archive/drafts/keys.ts";
@@ -64,6 +66,7 @@ import { contactKeys } from "../contact/keys.ts";
 import { scheduleKeys } from "../schedules/keys.ts";
 
 export interface CreateRepositoriesOptions {
+  contentRepository?: ContentRepository | undefined;
   passengerRepository?: PassengerRepository;
   /** Fixture resolver injection is restricted to explicitly isolated memory registries. */
   serviceResolver?: DatedServiceResolver | undefined;
@@ -191,7 +194,7 @@ export function createRepositories(options?: CreateRepositoriesOptions): Reposit
        ...(options?.initialActivityData !== undefined ? { initialData: options.initialActivityData } : {}),
     });
   const activity = new LocalActivityRepository(activityCoordinator);
-  const content = new LocalContentRepository({
+  const content = options?.contentRepository ?? new LocalContentRepository({
     ...(options?.inMemoryOnly !== undefined ? { inMemory: options.inMemoryOnly } : {}),
     ...(options?.storage !== undefined ? { storage: options.storage } : {}),
   });
@@ -281,6 +284,7 @@ export function getDefaultRepositories(): RepositoryRegistry {
   if (!browserRepositories) {
     browserRepositories = createRepositories(identityUiRequested
       ? {
+          contentRepository: new HttpContentRepository(getMvpUiClient),
           passengerRepository: new HttpPassengerRepository(getIdentityUiClient),
           fleetRepository: new HttpFleetRepository(getReferenceUiClient),
           networkRepository: new HttpNetworkRepository(getMvpUiClient),

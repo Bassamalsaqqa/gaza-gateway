@@ -1,3 +1,4 @@
+import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
 import { createFileRoute, useBlocker } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, ChevronDown, ChevronUp, Plus, RefreshCw, Trash2, X } from "lucide-react";
@@ -55,7 +56,7 @@ import { useArchiveDraftSnapshot } from "@/lib/archive/drafts/queries";
 type Tab = "past" | "present" | "future" | "archive" | "sources" | "media";
 type Lang = "en" | "ar";
 
-const VALID_TABS: readonly Tab[] = ["past", "present", "future", "archive", "sources", "media"];
+const VALID_TABS: readonly Tab[] = identityUiRequested ? ["past", "present", "future"] : ["past", "present", "future", "archive", "sources", "media"];
 
 export const Route = createFileRoute("/{-$locale}/admin/airport/")({
   validateSearch: (search: Record<string, unknown>): {
@@ -220,7 +221,7 @@ function AdminAirportPage() {
   const allSources = useMemo(() => getAllSourceRecords(), []);
 
   const mayEdit = can("content.edit");
-  const draftSnapshotQuery = useArchiveDraftSnapshot(true);
+  const draftSnapshotQuery = useArchiveDraftSnapshot(!identityUiRequested);
   const draftStorageError = draftSnapshotQuery.isError;
   const canEdit = mayEdit;
   const canEditArchive = mayEdit && draftSnapshotQuery.isSuccess && !draftStorageError;
@@ -685,14 +686,14 @@ function AdminAirportPage() {
           label={t("a2.ap.title")}
           active={tab}
           onChange={handleTabChange}
-          tabs={[
+          tabs={([
             { id: "past", label: t("a2.ap.tab.past") },
             { id: "present", label: t("a2.ap.tab.present") },
             { id: "future", label: t("a2.ap.tab.future") },
             { id: "archive", label: t("a2.ap.tab.archive"), count: effectiveRecords.length },
             { id: "sources", label: t("a2.ap.tab.sources"), count: effectiveSources.length },
             { id: "media", label: t("a2.ap.tab.media"), count: intakeRecords.length },
-          ]}
+          ] satisfies { id: Tab; label: string; count?: number }[]).filter(item => VALID_TABS.includes(item.id))}
         >
 
         <div className="space-y-4 p-4">
@@ -726,6 +727,7 @@ function AdminAirportPage() {
               <CmsDraftBar
                 mayEdit={mayEdit}
                 draftReady={pastCms.ready}
+                publication={pastCms.publication}
                 unavailable={Boolean(pastCms.saveError)}
                 dirty={pastCms.dirty}
                 savedDraft={pastCms.savedDraft}
@@ -973,6 +975,7 @@ function AdminAirportPage() {
               <CmsDraftBar
                 mayEdit={mayEdit}
                 draftReady={presentCms.ready}
+                publication={presentCms.publication}
                 unavailable={Boolean(presentCms.saveError)}
                 dirty={presentCms.dirty}
                 savedDraft={presentCms.savedDraft}
@@ -1326,6 +1329,7 @@ function AdminAirportPage() {
               <CmsDraftBar
                 mayEdit={mayEdit}
                 draftReady={futureCms.ready}
+                publication={futureCms.publication}
                 unavailable={Boolean(futureCms.saveError)}
                 dirty={futureCms.dirty}
                 savedDraft={futureCms.savedDraft}

@@ -434,6 +434,7 @@ function AdminDestinationEditorPage() {
                     <CmsDraftBar
                       mayEdit={mayEditContent}
                       draftReady={presentationCms.ready}
+                      publication={presentationCms.publication}
                 unavailable={Boolean(presentationCms.saveError)}
                       dirty={presentationCms.dirty}
                       savedDraft={presentationCms.savedDraft}
@@ -555,6 +556,7 @@ function AdminDestinationEditorPage() {
                     <CmsDraftBar
                       mayEdit={mayEditContent}
                       draftReady={editorialCms.ready}
+                      publication={editorialCms.publication}
                 unavailable={Boolean(editorialCms.saveError)}
                       dirty={editorialCms.dirty}
                       savedDraft={editorialCms.savedDraft}

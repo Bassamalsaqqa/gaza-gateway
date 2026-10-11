@@ -1,0 +1,2270 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Gaza Gateway - MVP Reservations API",
+    "description": "Durable free PostgreSQL reservations package",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/offerings/{id}/seats": {
+      "get": {
+        "operationId": "getOfferingSeats",
+        "tags": [
+          "Reservations"
+        ],
+        "summary": "Get physical layout geometry and occupied seat codes",
+        "security": [],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^svc1-[A-Za-z0-9_-]+-\\d{4}-\\d{2}-\\d{2}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Offering layout and occupied seats",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferingSeatsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request or invalid service ID parameter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Offering not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected internal error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authority or database dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-authority-policy": "public",
+        "x-protocol": {
+          "branches": [
+            {
+              "realm": "anonymous_passenger",
+              "origin": "read",
+              "csrf": "not_applicable"
+            }
+          ],
+          "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+          "csrfHeader": "X-CSRF-TOKEN",
+          "cacheControl": "no-store",
+          "stepUpSeconds": null
+        }
+      }
+    },
+    "/reservations": {
+      "post": {
+        "operationId": "postReservation",
+        "tags": [
+          "Reservations"
+        ],
+        "summary": "Create a free reservation or return idempotent replay",
+        "security": [
+          {
+            "PassengerCookieAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FreeReservationCommand"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Idempotent replay of existing reservation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReservationResponse"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Reservation created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReservationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request or rejected host",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required or session expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden origin, CSRF, or unverified passenger",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Offering not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Seat occupied, submission conflict, or reference changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported media type; application/json required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error or invalid command schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected internal error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authority or database dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-authority-policy": "passenger",
+        "x-protocol": {
+          "branches": [
+            {
+              "realm": "passenger",
+              "origin": "configured_frontend",
+              "csrf": "passenger"
+            }
+          ],
+          "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+          "csrfHeader": "X-CSRF-TOKEN",
+          "cacheControl": "no-store",
+          "stepUpSeconds": null
+        }
+      },
+      "get": {
+        "operationId": "getReservations",
+        "tags": [
+          "Reservations"
+        ],
+        "summary": "List authenticated passenger reservations",
+        "security": [
+          {
+            "PassengerCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Passenger reservations list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReservationsListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed pagination parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden passenger access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected internal error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Database dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-authority-policy": "passenger",
+        "x-protocol": {
+          "branches": [
+            {
+              "realm": "passenger",
+              "origin": "read",
+              "csrf": "not_applicable"
+            }
+          ],
+          "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+          "csrfHeader": "X-CSRF-TOKEN",
+          "cacheControl": "no-store",
+          "stepUpSeconds": null
+        }
+      }
+    },
+    "/reservations/{ref}": {
+      "get": {
+        "operationId": "getReservationByRef",
+        "tags": [
+          "Reservations"
+        ],
+        "summary": "Get reservation detail by reference",
+        "security": [
+          {
+            "PassengerCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "ref",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{6,16}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reservation detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReservationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed reference parameter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden passenger access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Reservation not found or belongs to another owner",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected internal error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Database dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-authority-policy": "passenger",
+        "x-protocol": {
+          "branches": [
+            {
+              "realm": "passenger",
+              "origin": "read",
+              "csrf": "not_applicable"
+            }
+          ],
+          "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+          "csrfHeader": "X-CSRF-TOKEN",
+          "cacheControl": "no-store",
+          "stepUpSeconds": null
+        }
+      }
+    },
+    "/reservations/{ref}/cancel": {
+      "post": {
+        "operationId": "postReservationCancel",
+        "tags": [
+          "Reservations"
+        ],
+        "summary": "Cancel owner reservation and release seats",
+        "security": [
+          {
+            "PassengerCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "ref",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{6,16}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reservation cancellation receipt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReservationCancelResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed reference parameter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required or session expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden origin, CSRF, or wrong realm",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Reservation not found or belongs to another owner",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Reservation cannot be cancelled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected internal error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Database dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-authority-policy": "passenger",
+        "x-protocol": {
+          "branches": [
+            {
+              "realm": "passenger",
+              "origin": "configured_frontend",
+              "csrf": "passenger"
+            }
+          ],
+          "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+          "csrfHeader": "X-CSRF-TOKEN",
+          "cacheControl": "no-store",
+          "stepUpSeconds": null
+        }
+      }
+    },
+    "/reservations/{ref}/ticket": {
+      "get": {
+        "operationId": "getReservationTicket",
+        "tags": [
+          "Reservations"
+        ],
+        "summary": "Get confirmed reservation ticket snapshot",
+        "security": [
+          {
+            "PassengerCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "ref",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{6,16}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reservation ticket snapshot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReservationTicketResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed reference parameter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden passenger access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Reservation not found or belongs to another owner",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected internal error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Database dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-authority-policy": "passenger",
+        "x-protocol": {
+          "branches": [
+            {
+              "realm": "passenger",
+              "origin": "read",
+              "csrf": "not_applicable"
+            }
+          ],
+          "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+          "csrfHeader": "X-CSRF-TOKEN",
+          "cacheControl": "no-store",
+          "stepUpSeconds": null
+        }
+      }
+    },
+    "/admin/reservations": {
+      "get": {
+        "operationId": "getAdminReservations",
+        "tags": [
+          "Reservations: Admin"
+        ],
+        "summary": "Staff list and search reservations",
+        "x-required-permission": "commercial.view",
+        "security": [
+          {
+            "StaffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Staff reservations search result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminReservationsListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed pagination or search parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden staff access; commercial.view required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected internal error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Database dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-authority-policy": "staff",
+        "x-protocol": {
+          "branches": [
+            {
+              "realm": "staff",
+              "origin": "read",
+              "csrf": "not_applicable"
+            }
+          ],
+          "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+          "csrfHeader": "X-CSRF-TOKEN",
+          "cacheControl": "no-store",
+          "stepUpSeconds": null
+        }
+      }
+    },
+    "/admin/reservations/{ref}": {
+      "get": {
+        "operationId": "getAdminReservationByRef",
+        "tags": [
+          "Reservations: Admin"
+        ],
+        "summary": "Staff view reservation detail and audits",
+        "x-required-permission": "commercial.view",
+        "security": [
+          {
+            "StaffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "ref",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{6,16}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Staff reservation detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminReservationDetailResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed reference parameter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden staff access; commercial.view required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Reservation not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected internal error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Database dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-authority-policy": "staff",
+        "x-protocol": {
+          "branches": [
+            {
+              "realm": "staff",
+              "origin": "read",
+              "csrf": "not_applicable"
+            }
+          ],
+          "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+          "csrfHeader": "X-CSRF-TOKEN",
+          "cacheControl": "no-store",
+          "stepUpSeconds": null
+        }
+      }
+    },
+    "/admin/reservations/{ref}/cancel": {
+      "post": {
+        "operationId": "postAdminReservationCancel",
+        "tags": [
+          "Reservations: Admin"
+        ],
+        "summary": "Staff cancel reservation and release seats",
+        "x-required-permission": "commercial.edit",
+        "security": [
+          {
+            "StaffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "ref",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{6,16}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Staff reservation cancellation receipt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReservationCancelResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed reference parameter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required or session expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden origin, CSRF, or missing commercial.edit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Reservation not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Reservation cannot be cancelled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected internal error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Database dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-authority-policy": "staff",
+        "x-protocol": {
+          "branches": [
+            {
+              "realm": "staff",
+              "origin": "configured_frontend",
+              "csrf": "staff"
+            }
+          ],
+          "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+          "csrfHeader": "X-CSRF-TOKEN",
+          "cacheControl": "no-store",
+          "stepUpSeconds": null
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "PassengerCookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "gza_session",
+        "description": "Host-only HTTP-only Secure cookie for passenger account realm (Path=/api/v1)"
+      },
+      "StaffCookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "gza_staff_session",
+        "description": "Host-only HTTP-only Secure cookie for staff administration realm (Path=/api/v1)"
+      },
+      "BookingGuestGrantAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Booking-Token",
+        "description": "Short-lived (15 min) opaque token issued after successful contact-channel OTP verification, bound strictly to a single booking PNR"
+      },
+      "WebhookSignatureAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Signature",
+        "description": "HMAC-SHA256 signature calculated over raw request payload using configured payment provider secret"
+      },
+      "StaffPreAuthCookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "gza_staff_pending",
+        "description": "Host-only HTTP-only Secure cookie for pending staff MFA / enrollment authority (Path=/api/v1, Max-Age=300)"
+      },
+      "BookingReceiptGrantAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Booking-Receipt",
+        "description": "Short-lived (10 min) opaque token issued at booking creation, bound strictly to a single booking PNR for minimal receipt retrieval"
+      }
+    },
+    "schemas": {
+      "ReferenceMeta": {
+        "type": "object",
+        "required": [
+          "requestId",
+          "timestamp"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "requestId": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string"
+          }
+        }
+      },
+      "ErrorPayload": {
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "error",
+          "meta"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": false
+          },
+          "error": {
+            "$ref": "#/components/schemas/ErrorPayload"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ReferenceMeta"
+          }
+        }
+      },
+      "SeatLayout": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "aircraftId": {
+            "type": "string"
+          },
+          "rows": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 60
+          },
+          "letters": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Z]$"
+            }
+          },
+          "aisleAfter": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "zones": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "enum": [
+                    "economy",
+                    "premium",
+                    "business"
+                  ]
+                },
+                "firstRow": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "lastRow": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              },
+              "required": [
+                "id",
+                "firstRow",
+                "lastRow"
+              ]
+            }
+          },
+          "extraLegroomRows": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "unavailable": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "aircraftId",
+          "rows",
+          "letters",
+          "aisleAfter",
+          "zones",
+          "extraLegroomRows",
+          "unavailable"
+        ]
+      },
+      "OfferingSeatsData": {
+        "type": "object",
+        "required": [
+          "serviceId",
+          "layout",
+          "occupiedSeats"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "serviceId": {
+            "type": "string"
+          },
+          "layout": {
+            "$ref": "#/components/schemas/SeatLayout"
+          },
+          "occupiedSeats": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "OfferingSeatsResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "data",
+          "meta"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/OfferingSeatsData"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ReferenceMeta"
+          }
+        }
+      },
+      "CommandPassenger": {
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "firstName",
+          "lastName",
+          "dob",
+          "nationality",
+          "document",
+          "seatCode"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,64}$"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "adult",
+              "child"
+            ]
+          },
+          "firstName": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "lastName": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "dob": {
+            "type": "string",
+            "format": "date"
+          },
+          "nationality": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "document": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "seatCode": {
+            "type": "string",
+            "pattern": "^(?:[1-9]|[1-5][0-9]|60)[A-Z]$"
+          },
+          "mealId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "CommandContact": {
+        "type": "object",
+        "required": [
+          "email",
+          "phone"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          },
+          "phone": {
+            "type": "string",
+            "maxLength": 32
+          }
+        }
+      },
+      "FreeReservationCommand": {
+        "type": "object",
+        "required": [
+          "submissionId",
+          "serviceId",
+          "passengers",
+          "contact"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "submissionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "serviceId": {
+            "type": "string",
+            "pattern": "^svc1-[A-Za-z0-9_-]+-\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "passengers": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 9,
+            "items": {
+              "$ref": "#/components/schemas/CommandPassenger"
+            }
+          },
+          "contact": {
+            "$ref": "#/components/schemas/CommandContact"
+          }
+        }
+      },
+      "BilingualLabel": {
+        "type": "object",
+        "required": [
+          "en",
+          "ar"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "en": {
+            "type": "string"
+          },
+          "ar": {
+            "type": "string"
+          }
+        }
+      },
+      "ReservationPassenger": {
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "firstName",
+          "lastName",
+          "seatCode",
+          "mealId",
+          "mealLabel"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "adult",
+              "child"
+            ]
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "seatCode": {
+            "type": "string"
+          },
+          "mealId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "mealLabel": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BilingualLabel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "FlightSnapshot": {
+        "type": "object",
+        "required": [
+          "serviceId",
+          "flightNumber",
+          "date",
+          "originCode",
+          "destinationCode",
+          "departTime",
+          "arriveTime",
+          "aircraftModel"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "serviceId": {
+            "type": "string"
+          },
+          "flightNumber": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "direction": {
+            "type": "string"
+          },
+          "originCode": {
+            "type": "string"
+          },
+          "destinationCode": {
+            "type": "string"
+          },
+          "departTime": {
+            "type": "string"
+          },
+          "arriveTime": {
+            "type": "string"
+          },
+          "durationMinutes": {
+            "type": "integer"
+          },
+          "aircraftModel": {
+            "type": "string"
+          }
+        }
+      },
+      "PassengerTicket": {
+        "type": "object",
+        "required": [
+          "ticketNumber",
+          "reference",
+          "status",
+          "issuedAt",
+          "passenger",
+          "flight",
+          "contact"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "ticketNumber": {
+            "type": "string"
+          },
+          "reference": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "confirmed",
+              "cancelled"
+            ]
+          },
+          "issuedAt": {
+            "type": "string"
+          },
+          "passenger": {
+            "type": "object",
+            "required": [
+              "id",
+              "type",
+              "firstName",
+              "lastName",
+              "nationality",
+              "seatCode",
+              "meal"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "firstName": {
+                "type": "string"
+              },
+              "lastName": {
+                "type": "string"
+              },
+              "nationality": {
+                "type": "string"
+              },
+              "seatCode": {
+                "type": "string"
+              },
+              "meal": {
+                "type": [
+                  "object",
+                  "null"
+                ]
+              }
+            }
+          },
+          "flight": {
+            "$ref": "#/components/schemas/FlightSnapshot"
+          },
+          "contact": {
+            "$ref": "#/components/schemas/CommandContact"
+          }
+        }
+      },
+      "TicketSnapshot": {
+        "type": "object",
+        "required": [
+          "reference",
+          "status",
+          "issuedAt",
+          "flight",
+          "tickets",
+          "contact"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "reference": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "confirmed",
+              "cancelled"
+            ]
+          },
+          "issuedAt": {
+            "type": "string"
+          },
+          "flight": {
+            "$ref": "#/components/schemas/FlightSnapshot"
+          },
+          "tickets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PassengerTicket"
+            }
+          },
+          "contact": {
+            "$ref": "#/components/schemas/CommandContact"
+          }
+        }
+      },
+      "ReservationDetail": {
+        "type": "object",
+        "required": [
+          "id",
+          "reference",
+          "status",
+          "serviceId",
+          "flightNumber",
+          "date",
+          "originCode",
+          "destinationCode",
+          "departTime",
+          "arriveTime",
+          "contact",
+          "passengers",
+          "createdAt"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "reference": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "confirmed",
+              "cancelled"
+            ]
+          },
+          "serviceId": {
+            "type": "string"
+          },
+          "flightNumber": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "originCode": {
+            "type": "string"
+          },
+          "destinationCode": {
+            "type": "string"
+          },
+          "departTime": {
+            "type": "string"
+          },
+          "arriveTime": {
+            "type": "string"
+          },
+          "contact": {
+            "$ref": "#/components/schemas/CommandContact"
+          },
+          "passengers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReservationPassenger"
+            }
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        }
+      },
+      "ReservationDetailData": {
+        "type": "object",
+        "required": [
+          "reservation",
+          "ticket"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "reservation": {
+            "$ref": "#/components/schemas/ReservationDetail"
+          },
+          "ticket": {
+            "$ref": "#/components/schemas/TicketSnapshot"
+          }
+        }
+      },
+      "ReservationResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "data",
+          "meta"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/ReservationDetailData"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ReferenceMeta"
+          }
+        }
+      },
+      "ReservationSummary": {
+        "type": "object",
+        "required": [
+          "id",
+          "reference",
+          "status",
+          "serviceId",
+          "flightNumber",
+          "date",
+          "originCode",
+          "destinationCode",
+          "passengerCount",
+          "createdAt"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "reference": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "confirmed",
+              "cancelled"
+            ]
+          },
+          "serviceId": {
+            "type": "string"
+          },
+          "flightNumber": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "originCode": {
+            "type": "string"
+          },
+          "destinationCode": {
+            "type": "string"
+          },
+          "passengerCount": {
+            "type": "integer"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        }
+      },
+      "PaginationMeta": {
+        "type": "object",
+        "required": [
+          "page",
+          "limit",
+          "total",
+          "totalPages"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "totalPages": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "ReservationsListData": {
+        "type": "object",
+        "required": [
+          "items",
+          "pagination"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReservationSummary"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/PaginationMeta"
+          }
+        }
+      },
+      "ReservationsListResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "data",
+          "meta"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/ReservationsListData"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ReferenceMeta"
+          }
+        }
+      },
+      "ReservationCancelData": {
+        "type": "object",
+        "required": [
+          "reference",
+          "status",
+          "changed",
+          "cancelledAt"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "reference": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "cancelled"
+            ]
+          },
+          "changed": {
+            "type": "boolean"
+          },
+          "cancelledAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ReservationCancelResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "data",
+          "meta"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/ReservationCancelData"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ReferenceMeta"
+          }
+        }
+      },
+      "ReservationTicketData": {
+        "type": "object",
+        "required": [
+          "reference",
+          "status",
+          "tickets"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "reference": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "confirmed",
+              "cancelled"
+            ]
+          },
+          "tickets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PassengerTicket"
+            }
+          }
+        }
+      },
+      "ReservationTicketResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "data",
+          "meta"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/ReservationTicketData"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ReferenceMeta"
+          }
+        }
+      },
+      "AdminReservationSummary": {
+        "type": "object",
+        "required": [
+          "id",
+          "reference",
+          "ownerUserId",
+          "status",
+          "serviceId",
+          "flightNumber",
+          "date",
+          "originCode",
+          "destinationCode",
+          "passengerCount",
+          "contactEmail",
+          "createdAt"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "reference": {
+            "type": "string"
+          },
+          "ownerUserId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "confirmed",
+              "cancelled"
+            ]
+          },
+          "serviceId": {
+            "type": "string"
+          },
+          "flightNumber": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "originCode": {
+            "type": "string"
+          },
+          "destinationCode": {
+            "type": "string"
+          },
+          "passengerCount": {
+            "type": "integer"
+          },
+          "contactEmail": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        }
+      },
+      "AdminReservationsListData": {
+        "type": "object",
+        "required": [
+          "items",
+          "pagination"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminReservationSummary"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/PaginationMeta"
+          }
+        }
+      },
+      "AdminReservationsListResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "data",
+          "meta"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/AdminReservationsListData"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ReferenceMeta"
+          }
+        }
+      },
+      "AuditRecord": {
+        "type": "object",
+        "required": [
+          "id",
+          "actorType",
+          "actorId",
+          "action",
+          "details",
+          "createdAt"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "actorType": {
+            "type": "string"
+          },
+          "actorId": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "details": {
+            "type": "object"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        }
+      },
+      "AdminReservationDetail": {
+        "type": "object",
+        "required": [
+          "id",
+          "reference",
+          "ownerUserId",
+          "status",
+          "serviceId",
+          "flightNumber",
+          "date",
+          "originCode",
+          "destinationCode",
+          "departTime",
+          "arriveTime",
+          "contact",
+          "passengers",
+          "audits",
+          "createdAt"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "reference": {
+            "type": "string"
+          },
+          "ownerUserId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "confirmed",
+              "cancelled"
+            ]
+          },
+          "serviceId": {
+            "type": "string"
+          },
+          "flightNumber": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "originCode": {
+            "type": "string"
+          },
+          "destinationCode": {
+            "type": "string"
+          },
+          "departTime": {
+            "type": "string"
+          },
+          "arriveTime": {
+            "type": "string"
+          },
+          "contact": {
+            "$ref": "#/components/schemas/CommandContact"
+          },
+          "passengers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReservationPassenger"
+            }
+          },
+          "audits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditRecord"
+            }
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        }
+      },
+      "AdminReservationDetailData": {
+        "type": "object",
+        "required": [
+          "reservation",
+          "ticket"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "reservation": {
+            "$ref": "#/components/schemas/AdminReservationDetail"
+          },
+          "ticket": {
+            "$ref": "#/components/schemas/TicketSnapshot"
+          }
+        }
+      },
+      "AdminReservationDetailResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "data",
+          "meta"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/AdminReservationDetailData"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ReferenceMeta"
+          }
+        }
+      }
+    }
+  }
+}

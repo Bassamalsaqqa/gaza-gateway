@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
 import { useLang, usePathname } from "@/components/app-link";
 import { dirOf } from "@/lib/locale";
 import {
@@ -90,6 +91,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {
+              if (identityUiRequested) { window.location.reload(); return; }
               router.invalidate();
               reset();
             }}
@@ -207,7 +209,9 @@ function SiteFrame() {
           <SiteHeader />
           <main id="main" className="flex-1">
             {/* Required: nested routes render here. */}
-            <Outlet />
+            <Suspense fallback={<p role="status" className="p-8 text-center">{detectLocale() === "ar" ? "\u062c\u0627\u0631\u064d \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0645\u062d\u062a\u0648\u0649\u2026" : "Loading content..."}</p>}>
+              <Outlet />
+            </Suspense>
           </main>
           <SiteFooter />
         </div>

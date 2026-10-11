@@ -1,3 +1,4 @@
+import { HttpContentRepository } from "@/content/http-repository";
 import { useCallback, useEffect, useMemo, useReducer } from "react";
 import { useRepositories } from "@/lib/repositories/registry";
 import { useAdmin } from "@/lib/admin-store";
@@ -27,7 +28,13 @@ export function useCmsDocument<K extends ContentKey>({ key, published, validate,
   const readRemote = useCallback(async (reload = false) => {
     if (editor.busy) return;
     const epoch = editor.beginRead();
-    try { editor.adoptRemote(await content.getDraft(key), epoch, reload); }
+    try {
+      if (content instanceof HttpContentRepository) {
+        const remote = await content.getEditorial(key);
+        editor.adoptRemote(remote?.hasDraft ? remote.payload : null, epoch, reload, remote?.currentRevision ?? 0,
+          remote && !remote.hasDraft && remote.payload ? remote.payload : undefined);
+      } else editor.adoptRemote(await content.getDraft(key), epoch, reload);
+    }
     catch (error) { editor.failRead(errorMessage(error), epoch); }
     if (editor.active) render();
   }, [content, key, editor, errorMessage]);
@@ -62,9 +69,11 @@ export function useCmsDocument<K extends ContentKey>({ key, published, validate,
     render();
     let succeeded = false;
     try {
-      const receipt = await saveContentDraft({ content, activity, actor,
+      const receipt = content instanceof HttpContentRepository
+        ? await content.saveDraftWithReceipt(key, input.document, { expectedDraft: input.expectedDraft, expectedRevision: input.expectedRevision })
+        : await saveContentDraft({ content, activity, actor,
         onAuditWarning: () => toast(t("a2.ac.auditWarning")) }, key, input.document, { expectedDraft: input.expectedDraft });
-      editor.committed(receipt.after);
+      editor.committed(receipt.after, false, receipt.currentRevision);
       succeeded = true;
       return { success: true, changed: receipt.changed };
     } catch (error) {
@@ -81,13 +90,18 @@ export function useCmsDocument<K extends ContentKey>({ key, published, validate,
 
   const discard = useCallback(async () => {
     if (!can("content.edit") || !editor.ready || editor.busy) return false;
+    if (content instanceof HttpContentRepository && editor.revision === 0 && editor.savedDraft === null) {
+      editor.reset(); render(); return true;
+    }
     const input = editor.beginCommand();
     render();
     let succeeded = false;
     try {
-      const receipt = await discardContentDraft({ content, activity, actor,
+      const receipt = content instanceof HttpContentRepository
+        ? await content.discardDraftWithReceipt(key, { expectedDraft: input.expectedDraft, expectedRevision: input.expectedRevision })
+        : await discardContentDraft({ content, activity, actor,
         onAuditWarning: () => toast(t("a2.ac.auditWarning")) }, key, { expectedDraft: input.expectedDraft });
-      editor.committed(receipt.after, true);
+      editor.committed(receipt.after, true, receipt.currentRevision);
       succeeded = true;
       return true;
     } catch (error) {
@@ -102,7 +116,24 @@ export function useCmsDocument<K extends ContentKey>({ key, published, validate,
     }
   }, [can, editor, content, activity, actor, toast, t, key, errorMessage, readRemote]);
 
+  const publication = content instanceof HttpContentRepository ? {
+    key, revision: editor.revision, mayPublish: can("admin.manage"),
+    transition: async (action: "publish" | "unpublish" | "restore", targetRevision?: number) => {
+      if (!can("admin.manage") || !editor.ready || editor.busy || editor.dirty || editor.revision === undefined) return false;
+      editor.beginCommand(); render();
+      let succeeded = false;
+      try {
+        await content.transition(key, action, editor.revision, targetRevision);
+        succeeded = true; return true;
+      } catch (error) {
+        editor.error = errorMessage(error);
+        if (error instanceof ContentError && error.code === "draft_conflict") editor.conflict = true;
+        return false;
+      } finally { editor.busy = false; if (editor.active) { render(); if (succeeded) void readRemote(true); } }
+    },
+  } : undefined;
   return {
+    publication,
     draft: editor.draft, setDraft, savedDraft: editor.savedDraft,
     ready: editor.ready, dirty: editor.dirty, saving: editor.busy,
     saveError: editor.error, conflict: editor.conflict, errors: editor.errors,

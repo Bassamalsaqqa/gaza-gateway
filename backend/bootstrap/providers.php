@@ -11,4 +11,5 @@ return [
     App\Providers\BookingIdentityServiceProvider::class,
     App\Providers\ReferenceServiceProvider::class,
     App\Providers\MealReferenceServiceProvider::class,
+    App\Providers\MvpReservationServiceProvider::class,
 ];

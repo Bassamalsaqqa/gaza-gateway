@@ -154,9 +154,10 @@ export const adminNav: AdminNavGroup[] = [
 export function isDomainAvailableInServerMode(path: string | null): boolean {
   if (!path) return false;
   if (path === "/admin" || path === "/admin/") return true;
+  if (path === "/admin/website" || path === "/admin/airport" || path === "/admin/airport/") return true;
   if (path === "/admin/schedules" || path === "/admin/schedules/") return true;
   if (path.startsWith("/admin/products")) return true;
-  if (path === "/admin/destinations" || path === "/admin/destinations/") return true;
+  if (path === "/admin/destinations" || path === "/admin/destinations/" || /^\/admin\/destinations\/[A-Za-z]{3}$/.test(path)) return true;
   if (path.startsWith("/admin/settings")) return true;
   return false;
 }

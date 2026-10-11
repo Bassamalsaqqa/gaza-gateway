@@ -690,6 +690,7 @@ function AdminWebsitePage() {
       <CmsDraftBar
         mayEdit={mayEdit}
         draftReady={homeCms.ready}
+        publication={homeCms.publication}
                 unavailable={Boolean(homeCms.saveError)}
         dirty={homeCms.dirty}
         savedDraft={homeCms.savedDraft}
@@ -705,6 +706,7 @@ function AdminWebsitePage() {
       <CmsDraftBar
         mayEdit={mayEdit}
         draftReady={travelCms.ready}
+        publication={travelCms.publication}
                 unavailable={Boolean(travelCms.saveError)}
         dirty={travelCms.dirty}
         savedDraft={travelCms.savedDraft}
@@ -720,6 +722,7 @@ function AdminWebsitePage() {
       <CmsDraftBar
         mayEdit={mayEdit}
         draftReady={pagesCms.ready}
+        publication={pagesCms.publication}
                 unavailable={Boolean(pagesCms.saveError)}
         dirty={pagesCms.dirty}
         savedDraft={pagesCms.savedDraft}

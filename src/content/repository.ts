@@ -6,7 +6,7 @@ export const CONTENT_DRAFT_KEY = "gza.content.draft.v1";
 export type ContentDraftState = { schemaVersion: 1; drafts: Partial<ContentMap> };
 type RawDraftState = { schemaVersion: 1; drafts: Record<string, unknown> };
 export type ContentErrorCode = "unknown_document" | "invalid_draft" | "corrupt_store" |
-  "unsupported_version" | "storage_unavailable" | "write_failed" | "coordination_unavailable" | "draft_conflict" | "permission_denied";
+  "unsupported_version" | "storage_unavailable" | "write_failed" | "coordination_unavailable" | "draft_conflict" | "permission_denied" | "unpublished" | "content_unavailable";
 const messages: Record<ContentErrorCode, string> = {
   unknown_document: "Unknown content document",
   invalid_draft: "Invalid content draft",
@@ -17,6 +17,8 @@ const messages: Record<ContentErrorCode, string> = {
   coordination_unavailable: "Content draft write coordination is unavailable",
   draft_conflict: "This content draft changed in another editor",
   permission_denied: "Content editing permission is required",
+  unpublished: "This content has been unpublished",
+  content_unavailable: "Published content is unavailable",
 };
 export class ContentError extends Error {
   readonly code: ContentErrorCode;
@@ -30,9 +32,10 @@ export class ContentError extends Error {
 }
 
 /** The baseline is the stored draft (null if absent), not the compiled published document. */
-export type ContentWriteOptions<K extends ContentKey> = { expectedDraft?: ContentMap[K] | null };
+export type ContentWriteOptions<K extends ContentKey> = { expectedDraft?: ContentMap[K] | null; expectedRevision?: number | undefined };
 export type ContentMutationReceipt<K extends ContentKey> = {
   key: K; changed: boolean; before: ContentMap[K] | null; after: ContentMap[K] | null; changes: ContentStructureChanges;
+  currentRevision?: number;
 };
 export type ContentRepositoryOptions = { inMemory?: boolean; storage?: Storage | null; locks?: LockManager | null };
 const emptyRaw = (): RawDraftState => ({ schemaVersion: 1, drafts: {} });
