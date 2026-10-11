@@ -35,3 +35,7 @@ Reuse all accepted identity endpoints and C01 fleet endpoints. W1 implements /ne
 W0 scope adopted. C01 corrections independently confirmed for progression at 5c0696aab0cee19a4175cd2b008b27ed14593b9b. W1–W5 are unfinished. No working production booking, SMTP delivery or CMS publication is claimed. Main and HostPapa are unchanged; PR #3 remains draft and prior review threads preserved.
 
 Launch still requires owner-authored offerings, actual mail delivery, reviewed production configuration, backup/restore, HTTPS and explicit owner GO. Local captures do not establish external delivery.
+
+## Free-reservation command foundation
+
+`backend/app/Mvp/Reservations/ReservationCommand.php` and `free-reservation-command.schema.json` define the dormant free one-way command. Focused PHP 8.4.26 evidence: 26 tests / 56 assertions pass; runner reported one PHPUnit deprecation. This does not enable booking routes, allocate seats, verify session ownership or certify PostgreSQL reservations. Those obligations remain W2. The first attempted disposable container mount failed before tests; the mountpoint was corrected, with no retained container/data mutation.
