@@ -21,4 +21,5 @@ Route::prefix('v1')->group(function () {
     require __DIR__ . '/identity.php';
     require __DIR__ . '/passenger-profile.php';
     require __DIR__ . '/staff-identity.php';
+    require __DIR__ . '/booking-identity.php';
 });

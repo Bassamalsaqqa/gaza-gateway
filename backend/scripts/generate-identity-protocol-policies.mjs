@@ -17,16 +17,18 @@ if (!fs.existsSync(policiesJsonPath)) {
 
 const raw = JSON.parse(fs.readFileSync(policiesJsonPath, 'utf8'));
 const allOperations = raw.operations ? Object.values(raw.operations) : [];
+const bookingIdentity = new Set(['postCreateGuestChallenge', 'postVerifyGuestChallenge', 'postCreateClaimChallenge',
+  'postVerifyClaimChallenge', 'postClaimBookingToAccount']);
 
 const authStaffOps = allOperations
-  .filter(op => op.path && (op.path.startsWith('/auth') || op.path.startsWith('/staff')))
+  .filter(op => op.path && (op.path.startsWith('/auth') || op.path.startsWith('/staff') || bookingIdentity.has(op.operationId)))
   .sort((a, b) => {
     if (a.path !== b.path) return a.path.localeCompare(b.path);
     return a.method.localeCompare(b.method);
   });
 
-if (authStaffOps.length !== 41) {
-  console.error(`FATAL: Expected exactly 41 auth/staff operations, found ${authStaffOps.length}`);
+if (authStaffOps.length !== 46) {
+  console.error(`FATAL: Expected exactly 46 identity/booking-proof operations, found ${authStaffOps.length}`);
   process.exit(1);
 }
 
@@ -82,7 +84,8 @@ function generatePhp(operations) {
   for (const op of operations) {
     const key = `${op.method}:${op.path}`;
     const proto = op.protocol || {};
-    const realm = proto.realm ?? (op.path.startsWith('/auth') ? 'passenger' : 'staff');
+    const realm = bookingIdentity.has(op.operationId) && proto.realm === 'anonymous' ? 'anonymous_passenger'
+      : proto.realm ?? (op.path.startsWith('/auth') ? 'passenger' : 'staff');
     const branch = proto.branch ?? 'cookie';
     const requiresOrigin = Boolean(proto.requiresOrigin);
     const requiresCsrf = Boolean(proto.requiresCsrf);

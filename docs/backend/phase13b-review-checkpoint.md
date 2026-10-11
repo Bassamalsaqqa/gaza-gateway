@@ -27,7 +27,7 @@ remaining staff credential/enrollment/directory/MFA operations with 18 new focus
 demotion race. Audit-failure rollback and expired staged-secret cleanup are covered.
 These are cumulative local checks, not final exact-head integrated certification.
 
-Guest grants/claims, EN/AR identity UI and the final integrated PHP/PostgreSQL/HTTPS/browser gate remain pending.
+The [booking identity package](phase13b-booking-identity.md) now implements the five guest/claim HTTP operations, transactional guest/receipt hooks and bounded expiry cleanup. Eleven distinct focused test cases passed cumulatively, including real OTP/claim races; provider acceptance is explicitly synthetic test state, not mail delivery. Checkout/receipt itinerary projection remains a booking-domain dependency. EN/AR identity UI and the final integrated PHP/PostgreSQL/HTTPS/browser gate remain pending. The latest PR review also requires narrowed staff lifecycle/directory locking; that finding remains open.
 Default frontend mock authority remains unchanged. Remote staging, real delivery, scheduler,
 administrator custody and production exposure gates remain deferred. Phases 13C–G unstarted.
 

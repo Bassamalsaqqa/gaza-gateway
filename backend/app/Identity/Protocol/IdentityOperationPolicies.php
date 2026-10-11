@@ -8,12 +8,12 @@ namespace App\Identity\Protocol;
  * Closed, server-owned identity operation policies deterministically generated
  * from docs/backend/operation-policies.v1.json.
  *
- * Total operations: 41
- * Source SHA-256 Digest: 73fb8ab0b908a9100876ec65b6c3d17874e4600efffc83a76e2262c3e6700939
+ * Total operations: 46
+ * Source SHA-256 Digest: 8ef70dedd85b639a4377614a37b90da2f5c76f5f4b2cddccd9595224b8098e6d
  */
 final class IdentityOperationPolicies
 {
-    public const SOURCE_DIGEST = '73fb8ab0b908a9100876ec65b6c3d17874e4600efffc83a76e2262c3e6700939';
+    public const SOURCE_DIGEST = '8ef70dedd85b639a4377614a37b90da2f5c76f5f4b2cddccd9595224b8098e6d';
 
     /**
      * Map of "METHOD:PATH" => OperationPolicy metadata.
@@ -21,6 +21,81 @@ final class IdentityOperationPolicies
      * @var array<string, array<string, mixed>>
      */
     public const OPERATIONS = [
+        'POST:/account/bookings/claim' => [
+            'operationId' => 'postClaimBookingToAccount',
+            'method' => 'POST',
+            'path' => '/account/bookings/claim',
+            'intent' => 'protected',
+            'realm' => 'passenger',
+            'branch' => 'cookie',
+            'requiresOrigin' => true,
+            'requiresCsrf' => true,
+            'csrfHeader' => 'X-CSRF-TOKEN',
+            'cacheControl' => 'no-store',
+            'requiredPermission' => null,
+            'requiresRecentStepUp' => false,
+            'allowedSecurity' => [
+                [
+                    'PassengerCookieAuth' => [],
+                ],
+            ],
+            'branchConditions' => [
+                [
+                    'scheme' => 'PassengerCookieAuth',
+                    'condition' => 'authenticated_passenger_self',
+                ],
+            ],
+        ],
+        'POST:/account/bookings/claim/challenge' => [
+            'operationId' => 'postCreateClaimChallenge',
+            'method' => 'POST',
+            'path' => '/account/bookings/claim/challenge',
+            'intent' => 'protected',
+            'realm' => 'passenger',
+            'branch' => 'cookie',
+            'requiresOrigin' => true,
+            'requiresCsrf' => true,
+            'csrfHeader' => 'X-CSRF-TOKEN',
+            'cacheControl' => 'no-store',
+            'requiredPermission' => null,
+            'requiresRecentStepUp' => false,
+            'allowedSecurity' => [
+                [
+                    'PassengerCookieAuth' => [],
+                ],
+            ],
+            'branchConditions' => [
+                [
+                    'scheme' => 'PassengerCookieAuth',
+                    'condition' => 'authenticated_passenger_self',
+                ],
+            ],
+        ],
+        'POST:/account/bookings/claim/verify' => [
+            'operationId' => 'postVerifyClaimChallenge',
+            'method' => 'POST',
+            'path' => '/account/bookings/claim/verify',
+            'intent' => 'protected',
+            'realm' => 'passenger',
+            'branch' => 'cookie',
+            'requiresOrigin' => true,
+            'requiresCsrf' => true,
+            'csrfHeader' => 'X-CSRF-TOKEN',
+            'cacheControl' => 'no-store',
+            'requiredPermission' => null,
+            'requiresRecentStepUp' => false,
+            'allowedSecurity' => [
+                [
+                    'PassengerCookieAuth' => [],
+                ],
+            ],
+            'branchConditions' => [
+                [
+                    'scheme' => 'PassengerCookieAuth',
+                    'condition' => 'authenticated_passenger_self',
+                ],
+            ],
+        ],
         'GET:/auth/csrf' => [
             'operationId' => 'getAuthCsrfBootstrap',
             'method' => 'GET',
@@ -373,6 +448,38 @@ final class IdentityOperationPolicies
             'path' => '/auth/register',
             'intent' => 'protocol',
             'realm' => 'anonymous',
+            'branch' => 'cookie',
+            'requiresOrigin' => true,
+            'requiresCsrf' => true,
+            'csrfHeader' => 'X-CSRF-TOKEN',
+            'cacheControl' => 'no-store',
+            'requiredPermission' => null,
+            'requiresRecentStepUp' => false,
+            'allowedSecurity' => [],
+            'branchConditions' => [],
+        ],
+        'POST:/bookings/{ref}/challenge' => [
+            'operationId' => 'postCreateGuestChallenge',
+            'method' => 'POST',
+            'path' => '/bookings/{ref}/challenge',
+            'intent' => 'public',
+            'realm' => 'anonymous_passenger',
+            'branch' => 'cookie',
+            'requiresOrigin' => true,
+            'requiresCsrf' => true,
+            'csrfHeader' => 'X-CSRF-TOKEN',
+            'cacheControl' => 'no-store',
+            'requiredPermission' => null,
+            'requiresRecentStepUp' => false,
+            'allowedSecurity' => [],
+            'branchConditions' => [],
+        ],
+        'POST:/bookings/{ref}/verify-challenge' => [
+            'operationId' => 'postVerifyGuestChallenge',
+            'method' => 'POST',
+            'path' => '/bookings/{ref}/verify-challenge',
+            'intent' => 'public',
+            'realm' => 'anonymous_passenger',
             'branch' => 'cookie',
             'requiresOrigin' => true,
             'requiresCsrf' => true,
@@ -1013,6 +1120,18 @@ final class IdentityOperationPolicies
             'method' => 'PATCH',
             'pattern' => '#^/auth/passenger/travelers/(?P<id>[^/]+)$#',
             'paramNames' => ['id'],
+        ],
+        'POST:/bookings/{ref}/challenge' => [
+            'key' => 'POST:/bookings/{ref}/challenge',
+            'method' => 'POST',
+            'pattern' => '#^/bookings/(?P<ref>[^/]+)/challenge$#',
+            'paramNames' => ['ref'],
+        ],
+        'POST:/bookings/{ref}/verify-challenge' => [
+            'key' => 'POST:/bookings/{ref}/verify-challenge',
+            'method' => 'POST',
+            'pattern' => '#^/bookings/(?P<ref>[^/]+)/verify-challenge$#',
+            'paramNames' => ['ref'],
         ],
         'DELETE:/staff/sessions/{id}' => [
             'key' => 'DELETE:/staff/sessions/{id}',

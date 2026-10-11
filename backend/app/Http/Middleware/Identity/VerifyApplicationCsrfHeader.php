@@ -49,11 +49,11 @@ final class VerifyApplicationCsrfHeader
             }
             $segments = explode('/', ltrim($trimmed, '/'));
             $first = $segments[0] ?? '';
-            if ($first === 'auth' || $first === 'staff') {
+            if (in_array($first, ['auth', 'staff', 'account', 'bookings'], true)) {
                 return true;
             }
             $decodedFirst = rawurldecode($first);
-            return $decodedFirst === 'auth' || $decodedFirst === 'staff';
+            return in_array($decodedFirst, ['auth', 'staff', 'account', 'bookings'], true);
         };
 
         if (!$isIdentitySegment($rawPath) && !$isIdentitySegment($decodedPath)) {
@@ -90,7 +90,8 @@ final class VerifyApplicationCsrfHeader
         }
 
         // Only govern identity routes under /auth/* and /staff/*
-        if (!str_starts_with($normalizedPath, '/auth/') &&
+        if (!str_starts_with($normalizedPath, '/account/') && !str_starts_with($normalizedPath, '/bookings/') &&
+            !str_starts_with($normalizedPath, '/auth/') &&
             !str_starts_with($normalizedPath, '/staff/') &&
             $normalizedPath !== '/auth' &&
             $normalizedPath !== '/staff'
@@ -174,7 +175,7 @@ final class VerifyApplicationCsrfHeader
     {
         $realm = $policy['realm'] ?? 'passenger';
         $path = $policy['path'] ?? '';
-        $isPassengerRealm = ($realm === 'passenger') || ($realm === 'anonymous' && str_starts_with($path, '/auth/'));
+        $isPassengerRealm = in_array($realm, ['passenger', 'anonymous_passenger'], true) || ($realm === 'anonymous' && str_starts_with($path, '/auth/'));
         $cookieName = $isPassengerRealm ? CookieSecurity::COOKIE_PASSENGER : CookieSecurity::COOKIE_STAFF;
 
         if (CookieSecurity::hasDuplicateCookie($request, $cookieName)) {
@@ -332,7 +333,7 @@ final class VerifyApplicationCsrfHeader
 
         $realm = $policy['realm'] ?? 'passenger';
         $path = $policy['path'] ?? '';
-        $isPassengerRealm = ($realm === 'passenger') || ($realm === 'anonymous' && str_starts_with($path, '/auth/'));
+        $isPassengerRealm = in_array($realm, ['passenger', 'anonymous_passenger'], true) || ($realm === 'anonymous' && str_starts_with($path, '/auth/'));
         $cookieName = $isPassengerRealm ? CookieSecurity::COOKIE_PASSENGER : CookieSecurity::COOKIE_STAFF;
 
         // Check duplicate cookie header

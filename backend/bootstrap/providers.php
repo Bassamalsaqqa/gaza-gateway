@@ -7,4 +7,5 @@ return [
     App\Providers\IdentityLifecycleServiceProvider::class,
     App\Providers\PassengerProfileServiceProvider::class,
     App\Providers\StaffIdentityServiceProvider::class,
+    App\Providers\BookingIdentityServiceProvider::class,
 ];

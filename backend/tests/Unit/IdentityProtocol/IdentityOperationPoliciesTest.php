@@ -9,9 +9,24 @@ use PHPUnit\Framework\TestCase;
 
 final class IdentityOperationPoliciesTest extends TestCase
 {
-    public function testContainsExactlyFortyOneOperations(): void
+    public function testContainsExactlyFortySixOperations(): void
     {
-        $this->assertCount(41, IdentityOperationPolicies::OPERATIONS);
+        $this->assertCount(46, IdentityOperationPolicies::OPERATIONS);
+    }
+
+    public function testGuestAndClaimOperationsKeepExactRealmAndPathBindings(): void
+    {
+        $guest = IdentityOperationPolicies::find('POST', '/api/v1/bookings/GZA-1234/challenge');
+        $this->assertSame('postCreateGuestChallenge', $guest['operationId']);
+        $this->assertSame('anonymous_passenger', $guest['realm']);
+        $this->assertSame(['ref' => 'GZA-1234'], $guest['params']);
+        $this->assertTrue($guest['requiresOrigin']); $this->assertTrue($guest['requiresCsrf']);
+        $claim = IdentityOperationPolicies::find('POST', '/api/v1/account/bookings/claim');
+        $this->assertSame('postClaimBookingToAccount', $claim['operationId']);
+        $this->assertSame('passenger', $claim['realm']);
+        $this->assertSame([['PassengerCookieAuth' => []]], $claim['allowedSecurity']);
+        $this->assertNull(IdentityOperationPolicies::find('PATCH', '/api/v1/bookings/GZA-1234/contact'));
+        $this->assertNull(IdentityOperationPolicies::find('GET', '/api/v1/bookings/GZA-1234/receipt'));
     }
 
     public function testDigestIsNonEmptySha256(): void
