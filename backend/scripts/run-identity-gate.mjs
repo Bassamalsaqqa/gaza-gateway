@@ -57,7 +57,6 @@ try {
   }
   if (!ready) throw new Error("Owned PostgreSQL initialization timed out.");
   docker("php-create", ["run", "-d", "--rm", "--name", php, "--network", namespace,
-    "--mount", `type=bind,source=${path.resolve(vendor)},target=/locked-vendor,readonly`,
     "-w", "/workspace/backend", "-e", "APP_KEY", "-e", "GUEST_OTP_PEPPER_BASE64", "-e", "APP_ENV=testing", "-e", "APP_DEBUG=false",
     "-e", "APP_URL=https://127.0.0.1:18090", "-e", "APP_ALLOWED_HOSTS=127.0.0.1,localhost,127.0.0.1:18090",
     "-e", "CORS_ALLOWED_ORIGINS=http://localhost:3000,https://127.0.0.1:5173,https://127.0.0.1:10001",
@@ -67,7 +66,7 @@ try {
     "-e", "IDENTITY_MIGRATION_DISPOSABLE_INSTANCE=1", "-e", `IDENTITY_FINAL_CAPTURE_RUN=${run}`,
     "--entrypoint", "sleep", "gaza-gateway-backend:phase13a", "1800"]); resources.push("php");
   docker("source-copy", ["cp", `${isolatedSource}/.`, `${php}:/workspace`]);
-  phpCommand("vendor-copy", ["cp", "-a", "/locked-vendor", "/workspace/backend/vendor"], 180000);
+  docker("vendor-copy", ["cp", path.resolve(vendor), `${php}:/workspace/backend/vendor`], 180000);
   phpCommand("php-version", ["php", "--version"]);
   phpCommand("composer-validate", ["composer", "validate", "--strict"]);
   phpCommand("composer-platform", ["composer", "check-platform-reqs"]);
@@ -75,6 +74,7 @@ try {
   const roundtrip = filter ? "Already passed in the preceding integrated run; not repeated."
     : phpCommand("migration-roundtrip", ["php", "vendor/bin/phpunit", "tests/Feature/IdentityPersistence/MigrationLifecycleTest.php"], 180000);
   const catalog = phpCommand("migration-status", ["php", "artisan", "migrate:status"]);
+  phpCommand("csrf-live-captures", ["php", "tests/Fixtures/IdentityFinal/capture-bootstraps.php"]);
   const tests = phpCommand("identity-php-postgres", ["php", "vendor/bin/phpunit", "--configuration", "tests/identity-final.xml",
     ...(filter ? ["--filter", filter] : []), "--log-junit", "/tmp/identity-final.xml"], 900000);
   docker("junit-copy", ["cp", `${php}:/tmp/identity-final.xml`, path.join(output, "identity-final.xml")]);
