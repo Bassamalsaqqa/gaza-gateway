@@ -1,0 +1,2000 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Gaza Gateway — MVP Editorial & Publication Runtime API",
+    "description": "Bounded runtime CMS draft/publication vertical slice for Gaza International Airport.",
+    "version": "1.0.0-w3-editorial"
+  },
+  "paths": {
+    "/cms/published/{slug}": {
+      "get": {
+        "operationId": "getCmsPublishedBySlug",
+        "summary": "Public active published revision reader",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "home",
+                "travel",
+                "airport.past",
+                "airport.present",
+                "airport.future",
+                "destinations.presentation",
+                "destinations.editorial",
+                "pages.information"
+              ]
+            }
+          },
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Active published document payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CmsPublishedDocumentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestErrorResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundErrorResponse"
+          },
+          "410": {
+            "$ref": "#/components/responses/GoneErrorResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationErrorResponse"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequestsErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableErrorResponse"
+          }
+        }
+      }
+    },
+    "/cms/editorial/{slug}": {
+      "get": {
+        "operationId": "getCmsEditorialBySlug",
+        "summary": "Staff editorial document reader",
+        "security": [
+          {
+            "StaffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "home",
+                "travel",
+                "airport.past",
+                "airport.present",
+                "airport.future",
+                "destinations.presentation",
+                "destinations.editorial",
+                "pages.information"
+              ]
+            }
+          },
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current editorial document details and payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CmsEditorialDocumentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestErrorResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedErrorResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenErrorResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundErrorResponse"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequestsErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableErrorResponse"
+          }
+        }
+      }
+    },
+    "/cms/editorial/{slug}/draft": {
+      "put": {
+        "operationId": "putCmsEditorialDraft",
+        "summary": "Save or update draft revision",
+        "security": [
+          {
+            "StaffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "home",
+                "travel",
+                "airport.past",
+                "airport.present",
+                "airport.future",
+                "destinations.presentation",
+                "destinations.editorial",
+                "pages.information"
+              ]
+            }
+          },
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutCmsEditorialDraftRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Draft save receipt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CmsDraftReceiptResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestErrorResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedErrorResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenErrorResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundErrorResponse"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictErrorResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationErrorResponse"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequestsErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableErrorResponse"
+          }
+        }
+      }
+    },
+    "/cms/editorial/{slug}/discard": {
+      "post": {
+        "operationId": "postCmsEditorialDiscard",
+        "summary": "Discard uncommitted draft and revert editorial state",
+        "security": [
+          {
+            "StaffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "home",
+                "travel",
+                "airport.past",
+                "airport.present",
+                "airport.future",
+                "destinations.presentation",
+                "destinations.editorial",
+                "pages.information"
+              ]
+            }
+          },
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostCmsEditorialCommandRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Reverted editorial document state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CmsEditorialDocumentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestErrorResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedErrorResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenErrorResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundErrorResponse"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictErrorResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationErrorResponse"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequestsErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableErrorResponse"
+          }
+        }
+      }
+    },
+    "/cms/editorial/{slug}/publish": {
+      "post": {
+        "operationId": "postCmsEditorialPublish",
+        "summary": "Publish current draft to authoritative active runtime publication",
+        "security": [
+          {
+            "StaffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "home",
+                "travel",
+                "airport.past",
+                "airport.present",
+                "airport.future",
+                "destinations.presentation",
+                "destinations.editorial",
+                "pages.information"
+              ]
+            }
+          },
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostCmsEditorialCommandRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Published editorial document state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CmsEditorialDocumentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestErrorResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedErrorResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenErrorResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundErrorResponse"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictErrorResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationErrorResponse"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequestsErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableErrorResponse"
+          }
+        }
+      }
+    },
+    "/cms/editorial/{slug}/unpublish": {
+      "post": {
+        "operationId": "postCmsEditorialUnpublish",
+        "summary": "Unpublish document and write authoritative tombstone",
+        "security": [
+          {
+            "StaffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "home",
+                "travel",
+                "airport.past",
+                "airport.present",
+                "airport.future",
+                "destinations.presentation",
+                "destinations.editorial",
+                "pages.information"
+              ]
+            }
+          },
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostCmsEditorialCommandRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Unpublished editorial document state with tombstone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CmsEditorialDocumentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestErrorResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedErrorResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenErrorResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundErrorResponse"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictErrorResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationErrorResponse"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequestsErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableErrorResponse"
+          }
+        }
+      }
+    },
+    "/cms/editorial/{slug}/restore": {
+      "post": {
+        "operationId": "postCmsEditorialRestore",
+        "summary": "Restore previously published revision as new publication",
+        "security": [
+          {
+            "StaffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "home",
+                "travel",
+                "airport.past",
+                "airport.present",
+                "airport.future",
+                "destinations.presentation",
+                "destinations.editorial",
+                "pages.information"
+              ]
+            }
+          },
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostCmsEditorialRestoreRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Restored editorial document state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CmsEditorialDocumentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestErrorResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedErrorResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenErrorResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundErrorResponse"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictErrorResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationErrorResponse"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequestsErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableErrorResponse"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "StaffCookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "gza_staff_session"
+      }
+    },
+    "responses": {
+      "BadRequestErrorResponse": {
+        "description": "Bad request",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "UnauthorizedErrorResponse": {
+        "description": "Authentication required",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "ForbiddenErrorResponse": {
+        "description": "Permission denied",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "NotFoundErrorResponse": {
+        "description": "Resource not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "GoneErrorResponse": {
+        "description": "Resource has been unpublished (tombstoned)",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "ConflictErrorResponse": {
+        "description": "State or concurrency conflict",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "ValidationErrorResponse": {
+        "description": "Validation failed",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "TooManyRequestsErrorResponse": {
+        "description": "Rate limit exceeded",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "ServiceUnavailableErrorResponse": {
+        "description": "Service dependencies unavailable",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "LocalizedText": {
+        "type": "object",
+        "properties": {
+          "en": {
+            "type": "string"
+          },
+          "ar": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "en",
+          "ar"
+        ],
+        "additionalProperties": false
+      },
+      "PageSeoContent": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "description": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "socialTitle": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "socialDescription": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "socialMediaId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "description"
+        ],
+        "additionalProperties": false
+      },
+      "HomeContentDocument": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "const": "home"
+          },
+          "kind": {
+            "const": "home"
+          },
+          "schemaVersion": {
+            "const": 1
+          },
+          "seo": {
+            "$ref": "#/components/schemas/PageSeoContent"
+          },
+          "copy": {
+            "type": "object",
+            "properties": {
+              "h1": {
+                "$ref": "#/components/schemas/LocalizedText"
+              },
+              "sub": {
+                "$ref": "#/components/schemas/LocalizedText"
+              },
+              "heritageSpotlightTitle": {
+                "$ref": "#/components/schemas/LocalizedText"
+              },
+              "heritageSpotlightDesc": {
+                "$ref": "#/components/schemas/LocalizedText"
+              },
+              "past": {
+                "$ref": "#/components/schemas/LocalizedText"
+              },
+              "pastSub": {
+                "$ref": "#/components/schemas/LocalizedText"
+              },
+              "present": {
+                "$ref": "#/components/schemas/LocalizedText"
+              },
+              "presentSub": {
+                "$ref": "#/components/schemas/LocalizedText"
+              },
+              "future": {
+                "$ref": "#/components/schemas/LocalizedText"
+              },
+              "futureSub": {
+                "$ref": "#/components/schemas/LocalizedText"
+              },
+              "destTitle": {
+                "$ref": "#/components/schemas/LocalizedText"
+              },
+              "destSub": {
+                "$ref": "#/components/schemas/LocalizedText"
+              },
+              "manageTitle": {
+                "$ref": "#/components/schemas/LocalizedText"
+              },
+              "manageSub": {
+                "$ref": "#/components/schemas/LocalizedText"
+              },
+              "infoTitle": {
+                "$ref": "#/components/schemas/LocalizedText"
+              },
+              "archiveTitle": {
+                "$ref": "#/components/schemas/LocalizedText"
+              },
+              "archiveSub": {
+                "$ref": "#/components/schemas/LocalizedText"
+              }
+            },
+            "required": [
+              "h1",
+              "sub",
+              "heritageSpotlightTitle",
+              "heritageSpotlightDesc",
+              "past",
+              "pastSub",
+              "present",
+              "presentSub",
+              "future",
+              "futureSub",
+              "destTitle",
+              "destSub",
+              "manageTitle",
+              "manageSub",
+              "infoTitle",
+              "archiveTitle",
+              "archiveSub"
+            ],
+            "additionalProperties": false
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "enum": [
+                    "hero",
+                    "search",
+                    "board",
+                    "heritage",
+                    "destinations",
+                    "manage",
+                    "travel",
+                    "archive"
+                  ]
+                },
+                "visible": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "visible"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "schemaVersion",
+          "seo",
+          "copy",
+          "sections"
+        ],
+        "additionalProperties": false
+      },
+      "TravelContentDocument": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "const": "travel"
+          },
+          "kind": {
+            "const": "travel"
+          },
+          "schemaVersion": {
+            "const": 1
+          },
+          "seo": {
+            "$ref": "#/components/schemas/PageSeoContent"
+          },
+          "intro": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "$ref": "#/components/schemas/LocalizedText"
+              },
+              "description": {
+                "$ref": "#/components/schemas/LocalizedText"
+              }
+            },
+            "required": [
+              "title",
+              "description"
+            ],
+            "additionalProperties": false
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "visible": {
+                  "type": "boolean"
+                },
+                "title": {
+                  "$ref": "#/components/schemas/LocalizedText"
+                },
+                "body": {
+                  "$ref": "#/components/schemas/LocalizedText"
+                },
+                "points": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "text": {
+                        "$ref": "#/components/schemas/LocalizedText"
+                      },
+                      "visible": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "text",
+                      "visible"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "visible",
+                "title",
+                "body",
+                "points"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "schemaVersion",
+          "seo",
+          "intro",
+          "sections"
+        ],
+        "additionalProperties": false
+      },
+      "AirportPastContentDocument": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "const": "airport.past"
+          },
+          "kind": {
+            "const": "airport.past"
+          },
+          "schemaVersion": {
+            "const": 1
+          },
+          "seo": {
+            "$ref": "#/components/schemas/PageSeoContent"
+          },
+          "intro": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "$ref": "#/components/schemas/LocalizedText"
+              },
+              "description": {
+                "$ref": "#/components/schemas/LocalizedText"
+              },
+              "notice": {
+                "$ref": "#/components/schemas/LocalizedText"
+              }
+            },
+            "required": [
+              "title",
+              "description",
+              "notice"
+            ],
+            "additionalProperties": false
+          },
+          "timeline": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "visible": {
+                  "type": "boolean"
+                },
+                "period": {
+                  "type": "string"
+                },
+                "title": {
+                  "$ref": "#/components/schemas/LocalizedText"
+                },
+                "body": {
+                  "$ref": "#/components/schemas/LocalizedText"
+                },
+                "media": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "media",
+                        "placeholder-seed"
+                      ]
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "seed": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "kind"
+                  ]
+                },
+                "evidence": {
+                  "type": "string",
+                  "enum": [
+                    "verified",
+                    "provisional",
+                    "placeholder"
+                  ]
+                },
+                "sourceRefs": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "visible",
+                "period",
+                "title",
+                "body",
+                "evidence",
+                "sourceRefs"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "schemaVersion",
+          "seo",
+          "intro",
+          "timeline"
+        ],
+        "additionalProperties": false
+      },
+      "AirportPresentContentDocument": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "const": "airport.present"
+          },
+          "kind": {
+            "const": "airport.present"
+          },
+          "schemaVersion": {
+            "const": 1
+          },
+          "seo": {
+            "$ref": "#/components/schemas/PageSeoContent"
+          },
+          "intro": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "$ref": "#/components/schemas/LocalizedText"
+              },
+              "subtitle": {
+                "$ref": "#/components/schemas/LocalizedText"
+              },
+              "notice": {
+                "$ref": "#/components/schemas/LocalizedText"
+              }
+            },
+            "required": [
+              "title",
+              "subtitle",
+              "notice"
+            ],
+            "additionalProperties": false
+          },
+          "facts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "$ref": "#/components/schemas/LocalizedText"
+                },
+                "value": {
+                  "$ref": "#/components/schemas/LocalizedText"
+                },
+                "detail": {
+                  "$ref": "#/components/schemas/LocalizedText"
+                },
+                "sourceRefs": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "label",
+                "value",
+                "detail",
+                "sourceRefs"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "dossiers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "$ref": "#/components/schemas/LocalizedText"
+                },
+                "paragraphs": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LocalizedText"
+                  }
+                },
+                "sourceRefs": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "paragraphs",
+                "sourceRefs"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "spatial": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "$ref": "#/components/schemas/LocalizedText"
+              },
+              "description": {
+                "$ref": "#/components/schemas/LocalizedText"
+              },
+              "evidentiaryRuleTitle": {
+                "$ref": "#/components/schemas/LocalizedText"
+              },
+              "evidentiaryRuleBody": {
+                "$ref": "#/components/schemas/LocalizedText"
+              },
+              "sourceRefs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "title",
+              "description",
+              "evidentiaryRuleTitle",
+              "evidentiaryRuleBody",
+              "sourceRefs"
+            ],
+            "additionalProperties": false
+          },
+          "globalHorizons": {
+            "type": "object",
+            "properties": {
+              "eyebrow": {
+                "$ref": "#/components/schemas/LocalizedText"
+              },
+              "title": {
+                "$ref": "#/components/schemas/LocalizedText"
+              },
+              "description": {
+                "$ref": "#/components/schemas/LocalizedText"
+              }
+            },
+            "required": [
+              "eyebrow",
+              "title",
+              "description"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "schemaVersion",
+          "seo",
+          "intro",
+          "facts",
+          "dossiers",
+          "spatial",
+          "globalHorizons"
+        ],
+        "additionalProperties": false
+      },
+      "AirportFutureContentDocument": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "const": "airport.future"
+          },
+          "kind": {
+            "const": "airport.future"
+          },
+          "schemaVersion": {
+            "const": 1
+          },
+          "seo": {
+            "$ref": "#/components/schemas/PageSeoContent"
+          },
+          "copy": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "$ref": "#/components/schemas/LocalizedText"
+              },
+              "subtitle": {
+                "$ref": "#/components/schemas/LocalizedText"
+              },
+              "notice": {
+                "$ref": "#/components/schemas/LocalizedText"
+              },
+              "terminalTitle": {
+                "$ref": "#/components/schemas/LocalizedText"
+              },
+              "terminalBody": {
+                "$ref": "#/components/schemas/LocalizedText"
+              },
+              "hospitalityTitle": {
+                "$ref": "#/components/schemas/LocalizedText"
+              },
+              "hospitalityBody": {
+                "$ref": "#/components/schemas/LocalizedText"
+              },
+              "masterplanTitle": {
+                "$ref": "#/components/schemas/LocalizedText"
+              },
+              "masterplanBody": {
+                "$ref": "#/components/schemas/LocalizedText"
+              },
+              "networkTitle": {
+                "$ref": "#/components/schemas/LocalizedText"
+              },
+              "networkBody": {
+                "$ref": "#/components/schemas/LocalizedText"
+              }
+            },
+            "required": [
+              "title",
+              "subtitle",
+              "notice",
+              "terminalTitle",
+              "terminalBody",
+              "hospitalityTitle",
+              "hospitalityBody",
+              "masterplanTitle",
+              "masterplanBody",
+              "networkTitle",
+              "networkBody"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "schemaVersion",
+          "seo",
+          "copy"
+        ],
+        "additionalProperties": false
+      },
+      "DestinationsPresentationContentDocument": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "const": "destinations.presentation"
+          },
+          "kind": {
+            "const": "destinations.presentation"
+          },
+          "schemaVersion": {
+            "const": 1
+          },
+          "seo": {
+            "$ref": "#/components/schemas/PageSeoContent"
+          },
+          "assignments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "enum": [
+                    "AMM",
+                    "CAI",
+                    "DOH",
+                    "DXB",
+                    "IST",
+                    "JED",
+                    "RUH"
+                  ]
+                },
+                "photoId": {
+                  "type": "string",
+                  "enum": [
+                    "city-amman",
+                    "city-cairo",
+                    "city-doha",
+                    "city-dubai",
+                    "city-istanbul",
+                    "city-jeddah",
+                    "city-riyadh"
+                  ]
+                },
+                "focalPoint": {
+                  "type": "object",
+                  "properties": {
+                    "x": {
+                      "type": "number"
+                    },
+                    "y": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "x",
+                    "y"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "code",
+                "photoId"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "schemaVersion",
+          "seo",
+          "assignments"
+        ],
+        "additionalProperties": false
+      },
+      "DestinationsEditorialContentDocument": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "const": "destinations.editorial"
+          },
+          "kind": {
+            "const": "destinations.editorial"
+          },
+          "schemaVersion": {
+            "const": 1
+          },
+          "seo": {
+            "$ref": "#/components/schemas/PageSeoContent"
+          },
+          "destinations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "enum": [
+                    "AMM",
+                    "CAI",
+                    "DOH",
+                    "DXB",
+                    "IST",
+                    "JED",
+                    "RUH"
+                  ]
+                },
+                "seo": {
+                  "$ref": "#/components/schemas/PageSeoContent"
+                },
+                "blurb": {
+                  "$ref": "#/components/schemas/LocalizedText"
+                },
+                "goodToKnow": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "text": {
+                        "$ref": "#/components/schemas/LocalizedText"
+                      },
+                      "visible": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "text",
+                      "visible"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "code",
+                "seo",
+                "blurb",
+                "goodToKnow"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "schemaVersion",
+          "seo",
+          "destinations"
+        ],
+        "additionalProperties": false
+      },
+      "InformationalPagesContentDocument": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "const": "pages.information"
+          },
+          "kind": {
+            "const": "pages.information"
+          },
+          "schemaVersion": {
+            "const": 1
+          },
+          "seo": {
+            "$ref": "#/components/schemas/PageSeoContent"
+          },
+          "pages": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "enum": [
+                    "about",
+                    "contact",
+                    "privacy",
+                    "terms"
+                  ]
+                },
+                "seo": {
+                  "$ref": "#/components/schemas/PageSeoContent"
+                },
+                "title": {
+                  "$ref": "#/components/schemas/LocalizedText"
+                },
+                "description": {
+                  "$ref": "#/components/schemas/LocalizedText"
+                },
+                "blocks": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "visible": {
+                        "type": "boolean"
+                      },
+                      "title": {
+                        "$ref": "#/components/schemas/LocalizedText"
+                      },
+                      "paragraphs": {
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/components/schemas/LocalizedText"
+                        }
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "visible",
+                      "title",
+                      "paragraphs"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "seo",
+                "title",
+                "description",
+                "blocks"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "schemaVersion",
+          "seo",
+          "pages"
+        ],
+        "additionalProperties": false
+      },
+      "ContentDocument": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/HomeContentDocument"
+          },
+          {
+            "$ref": "#/components/schemas/TravelContentDocument"
+          },
+          {
+            "$ref": "#/components/schemas/AirportPastContentDocument"
+          },
+          {
+            "$ref": "#/components/schemas/AirportPresentContentDocument"
+          },
+          {
+            "$ref": "#/components/schemas/AirportFutureContentDocument"
+          },
+          {
+            "$ref": "#/components/schemas/DestinationsPresentationContentDocument"
+          },
+          {
+            "$ref": "#/components/schemas/DestinationsEditorialContentDocument"
+          },
+          {
+            "$ref": "#/components/schemas/InformationalPagesContentDocument"
+          }
+        ]
+      },
+      "SuccessMeta": {
+        "type": "object",
+        "properties": {
+          "requestId": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "requestId",
+          "timestamp"
+        ],
+        "additionalProperties": false
+      },
+      "ErrorDetail": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": false
+          },
+          "error": {
+            "$ref": "#/components/schemas/ErrorDetail"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/SuccessMeta"
+          }
+        },
+        "required": [
+          "success",
+          "error",
+          "meta"
+        ],
+        "additionalProperties": false
+      },
+      "CmsDraftReceiptDto": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "enum": [
+              "home",
+              "travel",
+              "airport.past",
+              "airport.present",
+              "airport.future",
+              "destinations.presentation",
+              "destinations.editorial",
+              "pages.information"
+            ]
+          },
+          "changed": {
+            "type": "boolean"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "currentRevision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "published",
+              "unpublished"
+            ]
+          }
+        },
+        "required": [
+          "slug",
+          "changed",
+          "revision"
+        ],
+        "additionalProperties": false
+      },
+      "CmsDraftReceiptResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/CmsDraftReceiptDto"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/SuccessMeta"
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "meta"
+        ],
+        "additionalProperties": false
+      },
+      "CmsPublishedDocumentDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "enum": [
+              "home",
+              "travel",
+              "airport.past",
+              "airport.present",
+              "airport.future",
+              "destinations.presentation",
+              "destinations.editorial",
+              "pages.information"
+            ]
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "home",
+              "travel",
+              "airport.past",
+              "airport.present",
+              "airport.future",
+              "destinations.presentation",
+              "destinations.editorial",
+              "pages.information"
+            ]
+          },
+          "slug": {
+            "type": "string",
+            "enum": [
+              "home",
+              "travel",
+              "airport.past",
+              "airport.present",
+              "airport.future",
+              "destinations.presentation",
+              "destinations.editorial",
+              "pages.information"
+            ]
+          },
+          "revisionNumber": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "published"
+            ]
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/ContentDocument"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "slug",
+          "revisionNumber",
+          "status",
+          "updatedAt",
+          "payload"
+        ],
+        "additionalProperties": false
+      },
+      "CmsPublishedDocumentResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/CmsPublishedDocumentDto"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/SuccessMeta"
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "meta"
+        ],
+        "additionalProperties": false
+      },
+      "CmsEditorialDocumentDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "enum": [
+              "home",
+              "travel",
+              "airport.past",
+              "airport.present",
+              "airport.future",
+              "destinations.presentation",
+              "destinations.editorial",
+              "pages.information"
+            ]
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "home",
+              "travel",
+              "airport.past",
+              "airport.present",
+              "airport.future",
+              "destinations.presentation",
+              "destinations.editorial",
+              "pages.information"
+            ]
+          },
+          "slug": {
+            "type": "string",
+            "enum": [
+              "home",
+              "travel",
+              "airport.past",
+              "airport.present",
+              "airport.future",
+              "destinations.presentation",
+              "destinations.editorial",
+              "pages.information"
+            ]
+          },
+          "revisionNumber": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "currentRevision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "publishedRevision": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "draftRevision": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "published",
+              "unpublished"
+            ]
+          },
+          "hasDraft": {
+            "type": "boolean"
+          },
+          "tombstoned": {
+            "type": "boolean"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "payload": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ContentDocument"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "slug",
+          "revisionNumber",
+          "currentRevision",
+          "status",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
+      "CmsEditorialDocumentResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/CmsEditorialDocumentDto"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/SuccessMeta"
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "meta"
+        ],
+        "additionalProperties": false
+      },
+      "PutCmsEditorialDraftRequest": {
+        "type": "object",
+        "properties": {
+          "payload": {
+            "$ref": "#/components/schemas/ContentDocument"
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "payload",
+          "expectedRevision"
+        ],
+        "additionalProperties": false
+      },
+      "PostCmsEditorialCommandRequest": {
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "expectedRevision"
+        ],
+        "additionalProperties": false
+      },
+      "PostCmsEditorialRestoreRequest": {
+        "type": "object",
+        "properties": {
+          "targetRevision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "targetRevision",
+          "expectedRevision"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}

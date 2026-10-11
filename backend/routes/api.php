@@ -24,4 +24,6 @@ Route::prefix('v1')->group(function () {
     require __DIR__ . '/booking-identity.php';
     require __DIR__ . '/reference.php';
     require __DIR__ . '/meal-reference.php';
+    require __DIR__ . '/schedule-reference.php';
+    require __DIR__ . '/editorial.php';
 });
