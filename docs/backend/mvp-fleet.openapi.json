@@ -1,0 +1,777 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Gaza Gateway MVP fleet receipt extension",
+    "version": "1.0.0",
+    "description": "Additive local-only snapshot and server-authoritative receipts; original five C01 operations unchanged."
+  },
+  "servers": [
+    {
+      "url": "/api/v1"
+    }
+  ],
+  "paths": {
+    "/fleet/snapshot": {
+      "get": {
+        "operationId": "getMvpFleetSnapshot",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Canonical JSON response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MvpFleetSnapshotResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Canonical JSON response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Canonical JSON response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Canonical JSON response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/fleet/aircraft/{id}/receipt": {
+      "patch": {
+        "operationId": "patchMvpAircraftReceipt",
+        "security": [
+          {
+            "StaffCookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Canonical JSON response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MvpAircraftReceiptResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Canonical JSON response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Canonical JSON response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Canonical JSON response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Canonical JSON response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Canonical JSON response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Canonical JSON response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Canonical JSON response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Canonical JSON response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchAircraftRequest"
+              }
+            }
+          }
+        },
+        "x-required-permission": "ops.edit",
+        "x-protocol": {
+          "realm": "staff",
+          "requiresOrigin": true,
+          "requiresCsrf": true,
+          "csrfHeader": "X-CSRF-TOKEN",
+          "cacheControl": "no-store"
+        }
+      }
+    },
+    "/admin/fleet/seat-layouts/{id}/receipt": {
+      "put": {
+        "operationId": "putMvpLayoutReceipt",
+        "security": [
+          {
+            "StaffCookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Canonical JSON response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MvpLayoutReceiptResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Canonical JSON response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Canonical JSON response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Canonical JSON response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Canonical JSON response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Canonical JSON response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Canonical JSON response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Canonical JSON response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Canonical JSON response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutSeatLayoutRequest"
+              }
+            }
+          }
+        },
+        "x-required-permission": "ops.edit",
+        "x-protocol": {
+          "realm": "staff",
+          "requiresOrigin": true,
+          "requiresCsrf": true,
+          "csrfHeader": "X-CSRF-TOKEN",
+          "cacheControl": "no-store"
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "StaffCookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "gza_staff_session",
+        "description": "Host-only HTTP-only Secure cookie for staff administration realm (Path=/api/v1)"
+      }
+    },
+    "schemas": {
+      "MvpFleetSnapshot": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "aircraft": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AircraftDto"
+            }
+          },
+          "layouts": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/SeatLayoutDto"
+            }
+          }
+        },
+        "required": [
+          "revision",
+          "aircraft",
+          "layouts"
+        ]
+      },
+      "MvpAircraftReceipt": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "aircraft": {
+            "$ref": "#/components/schemas/AircraftDto"
+          },
+          "changed": {
+            "type": "boolean"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "aircraft",
+          "changed",
+          "revision"
+        ]
+      },
+      "MvpLayoutReceipt": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "layout": {
+            "$ref": "#/components/schemas/SeatLayoutDto"
+          },
+          "changed": {
+            "type": "boolean"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "layout",
+          "changed",
+          "revision"
+        ]
+      },
+      "MvpFleetSnapshotResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/MvpFleetSnapshot"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/SuccessMeta"
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "meta"
+        ]
+      },
+      "MvpAircraftReceiptResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/MvpAircraftReceipt"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/SuccessMeta"
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "meta"
+        ]
+      },
+      "MvpLayoutReceiptResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/MvpLayoutReceipt"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/SuccessMeta"
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "meta"
+        ]
+      },
+      "PutSeatLayoutRequest": {
+        "$ref": "#/components/schemas/LayoutUpdateInput"
+      },
+      "LayoutUpdateInput": {
+        "type": "object",
+        "properties": {
+          "rows": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 60
+          },
+          "letters": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Z]$"
+            }
+          },
+          "aisleAfter": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "zones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SeatZone"
+            }
+          },
+          "extraLegroomRows": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 60
+            }
+          },
+          "unavailable": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^\\d+[A-Z]$"
+            }
+          }
+        },
+        "required": [
+          "rows",
+          "letters",
+          "aisleAfter",
+          "zones",
+          "extraLegroomRows",
+          "unavailable"
+        ],
+        "additionalProperties": false
+      },
+      "SeatZone": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "enum": [
+              "economy",
+              "premium",
+              "business"
+            ]
+          },
+          "firstRow": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 60
+          },
+          "lastRow": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 60
+          }
+        },
+        "required": [
+          "id",
+          "firstRow",
+          "lastRow"
+        ],
+        "additionalProperties": false
+      },
+      "PatchAircraftRequest": {
+        "type": "object",
+        "properties": {
+          "model": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "registration": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32
+          },
+          "active": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": false
+          },
+          "error": {
+            "$ref": "#/components/schemas/ErrorDetail"
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "requestId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "timestamp": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "requestId",
+              "timestamp"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "success",
+          "error",
+          "meta"
+        ],
+        "additionalProperties": false
+      },
+      "ErrorDetail": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "validation_error"
+          },
+          "message": {
+            "type": "string",
+            "example": "The given data was invalid."
+          },
+          "fields": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "SuccessMeta": {
+        "type": "object",
+        "properties": {
+          "requestId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "requestId",
+          "timestamp"
+        ],
+        "additionalProperties": false
+      },
+      "SeatLayoutDto": {
+        "type": "object",
+        "properties": {
+          "aircraftId": {
+            "$ref": "#/components/schemas/AircraftId"
+          },
+          "rows": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 60
+          },
+          "letters": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2
+            }
+          },
+          "aisleAfter": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          },
+          "zones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SeatZoneDto"
+            }
+          },
+          "extraLegroomRows": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 60
+            }
+          },
+          "unavailable": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "aircraftId",
+          "rows",
+          "letters",
+          "aisleAfter",
+          "zones",
+          "extraLegroomRows",
+          "unavailable"
+        ],
+        "additionalProperties": false
+      },
+      "SeatZoneDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "enum": [
+              "economy",
+              "premium",
+              "business"
+            ]
+          },
+          "firstRow": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 60
+          },
+          "lastRow": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 60
+          }
+        },
+        "required": [
+          "id",
+          "firstRow",
+          "lastRow"
+        ],
+        "additionalProperties": false
+      },
+      "AircraftId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64,
+        "pattern": "^[A-Za-z0-9_-]{1,64}(?![\\s\\S])",
+        "description": "Immutable route-safe identifier; exact ASCII letters, digits, hyphen and underscore. No trimming or decoding."
+      },
+      "AircraftDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/AircraftId"
+          },
+          "model": {
+            "type": "string",
+            "minLength": 1
+          },
+          "registration": {
+            "type": "string",
+            "minLength": 1
+          },
+          "active": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "model",
+          "registration",
+          "active"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}

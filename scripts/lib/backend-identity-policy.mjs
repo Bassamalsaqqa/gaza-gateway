@@ -263,7 +263,7 @@ function add(guard, lines, permission = null) {
 }
 add(
   "public",
-  "get /health\nget /health/ready\nget /version\nget /auth/csrf\npost /auth/register\npost /auth/login\npost /auth/password/forgot\npost /auth/password/reset\npost /auth/email/verify\npost /auth/email/resend\nget /staff/csrf\npost /staff/login\npost /staff/password/forgot\npost /staff/password/reset\npost /staff/invitations/accept\nget /network/airports\nget /fleet/aircraft\nget /fleet/seat-layouts/{id}\nget /schedules\nget /commercial/fares\nget /commercial/catalog\nget /dated-services/search\nget /dated-services/monthly\nget /dated-services/daily-board\nget /dated-services/{id}\npost /quotes\npost /holds\npost /bookings\npost /bookings/{ref}/challenge\npost /bookings/{ref}/verify-challenge\nget /archive/records\nget /archive/sources\npost /contact\npost /payments/intents",
+  "get /health\nget /health/ready\nget /version\nget /auth/csrf\npost /auth/register\npost /auth/login\npost /auth/password/forgot\npost /auth/password/reset\npost /auth/email/verify\npost /auth/email/resend\nget /staff/csrf\npost /staff/login\npost /staff/password/forgot\npost /staff/password/reset\npost /staff/invitations/accept\nget /network/airports\nget /network/routes\nget /fleet/aircraft\nget /fleet/seat-layouts/{id}\nget /schedules\nget /commercial/fares\nget /commercial/catalog\nget /dated-services/search\nget /dated-services/monthly\nget /dated-services/daily-board\nget /dated-services/{id}\npost /quotes\npost /holds\npost /bookings\npost /bookings/{ref}/challenge\npost /bookings/{ref}/verify-challenge\nget /archive/records\nget /archive/sources\npost /contact\npost /payments/intents",
 );
 add(
   "passenger",
@@ -281,6 +281,11 @@ add(
   "staff",
   "post /admin/network/airports\npatch /admin/network/airports/{code}\npost /admin/fleet/aircraft\npatch /admin/fleet/aircraft/{id}\nput /admin/fleet/seat-layouts/{id}\npost /admin/schedules\npatch /admin/schedules/{id}\ndelete /admin/schedules/{id}\npost /ops/flights/overrides\ndelete /ops/flights/overrides/{serviceId}",
   "ops.edit",
+);
+add(
+  "staff",
+  "get /admin/network/airports",
+  "ops.view",
 );
 add(
   "staff",

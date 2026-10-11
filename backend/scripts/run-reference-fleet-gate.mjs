@@ -101,6 +101,7 @@ try {
   }
   let negatives=0;
   for (const capture of Object.values(captures)) {
+    if (!fleetOperations[capture.operationId]) continue;
     verifyFleetCapture(spec,capture);
     if(capture.status>=400) {
       negatives++;
@@ -122,6 +123,23 @@ try {
   for(const[id,statuses]of Object.entries(required))for(const status of statuses)
     if(!captures[id+":"+status])throw new Error("Missing actual negative response: "+id+" "+status);
   console.log("PASS "+negatives+" actual error contracts + undocumented-status/content-type/schema controls");
+  const extension = JSON.parse(fs.readFileSync(path.join(root,"docs/backend/mvp-fleet.openapi.json")));
+  let extensionCaptures = 0;
+  for (const [route,item] of Object.entries(extension.paths)) for (const [method,operation] of Object.entries(item)) {
+    const actual = Object.values(captures).filter(c => c.operationId === operation.operationId);
+    if (!actual.some(c=>c.status===200)) throw new Error("Missing actual MVP fleet success: "+operation.operationId);
+    for (const capture of actual) {
+      const schema = operation.responses[String(capture.status)]?.content?.["application/json"]?.schema;
+      if (!schema || !/^application\/json(?:;|$)/i.test(capture.contentType ?? "") || !validatePayloadAgainstSchema(schema,capture.payload,extension).valid)
+        throw new Error("Invalid actual MVP fleet contract: "+operation.operationId+" "+capture.status);
+      if (validatePayloadAgainstSchema(schema,{...capture.payload,success:capture.status<400?false:true},extension).valid)
+        throw new Error("Negative MVP fleet envelope escaped");
+      extensionCaptures++;
+    }
+    if(method!=="get") for(const status of [401,403,404,422]) if(!actual.some(c=>c.status===status))
+      throw new Error("Missing actual MVP fleet denial: "+operation.operationId+" "+status);
+  }
+  console.log("PASS "+extensionCaptures+" actual MVP fleet snapshot/receipt contracts and negative controls");
   command("whitespace","git",["diff","--check"]);
   passed = true;
 } catch (error) { failure = error.message; console.error(failure); process.exitCode=1; }

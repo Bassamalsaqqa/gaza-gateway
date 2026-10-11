@@ -2065,6 +2065,122 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Malformed request or rejected host",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected internal error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Database or service dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-protocol": {
+          "branches": [
+            {
+              "realm": "anonymous_passenger",
+              "origin": "read",
+              "csrf": "not_applicable"
+            }
+          ],
+          "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+          "csrfHeader": "X-CSRF-TOKEN",
+          "cacheControl": "no-store",
+          "stepUpSeconds": null
+        },
+        "x-authority-policy": "public"
+      }
+    },
+    "/network/routes": {
+      "get": {
+        "operationId": "getNetworkRoutes",
+        "tags": [
+          "13C: Aviation Reference"
+        ],
+        "summary": "List active network routes",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Network routes array",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutesListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request or rejected host",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected internal error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Database or service dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "x-protocol": {
@@ -2084,6 +2200,104 @@
       }
     },
     "/admin/network/airports": {
+      "get": {
+        "operationId": "getAdminAirports",
+        "tags": [
+          "13C: Aviation Reference"
+        ],
+        "summary": "List all network airports including inactive (staff only)",
+        "x-required-permission": "ops.view",
+        "security": [
+          {
+            "StaffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/X-Request-Id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Network airports array",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AirportsListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request or rejected host",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedErrorResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenErrorResponse"
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected internal error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Database or service dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-authorization-branches": [
+          {
+            "scheme": "StaffCookieAuth",
+            "condition": "authenticated_staff",
+            "requiredPermission": "ops.view",
+            "requiresActive": true
+          }
+        ],
+        "x-protocol": {
+          "branches": [
+            {
+              "realm": "staff",
+              "origin": "read",
+              "csrf": "not_applicable"
+            }
+          ],
+          "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+          "csrfHeader": "X-CSRF-TOKEN",
+          "cacheControl": "no-store",
+          "stepUpSeconds": null
+        },
+        "x-authority-policy": "staff"
+      },
       "post": {
         "operationId": "postAdminAirport",
         "tags": [
@@ -2125,14 +2339,57 @@
               }
             }
           },
+          "400": {
+            "description": "Malformed request or rejected host",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "401": {
             "$ref": "#/components/responses/UnauthorizedErrorResponse"
           },
           "403": {
             "$ref": "#/components/responses/ForbiddenErrorResponse"
           },
+          "409": {
+            "$ref": "#/components/responses/ConflictErrorResponse"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationErrorResponse"
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected internal error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Database or service dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "x-authorization-branches": [
@@ -2211,6 +2468,16 @@
               }
             }
           },
+          "400": {
+            "description": "Malformed request or rejected host",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "401": {
             "$ref": "#/components/responses/UnauthorizedErrorResponse"
           },
@@ -2219,6 +2486,42 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFoundErrorResponse"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictErrorResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationErrorResponse"
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected internal error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Database or service dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "x-authorization-branches": [
@@ -11646,6 +11949,30 @@
         ],
         "additionalProperties": false
       },
+      "RoutesListResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RouteDto"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/SuccessMeta"
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "meta"
+        ],
+        "additionalProperties": false
+      },
       "CreateAirportRequest": {
         "type": "object",
         "properties": {
@@ -16191,6 +16518,64 @@
           "city",
           "country",
           "timezone",
+          "blockMinutes",
+          "active"
+        ],
+        "additionalProperties": false
+      },
+      "RouteDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "originCode": {
+            "type": "string",
+            "enum": [
+              "GZA",
+              "AMM",
+              "CAI",
+              "IST",
+              "DOH",
+              "DXB",
+              "JED",
+              "RUH"
+            ]
+          },
+          "destinationCode": {
+            "type": "string",
+            "enum": [
+              "GZA",
+              "AMM",
+              "CAI",
+              "IST",
+              "DOH",
+              "DXB",
+              "JED",
+              "RUH"
+            ]
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "out",
+              "in"
+            ]
+          },
+          "blockMinutes": {
+            "type": "integer",
+            "minimum": 15,
+            "maximum": 600
+          },
+          "active": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "originCode",
+          "destinationCode",
+          "direction",
           "blockMinutes",
           "active"
         ],

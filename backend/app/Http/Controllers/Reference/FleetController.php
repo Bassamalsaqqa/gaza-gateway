@@ -40,6 +40,23 @@ final class FleetController
             $request->attributes->get('reference_authorize')));
     }
 
+    public function snapshot(Request $request): JsonResponse
+    {
+        return ReferenceResponse::success($request, $this->fleet->snapshot());
+    }
+
+    public function patchReceipt(Request $request, string $id): JsonResponse
+    {
+        return $this->run($request, fn(): array => $this->fleet->patch($id, $this->command($request),
+            $request->attributes->get('reference_authorize'), true));
+    }
+
+    public function layoutReceipt(Request $request, string $id): JsonResponse
+    {
+        return $this->run($request, fn(): array => $this->fleet->putLayout($id, $this->command($request),
+            $request->attributes->get('reference_authorize'), true));
+    }
+
     private function command(Request $request): array
     {
         $raw = $request->getContent();

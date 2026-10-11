@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "version": "1.0.0",
   "description": "Canonical Operation Authorization Policy Registry for Gaza Gateway API v1",
-  "totalOperations": 138,
+  "totalOperations": 140,
   "operations": [
     {
       "operationId": "getHealthLiveness",
@@ -619,6 +619,35 @@
       "allowedSecurity": [],
       "requiredPermission": null,
       "branchConditions": []
+    },
+    {
+      "operationId": "getNetworkRoutes",
+      "method": "GET",
+      "path": "/network/routes",
+      "intent": "public",
+      "allowedSecurity": [],
+      "requiredPermission": null,
+      "branchConditions": []
+    },
+    {
+      "operationId": "getAdminAirports",
+      "method": "GET",
+      "path": "/admin/network/airports",
+      "intent": "protected",
+      "allowedSecurity": [
+        {
+          "StaffCookieAuth": []
+        }
+      ],
+      "requiredPermission": "ops.view",
+      "branchConditions": [
+        {
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff",
+          "requiredPermission": "ops.view",
+          "requiresActive": true
+        }
+      ]
     },
     {
       "operationId": "postAdminAirport",

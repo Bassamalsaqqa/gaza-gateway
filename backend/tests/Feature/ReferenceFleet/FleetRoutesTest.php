@@ -42,10 +42,12 @@ final class FleetRoutesTest extends TestCase
             'HTTP_X_CSRF_TOKEN' => $session['csrf'] ?? '', 'REMOTE_ADDR' => '2001:db8:'.bin2hex(random_bytes(2)).'::9'];
         $response = $this->call($method, 'https://'.($headers['HTTP_HOST'] ?? '127.0.0.1:18090').'/api/v1'.$path, [], [], [], array_replace($server, $headers),
             $raw ?? ($body === null ? '' : json_encode($body, JSON_THROW_ON_ERROR)));
-        $operation = match ($method) {
+        $operation = str_ends_with($path, '/receipt')
+            ? ($method === 'PATCH' ? 'patchMvpAircraftReceipt' : 'putMvpLayoutReceipt')
+            : ($path === '/fleet/snapshot' ? 'getMvpFleetSnapshot' : match ($method) {
             'POST' => 'postAdminAircraft', 'PATCH' => 'patchAdminAircraft', 'PUT' => 'putAdminSeatLayout',
             default => str_contains($path, 'seat-layouts') ? 'getSeatLayoutById' : 'getFleetAircraft',
-        };
+        });
         if ($operation !== null && getenv('REFERENCE_GATE_OWNED') === '1') {
             $file = '/tmp/reference-captures.json';
             $captures = is_file($file) ? json_decode(file_get_contents($file), true, 32, JSON_THROW_ON_ERROR) : [];
@@ -422,4 +424,39 @@ final class FleetRoutesTest extends TestCase
         } while (microtime(true)<$deadline);
         throw new \RuntimeException('Worker deadline exceeded.');
     }
+    public function test_mvp_consistent_snapshot_and_transactional_changed_receipts(): void
+    {
+        $staff = $this->staff(); $input = $this->input('mvp-receipt-aircraft');
+        $this->http('POST', '/admin/fleet/aircraft', $staff, $input)->assertCreated();
+        $before = (int) DB::table('reference_revision_control')->value('revision');
+        $snapshot = $this->http('GET', '/fleet/snapshot')->assertOk()->json('data');
+        $this->assertSame($before, $snapshot['revision']);
+        $this->assertSame(app(FleetCoordinator::class)->aircraft(), $snapshot['aircraft']);
+        foreach ($snapshot['aircraft'] as $plane) {
+            $this->assertSame(app(FleetCoordinator::class)->layout($plane['id']), $snapshot['layouts'][$plane['id']]);
+        }
+        $this->http('PATCH', '/admin/fleet/aircraft/mvp-receipt-aircraft/receipt', $staff, ['model' => 'Updated synthetic model'])
+            ->assertOk()->assertJsonPath('data.changed', true)->assertJsonPath('data.revision', $before + 1)
+            ->assertJsonPath('data.aircraft.model', 'Updated synthetic model');
+        $this->http('PATCH', '/admin/fleet/aircraft/mvp-receipt-aircraft/receipt', $staff, ['model' => 'Updated synthetic model'])
+            ->assertOk()->assertJsonPath('data.changed', false)->assertJsonPath('data.revision', $before + 1);
+        $layout = FleetCoordinator::defaultLayout(); $layout['extraLegroomRows'] = [1];
+        $this->http('PUT', '/admin/fleet/seat-layouts/mvp-receipt-aircraft/receipt', $staff, $layout)
+            ->assertOk()->assertJsonPath('data.changed', true)->assertJsonPath('data.revision', $before + 2)
+            ->assertJsonPath('data.layout.extraLegroomRows', [1]);
+        $this->http('PUT', '/admin/fleet/seat-layouts/mvp-receipt-aircraft/receipt', $staff, $layout)
+            ->assertOk()->assertJsonPath('data.changed', false)->assertJsonPath('data.revision', $before + 2);
+        $this->http('GET', '/fleet/snapshot')->assertOk()->assertJsonPath('data.revision', $before + 2)
+            ->assertJsonPath('data.layouts.mvp-receipt-aircraft.extraLegroomRows', [1]);
+        $this->assertSame($before + 2, DB::table('reference_revisions')->count());
+        foreach ([['PATCH', '/admin/fleet/aircraft/mvp-receipt-aircraft/receipt', ['model' => 'New']],
+            ['PUT', '/admin/fleet/seat-layouts/mvp-receipt-aircraft/receipt', $layout]] as [$method, $route, $body]) {
+            $this->http($method, $route, [], $body)->assertStatus(401);
+            $this->http($method, $route, $staff, $body, ['HTTP_X_CSRF_TOKEN' => 'wrong'])->assertStatus(403);
+            $this->http($method, str_replace('mvp-receipt-aircraft', 'missing-mvp-aircraft', $route), $staff, $body)->assertStatus(404);
+            $this->http($method, $route, $staff, ['injected' => true])->assertStatus(422);
+        }
+        $this->assertSame($before + 2, DB::table('reference_revision_control')->value('revision'));
+    }
+
 }

@@ -2261,6 +2261,10 @@
       "guard": "public",
       "permission": null
     },
+    "get /network/routes": {
+      "guard": "public",
+      "permission": null
+    },
     "get /fleet/aircraft": {
       "guard": "public",
       "permission": null
@@ -2468,6 +2472,10 @@
     "get /bookings/{ref}/boarding-passes": {
       "guard": "mixed_booking",
       "permission": null
+    },
+    "get /admin/network/airports": {
+      "guard": "staff",
+      "permission": "ops.view"
     },
     "post /admin/network/airports": {
       "guard": "staff",

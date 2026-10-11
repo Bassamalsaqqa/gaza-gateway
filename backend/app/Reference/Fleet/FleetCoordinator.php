@@ -46,7 +46,21 @@ final class FleetCoordinator
         });
     }
 
-    public function patch(string $id, array $input, Closure $authorize): array
+    /** One SQL statement binds the revision and immutable snapshot to a single MVCC view. */
+    public function snapshot(): array
+    {
+        $row = DB::table('reference_revision_control AS control')
+            ->leftJoin('reference_revisions AS history', function ($join): void {
+                $join->on('history.domain', '=', 'control.domain')->on('history.revision', '=', 'control.revision');
+            })->where('control.domain', 'fleet')->select('control.revision', 'history.snapshot_bytes')->first();
+        if ($row === null) { throw new \LogicException('Missing reference control.'); }
+        if ((int) $row->revision === 0) { return ['revision' => 0, 'aircraft' => [], 'layouts' => (object) []]; }
+        if ($row->snapshot_bytes === null) { throw new \LogicException('Missing reference snapshot.'); }
+        $snapshot = json_decode($row->snapshot_bytes, false, 64, JSON_THROW_ON_ERROR);
+        return ['revision' => (int) $row->revision, 'aircraft' => $snapshot->aircraft, 'layouts' => $snapshot->layouts];
+    }
+
+    public function patch(string $id, array $input, Closure $authorize, bool $receipt = false): array
     {
         $this->validator->aircraftId($id);
         $patch = $this->validator->aircraft($input, true);
@@ -61,10 +75,10 @@ final class FleetCoordinator
                 'registration_normalized' => $after['registration'], 'active' => $after['active'],
                 'updated_at' => DB::raw('clock_timestamp()')]);
             return [$after, true];
-        });
+        }, $receipt ? 'aircraft' : null);
     }
 
-    public function putLayout(string $id, array $input, Closure $authorize): array
+    public function putLayout(string $id, array $input, Closure $authorize, bool $receipt = false): array
     {
         $this->validator->aircraftId($id);
         $layout = $this->validator->layout($input);
@@ -78,12 +92,12 @@ final class FleetCoordinator
             if ($before === $after) { return [$before, false]; }
             $this->writeLayout($id, $layout, false);
             return [$after, true];
-        });
+        }, $receipt ? 'layout' : null);
     }
 
-    private function mutate(string $action, string $id, Closure $authorize, Closure $write): array
+    private function mutate(string $action, string $id, Closure $authorize, Closure $write, ?string $receiptKind = null): array
     {
-        return DB::transaction(function () use ($action, $id, $authorize, $write): array {
+        return DB::transaction(function () use ($action, $id, $authorize, $write, $receiptKind): array {
             // Establish principal/session ownership before waiting for the domain lock.
             $authorize();
             $control = DB::table('reference_revision_control')->where('domain', 'fleet')->lockForUpdate()->first();
@@ -91,7 +105,8 @@ final class FleetCoordinator
             // Fresh wall clock / persisted authority after waiting; no detached role authorization.
             $actor = $authorize();
             [$result, $changed] = $write();
-            if (!$changed) { return $result; }
+            if (!$changed) { return $receiptKind === null ? $result :
+                [$receiptKind => $result, 'changed' => false, 'revision' => (int) $control->revision]; }
             $revision = (int) $control->revision + 1;
             if ($revision > 9007199254740991) { throw new \OverflowException('Reference revision exhausted.'); }
             $snapshot = ['aircraft' => $this->aircraft(), 'layouts' => []];
@@ -107,7 +122,7 @@ final class FleetCoordinator
             DB::table('reference_audit_events')->insert(['id' => (string) Str::uuid(), 'domain' => 'fleet',
                 'revision' => $revision, 'staff_id' => $actor->getStaffId(), 'action' => $action,
                 'outcome' => 'success', 'aircraft_id' => $id]);
-            return $result;
+            return $receiptKind === null ? $result : [$receiptKind => $result, 'changed' => true, 'revision' => $revision];
         });
     }
 

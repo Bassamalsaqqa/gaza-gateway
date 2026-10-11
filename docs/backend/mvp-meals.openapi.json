@@ -1,0 +1,964 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Gaza Gateway - MVP Meals Reference API",
+    "description": "Meals-only commercial reference authority slice",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/meals": {
+      "get": {
+        "operationId": "getMeals",
+        "tags": ["Reference: Meals"],
+        "summary": "Get active-only ordered meal options snapshot",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Active-only meals snapshot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MealsSnapshotResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request or rejected host",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected internal error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Database or service dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-authority-policy": "public",
+        "x-protocol": {
+          "branches": [
+            {
+              "realm": "anonymous_passenger",
+              "origin": "read",
+              "csrf": "not_applicable"
+            }
+          ],
+          "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+          "csrfHeader": "X-CSRF-TOKEN",
+          "cacheControl": "no-store",
+          "stepUpSeconds": null
+        }
+      }
+    },
+    "/admin/meals": {
+      "get": {
+        "operationId": "getAdminMeals",
+        "tags": ["Reference: Meals"],
+        "summary": "Get full meal options snapshot",
+        "x-required-permission": "commercial.view",
+        "security": [
+          {
+            "StaffCookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Full meals snapshot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MealsSnapshotResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request or rejected host",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated staff access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden staff access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected internal error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Database or service dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-authority-policy": "staff",
+        "x-protocol": {
+          "branches": [
+            {
+              "realm": "staff",
+              "origin": "configured_frontend",
+              "csrf": "not_applicable"
+            }
+          ],
+          "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+          "csrfHeader": "X-CSRF-TOKEN",
+          "cacheControl": "no-store",
+          "stepUpSeconds": null
+        }
+      },
+      "post": {
+        "operationId": "postAdminMeal",
+        "tags": ["Reference: Meals"],
+        "summary": "Create new meal option",
+        "x-required-permission": "commercial.edit",
+        "security": [
+          {
+            "StaffCookieAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMealRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Meal option created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OptionMutationReceiptResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request or rejected host",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated staff access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden staff access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict on duplicate meal id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error or invalid command format",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected internal error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Database or service dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-authority-policy": "staff",
+        "x-protocol": {
+          "branches": [
+            {
+              "realm": "staff",
+              "origin": "configured_frontend",
+              "csrf": "staff"
+            }
+          ],
+          "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+          "csrfHeader": "X-CSRF-TOKEN",
+          "cacheControl": "no-store",
+          "stepUpSeconds": null
+        }
+      }
+    },
+    "/admin/meals/{id}": {
+      "patch": {
+        "operationId": "patchAdminMeal",
+        "tags": ["Reference: Meals"],
+        "summary": "Update meal option",
+        "x-required-permission": "commercial.edit",
+        "security": [
+          {
+            "StaffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchMealRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Meal option updated receipt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OptionMutationReceiptResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request or rejected host",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated staff access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden staff access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Meal option not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error or invalid retirement attempt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected internal error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Database or service dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-authority-policy": "staff",
+        "x-protocol": {
+          "branches": [
+            {
+              "realm": "staff",
+              "origin": "configured_frontend",
+              "csrf": "staff"
+            }
+          ],
+          "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+          "csrfHeader": "X-CSRF-TOKEN",
+          "cacheControl": "no-store",
+          "stepUpSeconds": null
+        }
+      }
+    },
+    "/admin/meals/order": {
+      "put": {
+        "operationId": "putAdminMealsOrder",
+        "tags": ["Reference: Meals"],
+        "summary": "Reorder meals permutation",
+        "x-required-permission": "commercial.edit",
+        "security": [
+          {
+            "StaffCookieAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderMealsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Meals catalog reordered snapshot receipt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SnapshotMutationReceiptResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request or rejected host",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated staff access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden staff access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error or invalid reorder permutation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected internal error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Database or service dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-authority-policy": "staff",
+        "x-protocol": {
+          "branches": [
+            {
+              "realm": "staff",
+              "origin": "configured_frontend",
+              "csrf": "staff"
+            }
+          ],
+          "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+          "csrfHeader": "X-CSRF-TOKEN",
+          "cacheControl": "no-store",
+          "stepUpSeconds": null
+        }
+      }
+    },
+    "/admin/meals/default": {
+      "put": {
+        "operationId": "putAdminMealsDefault",
+        "tags": ["Reference: Meals"],
+        "summary": "Set default active meal option",
+        "x-required-permission": "commercial.edit",
+        "security": [
+          {
+            "StaffCookieAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetDefaultMealRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default meal updated snapshot receipt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SnapshotMutationReceiptResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request or rejected host",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated staff access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden staff access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Meal option not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error or inactive meal default attempt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected internal error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Database or service dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-authority-policy": "staff",
+        "x-protocol": {
+          "branches": [
+            {
+              "realm": "staff",
+              "origin": "configured_frontend",
+              "csrf": "staff"
+            }
+          ],
+          "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+          "csrfHeader": "X-CSRF-TOKEN",
+          "cacheControl": "no-store",
+          "stepUpSeconds": null
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CatalogOption": {
+        "type": "object",
+        "required": ["id", "label", "active", "order"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_-]{1,64}$"
+          },
+          "label": {
+            "type": "object",
+            "required": ["en", "ar"],
+            "additionalProperties": false,
+            "properties": {
+              "en": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              },
+              "ar": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              }
+            }
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "order": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "ReferenceMeta": {
+        "type": "object",
+        "required": ["requestId", "timestamp"],
+        "additionalProperties": false,
+        "properties": {
+          "requestId": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string"
+          }
+        }
+      },
+      "ErrorPayload": {
+        "type": "object",
+        "required": ["code", "message"],
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": ["success", "error", "meta"],
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [false]
+          },
+          "error": {
+            "$ref": "#/components/schemas/ErrorPayload"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ReferenceMeta"
+          }
+        }
+      },
+      "MealsSnapshotData": {
+        "type": "object",
+        "required": ["revision", "meals", "defaultMealId"],
+        "additionalProperties": false,
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "meals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CatalogOption"
+            }
+          },
+          "defaultMealId": {
+            "type": ["string", "null"]
+          }
+        }
+      },
+      "MealsSnapshotResponse": {
+        "type": "object",
+        "required": ["success", "data", "meta"],
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [true]
+          },
+          "data": {
+            "$ref": "#/components/schemas/MealsSnapshotData"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ReferenceMeta"
+          }
+        }
+      },
+      "OptionMutationReceiptData": {
+        "type": "object",
+        "required": ["result", "changed"],
+        "additionalProperties": false,
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/CatalogOption"
+          },
+          "changed": {
+            "type": "boolean"
+          }
+        }
+      },
+      "OptionMutationReceiptResponse": {
+        "type": "object",
+        "required": ["success", "data", "meta"],
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [true]
+          },
+          "data": {
+            "$ref": "#/components/schemas/OptionMutationReceiptData"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ReferenceMeta"
+          }
+        }
+      },
+      "SnapshotMutationReceiptData": {
+        "type": "object",
+        "required": ["result", "changed"],
+        "additionalProperties": false,
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/MealsSnapshotData"
+          },
+          "changed": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SnapshotMutationReceiptResponse": {
+        "type": "object",
+        "required": ["success", "data", "meta"],
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [true]
+          },
+          "data": {
+            "$ref": "#/components/schemas/SnapshotMutationReceiptData"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ReferenceMeta"
+          }
+        }
+      },
+      "CreateMealRequest": {
+        "type": "object",
+        "required": ["id", "label", "active"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_-]{1,64}$"
+          },
+          "label": {
+            "type": "object",
+            "required": ["en", "ar"],
+            "additionalProperties": false,
+            "properties": {
+              "en": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              },
+              "ar": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              }
+            }
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "order": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "PatchMealRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "type": "object",
+            "required": ["en", "ar"],
+            "additionalProperties": false,
+            "properties": {
+              "en": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              },
+              "ar": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              }
+            }
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "order": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "ReorderMealsRequest": {
+        "type": "object",
+        "required": ["ids"],
+        "additionalProperties": false,
+        "properties": {
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "SetDefaultMealRequest": {
+        "type": "object",
+        "required": ["id"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

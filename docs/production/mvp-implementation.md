@@ -24,7 +24,7 @@ Canonical scope: [Final delivery plan v2](GAZA_GATEWAY_FINAL_MVP_DELIVERY_PLAN_v
 | Account | src/lib/passenger/http-repository.ts; src/lib/api/identity-client.ts | Existing account/traveler UI and owner My Bookings |
 | Editorial | src/content/repository.ts; src/content/published; src/content/preview.tsx; src/lib/archive/drafts | Runtime published read beats compiled baseline, server editor/revisions |
 | Settings/contact | src/lib/settings/repository.ts; src/lib/contact/repository.ts | Shared published settings/inbox or unavailable controls |
-| Ticket/mail | src/components/boarding-pass.tsx; backend/app/Identity/Outbox | Confirmation ticket, encrypted SMTP settings, retryable logical outbox |
+| Ticket/mail | src/components/booking/boarding-pass.tsx; backend/app/Identity/Outbox | Confirmation ticket, encrypted SMTP settings, retryable logical outbox |
 
 ## Minimal API allocation
 
@@ -41,3 +41,12 @@ Launch still requires owner-authored offerings, actual mail delivery, reviewed p
 `backend/app/Mvp/Reservations/ReservationCommand.php` and `free-reservation-command.schema.json` define the dormant free one-way command. Focused PHP 8.4.26 evidence: 26 tests / 56 assertions pass; runner reported one PHPUnit deprecation. This does not enable booking routes, allocate seats, verify session ownership or certify PostgreSQL reservations. Those obligations remain W2. The first attempted disposable container mount failed before tests; the mountpoint was corrected, with no retained container/data mutation.
 
 The PHPUnit deprecation was isolated to the CLI option `--do-not-cache-result`; use `--do-not-record-test-run-history` for future read-only runner invocations. A one-test diagnostic confirmed the cause. Machine command schema passes its source-shaped specimen and four authority-injection controls; UUID constraints match the PHP parser.
+
+## Shared reference integration checkpoint
+
+- Fleet adds an atomic immutable snapshot and transactional mutation receipts under mvp-fleet.openapi.json. Original C01 endpoints remain compatible. Independent fleet-only PHP/PostgreSQL evidence: 16 tests / 303 assertions, 30 actual original error contracts and 11 additive snapshot/receipt captures.
+- Network and meals AGY product changes are integrated for independent verification. No fixture auto-import command, browser authority fallback or deployment is enabled. Staff writes use persisted MFA sessions, canonical permissions, Origin/CSRF and fresh authorization after domain locks.
+- Joined testing exposed and corrected a meals API-prefix integration error and migration-order assumptions in the test fixtures. Original failed receipts are preserved. Meals public/admin reads use one immutable MVCC snapshot, including revision zero.
+- This is backend reference progress, not complete W1 acceptance: original Admin transport, curated schedules and public UI adapters still need joining. Free booking persistence, ticket/mail delivery, runtime CMS UI and final acceptance remain unfinished.
+
+Joined reference gates now pass independently: fleet 16 tests / 303 assertions; network 16 tests / 256 assertions; meals 17 tests / 234 assertions. The gates ran working-tree snapshots at f695ed25e41da24f48007ada789835bef42ce8be, with proposed source hashes and cleaned disposable resources; they do not certify a clean final candidate or remote deployment. Additional fixture timing correction uses a one-second-old synthetic MFA proof, preserving the real future-proof denial. Network captures cover 25 actual errors; meals cover 35. All 140 historical/added network contracts validate. No broad identity/frontend tests repeated.
