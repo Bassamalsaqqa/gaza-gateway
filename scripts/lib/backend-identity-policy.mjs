@@ -138,7 +138,10 @@ export const IDENTITY_POLICY = {
       { key: ["reference_digest", "session_id", "ip"], limit: 5, seconds: 900 },
       { key: ["ip"], limit: 30, seconds: 3600 },
     ],
-    proof: [{ key: ["subject_digest", "ip"], limit: 10, seconds: 600 }],
+    proof: [
+      { key: ["subject_digest", "ip"], limit: 10, seconds: 600 },
+      { key: ["ip"], limit: 60, seconds: 600 },
+    ],
     stepUp: [{ key: ["staff_id", "session_id", "ip"], limit: 5, seconds: 600 }],
   },
   roles: ["admin", "editor", "viewer"],

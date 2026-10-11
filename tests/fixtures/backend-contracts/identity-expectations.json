@@ -222,6 +222,13 @@
           ],
           "limit": 10,
           "seconds": 600
+        },
+        {
+          "key": [
+            "ip"
+          ],
+          "limit": 60,
+          "seconds": 600
         }
       ],
       "stepUp": [

@@ -76,8 +76,12 @@ final class PassengerAuthCoordinator
             throw new InvalidPasswordException('Password does not satisfy policy requirements.');
         }
 
+        // Perform identical configured Argon2id work before inspecting email existence.
+        // The source budget above bounds this work; no principal lock is held while hashing.
+        $passwordHash = $this->hasher->hash((string) $payload['password'], 'passenger');
+
         try {
-            return $this->db->transaction(function (ConnectionInterface $tx) use ($payload, $normalizedEmail, $requestId) {
+            return $this->db->transaction(function (ConnectionInterface $tx) use ($payload, $normalizedEmail, $requestId, $passwordHash) {
                 $tx->statement("SET LOCAL statement_timeout = '3000ms'");
                 $tx->statement("SET LOCAL lock_timeout = '3000ms'");
 
@@ -106,8 +110,7 @@ final class PassengerAuthCoordinator
                     ];
                 }
 
-                // Compute Argon2id hash inside transaction
-                $passwordHash = $this->hasher->hash((string) $payload['password'], 'passenger');
+                // Use the hash computed on both account-existence paths.
                 $userId = (string) Str::uuid();
 
                 $tx->table('users')->insert([
@@ -493,6 +496,10 @@ final class PassengerAuthCoordinator
         if (!$charge->allowed) {
             throw new RateLimitExceededException($charge->retryAfterSeconds);
         }
+
+        // Equal expensive native work on eligible and unknown-email paths. Remaining
+        // bounded PostgreSQL/outbox differences require staging timing certification.
+        $this->hasher->verify('Synthetic-noncredential-work-factor', self::DUMMY_HASH);
 
         return $this->db->transaction(function (ConnectionInterface $tx) use ($normalizedEmail, $requestId) {
             $tx->statement("SET LOCAL statement_timeout = '3000ms'");

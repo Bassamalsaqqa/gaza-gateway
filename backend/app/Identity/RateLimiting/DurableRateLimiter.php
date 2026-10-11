@@ -51,6 +51,12 @@ final class DurableRateLimiter
             ],
         ],
         'proof' => [
+            // Canonical sort places this source ceiling before subject-dependent rows.
+            'ip' => [
+                'limit' => 60,
+                'seconds' => 600,
+                'keys' => ['ip'],
+            ],
             'subject_ip' => [
                 'limit' => 10,
                 'seconds' => 600,
@@ -303,6 +309,19 @@ final class DurableRateLimiter
                         );
 
                         $lockedRows[$sortKey] = $row;
+                        // Stop before allocating another attacker-controlled subject bucket.
+                        // Recheck the clock after this lock, including window drift.
+                        $admittedAt = $this->getNow()->getTimestamp();
+                        if ($admittedAt >= $target['window_end_timestamp']) {
+                            throw new WindowDriftException('Rate limit window expired while waiting.');
+                        }
+                        if ((int) ($row->count ?? 0) + $cost > $target['limit']) {
+                            return RateLimitResult::denied(
+                                max(1, $target['window_end_timestamp'] - $admittedAt),
+                                $target['limit'], $operationId,
+                                [['budget_id' => $target['budget_id'], 'limit' => $target['limit'], 'remaining' => 0]],
+                            );
+                        }
                     }
 
                     // CRITICAL: Derive fresh time AFTER acquiring all contention locks!
@@ -394,6 +413,28 @@ final class DurableRateLimiter
         }
 
         throw new \RuntimeException('Rate limit evaluation failed unexpectedly.');
+    }
+
+    /** Bounded cleanup never erases a current budget or immutable security audit. */
+    public function pruneExpired(int $limit = 100): int
+    {
+        if ($limit < 1 || $limit > 1000 || $this->db->transactionLevel() !== 0) {
+            throw new \InvalidArgumentException('Rate cleanup requires a bounded owned transaction.');
+        }
+        return $this->db->transaction(function () use ($limit): int {
+            $this->db->statement("SET LOCAL statement_timeout = '3000ms'");
+            return $this->db->affectingStatement(
+                "WITH expired AS (
+                    SELECT realm, operation_id, budget_id, key_digest, window_start
+                    FROM security_rate_limits WHERE window_end < clock_timestamp() - INTERVAL '1 hour'
+                    ORDER BY window_end, realm, operation_id, budget_id, key_digest, window_start
+                    LIMIT ? FOR UPDATE SKIP LOCKED
+                ) DELETE FROM security_rate_limits AS counters USING expired
+                WHERE counters.realm = expired.realm AND counters.operation_id = expired.operation_id
+                    AND counters.budget_id = expired.budget_id AND counters.key_digest = expired.key_digest
+                    AND counters.window_start = expired.window_start", [$limit],
+            );
+        });
     }
 
     /**
