@@ -219,6 +219,36 @@ final class BookingAccessTest extends TestCase
         fwrite(STDOUT, 'Booking challenge timing milliseconds: ' . json_encode($samples, JSON_THROW_ON_ERROR) . PHP_EOL);
     }
 
+    public function test_contended_booking_lookup_is_a_non_authorizing_decoy_without_lock_wait(): void
+    {
+        $booking = $this->booking(); $session = $this->guestSession();
+        config(['database.connections.booking_timing_blocker' => config('database.connections.pgsql_test')]);
+        $blocker = DB::connection('booking_timing_blocker'); $blocker->beginTransaction();
+        $blocker->table('bookings')->where('id', $booking->id)->lockForUpdate()->first();
+        $timings = []; $message = null;
+        try {
+            foreach (['real' => [$booking->pnr, 'Al-Ghefari'], 'wrong_surname' => [$booking->pnr, 'Wrong'],
+                'unknown_reference' => ['UNKNOWN1', 'Al-Ghefari']] as $kind => [$ref, $surname]) {
+                $started = hrtime(true);
+                $response = $this->request('/bookings/' . $ref . '/challenge', $session, ['surname' => $surname]);
+                $timings[$kind] = round((hrtime(true) - $started) / 1000000, 2);
+                $response->assertStatus(202);
+                $message ??= $response->json('data.message');
+                $this->assertSame($message, $response->json('data.message'));
+                $this->assertGreaterThanOrEqual(250, $timings[$kind]);
+                $this->assertLessThan(2500, $timings[$kind], 'Creation must not wait for the three-second booking lock timeout.');
+                $id = $response->json('data.challengeId');
+                $this->assertNull(DB::table('booking_guest_challenges')->where('id', $id)->value('booking_id'));
+                $this->assertSame(0, DB::table('security_dispatch_outbox')->where('booking_challenge_id', $id)->count());
+            }
+        } finally { $blocker->rollBack(); DB::purge('booking_timing_blocker'); }
+        $retry = $this->request('/bookings/' . $booking->pnr . '/challenge', $session, ['surname' => 'Al-Ghefari']);
+        $retry->assertStatus(202);
+        $this->assertSame($booking->id, DB::table('booking_guest_challenges')->where('id', $retry->json('data.challengeId'))->value('booking_id'));
+        $this->assertSame(1, DB::table('security_dispatch_outbox')->where('booking_challenge_id', $retry->json('data.challengeId'))->count());
+        fwrite(STDOUT, "\nControlled booking-row contention timings (ms): " . json_encode($timings, JSON_THROW_ON_ERROR) . "\n");
+    }
+
     public function test_missing_pepper_fails_closed_before_any_proof_write(): void
     {
         config(['identity-guest.pepper_base64' => null]);

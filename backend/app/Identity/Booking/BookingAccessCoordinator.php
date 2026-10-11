@@ -50,7 +50,10 @@ final class BookingAccessCoordinator
             $user = $context->getUserId() === null ? null : $this->db->table('users')->where('id', $context->getUserId())->lockForUpdate()->first();
             $candidate = isset($input['challengeId']) ? $this->db->table('booking_guest_challenges')->where('id', $input['challengeId'])->first() : null;
             $booking = $candidate?->booking_id !== null ? $this->db->table('bookings')->where('id', $candidate->booking_id)->lockForUpdate()->first()
-                : ($ref === null ? null : $this->db->table('bookings')->where('pnr', $ref)->lockForUpdate()->first());
+                : ($ref === null ? null : $this->db->table('bookings')->where('pnr', $ref)
+                    // A contended lookup is a decoy, not a timing oracle. No booking
+                    // authority is issued. Verification/claim still require blocking locks.
+                    ->lock($create ? 'FOR UPDATE SKIP LOCKED' : 'FOR UPDATE')->first());
             $session = $this->db->table('passenger_sessions')->where('id', $context->sessionId)->lockForUpdate()->first();
             $now = $this->now();
             $this->authorize($session, $user, $context, $cookie, $csrf, $now, $claim);
