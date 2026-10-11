@@ -15,6 +15,8 @@ import { parseSeatCode } from "./layout.ts";
  */
 export const AIRCRAFT_REGISTRATION_REGEX = /^[A-Z0-9]{1,4}-[A-Z0-9]{1,5}$/;
 
+export const aircraftIdSchema = z.string().regex(/^[A-Za-z0-9_-]{1,64}(?![\s\S])/, "Aircraft ID must be 1..64 ASCII letters, digits, hyphens or underscores");
+
 export const cabinIdSchema = z.enum(["business", "premium", "economy"]);
 
 export const seatZoneSchema = z.object({
@@ -27,7 +29,7 @@ export const seatZoneSchema = z.object({
 });
 
 export const aircraftSchema = z.object({
-  id: z.string().trim().min(1).max(64),
+  id: aircraftIdSchema,
   model: z.string().trim().min(1).max(120),
   registration: z
     .string()
@@ -41,7 +43,7 @@ export const aircraftSchema = z.object({
 
 export const aircraftLayoutSchema = z
   .object({
-    aircraftId: z.string().trim().min(1),
+    aircraftId: aircraftIdSchema,
     rows: z.number().int().min(1).max(60),
     letters: z
       .array(

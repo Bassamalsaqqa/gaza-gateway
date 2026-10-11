@@ -17,6 +17,7 @@ final class FleetValidator
         foreach (['id' => 64, 'model' => 120, 'registration' => 32] as $key => $max) {
             if (!array_key_exists($key, $input)) { continue; }
             if (!is_string($input[$key]) || !mb_check_encoding($input[$key], 'UTF-8')) { $this->invalid(); }
+            if ($key === 'id') { $result[$key] = $this->aircraftId($input[$key]); continue; }
             $value = preg_replace('/^[\s\x{FEFF}]+|[\s\x{FEFF}]+$/u', '', $input[$key]);
             if ($value === '' || strlen(mb_convert_encoding($value, 'UTF-16LE', 'UTF-8')) / 2 > $max
                 || str_contains($value, "\0")) { $this->invalid(); }
@@ -31,6 +32,12 @@ final class FleetValidator
             $result['active'] = $input['active'];
         } elseif (!$patch) { $result['active'] = true; }
         return $result;
+    }
+
+    public function aircraftId(string $id): string
+    {
+        if (!preg_match('/^[A-Za-z0-9_-]{1,64}$/D', $id)) { $this->invalid(); }
+        return $id;
     }
 
     public function layout(array $input): array

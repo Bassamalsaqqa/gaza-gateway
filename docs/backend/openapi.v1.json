@@ -2257,6 +2257,46 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Malformed request or rejected host",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected internal error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Database or service dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "x-protocol": {
@@ -2317,14 +2357,57 @@
               }
             }
           },
+          "400": {
+            "description": "Malformed request or rejected host",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "401": {
             "$ref": "#/components/responses/UnauthorizedErrorResponse"
           },
           "403": {
             "$ref": "#/components/responses/ForbiddenErrorResponse"
           },
+          "409": {
+            "$ref": "#/components/responses/ConflictErrorResponse"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationErrorResponse"
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected internal error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Database or service dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "x-authorization-branches": [
@@ -2370,7 +2453,7 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/AircraftId"
             }
           },
           {
@@ -2401,6 +2484,16 @@
               }
             }
           },
+          "400": {
+            "description": "Malformed request or rejected host",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "401": {
             "$ref": "#/components/responses/UnauthorizedErrorResponse"
           },
@@ -2409,6 +2502,42 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFoundErrorResponse"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictErrorResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationErrorResponse"
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected internal error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Database or service dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "x-authorization-branches": [
@@ -2449,7 +2578,7 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/AircraftId"
             }
           }
         ],
@@ -2464,8 +2593,51 @@
               }
             }
           },
+          "400": {
+            "description": "Malformed request or rejected host",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundErrorResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationErrorResponse"
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected internal error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Database or service dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "x-protocol": {
@@ -2503,7 +2675,7 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/AircraftId"
             }
           },
           {
@@ -2534,14 +2706,57 @@
               }
             }
           },
+          "400": {
+            "description": "Malformed request or rejected host",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "401": {
             "$ref": "#/components/responses/UnauthorizedErrorResponse"
           },
           "403": {
             "$ref": "#/components/responses/ForbiddenErrorResponse"
           },
+          "404": {
+            "$ref": "#/components/responses/NotFoundErrorResponse"
+          },
           "422": {
             "$ref": "#/components/responses/ValidationErrorResponse"
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected internal error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Database or service dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "x-authorization-branches": [
@@ -11512,8 +11727,7 @@
             "type": "object",
             "properties": {
               "id": {
-                "type": "string",
-                "maxLength": 64
+                "$ref": "#/components/schemas/AircraftId"
               },
               "model": {
                 "type": "string",
@@ -11596,8 +11810,7 @@
         "type": "object",
         "properties": {
           "aircraftId": {
-            "type": "string",
-            "minLength": 1
+            "$ref": "#/components/schemas/AircraftId"
           },
           "rows": {
             "type": "integer",
@@ -15973,8 +16186,7 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "string",
-            "minLength": 1
+            "$ref": "#/components/schemas/AircraftId"
           },
           "model": {
             "type": "string",
@@ -20528,6 +20740,13 @@
           "meta"
         ],
         "additionalProperties": false
+      },
+      "AircraftId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64,
+        "pattern": "^[A-Za-z0-9_-]{1,64}(?![\\s\\S])",
+        "description": "Immutable route-safe identifier; exact ASCII letters, digits, hyphen and underscore. No trimming or decoding."
       }
     }
   }

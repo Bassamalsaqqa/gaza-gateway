@@ -3,6 +3,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { fleetOperations, verifyFleetCapture } from "./fleet-capture-contracts.mjs";
 import { validatePayloadAgainstSchema } from "../../scripts/lib/backend-contract-validation.mjs";
 
 // Fleet-only gate: fresh owned PostgreSQL, no published ports or retained database access.
@@ -86,7 +87,7 @@ try {
   };
   const captures = JSON.parse(fs.readFileSync(path.join(output,"captures.json")));
   for (const [id,[method,route,status]] of Object.entries(expected)) {
-    const operation = spec.paths[route]?.[method], capture = captures[id];
+    const operation = spec.paths[route]?.[method], capture = captures[id+":"+status];
     if (operation?.operationId!==id || !capture || capture.status!==status || !capture.contentType.startsWith("application/json")) throw new Error("Operation capture: "+id);
     const schema = operation.responses[String(status)].content["application/json"].schema;
     if (!validatePayloadAgainstSchema(schema,capture.payload,spec).valid) throw new Error("Response contract: "+id);
@@ -98,6 +99,29 @@ try {
         || policy.protocol?.requiresCsrf!==true || policy.protocol?.requiresOrigin!==true) throw new Error("Policy drift: "+id);
     console.log("PASS actual response + negative controls + policy "+id);
   }
+  let negatives=0;
+  for (const capture of Object.values(captures)) {
+    verifyFleetCapture(spec,capture);
+    if(capture.status>=400) {
+      negatives++;
+      const corrupt=structuredClone(spec), [method,route]=fleetOperations[capture.operationId];
+      delete corrupt.paths[route][method].responses[String(capture.status)];
+      let rejected=false;try{verifyFleetCapture(corrupt,capture);}catch{rejected=true;}
+      if(!rejected)throw new Error("Undocumented status control escaped");
+      rejected=false;try{verifyFleetCapture(spec,{...capture,contentType:"text/plain"});}catch{rejected=true;}
+      if(!rejected)throw new Error("Negative content-type control escaped");
+      rejected=false;try{verifyFleetCapture(spec,{...capture,payload:{...capture.payload,success:true}});}catch{rejected=true;}
+      if(!rejected)throw new Error("Negative schema control escaped");
+    }
+  }
+  const required={
+    getFleetAircraft:[400,429,503],getSeatLayoutById:[400,404,422,429,503],
+    postAdminAircraft:[400,401,403,409,422,429,503],patchAdminAircraft:[400,401,403,404,409,422,429,503],
+    putAdminSeatLayout:[400,401,403,404,422,429,503],
+  };
+  for(const[id,statuses]of Object.entries(required))for(const status of statuses)
+    if(!captures[id+":"+status])throw new Error("Missing actual negative response: "+id+" "+status);
+  console.log("PASS "+negatives+" actual error contracts + undocumented-status/content-type/schema controls");
   command("whitespace","git",["diff","--check"]);
   passed = true;
 } catch (error) { failure = error.message; console.error(failure); process.exitCode=1; }

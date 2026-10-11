@@ -71,7 +71,7 @@ export class LocalFleetRepository implements FleetRepository {
   async createAircraft(
     input: AircraftCreateInput,
   ): Promise<{ aircraft: Aircraft; layout: AircraftLayout }> {
-    const id = input.aircraft.id?.trim() || newAircraftId();
+    const id = input.aircraft.id ?? newAircraftId();
     const registration = input.aircraft.registration.trim().toUpperCase();
     const model = input.aircraft.model.trim();
     const active = input.aircraft.active ?? false; // default inactive per architect requirements

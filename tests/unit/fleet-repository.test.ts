@@ -444,3 +444,30 @@ describe("LocalFleetRepository & FleetStorageCoordinator", () => {
     assert.equal(snapshot.aircraft.find((a) => a.id === "a320neo")?.model, "In-Memory Modified");
   });
 });
+
+describe("Route-safe immutable aircraft IDs", () => {
+  test("canonical and generated-compatible IDs remain exact; unsafe IDs never mutate", async () => {
+    const repo = new LocalFleetRepository(new FleetStorageCoordinator({ inMemoryOnly: true }));
+    for (const id of [...seedFleetAircraft().map(a => a.id), "Upper_Case-1", "0", "x".repeat(64)]) {
+      assert.equal(aircraftSchema.parse({ id, model: "Synthetic", registration: "T-TEST", active: false }).id, id);
+    }
+    const before = await repo.get();
+    for (const id of ["", "x".repeat(65), "plane/1", "plane\\1", "plane?1", "plane#1", "plane%2F1",
+      "plane%252F1", "plane\n", "plane\0x", " plane", "plane ", "..", "plane🙂"]) {
+      assert.equal(aircraftSchema.safeParse({ id, model: "Synthetic", registration: "T-TEST", active: false }).success, false);
+      await assert.rejects(repo.createAircraft({ aircraft: { id, model: "Synthetic", registration: "T-TEST" } }));
+    }
+    assert.deepEqual(await repo.get(), before);
+  });
+  test("legacy unsafe persisted IDs fail closed without overwriting stored bytes", () => {
+    const state = seedFleetEnvelope();
+    const plane = state.aircraft[0]!;
+    const layout = state.layouts[plane.id]!;
+    delete state.layouts[plane.id];
+    plane.id = "plane/1"; layout.aircraftId = plane.id; state.layouts[plane.id] = layout;
+    const raw = JSON.stringify(state), rig = fleetStorageRig(raw);
+    assert.throws(() => rig.coordinator.read(), FleetError);
+    assert.equal(rig.storage.getItem(FLEET_STORAGE_KEY), raw);
+    assert.equal(rig.counts().writes, 0);
+  });
+});

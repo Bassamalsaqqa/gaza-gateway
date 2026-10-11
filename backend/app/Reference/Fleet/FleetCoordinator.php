@@ -20,6 +20,7 @@ final class FleetCoordinator
 
     public function layout(string $id): array
     {
+        $this->validator->aircraftId($id);
         $row = DB::table('seat_layouts')->where('aircraft_id', $id)->first();
         if ($row === null) { throw new FleetNotFoundException(); }
         return SeatLayoutDto::fromRow($row)->toArray();
@@ -47,6 +48,7 @@ final class FleetCoordinator
 
     public function patch(string $id, array $input, Closure $authorize): array
     {
+        $this->validator->aircraftId($id);
         $patch = $this->validator->aircraft($input, true);
         return $this->mutate('aircraft.patch', $id, $authorize, function () use ($id, $patch): array {
             $row = DB::table('aircraft')->where('id', $id)->lockForUpdate()->first();
@@ -64,6 +66,7 @@ final class FleetCoordinator
 
     public function putLayout(string $id, array $input, Closure $authorize): array
     {
+        $this->validator->aircraftId($id);
         $layout = $this->validator->layout($input);
         return $this->mutate('layout.put', $id, $authorize, function () use ($id, $layout): array {
             if (DB::table('aircraft')->where('id', $id)->lockForUpdate()->first() === null) {

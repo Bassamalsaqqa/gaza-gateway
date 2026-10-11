@@ -33,23 +33,23 @@ final class FleetRoutesTest extends TestCase
         return ['owner' => $id, 'id' => $receipt->sessionId, 'cookie' => $receipt->getRawToken(), 'csrf' => $receipt->getCsrfToken()];
     }
 
-    private function http(string $method, string $path, array $session = [], mixed $body = null, array $headers = []): TestResponse
+    private function http(string $method, string $path, array $session = [], mixed $body = null, array $headers = [], ?string $raw = null): TestResponse
     {
         $this->flushHeaders();
         $server = ['HTTPS' => 'on', 'SERVER_PORT' => 443, 'HTTP_HOST' => '127.0.0.1:18090',
             'HTTP_ORIGIN' => 'https://127.0.0.1:5173', 'HTTP_ACCEPT' => 'application/json', 'CONTENT_TYPE' => 'application/json',
             'HTTP_COOKIE' => isset($session['cookie']) ? 'gza_staff_session='.$session['cookie'] : '',
             'HTTP_X_CSRF_TOKEN' => $session['csrf'] ?? '', 'REMOTE_ADDR' => '2001:db8:'.bin2hex(random_bytes(2)).'::9'];
-        $response = $this->call($method, 'https://127.0.0.1:18090/api/v1'.$path, [], [], [], array_replace($server, $headers),
-            $body === null ? '' : json_encode($body, JSON_THROW_ON_ERROR));
-        $operation = $response->baseResponse->getStatusCode() < 300 ? match ($method) {
+        $response = $this->call($method, 'https://'.($headers['HTTP_HOST'] ?? '127.0.0.1:18090').'/api/v1'.$path, [], [], [], array_replace($server, $headers),
+            $raw ?? ($body === null ? '' : json_encode($body, JSON_THROW_ON_ERROR)));
+        $operation = match ($method) {
             'POST' => 'postAdminAircraft', 'PATCH' => 'patchAdminAircraft', 'PUT' => 'putAdminSeatLayout',
             default => str_contains($path, 'seat-layouts') ? 'getSeatLayoutById' : 'getFleetAircraft',
-        } : null;
+        };
         if ($operation !== null && getenv('REFERENCE_GATE_OWNED') === '1') {
             $file = '/tmp/reference-captures.json';
             $captures = is_file($file) ? json_decode(file_get_contents($file), true, 32, JSON_THROW_ON_ERROR) : [];
-            $captures[$operation] ??= ['operationId' => $operation, 'status' => $response->status(),
+            $captures[$operation.':'.$response->status()] ??= ['operationId' => $operation, 'status' => $response->status(),
                 'contentType' => $response->headers->get('Content-Type'), 'payload' => $response->json()];
             file_put_contents($file, json_encode($captures, JSON_THROW_ON_ERROR), LOCK_EX);
         }
@@ -66,7 +66,7 @@ final class FleetRoutesTest extends TestCase
     {
         $staff = $this->staff();
         $this->assertSame(0, DB::table('aircraft')->count());
-        $this->assertSame(0, Artisan::call('migrate:rollback', ['--step' => 1, '--force' => true]));
+        $this->assertSame(0, Artisan::call('migrate:rollback', ['--step' => 2, '--force' => true]));
         $this->assertFalse(Schema::hasTable('aircraft'));
         $this->assertTrue(DB::table('staff_users')->where('id', $staff['owner'])->exists());
         $this->assertSame(0, Artisan::call('migrate', ['--force' => true]));
@@ -137,7 +137,7 @@ final class FleetRoutesTest extends TestCase
             $staff = $this->staff();
             match ($probe) {
                 'revoke' => DB::table('staff_sessions')->where('id', $staff['id'])->update(['revoked_at' => DB::raw('clock_timestamp()')]),
-                'expire' => DB::table('staff_sessions')->where('id', $staff['id'])->update(['absolute_expires_at' => DB::raw("clock_timestamp() - interval '1 second'"), 'idle_expires_at' => DB::raw("clock_timestamp() - interval '1 second'"), 'issued_at' => DB::raw("clock_timestamp() - interval '2 seconds'"), 'last_seen_at' => DB::raw("clock_timestamp() - interval '2 seconds'")]),
+                'expire' => DB::table('staff_sessions')->where('id', $staff['id'])->update(['absolute_expires_at' => DB::raw("statement_timestamp() - interval '1 second'"), 'idle_expires_at' => DB::raw("statement_timestamp() - interval '1 second'"), 'issued_at' => DB::raw("statement_timestamp() - interval '2 seconds'"), 'last_seen_at' => DB::raw("statement_timestamp() - interval '2 seconds'")]),
                 'mfa' => DB::table('staff_mfa_credentials')->where('staff_id', $staff['owner'])->update(['revoked_at' => DB::raw('clock_timestamp()')]),
                 'suspend' => DB::table('staff_users')->where('id', $staff['owner'])->update(['status' => 'suspended']),
             };
@@ -307,6 +307,78 @@ final class FleetRoutesTest extends TestCase
         $response=$this->http('GET','/fleet/aircraft',[],null,$headers);
         $response->assertStatus(429)->assertHeader('Retry-After')->assertHeader('X-Frame-Options','DENY');
         $this->assertStringContainsString('no-store',$response->headers->get('Cache-Control'));
+    }
+
+
+    public function test_route_safe_ids_roundtrip_exactly_and_unsafe_ids_fail_http_and_sql(): void
+    {
+        $staff=$this->staff();
+        foreach (['Round_Trip-1',str_repeat('Z',64),'0'] as $id) {
+            $this->http('POST','/admin/fleet/aircraft',$staff,$this->input($id))->assertStatus(201)->assertJsonPath('data.id',$id);
+            $this->http('GET','/fleet/seat-layouts/'.$id)->assertOk()->assertJsonPath('data.aircraftId',$id);
+            $this->http('PATCH','/admin/fleet/aircraft/'.$id,$staff,['model'=>'Exact ID'])->assertOk()->assertJsonPath('data.id',$id);
+            $this->http('PUT','/admin/fleet/seat-layouts/'.$id,$staff,FleetCoordinator::defaultLayout())->assertOk()->assertJsonPath('data.aircraftId',$id);
+        }
+        foreach (['',str_repeat('x',65),'plane/1','plane\\1','plane?1','plane#1','plane%2F1','plane%252F1',
+            "plane\0x","plane\nx","plane\n",' plane','plane ','plane.1','..','plane??'] as $id) {
+            $this->http('POST','/admin/fleet/aircraft',$staff,$this->input($id))->assertStatus(422);
+            try {
+                DB::transaction(fn()=>DB::table('aircraft')->insert(['id'=>$id,'model'=>'Synthetic','registration_normalized'=>'T-SQL']));
+                $this->fail('Unsafe database ID admitted.');
+            } catch (\Illuminate\Database\QueryException|\PDOException) {
+                $this->assertFalse(DB::table('aircraft')->where('id',$id)->exists());
+            }
+        }
+        foreach (['GET','PATCH','PUT'] as $method) {
+            $path=($method==='GET'?'/fleet/seat-layouts/':($method==='PATCH'?'/admin/fleet/aircraft/':'/admin/fleet/seat-layouts/')).'plane%3F1';
+            $body=$method==='PUT'?FleetCoordinator::defaultLayout():['model'=>'Synthetic'];
+            $this->http($method,$path,$staff,$body)->assertStatus(422);
+        }
+    }
+
+    public function test_all_fleet_error_statuses_are_actual_canonical_http_responses(): void
+    {
+        $staff=$this->staff(); $viewer=$this->staff('viewer'); $input=$this->input();
+        $this->http('POST','/admin/fleet/aircraft',$staff,$input)->assertStatus(201);
+        $id=$input['aircraft']['id'];
+        $cases=[
+            ['GET','/fleet/aircraft',null],
+            ['GET','/fleet/seat-layouts/'.$id,null],
+            ['POST','/admin/fleet/aircraft',$this->input()],
+            ['PATCH','/admin/fleet/aircraft/'.$id,['model'=>'Synthetic']],
+            ['PUT','/admin/fleet/seat-layouts/'.$id,FleetCoordinator::defaultLayout()],
+        ];
+        foreach($cases as [$method,$path,$body]) {
+            $this->http($method,$path,$staff,$body,['HTTP_HOST'=>'untrusted.invalid'])->assertStatus(400);
+            $originResponse=$this->http($method,$path,$staff,$body,['HTTP_ORIGIN'=>'https://untrusted.invalid']);
+            if($method==='GET') { $originResponse->assertOk()->assertHeaderMissing('Access-Control-Allow-Origin'); }
+            else { $originResponse->assertStatus(403); }
+            if($method!=='GET') {
+                $this->http($method,$path,[],$body)->assertStatus(401);
+                $this->http($method,$path,$viewer,$body)->assertStatus(403);
+                $this->http($method,$path,$staff,['unexpected'=>true])->assertStatus(422);
+                $this->http($method,$path,$staff,null,[], '{')->assertStatus(422);
+                $this->http($method,$path,$staff,$body,['CONTENT_TYPE'=>'text/plain'])->assertStatus(422);
+            }
+        }
+        $this->http('POST','/admin/fleet/aircraft',$staff,$input)->assertStatus(409);
+        $other=$this->input();
+        $this->http('POST','/admin/fleet/aircraft',$staff,$other)->assertStatus(201);
+        $this->http('PATCH','/admin/fleet/aircraft/'.$id,$staff,['registration'=>$other['aircraft']['registration']])->assertStatus(409);
+        $this->http('PATCH','/admin/fleet/aircraft/missing-layout',$staff,['model'=>'Synthetic'])->assertStatus(404);
+        $this->http('PUT','/admin/fleet/seat-layouts/missing-layout',$staff,FleetCoordinator::defaultLayout())->assertStatus(404);
+        $this->http('GET','/fleet/seat-layouts/missing-layout')->assertStatus(404);
+        DB::statement('ALTER TABLE cache RENAME TO reference_test_unavailable_cache');
+        try {
+            foreach($cases as [$method,$path,$body]) { $this->http($method,$path,$staff,$body)->assertStatus(503); }
+        } finally { DB::statement('ALTER TABLE reference_test_unavailable_cache RENAME TO cache'); }
+        \Illuminate\Support\Facades\RateLimiter::for('reference',static fn($request)=>
+            \Illuminate\Cache\RateLimiting\Limit::perMinute(1)->by('reference:'.$request->ip()));
+        foreach($cases as [$method,$path,$body]) {
+            $headers=['REMOTE_ADDR'=>'2001:db8:'.bin2hex(random_bytes(2)).'::3'];
+            $this->http($method,$path,$staff,$body,$headers);
+            $this->http($method,$path,$staff,$body,$headers)->assertStatus(429)->assertHeader('Retry-After');
+        }
     }
 
     private function race(array $inputs): array
