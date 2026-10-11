@@ -1,10 +1,10 @@
 # Gaza Gateway — Final MVP Delivery Plan
 ## One Release · Real Admin Controls · Free Booking · Email Tickets
 
-**Version:** 2.0 — 11 October 2026  
-**Status:** Product-owner direction accepted for implementation; production acceptance still requires evidence.  
-**Repository:** https://github.com/Bassamalsaqqa/gaza-gateway  
-**Owner:** Product owner controls release, credentials, paid services and deployment.  
+**Version:** 2.0 — 11 October 2026
+**Status:** Product-owner direction accepted for implementation; production acceptance still requires evidence.
+**Repository:** https://github.com/Bassamalsaqqa/gaza-gateway
+**Owner:** Product owner controls release, credentials, paid services and deployment.
 **Delivery objective:** Finish the smallest polished, fully connected Gaza Airport website with working accounts, admin-controlled content and symbolic flights, free reservations, assigned seats, meal choices, tickets and emails. **One production launch.**
 
 > **Scope precedence.** This document **supersedes** `GAZA_GATEWAY_COMMEMORATIVE_MVP_SCOPE_FREEZE_v1.md` and the payment/commercial-airline scope of older completion plans **for launch prioritization**. Older files remain historical evidence and technical references; preserve their accepted invariants where applicable. Specifically: **no payments or payment gateway**; **no mandatory “not valid for travel” banner/text on every ticket**; **admin-published edits must actually appear on the public website from another browser/device**. Do not copy the superseded document's conflicting disclaimers, CMS deferrals, or payment milestones into the active checklist.
