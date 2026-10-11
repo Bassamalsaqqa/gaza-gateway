@@ -300,6 +300,32 @@ final class SavedTravelersOperationsTest extends TestCase
     /**
      * Merge fidelity: PATCH merges with current record and preserves single name.
      */
+    public function test_identical_document_patch_preserves_ciphertext_timestamp_and_noop_audit_version(): void
+    {
+        config(['cors.allowed_origins' => ['http://localhost:3000']]);
+        $user = $this->createTestUser(); $session = $this->createTestSession($user->id);
+        $traveler = $this->createTestTraveler($user->id, ['first_name' => 'Nour', 'document' => 'SYNTHETIC-DOCUMENT-123']);
+        $original = DB::table('saved_travelers')->where('id', $traveler->id)->first();
+        for ($i = 0; $i < 2; $i++) {
+            $this->flushHeaders();
+            $response = $this->withServerVariables($this->secureServerVariables())->withHeaders($this->passengerHeaders($session))
+                ->patchJson('/api/v1/auth/passenger/travelers/' . $traveler->external_id, ['document' => 'SYNTHETIC-DOCUMENT-123']);
+            $response->assertStatus(200)->assertJsonPath('data.document', 'SYNTHETIC-DOCUMENT-123');
+            $current = DB::table('saved_travelers')->where('id', $traveler->id)->first();
+            $this->assertSame($original->encrypted_document, $current->encrypted_document);
+            $this->assertSame($original->updated_at, $current->updated_at);
+        }
+        $events = DB::table('audit_events')->where('target_id', $traveler->id)->where('action', 'patchSavedTraveler')->get();
+        $this->assertCount(2, $events);
+        foreach ($events as $event) { $this->assertSame(1, json_decode($event->metadata, true, 32, JSON_THROW_ON_ERROR)['version']); }
+        DB::table('saved_travelers')->where('id', $traveler->id)->update(['encrypted_document' => 'synthetic-corrupt-ciphertext']);
+        $this->flushHeaders();
+        $this->withServerVariables($this->secureServerVariables())->withHeaders($this->passengerHeaders($session))
+            ->patchJson('/api/v1/auth/passenger/travelers/' . $traveler->external_id, ['document' => 'SYNTHETIC-DOCUMENT-123'])
+            ->assertStatus(500)->assertJsonPath('error.code', 'internal_error');
+        $this->assertSame('synthetic-corrupt-ciphertext', DB::table('saved_travelers')->where('id', $traveler->id)->value('encrypted_document'));
+    }
+
     public function test_patch_saved_traveler_merges_names_and_preserves_single_name(): void
     {
         $user = $this->createTestUser();

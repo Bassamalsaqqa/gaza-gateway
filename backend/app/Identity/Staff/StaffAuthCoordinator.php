@@ -23,6 +23,7 @@ use Illuminate\Support\Str;
  */
 final class StaffAuthCoordinator
 {
+    public const SESSION_LIST_LIMIT = 100;
     private const string DUMMY_HASH = '$argon2id$v=19$m=65536,t=4,p=1$UVk0S0NNUHJXWVpvV0E4Uw$06wk6MgJBRDB4RvriAeTVXHpMkGNpygPTF/CVGdrOng';
 
     public function __construct(
@@ -113,11 +114,8 @@ final class StaffAuthCoordinator
             if (!$candidate || $candidate->bound_session_id !== $context->sessionId) { return null; }
             $staff = $this->db->table('staff_users')->where('id', $candidate->staff_id)->lockForUpdate()->first();
             if (!$staff || !$this->eligible($staff)) { return null; }
-            // Include bound anonymous session in the same ordered session lock set.
-            $rows = $this->db->table('staff_sessions')->where(function ($q) use ($staff, $context) {
-                $q->where('staff_id', $staff->id)->orWhere('id', $context->sessionId);
-            })->orderBy('id')->lockForUpdate()->get();
-            $session = $rows->firstWhere('id', $context->sessionId);
+            // This transition only consumes the exact bound anonymous session.
+            $session = $this->db->table('staff_sessions')->where('id', $context->sessionId)->lockForUpdate()->first();
             $mfa = $this->credential($staff);
             $pending = $this->db->table('staff_pending_auth')->where('id', $candidate->id)->lockForUpdate()->first();
             $now = $this->now();
@@ -175,7 +173,11 @@ final class StaffAuthCoordinator
             $this->timeouts();
             $staff = $this->db->table('staff_users')->where('id', $context->getStaffId())->lockForUpdate()->first();
             if (!$staff || !$this->eligible($staff)) { return null; }
-            $rows = $this->db->table('staff_sessions')->where('staff_id', $staff->id)->orderBy('id')->lockForUpdate()->get();
+            // Only the caller and an owner-scoped explicit revoke target need row locks.
+            $ids = [$context->sessionId];
+            if ($operation === 'deleteStaffSession' && $targetId !== null) { $ids[] = $targetId; }
+            $rows = $this->db->table('staff_sessions')->where('staff_id', $staff->id)->whereIn('id', $ids)
+                ->orderBy('id')->lockForUpdate()->get();
             $current = $rows->firstWhere('id', $context->sessionId);
             $mfa = $this->credential($staff);
             $now = $this->now();
@@ -190,6 +192,15 @@ final class StaffAuthCoordinator
                     'fullNameAr' => $staff->full_name_ar, 'mfaEnabled' => true]);
             }
             if ($operation === 'getStaffSessions') {
+                // Principal locking serializes authority changes; history needs no session locks.
+                // Do not silently truncate an unpaginated contract if the bounded projection overflows.
+                $rows = $this->db->table('staff_sessions')->where('staff_id', $staff->id)->where('auth_level', 'full')
+                    ->whereNull('revoked_at')->where('absolute_expires_at', '>', $now)->where('idle_expires_at', '>', $now)
+                    ->where('credential_epoch', $staff->credential_epoch)->where('mfa_version', $staff->mfa_version)
+                    ->orderBy('id')->limit(self::SESSION_LIST_LIMIT + 1)->get();
+                if ($rows->count() > self::SESSION_LIST_LIMIT) {
+                    throw new \Symfony\Component\HttpKernel\Exception\ServiceUnavailableHttpException(1, 'Session listing bound exceeded.');
+                }
                 $data = [];
                 foreach ($rows as $row) {
                     if ($row->revoked_at !== null || $now->greaterThanOrEqualTo(CarbonImmutable::parse($row->absolute_expires_at))

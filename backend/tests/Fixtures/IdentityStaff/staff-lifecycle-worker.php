@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Identity\Sessions\StaffSessionStore;
 use App\Identity\Staff\{StaffLifecycleCoordinator, StaffAuthenticationException};
 use App\Identity\Staff\StaffDirectoryCoordinator;
+use App\Identity\Staff\StaffAuthCoordinator;
 use App\Identity\Directory\Exceptions\LastAdminConflictException;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\DB;
@@ -19,7 +20,7 @@ $line = fgets(STDIN, 16385);
 if ($line === false || strlen($line) > 16384) { exit(2); }
 $input = json_decode($line, true, 16, JSON_THROW_ON_ERROR);
 if (!is_array($input) || array_keys($input) !== ['operation', 'input', 'cookie', 'csrf', 'requestId']
-    || !in_array($input['operation'], ['postStaffInvitationAccept', 'postStaffPasswordReset', 'patchStaffUser', 'postStaffMfaSetupConfirm'], true)) { exit(2); }
+    || !in_array($input['operation'], ['postStaffInvitationAccept', 'postStaffPasswordReset', 'patchStaffUser', 'postStaffMfaSetupConfirm', 'getStaffMe'], true)) { exit(2); }
 $context = $app->make(StaffSessionStore::class)->read($input['cookie']);
 if ($context === null) { exit(2); }
 fwrite(STDOUT, "READY\n"); fflush(STDOUT);
@@ -29,6 +30,9 @@ try {
         if (array_keys($input['input']) !== ['targetId', 'patch']) { exit(2); }
         $app->make(StaffDirectoryCoordinator::class)->execute('patchStaffUser', $input['input']['patch'],
             $input['input']['targetId'], $context, $input['cookie'], $input['csrf'], '192.0.2.185', $input['requestId']);
+    } elseif ($input['operation'] === 'getStaffMe') {
+        $app->make(StaffAuthCoordinator::class)->full('getStaffMe', [], $context,
+            $input['cookie'], null, null, '192.0.2.185', $input['requestId']);
     } elseif ($input['operation'] === 'postStaffMfaSetupConfirm') {
         $app->make(StaffDirectoryCoordinator::class)->execute($input['operation'], $input['input'], null, $context,
             $input['cookie'], $input['csrf'], '192.0.2.185', $input['requestId']);

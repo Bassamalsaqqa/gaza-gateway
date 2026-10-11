@@ -394,20 +394,23 @@ final class SavedTravelerCoordinator
             : (string) ($current->nationality ?? 'Palestinian');
 
         // 4. Document handling:
+        $currentDocument = '';
+        if ($current->encrypted_document !== null && $current->encrypted_document !== '') {
+            try {
+                $currentDocument = $this->encrypter->decrypt($current->encrypted_document);
+                if (!is_string($currentDocument)) { throw new \RuntimeException('Invalid document representation.'); }
+            } catch (\Throwable) {
+                throw new \RuntimeException('Traveler document decryption integrity fault.');
+            }
+        }
         if (array_key_exists('document', $payload)) {
             $docInput = trim((string) $payload['document']);
-            $mergedEncryptedDoc = $docInput !== '' ? $this->encrypter->encrypt($docInput) : null;
+            $mergedEncryptedDoc = $docInput === $currentDocument ? $current->encrypted_document
+                : ($docInput !== '' ? $this->encrypter->encrypt($docInput) : null);
             $outputDocument = $docInput;
         } else {
             $mergedEncryptedDoc = $current->encrypted_document;
-            $outputDocument = '';
-            if ($current->encrypted_document !== null && $current->encrypted_document !== '') {
-                try {
-                    $outputDocument = (string) $this->encrypter->decrypt($current->encrypted_document);
-                } catch (\Throwable) {
-                    throw new \RuntimeException('Traveler document decryption integrity fault.');
-                }
-            }
+            $outputDocument = $currentDocument;
         }
 
         // Detect if anything changed

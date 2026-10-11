@@ -279,6 +279,62 @@ final class StaffAuthenticationTest extends TestCase
         throw new \RuntimeException('Staff race deadline or child failure.');
     }
 
+    public function test_historical_session_row_locks_do_not_block_current_or_pending_actions(): void
+    {
+        $staff = $this->staff();
+        $receipt = $this->app->make(StaffSessionStore::class)->issueFull($staff->id, 1, 1, new \DateTimeImmutable());
+        $current = ['cookie' => $receipt->getRawToken(), 'csrf' => $receipt->getCsrfToken(), 'id' => $receipt->sessionId];
+        $secondReceipt = $this->app->make(StaffSessionStore::class)->issueFull($staff->id, 1, 1, new \DateTimeImmutable());
+        $second = ['cookie' => $secondReceipt->getRawToken(), 'csrf' => $secondReceipt->getCsrfToken(), 'id' => $secondReceipt->sessionId];
+        $anon = $this->anonymous(); $pending = $this->pending($staff, $anon);
+        $base = (array) DB::table('staff_sessions')->where('id', $current['id'])->first(); $historical = [];
+        for ($i = 0; $i < 300; $i++) {
+            $row = $base; $row['id'] = (string) Str::uuid(); $row['lookup_digest'] = hash('sha256', random_bytes(32));
+            $row['issued_at'] = now()->subDays(2); $row['last_seen_at'] = now()->subDays(2);
+            $row['absolute_expires_at'] = now()->subDay(); $row['idle_expires_at'] = now()->subDay();
+            $row['revoked_at'] = $i % 2 === 0 ? now()->subDay() : null; $historical[] = $row;
+        }
+        DB::table('staff_sessions')->insert($historical);
+        config(['database.connections.staff_history_blocker' => config('database.connections.pgsql_test')]);
+        $blocker = DB::connection('staff_history_blocker');
+        $this->assertSame('pgsql', $blocker->getDriverName());
+        $this->assertSame('gaza_gateway_test', $blocker->getDatabaseName());
+        $this->assertSame('gaza_gateway_test', $blocker->selectOne('SELECT current_database() AS db')->db);
+        $blocker->beginTransaction();
+        try {
+            $blocker->table('staff_sessions')->whereIn('id', array_column($historical, 'id'))->orderBy('id')->lockForUpdate()->get();
+            $this->request('GET', '/staff/me', $current)->assertStatus(200);
+            $this->request('GET', '/staff/sessions', $current)->assertStatus(200)->assertJsonCount(2, 'data');
+            $inputs = [];
+            foreach ([$current, $second] as $session) {
+                $inputs[] = ['operation' => 'getStaffMe', 'input' => [], 'cookie' => $session['cookie'],
+                    'csrf' => $session['csrf'], 'requestId' => (string) Str::uuid()];
+            }
+            $this->assertSame(['ACCEPTED', 'ACCEPTED'], \Tests\Fixtures\IdentityStaff\StaffLifecycleRace::run($inputs));
+            $this->request('POST', '/staff/mfa/challenge', $anon, ['staffSessionChallengeId' => $pending['id']], $pending['cookie'])->assertStatus(200);
+            $this->request('POST', '/staff/mfa/verify', $anon, ['totpCode' => $this->code($staff)], $pending['cookie'])->assertStatus(200);
+            $recovery = RecoveryCode::generate();
+            DB::table('staff_mfa_recovery_codes')->insert(['id' => (string) Str::uuid(), 'staff_id' => $staff->id,
+                'mfa_version' => 1, 'code_digest' => $recovery->getDigest()]);
+            $this->request('POST', '/staff/step-up', $current, ['recoveryCode' => $recovery->revealPlaintextForEnrollmentOnly()])->assertStatus(200);
+            $this->request('POST', '/staff/logout', $second)->assertStatus(200);
+        } finally { $blocker->rollBack(); DB::purge('staff_history_blocker'); }
+        $this->assertSame(300, DB::table('staff_sessions')->whereIn('id', array_column($historical, 'id'))->count());
+    }
+
+    public function test_session_listing_overflow_is_explicit_and_does_not_affect_current_me(): void
+    {
+        $staff = $this->staff(); $receipt = $this->app->make(StaffSessionStore::class)->issueFull($staff->id, 1, 1, new \DateTimeImmutable());
+        $current = ['cookie' => $receipt->getRawToken(), 'csrf' => $receipt->getCsrfToken(), 'id' => $receipt->sessionId];
+        $base = (array) DB::table('staff_sessions')->where('id', $receipt->sessionId)->first(); $rows = [];
+        for ($i = 0; $i < StaffAuthCoordinator::SESSION_LIST_LIMIT; $i++) {
+            $row = $base; $row['id'] = (string) Str::uuid(); $row['lookup_digest'] = hash('sha256', random_bytes(32)); $rows[] = $row;
+        }
+        DB::table('staff_sessions')->insert($rows);
+        $this->request('GET', '/staff/sessions', $current)->assertStatus(503)->assertJsonPath('success', false);
+        $this->request('GET', '/staff/me', $current)->assertStatus(200);
+    }
+
     private function persistCaptures(array $captures): void
     {
         $parent = storage_path('app/private');
