@@ -95,6 +95,8 @@ final class NetworkRoutesTest extends TestCase
         );
 
         $operation = match (true) {
+            $method === 'POST' && $path === '/admin/network/airports/receipt' => 'postMvpAirportReceipt',
+            $method === 'PATCH' && str_ends_with($path, '/receipt') => 'patchMvpAirportReceipt',
             $method === 'POST' && str_starts_with($path, '/admin/network/airports') => 'postAdminAirport',
             $method === 'PATCH' && str_starts_with($path, '/admin/network/airports') => 'patchAdminAirport',
             $method === 'GET' && $path === '/network/airports' => 'getAirports',
@@ -138,6 +140,32 @@ final class NetworkRoutesTest extends TestCase
             'blockMinutes' => 55,
             'active' => true,
         ];
+    }
+
+    public function test_mvp_receipts_are_locked_server_truth_and_preserve_original_dtos(): void
+    {
+        $staff = $this->staff();
+        $this->http('POST', '/admin/network/airports/receipt', $staff, $this->sampleAirport())
+            ->assertStatus(201)->assertJsonPath('data.changed', true)->assertJsonPath('data.revision', 1)
+            ->assertJsonPath('data.airport.code', 'AMM');
+        $this->http('PATCH', '/admin/network/airports/AMM/receipt', $staff, ['blockMinutes' => 70])
+            ->assertOk()->assertJsonPath('data.changed', true)->assertJsonPath('data.revision', 2);
+        $this->http('PATCH', '/admin/network/airports/AMM/receipt', $staff, ['blockMinutes' => 70])
+            ->assertOk()->assertJsonPath('data.changed', false)->assertJsonPath('data.revision', 2);
+        $this->assertSame(2, DB::table('network_revisions')->count());
+        $this->assertSame(2, DB::table('network_audit_events')->count());
+        $this->http('PATCH', '/admin/network/airports/AMM', $staff, [], [], '{}')->assertOk()
+            ->assertJsonPath('data.code', 'AMM')->assertJsonMissingPath('data.changed');
+        $this->http('POST', '/admin/network/airports/receipt', $staff, $this->sampleAirport())->assertStatus(409);
+        $this->http('PATCH', '/admin/network/airports/DOH/receipt', $staff, [], [], '{}')->assertStatus(404);
+        $this->http('PATCH', '/admin/network/airports/AMM/receipt', $staff, ['code' => 'DOH'])->assertStatus(422);
+        $this->http('PATCH', '/admin/network/airports/AMM/receipt', [], [])->assertStatus(401);
+        $this->http('POST', '/admin/network/airports/receipt', [], $this->sampleAirport('DOH'))->assertStatus(401);
+        $this->http('POST', '/admin/network/airports/receipt', $this->staff('viewer'), $this->sampleAirport('DOH'))->assertStatus(403);
+        $this->http('PATCH', '/admin/network/airports/AMM/receipt', $staff, [], ['HTTP_X_CSRF_TOKEN' => 'invalid'])->assertStatus(403);
+        $this->http('PATCH', '/admin/network/airports/AMM/receipt', $staff, [], ['HTTP_ORIGIN' => 'https://foreign.invalid'])->assertStatus(403);
+        $this->http('POST', '/admin/network/airports/receipt', $staff, [], [], '{}')->assertStatus(422);
+        $this->assertSame(2, DB::table('network_audit_events')->count());
     }
 
     public function test_expand_only_migration_roundtrip_preserves_identity(): void

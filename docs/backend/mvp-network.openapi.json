@@ -1,0 +1,633 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Gaza Gateway MVP network receipts",
+    "version": "1.0.0",
+    "description": "Additive exact mutation receipts; original airport DTO endpoints unchanged. Local/testing opt-in only."
+  },
+  "servers": [
+    {
+      "url": "/api/v1"
+    }
+  ],
+  "paths": {
+    "/admin/network/airports/receipt": {
+      "post": {
+        "operationId": "postMvpAirportReceipt",
+        "tags": [
+          "13C: Aviation Reference"
+        ],
+        "summary": "Server-authoritative airport mutation receipt",
+        "x-required-permission": "ops.edit",
+        "security": [
+          {
+            "StaffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/X-Request-Id"
+          },
+          {
+            "$ref": "#/components/parameters/X-CSRF-TOKEN"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAirportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Airport added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MvpAirportReceiptResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request or rejected host",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedErrorResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenErrorResponse"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictErrorResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationErrorResponse"
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected internal error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Database or service dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-authorization-branches": [
+          {
+            "scheme": "StaffCookieAuth",
+            "condition": "authenticated_staff",
+            "requiredPermission": "ops.edit",
+            "requiresActive": true
+          }
+        ],
+        "x-protocol": {
+          "branches": [
+            {
+              "realm": "staff",
+              "origin": "configured_frontend",
+              "csrf": "staff"
+            }
+          ],
+          "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+          "csrfHeader": "X-CSRF-TOKEN",
+          "cacheControl": "no-store",
+          "stepUpSeconds": null
+        },
+        "x-authority-policy": "staff"
+      }
+    },
+    "/admin/network/airports/{code}/receipt": {
+      "patch": {
+        "operationId": "patchMvpAirportReceipt",
+        "tags": [
+          "13C: Aviation Reference"
+        ],
+        "summary": "Server-authoritative airport mutation receipt",
+        "x-required-permission": "ops.edit",
+        "security": [
+          {
+            "StaffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 3
+            }
+          },
+          {
+            "$ref": "#/components/parameters/X-Request-Id"
+          },
+          {
+            "$ref": "#/components/parameters/X-CSRF-TOKEN"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchAirportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Airport updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MvpAirportReceiptResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request or rejected host",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedErrorResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenErrorResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundErrorResponse"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictErrorResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationErrorResponse"
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected internal error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Database or service dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-authorization-branches": [
+          {
+            "scheme": "StaffCookieAuth",
+            "condition": "authenticated_staff",
+            "requiredPermission": "ops.edit",
+            "requiresActive": true
+          }
+        ],
+        "x-protocol": {
+          "branches": [
+            {
+              "realm": "staff",
+              "origin": "configured_frontend",
+              "csrf": "staff"
+            }
+          ],
+          "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
+          "csrfHeader": "X-CSRF-TOKEN",
+          "cacheControl": "no-store",
+          "stepUpSeconds": null
+        },
+        "x-authority-policy": "staff"
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "PassengerCookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "gza_session",
+        "description": "Host-only HTTP-only Secure cookie for passenger account realm (Path=/api/v1)"
+      },
+      "StaffCookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "gza_staff_session",
+        "description": "Host-only HTTP-only Secure cookie for staff administration realm (Path=/api/v1)"
+      },
+      "BookingGuestGrantAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Booking-Token",
+        "description": "Short-lived (15 min) opaque token issued after successful contact-channel OTP verification, bound strictly to a single booking PNR"
+      },
+      "WebhookSignatureAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Signature",
+        "description": "HMAC-SHA256 signature calculated over raw request payload using configured payment provider secret"
+      },
+      "StaffPreAuthCookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "gza_staff_pending",
+        "description": "Host-only HTTP-only Secure cookie for pending staff MFA / enrollment authority (Path=/api/v1, Max-Age=300)"
+      },
+      "BookingReceiptGrantAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Booking-Receipt",
+        "description": "Short-lived (10 min) opaque token issued at booking creation, bound strictly to a single booking PNR for minimal receipt retrieval"
+      }
+    },
+    "schemas": {
+      "MvpAirportReceipt": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "airport",
+          "changed",
+          "revision"
+        ],
+        "properties": {
+          "airport": {
+            "$ref": "#/components/schemas/AirportDto"
+          },
+          "changed": {
+            "type": "boolean"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        }
+      },
+      "MvpAirportReceiptResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "success",
+          "data",
+          "meta"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/MvpAirportReceipt"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/SuccessMeta"
+          }
+        }
+      },
+      "CreateAirportRequest": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 3
+          },
+          "airportName": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "city": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "country": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "blockMinutes": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "active": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "airportName",
+          "city",
+          "country",
+          "timezone",
+          "blockMinutes",
+          "active"
+        ],
+        "additionalProperties": false
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": false
+          },
+          "error": {
+            "$ref": "#/components/schemas/ErrorDetail"
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "requestId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "timestamp": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "requestId",
+              "timestamp"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "success",
+          "error",
+          "meta"
+        ],
+        "additionalProperties": false
+      },
+      "PatchAirportRequest": {
+        "type": "object",
+        "properties": {
+          "airportName": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "city": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "country": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "blockMinutes": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "active": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AirportDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "GZA",
+              "AMM",
+              "CAI",
+              "IST",
+              "DOH",
+              "DXB",
+              "JED",
+              "RUH"
+            ]
+          },
+          "airportName": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "city": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "country": {
+            "$ref": "#/components/schemas/LocalizedText"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "blockMinutes": {
+            "type": "integer",
+            "minimum": 15,
+            "maximum": 600
+          },
+          "active": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "airportName",
+          "city",
+          "country",
+          "timezone",
+          "blockMinutes",
+          "active"
+        ],
+        "additionalProperties": false
+      },
+      "SuccessMeta": {
+        "type": "object",
+        "properties": {
+          "requestId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "requestId",
+          "timestamp"
+        ],
+        "additionalProperties": false
+      },
+      "LocalizedText": {
+        "type": "object",
+        "properties": {
+          "en": {
+            "type": "string"
+          },
+          "ar": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "en",
+          "ar"
+        ],
+        "additionalProperties": false
+      },
+      "ErrorDetail": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "validation_error"
+          },
+          "message": {
+            "type": "string",
+            "example": "The given data was invalid."
+          },
+          "fields": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "parameters": {
+      "X-Request-Id": {
+        "name": "X-Request-Id",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "description": "Client-supplied or edge-generated request tracking UUID"
+      },
+      "X-CSRF-TOKEN": {
+        "name": "X-CSRF-TOKEN",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string"
+        },
+        "description": "CSRF token matching active session cookie"
+      }
+    },
+    "responses": {
+      "UnauthorizedErrorResponse": {
+        "description": "Authentication required or session expired",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "ForbiddenErrorResponse": {
+        "description": "Caller lacks required permission or ownership",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "ConflictErrorResponse": {
+        "description": "State or concurrency conflict",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "ValidationErrorResponse": {
+        "description": "Input schema validation failure",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "NotFoundErrorResponse": {
+        "description": "Requested resource not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      }
+    }
+  }
+}

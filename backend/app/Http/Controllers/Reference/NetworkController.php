@@ -58,6 +58,20 @@ final class NetworkController
         return ReferenceResponse::success($request, $this->network->routes(true));
     }
 
+    public function createReceipt(Request $request): JsonResponse
+    {
+        return $this->run($request, fn(): array => $this->network->create(
+            $this->command($request), $request->attributes->get('network_authorize'), true
+        ), 201);
+    }
+
+    public function patchReceipt(Request $request, string $code): JsonResponse
+    {
+        return $this->run($request, fn(): array => $this->network->patch(
+            $code, $this->command($request), $request->attributes->get('network_authorize'), true
+        ));
+    }
+
     /**
      * @return array<string, mixed>
      */

@@ -10,6 +10,8 @@ if (config('reference.enabled') === true) {
     Route::middleware('throttle:reference')->group(function (): void {
         Route::get('/network/airports', [NetworkController::class, 'index'])->name('getAirports');
         Route::middleware(RequireNetworkStaffAuth::class)->group(function (): void {
+            Route::post('/admin/network/airports/receipt', [NetworkController::class, 'createReceipt'])->name('postMvpAirportReceipt');
+            Route::patch('/admin/network/airports/{code}/receipt', [NetworkController::class, 'patchReceipt'])->name('patchMvpAirportReceipt');
             Route::get('/admin/network/airports', [NetworkController::class, 'adminIndex'])->name('getAdminAirports');
             Route::post('/admin/network/airports', [NetworkController::class, 'create'])->name('postAdminAirport');
             Route::patch('/admin/network/airports/{code}', [NetworkController::class, 'patch'])->name('patchAdminAirport');

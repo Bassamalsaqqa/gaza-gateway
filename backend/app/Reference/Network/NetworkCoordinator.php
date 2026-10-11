@@ -77,7 +77,7 @@ final class NetworkCoordinator
      * @param array<string, mixed> $input
      * @return array<string, mixed>
      */
-    public function create(array $input, Closure $authorize): array
+    public function create(array $input, Closure $authorize, bool $receipt = false): array
     {
         $airport = $this->validator->airport($input, false);
         $code = $airport['code'];
@@ -99,14 +99,14 @@ final class NetworkCoordinator
                 'active' => $airport['active'],
             ]);
             return [$airport, true];
-        });
+        }, $receipt);
     }
 
     /**
      * @param array<string, mixed> $input
      * @return array<string, mixed>
      */
-    public function patch(string $code, array $input, Closure $authorize): array
+    public function patch(string $code, array $input, Closure $authorize, bool $receipt = false): array
     {
         $code = $this->validator->code($code);
         $patch = $this->validator->airport($input, true);
@@ -149,12 +149,12 @@ final class NetworkCoordinator
 
             DB::table('airports')->where('code', $code)->update($update);
             return [$after, true];
-        });
+        }, $receipt);
     }
 
-    private function mutate(string $action, string $code, Closure $authorize, Closure $write): array
+    private function mutate(string $action, string $code, Closure $authorize, Closure $write, bool $receipt = false): array
     {
-        return DB::transaction(function () use ($action, $code, $authorize, $write): array {
+        return DB::transaction(function () use ($action, $code, $authorize, $write, $receipt): array {
             // Establish principal/session ownership before waiting for the domain lock.
             $authorize();
             $control = DB::table('network_revision_control')->where('domain', 'network')->lockForUpdate()->first();
@@ -165,7 +165,7 @@ final class NetworkCoordinator
             $actor = $authorize();
             [$result, $changed] = $write();
             if (!$changed) {
-                return $result;
+                return $receipt ? ['airport' => $result, 'changed' => false, 'revision' => (int) $control->revision] : $result;
             }
 
             $revision = (int) $control->revision + 1;
@@ -196,7 +196,7 @@ final class NetworkCoordinator
                 'airport_code' => $code,
             ]);
 
-            return $result;
+            return $receipt ? ['airport' => $result, 'changed' => true, 'revision' => $revision] : $result;
         });
     }
 }
