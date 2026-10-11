@@ -39,3 +39,5 @@ Launch still requires owner-authored offerings, actual mail delivery, reviewed p
 ## Free-reservation command foundation
 
 `backend/app/Mvp/Reservations/ReservationCommand.php` and `free-reservation-command.schema.json` define the dormant free one-way command. Focused PHP 8.4.26 evidence: 26 tests / 56 assertions pass; runner reported one PHPUnit deprecation. This does not enable booking routes, allocate seats, verify session ownership or certify PostgreSQL reservations. Those obligations remain W2. The first attempted disposable container mount failed before tests; the mountpoint was corrected, with no retained container/data mutation.
+
+The PHPUnit deprecation was isolated to the CLI option `--do-not-cache-result`; use `--do-not-record-test-run-history` for future read-only runner invocations. A one-test diagnostic confirmed the cause. Machine command schema passes its source-shaped specimen and four authority-injection controls; UUID constraints match the PHP parser.
