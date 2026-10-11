@@ -159,6 +159,37 @@ final class MealRoutesTest extends TestCase
         return $data;
     }
 
+    public function test_reviewed_commands_are_closed_flat_objects_without_aliases(): void
+    {
+        $staff = $this->staff();
+        $meal = $this->input('meal-command-boundary');
+        $this->http('POST', '/admin/meals', $staff, $meal)->assertStatus(201);
+        $before = app(\App\Reference\Meals\MealCoordinator::class)->adminSnapshot();
+        $audits = DB::table('meal_audit_events')->count();
+        foreach ([
+            ['meal' => $this->input('wrapped-meal'), 'priceMinor' => 1000],
+            ['option' => $this->input('wrapped-option'), 'ownerApproved' => true],
+            ['meal' => $this->input('contradictory'), 'option' => $this->input('other')],
+            ['meal' => $this->input('wrapper-only')],
+        ] as $body) { $this->http('POST', '/admin/meals', $staff, $body)->assertStatus(422); }
+        $this->http('PATCH', '/admin/meals/meal-command-boundary', $staff, ['option' => ['active' => false]])->assertStatus(422);
+        foreach ([
+            ['id' => $meal['id'], 'priceMinor' => 1],
+            ['defaultMealId' => $meal['id']],
+            ['id' => $meal['id'], 'defaultMealId' => 'contradictory'],
+        ] as $body) { $this->http('PUT', '/admin/meals/default', $staff, $body)->assertStatus(422); }
+        foreach ([
+            ['ids' => [$meal['id']], 'unexpected' => true],
+            [$meal['id']],
+            ['ids' => (object) ['0' => $meal['id']]],
+            ['ids' => ['named' => $meal['id']]],
+        ] as $body) { $this->http('PUT', '/admin/meals/order', $staff, $body)->assertStatus(422); }
+        $this->assertSame($before, app(\App\Reference\Meals\MealCoordinator::class)->adminSnapshot());
+        $this->assertSame($audits, DB::table('meal_audit_events')->count());
+        $this->http('PUT', '/admin/meals/default', $staff, ['id' => $meal['id']])->assertOk()->assertJsonPath('data.changed', false);
+        $this->http('PUT', '/admin/meals/order', $staff, ['ids' => [$meal['id']]])->assertOk()->assertJsonPath('data.changed', false);
+    }
+
     public function test_expand_only_migration_roundtrip_preserves_identity(): void
     {
         $staff = $this->staff();

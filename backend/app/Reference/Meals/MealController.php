@@ -49,10 +49,7 @@ class MealController
     public function reorder(Request $request): JsonResponse
     {
         return $this->run($request, function () use ($request): array {
-            $input = $this->command($request, true);
-            if (array_is_list($input)) {
-                $input = ['ids' => $input];
-            }
+            $input = $this->command($request);
             $ids = $this->validator->validateReorder($input);
             return $this->coordinator->reorder($ids, $request->attributes->get('reference_authorize'));
         });
@@ -67,29 +64,24 @@ class MealController
         });
     }
 
-    private function command(Request $request, bool $allowList = false): array
+    private function command(Request $request): array
     {
         $raw = $request->getContent();
         if (strlen($raw) > 65536 || $request->getContentTypeFormat() !== 'json') {
             throw new MealValidationException();
         }
         try {
-            $decoded = json_decode($raw, true, 32, JSON_THROW_ON_ERROR);
+            $object = json_decode($raw, false, 32, JSON_THROW_ON_ERROR);
         } catch (\JsonException) {
             throw new MealValidationException();
         }
-        if (!is_array($decoded)) {
+        if (!$object instanceof \stdClass) {
             throw new MealValidationException();
         }
-        if (!$allowList && array_is_list($decoded)) {
+        if (property_exists($object, 'ids') && !is_array($object->ids)) {
             throw new MealValidationException();
         }
-        if (isset($decoded['option']) && is_array($decoded['option'])) {
-            $decoded = $decoded['option'];
-        } elseif (isset($decoded['meal']) && is_array($decoded['meal'])) {
-            $decoded = $decoded['meal'];
-        }
-        return $decoded;
+        return json_decode($raw, true, 32, JSON_THROW_ON_ERROR);
     }
 
     private function run(Request $request, Closure $operation, int $status = 200): JsonResponse

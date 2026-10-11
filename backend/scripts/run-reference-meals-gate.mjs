@@ -7,6 +7,7 @@ import { mealOperations, verifyMealCapture } from "./meals-capture-contracts.mjs
 import { validatePayloadAgainstSchema } from "../../scripts/lib/backend-contract-validation.mjs";
 
 // Meals-only gate: fresh owned PostgreSQL, no published ports or retained database access.
+const commandBoundaryOnly = process.argv.includes("--command-boundary");
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const vendor = path.resolve(process.env.REFERENCE_GATE_VENDOR ?? path.join(root, "backend/vendor"));
 if (!fs.existsSync(path.join(vendor, "autoload.php"))) throw new Error("Provide locked Composer vendor via REFERENCE_GATE_VENDOR.");
@@ -89,13 +90,17 @@ try {
   docker("postgres-version", ["exec", pg, "psql", "-U", "gza_admin", "-d", "gaza_gateway_test", "-tAc", "SHOW server_version"]);
   inside("composer-platform", ["composer", "check-platform-reqs"]);
   inside("migrate", ["php", "artisan", "migrate", "--no-interaction"]);
-  inside("meals-tests", ["php", "vendor/bin/phpunit", "tests/Feature/ReferenceMeals", "--log-junit", "/tmp/meals.xml"], 180000);
+  inside("meals-tests", ["php", "vendor/bin/phpunit", "tests/Feature/ReferenceMeals", ...(commandBoundaryOnly ? ["--filter", "test_reviewed_commands_are_closed_flat_objects"] : []), "--log-junit", "/tmp/meals.xml"], 180000);
 
   docker("copy-junit", ["cp", php+":/tmp/meals.xml", path.join(output, "meals.xml")]);
   docker("copy-captures", ["cp", php+":/tmp/reference-captures.json", path.join(output, "captures.json")]);
 
   const spec = JSON.parse(fs.readFileSync(path.join(root, "docs/backend/mvp-meals.openapi.json")));
-  const expected = {
+  const expected = commandBoundaryOnly ? {
+      postAdminMeal: ["post", "/admin/meals", 201],
+      putAdminMealsOrder: ["put", "/admin/meals/order", 200],
+      putAdminMealsDefault: ["put", "/admin/meals/default", 200],
+    } : {
     getMeals: ["get", "/meals", 200],
     getAdminMeals: ["get", "/admin/meals", 200],
     postAdminMeal: ["post", "/admin/meals", 201],
@@ -162,7 +167,7 @@ try {
     }
   }
 
-  const required = {
+  const required = commandBoundaryOnly ? { postAdminMeal: [422], patchAdminMeal: [422], putAdminMealsOrder: [422], putAdminMealsDefault: [422] } : {
     getMeals: [400, 429, 503],
     getAdminMeals: [400, 401, 403, 429, 503],
     postAdminMeal: [400, 401, 403, 409, 422, 429, 503],
@@ -198,7 +203,7 @@ try {
   fs.writeFileSync(path.join(output, "receipt.json"), JSON.stringify({
     run, head, passed, failure,
     sourceState: "working-tree snapshot; hashes bind proposed bytes, not a clean committed candidate",
-    scope: "W1 meals only; no remote/provider/production/full identity certification",
+    scope: commandBoundaryOnly ? "reviewed meal command boundaries only; one focused PHP/PG test" : "W1 meals only; no remote/provider/production/full identity certification",
     hashes, commands, resourcesCleaned: cleaned,
   }, null, 2)+"\n");
   console.log("Evidence: "+output);

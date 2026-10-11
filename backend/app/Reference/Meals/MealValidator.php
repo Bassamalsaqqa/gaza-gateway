@@ -142,8 +142,9 @@ final class MealValidator
      */
     public function validateReorder(array $input): array
     {
+        $this->assertNoExtraKeys($input, ['ids']);
         $ids = $input['ids'] ?? null;
-        if (!is_array($ids)) {
+        if (!is_array($ids) || !array_is_list($ids)) {
             throw new MealValidationException('Reorder command requires an ids array.');
         }
 
@@ -167,7 +168,8 @@ final class MealValidator
      */
     public function validateSetDefault(array $input): string
     {
-        $id = $input['id'] ?? $input['defaultMealId'] ?? null;
+        $this->assertNoExtraKeys($input, ['id']);
+        $id = $input['id'] ?? null;
         if (!is_string($id)) {
             throw new MealValidationException('Set default meal requires a string id.');
         }
