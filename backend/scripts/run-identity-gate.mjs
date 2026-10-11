@@ -105,7 +105,7 @@ try {
     // Superuser access is confined to the randomly named, gate-created instance.
     // It never connects to retained owner resources or their database/schema.
     docker(`${label}-schema`, ["exec", pg, "psql", "-U", "gza_admin", "-d", "gaza_gateway_test", "-v", "ON_ERROR_STOP=1", "-c",
-      "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO gza_app_user;"]);
+      "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO gaza_app_user;"]);
     phpCommand(`${label}-migrate`, ["php", "artisan", "migrate", "--no-interaction"]);
     try {
       phpCommand(label, ["php", "vendor/bin/phpunit", "--configuration", "tests/identity-final.xml", `tests/${file}`,
