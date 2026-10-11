@@ -1,10 +1,39 @@
-# Phase 13B reviewed foundations checkpoint
+# Phase 13B reviewed implementation checkpoint
+
+## Current local checkpoint — 2026-10-11
+
+Phase 13B remains **In Progress / Awaiting Independent Review**; PR #2 stays draft
+and the original CHANGES REQUESTED disposition remains in force. Current implementation
+includes passenger authentication/profile/travelers, corrected durable proofs/outbox and
+bounded manual maintenance. Passenger source is `3697c65b0614860be293e422be4c067b84e41057`.
+
+Initial staff login, pending MFA challenge/verify, session list/revoke, logout and step-up
+are implemented at `7570768514a5cecc4c591922cf9b76e3768e9290`:
+[staff boundaries and focused evidence](phase13b-staff-http.md). Seven distinct new tests
+passed cumulatively (4/53 then 3/30); the affected response-capture case alone was rerun
+after a schema mismatch, passing 1/23. Eight actual responses and 24 negative controls
+then passed. One initial PHPUnit mock-expectation notice was corrected without a broad rerun.
+
+The new independent 2026-10-11 PR findings are corrected at
+`899a4d3aa42db8384165a99266cfcd42f7f7a6d5`: rotating token/email proof attempts now share
+an independent source ceiling before new subject allocation; old counters have bounded
+maintenance; both registration and recovery account classes perform common native Argon2id
+work. [Source, PostgreSQL growth and local timing evidence](phase13b-abuse-controls-review.md)
+records 3 new tests / 123 assertions. Both review threads remain open for independent confirmation.
+
+Staff enrollment/replacement/recovery/password/directory/invitations, guest grants/claims,
+EN/AR identity UI and the final integrated PHP/PostgreSQL/HTTPS/browser gate remain pending.
+Default frontend mock authority remains unchanged. Remote staging, real delivery, scheduler,
+administrator custody and production exposure gates remain deferred. Phases 13C–G unstarted.
+
+The sections below preserve earlier checkpoint provenance. Earlier exclusions and pending
+lists describe their dated source state and do not override this current section.
 
 Status: **In Progress / Awaiting Independent Review**. This is a partial engineering checkpoint, not Phase 13B acceptance or a deployable identity product.
 
 Date: 2026-10-10. Main/base: `93ffaeb5619c6c5115512b57ebf069cbd153e60e`. Reviewed code checkpoint: `a5b7c6fba1ab8dfad872d5903541576c7f70930f`. The following documentation commit records this assessment without adding runtime functionality.
 
-## Included in the feature branch
+## Historical foundations included at the 2026-10-10 checkpoint
 
 | Package | Implemented boundary | Evidence and limitations |
 | --- | --- | --- |
@@ -24,7 +53,7 @@ AGY proof/outbox task `phase13b_lifecycle04_20261010`, run `run_7a1d076ca6d2480f
 
 A further independent failure-injection test failed: when deletion of both the superseded capture and the newly written capture fails, the new raw proof capture remains on disk without durable retention tracking. The isolated test used synthetic material and an owned disposable directory; 1 test/1 assertion/1 failure. This is a blocker, not a passing package. Mandatory ledger enforcement, explicit owned test-root validation and fixture/process bounds also require review before acceptance. No new correction run was started when the owner requested closure.
 
-## Remaining roadmap and acceptance gates
+## Historical remaining roadmap at the foundations checkpoint
 
 PR #2 received changes requested after this checkpoint. The original excluded handback above is preserved as historical evidence. Corrected proof/outbox primitives were subsequently integrated at `1c9000c98fd645fb06bb0da913a137bd6b24d66e`, with provider wiring still deferred to downstream HTTP integration. [Lifecycle evidence](phase13b-lifecycle-primitives.md) records corrected negative controls and final focused PHP/PostgreSQL results (5 tests / 29 assertions); this is not final phase certification. [Review disposition](phase13b-review-disposition.md) records bootstrap correction and open Issue #1 ownership. Phase 13B remains incomplete.
 

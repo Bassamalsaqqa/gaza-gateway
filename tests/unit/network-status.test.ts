@@ -195,8 +195,9 @@ it("living docs record accepted Phase 12, owner deployment, accepted Phase 13A l
   const files = ["README.md", "PRODUCT.md", "roadmap.md", ...["ARCHITECTURE", "CANONICAL_REPOSITORIES", "DATA_FLOW", "SCHEDULE_MODEL", "SETTINGS_MODEL", "NETWORK_MODEL", "FLEET_MODEL", "DATED_SERVICE_MODEL", "COMMERCIAL_MODEL", "CONTENT_MODEL", "CONTACT_MODEL"].map(name => `docs/${name}.md`)];
   for (const file of files) {
     const text = readFileSync(file, "utf8");
-    const current = text.split("## Current checkpoint — Phase 13A")[1];
-    assert.ok(current, `${file}: missing Current checkpoint — Phase 13A`);
+    const checkpoint = file === "PRODUCT.md" ? "## Current checkpoint — Phase 13A" : "## Current checkpoint — Phase 13B";
+    const current = text.split(checkpoint)[1]?.split("\n## ")[0];
+    assert.ok(current, `${file}: missing current checkpoint`);
     assert.match(current, /Phase 6, Phase 7 and Phase 7B are \*\*Complete \/ Accepted Source/);
     assert.ok(current.includes("deb9f6e2a4246f4f5c70ca1b56797ccf0588388e"), file);
     assert.ok(current.includes("f68adcc60ec195f8099252b0d2d78da9a7c5ef4e"), file);
@@ -224,11 +225,19 @@ it("living docs record accepted Phase 12, owner deployment, accepted Phase 13A l
     assert.match(current, /not deployed; external staging and backend CI gates remain deferred and unmet/);
     for (const stack of [/Laravel 13/, /PHP 8\.4/, /PostgreSQL 17/]) assert.match(current, stack);
     assert.match(current, /Frontend mock repositories remain default/);
-    assert.match(current, /Typed client operates only via explicit nonproduction opt-in without authentication/);
-    assert.match(current, /Phase 13B identity is authorized \/ preparation underway/);
-    assert.match(current, /no runtime authentication implemented yet/);
+    if (file === "PRODUCT.md") {
+      // PRODUCT.md retains the original historical design brief and accepted 13A checkpoint.
+      assert.match(current, /Typed client operates only via explicit nonproduction opt-in without authentication/);
+    } else {
+      assert.match(current, /Phase 13B In Progress \/ Reviewed Passenger and Staff Authentication Checkpoint/);
+      assert.match(current, /passenger authentication\/profile\/travelers and initial staff login\/MFA\/session\/step-up HTTP operations are implemented locally/);
+      assert.match(current, /staff credential\/directory, guest ownership, EN\/AR UI and final integrated gates remain incomplete/);
+      for (const sha of ["3697c65b0614860be293e422be4c067b84e41057", "7570768514a5cecc4c591922cf9b76e3768e9290", "899a4d3aa42db8384165a99266cfcd42f7f7a6d5"]) assert.ok(current.includes(sha), file);
+      assert.match(current, /PR #2 remains draft \/ CHANGES REQUESTED/);
+      assert.doesNotMatch(current, /no runtime authentication implemented yet/);
+    }
     assert.match(current, /Phase 13C–G remain Planned \/ Unstarted/);
-    assert.match(current, /no authentication, domain inventory, booking persistence, payments or CMS publication/);
+    assert.match(current, /(?:no authentication, domain inventory, booking persistence, payments or CMS publication|No domain inventory, booking workflow, payments or CMS publication)/);
     assert.match(current, /staging and backend CI definition-of-done gates remain deferred and unmet/);
     assert.match(current, /Local proof does not satisfy remote gates/);
     assert.match(current, /no paid services, DNS, real credentials, or traffic cutover/i);
@@ -272,9 +281,9 @@ it("living docs record accepted Phase 12, owner deployment, accepted Phase 13A l
 
   const phase13bRow = roadmap.split("\n").find((line) => line.startsWith("| **Phase 13B** |"));
   assert.ok(phase13bRow, "roadmap: Phase 13B row");
-  assert.match(phase13bRow, /In Progress \/ Reviewed Foundations Checkpoint/);
-  assert.match(phase13bRow, /End-to-end passenger\/staff authentication and UI integration remain unimplemented/);
-  assert.match(phase13bRow, /proof\/outbox retention is blocked and excluded/);
+  assert.match(phase13bRow, /In Progress \/ Reviewed Passenger and Staff Authentication Checkpoint/);
+  assert.match(phase13bRow, /Passenger auth\/profile\/travelers and initial staff login\/MFA\/session\/step-up HTTP implemented locally/);
+  assert.match(phase13bRow, /Corrected proof\/outbox and bounded local maintenance integrated/);
   assert.match(phase13bRow, /awaiting independent review/);
   assert.match(phase13bRow, /Phase 13C–G Planned \/ Unstarted/);
 
@@ -287,7 +296,7 @@ it("living docs record accepted Phase 12, owner deployment, accepted Phase 13A l
     );
     assert.match(
       text,
-      /Phase 13B authorized \/ preparation underway/,
+      /Phase 13B In Progress \/ Reviewed Passenger and Staff Authentication Checkpoint/,
       `${file}: immediate next step header candidate`,
     );
     assert.match(
@@ -303,7 +312,7 @@ it("living docs record accepted Phase 12, owner deployment, accepted Phase 13A l
   }
 
   for (const file of files.filter((f) => f !== "PRODUCT.md")) {
-    const text = readFileSync(file, "utf8");
+    const text = readFileSync(file, "utf8").split("\n## ")[0];
     assert.match(
       text,
       /Phase 11 is Complete \/ Accepted Source \(Release Published\)/,
@@ -321,12 +330,12 @@ it("living docs record accepted Phase 12, owner deployment, accepted Phase 13A l
     );
     assert.match(
       text,
-      /Phase 13B authorized \/ preparation underway/,
+      /Phase 13B In Progress \/ Reviewed Passenger and Staff Authentication Checkpoint/,
       `${file}: header Phase 13B status`,
     );
     assert.match(
       text,
-      /no runtime authentication implemented yet/,
+      /passenger authentication\/profile\/travelers and initial staff login\/MFA\/session\/step-up HTTP operations are implemented locally/,
       `${file}: header authentication status`,
     );
     assert.match(
