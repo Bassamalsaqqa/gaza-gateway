@@ -224,7 +224,7 @@ class DatabaseProber
         $this->pdo->exec($sql);
 
         // Verify table status
-        $stmt = $this->pdo->prepare("SHOW TABLE STATUS LIKE :tbl");
+        $stmt = $this->pdo->prepare("SELECT ENGINE AS Engine, TABLE_COLLATION AS Collation FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :tbl");
         $stmt->execute(['tbl' => $table]);
         $status = $stmt->fetch();
 
@@ -619,9 +619,8 @@ class DatabaseProber
 
         try {
             // Find all tables matching the exact tablePrefix
-            $searchPattern = $this->tablePrefix . '%';
-            $stmt = $this->pdo->prepare("SHOW TABLES LIKE :pattern");
-            $stmt->execute(['pattern' => $searchPattern]);
+            $stmt = $this->pdo->prepare("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND LEFT(TABLE_NAME, :prefixLength) = :prefix");
+            $stmt->execute(['prefixLength' => strlen($this->tablePrefix), 'prefix' => $this->tablePrefix]);
             $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
             // Temporarily disable foreign key checks for clean table drops
