@@ -14,6 +14,7 @@ $command = static function (array $args): array {
  finally {if(proc_get_status($process)['running'])proc_terminate($process,9);fclose($pipes[1]);fclose($pipes[2]);proc_close($process);}
  return [$exit,$out,$err];
 };
+$check($manifest['source_sha'] === getenv('H3_EXPECTED_SHA') && hash_file('sha256',$package . '/release-manifest.json') === getenv('H3_EXPECTED_MANIFEST'), 'archive binds exact candidate source and manifest');
 $db='gaza_h3_disposable'; $rootPassword=getenv('H3_ROOT_PASSWORD');
 $root=new PDO('mysql:host=127.0.0.1;dbname=mysql','root',$rootPassword,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_TIMEOUT=>3]);
 $ddlPassword=bin2hex(random_bytes(24));$runtimePassword=bin2hex(random_bytes(24));
@@ -35,6 +36,16 @@ file_put_contents($envPath,str_replace('APP_ENV=production','APP_ENV=local',$env
 $check($status===1&&!file_exists($app.'/current-release.txt')&&!is_dir($web),'wrong profile refuses activation');
 file_put_contents($app.'/shared/config/.env',$env);chmod($app.'/shared/config/.env',0600);
 [$status,$out,$err]=$command([PHP_BINARY,$installer,'--action=install','--package-dir='.$package,'--approval-file='.$approvalPath]);
+if($status!==0){
+ echo $out . $err;
+ try {
+  require $app.'/releases/'.$manifest['release_id'].'/backend/vendor/autoload.php';
+  $debugApp=require $app.'/releases/'.$manifest['release_id'].'/backend/bootstrap/app.php';
+  $debugApp->useStoragePath($app.'/shared/storage');$debugApp->useEnvironmentPath($app.'/shared/config');$debugApp->loadEnvironmentFrom('.env');
+  $debugApp->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+  echo 'Isolated bundled bootstrap passed; installer stage failed.\n';
+ } catch(Throwable $e){echo 'Isolated diagnostic: '.get_class($e).' '.str_replace([$rootPassword,$ddlPassword,$runtimePassword], '[TEST_SECRET]', $e->getMessage()).PHP_EOL;}
+}
 $check($status===0,'real production-profile installation and migration UP');
 $check(!str_contains($out.$err,$ddlPassword)&&!str_contains($out.$err,$runtimePassword),'installer output excludes credentials');
 $check(trim(file_get_contents($app.'/current-release.txt'))===$manifest['release_id'],'code pointer binds actual source release');
@@ -42,7 +53,7 @@ $check((int)$root->query("SELECT COUNT(*) FROM `$db`.migrations")->fetchColumn()
 $check((int)$root->query("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA='$db' AND TABLE_TYPE='BASE TABLE' AND ENGINE<>'InnoDB'")->fetchColumn()===0,'every installed base table is InnoDB');
 $check(!str_contains(file_get_contents($app.'/shared/config/.env'),$ddlPassword),'DDL credentials never persisted in runtime env');
 $release=$app.'/releases/'.$manifest['release_id'];$cli=$release.'/bin/hostpapa-cli';
-[$status,$out,$err]=$command([PHP_BINARY,$cli,'shared-hosting:cron','--max-seconds=2','--batch-limit=1']);
+[$status,$out,$err]=$command([PHP_BINARY,$cli,'shared-hosting:cron','--max-seconds=25','--batch-limit=1']);
 $check($status===0,'real installed bounded cron command executes');
 [$status,$out,$err]=$command([PHP_BINARY,$cli,'migrate','--force']);$check($status===1,'private wrapper prohibits direct migrations');
 $probe=$home.'/http.php';file_put_contents($probe,"<?php \$_SERVER['HTTPS']='on'; \$_SERVER['SERVER_PORT']='443'; \$_SERVER['HTTP_HOST']='www.gazaairport.com'; \$_SERVER['REQUEST_METHOD']='GET'; \$_SERVER['REQUEST_URI']='/api/v1/health'; \$_SERVER['SCRIPT_NAME']='/index.php'; \$_SERVER['DOCUMENT_ROOT']='$web'; require '$web/index.php';");

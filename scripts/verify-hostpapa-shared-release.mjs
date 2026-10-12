@@ -8,7 +8,7 @@
  *
  * Options:
  *   --release-dir=<dir>   Path to release package (default: scratch/.hostpapa-shared-release)
- *   --strict              Fail if package was built from dirty source or not classified as ACCEPTED
+ *   --strict              Fail if package was built from dirty source or not classified as an unreviewed release candidate
  *   --expected-sha=<sha>  Ensure release source commit matches this exact SHA
  *   --help                Display usage instructions
  */
@@ -37,7 +37,7 @@ Cryptographically verifies an offline release bundle against its manifest.
 
 Options:
   --release-dir=<path>   Directory containing the release package
-  --strict               Enforce clean git source and accepted production classification
+  --strict               Enforce clean git source and unreviewed candidate classification
   --expected-sha=<sha>   Require exact source commit SHA match
   --help                 Show this message
 `);
@@ -61,7 +61,7 @@ async function main() {
   const options = parseArgs();
   console.log("Verifying HostPapa shared release package...");
   console.log(`- Release Directory: ${options.releaseDir}`);
-  if (options.strict) console.log("- Mode: STRICT (clean source and accepted classification required)");
+  if (options.strict) console.log("- Mode: STRICT (clean source and candidate classification required)");
   if (options.expectedSha) console.log(`- Expected Source SHA: ${options.expectedSha}`);
 
   try {
