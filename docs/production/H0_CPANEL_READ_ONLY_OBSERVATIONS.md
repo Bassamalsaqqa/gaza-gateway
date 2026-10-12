@@ -17,3 +17,19 @@ Overall H0: **UNVERIFIED / partial read-only evidence**. Codex read the owner-au
 | SMTP | Email Accounts/Deliverability tools available; sendmail path displayed | SMTP authentication/TLS/quota/SPF-DKIM-DMARC/external delivery untested |
 
 Next: independently review the isolated H0 canary, establish a disposable DB/private test root with owner-controlled credentials, execute web+CLI/MySQL/cron checks without touching existing tables/public root, retain sanitized receipts and clean only owned canary artifacts. Local MySQL evidence cannot promote this host gate to PASS.
+
+## Owner-executed isolated cron canary — 2026-10-12
+
+The earlier read-only observations above describe the initial inspection, not the subsequent isolated setup. Codex created only the dedicated disposable canary database and private test folder. The owner created its user/credentials and executed the canary through cPanel cron. No public application files or existing application tables were changed.
+
+Owner-reported run `h0_20261012_135502_483486` at `2026-10-12T13:55:02Z`:
+- CLI PHP 8.5.11; all 10 required extensions; Argon2id: PASS.
+- MySQL 8.4/InnoDB capability group, CHECK enforcement, concurrency/locks and owned-table cleanup: PASS.
+- Private filesystem staging: PASS.
+- SMTP preparation: WARNING; no real email sent. SMTP delivery remains unconfigured/unverified.
+- API preparation: PREPARED_OFFLINE; operational Apache/Laravel HTTP routing remains UNVERIFIED.
+- Overall: UNVERIFIED_PENDING_OWNER_EVIDENCE; this is not full H0/application/deployment acceptance.
+
+Evidence attribution: this final summary was supplied by the owner; final detailed receipt bytes have not yet been downloaded/hash-verified by Codex. Codex directly inspected the two previous detailed reports: run `h0_20261012_134201_5d3a12` connected successfully but failed because the probe used unsupported prepared SHOW placeholders; run `h0_20261012_135001_b4b20a` connected successfully but collided with a constraint retained from that failed run. These were canary defects, preserved as failed evidence. Corrective source commits: `ab47c806bb578ed979695d43b85f232c14b3dc00`, `4263f9c` and `4625dc2`. Locally tested corrected SQL against disposable MySQL 8.4.11, including pre-existing constraint names; all canary DB checks and owned-container cleanup passed.
+
+Next engineering step: complete MySQL application persistence/coordinator conversion and shared cron/runtime packaging. Live HTTP routing, exact locked Composer platform validation, actual application migrations, private release deployment/rollback, and configured mailbox delivery remain separate gates. Remove the temporary canary cron after its one-shot run; preserve all failed/passing reports. Production MySQL tables must specify ENGINE=InnoDB explicitly (the inspected server default was MyISAM).
