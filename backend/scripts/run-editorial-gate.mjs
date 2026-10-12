@@ -119,14 +119,14 @@ try {
   inside("composer-platform", ["composer", "check-platform-reqs"]);
   inside("migrate", ["php", "artisan", "migrate", "--no-interaction"]);
 
-  inside("editorial-tests", ["php", "vendor/bin/phpunit", "tests/Feature/Editorial", "--log-junit", "/tmp/editorial.xml"], 180000);
+  inside("editorial-tests", ["php", "vendor/bin/phpunit", "tests/Feature/Editorial", "--log-junit", "/tmp/editorial.xml", ...(process.env.EDITORIAL_GATE_TEST_FILTER ? ["--filter", process.env.EDITORIAL_GATE_TEST_FILTER] : [])], 180000);
   docker("copy-junit", ["cp", php + ":/tmp/editorial.xml", path.join(output, "editorial.xml")]);
   docker("copy-captures", ["cp", php + ":/tmp/editorial-captures.json", path.join(output, "captures.json")]);
 
   const spec = JSON.parse(fs.readFileSync(path.join(root, "docs/backend/mvp-editorial.openapi.json")));
   const captures = JSON.parse(fs.readFileSync(path.join(output, "captures.json")));
 
-  for (const [id, [method, route, status]] of Object.entries(editorialOperations)) {
+  for (const [id, [method, route, status]] of (process.env.EDITORIAL_GATE_TEST_FILTER ? [] : Object.entries(editorialOperations))) {
     const operation = spec.paths[route]?.[method];
     const capture = captures[id + ":" + status];
     if (operation?.operationId !== id || !capture || capture.status !== status || !capture.contentType.startsWith("application/json")) {
@@ -215,6 +215,7 @@ try {
     head,
     passed,
     failure,
+    testFilter: process.env.EDITORIAL_GATE_TEST_FILTER ?? null,
     sourceState: "working-tree snapshot; hashes bind proposed bytes, not a clean committed candidate",
     scope: "W3 backend editorial CMS runtime draft/publish slice",
     hashes,

@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import type { Flight } from "./data";
+import { identityUiRequested } from "./api/identity-ui-runtime";
 import {
   destinationByCode,
   isFlightBookable,
@@ -143,6 +144,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   // Synchronize bookings with canonical BookingRepository
   useEffect(() => {
+    // Server reservations use their own owner-scoped queries; do not read the blocked mock store.
+    if (identityUiRequested) { setReady(true); return; }
     let mounted = true;
     bookingRepo.list().then((list) => {
       if (mounted) {

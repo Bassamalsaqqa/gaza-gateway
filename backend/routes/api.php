@@ -27,4 +27,6 @@ Route::prefix('v1')->group(function () {
     require __DIR__ . '/schedule-reference.php';
     require __DIR__ . '/editorial.php';
     require __DIR__ . '/reservations.php';
+    require __DIR__ . '/mvp-mail.php';
+    require __DIR__ . '/mvp-site.php';
 });

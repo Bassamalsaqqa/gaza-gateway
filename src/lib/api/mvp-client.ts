@@ -32,6 +32,8 @@ export interface MvpEnvelope<T> { success: true; data: T; meta: { requestId: str
 /** Shared MVP transport. Cookies/CSRF come from the accepted identity client; never persisted here. */
 export function createMvpApiClient(config: IdentityApiClientConfig, identity: () => Pick<IdentityApiClient, "getStaffCsrfBootstrap" | "getAuthCsrfBootstrap">) {
   const resolved = resolveIdentityApiClientConfig(config);
+  // Native browser fetch rejects an arbitrary object receiver (Illegal invocation).
+  const fetchFn = resolved.fetch;
   const active = new Set<AbortController>();
   let disposed = false;
 
@@ -65,7 +67,7 @@ export function createMvpApiClient(config: IdentityApiClientConfig, identity: ()
           headers["X-CSRF-TOKEN"] = csrf.csrfToken;
           headers["Content-Type"] = "application/json";
         }
-        const response = await resolved.fetch(resolved.baseUrl + input.path, {
+        const response = await fetchFn(resolved.baseUrl + input.path, {
           method: input.method, headers, credentials: "include", cache: "no-store", redirect: "error",
           signal: controller.signal, ...(input.body !== undefined ? { body: JSON.stringify(input.body) } : {}),
         });

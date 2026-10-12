@@ -1036,4 +1036,47 @@ final class EditorialRoutesTest extends TestCase
         $this->http('GET', '/cms/published/destinations.editorial', [], null, [], null, 'getCmsPublishedBySlug')
             ->assertStatus(410);
     }
+    public function test_review_recursive_payload_closure_and_corrupt_public_read(): void
+    {
+        Artisan::call('migrate:rollback', ['--step' => DB::table('migrations')->where('migration', '>=', '2026_10_11_000006_create_editorial_publication_tables')->count(), '--force' => true]);
+        Artisan::call('migrate', ['--force' => true]);
+        $staff = $this->staff();
+        $source = json_decode(file_get_contents('/tmp/editorial-source.json'), true, 512, JSON_THROW_ON_ERROR);
+        $validator = new \App\Editorial\Validation\EditorialValidator();
+        $walk = function (array $node, array $path = []) use (&$walk): array {
+            $paths = !array_is_list($node) ? [$path] : [];
+            foreach ($node as $key => $value) if (is_array($value)) $paths = array_merge($paths, $walk($value, [...$path, $key]));
+            return $paths;
+        };
+        foreach ($source as $slug => $payload) {
+            $validator->validate($slug, $payload);
+            foreach ($walk($payload) as $path) {
+                $bad = $payload; $node = &$bad;
+                foreach ($path as $key) $node = &$node[$key];
+                $node['ownerApproved'] = true; unset($node);
+                try { $validator->validate($slug, $bad); $this->fail('Unknown nested field accepted.'); }
+                catch (\App\Editorial\Exceptions\EditorialValidationException) { $this->addToAssertionCount(1); }
+            }
+        }
+        $before = [DB::table('editorial_revisions')->count(), DB::table('editorial_audit_events')->count()];
+        foreach ([['ownerApproved'], ['seo', 'secretValue'], ['copy', 'h1', 'secretValue'], ['sections', 0, 'secretValue']] as $path) {
+            $bad = $source['home']; $node = &$bad;
+            foreach (array_slice($path, 0, -1) as $key) $node = &$node[$key];
+            $node[end($path)] = 'private-sentinel'; unset($node);
+            $this->http('PUT', '/cms/editorial/home/draft', $staff, ['payload' => $bad, 'expectedRevision' => 0])->assertStatus(422);
+        }
+        $this->assertSame($before, [DB::table('editorial_revisions')->count(), DB::table('editorial_audit_events')->count()]);
+        $this->http('PUT', '/cms/editorial/home/draft', $staff, ['payload' => $source['home'], 'expectedRevision' => 0])->assertStatus(200);
+        $this->http('POST', '/cms/editorial/home/publish', $staff, ['expectedRevision' => 1])->assertStatus(200);
+        $this->http('GET', '/cms/published/home')->assertStatus(200);
+        // Disposable test database: simulate legacy malformed immutable bytes without promoting them.
+        DB::statement('ALTER TABLE editorial_revisions DISABLE TRIGGER USER');
+        try {
+            $bad = $source['home']; $bad['seo']['secretValue'] = 'private-sentinel';
+            DB::table('editorial_revisions')->where('slug', 'home')->update(['snapshot_bytes' => json_encode($bad, JSON_THROW_ON_ERROR), 'snapshot_json' => json_encode($bad, JSON_THROW_ON_ERROR), 'snapshot_hash' => hash('sha256', json_encode($bad, JSON_THROW_ON_ERROR))]);
+        } finally { DB::statement('ALTER TABLE editorial_revisions ENABLE TRIGGER USER'); }
+        $response = $this->http('GET', '/cms/published/home')->assertStatus(500);
+        $this->assertStringNotContainsString('private-sentinel', $response->getContent());
+    }
+
 }

@@ -1,3 +1,4 @@
+import { BookingEmailStatus } from "./mvp-booking-email";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AppLink } from "@/components/app-link";
@@ -65,7 +66,7 @@ export function ReservationView({ reference, staff = false }: { reference: strin
         {query.data.reservation.status === "confirmed" && (!staff || can("commercial.edit")) &&
           <button className={btnClass("outline", "md")} onClick={() => { setError(null); setOpen(true); }}>{ar ? "إلغاء الحجز" : "Cancel booking"}</button>}
       </div>
-      <p className="text-sm text-muted-foreground print:hidden">{ar ? "التذكرة متاحة الآن. حالة إرسال البريد غير متاحة بعد." : "Your ticket is available now. Email delivery status is not available yet."}</p>
+      {!staff && <BookingEmailStatus reference={reference} cancelled={query.data.reservation.status === "cancelled"} />}
     </>}
     <ConfirmDialog open={open} title={ar ? "إلغاء الحجز؟" : "Cancel booking?"} body={ar ? "سيتم تحرير المقاعد وإبقاء سجل الحجز الملغى." : "Seats will be released and the cancelled booking will remain in your history."}
       confirmLabel={ar ? "إلغاء الحجز" : "Cancel booking"} onConfirm={() => void cancel()} onClose={() => setOpen(false)} pending={pending} error={error} preserveOpenOnConfirm />

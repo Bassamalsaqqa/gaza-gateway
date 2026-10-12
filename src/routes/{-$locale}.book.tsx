@@ -85,6 +85,8 @@ type BookSearch = {
 };
 
 export const Route = createFileRoute("/{-$locale}/book")({
+  // Cookie-owned booking authority is browser-only; never serialize an SSR account shell.
+  ssr: !identityUiRequested,
   validateSearch: (search: Record<string, unknown>): BookSearch => {
     const out: BookSearch = {};
     if (typeof search["offering"] === "string" && decodeDatedOfferingId(search["offering"])) out.offering = search["offering"];

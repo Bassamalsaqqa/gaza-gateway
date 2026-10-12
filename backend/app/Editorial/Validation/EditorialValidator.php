@@ -81,6 +81,44 @@ final class EditorialValidator
         'networkTitle', 'networkBody',
     ];
 
+    // ---------------------------------------------------------------------------
+    // Root allowed keys per document type (strict closed sets)
+    // ---------------------------------------------------------------------------
+
+    private const HOME_ROOT_KEYS              = ['id', 'kind', 'schemaVersion', 'seo', 'copy', 'sections'];
+    private const TRAVEL_ROOT_KEYS            = ['id', 'kind', 'schemaVersion', 'seo', 'intro', 'sections'];
+    private const AIRPORT_PAST_ROOT_KEYS      = ['id', 'kind', 'schemaVersion', 'seo', 'intro', 'timeline'];
+    private const AIRPORT_PRESENT_ROOT_KEYS   = ['id', 'kind', 'schemaVersion', 'seo', 'intro', 'facts', 'dossiers', 'spatial', 'globalHorizons'];
+    private const AIRPORT_FUTURE_ROOT_KEYS    = ['id', 'kind', 'schemaVersion', 'seo', 'copy'];
+    private const DEST_PRESENTATION_ROOT_KEYS = ['id', 'kind', 'schemaVersion', 'seo', 'assignments'];
+    private const DEST_EDITORIAL_ROOT_KEYS    = ['id', 'kind', 'schemaVersion', 'seo', 'destinations'];
+    private const PAGES_INFO_ROOT_KEYS        = ['id', 'kind', 'schemaVersion', 'seo', 'pages'];
+
+    // Allowed keys for reusable nested shapes
+    private const SEO_KEYS                   = ['title', 'description', 'socialTitle', 'socialDescription', 'socialMediaId'];
+    private const LOCALIZED_KEYS             = ['en', 'ar'];
+    private const HOME_SECTION_KEYS          = ['id', 'visible'];
+    private const TRAVEL_SECTION_KEYS        = ['id', 'visible', 'title', 'body', 'points'];
+    private const TRAVEL_POINT_KEYS          = ['id', 'visible', 'text'];
+    private const AIRPORT_PAST_INTRO_KEYS    = ['title', 'description', 'notice'];
+    private const PAST_TIMELINE_KEYS         = ['id', 'visible', 'period', 'title', 'body', 'evidence', 'sourceRefs', 'media'];
+    private const PAST_TIMELINE_MEDIA_KEYS   = ['kind', 'id'];
+    private const PRESENT_INTRO_KEYS         = ['title', 'subtitle', 'notice'];
+    private const PRESENT_FACT_KEYS          = ['id', 'label', 'value', 'detail', 'sourceRefs'];
+    private const PRESENT_DOSSIER_KEYS       = ['id', 'title', 'paragraphs', 'sourceRefs'];
+    private const PRESENT_SPATIAL_KEYS       = ['title', 'description', 'evidentiaryRuleTitle', 'evidentiaryRuleBody', 'sourceRefs'];
+    private const PRESENT_GLOBAL_HORIZONS_KEYS = ['eyebrow', 'title', 'description'];
+    private const DEST_ASSIGN_KEYS           = ['code', 'photoId', 'focalPoint'];
+    private const FOCAL_POINT_KEYS           = ['x', 'y'];
+    private const DEST_EDITORIAL_ITEM_KEYS   = ['code', 'seo', 'blurb', 'goodToKnow'];
+    private const GOOD_TO_KNOW_KEYS          = ['id', 'visible', 'text'];
+    private const PAGE_KEYS                  = ['id', 'seo', 'title', 'description', 'blocks'];
+    private const BLOCK_KEYS                 = ['id', 'visible', 'title', 'paragraphs'];
+
+    // ---------------------------------------------------------------------------
+    // Public API
+    // ---------------------------------------------------------------------------
+
     public function validate(string $slug, array $payload): void
     {
         if (!in_array($slug, self::ALLOWED_SLUGS, true)) {
@@ -103,17 +141,49 @@ final class EditorialValidator
             throw new EditorialValidationException('seo metadata is required.');
         }
 
+        // 1. Enforce closed root schema BEFORE content validation.
+        //    This rejects payload.ownerApproved, payload.seo.secretValue, etc.
+        $this->validateClosedShape($payload, $this->rootKeysForSlug($slug), 'payload');
+
+        // 2. Validate seo (including its own closed shape)
         $this->validateSeo($payload['seo'], 'seo');
 
+        // 3. Validate document-type body
         match ($slug) {
-            'home' => $this->validateHome($payload),
-            'travel' => $this->validateTravel($payload),
-            'airport.past' => $this->validateAirportPast($payload),
-            'airport.present' => $this->validateAirportPresent($payload),
-            'airport.future' => $this->validateAirportFuture($payload),
-            'destinations.presentation' => $this->validateDestinationsPresentation($payload),
-            'destinations.editorial' => $this->validateDestinationsEditorial($payload),
-            'pages.information' => $this->validatePagesInformation($payload),
+            'home'                     => $this->validateHome($payload),
+            'travel'                   => $this->validateTravel($payload),
+            'airport.past'             => $this->validateAirportPast($payload),
+            'airport.present'          => $this->validateAirportPresent($payload),
+            'airport.future'           => $this->validateAirportFuture($payload),
+            'destinations.presentation'=> $this->validateDestinationsPresentation($payload),
+            'destinations.editorial'   => $this->validateDestinationsEditorial($payload),
+            'pages.information'        => $this->validatePagesInformation($payload),
+        };
+    }
+
+    private function validateClosedShape(array $actual, array $allowed, string $path): void
+    {
+        foreach (array_keys($actual) as $key) {
+            if (!in_array($key, $allowed, true)) {
+                throw new EditorialValidationException(
+                    "Field '$path' contains unknown key '$key'. Only these keys are accepted: " . implode(', ', $allowed) . '.'
+                );
+            }
+        }
+    }
+
+    private function rootKeysForSlug(string $slug): array
+    {
+        return match ($slug) {
+            'home'                      => self::HOME_ROOT_KEYS,
+            'travel'                    => self::TRAVEL_ROOT_KEYS,
+            'airport.past'              => self::AIRPORT_PAST_ROOT_KEYS,
+            'airport.present'           => self::AIRPORT_PRESENT_ROOT_KEYS,
+            'airport.future'            => self::AIRPORT_FUTURE_ROOT_KEYS,
+            'destinations.presentation' => self::DEST_PRESENTATION_ROOT_KEYS,
+            'destinations.editorial'    => self::DEST_EDITORIAL_ROOT_KEYS,
+            'pages.information'         => self::PAGES_INFO_ROOT_KEYS,
+            default                     => [],
         };
     }
 
@@ -139,15 +209,17 @@ final class EditorialValidator
         if (!is_array($value) || !isset($value['en']) || !isset($value['ar'])) {
             throw new EditorialValidationException("Field '$path' must be a localized text object with 'en' and 'ar'.");
         }
-        if (count($value) !== 2) {
-            throw new EditorialValidationException("Field '$path' must only contain 'en' and 'ar' keys.");
-        }
+        // Closed shape: localized objects must only have 'en' and 'ar'
+        $this->validateClosedShape($value, self::LOCALIZED_KEYS, $path);
         $this->validatePlainText($value['en'], "$path.en");
         $this->validatePlainText($value['ar'], "$path.ar");
     }
 
     private function validateSeo(array $seo, string $path): void
     {
+        // Closed shape: reject any SEO key not in the allowed set
+        $this->validateClosedShape($seo, self::SEO_KEYS, $path);
+
         if (!isset($seo['title']) || !isset($seo['description'])) {
             throw new EditorialValidationException("Field '$path' requires 'title' and 'description'.");
         }
@@ -173,6 +245,10 @@ final class EditorialValidator
             throw new EditorialValidationException("Field '$path' must be a lowercase slug format.");
         }
     }
+
+    // ---------------------------------------------------------------------------
+    // Private — document-type validators
+    // ---------------------------------------------------------------------------
 
     private function validateHome(array $payload): void
     {
@@ -200,6 +276,8 @@ final class EditorialValidator
             if (!is_array($sec) || !isset($sec['id']) || !isset($sec['visible']) || !is_bool($sec['visible'])) {
                 throw new EditorialValidationException("home sections[$i] must have id and visible boolean.");
             }
+            // Closed shape for each home section
+            $this->validateClosedShape($sec, self::HOME_SECTION_KEYS, "sections[$i]");
             if (!in_array($sec['id'], $allowedSectionIds, true)) {
                 throw new EditorialValidationException("Invalid home section id '{$sec['id']}'.");
             }
@@ -227,6 +305,8 @@ final class EditorialValidator
         if (!isset($payload['intro']) || !is_array($payload['intro'])) {
             throw new EditorialValidationException("travel 'intro' is required.");
         }
+        // Closed shape: intro must only have title and description
+        $this->validateClosedShape($payload['intro'], ['title', 'description'], 'intro');
         $this->validateLocalized($payload['intro']['title'] ?? null, 'intro.title');
         $this->validateLocalized($payload['intro']['description'] ?? null, 'intro.description');
 
@@ -241,6 +321,8 @@ final class EditorialValidator
             if (!is_array($sec) || !isset($sec['id']) || !isset($sec['visible']) || !is_bool($sec['visible'])) {
                 throw new EditorialValidationException("travel sections[$i] invalid structure.");
             }
+            // Closed shape for each travel section
+            $this->validateClosedShape($sec, self::TRAVEL_SECTION_KEYS, "sections[$i]");
             if (!in_array($sec['id'], $allowedIds, true) || in_array($sec['id'], $seenSecIds, true)) {
                 throw new EditorialValidationException("Invalid or duplicate travel section id '{$sec['id']}'.");
             }
@@ -255,6 +337,8 @@ final class EditorialValidator
                 if (!is_array($pt) || !isset($pt['id']) || !isset($pt['visible']) || !is_bool($pt['visible'])) {
                     throw new EditorialValidationException("travel sections[$i].points[$j] invalid structure.");
                 }
+                // Closed shape for each point
+                $this->validateClosedShape($pt, self::TRAVEL_POINT_KEYS, "sections[$i].points[$j]");
                 $this->validateSlug($pt['id'], "sections[$i].points[$j].id");
                 if (in_array($pt['id'], $seenPointIds, true)) {
                     throw new EditorialValidationException("Duplicate point id '{$pt['id']}' in travel guide.");
@@ -270,6 +354,8 @@ final class EditorialValidator
         if (!isset($payload['intro']) || !is_array($payload['intro'])) {
             throw new EditorialValidationException("airport.past 'intro' is required.");
         }
+        // Closed shape for intro
+        $this->validateClosedShape($payload['intro'], self::AIRPORT_PAST_INTRO_KEYS, 'intro');
         $this->validateLocalized($payload['intro']['title'] ?? null, 'intro.title');
         $this->validateLocalized($payload['intro']['description'] ?? null, 'intro.description');
         $this->validateLocalized($payload['intro']['notice'] ?? null, 'intro.notice');
@@ -284,6 +370,8 @@ final class EditorialValidator
             if (!is_array($entry) || !isset($entry['id']) || !isset($entry['visible']) || !is_bool($entry['visible'])) {
                 throw new EditorialValidationException("airport.past timeline[$i] invalid structure.");
             }
+            // Closed shape for each timeline entry
+            $this->validateClosedShape($entry, self::PAST_TIMELINE_KEYS, "timeline[$i]");
             if (!in_array($entry['id'], $allowedIds, true) || in_array($entry['id'], $seen, true)) {
                 throw new EditorialValidationException("Invalid or duplicate timeline entry id '{$entry['id']}'.");
             }
@@ -314,6 +402,8 @@ final class EditorialValidator
                 if (!is_array($entry['media']) || ($entry['media']['kind'] ?? null) !== 'media') {
                     throw new EditorialValidationException("timeline[$i].media must be {kind: 'media', id: ...}.");
                 }
+                // Closed shape for the media object
+                $this->validateClosedShape($entry['media'], self::PAST_TIMELINE_MEDIA_KEYS, "timeline[$i].media");
                 $mediaId = $entry['media']['id'] ?? null;
                 if (!is_string($mediaId) || !in_array($mediaId, self::HISTORICAL_DOCUMENTARY_MEDIA_IDS, true)) {
                     throw new EditorialValidationException("timeline[$i].media must be an approved historical-documentary asset.");
@@ -327,6 +417,8 @@ final class EditorialValidator
         if (!isset($payload['intro']) || !is_array($payload['intro'])) {
             throw new EditorialValidationException("airport.present 'intro' is required.");
         }
+        // Closed shape for intro
+        $this->validateClosedShape($payload['intro'], self::PRESENT_INTRO_KEYS, 'intro');
         $this->validateLocalized($payload['intro']['title'] ?? null, 'intro.title');
         $this->validateLocalized($payload['intro']['subtitle'] ?? null, 'intro.subtitle');
         $this->validateLocalized($payload['intro']['notice'] ?? null, 'intro.notice');
@@ -339,6 +431,8 @@ final class EditorialValidator
             if (!is_array($fact) || !isset($fact['id']) || !is_string($fact['id']) || in_array($fact['id'], $seenFactIds, true)) {
                 throw new EditorialValidationException("airport.present facts[$i] has missing or duplicate id.");
             }
+            // Closed shape for each fact
+            $this->validateClosedShape($fact, self::PRESENT_FACT_KEYS, "facts[$i]");
             $seenFactIds[] = $fact['id'];
             $this->validateLocalized($fact['label'] ?? null, "facts[$i].label");
             $this->validateLocalized($fact['value'] ?? null, "facts[$i].value");
@@ -362,6 +456,8 @@ final class EditorialValidator
             if (!is_array($dossier) || !isset($dossier['id']) || !is_string($dossier['id']) || in_array($dossier['id'], $seenDossierIds, true)) {
                 throw new EditorialValidationException("airport.present dossiers[$i] has missing or duplicate id.");
             }
+            // Closed shape for each dossier
+            $this->validateClosedShape($dossier, self::PRESENT_DOSSIER_KEYS, "dossiers[$i]");
             $seenDossierIds[] = $dossier['id'];
             $this->validateLocalized($dossier['title'] ?? null, "dossiers[$i].title");
             if (!isset($dossier['paragraphs']) || !is_array($dossier['paragraphs']) || count($dossier['paragraphs']) === 0) {
@@ -384,6 +480,8 @@ final class EditorialValidator
         if (!isset($payload['spatial']) || !is_array($payload['spatial'])) {
             throw new EditorialValidationException("airport.present 'spatial' is required.");
         }
+        // Closed shape for spatial
+        $this->validateClosedShape($payload['spatial'], self::PRESENT_SPATIAL_KEYS, 'spatial');
         $this->validateLocalized($payload['spatial']['title'] ?? null, 'spatial.title');
         $this->validateLocalized($payload['spatial']['description'] ?? null, 'spatial.description');
         $this->validateLocalized($payload['spatial']['evidentiaryRuleTitle'] ?? null, 'spatial.evidentiaryRuleTitle');
@@ -401,6 +499,8 @@ final class EditorialValidator
         if (!isset($payload['globalHorizons']) || !is_array($payload['globalHorizons'])) {
             throw new EditorialValidationException("airport.present 'globalHorizons' is required.");
         }
+        // Closed shape for globalHorizons
+        $this->validateClosedShape($payload['globalHorizons'], self::PRESENT_GLOBAL_HORIZONS_KEYS, 'globalHorizons');
         $this->validateLocalized($payload['globalHorizons']['eyebrow'] ?? null, 'globalHorizons.eyebrow');
         $this->validateLocalized($payload['globalHorizons']['title'] ?? null, 'globalHorizons.title');
         $this->validateLocalized($payload['globalHorizons']['description'] ?? null, 'globalHorizons.description');
@@ -433,6 +533,8 @@ final class EditorialValidator
             if (!is_array($item) || !isset($item['code']) || !isset($item['photoId'])) {
                 throw new EditorialValidationException("assignments[$i] invalid structure.");
             }
+            // Closed shape for each assignment
+            $this->validateClosedShape($item, self::DEST_ASSIGN_KEYS, "assignments[$i]");
             if (!in_array($item['code'], self::DESTINATION_CODES, true) || in_array($item['code'], $seen, true)) {
                 throw new EditorialValidationException("Invalid or duplicate destination code '{$item['code']}'.");
             }
@@ -444,6 +546,8 @@ final class EditorialValidator
                 if (!is_array($item['focalPoint']) || !isset($item['focalPoint']['x']) || !isset($item['focalPoint']['y'])) {
                     throw new EditorialValidationException("assignments[$i].focalPoint must have x and y numbers.");
                 }
+                // Closed shape for focalPoint
+                $this->validateClosedShape($item['focalPoint'], self::FOCAL_POINT_KEYS, "assignments[$i].focalPoint");
                 $x = $item['focalPoint']['x'];
                 $y = $item['focalPoint']['y'];
                 if (!is_numeric($x) || $x < 0 || $x > 100 || !is_numeric($y) || $y < 0 || $y > 100) {
@@ -464,6 +568,8 @@ final class EditorialValidator
             if (!is_array($item) || !isset($item['code']) || !in_array($item['code'], self::DESTINATION_CODES, true)) {
                 throw new EditorialValidationException("destinations[$i] invalid code.");
             }
+            // Closed shape for each destination editorial item
+            $this->validateClosedShape($item, self::DEST_EDITORIAL_ITEM_KEYS, "destinations[$i]");
             if (in_array($item['code'], $seenCodes, true)) {
                 throw new EditorialValidationException("Duplicate destination code '{$item['code']}'.");
             }
@@ -481,6 +587,8 @@ final class EditorialValidator
                 if (!is_array($pt) || !isset($pt['id']) || !isset($pt['visible']) || !is_bool($pt['visible'])) {
                     throw new EditorialValidationException("destinations[$i].goodToKnow[$j] invalid structure.");
                 }
+                // Closed shape for each goodToKnow point
+                $this->validateClosedShape($pt, self::GOOD_TO_KNOW_KEYS, "destinations[$i].goodToKnow[$j]");
                 $this->validateSlug($pt['id'], "destinations[$i].goodToKnow[$j].id");
                 if (in_array($pt['id'], $seenPointIds, true)) {
                     throw new EditorialValidationException("Duplicate point id '{$pt['id']}' across goodToKnow.");
@@ -503,6 +611,8 @@ final class EditorialValidator
             if (!is_array($page) || !isset($page['id']) || !in_array($page['id'], $allowedPageIds, true)) {
                 throw new EditorialValidationException("pages[$i] invalid id.");
             }
+            // Closed shape for each page
+            $this->validateClosedShape($page, self::PAGE_KEYS, "pages[$i]");
             if (in_array($page['id'], $seenPageIds, true)) {
                 throw new EditorialValidationException("Duplicate page id '{$page['id']}'.");
             }
@@ -521,6 +631,8 @@ final class EditorialValidator
                 if (!is_array($b) || !isset($b['id']) || !isset($b['visible']) || !is_bool($b['visible'])) {
                     throw new EditorialValidationException("pages[$i].blocks[$j] invalid structure.");
                 }
+                // Closed shape for each block
+                $this->validateClosedShape($b, self::BLOCK_KEYS, "pages[$i].blocks[$j]");
                 $this->validateSlug($b['id'], "pages[$i].blocks[$j].id");
                 if (in_array($b['id'], $seenBlockIds, true)) {
                     throw new EditorialValidationException("Duplicate block id '{$b['id']}' across information pages.");

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AppLink } from "@/components/app-link";
 import { Container, Field, Input, Panel, Select, Code, btnClass } from "@/components/kit";
@@ -33,7 +33,7 @@ type PassengerInput = ReservationCommand["passengers"][number];
 const emptyPassenger = (index: number): PassengerInput => ({ id: `p${index}`, type: "adult", firstName: "", lastName: "", dob: "", nationality: "", document: "", seatCode: "", mealId: null });
 function BookingForm({ account, offeringId }: { account: PassengerAccount; offeringId: string }) {
   const { lang } = useI18n(); const ar = lang === "ar";
-  const cache = useQueryClient();
+  const cache = useQueryClient(); const fieldId = useId();
   const offering = useQuery({ queryKey: ["mvp", "offering", offeringId], retry: false, queryFn: async () => {
     const data = await getMvpUiClient().request({ method: "GET", path: `/offerings/${offeringId}`, realm: "public", schema: offeringWireSchema });
     if (data.id !== offeringId) throw new MvpApiError("protocol"); return data;
@@ -67,10 +67,10 @@ function BookingForm({ account, offeringId }: { account: PassengerAccount; offer
       if (status === 409) { void occupancy.refetch(); void offering.refetch(); void meals.refetch(); }
     } finally { setPending(false); }
   };
-  if (confirmed) return <div className="space-y-5"><h2 className="type-title-section">{ar ? "تم تأكيد الحجز" : "Booking confirmed"}</h2>
-    <ConfirmedReservationTicket data={confirmed} /><div className="flex flex-wrap gap-3"><button className={btnClass("primary", "md")} onClick={() => window.print()}>{ar ? "طباعة / حفظ PDF" : "Print / save PDF"}</button>
-      <AppLink to="/account/trips/$ref" params={{ ref: confirmed.reservation.reference }} className={btnClass("outline", "md")}>{ar ? "إدارة الحجز" : "Manage booking"}</AppLink></div>
-    <p>{ar ? "تم حفظ الحجز. حالة إرسال البريد غير متاحة بعد." : "Your booking is saved. Email delivery status is not available yet."}</p></div>;
+  if (confirmed) return <div className="space-y-5"><h2 className="type-title-section">{confirmed.reservation.status === "confirmed" ? (ar ? "تم تأكيد الحجز" : "Booking confirmed") : (ar ? "هذا الحجز ملغى" : "This booking was cancelled")}</h2>
+    <ConfirmedReservationTicket data={confirmed} /><div className="flex flex-wrap gap-3">{confirmed.reservation.status === "confirmed" && <button className={btnClass("primary", "md")} onClick={() => window.print()}>{ar ? "طباعة / حفظ PDF" : "Print / save PDF"}</button>}
+      <AppLink to="/account/trips/$ref" params={{ ref: confirmed.reservation.reference }} className={btnClass("outline", "md")}>{confirmed.reservation.status === "confirmed" ? (ar ? "إدارة الحجز" : "Manage booking") : (ar ? "عرض الحجز الملغى" : "View cancelled booking")}</AppLink></div>
+    <p>{confirmed.reservation.status === "confirmed" ? (ar ? "تم حفظ الحجز. حالة إرسال البريد غير متاحة بعد." : "Your booking is saved. Email delivery status is not available yet.") : (ar ? "أُعيد طلبك السابق دون إنشاء حجز آخر. لبدء حجز جديد، اختر رحلة من جديد." : "Your original submission was recovered without creating another booking. Choose a flight again to start a new booking.")}</p></div>;
   const unavailable = offering.isError || occupancy.isError || meals.isError;
   const loading = offering.isPending || occupancy.isPending || meals.isPending;
   return <div className="space-y-6">
@@ -95,14 +95,14 @@ function BookingForm({ account, offeringId }: { account: PassengerAccount; offer
               if (traveler) update(index, { firstName: traveler.firstName, lastName: traveler.lastName, dob: traveler.dob, nationality: traveler.nationality, document: traveler.document });
             }}><option value="">{ar ? "اختر مسافراً" : "Choose traveler"}</option>{travelers.data.map(item => <option key={item.id} value={item.id}>{item.firstName} {item.lastName}</option>)}</Select></Field>}
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <Field label={ar ? "الاسم الأول" : "First name"}><Input autoComplete="given-name" value={person.firstName} maxLength={120} onChange={e => update(index, { firstName: e.target.value })} /></Field>
-              <Field label={ar ? "اسم العائلة" : "Last name"}><Input autoComplete="family-name" value={person.lastName} maxLength={120} onChange={e => update(index, { lastName: e.target.value })} /></Field>
-              <Field label={ar ? "تاريخ الميلاد" : "Date of birth"}><Input type="date" required value={person.dob} max={offering.data.date} dir="ltr" onChange={e => update(index, { dob: e.target.value })} /></Field>
-              <Field label={ar ? "الفئة العمرية" : "Age category"}><Select value={person.type} onChange={e => update(index, { type: e.target.value as "adult" | "child" })}>
+              <Field label={ar ? "الاسم الأول" : "First name"} htmlFor={`${fieldId}-${index}-firstName`}><Input id={`${fieldId}-${index}-firstName`} autoComplete="given-name" value={person.firstName} maxLength={120} onChange={e => update(index, { firstName: e.target.value })} /></Field>
+              <Field label={ar ? "اسم العائلة" : "Last name"} htmlFor={`${fieldId}-${index}-lastName`}><Input id={`${fieldId}-${index}-lastName`} autoComplete="family-name" value={person.lastName} maxLength={120} onChange={e => update(index, { lastName: e.target.value })} /></Field>
+              <Field label={ar ? "تاريخ الميلاد" : "Date of birth"} htmlFor={`${fieldId}-${index}-dob`}><Input id={`${fieldId}-${index}-dob`} type="date" required value={person.dob} max={offering.data.date} dir="ltr" onChange={e => update(index, { dob: e.target.value })} /></Field>
+              <Field label={ar ? "الفئة العمرية" : "Age category"} htmlFor={`${fieldId}-${index}-type`}><Select id={`${fieldId}-${index}-type`} value={person.type} onChange={e => update(index, { type: e.target.value as "adult" | "child" })}>
                 <option value="adult">{ar ? "بالغ (١٢+)" : "Adult (12+)"}</option><option value="child">{ar ? "طفل (٢–١١)" : "Child (2–11)"}</option></Select></Field>
-              <Field label={ar ? "الجنسية" : "Nationality"}><Input required value={person.nationality} maxLength={120} onChange={e => update(index, { nationality: e.target.value })} /></Field>
-              <Field label={ar ? "وثيقة السفر" : "Travel document"}><Input required value={person.document} maxLength={120} onChange={e => update(index, { document: e.target.value })} /></Field>
-              <Field label={ar ? "الوجبة" : "Meal"}><Select value={person.mealId ?? ""} onChange={e => update(index, { mealId: e.target.value || null })}>
+              <Field label={ar ? "الجنسية" : "Nationality"} htmlFor={`${fieldId}-${index}-nationality`}><Input id={`${fieldId}-${index}-nationality`} required value={person.nationality} maxLength={120} onChange={e => update(index, { nationality: e.target.value })} /></Field>
+              <Field label={ar ? "وثيقة السفر" : "Travel document"} htmlFor={`${fieldId}-${index}-document`}><Input id={`${fieldId}-${index}-document`} required value={person.document} maxLength={120} onChange={e => update(index, { document: e.target.value })} /></Field>
+              <Field label={ar ? "الوجبة" : "Meal"} htmlFor={`${fieldId}-${index}-mealId`}><Select id={`${fieldId}-${index}-mealId`} value={person.mealId ?? ""} onChange={e => update(index, { mealId: e.target.value || null })}>
                 <option value="">{ar ? "بدون وجبة" : "No meal"}</option>{meals.data?.meals.map(item => <option key={item.id} value={item.id}>{pick(lang, item.label)}</option>)}</Select></Field>
             </div>
             {passengers.length > 1 && <button type="button" className={btnClass("ghost", "sm", "mt-3")} onClick={() => { setPassengers(current => current.filter((_, i) => i !== index)); setActive(0); }}>{ar ? "إزالة المسافر" : "Remove passenger"}</button>}
@@ -115,7 +115,7 @@ function BookingForm({ account, offeringId }: { account: PassengerAccount; offer
               onSelect={(index, seatCode) => update(index, { seatCode })} />
           </Panel>
           <Panel><h2 className="mb-4 text-xl font-semibold">{ar ? "بيانات التواصل" : "Contact details"}</h2><p className="mb-4 break-all" dir="ltr">{account.email}</p>
-            <Field label={ar ? "الهاتف (اختياري)" : "Phone (optional)"}><Input type="tel" dir="ltr" maxLength={32} value={phone} onChange={e => setPhone(e.target.value)} /></Field></Panel>
+            <Field label={ar ? "الهاتف (اختياري)" : "Phone (optional)"} htmlFor={`${fieldId}-phone`}><Input id={`${fieldId}-phone`} type="tel" dir="ltr" maxLength={32} value={phone} onChange={e => setPhone(e.target.value)} /></Field></Panel>
         </fieldset>
         {error && <p role="alert" tabIndex={-1} className="rounded-lg border border-clay p-4 text-clay">{error}</p>}
         <button type="submit" className={btnClass("primary", "lg")} disabled={pending}>{pending ? (ar ? "جارٍ التأكيد…" : "Confirming…") : locked ? (ar ? "إعادة تأكيد نفس الطلب" : "Retry same confirmation") : (ar ? "تأكيد الحجز المجاني" : "Confirm free booking")}</button>

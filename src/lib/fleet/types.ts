@@ -122,6 +122,16 @@ export class FleetError extends Error {
   }
 }
 
+/** POST returned a validated 201. Refresh reads; never repeat creation. */
+export class FleetCreateCommittedError extends FleetError {
+  readonly committedAircraft: Aircraft;
+  constructor(aircraft: Aircraft) {
+    super("fleet_unavailable");
+    this.name = "FleetCreateCommittedError";
+    this.committedAircraft = structuredClone(aircraft);
+  }
+}
+
 export function fleetErrorKey(error: unknown): string {
   if (error instanceof FleetError) {
     return `fleet.error.${error.reason}`;

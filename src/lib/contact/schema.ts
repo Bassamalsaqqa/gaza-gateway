@@ -61,7 +61,7 @@ export const contactCreateInputSchema = z.object({
     .string()
     .trim()
     .transform((val) => val.toUpperCase())
-    .refine((val) => val === "" || /^[A-Z0-9]{4,12}$/.test(val), {
+    .refine((val) => val === "" || /^(GZA-)?[A-Z0-9]{4,12}$/.test(val), {
       message: "Booking reference must be 4–12 alphanumeric characters (e.g. GZA4TQ)",
     })
     .transform((val) => (val === "" ? undefined : val))
@@ -109,7 +109,7 @@ export const contactMessageSchema = z
     language: z.enum(CONTACT_LANGUAGES as [ContactLanguage, ...ContactLanguage[]]),
     bookingRef: z
       .string()
-      .regex(/^[A-Z0-9]{4,12}$/)
+      .regex(/^(GZA-)?[A-Z0-9]{4,12}$/)
       .optional(),
     status: z.enum(CONTACT_STATUSES as [ContactStatus, ...ContactStatus[]]),
     createdAt: z.string().datetime({ offset: true }),

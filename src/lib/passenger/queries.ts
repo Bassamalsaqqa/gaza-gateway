@@ -15,6 +15,7 @@ import {
 } from "@tanstack/react-query";
 import { useRepositories } from "../repositories/registry.ts";
 import { bookingKeys } from "../repositories/keys.ts";
+import { identityUiRequested } from "../api/identity-ui-runtime.ts";
 import { passengerKeys } from "./keys.ts";
 import {
   bookingsForAccount,
@@ -41,7 +42,8 @@ export function usePassengerAccount(): UseQueryResult<PassengerAccount | null, E
   }, [passengerRepo, queryClient]);
 
   return useQuery({
-    queryKey: passengerKeys.account(),
+    queryKey: identityUiRequested && typeof window === "undefined" ? [...passengerKeys.account(), "server-shell"] : passengerKeys.account(),
+    enabled: !identityUiRequested || typeof window !== "undefined",
     queryFn: () => passengerRepo.getAccount(),
   });
 }
@@ -60,7 +62,8 @@ export function usePassengerTravelers(): UseQueryResult<Traveler[], Error> {
   }, [passengerRepo, queryClient]);
 
   return useQuery({
-    queryKey: passengerKeys.travelers(),
+    queryKey: identityUiRequested && typeof window === "undefined" ? [...passengerKeys.travelers(), "server-shell"] : passengerKeys.travelers(),
+    enabled: !identityUiRequested || typeof window !== "undefined",
     queryFn: () => passengerRepo.listTravelers(),
   });
 }

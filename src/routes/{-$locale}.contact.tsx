@@ -1,3 +1,5 @@
+import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
+import { siteClient } from "@/lib/settings/site-client";
 import { compiledContentHead } from "@/content/head";
 import { createFileRoute } from "@tanstack/react-router";
 import { CheckCircle2, Mail, MapPin, Phone, Send } from "lucide-react";
@@ -36,7 +38,7 @@ export const Route = createFileRoute("/{-$locale}/contact")({
   validateSearch: (search: Record<string, unknown>): ContactSearch => {
     const out: ContactSearch = {};
     if (search["contentPreview"] === "1" || search["contentPreview"] === 1) out.contentPreview = 1;
-    if (search["settingsPreview"] === "1" || search["settingsPreview"] === 1) {
+    if (!identityUiRequested && (search["settingsPreview"] === "1" || search["settingsPreview"] === 1)) {
       out.settingsPreview = 1;
     }
     return out;
@@ -90,6 +92,8 @@ function ContactPage() {
   }, [isSuccess]);
 
   // Contact settings state (Phase 4C preserved)
+  const [settingsReady, setSettingsReady] = useState(!identityUiRequested);
+  const [settingsLoadError, setSettingsLoadError] = useState(false);
   const [settings, setSettings] = useState<ContactSettings>(PUBLISHED_CONTACT_SETTINGS);
   const [activeDraft, setActiveDraft] = useState<ContactSettings | null>(null);
 
@@ -97,6 +101,12 @@ function ContactPage() {
     let unmounted = false;
 
     const syncSettings = async () => {
+      if (identityUiRequested) {
+        try { const live = await siteClient.publishedContact(); if (!unmounted) { setSettings(live); setSettingsLoadError(false); } }
+        catch { if (!unmounted) setSettingsLoadError(true); }
+        finally { if (!unmounted) setSettingsReady(true); }
+        return;
+      }
       if (search.settingsPreview === 1 && typeof window !== "undefined") {
         try {
           const draft = await settingsRepository.getContactDraft();
@@ -128,7 +138,7 @@ function ContactPage() {
 
     // Subscribe to saved-draft events and cross-tab storage changes
     const unsub = settingsRepository.subscribe((newEnvelope) => {
-      if (!unmounted && search.settingsPreview === 1) {
+      if (!identityUiRequested && !unmounted && search.settingsPreview === 1) {
         const contactDraft = newEnvelope?.site?.contact ?? null;
         if (contactDraft) {
           setSettings(contactDraft);
@@ -193,10 +203,10 @@ function ContactPage() {
     setFieldErrors({});
     setIsPending(true);
     submitting.current = true;
-    setSuccessIsPreview(search.settingsPreview === 1);
+    setSuccessIsPreview(!identityUiRequested && search.settingsPreview === 1);
 
     try {
-      if (search.settingsPreview === 1) {
+      if (!identityUiRequested && search.settingsPreview === 1) {
         // Settings preview immunity: validate normally, but do NOT write to gza.contact.v1!
         // Storage remains byte-for-byte untouched.
         setIsSuccess(true);
@@ -389,19 +399,20 @@ function ContactPage() {
                 {t("contact.send")}
               </Button>
 
-              <Notice>
+              {!identityUiRequested && <Notice>
                 {search.settingsPreview === 1
                   ? t("contact.previewNotice")
                   : pick(lang, {
                       en: "Prototype form: enquiries are saved in this browser for workflow testing.",
                       ar: "نموذج تجريبي: تُحفظ الاستفسارات في هذا المتصفح لاختبار سير العمل.",
                     })}
-              </Notice>
+              </Notice>}
             </form>
           )}
         </div>
 
         <aside className="space-y-4">
+          {!settingsReady ? <p role="status">{lang === "ar" ? "جارٍ تحميل بيانات التواصل…" : "Loading contact details…"}</p> : settingsLoadError ? <p role="alert">{lang === "ar" ? "تعذر تحميل بيانات التواصل. حدّث الصفحة للمحاولة مجدداً." : "Contact details could not be loaded. Refresh the page to retry."}</p> : <>
           <Panel>
             <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
               {t("contact.details")}
@@ -448,6 +459,7 @@ function ContactPage() {
               ))}
             </ul>
           </Panel>
+          </>}
         </aside>
       </Container>
     </>

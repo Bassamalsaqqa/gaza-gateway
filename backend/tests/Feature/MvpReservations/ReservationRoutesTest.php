@@ -203,6 +203,48 @@ final class ReservationRoutesTest extends TestCase
             default => null,
         };
 
+
+
+        $siteOperation = match (true) {
+            $routePath === '/site/contact' => 'getSiteContact',
+            $routePath === '/contact' => 'postSiteContact',
+            $routePath === '/admin/settings/contact' => 'getSiteContactSettings',
+            $routePath === '/admin/settings/contact/draft' => 'putSiteContactDraft',
+            $routePath === '/admin/settings/contact/publish' => 'postSiteContactPublish',
+            $routePath === '/admin/settings/contact/discard' => 'postSiteContactDiscard',
+            $routePath === '/admin/contact/inbox' => 'getSiteContactInbox',
+            preg_match('#^/admin/contact/inbox/[^/]+$#',$routePath) === 1 => 'getSiteContactMessage',
+            preg_match('#^/admin/contact/inbox/[^/]+/status$#',$routePath) === 1 => 'patchSiteContactStatus',
+            preg_match('#^/admin/contact/inbox/[^/]+/assign$#',$routePath) === 1 => 'patchSiteContactAssignee',
+            preg_match('#^/admin/contact/inbox/[^/]+/notes$#',$routePath) === 1 => 'postSiteContactNote',
+            preg_match('#^/admin/contact/inbox/[^/]+/reply-draft$#',$routePath) === 1 => 'putSiteContactReplyDraft',
+            default => null,
+        };
+        if ($siteOperation !== null) {
+            $file = '/tmp/site-captures.json';
+            $all = is_file($file) ? json_decode(file_get_contents($file),true,32,JSON_THROW_ON_ERROR) : [];
+            $all[$siteOperation.':'.$response->status()] ??= ['operationId'=>$siteOperation,'status'=>$response->status(),
+                'contentType'=>$response->headers->get('Content-Type'),'payload'=>$response->json()];
+            file_put_contents($file,json_encode($all,JSON_THROW_ON_ERROR),LOCK_EX);
+        }
+
+        $mailOperation = match (true) {
+            $routePath === '/admin/settings/email' => $method === 'GET' ? 'getAdminMailSettings' : 'putAdminMailSettings',
+            $routePath === '/admin/settings/email/test' => 'postAdminTestMail',
+            $routePath === '/admin/mail/messages' => 'getAdminMailMessages',
+            preg_match('#^/reservations/[^/]+/email$#',$routePath) === 1 => 'getReservationMailStatus',
+            preg_match('#^/reservations/[^/]+/email/resend$#',$routePath) === 1 => 'postReservationMailResend',
+            preg_match('#^/admin/reservations/[^/]+/email/resend$#',$routePath) === 1 => 'postAdminReservationMailResend',
+            default => null,
+        };
+        if ($mailOperation !== null) {
+            $file = '/tmp/mail-captures.json';
+            $all = is_file($file) ? json_decode(file_get_contents($file),true,32,JSON_THROW_ON_ERROR) : [];
+            $all[$mailOperation.':'.$response->status()] ??= ['operationId'=>$mailOperation,'status'=>$response->status(),
+                'contentType'=>$response->headers->get('Content-Type'),'payload'=>$response->json()];
+            file_put_contents($file,json_encode($all,JSON_THROW_ON_ERROR),LOCK_EX);
+        }
+
         if ($operation !== null && getenv('REFERENCE_GATE_OWNED') === '1') {
             $file = '/tmp/reference-captures.json';
             $captures = is_file($file) ? json_decode(file_get_contents($file), true, 32, JSON_THROW_ON_ERROR) : [];
@@ -254,7 +296,7 @@ final class ReservationRoutesTest extends TestCase
 
     public function test_migration_cycle_reversibility(): void
     {
-        $status = Artisan::call('migrate:rollback', ['--step' => 1]);
+        $status = Artisan::call('migrate:rollback', ['--step' => 3]);
         $this->assertSame(0, $status);
         $this->assertFalse(DB::getSchemaBuilder()->hasTable('mvp_reservations'));
         $this->assertFalse(DB::getSchemaBuilder()->hasTable('mvp_services'));
@@ -709,33 +751,37 @@ final class ReservationRoutesTest extends TestCase
         $this->http('POST', '/admin/reservations/GZA-NONE/cancel', $staff, null, [], null, 'gza_staff_session')->assertStatus(404);
     }
 
-    public function test_rate_limiting_429(): void
+    public function test_review_reservation_limits_real_identity_and_shared_ip(): void
     {
-        $passenger = $this->passenger();
-        $staff = $this->staff();
-        $serviceId = $this->sampleServiceId();
-
-        RateLimiter::for('reference', static fn($request) =>
-            \Illuminate\Cache\RateLimiting\Limit::perMinute(1)->by('reference:'.$request->ip()));
-
-        $cases = [
-            ['GET', '/offerings/'.$serviceId.'/seats', [], null, 'gza_session'],
-            ['POST', '/reservations', $passenger, $this->sampleCommand($serviceId, '20A'), 'gza_session'],
-            ['GET', '/reservations', $passenger, null, 'gza_session'],
-            ['GET', '/reservations/GZA-TEST', $passenger, null, 'gza_session'],
-            ['POST', '/reservations/GZA-TEST/cancel', $passenger, null, 'gza_session'],
-            ['GET', '/reservations/GZA-TEST/ticket', $passenger, null, 'gza_session'],
-            ['GET', '/admin/reservations', $staff, null, 'gza_staff_session'],
-            ['GET', '/admin/reservations/GZA-TEST', $staff, null, 'gza_staff_session'],
-            ['POST', '/admin/reservations/GZA-TEST/cancel', $staff, null, 'gza_staff_session'],
-        ];
-
-        foreach ($cases as [$method, $path, $session, $body, $cookieName]) {
-            $ip = '2001:db8:'.bin2hex(random_bytes(2)).'::7';
-            $headers = ['REMOTE_ADDR' => $ip];
-            $this->http($method, $path, $session, $body, $headers, null, $cookieName);
-            $this->http($method, $path, $session, $body, $headers, null, $cookieName)->assertStatus(429);
+        $before = DB::table('mvp_reservations')->count();
+        $a = $this->passenger(); $b = $this->passenger(); $service = $this->sampleServiceId();
+        for ($i = 0; $i < 20; $i++) $this->http('POST', '/reservations', $a, [])->assertStatus(422);
+        $this->http('POST', '/reservations', $a, [])->assertStatus(429)->assertHeader('Retry-After');
+        $this->http('POST', '/reservations', $b, [], ['REMOTE_ADDR' => '2001:db8:feed::1'])->assertStatus(422);
+        $c = $this->passenger(); $d = $this->passenger(); $shared = ['REMOTE_ADDR' => '2001:db8:feed::2'];
+        for ($i = 0; $i < 15; $i++) {
+            $this->http('POST', '/reservations', $c, [], $shared)->assertStatus(422);
+            $this->http('POST', '/reservations', $d, [], $shared)->assertStatus(422);
         }
+        $this->http('POST', '/reservations', $d, [], $shared)->assertStatus(429)->assertHeader('Retry-After');
+        $publicIp = ['REMOTE_ADDR' => '2001:db8:feed::3'];
+        for ($i = 0; $i < 60; $i++) $this->http('GET', '/offerings/'.$service.'/seats', [], null, $publicIp)->assertStatus(200);
+        $this->http('GET', '/offerings/'.$service.'/seats', [], null, $publicIp)->assertStatus(429)->assertHeader('Retry-After');
+        $this->http('GET', '/offerings/'.$service.'/seats')->assertStatus(200);
+        $this->assertSame($before, DB::table('mvp_reservations')->count());
+    }
+
+    public function test_review_replay_after_cancel_returns_cancelled_and_no_new_claim(): void
+    {
+        $user = $this->passenger(); $cmd = $this->sampleCommand($this->sampleServiceId(), '20A');
+        $first = $this->http('POST', '/reservations', $user, $cmd)->assertStatus(201);
+        $ref = $first->json('data.reservation.reference');
+        $this->http('POST', '/reservations/'.$ref.'/cancel', $user)->assertStatus(200);
+        $this->http('POST', '/reservations', $user, $cmd)->assertStatus(200)
+            ->assertJsonPath('data.reservation.status', 'cancelled')->assertJsonPath('data.ticket.status', 'cancelled')
+            ->assertJsonPath('data.reservation.reference', $ref);
+        $this->assertSame(1, DB::table('mvp_reservations')->where('reference', $ref)->count());
+        $this->assertSame(0, DB::table('mvp_reservation_seat_claims')->where('reservation_id', $first->json('data.reservation.id'))->count());
     }
 
     public function test_service_unavailable_503(): void
@@ -893,4 +939,159 @@ final class ReservationRoutesTest extends TestCase
         } while (microtime(true) < $deadline);
         throw new \RuntimeException('Worker deadline exceeded.');
     }
+
+    private function mailConfig(array $staff, array $patch = []): array
+    {
+        $revision = app(\App\Mvp\Mail\MailSettings::class)->read()['revision'];
+        return array_replace(['expectedRevision'=>$revision,'driver'=>'capture','host'=>'mailpit','port'=>1025,'tls'=>'none',
+            'senderName'=>'Gaza Gateway','senderEmail'=>'tickets@example.test','replyTo'=>'','username'=>'fixture-user','password'=>'secret-mail-sentinel'], $patch);
+    }
+
+    public function test_mail_settings_authority_encryption_csrf_and_closed_fields(): void
+    {
+        $admin = $this->staff(); $editor = $this->staff('editor');
+        $path = '/admin/settings/email'; $body = $this->mailConfig($admin);
+        $this->http('GET',$path)->assertStatus(401);
+        $this->http('PUT',$path,$editor,$body,[],null,'gza_staff_session')->assertStatus(403);
+        $this->http('PUT',$path,$admin,$body,['HTTP_X_CSRF_TOKEN'=>'wrong'],null,'gza_staff_session')->assertStatus(403);
+        $response = $this->http('PUT',$path,$admin,$body,[],null,'gza_staff_session')->assertStatus(200);
+        $this->assertTrue($response->json('data.passwordSet'));
+        $this->assertStringNotContainsString('secret-mail-sentinel',$response->getContent());
+        $stored = DB::table('mvp_mail_settings')->where('id',1)->value('encrypted_config');
+        $this->assertStringNotContainsString('secret-mail-sentinel',$stored);
+        $this->assertStringContainsString('secret-mail-sentinel',\Illuminate\Support\Facades\Crypt::decryptString($stored));
+        $this->http('PUT',$path,$admin,$body,[],null,'gza_staff_session')->assertStatus(409);
+        $bad = $this->mailConfig($admin,['driver'=>'smtp','host'=>'169.254.169.254']);
+        $this->http('PUT',$path,$admin,$bad,[],null,'gza_staff_session')->assertStatus(422);
+        $this->http('PUT',$path,$admin,$this->mailConfig($admin,['script'=>'bad']),[],null,'gza_staff_session')->assertStatus(422);
+    }
+
+    public function test_mail_booking_capture_retry_and_owner_resend(): void
+    {
+        $admin = $this->staff(); $owner = $this->passenger(); $foreign = $this->passenger();
+        app(\App\Mvp\Mail\MailSettings::class)->save($this->mailConfig($admin),$admin['owner']);
+        // Prior test messages do not influence this isolated scenario.
+        DB::table('mvp_mail_messages')->whereIn('status',['pending','failed'])->update(['status'=>'cancelled']);
+        $create = $this->http('POST','/reservations',$owner,$this->sampleCommand($this->sampleServiceId('2026-12-28'),'2A','meal-standard'))->assertStatus(201);
+        $ref = $create->json('data.reservation.reference');
+        $worker = app(\App\Mvp\Mail\BookingMailWorker::class);
+        $worker->adoptIntents($create->json('data.reservation.id'));
+        $message = DB::table('mvp_mail_messages')->where('reservation_id',$create->json('data.reservation.id'))->first();
+        // A real file-system failure is safely retryable; booking remains confirmed.
+        config(['mvp-mail.capture_path'=>'/proc/gaza-mail-unwritable']);
+        $this->assertTrue($worker->runOne());
+        $this->assertSame('failed',DB::table('mvp_mail_messages')->where('id',$message->id)->value('status'));
+        $root = '/tmp/booking-mail-'.Str::uuid(); config(['mvp-mail.capture_path'=>$root]);
+        DB::table('mvp_mail_messages')->where('id',$message->id)->update(['next_attempt_at'=>DB::raw('clock_timestamp()')]);
+        $this->assertTrue($worker->runOne());
+        $this->assertSame('captured_locally',DB::table('mvp_mail_messages')->where('id',$message->id)->value('status'));
+        $this->assertSame(2,DB::table('mvp_mail_attempts')->where('message_id',$message->id)->count());
+        $files = glob($root.'/*.eml'); $this->assertCount(1,$files);
+        $bytes = file_get_contents($files[0]);
+        $this->assertStringContainsString('multipart/alternative',$bytes);
+        $this->assertStringContainsString('dir=3D"rtl"',$bytes);
+        $this->assertStringContainsString($ref,$bytes);
+        $this->assertStringNotContainsString('DOC-123456',$bytes);
+        $this->assertFalse($worker->runOne());
+        $this->http('GET','/reservations/'.$ref.'/email',$foreign)->assertStatus(404);
+        $this->http('GET','/reservations/'.$ref.'/email',$owner)->assertStatus(200)->assertJsonPath('data.status','captured_locally');
+        $resend = ['requestId'=>(string)Str::uuid()];
+        $this->http('POST','/reservations/'.$ref.'/email/resend',$owner,$resend)->assertStatus(200)->assertJsonPath('data.generation',2);
+        $this->http('POST','/reservations/'.$ref.'/email/resend',$owner,$resend)->assertStatus(200)->assertJsonPath('data.generation',2);
+        $this->assertTrue($worker->runOne());
+        $this->assertCount(2,glob($root.'/*.eml'));
+        $this->http('POST','/reservations/'.$ref.'/cancel',$owner,[])->assertStatus(200);
+        $this->http('POST','/reservations/'.$ref.'/email/resend',$owner,['requestId'=>(string)Str::uuid()])->assertStatus(409);
+        foreach (glob($root.'/*.eml') as $file) { touch($file,time()-90000); }
+        $this->assertSame(2,$worker->purgeCaptures()); rmdir($root);
+    }
+
+    public function test_mail_expired_lease_is_uncertain_and_outer_transaction_cannot_dispatch(): void
+    {
+        $admin = $this->staff(); $worker = app(\App\Mvp\Mail\BookingMailWorker::class);
+        app(\App\Mvp\Mail\MailSettings::class)->save($this->mailConfig($admin),$admin['owner']);
+        $queued = $worker->queueTest('mail-test@example.test'); $lease = (string)Str::uuid();
+        DB::table('mvp_mail_messages')->where('id',$queued['id'])->update(['status'=>'processing','attempts'=>1,'lease_id'=>$lease,'lease_until'=>DB::raw("clock_timestamp() - interval '1 minute'")]);
+        DB::table('mvp_mail_attempts')->insert(['id'=>$lease,'message_id'=>$queued['id'],'generation'=>1,'attempt'=>1,'settings_revision'=>1,'outcome'=>'processing']);
+        $worker->runOne();
+        $this->assertSame('uncertain',DB::table('mvp_mail_messages')->where('id',$queued['id'])->value('status'));
+        $this->assertSame('uncertain',DB::table('mvp_mail_attempts')->where('id',$lease)->value('outcome'));
+        DB::beginTransaction();
+        try { $worker->runOne(); $this->fail('Uncommitted dispatch must fail.'); }
+        catch (\LogicException) { $this->assertTrue(true); }
+        finally { DB::rollBack(); }
+    }
+
+
+    public function test_mail_http_contract_matrix_and_principal_budget(): void
+    {
+        $admin = $this->staff(); $owner = $this->passenger();
+        $this->http('GET','/admin/settings/email',$admin,null,[],null,'gza_staff_session')->assertStatus(200);
+        $this->http('PUT','/admin/settings/email',$admin,$this->mailConfig($admin),[],null,'gza_staff_session')->assertStatus(200);
+        $this->http('POST','/admin/settings/email/test',$admin,['recipient'=>'sink@example.test'],[],null,'gza_staff_session')->assertStatus(202);
+        $root = '/tmp/booking-mail-'.Str::uuid(); config(['mvp-mail.capture_path'=>$root]);
+        $created = $this->http('POST','/reservations',$owner,$this->sampleCommand($this->sampleServiceId('2026-12-29'),'3A'))->assertStatus(201);
+        $ref = $created->json('data.reservation.reference'); $worker = app(\App\Mvp\Mail\BookingMailWorker::class);
+        for ($i = 0; $i < 10 && $worker->runOne(); $i++) {}
+        $this->http('GET','/admin/mail/messages',$admin,null,[],null,'gza_staff_session')->assertStatus(200);
+        $this->http('GET','/reservations/'.$ref.'/email',$owner)->assertStatus(200)->assertJsonPath('data.status','captured_locally');
+        $this->http('POST','/admin/reservations/'.$ref.'/email/resend',$admin,['requestId'=>(string)Str::uuid()],[],null,'gza_staff_session')->assertStatus(200);
+        $this->assertTrue($worker->runOne());
+        $this->http('POST','/reservations/'.$ref.'/email/resend',$owner,['requestId'=>(string)Str::uuid()])->assertStatus(200);
+        $this->http('POST','/admin/settings/email/test',$admin,['recipient'=>'sink@example.test'],[],null,'gza_staff_session')->assertStatus(202);
+        $this->http('POST','/admin/settings/email/test',$admin,['recipient'=>'sink@example.test'],[],null,'gza_staff_session')->assertStatus(429)->assertHeader('Retry-After');
+        foreach (glob($root.'/*.eml') as $file) unlink($file); rmdir($root);
+    }
+
+
+    public function test_site_contact_anonymous_replay_and_server_inbox_workflow(): void
+    {
+        $anon = app(PassengerSessionStore::class)->issueAnonymous();
+        $session=['cookie'=>$anon->getRawToken(),'csrf'=>$anon->getCsrfToken()]; $admin=$this->staff();
+        $body=['submissionId'=>(string)Str::uuid(),'senderName'=>'Synthetic Visitor','email'=>'visitor@example.test','topic'=>'booking','message'=>'A synthetic contact enquiry.','language'=>'en','bookingRef'=>'GZA-TEST123'];
+        $this->http('POST','/contact',[],$body)->assertStatus(403);
+        $this->http('POST','/contact',$session,$body,['HTTP_ORIGIN'=>'https://hostile.invalid'])->assertStatus(403);
+        $response=$this->http('POST','/contact',$session,$body)->assertStatus(202); $id=$response->json('data.id');
+        $this->assertSame(['id','createdAt','status'],array_keys($response->json('data')));
+        $this->assertStringNotContainsString('visitor@example.test',$response->getContent());
+        $this->http('POST','/contact',$session,$body)->assertStatus(202)->assertJsonPath('data.id',$id);
+        $this->http('POST','/contact',$session,[...$body,'message'=>'Conflicting synthetic contact message.'])->assertStatus(409);
+        $this->assertSame(1,DB::table('contact_messages')->where('submission_id',$body['submissionId'])->count());
+        $base='/admin/contact/inbox';
+        $this->http('GET',$base)->assertStatus(401);
+        $this->http('GET',$base,$admin,null,[],null,'gza_staff_session')->assertStatus(200)->assertJsonPath('data.countNew',1);
+        $this->http('PATCH',$base.'/'.$id.'/status',$admin,['status'=>'open'],[],null,'gza_staff_session')->assertStatus(200)->assertJsonPath('data.changed',true);
+        $this->http('PATCH',$base.'/'.$id.'/status',$admin,['status'=>'open'],[],null,'gza_staff_session')->assertStatus(200)->assertJsonPath('data.changed',false);
+        $this->http('PATCH',$base.'/'.$id.'/assign',$admin,['staffId'=>$admin['owner']],[],null,'gza_staff_session')->assertStatus(200);
+        $this->http('POST',$base.'/'.$id.'/notes',$admin,['body'=>'Private staff note','staffId'=>$admin['owner']],[],null,'gza_staff_session')->assertStatus(422);
+        $this->http('POST',$base.'/'.$id.'/notes',$admin,['body'=>'Private staff note'],[],null,'gza_staff_session')->assertStatus(200);
+        $this->assertSame($admin['owner'],DB::table('contact_notes')->where('message_id',$id)->value('staff_id'));
+        $this->http('PUT',$base.'/'.$id.'/reply-draft',$admin,['replyDraft'=>'Saved draft, not sent.'],[],null,'gza_staff_session')->assertStatus(200);
+        $this->http('GET',$base.'/'.$id,$admin,null,[],null,'gza_staff_session')->assertStatus(200)->assertJsonPath('data.replyDraft','Saved draft, not sent.');
+        $this->assertSame(4,DB::table('contact_audits')->where('message_id',$id)->count());
+    }
+
+    public function test_site_contact_settings_draft_publish_and_immutable_revisions(): void
+    {
+        $admin=$this->staff(); $editor=$this->staff('editor'); $path='/admin/settings/contact';
+        $payload=['phone'=>'+970 599 123456','email'=>'contact@example.test','addressEn'=>'Synthetic address','addressAr'=>'Synthetic fixture',
+            'socialInstagram'=>'','socialX'=>'','socialFacebook'=>'','socialYouTube'=>'https://www.youtube.com/@synthetic'];
+        $this->http('GET','/site/contact')->assertStatus(404);
+        $this->http('GET',$path,$admin,null,[],null,'gza_staff_session')->assertStatus(200);
+        $this->http('GET',$path,$editor,null,[],null,'gza_staff_session')->assertStatus(403);
+        $this->http('PUT',$path.'/draft',$admin,['expectedRevision'=>0,'payload'=>$payload],[],null,'gza_staff_session')->assertStatus(200)->assertJsonPath('data.revision',1);
+        $this->http('GET','/site/contact')->assertStatus(404);
+        $this->http('POST',$path.'/publish',$admin,['expectedRevision'=>0],[],null,'gza_staff_session')->assertStatus(409);
+        $this->http('POST',$path.'/publish',$admin,['expectedRevision'=>1],[],null,'gza_staff_session')->assertStatus(200)->assertJsonPath('data.publishedRevision',2);
+        $this->http('GET','/site/contact')->assertStatus(200)->assertJsonPath('data.payload.socialYouTube',$payload['socialYouTube']);
+        $this->http('PUT',$path.'/draft',$admin,['expectedRevision'=>2,'payload'=>[...$payload,'script'=>'bad']],[],null,'gza_staff_session')->assertStatus(422);
+        $this->http('PUT',$path.'/draft',$admin,['expectedRevision'=>2,'payload'=>[...$payload,'socialYouTube'=>'javascript:alert(1)']],[],null,'gza_staff_session')->assertStatus(422);
+        $this->http('PUT',$path.'/draft',$admin,['expectedRevision'=>2,'payload'=>[...$payload,'addressEn'=>'Changed draft']],[],null,'gza_staff_session')->assertStatus(200);
+        $this->http('GET','/site/contact')->assertStatus(200)->assertJsonPath('data.payload.addressEn','Synthetic address');
+        $this->http('POST',$path.'/discard',$admin,['expectedRevision'=>3],[],null,'gza_staff_session')->assertStatus(200)->assertJsonPath('data.revision',4);
+        try { DB::table('mvp_site_revisions')->where('slug','contact')->update(['payload'=>'{}']); $this->fail('Published revisions must be immutable.'); }
+        catch (QueryException) { $this->assertTrue(true); }
+        $this->assertSame(1,DB::table('mvp_site_revisions')->where('slug','contact')->count());
+    }
+
 }

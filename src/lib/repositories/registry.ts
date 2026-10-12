@@ -52,6 +52,8 @@ import { PassengerStorageCoordinator, type PassengerStorageV1 } from "../passeng
 import { LocalBookingDraftRepository } from "../booking-draft/repository.ts";
 import { BookingDraftStorageCoordinator } from "../booking-draft/storage.ts";
 import type { Draft } from "../booking-draft/types.ts";
+import { HttpContactRepository } from "../contact/http-repository.ts";
+import type { ContactRepository } from "../contact/types.ts";
 import { LocalContactRepository } from "../contact/repository.ts";
 import { ContactStorageCoordinator } from "../contact/storage.ts";
 import type { ContactEnvelope } from "../contact/types.ts";
@@ -66,6 +68,7 @@ import { contactKeys } from "../contact/keys.ts";
 import { scheduleKeys } from "../schedules/keys.ts";
 
 export interface CreateRepositoriesOptions {
+  contactRepository?: ContactRepository | undefined;
   contentRepository?: ContentRepository | undefined;
   passengerRepository?: PassengerRepository;
   /** Fixture resolver injection is restricted to explicitly isolated memory registries. */
@@ -176,7 +179,7 @@ export function createRepositories(options?: CreateRepositoriesOptions): Reposit
   });
   const passenger = options?.passengerRepository ?? new LocalPassengerRepository(passengerCoordinator!, commercial);
   const bookingDraft = new LocalBookingDraftRepository(bookingDraftCoordinator, commercial, fleet);
-  const contact = new LocalContactRepository({ coordinator: contactCoordinator });
+  const contact = options?.contactRepository ?? new LocalContactRepository({ coordinator: contactCoordinator });
   const staffCoordinator =
     options?.staffCoordinator ??
     new StaffStorageCoordinator({
@@ -284,6 +287,7 @@ export function getDefaultRepositories(): RepositoryRegistry {
   if (!browserRepositories) {
     browserRepositories = createRepositories(identityUiRequested
       ? {
+          contactRepository: new HttpContactRepository(getMvpUiClient),
           contentRepository: new HttpContentRepository(getMvpUiClient),
           passengerRepository: new HttpPassengerRepository(getIdentityUiClient),
           fleetRepository: new HttpFleetRepository(getReferenceUiClient),

@@ -56,6 +56,10 @@ final class EditorialCoordinator
             throw new EditorialNotFoundException("Published revision not found for '$slug'.");
         }
 
+        $payload = json_decode($revRow->snapshot_bytes, true, 512, JSON_THROW_ON_ERROR);
+        try { $this->validator->validate($slug, $payload); }
+        catch (EditorialValidationException $e) { throw new \UnexpectedValueException("Stored published document is invalid.", 0, $e); }
+
         return [
             'id' => $slug,
             'kind' => $slug,
@@ -63,7 +67,7 @@ final class EditorialCoordinator
             'revisionNumber' => (int) $doc->published_revision,
             'status' => 'published',
             'updatedAt' => CarbonImmutable::parse($doc->updated_at)->toIso8601String(),
-            'payload' => json_decode($revRow->snapshot_bytes, true, 512, JSON_THROW_ON_ERROR),
+            'payload' => $payload,
         ];
     }
 

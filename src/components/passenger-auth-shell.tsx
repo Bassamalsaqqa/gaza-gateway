@@ -3,6 +3,7 @@ import { Plane } from "lucide-react";
 import { Container } from "@/components/kit";
 import { ResponsiveImage } from "@/components/responsive-image";
 import { useI18n } from "@/lib/i18n";
+import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
 import { cn } from "@/lib/utils";
 
 export interface PassengerAuthShellProps {
@@ -21,6 +22,8 @@ export function PassengerAuthShell({
   mediaPanel,
 }: PassengerAuthShellProps) {
   const { t, lang } = useI18n();
+  const secureAccess = identityUiRequested ? (lang === "ar" ? "دخول آمن إلى الحساب" : "Secure account access") : t("auth.secureAccess");
+  const accountNote = identityUiRequested ? (lang === "ar" ? "تدير خدمة الحساب هويتك وجلساتك." : "Your identity and sessions are managed by the account service.") : t("auth.demoNote");
   const isSignInMedia = mediaPanel === "signin" || mediaPanel === true;
 
   return (
@@ -65,7 +68,7 @@ export function PassengerAuthShell({
                   {t("brand.airport")}
                 </p>
                 <p className="mt-1.5 max-w-xs text-xl font-bold leading-snug text-white">
-                  {t("auth.secureAccess")}
+                  {secureAccess}
                 </p>
               </div>
             </div>
@@ -90,9 +93,9 @@ export function PassengerAuthShell({
               >
                 {t("brand.airport")}
               </p>
-              <p className="mt-2 max-w-xs text-xl font-bold leading-snug">{t("auth.secureAccess")}</p>
+              <p className="mt-2 max-w-xs text-xl font-bold leading-snug">{secureAccess}</p>
             </div>
-            <p className="relative mt-8 text-xs leading-relaxed text-white/55">{t("auth.demoNote")}</p>
+            <p className="relative mt-8 text-xs leading-relaxed text-white/55">{accountNote}</p>
           </div>
         )}
 
@@ -106,7 +109,7 @@ export function PassengerAuthShell({
               data-auth-disclosure="signin"
               className="mt-4 text-xs leading-relaxed text-muted-foreground"
             >
-              {t("auth.demoNote")}
+              {accountNote}
             </p>
           ) : null}
           {footer ? <div className="mt-5 border-t border-border pt-5">{footer}</div> : null}

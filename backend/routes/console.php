@@ -95,3 +95,19 @@ Artisan::command('probe:check-job {probeId}', function (string $probeId) {
 \Illuminate\Support\Facades\Schedule::command('identity:clean-anonymous')
     ->hourly()
     ->withoutOverlapping();
+
+
+Artisan::command('mvp:mail:work {--limit=25}', function () {
+    if (config('mvp-mail.enabled') !== true) { $this->error('Mail worker is disabled.'); return 1; }
+    $limit = filter_var($this->option('limit'), FILTER_VALIDATE_INT);
+    if ($limit === false || $limit < 1 || $limit > 50) { $this->error('Limit must be 1..50.'); return 1; }
+    $worker = app(\App\Mvp\Mail\BookingMailWorker::class);
+    $count = 0;
+    while ($count < $limit && $worker->runOne()) $count++;
+    $worker->purgeCaptures();
+    $this->info('Processed '.$count.' queued messages.');
+    return 0;
+})->purpose('Process bounded committed booking mail intents; never claims external delivery');
+
+\Illuminate\Support\Facades\Schedule::command('mvp:mail:work --limit=25')
+    ->everyMinute()->withoutOverlapping();

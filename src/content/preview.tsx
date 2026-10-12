@@ -53,12 +53,15 @@ export function ContentPreviewNotice({ error = null, loading = false }: { error?
 
 /** The chosen mode is immutable for this application build; hook order cannot switch mid-session. */
 export const useContentPreview = identityUiRequested ? useServerContentPreview : useMockContentPreview;
-function useServerContentPreview<K extends ContentKey>(key: K, _compiled: ContentMap[K]) {
+function useServerContentPreview<K extends ContentKey>(key: K, compiled: ContentMap[K]) {
   const { content: repository } = useRepositories();
   const search = useRouterState({ select: state => state.location.searchStr });
   const previewing = new URLSearchParams(search).get("contentPreview") === "1";
-  const result = useSuspenseQuery({ queryKey: ["content", "mvp", previewing ? "staff-preview" : "public", key], retry: false,
-    staleTime: 0, refetchOnWindowFocus: "always", queryFn: () => previewing ? repository.getPreview(key) : repository.getPublished(key),
+  // Static/SSR shells cannot use browser cookies or the browser-only transport.
+  // Separate cache keys ensure the shell is never treated as a successful API read.
+  const shell = typeof window === "undefined";
+  const result = useSuspenseQuery({ queryKey: ["content", "mvp", shell ? "compiled-shell" : previewing ? "staff-preview" : "public", key], retry: false,
+    staleTime: 0, refetchOnWindowFocus: "always", queryFn: () => shell ? Promise.resolve(compiled) : previewing ? repository.getPreview(key) : repository.getPublished(key),
   });
   // A failed background refresh cannot resurrect stale content after an unpublish.
   if (result.error) throw result.error;

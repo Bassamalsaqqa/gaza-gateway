@@ -1,3 +1,4 @@
+import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AppLink } from "@/components/app-link";
@@ -179,6 +180,7 @@ function AdminInboxPage() {
     if (!active) return;
     const oldStatus = active.status;
     await runCommand(async () => {
+      if (identityUiRequested) { await setStatusMutation.mutateAsync({ id: active.id, status }); return; }
       await executeAuditedAdminCommand({
         domainCommand: () => setStatusMutation.mutateAsync({ id: active.id, status }),
         activityRepo,
@@ -203,6 +205,7 @@ function AdminInboxPage() {
   const handleAssignment = async (staffId: string | null) => {
     if (!active) return;
     await runCommand(async () => {
+      if (identityUiRequested) { await setAssigneeMutation.mutateAsync({ id: active.id, staffId }); return; }
       await executeAuditedAdminCommand({
         domainCommand: () => setAssigneeMutation.mutateAsync({ id: active.id, staffId }),
         activityRepo,
@@ -233,7 +236,7 @@ function AdminInboxPage() {
       <AdminPageHeader
         title={t("a2.in.title")}
         description={t("a2.in.sub")}
-        meta={<p className="text-xs text-muted-foreground">{t("a2.in.metaPrototype")}</p>}
+        meta={identityUiRequested ? undefined : <p className="text-xs text-muted-foreground">{t("a2.in.metaPrototype")}</p>}
       />
 
       {commandError && (

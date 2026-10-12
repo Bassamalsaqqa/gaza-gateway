@@ -78,7 +78,7 @@ try {
     "-e", "DB_USERNAME=gaza_app_user", "-e", "DB_PASSWORD=gaza_app_local_pass",
     "-e", "CACHE_STORE=database", "-e", "QUEUE_CONNECTION=database", "-e", "LOG_CHANNEL=stderr",
     "-e", "IDENTITY_MIGRATION_DISPOSABLE_INSTANCE=1", "-e", "REFERENCE_GATE_OWNED=1",
-    "-e", "MVP_RESERVATIONS_GATE_OWNED=1",
+    "-e", "MVP_RESERVATIONS_GATE_OWNED=1", "-e", "MVP_MAIL_ENABLED=true", "-e", "MVP_SITE_ENABLED=true",
     "-e", "RESERVATIONS_ENABLED=true", "-e", "RESERVATIONS_AUTHORITY=resolver",
     "--entrypoint", "sleep", "gaza-gateway-backend:phase13a", "1800"]);
   resources.push("php");
@@ -96,10 +96,18 @@ try {
   inside("reservations-tests", ["php", "vendor/bin/phpunit", "tests/Feature/MvpReservations", "--log-junit", "/tmp/reservations.xml", ...(filter ? ["--filter", filter] : [])], 240000);
 
   docker("copy-junit", ["cp", php + ":/tmp/reservations.xml", path.join(output, "reservations.xml")]);
-  docker("copy-captures", ["cp", php + ":/tmp/reference-captures.json", path.join(output, "captures.json")]);
-
-  command("reservation-http-contracts", process.execPath, [path.join(root, "backend/scripts/verify-reservation-gate-evidence.mjs"), path.join(output, "captures.json")]);
-
+  if (!filter || (!filter.includes("mail") && !filter.includes("site"))) {
+    docker("copy-captures", ["cp", php + ":/tmp/reference-captures.json", path.join(output, "captures.json")]);
+    command("reservation-http-contracts", process.execPath, [path.join(root, "backend/scripts/verify-reservation-gate-evidence.mjs"), path.join(output, "captures.json")]);
+  }
+  if (!filter || filter.includes("mail")) {
+    docker("copy-mail-captures", ["cp", php + ":/tmp/mail-captures.json", path.join(output, "mail-captures.json")]);
+    command("mail-http-contracts", process.execPath, [path.join(root, "backend/scripts/verify-mail-gate-evidence.mjs"), path.join(output, "mail-captures.json")]);
+  }
+  if (!filter || filter.includes("site")) {
+    docker("copy-site-captures", ["cp", php + ":/tmp/site-captures.json", path.join(output, "site-captures.json")]);
+    command("site-http-contracts", process.execPath, [path.join(root, "backend/scripts/verify-site-gate-evidence.mjs"), path.join(output, "site-captures.json")]);
+  }
   command("whitespace", "git", ["diff", "--check"]);
   passed = true;
 } catch (error) {

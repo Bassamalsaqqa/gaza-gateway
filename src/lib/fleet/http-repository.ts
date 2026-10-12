@@ -25,7 +25,7 @@ import type {
   FleetSnapshot,
   LayoutUpdateInput,
 } from "./types.ts";
-import { FleetError } from "./types.ts";
+import { FleetCreateCommittedError, FleetError } from "./types.ts";
 import { AIRCRAFT_REGISTRATION_REGEX, aircraftLayoutSchema } from "./schema.ts";
 import {
   type ReferenceApiClient,
@@ -129,7 +129,12 @@ export class HttpFleetRepository implements FleetRepository {
       });
 
       const aircraft = structuredClone(res.data);
-      const layoutRes = await this.client().getSeatLayoutById(aircraft.id);
+      let layoutRes;
+      try { layoutRes = await this.client().getSeatLayoutById(aircraft.id); }
+      catch {
+        this.notify();
+        throw new FleetCreateCommittedError(aircraft);
+      }
       const layout = structuredClone(layoutRes.data);
 
       this.notify();

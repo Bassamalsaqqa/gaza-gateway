@@ -66,6 +66,16 @@
           },
           "503": {
             "$ref": "#/components/responses/ServiceUnavailableErrorResponse"
+          },
+          "500": {
+            "description": "Stored published content failed integrity/schema validation; no payload is returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }

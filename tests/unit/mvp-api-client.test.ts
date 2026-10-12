@@ -8,6 +8,15 @@ import { IdentityApiError } from "../../src/lib/api/identity-client-errors.ts";
 const schema = z.object({ revision: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER) }).strict();
 const read = { method: "GET", realm: "public", path: "/meals", schema } as const;
 
+test("browser fetch is invoked without an arbitrary receiver", async () => {
+  const f = fixture(); const original = f.config.fetch!;
+  const fetcher: typeof fetch = async function (this: unknown, ...args: Parameters<typeof fetch>) {
+    assert.equal(this, undefined); return original(...args);
+  };
+  const client = createMvpApiClient({ ...f.config, fetch: fetcher }, f.identity);
+  assert.deepEqual(await client.request(read), { revision: 1 });
+});
+
 for (const realm of ["staff", "passenger"] as const) for (const [status, code] of [[401, "unauthorized"], [403, "forbidden"], [429, "too_many_requests"], [503, "service_unavailable"]] as const) {
   test(`bootstrap review preserves ${realm} ${status} without dispatching a mutation`, async () => {
     const f = fixture();

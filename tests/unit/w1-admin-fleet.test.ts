@@ -6,7 +6,7 @@ import {
   type ReferenceApiClient,
 } from "../../src/lib/api/reference-client.ts";
 import { HttpFleetRepository } from "../../src/lib/fleet/http-repository.ts";
-import { FleetError, type Aircraft, type AircraftLayout } from "../../src/lib/fleet/types.ts";
+import { FleetCreateCommittedError, FleetError, type Aircraft, type AircraftLayout } from "../../src/lib/fleet/types.ts";
 import { isDomainAvailableInServerMode } from "../../src/lib/admin.ts";
 import { createRepositories } from "../../src/lib/repositories/registry.ts";
 
@@ -459,4 +459,20 @@ describe("Reviewed fleet adapter failures", () => {
     await assert.rejects(repo.updateLayoutWithReceipt(sampleAircraft.id, layout));
     assert.equal(fallback, 0);
   });
+});
+
+for (const status of [401, 503]) it(`review fleet committed creation survives layout ${status} and refreshes without POST replay`, async () => {
+  let posts = 0, notifications = 0;
+  const client = {
+    postAdminAircraft: async () => { posts++; return { data: sampleAircraft }; },
+    getSeatLayoutById: async () => { throw new ReferenceApiError({ kind: "http_error", status, message: "private-sentinel" }); },
+    getFleetSnapshot: async () => ({ data: { revision: 1, aircraft: [sampleAircraft], layouts: { [sampleAircraft.id]: sampleLayout } } }),
+  } as unknown as ReferenceApiClient;
+  const repo = new HttpFleetRepository(client); repo.subscribe(() => notifications++);
+  await assert.rejects(repo.createAircraft({ aircraft: sampleAircraft }), (e: unknown) => {
+    assert.ok(e instanceof FleetCreateCommittedError); assert.equal(e.committedAircraft.id, sampleAircraft.id);
+    assert.ok(!e.message.includes("private-sentinel")); return true;
+  });
+  assert.equal((await repo.get()).layouts[sampleAircraft.id]?.aircraftId, sampleAircraft.id);
+  assert.equal(posts, 1); assert.equal(notifications, 1);
 });

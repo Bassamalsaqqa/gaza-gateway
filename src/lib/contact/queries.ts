@@ -18,6 +18,7 @@ import { useRepositories } from "../repositories/registry.ts";
 import { contactKeys } from "./keys.ts";
 import type {
   ContactCreateInput,
+  ContactSubmissionReceipt,
   ContactFilterOptions,
   ContactMessage,
   ContactMutationReceipt,
@@ -57,7 +58,7 @@ export function useContactNewCount(): UseQueryResult<number, Error> {
 }
 
 export function useCreateContactMessage(): UseMutationResult<
-  ContactMessage,
+  ContactMessage | ContactSubmissionReceipt,
   Error,
   ContactCreateInput
 > {

@@ -73,6 +73,8 @@ export interface ContactMutationReceipt {
   beforeAssignee?: string | null | undefined;
 }
 
+export interface ContactSubmissionReceipt { id: string; createdAt: string; status: "received" }
+
 export interface ContactRepository {
   /** Retrieves messages matching the provided filters, sorted newest first. */
   list(filters?: ContactFilterOptions): Promise<ContactMessage[]>;
@@ -81,7 +83,7 @@ export interface ContactRepository {
   getById(id: string): Promise<ContactMessage | null>;
 
   /** Creates and persists a new public contact enquiry. Idempotent on submissionId replay. */
-  create(input: ContactCreateInput): Promise<ContactMessage>;
+  create(input: ContactCreateInput): Promise<ContactMessage | ContactSubmissionReceipt>;
 
   /** Updates message workflow status (new, open, resolved, spam). */
   setStatus(id: string, status: ContactStatus): Promise<ContactMessage>;

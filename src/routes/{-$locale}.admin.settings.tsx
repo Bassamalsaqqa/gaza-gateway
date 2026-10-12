@@ -12,6 +12,8 @@ import type { ContactSettings } from "@/lib/settings";
 import { PUBLISHED_CONTACT_SETTINGS } from "@/lib/settings/defaults";
 import { validateContactSettings } from "@/lib/settings/validation";
 
+import { MvpContactSettings } from "@/components/admin/mvp-contact-settings";
+import { MvpEmailSettings } from "@/components/admin/mvp-email-settings";
 import { StaffIdentityWorkspace } from "@/components/identity/staff-workspace";
 import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
 
@@ -61,7 +63,7 @@ function AdminSettingsPage() {
 function ServerStaffSettings() {
   const { t } = useI18n();
   return <div className="space-y-4"><AdminPageHeader title={t("a2.se.title")} />
-    <AdminPanel><StaffIdentityWorkspace /></AdminPanel></div>;
+    <MvpContactSettings /><MvpEmailSettings /><AdminPanel><StaffIdentityWorkspace /></AdminPanel></div>;
 }
 function MockAdminSettingsPage() {
   const { t, lang } = useI18n();

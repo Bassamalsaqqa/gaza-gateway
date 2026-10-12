@@ -1,4 +1,5 @@
 import { MvpMealsEditor } from "@/components/admin/mvp-meals-editor";
+import { FleetCreateCommittedError } from "@/lib/fleet/types";
 import { CommercialProductsTab } from "@/components/admin/commercial-catalog-editor";
 import { Switch } from "@/components/ui/switch";
 import { createFileRoute } from "@tanstack/react-router";
@@ -139,7 +140,7 @@ function AdminProductsPage() {
 /* -------------------------------- aircraft -------------------------------- */
 
 function AircraftTab() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { can, toast, actor } = useAdmin();
   const { activity: activityRepo } = useRepositories();
   const mayEdit = identityUiRequested ? can("ops.edit") : can("commercial.edit");
@@ -157,7 +158,8 @@ function AircraftTab() {
   }
 
   if (fleetQuery.isError || !fleetQuery.data) {
-    return <p role="alert" className="text-sm font-semibold text-status-cancelled">{t("adm.ops.loadError")}</p>;
+    return <div role="alert"><p className="text-sm font-semibold text-status-cancelled">{t("adm.ops.loadError")}</p>
+      <button className={btnClass("outline", "sm", "mt-3")} onClick={() => void fleetQuery.refetch()}>{lang === "ar" ? "تحديث الأسطول" : "Refresh fleet"}</button></div>;
   }
 
   const aircraftList = fleetQuery.data.aircraft;
@@ -249,6 +251,12 @@ function AircraftTab() {
       toast(t("adm.prod.ac.saved", { name: draft.model.trim() }));
       setDraft(null);
     } catch (error) {
+      if (error instanceof FleetCreateCommittedError) {
+        setDraft(null);
+        void fleetQuery.refetch();
+        toast(lang === "ar" ? `تم إنشاء الطائرة ${error.committedAircraft.id}. حدّث الأسطول لعرض مخطط المقاعد؛ لا تكرر الإنشاء.` : `Aircraft ${error.committedAircraft.id} was created. Refresh the fleet to load its layout; do not create it again.`);
+        return;
+      }
       if (error instanceof FleetError && error.reason === "duplicate_registration") {
         setFieldErrors({ registration: t("fleet.validation.registrationTaken") });
         document.getElementById("ac-reg")?.focus();
