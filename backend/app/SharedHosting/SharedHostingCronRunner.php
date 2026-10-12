@@ -10,11 +10,6 @@ use App\Mvp\Mail\IdentitySmtpDispatcher;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Exception thrown when the hard wall-clock ceiling is reached via SIGALRM.
- */
-class SharedHostingTimeoutException extends \RuntimeException {}
-
-/**
  * Shared hosting bounded cron runner.
  *
  * Coordinates bounded task batches within strict runtime constraints:
