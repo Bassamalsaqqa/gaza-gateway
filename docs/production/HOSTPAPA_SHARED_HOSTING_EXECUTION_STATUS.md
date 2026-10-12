@@ -6,11 +6,13 @@ Baseline: PR #3 `cecd1c9158111c349ac63414cfcfff89db6d197f`; main `c7be134bfa87ef
 
 | Gate | Status | Evidence / next action |
 |---|---|---|
-| H0 | IN PROGRESS / host UNVERIFIED | Offline canary prepared and independently corrected; 10 focused safety tests pass. cPanel UI versions/limits observed; actual runtime/DDL/SMTP/cron/Laravel proof still UNVERIFIED |
-| H1 | IN PROGRESS | Independent source-hashed inventory: 282 PHP files, 18 migrations, 1471 lexical locations. AGY MySQL prototype proof under correction; real identity-schema port underway |
-| H2 | NOT STARTED | Proper deployment profiles, same-origin API, bounded post-commit SMTP and cron |
-| H3 | NOT STARTED | Exact-source static/private PHP package, protected migration control, safe rollback |
+| H0 | IN PROGRESS / core host capabilities proven | Owner-executed PHP 8.5.11, extensions/Argon2id, MySQL 8.4.11 InnoDB constraints/locks/cleanup, private writes and protected Apache rewrite passed. Mailbox exchange passed; exact Laravel platform/runtime, application SMTP and account cron policy remain unverified. See H0 observations for attribution and preserved failures |
+| H1 | IN PROGRESS | Identity persistence foundation committed at 45ef6ea97b19368cd53e60e459d67e13ff1f91aa. Codex independently ran 26 PHP/MySQL tests (168 assertions), seven migrations up/rollback/reapply and two-process sentinel contention (832ms). Remaining domain migrations and real application SQL conversion delegated in an isolated worktree; not yet accepted |
+| H2 | IN PROGRESS | Isolated AGY package: explicit same-origin production activation, private storage, bounded cron and honest readiness. No live configuration or UI cutover |
+| H3 | IN PROGRESS | Isolated AGY package: source-pinned static/private PHP artifacts, protected CLI install and rollback. No deployment |
 | H4 | NOT STARTED | Isolated real HostPapa test DB/path and browser/mailbox evidence |
 | H5 | NOT STARTED | Independent review and owner GO before live cutover |
 
 Secrets, backups and production data remain owner controlled. No production writes, credentials, Actions, merge, deployment or DNS changes performed. Prior local MVP receipt stays historical; its 216 Node tests, 128 hash-retained PostgreSQL tests and four browser workflows are not MySQL/HostPapa evidence.
+
+Codex foundation receipt: `scratch/receipt-mysql-identity-foundation-1791816209800-mysql_h1a_e3c3507d1f17.json`; application source hashes and sanitized logs are retained. The tested application/migration bytes match the foundation commit; a subsequent harness-only change makes unrecognized Docker inspect failures fail closed. It does not retroactively change the receipt. The final integrated acceptance gate must run the resulting release source, rather than relabel this foundation evidence as an application pass.
