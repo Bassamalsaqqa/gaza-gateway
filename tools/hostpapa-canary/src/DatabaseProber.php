@@ -218,7 +218,7 @@ class DatabaseProber
             PRIMARY KEY (`id`),
             UNIQUE KEY `uniq_uuid` (`uuid`),
             UNIQUE KEY `uniq_ref` (`reference_code`),
-            CONSTRAINT `chk_status` CHECK (`status` IN ('draft', 'confirmed', 'cancelled'))
+            CONSTRAINT `{$this->tablePrefix}chk_status` CHECK (`status` IN ('draft', 'confirmed', 'cancelled'))
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
 
         $this->pdo->exec($sql);
@@ -297,7 +297,7 @@ class DatabaseProber
             `seat_number` VARCHAR(10) NOT NULL,
             PRIMARY KEY (`id`),
             UNIQUE KEY `uniq_parent_seat` (`parent_id`, `seat_number`),
-            CONSTRAINT `fk_child_parent` FOREIGN KEY (`parent_id`) REFERENCES `{$parentTable}` (`id`) ON DELETE CASCADE
+            CONSTRAINT `{$this->tablePrefix}fk_child_parent` FOREIGN KEY (`parent_id`) REFERENCES `{$parentTable}` (`id`) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
 
         $this->pdo->exec($sql);
