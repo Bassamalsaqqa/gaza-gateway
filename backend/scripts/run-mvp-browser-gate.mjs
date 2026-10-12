@@ -11,13 +11,13 @@ const output=path.join(root,"scratch",name), source=path.join(output,"source");f
 const vendor=process.env.REFERENCE_GATE_VENDOR??"C:/Users/bassa/Documents/GazaAirPort/gaza-gateway/scratch/google-worker-workspaces/r_e294627e23ce528c7631aff3/phase13b_passenger_http01_v2_20261010/worktree/backend/vendor";
 const api="https://127.0.0.1:18443/api/v1", origin="https://127.0.0.1:5175";
 const env={...process.env,APP_KEY:"base64:"+crypto.randomBytes(32).toString("base64"),GUEST_OTP_PEPPER_BASE64:crypto.randomBytes(32).toString("base64")};
-const commands=[],hashes=[];let web=false,pg=false,network=false,vite,sink,server,passed=false,failure=null;
+const commands=[],hashes=[];let web=false,pg=false,network=false,vite,sink,server,passed=false,failure=null,head=null;
 function command(label,args,input){const r=spawnSync(args[0],args.slice(1),{cwd:root,env,encoding:"utf8",input,timeout:180000,maxBuffer:8*1024*1024});fs.writeFileSync(path.join(output,label+".log"),(r.stdout??"")+(r.stderr??""));commands.push({label,exitCode:r.status});if(r.status!==0)throw new Error(label+" failed");console.log("PASS "+label);return r.stdout;}
 const docker=(label,args,input)=>command(label,["docker",...args],input);
 const exec=(label,args,input)=>docker(label,["exec",...(input ? ["-i"] : []),name+"_web",...args],input);
 function probe(url){return new Promise(resolve=>{const req=https.get(url,{rejectUnauthorized:false,timeout:2000},res=>{let body="";res.on("data",bytes=>{if(body.length<2048)body+=bytes.toString();});res.on("end",()=>{if(res.statusCode!==200)fs.writeFileSync(path.join(output,"probe-failure.json"),JSON.stringify({url,status:res.statusCode,body}));resolve(res.statusCode);});});req.on("error",e=>{fs.writeFileSync(path.join(output,"probe-error.txt"),e.message);resolve(0);});req.on("timeout",()=>req.destroy());});}
 try {
- const head=command("head",["git","rev-parse","HEAD"]).trim();
+ head=command("head",["git","rev-parse","HEAD"]).trim();
  for(const file of command("inventory",["git","ls-files","--cached","--others","--exclude-standard","backend","docs/backend","src","scripts/lib","tests/mvp"]).trim().split(/\r?\n/)) {
   if(!file || !fs.statSync(path.join(root,file)).isFile())continue;
   const bytes=fs.readFileSync(path.join(root,file));hashes.push({file,sha256:crypto.createHash("sha256").update(bytes).digest("hex")});
@@ -48,7 +48,7 @@ try {
  for(let i=0;i<60;i++){if(await probe(origin)===200)break;await new Promise(r=>setTimeout(r,500));}
  if(await probe(origin)!==200)throw new Error("HTTPS frontend unavailable");
  const {runJoinedWorkflow}=await import("../../tests/mvp/joined-workflow.mjs");
- await runJoinedWorkflow({origin,api,output,fixture,key,exec,startSink(){sink=spawn("docker",["exec",name+"_web","php","tests/Fixtures/MvpMail/smtp-sink.php"],{stdio:"ignore"});}});
+ await runJoinedWorkflow({origin,api,output,fixture,key,exec,slice:process.env.MVP_BROWSER_GATE_SLICE,startSink(){sink=spawn("docker",["exec",name+"_web","php","tests/Fixtures/MvpMail/smtp-sink.php"],{stdio:"ignore"});}});
  passed=true;
  fs.writeFileSync(path.join(output,"source.json"),JSON.stringify({head,hashes},null,2));
 } catch(e){failure=e.message;process.exitCode=1;console.error(failure);} finally {
@@ -59,6 +59,6 @@ try {
  for(const [exists,suffix] of [[web,"_web"],[pg,"_pg"]])if(exists){const r=spawnSync("docker",["rm","-f",name+suffix],{timeout:15000});if(r.status!==0)cleaned=false;}
  if(network && spawnSync("docker",["network","rm",name],{timeout:15000}).status!==0)cleaned=false;
  for(const file of ["key.pem","cert.pem"])if(fs.existsSync(path.join(output,file)))fs.unlinkSync(path.join(output,file));
- fs.writeFileSync(path.join(output,"receipt.json"),JSON.stringify({run,passed,failure,commands,hashes,resourcesCleaned:cleaned,scope:"first joined local browser workflow; synthetic accounts/data/provider only; not W5 production acceptance"},null,2));
+ fs.writeFileSync(path.join(output,"receipt.json"),JSON.stringify({run,head,slice:process.env.MVP_BROWSER_GATE_SLICE??"joined",passed,failure,commands,hashes,resourcesCleaned:cleaned,scope:"local browser workflow; synthetic accounts/data/provider only; not W5 production acceptance"},null,2));
  console.log("Evidence: "+output);
 }

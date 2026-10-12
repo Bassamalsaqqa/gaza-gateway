@@ -1,0 +1,1057 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Gaza Gateway — MVP Gallery Publication Runtime API",
+    "description": "Bounded runtime gallery selection, order, and bilingual display caption overrides publication vertical slice for Gaza International Airport.",
+    "version": "1.0.0-w3-gallery"
+  },
+  "paths": {
+    "/gallery/published": {
+      "get": {
+        "operationId": "getGalleryPublished",
+        "summary": "Public active published gallery configuration reader",
+        "parameters": [
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Active published gallery configuration payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GalleryPublishedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestErrorResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundErrorResponse"
+          },
+          "410": {
+            "$ref": "#/components/responses/GoneErrorResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationErrorResponse"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequestsErrorResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableErrorResponse"
+          }
+        }
+      }
+    },
+    "/gallery/editorial": {
+      "get": {
+        "operationId": "getGalleryEditorial",
+        "summary": "Staff gallery configuration reader",
+        "security": [
+          {
+            "StaffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Staff gallery configuration and revision state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GalleryEditorialResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestErrorResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedErrorResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenErrorResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundErrorResponse"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequestsErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableErrorResponse"
+          }
+        }
+      }
+    },
+    "/gallery/editorial/draft": {
+      "put": {
+        "operationId": "putGalleryDraft",
+        "summary": "Create or replace staff gallery draft configuration",
+        "security": [
+          {
+            "StaffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutGalleryDraftRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Draft mutation receipt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GalleryReceiptResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestErrorResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedErrorResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenErrorResponse"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictErrorResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationErrorResponse"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequestsErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableErrorResponse"
+          }
+        }
+      }
+    },
+    "/gallery/editorial/discard": {
+      "post": {
+        "operationId": "postGalleryDiscard",
+        "summary": "Discard active uncommitted staff gallery draft",
+        "security": [
+          {
+            "StaffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostGalleryCommandRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated gallery configuration state after discarding draft",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GalleryEditorialResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestErrorResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedErrorResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenErrorResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundErrorResponse"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictErrorResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationErrorResponse"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequestsErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableErrorResponse"
+          }
+        }
+      }
+    },
+    "/gallery/editorial/publish": {
+      "post": {
+        "operationId": "postGalleryPublish",
+        "summary": "Publish active draft or revision to public authority",
+        "security": [
+          {
+            "StaffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostGalleryCommandRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Published gallery configuration state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GalleryEditorialResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestErrorResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedErrorResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenErrorResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundErrorResponse"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictErrorResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationErrorResponse"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequestsErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableErrorResponse"
+          }
+        }
+      }
+    },
+    "/gallery/editorial/unpublish": {
+      "post": {
+        "operationId": "postGalleryUnpublish",
+        "summary": "Unpublish active gallery configuration (tombstone public read)",
+        "security": [
+          {
+            "StaffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostGalleryCommandRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Unpublished gallery configuration state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GalleryEditorialResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestErrorResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedErrorResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenErrorResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundErrorResponse"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictErrorResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationErrorResponse"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequestsErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableErrorResponse"
+          }
+        }
+      }
+    },
+    "/gallery/editorial/restore": {
+      "post": {
+        "operationId": "postGalleryRestore",
+        "summary": "Restore previously published revision as new publication",
+        "security": [
+          {
+            "StaffCookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostGalleryRestoreRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Restored gallery configuration state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GalleryEditorialResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestErrorResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedErrorResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenErrorResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundErrorResponse"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictErrorResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationErrorResponse"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequestsErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableErrorResponse"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "StaffCookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "gza_staff_session"
+      }
+    },
+    "responses": {
+      "BadRequestErrorResponse": {
+        "description": "Bad request",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "UnauthorizedErrorResponse": {
+        "description": "Authentication required",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "ForbiddenErrorResponse": {
+        "description": "Permission denied",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "NotFoundErrorResponse": {
+        "description": "Resource not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "GoneErrorResponse": {
+        "description": "Resource has been unpublished (tombstoned)",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "ConflictErrorResponse": {
+        "description": "State or concurrency conflict",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "ValidationErrorResponse": {
+        "description": "Validation failed",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "TooManyRequestsErrorResponse": {
+        "description": "Rate limit exceeded",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "ServiceUnavailableErrorResponse": {
+        "description": "Service dependencies unavailable",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "InternalServerErrorResponse": {
+        "description": "Internal server error or snapshot integrity failure",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "GalleryItemConfig": {
+        "type": "object",
+        "properties": {
+          "recordId": {
+            "type": "string",
+            "minLength": 1,
+            "enum": [
+              "rec-present-ruins-2008",
+              "past-003",
+              "past-005",
+              "past-006",
+              "past-007",
+              "past-008",
+              "past-009",
+              "past-010",
+              "past-011",
+              "past-012",
+              "past-014",
+              "past-015",
+              "past-016",
+              "past-021",
+              "past-022",
+              "past-023",
+              "past-024",
+              "past-026",
+              "past-028",
+              "past-029",
+              "past-030",
+              "past-031",
+              "past-032",
+              "past-033",
+              "past-038",
+              "past-040",
+              "past-042",
+              "past-043",
+              "past-044",
+              "past-045",
+              "past-046",
+              "past-049",
+              "past-050",
+              "past-051",
+              "past-053",
+              "past-054",
+              "past-056",
+              "past-058",
+              "vid-ref-ap-1998-opening",
+              "vid-ref-clinton-1998",
+              "vid-ref-aljazeera-2009",
+              "vid-ref-afp-2018"
+            ]
+          },
+          "visible": {
+            "type": "boolean"
+          },
+          "title": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 500
+              },
+              "ar": {
+                "type": "string",
+                "maxLength": 500
+              }
+            },
+            "additionalProperties": false,
+            "anyOf": [
+              {
+                "required": [
+                  "en"
+                ]
+              },
+              {
+                "required": [
+                  "ar"
+                ]
+              }
+            ]
+          },
+          "caption": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "en": {
+                "type": "string",
+                "maxLength": 2000
+              },
+              "ar": {
+                "type": "string",
+                "maxLength": 2000
+              }
+            },
+            "additionalProperties": false,
+            "anyOf": [
+              {
+                "required": [
+                  "en"
+                ]
+              },
+              {
+                "required": [
+                  "ar"
+                ]
+              }
+            ]
+          }
+        },
+        "required": [
+          "recordId",
+          "visible"
+        ],
+        "additionalProperties": false
+      },
+      "GalleryConfigurationPayload": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GalleryItemConfig"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "additionalProperties": false
+      },
+      "GalleryPublishedDocumentDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "const": "gallery"
+          },
+          "kind": {
+            "type": "string",
+            "const": "gallery"
+          },
+          "slug": {
+            "type": "string",
+            "const": "default"
+          },
+          "revisionNumber": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "status": {
+            "type": "string",
+            "const": "published"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/GalleryConfigurationPayload"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "slug",
+          "revisionNumber",
+          "status",
+          "updatedAt",
+          "payload"
+        ],
+        "additionalProperties": false
+      },
+      "GalleryPublishedResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/GalleryPublishedDocumentDto"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/SuccessMeta"
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "meta"
+        ],
+        "additionalProperties": false
+      },
+      "GalleryEditorialDocumentDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "const": "gallery"
+          },
+          "kind": {
+            "type": "string",
+            "const": "gallery"
+          },
+          "slug": {
+            "type": "string",
+            "const": "default"
+          },
+          "revisionNumber": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "currentRevision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "publishedRevision": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          },
+          "draftRevision": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "published",
+              "unpublished"
+            ]
+          },
+          "hasDraft": {
+            "type": "boolean"
+          },
+          "tombstoned": {
+            "type": "boolean"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "payload": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/GalleryConfigurationPayload"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "slug",
+          "revisionNumber",
+          "currentRevision",
+          "status",
+          "hasDraft",
+          "tombstoned",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
+      "GalleryEditorialResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/GalleryEditorialDocumentDto"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/SuccessMeta"
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "meta"
+        ],
+        "additionalProperties": false
+      },
+      "GalleryReceiptDto": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "const": "default"
+          },
+          "changed": {
+            "type": "boolean"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "currentRevision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "published",
+              "unpublished"
+            ]
+          }
+        },
+        "required": [
+          "slug",
+          "changed",
+          "revision",
+          "currentRevision",
+          "status"
+        ],
+        "additionalProperties": false
+      },
+      "GalleryReceiptResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/GalleryReceiptDto"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/SuccessMeta"
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "meta"
+        ],
+        "additionalProperties": false
+      },
+      "PutGalleryDraftRequest": {
+        "type": "object",
+        "properties": {
+          "payload": {
+            "$ref": "#/components/schemas/GalleryConfigurationPayload"
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "payload",
+          "expectedRevision"
+        ],
+        "additionalProperties": false
+      },
+      "PostGalleryCommandRequest": {
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "expectedRevision"
+        ],
+        "additionalProperties": false
+      },
+      "PostGalleryRestoreRequest": {
+        "type": "object",
+        "properties": {
+          "targetRevision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "targetRevision",
+          "expectedRevision"
+        ],
+        "additionalProperties": false
+      },
+      "SuccessMeta": {
+        "type": "object",
+        "properties": {
+          "requestId": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "requestId",
+          "timestamp"
+        ],
+        "additionalProperties": false
+      },
+      "ErrorDetails": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": false
+          },
+          "error": {
+            "$ref": "#/components/schemas/ErrorDetails"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/SuccessMeta"
+          }
+        },
+        "required": [
+          "success",
+          "error",
+          "meta"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}

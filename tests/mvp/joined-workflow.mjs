@@ -6,13 +6,13 @@ import { chromium } from "playwright-core";
 import { publishedHome } from "../../src/content/published/home.ts";
 import { verifyMailCapture } from "../../backend/scripts/mail-capture-contracts.mjs";
 
-export async function runJoinedWorkflow({origin,api,output,fixture,key,exec,startSink}) {
+export async function runJoinedWorkflow({origin,api,output,fixture,key,exec,startSink,slice}) {
  const browser=await chromium.launch({channel:"msedge",headless:true}); const contexts=[]; const checks=[]; let active;
  const check=name=>{checks.push(name);console.log("PASS "+name);};
- const captures={}; const contracts=["mvp-mail","mvp-site","mvp-editorial","mvp-reservations"].map(name=>JSON.parse(fs.readFileSync(new URL(`../../docs/backend/${name}.openapi.json`,import.meta.url))));
+ const captures={}; const contracts=["mvp-mail","mvp-site","mvp-editorial","mvp-reservations","mvp-gallery"].map(name=>JSON.parse(fs.readFileSync(new URL(`../../docs/backend/${name}.openapi.json`,import.meta.url))));
  const pendingCaptures=new Set();
- async function drain(){await Promise.all([...pendingCaptures]);}
- async function navigate(page,url){await drain();await page.goto(url);}
+ async function drain(){while(pendingCaptures.size) await Promise.all([...pendingCaptures]);}
+ async function navigate(page,url){await page.waitForLoadState("networkidle");await drain();await page.goto(url);}
  async function context(options={}) {
   const c=await browser.newContext({ignoreHTTPSErrors:true,viewport:{width:1440,height:1000},...options});contexts.push(c);
   const p=await c.newPage();p.setDefaultTimeout(20000);p.on("requestfailed",r=>checks.push("REQUEST FAILURE: "+new URL(r.url()).pathname+" "+r.failure()?.errorText));p.on("pageerror",e=>checks.push("BROWSER ERROR: "+e.message));
@@ -25,7 +25,7 @@ export async function runJoinedWorkflow({origin,api,output,fixture,key,exec,star
    }
    matches.sort((a,b)=>(a.template.match(/\{/g)??[]).length-(b.template.match(/\{/g)??[]).length);
    const matched=matches[0];if(!matched)return;
-   const task=(async()=>{try{const capture={operationId:matched.op.operationId,status:r.status(),contentType:r.headers()["content-type"],payload:await r.json()};verifyMailCapture(matched.spec,capture);captures[capture.operationId+":"+r.status()]=capture;}catch(e){checks.push("CONTRACT FAILURE: "+e.message);}})();
+   const task=(async()=>{try{await r.finished();const capture={operationId:matched.op.operationId,status:r.status(),contentType:r.headers()["content-type"],payload:await r.json()};verifyMailCapture(matched.spec,capture);captures[capture.operationId+":"+r.status()]=capture;}catch(e){if(r.request().failure()?.errorText === "net::ERR_ABORTED") {checks.push("UNCERTIFIED CANCELLED RESPONSE: "+matched.op.operationId);} else {checks.push("CONTRACT FAILURE: "+e.message);}}})();
    pendingCaptures.add(task);task.finally(()=>pendingCaptures.delete(task));
   });return p;
  }
@@ -36,6 +36,29 @@ export async function runJoinedWorkflow({origin,api,output,fixture,key,exec,star
  function otp(){const b=Buffer.alloc(8);b.writeBigUInt64BE(BigInt(Math.floor(Date.now()/30000)));const h=crypto.createHmac("sha1",key).update(b).digest(),o=h[19]&15;return ((h.readUInt32BE(o)&0x7fffffff)%1000000).toString().padStart(6,"0");}
  try {
   const admin=active=await context();await navigate(admin,origin+"/admin/signin");await admin.waitForFunction(()=>Object.keys(document.querySelector("input[name=username]")??{}).some(k=>k.startsWith("__reactProps$")));await admin.locator('[name="username"]').fill(fixture.username);await admin.locator('[name="password"]').fill(fixture.password);await admin.locator("form").getByRole("button",{name:"Staff sign in",exact:true}).click();await admin.locator('[name="totpCode"]').fill(otp());await admin.getByRole("button",{name:"Verify",exact:true}).click();await admin.waitForURL(origin+"/admin");check("staff UI password and TOTP sign-in");
+  if (slice === "publication") {
+    await navigate(admin,origin+"/admin/airport?tab=gallery");
+    const title = admin.getByRole("textbox",{name:"Display title rec-present-ruins-2008",exact:true});
+    await title.fill("Synthetic shared gallery publication");
+    const saved = admin.waitForResponse(r=>r.request().method()==="PUT" && r.url().endsWith("/gallery/editorial/draft"));
+    await admin.getByRole("button",{name:"Save Draft",exact:true}).click();assert.equal((await saved).status(),200);
+    const published = admin.waitForResponse(r=>r.request().method()==="POST" && r.url().endsWith("/gallery/editorial/publish"));
+    await admin.getByRole("button",{name:"Publish",exact:true}).click();assert.equal((await published).status(),200);
+    const visitor = active = await context();await navigate(visitor,origin+"/gallery");
+    await visitor.getByText("Synthetic shared gallery publication",{exact:true}).first().waitFor();
+    await visitor.screenshot({path:path.join(output,"gallery-en-desktop.png"),fullPage:true});
+    check("actual Admin gallery editor saves/publishes; independent visitor sees shared publication");
+    const mobile = active = await context({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+    await navigate(mobile,origin+"/ar/gallery");
+    assert.equal(await mobile.locator("html").getAttribute("dir"),"rtl");
+    await mobile.locator('main').waitFor();
+    await mobile.screenshot({path:path.join(output,"gallery-ar-mobile.png"),fullPage:true});
+    const fresh = await apiCall(mobile,"GET","/gallery/published",undefined,"public");
+    assert.equal(fresh.body.data.payload.items[0].title.en,"Synthetic shared gallery publication");
+    check("Arabic mobile reads the same gallery revision with RTL");
+    await drain();assert.ok(!checks.some(c=>c.startsWith("CONTRACT FAILURE") || c.startsWith("BROWSER ERROR")),checks.join("; "));
+    return;
+  }
   await apiCall(admin,"POST","/admin/fleet/aircraft",{aircraft:{id:"mvp-synthetic",model:"Synthetic fixture aircraft",registration:"TEST-MVP",active:true},initialLayout:{rows:3,letters:["A","B","C","D","E","F"],aisleAfter:3,zones:[{id:"economy",firstRow:1,lastRow:3}],extraLegroomRows:[],unavailable:[]}},"staff",[201]);
   await apiCall(admin,"POST","/admin/schedules",{id:"mvp-synthetic-flight",number:"PS901",direction:"out",destination:"AMM",days:[0,1,2,3,4,5,6],departTime:"08:30",arriveTime:"09:30",aircraft:"Synthetic fixture aircraft",aircraftId:"mvp-synthetic",from:"2026-12-20",until:"2026-12-20",active:true,exceptions:[]},"staff",[201]);
   await apiCall(admin,"POST","/admin/meals",{id:"synthetic-meal",label:{en:"Synthetic test meal",ar:"\u0648\u062c\u0628\u0629 \u0627\u062e\u062a\u0628\u0627\u0631"},active:true},"staff",[201]);

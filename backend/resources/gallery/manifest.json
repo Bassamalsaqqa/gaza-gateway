@@ -1,0 +1,639 @@
+{
+  "version": "1.0.0",
+  "generatedAt": "2026-10-12T00:00:00Z",
+  "totalApproved": 42,
+  "approvedIds": [
+    "rec-present-ruins-2008",
+    "past-003",
+    "past-005",
+    "past-006",
+    "past-007",
+    "past-008",
+    "past-009",
+    "past-010",
+    "past-011",
+    "past-012",
+    "past-014",
+    "past-015",
+    "past-016",
+    "past-021",
+    "past-022",
+    "past-023",
+    "past-024",
+    "past-026",
+    "past-028",
+    "past-029",
+    "past-030",
+    "past-031",
+    "past-032",
+    "past-033",
+    "past-038",
+    "past-040",
+    "past-042",
+    "past-043",
+    "past-044",
+    "past-045",
+    "past-046",
+    "past-049",
+    "past-050",
+    "past-051",
+    "past-053",
+    "past-054",
+    "past-056",
+    "past-058",
+    "vid-ref-ap-1998-opening",
+    "vid-ref-clinton-1998",
+    "vid-ref-aljazeera-2009",
+    "vid-ref-afp-2018"
+  ],
+  "records": [
+    {
+      "recordId": "rec-present-ruins-2008",
+      "order": 0,
+      "medium": "photograph",
+      "isVideo": false,
+      "title": {
+        "en": "Gaza International Airport Passenger Terminal Ruins",
+        "ar": "أطلال مبنى المسافرين بمطار غزة الدولي"
+      },
+      "caption": {
+        "en": "Documentary photograph of the damaged passenger terminal and architectural dome at Gaza International Airport, captured on June 13, 2008.",
+        "ar": "صورة وثائقية لمبنى المسافرين المتضرر والقبة المعمارية في مطار غزة الدولي، وُثِّقت في 13 يونيو/حزيران 2008."
+      }
+    },
+    {
+      "recordId": "past-003",
+      "order": 1,
+      "medium": "photograph",
+      "isVideo": false,
+      "title": {
+        "en": "Palestinian Airlines Dash 8 in airline livery",
+        "ar": "طائرة داش 8 بألوان الخطوط الجوية الفلسطينية"
+      },
+      "caption": {
+        "en": "A Palestinian Airlines Dash 8-series turboprop in the carrier's livery. The visible registration appears consistent with SU-YAN; web aviation references place SU-YAN photographs in Europe around 2000, so do not present this as a Gaza-airport photograph without exact-source verification.",
+        "ar": "طائرة توربينية من سلسلة داش 8 بألوان الخطوط الجوية الفلسطينية. يفيد سجل الطيران الخارجي بأن صوراً للطائرة SU-YAN التُقطت خارج غزة أيضاً، لذلك تُستخدم هذه الصورة لتوثيق الأسطول لا كمشهد مثبت من موقع المطار."
+      }
+    },
+    {
+      "recordId": "past-005",
+      "order": 2,
+      "medium": "photograph",
+      "isVideo": false,
+      "title": {
+        "en": "Gaza International Airport terminal and control tower",
+        "ar": "مبنى مطار غزة الدولي وبرج المراقبة"
+      },
+      "caption": {
+        "en": "The airport apron with the terminal complex and distinctive control tower in view; an airliner occupies the left foreground.",
+        "ar": "ساحة المطار مع مبنى المسافرين وبرج المراقبة المميز، وجزء من طائرة كبيرة في المقدمة."
+      }
+    },
+    {
+      "recordId": "past-006",
+      "order": 3,
+      "medium": "photograph",
+      "isVideo": false,
+      "title": {
+        "en": "Cabin service aboard Palestinian aviation",
+        "ar": "خدمة المقصورة على متن طائرة"
+      },
+      "caption": {
+        "en": "A uniformed cabin crew member photographed inside an aircraft cabin during service. Exact flight, aircraft, date and location are not established.",
+        "ar": "إحدى أفراد طاقم الضيافة بزي رسمي داخل مقصورة طائرة أثناء الخدمة. الرحلة والطائرة والتاريخ والمكان الدقيق غير مثبتة."
+      }
+    },
+    {
+      "recordId": "past-007",
+      "order": 4,
+      "medium": "photograph",
+      "isVideo": false,
+      "title": {
+        "en": "Palestinian Airlines crew group",
+        "ar": "مجموعة من طاقم الخطوط الجوية الفلسطينية"
+      },
+      "caption": {
+        "en": "A group of airline crew members posed in front of a Palestinian Airlines aircraft.",
+        "ar": "مجموعة من أفراد الطاقم الجوي تقف أمام طائرة تابعة للخطوط الجوية الفلسطينية."
+      }
+    },
+    {
+      "recordId": "past-008",
+      "order": 5,
+      "medium": "photograph",
+      "isVideo": false,
+      "title": {
+        "en": "Flight deck crew at work",
+        "ar": "طاقم قمرة القيادة أثناء العمل"
+      },
+      "caption": {
+        "en": "Crew members photographed on the flight deck of an aircraft. Exact aircraft, route and date remain unverified.",
+        "ar": "أفراد من طاقم الطيران داخل قمرة قيادة. نوع الطائرة والمسار والتاريخ غير مثبتة."
+      }
+    },
+    {
+      "recordId": "past-009",
+      "order": 6,
+      "medium": "photograph",
+      "isVideo": false,
+      "title": {
+        "en": "Four pilots beside a Palestinian Airlines aircraft",
+        "ar": "أربعة طيارين أمام طائرة فلسطينية"
+      },
+      "caption": {
+        "en": "Four uniformed flight crew members posed in front of a Palestinian Airlines aircraft.",
+        "ar": "أربعة من أفراد طاقم الطيران بزي رسمي يقفون أمام طائرة للخطوط الجوية الفلسطينية."
+      }
+    },
+    {
+      "recordId": "past-010",
+      "order": 7,
+      "medium": "photograph",
+      "isVideo": false,
+      "title": {
+        "en": "Cargo handling at Gaza International Airport",
+        "ar": "مناولة الشحن في مطار غزة الدولي"
+      },
+      "caption": {
+        "en": "Boxes are handled beside an aircraft stairway visibly marked 'Gaza International Airport,' providing direct visual evidence of ground and cargo activity at the airport.",
+        "ar": "تجري مناولة صناديق بجانب سُلّم طائرة يحمل بوضوح اسم «Gaza International Airport»، ما يقدم دليلاً بصرياً مباشراً على نشاط أرضي وشحن في المطار."
+      }
+    },
+    {
+      "recordId": "past-011",
+      "order": 8,
+      "medium": "photograph",
+      "isVideo": false,
+      "title": {
+        "en": "Passengers beside a Palestinian Airlines aircraft",
+        "ar": "مسافرون بجانب طائرة فلسطينية"
+      },
+      "caption": {
+        "en": "Passengers and staff gather beside a Palestinian Airlines aircraft during boarding or disembarkation. Direction of travel and location are not safely established from the image alone.",
+        "ar": "مسافرون وموظفون يتجمعون بجانب طائرة للخطوط الجوية الفلسطينية أثناء الصعود أو النزول. اتجاه الرحلة والمكان غير مثبتين من الصورة وحدها."
+      }
+    },
+    {
+      "recordId": "past-012",
+      "order": 9,
+      "medium": "photograph",
+      "isVideo": false,
+      "title": {
+        "en": "Passengers disembarking",
+        "ar": "مسافرون ينزلون من طائرة"
+      },
+      "caption": {
+        "en": "Passengers descend aircraft stairs while ground staff stand nearby. The location and whether this is an arrival or return journey require source verification.",
+        "ar": "مسافرون ينزلون سُلّم طائرة بينما يقف موظفون أرضيون بالقرب منهم. مكان التصوير وطبيعة الرحلة يحتاجان إلى مصدر موثق."
+      }
+    },
+    {
+      "recordId": "past-014",
+      "order": 10,
+      "medium": "photograph",
+      "isVideo": false,
+      "title": {
+        "en": "Pilgrimage passenger beside aircraft",
+        "ar": "مسافرة للحج بجانب طائرة"
+      },
+      "caption": {
+        "en": "A passenger in white pilgrimage clothing stands near the stairs of a Palestinian Airlines aircraft.",
+        "ar": "مسافرة بملابس الحج البيضاء تقف قرب سُلّم طائرة للخطوط الجوية الفلسطينية."
+      }
+    },
+    {
+      "recordId": "past-015",
+      "order": 11,
+      "medium": "photograph",
+      "isVideo": false,
+      "title": {
+        "en": "Pilgrimage passengers descending aircraft stairs",
+        "ar": "مسافرون للحج ينزلون سُلّم الطائرة"
+      },
+      "caption": {
+        "en": "A group of passengers in white pilgrimage clothing descends aircraft stairs with staff assisting nearby.",
+        "ar": "مجموعة من المسافرين بملابس الحج البيضاء تنزل سُلّم الطائرة مع وجود موظفين للمساعدة."
+      }
+    },
+    {
+      "recordId": "past-016",
+      "order": 12,
+      "medium": "photograph",
+      "isVideo": false,
+      "title": {
+        "en": "Pilgrimage arrival or disembarkation scene",
+        "ar": "مشهد نزول لمسافري حج"
+      },
+      "caption": {
+        "en": "Passengers in white pilgrimage clothing descend from an aircraft marked with Palestinian aviation colors. The nose also carries the word 'Jerusalem'; exact location and journey direction are not confirmed.",
+        "ar": "مسافرون بملابس الحج البيضاء ينزلون من طائرة تحمل ألوان الطيران الفلسطيني. يظهر على مقدمة الطائرة اسم Jerusalem؛ المكان واتجاه الرحلة غير مؤكدين."
+      }
+    },
+    {
+      "recordId": "past-021",
+      "order": 13,
+      "medium": "photograph",
+      "isVideo": false,
+      "title": {
+        "en": "Air cargo services building",
+        "ar": "مبنى خدمات الشحن الجوي"
+      },
+      "caption": {
+        "en": "A small airport service building with a sign identifying an air-cargo function above the entrance. The image is useful for documenting the airport's service infrastructure.",
+        "ar": "مبنى خدمات صغير في المطار تعلو مدخله لافتة تشير إلى وظيفة مرتبطة بالشحن الجوي. تفيد الصورة في توثيق البنية الخدمية للمطار."
+      }
+    },
+    {
+      "recordId": "past-022",
+      "order": 14,
+      "medium": "photograph",
+      "isVideo": false,
+      "title": {
+        "en": "Large airport service hangar",
+        "ar": "حظيرة خدمات كبيرة في المطار"
+      },
+      "caption": {
+        "en": "A large enclosed airport service or hangar building. The filename calls it an air-cargo facility, but the precise function is not visible enough to verify from this photograph alone.",
+        "ar": "مبنى كبير مغلق للخدمات أو الحظائر في المطار. يصفه اسم الملف بأنه منشأة للشحن الجوي، لكن الوظيفة الدقيقة لا تظهر بوضوح كافٍ لإثباتها من الصورة وحدها."
+      }
+    },
+    {
+      "recordId": "past-023",
+      "order": 15,
+      "medium": "photograph",
+      "isVideo": false,
+      "title": {
+        "en": "Airport ambulance and emergency-service bays",
+        "ar": "سيارة إسعاف ومرافق خدمات الطوارئ في المطار"
+      },
+      "caption": {
+        "en": "A red-and-white ambulance is parked beside a row of airport service bays, documenting emergency-response infrastructure associated with airport operations.",
+        "ar": "سيارة إسعاف حمراء وبيضاء متوقفة بجانب صف من مرافق الخدمات، بما يوثق جانباً من بنية الاستجابة للطوارئ المرتبطة بتشغيل المطار."
+      }
+    },
+    {
+      "recordId": "past-024",
+      "order": 16,
+      "medium": "photograph",
+      "isVideo": false,
+      "title": {
+        "en": "Passenger terminal, control tower and landscaped grounds",
+        "ar": "مبنى المسافرين وبرج المراقبة والحدائق"
+      },
+      "caption": {
+        "en": "A wide view of the intact airport complex showing the control tower, long arched terminal façade, landscaped grounds and palm trees. This is the strongest architectural establishing image in Batch 02.",
+        "ar": "منظر واسع للمجمع وهو سليم، يظهر برج المراقبة والواجهة الطويلة ذات الأقواس والحدائق وأشجار النخيل. وهي أقوى صورة معمارية تأسيسية في الدفعة الثانية."
+      }
+    },
+    {
+      "recordId": "past-026",
+      "order": 17,
+      "medium": "photograph",
+      "isVideo": false,
+      "title": {
+        "en": "Ruined airport colonnade",
+        "ar": "أروقة المطار المهدمة"
+      },
+      "caption": {
+        "en": "A long sequence of surviving arches leads toward a heavily damaged airport building, showing the contrast between the original architectural motif and later destruction.",
+        "ar": "صف طويل من الأقواس الباقية يقود نحو مبنى مطار متضرر بشدة، ويظهر التباين بين العناصر المعمارية الأصلية والدمار اللاحق."
+      }
+    },
+    {
+      "recordId": "past-028",
+      "order": 18,
+      "medium": "photograph",
+      "isVideo": false,
+      "title": {
+        "en": "Landside approach and parking area",
+        "ar": "منطقة الوصول البري ومواقف السيارات"
+      },
+      "caption": {
+        "en": "A landside view across an open parking or approach area toward landscaped airport entrance structures.",
+        "ar": "منظر من الجهة البرية عبر منطقة مواقف أو وصول مفتوحة باتجاه منشآت مدخل المطار المزروعة."
+      }
+    },
+    {
+      "recordId": "past-029",
+      "order": 19,
+      "medium": "photograph",
+      "isVideo": false,
+      "title": {
+        "en": "Airport storage tanks",
+        "ar": "خزانات في منشآت خدمات المطار"
+      },
+      "caption": {
+        "en": "Three large cylindrical storage tanks in an airport service area. The filename calls them fuel tanks; their contents should remain unverified unless technical records or source metadata confirm that function.",
+        "ar": "ثلاثة خزانات أسطوانية كبيرة في منطقة خدمات بالمطار. يصفها اسم الملف بأنها خزانات وقود، لكن ينبغي إبقاء نوع المحتوى غير مؤكد ما لم تؤكده سجلات فنية أو بيانات المصدر."
+      }
+    },
+    {
+      "recordId": "past-030",
+      "order": 20,
+      "medium": "photograph",
+      "isVideo": false,
+      "title": {
+        "en": "Airport firefighting vehicle",
+        "ar": "مركبة إطفاء في المطار"
+      },
+      "caption": {
+        "en": "A red airport firefighting vehicle is parked beside a service building, documenting another part of the airport's emergency-response capability.",
+        "ar": "مركبة إطفاء حمراء متوقفة بجانب مبنى خدمات، وتوثق جانباً آخر من قدرات الاستجابة للطوارئ في المطار."
+      }
+    },
+    {
+      "recordId": "past-031",
+      "order": 21,
+      "medium": "photograph",
+      "isVideo": false,
+      "title": {
+        "en": "Intact airport administrative or service building",
+        "ar": "مبنى إداري أو خدمي سليم في المطار"
+      },
+      "caption": {
+        "en": "An intact symmetrical airport building with paired arched-window wings and a rounded glazed central entrance. Its precise departmental function is not established by the image alone.",
+        "ar": "مبنى سليم ومتناسق في المطار، بجناحين ذوي نوافذ مقوسة ومدخل مركزي دائري بواجهة زجاجية. لا تحدد الصورة وحدها الوظيفة الإدارية الدقيقة للمبنى."
+      }
+    },
+    {
+      "recordId": "past-032",
+      "order": 22,
+      "medium": "photograph",
+      "isVideo": false,
+      "title": {
+        "en": "Control tower above the terminal façade",
+        "ar": "برج المراقبة فوق واجهة مبنى المسافرين"
+      },
+      "caption": {
+        "en": "The intact control tower rises above the terminal's repeating pointed-arch façade and landside lighting.",
+        "ar": "يرتفع برج المراقبة السليم فوق واجهة مبنى المسافرين ذات الأقواس المدببة المتكررة وإنارة المنطقة البرية."
+      }
+    },
+    {
+      "recordId": "past-033",
+      "order": 23,
+      "medium": "photograph",
+      "isVideo": false,
+      "title": {
+        "en": "Intact terminal frontage",
+        "ar": "الواجهة السليمة لمبنى المطار"
+      },
+      "caption": {
+        "en": "A clean landside view along the intact terminal frontage, showing repeating arches, landscaped planting and roofline signage.",
+        "ar": "منظر بري واضح بمحاذاة الواجهة السليمة للمبنى، مع الأقواس المتكررة والتشجير واللافتة أعلى السقف."
+      }
+    },
+    {
+      "recordId": "past-038",
+      "order": 24,
+      "medium": "photograph",
+      "isVideo": false,
+      "title": {
+        "en": "Uniformed personnel beside the airport gardens",
+        "ar": "أفراد بزي رسمي بجانب حدائق المطار"
+      },
+      "caption": {
+        "en": "Uniformed personnel are seen on the landscaped grounds beside the terminal and control tower. The filename describes a specific activity and role; those details are not independently established from the image alone.",
+        "ar": "يظهر أفراد بزي رسمي على المساحات المزروعة بجانب مبنى المطار وبرج المراقبة. يصف اسم الملف نشاطاً ودوراً محددين، لكن هذه التفاصيل غير مثبتة بصورة مستقلة من الصورة وحدها."
+      }
+    },
+    {
+      "recordId": "past-040",
+      "order": 25,
+      "medium": "photograph",
+      "isVideo": false,
+      "title": {
+        "en": "Intact control tower framed by palms",
+        "ar": "برج المراقبة السليم بين أشجار النخيل"
+      },
+      "caption": {
+        "en": "A frontal view of the intact control tower framed by palm trees and landscaping, emphasizing the airport's distinctive geometric architectural motif.",
+        "ar": "منظر أمامي لبرج المراقبة وهو سليم بين أشجار النخيل والتشجير، ويبرز الزخرفة الهندسية المميزة لعمارة المطار."
+      }
+    },
+    {
+      "recordId": "past-042",
+      "order": 26,
+      "medium": "photograph",
+      "isVideo": false,
+      "title": {
+        "en": "Baggage claim hall",
+        "ar": "صالة استلام الأمتعة"
+      },
+      "caption": {
+        "en": "A wide interior view of the baggage-claim area, showing a carousel, luggage trolleys, repeated pointed arches and illuminated ceiling panels.",
+        "ar": "منظر داخلي واسع لمنطقة استلام الأمتعة، يظهر سير الأمتعة وعربات الحقائب والأقواس المدببة المتكررة وإضاءة السقف."
+      }
+    },
+    {
+      "recordId": "past-043",
+      "order": 27,
+      "medium": "photograph",
+      "isVideo": false,
+      "title": {
+        "en": "Baggage claim and service area",
+        "ar": "منطقة استلام الأمتعة والخدمات"
+      },
+      "caption": {
+        "en": "A lower-resolution view across a baggage-claim area with a carousel and adjacent passenger-service frontage.",
+        "ar": "منظر منخفض الدقة عبر منطقة استلام الأمتعة، يظهر سير الحقائب وواجهة خدمات للمسافرين مجاورة."
+      }
+    },
+    {
+      "recordId": "past-044",
+      "order": 28,
+      "medium": "photograph",
+      "isVideo": false,
+      "title": {
+        "en": "Egyptian Arab Land Bank counter inside the terminal",
+        "ar": "مكتب البنك العقاري المصري العربي داخل مبنى المطار"
+      },
+      "caption": {
+        "en": "A passenger-service counter inside the terminal carries bilingual signage for the Egyptian Arab Land Bank, documenting one of the commercial services available in the airport building.",
+        "ar": "مكتب خدمة للمسافرين داخل مبنى المطار يحمل لافتة ثنائية اللغة للبنك العقاري المصري العربي، ويوثق إحدى الخدمات التجارية داخل المبنى."
+      }
+    },
+    {
+      "recordId": "past-045",
+      "order": 29,
+      "medium": "photograph",
+      "isVideo": false,
+      "title": {
+        "en": "Passenger processing counters",
+        "ar": "كاونترات معالجة إجراءات المسافرين"
+      },
+      "caption": {
+        "en": "A row of passenger-processing counters beneath numbered overhead signs. The owner filename calls this a boarding area, but the exact operational function should remain broader unless the source confirms it.",
+        "ar": "صف من كاونترات خدمة المسافرين أسفل لوحات مرقمة. يصف اسم الملف المنطقة بأنها منطقة صعود للطائرة، لكن من الأفضل إبقاء الوظيفة أعمّ ما لم يؤكدها المصدر."
+      }
+    },
+    {
+      "recordId": "past-046",
+      "order": 30,
+      "medium": "photograph",
+      "isVideo": false,
+      "title": {
+        "en": "Long terminal hall",
+        "ar": "ممر طويل داخل مبنى المطار"
+      },
+      "caption": {
+        "en": "A long passenger hall lined with columns, arches, seating, overhead monitors and glazed service areas.",
+        "ar": "ممر طويل للمسافرين تصطف على جانبيه الأعمدة والأقواس والمقاعد والشاشات العلوية وواجهات الخدمات الزجاجية."
+      }
+    },
+    {
+      "recordId": "past-049",
+      "order": 31,
+      "medium": "photograph",
+      "isVideo": false,
+      "title": {
+        "en": "Crowded passenger hall during airport operations",
+        "ar": "صالة مسافرين مزدحمة أثناء تشغيل المطار"
+      },
+      "caption": {
+        "en": "A crowded terminal hall filled with passengers, families, luggage and airport activity, providing a valuable counterpoint to the empty architectural interior photographs.",
+        "ar": "صالة مبنى مزدحمة بالمسافرين والعائلات والحقائب وحركة المطار، وتوفر توثيقاً مهماً يكمل الصور المعمارية الخالية من الأشخاص."
+      }
+    },
+    {
+      "recordId": "past-050",
+      "order": 32,
+      "medium": "photograph",
+      "isVideo": false,
+      "title": {
+        "en": "Waiting hall with rows of seating",
+        "ar": "صالة انتظار بصفوف من المقاعد"
+      },
+      "caption": {
+        "en": "A high-resolution view of an empty passenger waiting hall with rows of metal seating, pointed arches, glazed partitions and a digital clock.",
+        "ar": "منظر عالي الدقة لصالة انتظار مسافرين خالية، تضم صفوفاً من المقاعد المعدنية والأقواس المدببة والواجهات الزجاجية وساعة رقمية."
+      }
+    },
+    {
+      "recordId": "past-051",
+      "order": 33,
+      "medium": "photograph",
+      "isVideo": false,
+      "title": {
+        "en": "Passenger security screening equipment",
+        "ar": "معدات التفتيش الأمني للمسافرين"
+      },
+      "caption": {
+        "en": "A security-screening station inside the terminal includes a walk-through metal detector, an X-ray baggage scanner and an operator console.",
+        "ar": "محطة تفتيش أمني داخل المبنى تضم بوابة كشف معدني وجهاز فحص للأمتعة بالأشعة ومنصة تشغيل."
+      }
+    },
+    {
+      "recordId": "past-053",
+      "order": 34,
+      "medium": "photograph",
+      "isVideo": false,
+      "title": {
+        "en": "Daylit passenger waiting area",
+        "ar": "منطقة انتظار للمسافرين بإضاءة طبيعية"
+      },
+      "caption": {
+        "en": "A passenger waiting area with rows of metal seating beside large pointed-arch windows overlooking the airport exterior.",
+        "ar": "منطقة انتظار للمسافرين تضم صفوفاً من المقاعد المعدنية بجانب نوافذ كبيرة مدببة تطل على خارج المطار."
+      }
+    },
+    {
+      "recordId": "past-054",
+      "order": 35,
+      "medium": "document",
+      "isVideo": false,
+      "title": {
+        "en": "Gaza International Airport passport-control stamp, 8 April 2000",
+        "ar": "ختم مراقبة جوازات مطار غزة الدولي، 8 أبريل/نيسان 2000"
+      },
+      "caption": {
+        "en": "A passport-control stamp visibly reads “Palestinian Authority” and “Gaza International Airport” and carries the date 8-04-2000. It is a valuable primary artifact of the airport's border-processing function.",
+        "ar": "ختم مراقبة جوازات يظهر عليه بوضوح «السلطة الفلسطينية» و«مطار غزة الدولي» ويحمل تاريخ 8-04-2000. وهو وثيقة أولية مهمة على وظيفة المطار في إجراءات السفر والجوازات."
+      }
+    },
+    {
+      "recordId": "past-056",
+      "order": 36,
+      "medium": "photograph",
+      "isVideo": false,
+      "title": {
+        "en": "Air traffic control room at work",
+        "ar": "غرفة المراقبة الجوية أثناء العمل"
+      },
+      "caption": {
+        "en": "Staff are shown working inside the airport control tower with communications equipment, consoles and a panoramic view over the airfield.",
+        "ar": "يظهر موظفون أثناء العمل داخل برج المراقبة مع أجهزة اتصالات ووحدات تحكم وإطلالة بانورامية على ساحة المطار."
+      }
+    },
+    {
+      "recordId": "past-058",
+      "order": 37,
+      "medium": "photograph",
+      "isVideo": false,
+      "title": {
+        "en": "Terminal building with Palestinian flag",
+        "ar": "مبنى المطار مع العلم الفلسطيني"
+      },
+      "caption": {
+        "en": "An exterior view of an intact airport building with repeating pointed arches, parked vehicles, landscaped grass and a Palestinian flag above the roofline.",
+        "ar": "منظر خارجي لمبنى المطار وهو سليم، تظهر فيه الأقواس المدببة المتكررة والسيارات المتوقفة والمساحة الخضراء والعلم الفلسطيني فوق خط السقف."
+      }
+    },
+    {
+      "recordId": "vid-ref-ap-1998-opening",
+      "order": 38,
+      "medium": "video",
+      "isVideo": true,
+      "title": {
+        "en": "GAZA: INTERNATIONAL AIRPORT OPENS",
+        "ar": "أسوشيتد برس: افتتاح مطار غزة الدولي"
+      },
+      "caption": {
+        "en": "Archival news coverage documenting the official opening ceremony and inaugural flights on November 24, 1998.",
+        "ar": "تغطية إخبارية أرشيفية توثق مراسم الافتتاح الرسمي والرحلات الافتتاحية في 24 تشرين الثاني/نوفمبر 1998."
+      }
+    },
+    {
+      "recordId": "vid-ref-clinton-1998",
+      "order": 39,
+      "medium": "video",
+      "isVideo": true,
+      "title": {
+        "en": "Pres. Clinton and Chairman Arafat at Gaza Airport (1998) (FOIA 2017-0234-F)",
+        "ar": "مكتبة كلينتون الرئاسية: الرئيس كلينتون والرئيس عرفات في مطار غزة (1998)"
+      },
+      "caption": {
+        "en": "Official White House videotape documenting the state ceremony with President Bill Clinton and Chairman Yasser Arafat on December 14, 1998.",
+        "ar": "تسجيل رسمي لوكالة الاتصالات بالبيت الأبيض يوثق مراسم الاستقبال والاحتفال بحضور الرئيس كلينتون والرئيس عرفات في 14 كانون الأول/ديسمبر 1998."
+      }
+    },
+    {
+      "recordId": "vid-ref-aljazeera-2009",
+      "order": 40,
+      "medium": "video",
+      "isVideo": true,
+      "title": {
+        "en": "Al Jazeera: Destroyed Yasser Arafat International Airport (2009)",
+        "ar": "الجزيرة: مطار ياسر عرفات الدولي المدمر"
+      },
+      "caption": {
+        "en": "Field report by Abbas Nasser from the ruins of Yasser Arafat International Airport, broadcast February 13, 2009.",
+        "ar": "تقرير ميداني لمراسل قناة الجزيرة عباس ناصر من أطلال مطار ياسر عرفات الدولي، بُث في 13 شباط/فبراير 2009."
+      }
+    },
+    {
+      "recordId": "vid-ref-afp-2018",
+      "order": 41,
+      "medium": "video",
+      "isVideo": true,
+      "title": {
+        "en": "AFP: Destroyed Gaza Airport Symbolises Grounded Peace Hopes (2018)",
+        "ar": "فرانس برس: مطار غزة المدمر يجسد آمال السلام المحطمة"
+      },
+      "caption": {
+        "en": "AFP retrospective report marking 25 years after Oslo, documenting the destroyed condition of Gaza airport.",
+        "ar": "تقرير استعادي لوكالة فرانس برس بعد 25 عاماً على اتفاقات أوسلو يوثق الحالة المدمرة لمطار غزة."
+      }
+    }
+  ]
+}

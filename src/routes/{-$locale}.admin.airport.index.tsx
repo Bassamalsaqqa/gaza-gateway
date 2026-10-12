@@ -50,13 +50,16 @@ import {
   SourceRecordEditorSheet,
   SourceRecordSheet,
 } from "@/components/admin/archive";
+import { GalleryPublication } from "@/components/admin/archive/GalleryPublication";
 import { useArchiveAdminI18n } from "@/components/admin/archive/i18n";
 import { useArchiveDraftSnapshot } from "@/lib/archive/drafts/queries";
 
-type Tab = "past" | "present" | "future" | "archive" | "sources" | "media";
+type Tab = "past" | "present" | "future" | "gallery" | "archive" | "sources" | "media";
 type Lang = "en" | "ar";
 
-const VALID_TABS: readonly Tab[] = identityUiRequested ? ["past", "present", "future"] : ["past", "present", "future", "archive", "sources", "media"];
+const VALID_TABS: readonly Tab[] = identityUiRequested
+  ? ["past", "present", "future", "gallery"]
+  : ["past", "present", "future", "archive", "sources", "media"];
 
 export const Route = createFileRoute("/{-$locale}/admin/airport/")({
   validateSearch: (search: Record<string, unknown>): {
@@ -690,6 +693,7 @@ function AdminAirportPage() {
             { id: "past", label: t("a2.ap.tab.past") },
             { id: "present", label: t("a2.ap.tab.present") },
             { id: "future", label: t("a2.ap.tab.future") },
+            { id: "gallery", label: lang === "ar" ? "نشر المعرض" : "Gallery Publication" },
             { id: "archive", label: t("a2.ap.tab.archive"), count: effectiveRecords.length },
             { id: "sources", label: t("a2.ap.tab.sources"), count: effectiveSources.length },
             { id: "media", label: t("a2.ap.tab.media"), count: intakeRecords.length },
@@ -1530,6 +1534,13 @@ function AdminAirportPage() {
                 } : undefined}
               />
             </>
+          )}
+
+          {/* ------------------------------------------------------------------ */}
+          {/* TAB: GALLERY (Phase 13 Gallery Publication)                         */}
+          {/* ------------------------------------------------------------------ */}
+          {identityUiRequested && tab === "gallery" && (
+            <GalleryPublication />
           )}
 
           {/* ------------------------------------------------------------------ */}

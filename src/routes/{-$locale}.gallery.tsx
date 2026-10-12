@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { ChevronLeft, ChevronRight, ExternalLink, Info, Play, X } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
@@ -8,6 +9,11 @@ import { btnClass, Container, EmptyState } from "@/components/kit";
 import { PublicPhotoHero } from "@/components/media/public-photo-hero";
 import { ResponsiveImage } from "@/components/responsive-image";
 import { ArchiveVideoPlayer } from "@/components/archive/archive-video-player";
+import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
+import {
+  fetchPublishedGallery,
+  applyPublishedGalleryConfiguration,
+} from "@/lib/archive/gallery-publication";
 import {
   getGalleryItems,
   getDerivedFilterOptions,
@@ -34,6 +40,7 @@ import { pageHead } from "@/lib/head";
 import { getBreadcrumbSchema } from "@/lib/structured-data";
 
 export const Route = createFileRoute("/{-$locale}/gallery")({
+  ssr: !identityUiRequested,
   head: ({ params }) => {
     const isAr = params.locale === "ar";
     return pageHead({
@@ -91,8 +98,28 @@ function GalleryPage() {
   const triggerRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
   // Canonical gallery items: 38 published photos/documents + 4 verified video references
-  const galleryItems = useMemo(() => getGalleryItems(), []);
+  const compiledGalleryItems = useMemo(() => getGalleryItems(), []);
   const externalSources = useMemo(() => getAllSourceRecords(), []);
+
+  const publishedQuery = useQuery({
+    queryKey: ["gallery", "published"],
+    queryFn: ({ signal }) => fetchPublishedGallery(signal),
+    enabled: identityUiRequested,
+    retry: false,
+  });
+
+  const galleryItems = useMemo(() => {
+    if (!identityUiRequested) {
+      return compiledGalleryItems;
+    }
+    if (publishedQuery.isSuccess) {
+      if (publishedQuery.data) {
+        return applyPublishedGalleryConfiguration(publishedQuery.data.payload, compiledGalleryItems);
+      }
+      return compiledGalleryItems;
+    }
+    return [];
+  }, [compiledGalleryItems, publishedQuery.isSuccess, publishedQuery.data]);
 
   // Dynamically derive available filter options from actual published dataset
   const filterOptions = useMemo(() => getDerivedFilterOptions(galleryItems), [galleryItems]);
@@ -203,10 +230,45 @@ function GalleryPage() {
           </p>
         </div>
 
-        {/* Dynamic Standard Filter Toolbar */}
-        <div
-          data-decorative-asset="gallery-filter-toolbar"
-          data-testid="gallery-filter-toolbar"
+        {identityUiRequested && publishedQuery.isPending && (
+          <div role="status" aria-live="polite" className="py-16 text-center text-sm text-muted-foreground">
+            {pick(lang, {
+              en: "Loading documentary gallery...",
+              ar: "جارٍ تحميل المعرض التوثيقي...",
+            })}
+          </div>
+        )}
+
+        {identityUiRequested && publishedQuery.isError && (
+          <div role="alert" className="my-8 rounded-xl border border-destructive/40 bg-destructive/10 p-6 text-center text-sm">
+            <p className="font-semibold text-destructive">
+              {pick(lang, {
+                en: "Unable to load gallery records from server.",
+                ar: "تعذر تحميل سجلات المعرض من الخادم.",
+              })}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {pick(lang, {
+                en: "A network error occurred. Stale local data is not displayed.",
+                ar: "حدث خطأ في الشبكة. لا يتم عرض البيانات المحلية القديمة.",
+              })}
+            </p>
+            <button
+              type="button"
+              onClick={() => void publishedQuery.refetch()}
+              className={btnClass("secondary", "sm", "mt-4")}
+            >
+              {pick(lang, { en: "Retry", ar: "إعادة المحاولة" })}
+            </button>
+          </div>
+        )}
+
+        {(!identityUiRequested || publishedQuery.isSuccess) && (
+          <>
+            {/* Dynamic Standard Filter Toolbar */}
+            <div
+              data-decorative-asset="gallery-filter-toolbar"
+              data-testid="gallery-filter-toolbar"
           className="relative flex flex-wrap items-center justify-between gap-3 overflow-hidden rounded-xl border border-border bg-clay p-3.5 sm:p-4 text-ink-foreground shadow-xs"
         >
           <img
@@ -476,6 +538,8 @@ function GalleryPage() {
             ))}
           </div>
         </section>
+          </>
+        )}
       </Container>
 
       {/* Accessible Radix Dialog Media Lightbox */}
