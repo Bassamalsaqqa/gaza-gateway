@@ -1,0 +1,1 @@
+import{n as e}from"./Match-Dz7mHSvQ.js";import{t}from"./jsx-runtime-CL9hujd8.js";import{r as n}from"./identity-ui-runtime-Ze555cIs.js";import{t as r}from"./mvp-booking-access-Bfny286n.js";var i=t(),a=()=>n?(0,i.jsx)(r,{}):(0,i.jsx)(e,{});export{a as component};
