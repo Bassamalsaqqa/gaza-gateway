@@ -1,3 +1,5 @@
+import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
+import { PassengerIdentityAuth } from "@/components/identity/identity-forms";
 import { AppLink } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
 import { btnClass, Notice, Panel } from "@/components/kit";
@@ -24,6 +26,10 @@ export const Route = createFileRoute("/{-$locale}/reset-password")({
 });
 
 function ResetPasswordPage() {
+  return identityUiRequested ? <PassengerIdentityAuth initial="reset" /> : <MockResetPasswordPage />;
+}
+
+function MockResetPasswordPage() {
   const { t } = useI18n();
 
   return (

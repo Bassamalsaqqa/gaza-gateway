@@ -27,7 +27,7 @@ try {
  docker("network",["network","create",name]);network=true;
  docker("postgres",["run","-d","--rm","--name",name+"_pg","--network",name,"--network-alias","postgres","--tmpfs","/var/lib/postgresql/data","--mount","type=bind,source="+path.join(root,"backend/docker/init-db.sql")+",target=/docker-entrypoint-initdb.d/init-db.sql,readonly","-e","POSTGRES_USER=gza_admin","-e","POSTGRES_PASSWORD=gza_local_secret","-e","POSTGRES_DB=gaza_gateway_dev","postgres:17@sha256:2d2b8998d31037bf721cfdf764d76ba74171b4fab3431b7f72c27c56ddbdf9e3"]);pg=true;
  for(let i=0;i<30;i++){const r=spawnSync("docker",["exec",name+"_pg","psql","-U","gza_admin","-d","gaza_gateway_test","-tAc","SELECT 1"],{encoding:"utf8",timeout:2000});if(r.status===0)break;await new Promise(r=>setTimeout(r,500));}
- docker("web",["run","-d","--rm","--name",name+"_web","--network",name,"--network-alias","mailpit","-p","127.0.0.1:18443:10000","-w","/var/www/html","-e","APP_KEY","-e","GUEST_OTP_PEPPER_BASE64","-e","APP_ENV=testing","-e","APP_DEBUG=false","-e","APP_URL=https://127.0.0.1:18443","-e","APP_ALLOWED_HOSTS=127.0.0.1,localhost,127.0.0.1:18443","-e","CORS_ALLOWED_ORIGINS="+origin,"-e","DB_CONNECTION=pgsql_test","-e","DB_HOST=postgres","-e","DB_TEST_DATABASE=gaza_gateway_test","-e","DB_USERNAME=gaza_app_user","-e","DB_PASSWORD=gaza_app_local_pass","-e","CACHE_STORE=database","-e","QUEUE_CONNECTION=database","-e","LOG_CHANNEL=stderr","-e","IDENTITY_MIGRATION_DISPOSABLE_INSTANCE=1","-e","MVP_BROWSER_GATE_OWNED=1","-e","RESERVATIONS_ENABLED=true","-e","RESERVATIONS_AUTHORITY=resolver","-e","MVP_MAIL_ENABLED=true","-e","MVP_SITE_ENABLED=true","--entrypoint","sleep","gaza-gateway-backend:phase13a-runtime","1800"]);web=true;
+ docker("web",["run","-d","--rm","--name",name+"_web","--network",name,"--network-alias","mailpit","-p","127.0.0.1:18443:10000","-w","/var/www/html","-e","APP_KEY","-e","GUEST_OTP_PEPPER_BASE64","-e","APP_ENV=testing","-e","APP_DEBUG=false","-e","APP_URL=https://127.0.0.1:18443","-e","APP_ALLOWED_HOSTS=127.0.0.1,localhost,127.0.0.1:18443","-e","CORS_ALLOWED_ORIGINS="+origin,"-e","DB_CONNECTION=pgsql_test","-e","DB_HOST=postgres","-e","DB_TEST_DATABASE=gaza_gateway_test","-e","DB_USERNAME=gaza_app_user","-e","DB_PASSWORD=gaza_app_local_pass","-e","CACHE_STORE=database","-e","QUEUE_CONNECTION=database","-e","LOG_CHANNEL=stderr","-e","IDENTITY_MIGRATION_DISPOSABLE_INSTANCE=1","-e","MVP_BROWSER_GATE_OWNED=1","-e","RESERVATIONS_ENABLED=true","-e","RESERVATIONS_AUTHORITY=resolver","-e","MVP_MAIL_ENABLED=true","-e","MVP_IDENTITY_SMTP_ENABLED=true","-e","MVP_SITE_ENABLED=true","--entrypoint","sleep","gaza-gateway-backend:phase13a-runtime","1800"]);web=true;
  docker("copy-source",["cp",path.join(source,"backend")+"/.",name+"_web:/var/www/html"]);
  docker("copy-vendor",["cp",vendor,name+"_web:/var/www/html/vendor"]);
  docker("copy-caddy",["cp",path.join(output,"Caddyfile"),name+"_web:/tmp/MvpCaddyfile"]);
@@ -48,7 +48,26 @@ try {
  for(let i=0;i<60;i++){if(await probe(origin)===200)break;await new Promise(r=>setTimeout(r,500));}
  if(await probe(origin)!==200)throw new Error("HTTPS frontend unavailable");
  const {runJoinedWorkflow}=await import("../../tests/mvp/joined-workflow.mjs");
- await runJoinedWorkflow({origin,api,output,fixture,key,exec,slice:process.env.MVP_BROWSER_GATE_SLICE,startSink(){sink=spawn("docker",["exec",name+"_web","php","tests/Fixtures/MvpMail/smtp-sink.php"],{stdio:"ignore"});}});
+ await runJoinedWorkflow({origin,api,output,fixture,key,exec,readProofToken(email, purpose){
+   // Synthetic capture secrets stay in process memory: never persist stdout or credentials in gate logs.
+   if (!/^[a-z0-9.-]+@example\.test$/.test(email) || !["verification","reset"].includes(purpose)) throw new Error("Unowned proof specimen.");
+   const code=String.raw`$email=$argv[1]; $purpose=$argv[2]; foreach(glob('/tmp/mvp-smtp-sink/*.eml')?:[] as $file) { $body=quoted_printable_decode(file_get_contents($file)); if(!str_contains($body,$email))continue; $subject=$purpose==='verification'?'Verify your email address':'Reset your account password'; if(!str_contains($body,$subject))continue; if(preg_match('/(?<![A-Za-z0-9_-])([A-Za-z0-9_-]{43})(?![A-Za-z0-9_-])/',$body,$match)) {echo $match[1]; exit(0);} } exit(1);`;
+   const r=spawnSync("docker",["exec",name+"_web","php","-r",code,email,purpose],{encoding:"utf8",timeout:5000,maxBuffer:4096});
+   if(r.status!==0 || !/^[A-Za-z0-9_-]{43}$/.test(r.stdout))throw new Error("Synthetic proof capture missing.");
+   return r.stdout;
+ },slice:process.env.MVP_BROWSER_GATE_SLICE,startSink(){sink=spawn("docker",["exec",name+"_web","php","tests/Fixtures/MvpMail/smtp-sink.php"],{stdio:"ignore"});}});
+ if (process.env.MVP_BROWSER_GATE_BACKUP_RESTORE === "1") {
+   const {verifyMvpBackupRestore}=await import("./mvp-backup-restore.mjs");
+   const persistence=await verifyMvpBackupRestore({name,docker,exec,probe,api,async restartWeb(){
+     docker("persistence-restart-web",["restart",name+"_web"]);
+     if(server)server.kill();
+     const log=fs.openSync(path.join(output,"restarted-web-server.log"),"w");
+     server=spawn("docker",["exec",name+"_web","frankenphp","run","--config","/tmp/MvpCaddyfile","--adapter","caddyfile"],{stdio:["ignore",log,log]});
+     for(let i=0;i<30;i++){if(await probe(api+"/health")===200)return;await new Promise(r=>setTimeout(r,500));}
+     throw new Error("Restarted HTTPS liveness unavailable");
+   }});
+   fs.writeFileSync(path.join(output,"persistence.json"),JSON.stringify(persistence,null,2));
+ }
  passed=true;
  fs.writeFileSync(path.join(output,"source.json"),JSON.stringify({head,hashes},null,2));
 } catch(e){failure=e.message;process.exitCode=1;console.error(failure);} finally {

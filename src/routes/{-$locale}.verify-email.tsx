@@ -1,3 +1,5 @@
+import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
+import { PassengerIdentityAuth } from "@/components/identity/identity-forms";
 import { AppLink } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
 import { CheckCircle2, Link as LinkIcon, ShieldAlert } from "lucide-react";
@@ -30,6 +32,10 @@ export const Route = createFileRoute("/{-$locale}/verify-email")({
 });
 
 function VerifyEmailPage() {
+  return identityUiRequested ? <PassengerIdentityAuth initial="verify" /> : <MockVerifyEmailPage />;
+}
+
+function MockVerifyEmailPage() {
   const { t } = useI18n();
   const { data: account, isLoading } = usePassengerAccount();
   const claimMutation = useClaimBookingMutation();

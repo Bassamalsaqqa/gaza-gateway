@@ -6,7 +6,8 @@ import { chromium } from "playwright-core";
 import { publishedHome } from "../../src/content/published/home.ts";
 import { verifyMailCapture } from "../../backend/scripts/mail-capture-contracts.mjs";
 
-export async function runJoinedWorkflow({origin,api,output,fixture,key,exec,startSink,slice}) {
+export async function runJoinedWorkflow({origin,api,output,fixture,key,exec,startSink,readProofToken,slice}) {
+ if (slice === "persistence") return; // Owned fixture setup only; persistence verification runs in the caller.
  const browser=await chromium.launch({channel:"msedge",headless:true}); const contexts=[]; const checks=[]; let active;
  const check=name=>{checks.push(name);console.log("PASS "+name);};
  const captures={}; const contracts=["mvp-mail","mvp-site","mvp-editorial","mvp-reservations","mvp-gallery"].map(name=>JSON.parse(fs.readFileSync(new URL(`../../docs/backend/${name}.openapi.json`,import.meta.url))));
@@ -36,6 +37,63 @@ export async function runJoinedWorkflow({origin,api,output,fixture,key,exec,star
  function otp(){const b=Buffer.alloc(8);b.writeBigUInt64BE(BigInt(Math.floor(Date.now()/30000)));const h=crypto.createHmac("sha1",key).update(b).digest(),o=h[19]&15;return ((h.readUInt32BE(o)&0x7fffffff)%1000000).toString().padStart(6,"0");}
  try {
   const admin=active=await context();await navigate(admin,origin+"/admin/signin");await admin.waitForFunction(()=>Object.keys(document.querySelector("input[name=username]")??{}).some(k=>k.startsWith("__reactProps$")));await admin.locator('[name="username"]').fill(fixture.username);await admin.locator('[name="password"]').fill(fixture.password);await admin.locator("form").getByRole("button",{name:"Staff sign in",exact:true}).click();await admin.locator('[name="totpCode"]').fill(otp());await admin.getByRole("button",{name:"Verify",exact:true}).click();await admin.waitForURL(origin+"/admin");check("staff UI password and TOTP sign-in");
+  if (slice === "identity") {
+    await apiCall(admin,"PUT","/admin/settings/email",{expectedRevision:0,driver:"smtp",host:"mailpit",port:1025,tls:"none",senderName:"Gaza Gateway",senderEmail:"accounts@example.test",replyTo:"",username:"",password:""});
+    startSink();await new Promise(r=>setTimeout(r,500));
+    const account=active=await context(), email="signup-browser@example.test", password=fixture.password, replacement=password+"-new";
+    await navigate(account,origin+"/register");
+    await account.locator('[name="firstName"]').fill("Synthetic");await account.locator('[name="lastName"]').fill("Registration");
+    await account.locator('[name="email"]').fill(email);await account.locator('[name="password"]').fill(password);
+    let response=account.waitForResponse(r=>r.request().method()==="POST"&&r.url().endsWith("/auth/register"));
+    await account.locator('form button[type="submit"]').click();assert.equal((await response).status(),202);
+    exec("identity-verification-mail",["php","artisan","mvp:identity-smtp:work","--limit=1"]);
+    const verification=readProofToken(email,"verification");
+    await navigate(account,origin+"/verify-email");await account.locator('[name="token"]').fill(verification);
+    response=account.waitForResponse(r=>r.request().method()==="POST"&&r.url().endsWith("/auth/email/verify"));
+    await account.locator('form button[type="submit"]').click();assert.equal((await response).status(),200);
+    check("passenger UI registration and verification consume a proof received by synthetic SMTP");
+    await navigate(account,origin+"/forgot-password");await account.locator('[name="email"]').fill(email);
+    response=account.waitForResponse(r=>r.request().method()==="POST"&&r.url().endsWith("/auth/password/forgot"));
+    await account.locator('form button[type="submit"]').click();assert.equal((await response).status(),202);
+    exec("identity-recovery-mail",["php","artisan","mvp:identity-smtp:work","--limit=1"]);
+    const reset=readProofToken(email,"reset");
+    await navigate(account,origin+"/reset-password");await account.locator('[name="email"]').fill(email);await account.locator('[name="token"]').fill(reset);await account.locator('[name="password"]').fill(replacement);
+    response=account.waitForResponse(r=>r.request().method()==="POST"&&r.url().endsWith("/auth/password/reset"));
+    await account.locator('form button[type="submit"]').click();assert.equal((await response).status(),200);
+    await navigate(account,origin+"/signin");await account.locator('[name="email"]').fill(email);await account.locator('[name="password"]').fill(replacement);await account.locator('form button[type="submit"]').click();await account.waitForURL(origin+"/account");await account.getByText(email,{exact:true}).first().waitFor();
+    check("passenger UI recovery consumes SMTP proof and new password signs in");
+    await drain();assert.ok(!checks.some(c=>c.startsWith("CONTRACT FAILURE") || c.startsWith("BROWSER ERROR")),checks.join("; "));
+    return;
+  }
+  if (slice === "cms") {
+    await navigate(admin,origin+"/admin/website?tab=homepage");
+    await admin.locator("#copy-h1-en").fill("Synthetic CMS editor publication");
+    let response = admin.waitForResponse(r=>r.request().method()==="PUT" && r.url().endsWith("/cms/editorial/home/draft"));
+    await admin.getByRole("button",{name:/^save draft$/i}).click();assert.equal((await response).status(),200);
+    response = admin.waitForResponse(r=>r.request().method()==="POST" && r.url().endsWith("/cms/editorial/home/publish"));
+    await admin.getByRole("button",{name:"Publish",exact:true}).click();assert.equal((await response).status(),200);
+    const visitor = active = await context();await navigate(visitor,origin);
+    await visitor.getByRole("heading",{name:"Synthetic CMS editor publication",exact:true}).waitFor();
+    check("actual Home editor save/publish reaches an independent browser");
+    await navigate(admin,origin+"/admin/destinations/AMM?tab=content");
+    const section = admin.locator('section[aria-labelledby="dst-ed-heading"]');
+    await section.locator("#dst-ed-AMM-blurb-en").fill("Synthetic shared destination narrative");
+    response = admin.waitForResponse(r=>r.request().method()==="PUT" && r.url().endsWith("/cms/editorial/destinations.editorial/draft"));
+    await section.getByRole("button",{name:/^save draft$/i}).click();assert.equal((await response).status(),200);
+    response = admin.waitForResponse(r=>r.request().method()==="POST" && r.url().endsWith("/cms/editorial/destinations.editorial/publish"));
+    await section.getByRole("button",{name:"Publish",exact:true}).click();assert.equal((await response).status(),200);
+    await navigate(visitor,origin+"/destinations/AMM");await visitor.getByText("Synthetic shared destination narrative",{exact:true}).waitFor();
+    check("actual destination narrative editor save/publish reaches an independent browser");
+    await navigate(admin,origin+"/admin/settings");await admin.getByLabel("Contact email",{exact:true}).fill("shared-contact@example.test");
+    response = admin.waitForResponse(r=>r.request().method()==="PUT" && r.url().endsWith("/admin/settings/contact/draft"));
+    await admin.getByRole("button",{name:"Save draft",exact:true}).click();assert.equal((await response).status(),200);
+    response = admin.waitForResponse(r=>r.request().method()==="POST" && r.url().endsWith("/admin/settings/contact/publish"));
+    await admin.getByRole("button",{name:"Publish saved draft",exact:true}).click();assert.equal((await response).status(),200);
+    await navigate(visitor,origin+"/contact");await visitor.getByText("shared-contact@example.test",{exact:true}).first().waitFor();
+    check("actual contact settings editor save/publish reaches an independent browser");
+    await drain();assert.ok(!checks.some(c=>c.startsWith("CONTRACT FAILURE") || c.startsWith("BROWSER ERROR")),checks.join("; "));
+    return;
+  }
   if (slice === "publication") {
     await navigate(admin,origin+"/admin/airport?tab=gallery");
     const title = admin.getByRole("textbox",{name:"Display title rec-present-ruins-2008",exact:true});
