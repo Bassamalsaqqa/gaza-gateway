@@ -154,11 +154,11 @@ class ConfigurationValidator
 
         // 6. Database connection configuration with ConfigurationUrlParser
         $defaultConn = (string) ($config['database']['default'] ?? '');
-        if ($isDeployment && $defaultConn !== 'pgsql') {
-            throw new \RuntimeException("Configuration error: [database.default] must be 'pgsql' in deployment.");
+        if ($isDeployment && $defaultConn !== 'mysql') {
+            throw new \RuntimeException("Configuration error: [database.default] must be 'mysql' in deployment.");
         }
-        if ($isTesting && $defaultConn !== 'pgsql_test') {
-            throw new \RuntimeException("Configuration error: [database.default] must be 'pgsql_test' in testing.");
+        if ($isTesting && $defaultConn !== 'mysql_test') {
+            throw new \RuntimeException("Configuration error: [database.default] must be 'mysql_test' in testing.");
         }
 
         $connConfig = (array) ($config['database']['connections'][$defaultConn] ?? []);
@@ -174,26 +174,33 @@ class ConfigurationValidator
         }
 
         $effectiveDriver = (string) ($effectiveConn['driver'] ?? '');
-        if ($effectiveDriver !== 'pgsql') {
-            throw new \RuntimeException("Configuration error: Effective database driver must be 'pgsql'.");
+        if ($effectiveDriver !== 'mysql') {
+            throw new \RuntimeException("Configuration error: Effective database driver must be 'mysql'.");
         }
 
         if ($isDeployment) {
+            $socket = trim((string) ($effectiveConn['unix_socket'] ?? ''));
             $host = trim((string) ($effectiveConn['host'] ?? ''));
-            if ($host === '') {
-                throw new \RuntimeException("Configuration error: Database host cannot be empty in deployment.");
-            }
-            if (in_array(strtolower($host), ['localhost', '127.0.0.1', 'postgres'], true)) {
-                throw new \RuntimeException("Configuration error: Database host cannot target local or container host in deployment.");
+
+            if ($socket === '' && $host === '') {
+                throw new \RuntimeException("Configuration error: Database host or unix socket cannot be empty in deployment.");
             }
 
-            $port = trim((string) ($effectiveConn['port'] ?? ''));
-            if ($port === '') {
-                throw new \RuntimeException("Configuration error: Database port cannot be empty in deployment.");
+            if ($host !== '') {
+                // HostPapa shared-only ADR: Database runs on loopback localhost or local unix socket. Remote DB hosts are disallowed.
+                $hostLower = strtolower($host);
+                if (!in_array($hostLower, ['localhost', '127.0.0.1'], true)) {
+                    throw new \RuntimeException("Configuration error: Database host must be loopback localhost/socket in shared-hosting deployment; remote DB host is disallowed.");
+                }
+
+                $port = trim((string) ($effectiveConn['port'] ?? ''));
+                if ($port === '') {
+                    throw new \RuntimeException("Configuration error: Database port cannot be empty in deployment.");
+                }
             }
 
             $database = trim((string) ($effectiveConn['database'] ?? ''));
-            if ($database === '' || in_array($database, ['gaza_gateway_dev', 'gaza_gateway_test', 'CHANGE_ME', 'placeholder'], true)) {
+            if ($database === '' || in_array($database, ['gaza_gateway_dev', 'gaza_gateway_mysql_test', 'gaza_gateway_test', 'CHANGE_ME', 'placeholder'], true)) {
                 throw new \RuntimeException("Configuration error: Database name cannot be empty, local/test, or placeholder in deployment.");
             }
 
@@ -207,9 +214,22 @@ class ConfigurationValidator
                 throw new \RuntimeException("Configuration error: Database password cannot use dev defaults or placeholders in deployment.");
             }
 
-            $sslMode = strtolower(trim((string) ($effectiveConn['sslmode'] ?? '')));
-            if (!in_array($sslMode, ['require', 'verify-ca', 'verify-full'], true)) {
-                throw new \RuntimeException("Configuration error: Database sslmode must be 'require', 'verify-ca', or 'verify-full' in deployment.");
+            // Strict mode enforcement
+            $strict = $effectiveConn['strict'] ?? null;
+            if ($strict !== true) {
+                throw new \RuntimeException("Configuration error: Database strict mode must be enabled in deployment.");
+            }
+
+            // UTC timezone enforcement
+            $timezone = trim((string) ($effectiveConn['timezone'] ?? ''));
+            if ($timezone !== '+00:00' && $timezone !== 'UTC') {
+                throw new \RuntimeException("Configuration error: Database timezone must be '+00:00' (UTC) in deployment.");
+            }
+
+            // READ COMMITTED transaction isolation level enforcement
+            $isolationLevel = strtoupper(trim((string) ($effectiveConn['isolation_level'] ?? '')));
+            if ($isolationLevel !== 'READ COMMITTED') {
+                throw new \RuntimeException("Configuration error: Database isolation_level must be 'READ COMMITTED' in deployment.");
             }
 
             // Database connection and query timeout deadline validation in deployment
@@ -221,8 +241,8 @@ class ConfigurationValidator
 
         if ($isTesting) {
             $database = trim((string) ($effectiveConn['database'] ?? ''));
-            if ($database !== 'gaza_gateway_test') {
-                throw new \RuntimeException("Configuration error: Testing database must be 'gaza_gateway_test'.");
+            if ($database !== 'gaza_gateway_mysql_test') {
+                throw new \RuntimeException("Configuration error: Testing database must be 'gaza_gateway_mysql_test'.");
             }
         }
 
@@ -239,7 +259,7 @@ class ConfigurationValidator
      */
     public static function validateQueueAndCache(array $config): void
     {
-        $defaultConn = (string) ($config['database']['default'] ?? 'pgsql');
+        $defaultConn = (string) ($config['database']['default'] ?? 'mysql');
 
         // Queue validation
         $queueDefault = (string) ($config['queue']['default'] ?? '');
@@ -318,80 +338,93 @@ class ConfigurationValidator
         // 1. Inspect actual driver-consumed connect timeout in options[\PDO::ATTR_TIMEOUT]
         $driverConnectTimeout = $effectiveConn['options'][\PDO::ATTR_TIMEOUT] ?? null;
         if ($driverConnectTimeout !== null) {
-            if (filter_var($driverConnectTimeout, FILTER_VALIDATE_INT) === false || (int) $driverConnectTimeout < 1 || (int) $driverConnectTimeout > 5) {
+            if (!is_int($driverConnectTimeout) && (!is_string($driverConnectTimeout) || !preg_match('/^[0-9]+$/', trim($driverConnectTimeout)))) {
+                throw new \RuntimeException("Configuration error: Invalid or unbounded database connect timeout.");
+            }
+            $intConnect = (int) $driverConnectTimeout;
+            if ($intConnect < 1 || $intConnect > 5) {
                 throw new \RuntimeException("Configuration error: Invalid or unbounded database connect timeout.");
             }
         } elseif ($isDeployment) {
             throw new \RuntimeException("Configuration error: Database connect timeout must be configured in deployment.");
         }
 
-        // 2. Inspect actual driver-consumed statement timeout in server_options['statement_timeout']
-        $driverStatementTimeout = $effectiveConn['server_options']['statement_timeout'] ?? null;
-        if ($driverStatementTimeout !== null) {
-            if (filter_var($driverStatementTimeout, FILTER_VALIDATE_INT) === false || (int) $driverStatementTimeout < 100 || (int) $driverStatementTimeout > 5000) {
-                throw new \RuntimeException("Configuration error: Invalid or unbounded database statement timeout.");
-            }
-        } elseif ($isDeployment) {
-            throw new \RuntimeException("Configuration error: Database statement timeout must be configured in deployment.");
-        }
-
-        // 3. Inspect actual driver-consumed lock timeout in server_options['lock_timeout']
-        $driverLockTimeout = $effectiveConn['server_options']['lock_timeout'] ?? null;
-        if ($driverLockTimeout !== null) {
-            if (filter_var($driverLockTimeout, FILTER_VALIDATE_INT) === false || (int) $driverLockTimeout < 100 || (int) $driverLockTimeout > 5000) {
-                throw new \RuntimeException("Configuration error: Invalid or unbounded database lock timeout.");
-            }
-        } elseif ($isDeployment) {
-            throw new \RuntimeException("Configuration error: Database lock timeout must be configured in deployment.");
-        }
-
-        // 4. Inspect optional driver-consumed idle timeout in server_options
-        $driverIdleTimeout = $effectiveConn['server_options']['idle_in_transaction_session_timeout'] ?? null;
-        if ($driverIdleTimeout !== null) {
-            if (filter_var($driverIdleTimeout, FILTER_VALIDATE_INT) === false || (int) $driverIdleTimeout < 100 || (int) $driverIdleTimeout > 60000) {
-                throw new \RuntimeException("Configuration error: Invalid or unbounded database idle timeout.");
-            }
-        }
-
-        // 5. Inspect top-level aliases (such as those parsed from URL query parameters)
-        // Reject non-integer, unbounded, or contradictory overrides
+        // Check top-level aliases / URL query overrides for connect_timeout
         if (isset($effectiveConn['connect_timeout'])) {
             $aliasConnect = $effectiveConn['connect_timeout'];
-            if (filter_var($aliasConnect, FILTER_VALIDATE_INT) === false || (int) $aliasConnect < 1 || (int) $aliasConnect > 5) {
+            if (!is_int($aliasConnect) && (!is_string($aliasConnect) || !preg_match('/^[0-9]+$/', trim($aliasConnect)))) {
                 throw new \RuntimeException("Configuration error: Invalid or unbounded database connect timeout.");
             }
-            if ($driverConnectTimeout !== null && (int) $aliasConnect !== (int) $driverConnectTimeout) {
+            $intAliasConnect = (int) $aliasConnect;
+            if ($intAliasConnect < 1 || $intAliasConnect > 5) {
+                throw new \RuntimeException("Configuration error: Invalid or unbounded database connect timeout.");
+            }
+            if ($driverConnectTimeout !== null && $intAliasConnect !== (int) $driverConnectTimeout) {
                 throw new \RuntimeException("Configuration error: Contradictory database connect timeout configuration.");
             }
         }
 
+        // 2. In MySQL, statement and lock timeouts are executed at connection initiation via PDO::MYSQL_ATTR_INIT_COMMAND.
+        // Legacy server_options bag is NOT consumed by the MySQL PDO driver.
+        // Inspect options[\PDO::MYSQL_ATTR_INIT_COMMAND] for actual active driver-consumed timeouts.
+        $initCommand = (string) ($effectiveConn['options'][\PDO::MYSQL_ATTR_INIT_COMMAND] ?? '');
+
+        // Extract active innodb_lock_wait_timeout (seconds)
+        $lockSec = null;
+        if (preg_match('/innodb_lock_wait_timeout\s*=\s*([0-9]+)/i', $initCommand, $matchesLock)) {
+            $lockSec = (int) $matchesLock[1];
+        }
+
+        // Extract active max_execution_time (milliseconds; note: covers SELECT queries only in MySQL)
+        $stmtMs = null;
+        if (preg_match('/max_execution_time\s*=\s*([0-9]+)/i', $initCommand, $matchesStmt)) {
+            $stmtMs = (int) $matchesStmt[1];
+        }
+
+        if ($isDeployment) {
+            if ($lockSec === null) {
+                throw new \RuntimeException("Configuration error: Database lock timeout must be configured in deployment.");
+            }
+            if ($stmtMs === null) {
+                throw new \RuntimeException("Configuration error: Database statement timeout must be configured in deployment.");
+            }
+        }
+
+        if ($lockSec !== null && ($lockSec < 1 || $lockSec > 5)) {
+            throw new \RuntimeException("Configuration error: Invalid or unbounded database lock timeout.");
+        }
+
+        if ($stmtMs !== null && ($stmtMs < 100 || $stmtMs > 5000)) {
+            throw new \RuntimeException("Configuration error: Invalid or unbounded database statement timeout.");
+        }
+
+        // Check top-level aliases / URL query overrides for statement_timeout and lock_timeout
         if (isset($effectiveConn['statement_timeout'])) {
-            $aliasStatement = $effectiveConn['statement_timeout'];
-            if (filter_var($aliasStatement, FILTER_VALIDATE_INT) === false || (int) $aliasStatement < 100 || (int) $aliasStatement > 5000) {
+            $aliasStmt = $effectiveConn['statement_timeout'];
+            if (!is_int($aliasStmt) && (!is_string($aliasStmt) || !preg_match('/^[0-9]+$/', trim($aliasStmt)))) {
                 throw new \RuntimeException("Configuration error: Invalid or unbounded database statement timeout.");
             }
-            if ($driverStatementTimeout !== null && (int) $aliasStatement !== (int) $driverStatementTimeout) {
+            $intAliasStmt = (int) $aliasStmt;
+            if ($intAliasStmt < 100 || $intAliasStmt > 5000) {
+                throw new \RuntimeException("Configuration error: Invalid or unbounded database statement timeout.");
+            }
+            if ($stmtMs !== null && $intAliasStmt !== $stmtMs) {
                 throw new \RuntimeException("Configuration error: Contradictory database statement timeout configuration.");
             }
         }
 
         if (isset($effectiveConn['lock_timeout'])) {
             $aliasLock = $effectiveConn['lock_timeout'];
-            if (filter_var($aliasLock, FILTER_VALIDATE_INT) === false || (int) $aliasLock < 100 || (int) $aliasLock > 5000) {
+            if (!is_int($aliasLock) && (!is_string($aliasLock) || !preg_match('/^[0-9]+$/', trim($aliasLock)))) {
                 throw new \RuntimeException("Configuration error: Invalid or unbounded database lock timeout.");
             }
-            if ($driverLockTimeout !== null && (int) $aliasLock !== (int) $driverLockTimeout) {
+            $intAliasLock = (int) $aliasLock;
+            if ($intAliasLock < 100 || $intAliasLock > 5000) {
+                throw new \RuntimeException("Configuration error: Invalid or unbounded database lock timeout.");
+            }
+            $expectedLockSec = (int) ceil($intAliasLock / 1000);
+            if ($lockSec !== null && $expectedLockSec !== $lockSec) {
                 throw new \RuntimeException("Configuration error: Contradictory database lock timeout configuration.");
-            }
-        }
-
-        if (isset($effectiveConn['idle_in_transaction_session_timeout'])) {
-            $aliasIdle = $effectiveConn['idle_in_transaction_session_timeout'];
-            if (filter_var($aliasIdle, FILTER_VALIDATE_INT) === false || (int) $aliasIdle < 100 || (int) $aliasIdle > 60000) {
-                throw new \RuntimeException("Configuration error: Invalid or unbounded database idle timeout.");
-            }
-            if ($driverIdleTimeout !== null && (int) $aliasIdle !== (int) $driverIdleTimeout) {
-                throw new \RuntimeException("Configuration error: Contradictory database idle timeout configuration.");
             }
         }
     }

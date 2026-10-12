@@ -44,7 +44,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         // 2. Strict destructive command database target safeguard
-        // Confines migrate:fresh, migrate:refresh, migrate:reset, migrate:rollback, db:wipe strictly to gaza_gateway_test in testing
+        // Confines migrate:fresh, migrate:refresh, migrate:reset, migrate:rollback, db:wipe strictly to gaza_gateway_mysql_test in testing
         Event::listen(CommandStarting::class, function (CommandStarting $event) {
             $destructiveCommands = [
                 'migrate:fresh',
@@ -70,7 +70,7 @@ class AppServiceProvider extends ServiceProvider
                     $connectionName = $event->input->getOption('database');
                 }
                 if (!$connectionName) {
-                    $connectionName = config('database.default', 'pgsql');
+                    $connectionName = config('database.default', 'mysql');
                 }
 
                 $connConfig = config("database.connections.{$connectionName}", []);
@@ -91,10 +91,10 @@ class AppServiceProvider extends ServiceProvider
                     // retain resolved databaseName
                 }
 
-                if ($databaseName !== 'gaza_gateway_test') {
+                if ($databaseName !== 'gaza_gateway_mysql_test') {
                     throw new \RuntimeException(
                         "Destructive command [{$event->command}] is strictly prohibited on non-test database [{$databaseName}] " .
-                        "via connection [{$connectionName}]. Destructive operations are confined exclusively to [gaza_gateway_test]."
+                        "via connection [{$connectionName}]. Destructive operations are confined exclusively to [gaza_gateway_mysql_test]."
                     );
                 }
             }
