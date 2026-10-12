@@ -76,12 +76,12 @@ export function ReservationView({ reference, staff = false }: { reference: strin
 export function ConfirmedReservationTicket({ data }: { data: ReservationDetail }) {
   const { lang } = useI18n(); const ar = lang === "ar"; const { reservation, ticket } = data;
   return <div id="mvp-reservation-ticket" className="space-y-5">
-    <style>{"@media print { body * { visibility:hidden } #mvp-reservation-ticket, #mvp-reservation-ticket * { visibility:visible } #mvp-reservation-ticket { position:absolute; inset:0; padding:16px; } #mvp-reservation-ticket article { break-inside:avoid; } }"}</style>
+    <style>{"@media print { body * { visibility:hidden } #mvp-reservation-ticket, #mvp-reservation-ticket * { visibility:visible } #mvp-reservation-ticket { position:absolute; inset:0; padding:16px; } #mvp-reservation-ticket article { break-inside:avoid; } #mvp-reservation-ticket [data-ticket-heading] { background:transparent !important; color:var(--foreground) !important; border-bottom:1px solid var(--border); } }"}</style>
     {ticket.tickets.map(item => <article key={item.ticketNumber} className="overflow-hidden rounded-2xl border border-border bg-card">
-      <header className="flex flex-wrap items-center justify-between gap-4 bg-brand px-6 py-5 text-primary-foreground">
-        <div><p className="font-display text-xl font-bold">{ar ? "مطار غزة الدولي" : "Gaza International Airport"}</p><p className="mt-1 text-sm">{ar ? "تذكرة الحجز" : "Booking ticket"}</p></div>
+      <div data-ticket-heading className="flex flex-wrap items-center justify-between gap-4 bg-brand px-6 py-5 text-primary-foreground">
+        <div><p className="font-display text-xl font-bold">{ar ? "مطار غزة الدولي" : "Gaza International Airport"}</p><p className="mt-1 text-sm">{ar ? "الخطوط الجوية الفلسطينية" : "Palestinian Airlines"}</p><p className="mt-1 text-sm">{ar ? "تذكرة الحجز" : "Booking ticket"}</p></div>
         <div><Code>{reservation.reference}</Code><p className="mt-1 text-sm">{reservation.status === "confirmed" ? (ar ? "مؤكد" : "Confirmed") : (ar ? "ملغى" : "Cancelled")}</p></div>
-      </header>
+      </div>
       <div className="grid gap-5 p-6 sm:grid-cols-2">
         <div><p className="text-sm text-muted-foreground">{ar ? "المسافر" : "Passenger"}</p><h2 className="mt-1 text-xl font-semibold">{item.passenger.firstName} {item.passenger.lastName}</h2>
           <p className="mt-2 text-sm">{ar ? "الجنسية" : "Nationality"}: {item.passenger.nationality}</p></div>
