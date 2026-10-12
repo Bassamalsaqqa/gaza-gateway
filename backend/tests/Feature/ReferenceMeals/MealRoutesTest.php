@@ -161,6 +161,8 @@ final class MealRoutesTest extends TestCase
 
     public function test_reviewed_commands_are_closed_flat_objects_without_aliases(): void
     {
+        DB::beginTransaction();
+        try {
         $staff = $this->staff();
         $meal = $this->input('meal-command-boundary');
         $this->http('POST', '/admin/meals', $staff, $meal)->assertStatus(201);
@@ -188,6 +190,7 @@ final class MealRoutesTest extends TestCase
         $this->assertSame($audits, DB::table('meal_audit_events')->count());
         $this->http('PUT', '/admin/meals/default', $staff, ['id' => $meal['id']])->assertOk()->assertJsonPath('data.changed', false);
         $this->http('PUT', '/admin/meals/order', $staff, ['ids' => [$meal['id']]])->assertOk()->assertJsonPath('data.changed', false);
+        } finally { DB::rollBack(); }
     }
 
     public function test_expand_only_migration_roundtrip_preserves_identity(): void
