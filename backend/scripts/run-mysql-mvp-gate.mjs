@@ -733,6 +733,7 @@ async function main() {
          failOnRisky="true"
          failOnWarning="true">
     <testsuites>
+        <testsuite name="SharedHostingOwner"><directory>tests/SharedHostingOwner</directory></testsuite>
         <testsuite name="MySqlIdentityFoundation">
             <directory>tests/MySqlIdentityFoundation</directory>
             <!-- The full 18-migration lifecycle above supersedes this seven-only legacy lifecycle. -->
