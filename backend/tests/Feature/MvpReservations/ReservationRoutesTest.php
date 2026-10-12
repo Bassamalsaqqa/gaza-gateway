@@ -772,6 +772,25 @@ final class ReservationRoutesTest extends TestCase
         $this->assertSame($before, DB::table('mvp_reservations')->count());
     }
 
+    public function test_rate_limit_actual_negative_matrix_for_all_private_routes(): void
+    {
+        $owner=$this->passenger();$staff=$this->staff();
+        $ip=['REMOTE_ADDR'=>'2001:db8:feed::10'];
+        for($i=0;$i<120;$i++) $this->http('GET','/reservations',$owner,null,$ip)->assertStatus(200);
+        foreach(['/reservations','/reservations/GZA-NONE','/reservations/GZA-NONE/ticket'] as $path)
+            $this->http('GET',$path,$owner,null,$ip)->assertStatus(429)->assertHeader('Retry-After');
+        $ip=['REMOTE_ADDR'=>'2001:db8:feed::11'];
+        for($i=0;$i<120;$i++) $this->http('GET','/admin/reservations',$staff,null,$ip,null,'gza_staff_session')->assertStatus(200);
+        foreach(['/admin/reservations','/admin/reservations/GZA-NONE'] as $path)
+            $this->http('GET',$path,$staff,null,$ip,null,'gza_staff_session')->assertStatus(429)->assertHeader('Retry-After');
+        $ip=['REMOTE_ADDR'=>'2001:db8:feed::12'];
+        for($i=0;$i<20;$i++) $this->http('POST','/reservations',$owner,[],$ip)->assertStatus(422);
+        $this->http('POST','/reservations/GZA-NONE/cancel',$owner,[],$ip)->assertStatus(429)->assertHeader('Retry-After');
+        $ip=['REMOTE_ADDR'=>'2001:db8:feed::13'];
+        for($i=0;$i<20;$i++) $this->http('POST','/admin/reservations/GZA-NONE/cancel',$staff,[],$ip,null,'gza_staff_session')->assertStatus(404);
+        $this->http('POST','/admin/reservations/GZA-NONE/cancel',$staff,[],$ip,null,'gza_staff_session')->assertStatus(429)->assertHeader('Retry-After');
+    }
+
     public function test_review_replay_after_cancel_returns_cancelled_and_no_new_claim(): void
     {
         $user = $this->passenger(); $cmd = $this->sampleCommand($this->sampleServiceId(), '20A');

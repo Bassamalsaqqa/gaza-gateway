@@ -335,7 +335,7 @@ function AdminSchedulesPage() {
         role="note"
         className="rounded-md border border-border bg-secondary/50 px-3 py-2 text-xs text-muted-foreground"
       >
-        {t("adm.sch.planningNote")}
+        {identityUiRequested ? pick(lang, {en:"Schedules are saved to shared server authority. Active curated dates determine public flight discovery; existing reservations retain their ticket snapshots.", ar:"تُحفظ الجداول في الخادم المشترك. تظهر المواعيد النشطة للزوار، وتحتفظ الحجوزات القائمة ببيانات تذاكرها."}) : t("adm.sch.planningNote")}
       </div>
 
       {network.isError ? (
@@ -352,7 +352,7 @@ function AdminSchedulesPage() {
       ) : null}
       <AdminPageHeader
         title={t("adm.sch.title")}
-        description={t("adm.sch.sub")}
+        description={identityUiRequested ? pick(lang,{en:"Shared curated recurring schedules.",ar:"جداول متكررة مشتركة."}) : t("adm.sch.sub")}
         action={
           <PermissionButton
             allowed={

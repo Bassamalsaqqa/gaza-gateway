@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import { chromium } from "playwright-core";
+import { encodeScheduleKey } from "../../src/lib/offerings/codec.ts";
 import { publishedHome } from "../../src/content/published/home.ts";
 import { verifyMailCapture } from "../../backend/scripts/mail-capture-contracts.mjs";
 
@@ -130,7 +131,7 @@ export async function runJoinedWorkflow({origin,api,output,fixture,key,exec,star
   await navigate(admin,origin+"/admin/schedules");
   await admin.getByRole("row").filter({hasText:"PS901"}).getByRole("button",{name:"Edit",exact:true}).click();
   await admin.locator("#sc-number").fill("PS902");
-  const scheduleEdit=admin.waitForResponse(r=>r.request().method()==="PATCH"&&r.url().endsWith("/admin/schedules/mvp-synthetic-flight"));
+  const scheduleEdit=admin.waitForResponse(r=>r.request().method()==="PATCH"&&r.url().endsWith("/admin/schedules/"+encodeScheduleKey("mvp-synthetic-flight")));
   await admin.getByRole("button",{name:"Save changes",exact:true}).click();assert.equal((await scheduleEdit).status(),200);
   check("actual Admin schedule editor persists an offering edit before passenger booking");
   await apiCall(admin,"POST","/admin/meals",{id:"synthetic-meal",label:{en:"Synthetic test meal",ar:"\u0648\u062c\u0628\u0629 \u0627\u062e\u062a\u0628\u0627\u0631"},active:true},"staff",[201]);
