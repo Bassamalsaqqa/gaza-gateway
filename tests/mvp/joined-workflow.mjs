@@ -19,6 +19,20 @@ export async function runJoinedWorkflow({origin,api,output,fixture,key,exec,star
  async function navigate(page,url){progress("navigate "+new URL(url).pathname);await page.waitForLoadState("networkidle");await drain();await page.goto(url);}
  async function context(options={}) {
   const c=await within(browser.newContext({ignoreHTTPSErrors:true,viewport:{width:1440,height:1000},...options}),30000,"new browser context");contexts.push(c);
+  // Capture UI gallery command bodies before Chromium can evict CDP response resources.
+  // This remains an actual network response; only the test page retains it in memory.
+  await c.addInitScript(()=>{
+   const original=globalThis.fetch;globalThis.__galleryCommandCaptures={};
+   globalThis.fetch=async function(...args){
+    const response=await Reflect.apply(original,globalThis,args);
+    const url=new URL(response.url);
+    if(["/api/v1/gallery/editorial/draft","/api/v1/gallery/editorial/publish"].includes(url.pathname)) {
+     const payload=await response.clone().json();
+     globalThis.__galleryCommandCaptures[url.pathname]={status:response.status,contentType:response.headers.get("content-type"),payload};
+    }
+    return response;
+   };
+  });
   const p=await within(c.newPage(),20000,"new page");p.setDefaultTimeout(20000);p.setDefaultNavigationTimeout(30000);p.on("requestfailed",r=>checks.push("REQUEST FAILURE: "+new URL(r.url()).pathname+" "+r.failure()?.errorText));p.on("pageerror",e=>checks.push("BROWSER ERROR: "+e.message));
   p.on("response",r=>{
    const parsed=new URL(r.url());if(parsed.origin!==new URL(api).origin)return;
@@ -118,10 +132,12 @@ export async function runJoinedWorkflow({origin,api,output,fixture,key,exec,star
     const saved = admin.waitForResponse(r=>r.request().method()==="PUT" && r.url().endsWith("/gallery/editorial/draft"));
     await admin.getByRole("button",{name:"Save Draft",exact:true}).click();const savedResponse=await saved;assert.equal(savedResponse.status(),200);
     const gallerySpec=contracts.find(spec=>spec.info.title.includes("Gallery") || spec.paths["/gallery/published"]);
-    const savedCapture={operationId:"putGalleryDraft",status:savedResponse.status(),contentType:savedResponse.headers()["content-type"],payload:await within(savedResponse.json(),10000,"foreground gallery draft body")};verifyMailCapture(gallerySpec,savedCapture);captures["putGalleryDraft:200"]=savedCapture;
+    await admin.waitForFunction(()=>globalThis.__galleryCommandCaptures["/api/v1/gallery/editorial/draft"]);
+    const savedCapture={operationId:"putGalleryDraft",...await admin.evaluate(()=>globalThis.__galleryCommandCaptures["/api/v1/gallery/editorial/draft"])};verifyMailCapture(gallerySpec,savedCapture);captures["putGalleryDraft:200"]=savedCapture;
     const published = admin.waitForResponse(r=>r.request().method()==="POST" && r.url().endsWith("/gallery/editorial/publish"));
     await admin.getByRole("button",{name:"Publish",exact:true}).click();const publishedResponse=await published;assert.equal(publishedResponse.status(),200);
-    const publishedCapture={operationId:"postGalleryPublish",status:publishedResponse.status(),contentType:publishedResponse.headers()["content-type"],payload:await within(publishedResponse.json(),10000,"foreground gallery publication body")};verifyMailCapture(gallerySpec,publishedCapture);captures["postGalleryPublish:200"]=publishedCapture;
+    await admin.waitForFunction(()=>globalThis.__galleryCommandCaptures["/api/v1/gallery/editorial/publish"]);
+    const publishedCapture={operationId:"postGalleryPublish",...await admin.evaluate(()=>globalThis.__galleryCommandCaptures["/api/v1/gallery/editorial/publish"])};verifyMailCapture(gallerySpec,publishedCapture);captures["postGalleryPublish:200"]=publishedCapture;
     const visitor = active = await context();await navigate(visitor,origin+"/gallery");
     await visitor.getByText("Synthetic shared gallery publication",{exact:true}).first().waitFor();
     await visitor.screenshot({path:path.join(output,"gallery-en-desktop.png"),fullPage:true});
