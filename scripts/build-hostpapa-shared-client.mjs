@@ -26,8 +26,14 @@ const flags = {
 };
 identityUiClientConfig({ ...flags, MODE: 'production', PROD: true, DEV: false, NODE_ENV: 'production' });
 const git = (args) => execFileSync('git', args, { cwd: root, encoding: 'utf8', timeout: 15000 }).trim();
+const isDirty = () => {
+  // Windows route generation can change only stat/line-ending metadata while preserving the Git blob.
+  // Compare canonical tracked bytes (including the index) and still reject every untracked product file.
+  try { git(['diff', '--exit-code', 'HEAD', '--']); } catch { return true; }
+  return Boolean(git(['ls-files', '--others', '--exclude-standard']));
+};
 const sha = git(['rev-parse', 'HEAD']);
-if (!/^[a-f0-9]{40}$/.test(sha) || git(['status', '--porcelain', '--untracked-files=all'])) {
+if (!/^[a-f0-9]{40}$/.test(sha) || isDirty()) {
   throw new Error('An exact-source release build requires clean committed product source.');
 }
 const client = path.join(root, 'dist/client');
@@ -39,7 +45,7 @@ const executable = process.platform === 'win32' ? process.env.ComSpec || 'cmd.ex
 const buildArgs = process.platform === 'win32' ? ['/d', '/s', '/c', 'npm run build:hostpapa'] : ['run', 'build:hostpapa'];
 const result = spawnSync(executable, buildArgs, { cwd: root, env, stdio: 'inherit', timeout: 600000 });
 if (result.error || result.status !== 0) throw new Error('HostPapa shared client build failed; no receipt was issued.');
-if (git(['rev-parse', 'HEAD']) !== sha || git(['status', '--porcelain', '--untracked-files=all'])) {
+if (git(['rev-parse', 'HEAD']) !== sha || isDirty()) {
   throw new Error('Build changed product source or HEAD; review/commit the generated changes and rebuild before issuing a receipt.');
 }
 const artifacts = {};

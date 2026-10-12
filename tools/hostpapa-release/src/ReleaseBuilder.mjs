@@ -122,30 +122,11 @@ export class ReleaseBuilder {
 
     const sha = actualHeadSha;
 
-    // P2: Determine dirty state excluding ignored/owned scratch outputs
     let isDirty = false;
     try {
-      const statusOutput = execFileSync("git", ["status", "--porcelain"], {
-        cwd: this.root,
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "ignore"],
-      });
-
-      const lines = statusOutput.split("\n").map((l) => l.trimEnd()).filter(Boolean);
-      for (const line of lines) {
-        // Line format: XY PATH
-        const filePath = line.slice(3).trim();
-        // Ignore files inside scratch/
-        if (filePath.startsWith("scratch/") || filePath.startsWith("scratch\\")) {
-          continue;
-        }
-        // Any tracked change or untracked file outside scratch marks tree as dirty
-        isDirty = true;
-        break;
-      }
-    } catch {
-      isDirty = true;
-    }
+      execFileSync('git', ['diff', '--exit-code', 'HEAD', '--'], {cwd:this.root,stdio:['ignore','pipe','pipe'],timeout:15000});
+      isDirty = Boolean(execFileSync('git', ['ls-files','--others','--exclude-standard'], {cwd:this.root,encoding:'utf8',timeout:15000}).trim());
+    } catch { isDirty = true; }
 
     if (isDirty && !this.allowDirty) {
       throw new Error("Working tree contains uncommitted changes. Production candidate releases refuse dirty source. Use --allow-dirty for engineering test mode.");
