@@ -36,33 +36,33 @@
 
 ## 2. All 18 Migrations Conversion Matrix
 
-| Migration Order & Name | Tables / Views Created | Primary Key / Collation | Engine & Triggers | Invariant & Key Constraints |
-| :--- | :--- | :--- | :--- | :--- |
-| **01** `0001_01_01_000001_create_cache_table.php` | `cache`, `cache_locks` | String `utf8mb4_0900_bin` | `InnoDB` | Standard Laravel atomic cache & locks under InnoDB |
-| **02** `0001_01_01_000002_create_jobs_table.php` | `jobs`, `job_batches`, `failed_jobs` | BigInt / String `utf8mb4_0900_bin` | `InnoDB` | Bounded async queue & batch tracking |
-| **03** `2026_10_09_000001_create_identity_core_tables.php` | `staff_directory_control`, `staff_users`, `staff_sessions`, `staff_mfa_credentials`, `staff_pending_auth`, `staff_invitations`, `staff_password_resets`, `security_dispatch_outbox` | `id` UUID `CHAR(36)` ASCII bin | `InnoDB` | Seeded sentinel row `id=1` on `staff_directory_control`. `staff_invitations.invited_by_staff_id` nullable FK. |
-| **04** `2026_10_10_000001_create_identity_dependency_relations.php` | Foreign keys & cascading rules | UUID ASCII bin | `InnoDB` | Immediate referential integrity between identity core tables. |
-| **05** `2026_10_10_000002_create_identity_remaining_persistence.php` | `passengers`, `passenger_sessions`, `passenger_password_resets`, `passenger_verification_tokens`, `durable_rate_limits` | UUID ASCII bin | `InnoDB` | Strict rate limit tracking and passenger identity persistence. |
-| **06** `2026_10_10_000003_create_identity_profile_audit.php` | `passenger_audit_log`, `saved_travelers` | UUID ASCII bin | `InnoDB` | Audit append-only trail with SHA-256 state tracking. |
-| **07** `2026_10_11_000001_create_reference_aircraft_tables.php` | `aircraft`, `seat_layouts` (VIEW) | `id` `VARCHAR(32)` ASCII bin | `InnoDB` | **Architect Decision**: Physical layout consolidated on `aircraft`. Generated `capacity`. `seat_layouts` read view. |
-| **08** `2026_10_11_000002_enforce_route_safe_aircraft_ids.php` | CHECK constraint on `aircraft.id` | ASCII bin | `InnoDB` | Safe identifier regex `^[a-z0-9_-]+$`. |
-| **09** `2026_10_11_000003_create_network_reference_tables.php` | `reference_iana_timezones`, `airports`, `network_routes` | Airport IATA 3-char, Route UUID | `InnoDB` + BEFORE INSERT / UPDATE / DELETE triggers on `reference_iana_timezones` | Immutable IANA timezone lookup table populated with authentic `DateTimeZone::listIdentifiers()` + `UTC`. |
-| **10** `2026_10_11_000004_create_meal_reference_tables.php` | `meals` | Code 4-char ASCII bin | `InnoDB` | Dietary code validation and meal catalog persistence. |
-| **11** `2026_10_11_000005_create_schedule_reference_tables.php` | `schedules`, `schedule_exceptions` | Schedule ID `VARCHAR(160)` | `InnoDB` | Strict UTF-16 byte length bound: `OCTET_LENGTH(CONVERT(id USING utf16))/2 <= 160`. |
-| **12** `2026_10_11_000006_create_editorial_publication_tables.php` | `editorial_documents`, `editorial_revisions` | UUID ASCII bin | `InnoDB` + BEFORE UPDATE / DELETE triggers on `editorial_revisions` | Append-only revision immutability; raw `snapshot_bytes` UTF-8 SHA-256 digest validation. |
-| **13** `2026_10_11_000007_create_mvp_reservation_tables.php` | `mvp_reservations`, `mvp_seats`, `mvp_seat_holds` | UUID ASCII bin | `InnoDB` | Free commemorative booking: seat isolation, 10-minute holds, idempotent replay. |
-| **14** `2026_10_11_000008_create_mvp_mail_tables.php` | `mail_dispatch_records` | UUID ASCII bin | `InnoDB` | HostPapa SMTP dispatch logging and delivery receipts. |
-| **15** `2026_10_11_000009_create_mvp_site_tables.php` | `site_metadata`, `system_flags` | String `utf8mb4_0900_bin` | `InnoDB` | Administrative configuration and site announcements. |
-| **16** `2026_10_11_000010_create_mvp_gallery_tables.php` | `gallery_items`, `gallery_revisions` | UUID ASCII bin | `InnoDB` + BEFORE UPDATE / DELETE triggers on `gallery_revisions` | Historical archive and illustrative concept catalog immutability. |
-| **17** `2026_10_11_000011_create_security_smtp_attempts_table.php` | `security_smtp_attempts` | UUID ASCII bin | `InnoDB` | Abuse prevention and failed authentication auditing. |
-| **18** `2026_10_11_000012_consolidate_fleet_layout_columns.php` | Layout columns on `aircraft` | Consolidated | `InnoDB` | Atomic updates without multi-table deferred locking. |
+| Order / actual migration | Actual tables or views created | Persistence guarantees |
+|---|---|---|
+| 01 `0001_01_01_000001_create_cache_table.php` | `cache`, `cache_locks` | Database cache and owner-aware atomic locks; explicit InnoDB. |
+| 02 `0001_01_01_000002_create_jobs_table.php` | `jobs`, `job_batches`, `failed_jobs` | Framework queue infrastructure only; production execution uses bounded cron. |
+| 03 `2026_10_09_000001_create_identity_core_tables.php` | `users`, `staff_users`, `staff_mfa_credentials`, `passenger_sessions`, `staff_sessions`, `staff_pending_auth`, `user_email_verifications`, `user_password_resets`, `staff_invitations`, `staff_password_resets`, `staff_mfa_replacements`, `staff_mfa_counter_consumptions`, `staff_mfa_recovery_codes`, `staff_directory_control`, `security_rate_limits` | Independent passenger/staff identity, purpose-bound proof/MFA/session tables, directory sentinel and durable rate limits. |
+| 04 `2026_10_10_000001_create_identity_dependency_relations.php` | `fare_products`, `quotes`, `capacity_holds`, `bookings`, `booking_passengers` | Historical identity booking/proof dependencies retained for accepted contract compatibility; these are not payment or live-airline activation. |
+| 05 `2026_10_10_000002_create_identity_remaining_persistence.php` | `booking_guest_challenges`, `booking_guest_grants`, `booking_receipt_grants`, `booking_claim_proofs`, `security_dispatch_outbox` | Purpose-bound guest access/ownership/receipt grants and durable proof dispatch outbox. |
+| 06 `2026_10_10_000003_create_identity_profile_audit.php` | `passenger_profiles`, `saved_travelers`, `audit_events` | Passenger profiles, saved travelers and append-only audit; exact accepted operation allowlist. |
+| 07 `2026_10_10_000004_create_bootstrap_cleanup_indexes.php` | None; alters existing constraints/indexes | Indexes only for bounded anonymous-session cleanup; no new tables. |
+| 08 `2026_10_11_000001_create_reference_aircraft_tables.php` | `reference_revision_control`, `aircraft`, `reference_revisions`, `reference_audit_events`, `seat_layouts` (view) | Atomic mandatory physical layout columns and generated capacity on aircraft; seat_layouts is a read compatibility view; immutable fleet revisions/audit. |
+| 09 `2026_10_11_000002_enforce_route_safe_aircraft_ids.php` | None; alters existing constraints/indexes | Constraint only: aircraft.id is VARCHAR(64), case-preserving ASCII [A-Za-z0-9_-]{1,64}; identifiers are never renamed. |
+| 10 `2026_10_11_000003_create_network_reference_tables.php` | `network_revision_control`, `reference_iana_timezones`, `airports`, `network_revisions`, `network_audit_events`, `routes` (view) | Immutable authentic IANA lookup; exact airport identities; routes derived through a view; revision/audit history. |
+| 11 `2026_10_11_000004_create_meal_reference_tables.php` | `meal_revision_control`, `meal_options`, `meal_revisions`, `meal_audit_events` | Meal definitions, ordering/default control and immutable revision/audit history. |
+| 12 `2026_10_11_000005_create_schedule_reference_tables.php` | `schedule_revision_control`, `schedules`, `schedule_revisions`, `schedule_audit_events` | Exact schedule IDs bounded by UTF-16 code units; days and structured exceptions in validated JSON columns; immutable revision/audit history. |
+| 13 `2026_10_11_000006_create_editorial_publication_tables.php` | `editorial_documents`, `editorial_revisions`, `editorial_published_revisions`, `editorial_audit_events` | Slug/revision composite keys; immutable canonical JSON bytes and SHA-256; immediate-FK-safe publication pointers. |
+| 14 `2026_10_11_000007_create_mvp_reservation_tables.php` | `mvp_services`, `mvp_reservations`, `mvp_reservation_submissions`, `mvp_reservation_passengers`, `mvp_reservation_seat_claims`, `mvp_reservation_seat_claim_history`, `mvp_reservation_mail_intents`, `mvp_reservation_audits` | Free confirmed/cancelled commemorative reservations; unique service/seat claims, immutable snapshots, owner/submission idempotency and release-on-cancel history. No ten-minute seat-hold workflow is introduced here. |
+| 15 `2026_10_11_000008_create_mvp_mail_tables.php` | `mvp_mail_sentinel`, `mvp_mail_settings`, `mvp_mail_messages`, `mvp_mail_attempts`, `mvp_mail_resends` | Encrypted operator SMTP settings, durable messages/attempts/resend records and singleton control; truthful delivery states. |
+| 16 `2026_10_11_000009_create_mvp_site_tables.php` | `contact_messages`, `contact_notes`, `contact_audits`, `mvp_site_documents`, `mvp_site_revisions` | Contact inbox/notes/audit and draft/published site settings with immutable revisions. |
+| 17 `2026_10_11_000010_create_mvp_gallery_tables.php` | `gallery_documents`, `gallery_revisions`, `gallery_published_revisions`, `gallery_audit_events` | Gallery configuration documents and immutable published revisions/audit; preserves archive provenance rather than inventing media evidence. |
+| 18 `2026_10_11_000011_create_security_smtp_attempts_table.php` | `security_smtp_attempts` | Unique per-outbox attempt marker with bounded retry count; separates committed send admission from external SMTP. |
 
 ---
 
 ## 3. Concurrency, Locking & Time Mechanics
 
 1. **Transactional Sentinel Locking**:
-   - Replaced all non-transactional PostgreSQL advisory locks (`pg_advisory_xact_lock`) with seeded sentinel table `staff_directory_control` using `SELECT id FROM staff_directory_control WHERE id = 1 FOR UPDATE`.
+   - Staff directory mutations use the seeded sentinel `staff_directory_control`; reference domains use their revision-control rows and editorial/gallery use document rows, all under `SELECT ... FOR UPDATE`.
    - Guaranteed serialization within active MySQL transaction boundaries under `READ COMMITTED` isolation.
    - Prevents race conditions during administrative staff creation, role promotion, and last-admin demotions.
 
@@ -95,3 +95,5 @@
 - **Race Verification**: Multi-process concurrent same-seat reservation race and staff last-admin self-demotion race verified under isolated MySQL 8.4 containers.
 
 The disposable gate account also has DDL privileges for migrations and fault-injection tests; this does not certify the actual HostPapa production runtime grants. Production trigger privileges and the actual cPanel installer remain owner-assisted gates. See [independent integration evidence](H1_H2_MYSQL_MAIL_INTEGRATION_EVIDENCE.md).
+
+The migration inventory above is reconciled directly to all 18 actual source files. Earlier worker prose named nonexistent tables and a nonexistent consolidation migration; this corrected record supersedes that prose. It does not alter any database implementation or historical test evidence.
