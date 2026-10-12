@@ -1,5 +1,8 @@
 # HostPapa Git Deployment Guide
 
+> **Controlling hosting decision ? 2026-10-12:** complete production targets the existing HostPapa shared cPanel account only (static React/Vite, Laravel/PHP, MySQL/InnoDB, HostPapa SMTP, bounded cron). Historical Render/PostgreSQL and static-only topology is superseded. H0 account proof is UNVERIFIED. No deployment/merge is authorized. [HostPapa-only ADR](architecture/ADR_HOSTPAPA_SHARED_HOSTING_ONLY.md).
+
+
 > **Runtime model:** HostPapa serves a prebuilt static release. It does not run Node, npm, Vite, Nitro, or Bun.
 >
 > **Live status:** Repository tooling never initiates production deployment. The owner deploys from cPanel after reviewing the release and confirming the document root.

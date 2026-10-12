@@ -20,7 +20,7 @@
    - Use CSS oklch tokens from `src/styles.css`. Never introduce generic blues, purples, or unbranded utility colors.
 
 5. **Data Layer & Architecture Boundaries**:
-   - **Isolated Backend Foundation**: Phase 12 accepted Laravel 13 / PHP 8.4 / PostgreSQL 17 contracts. Phase 13A authorizes the isolated `backend/` local foundation and a read-only system API client behind explicit non-production opt-in. The public and admin frontend remains on existing mock repositories until an independently reviewed cutover. Do not add Express, Prisma, Supabase, authentication, booking inventory, payments or CMS publication outside the authorized phase.
+   - **Current authorized scope:** execute H0?H5 in the [HostPapa master plan](docs/production/GAZA_GATEWAY_HOSTPAPA_SHARED_HOSTING_MASTER_EXECUTION_PLAN_2026-10-12.md). Preserve the existing identity, free commemorative bookings, ticket, Admin and CMS systems while converting persistence to MySQL. No real flights, airline operations, payments or check-in. Previous PostgreSQL work is historical source/evidence; mocks stay isolated until reviewed owner-authorized cutover.
    - **External Gates**: Paid services, staging/production provisioning, DNS, real credentials, traffic cutover and deployment require owner authorization. Automatic GitHub Actions remain disabled under current owner policy; use focused local gates and independent review.
    - **Mock Repository Transition**: Phase 4 made completed bookings and operational flight overrides canonical through the mock repositories. Account state, `admin-ops`, and most `admin-mock` fixtures remain separate for later phases. Keep migrated UI consumers bound to repository query/mutation hooks.
    - Every enabled user-facing action must eventually perform a real mock mutation (no permanent toast-only or pretend actions).
@@ -31,7 +31,7 @@
    - Target WCAG 2.2 AA contrast compliance across light and dark tokens.
 
 7. **Deployment & Hosting Constraints**:
-   - The static frontend targets **HostPapa shared cPanel hosting** (`public_html/`) without persistent Node.js, SSR runtime, Docker, or build daemons. The accepted backend target is paid Render services, subject to the external gates above; do not assume HostPapa can run the backend.
+   - **Permanent production target:** the existing HostPapa shared cPanel account only: prebuilt React/Vite + Laravel 13/PHP 8.4+ + MySQL/InnoDB + HostPapa SMTP + bounded cPanel cron + private files outside public_html. No external application/database/worker host or production Docker/Node daemon. Historical Render/PostgreSQL topology is superseded by the owner directive. See [HostPapa-only ADR](docs/architecture/ADR_HOSTPAPA_SHARED_HOSTING_ONLY.md). Actual account capabilities remain unverified until H0 canary evidence passes.
    - Frontend deployment workflow is: local build/test → git push → owner-managed HostPapa git pull/deploy of prebuilt static assets. The Phase 8–11 release remains published separately; live cPanel deployment remains unverified. Backend feature-branch publication does not authorize deployment.
 
 8. **Asset & Content Integrity**:

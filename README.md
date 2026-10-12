@@ -1,5 +1,8 @@
 # Gaza Gateway
 
+> **Controlling hosting decision ? 2026-10-12:** complete production targets the existing HostPapa shared cPanel account only (static React/Vite, Laravel/PHP, MySQL/InnoDB, HostPapa SMTP, bounded cron). Historical Render/PostgreSQL and static-only topology is superseded. H0 account proof is UNVERIFIED. No deployment/merge is authorized. [HostPapa-only ADR](docs/architecture/ADR_HOSTPAPA_SHARED_HOSTING_ONLY.md).
+
+
 > **Active MVP delivery scope (2026-10-11):** [Final MVP plan v2](docs/production/GAZA_GATEWAY_FINAL_MVP_DELIVERY_PLAN_v2.md) supersedes the payment-heavy delivery path. W0–W5 deliver shared reference authority, the existing Admin panel, logged-in free reservations, runtime CMS publication and queued email tickets. Phase 13F payments are cancelled for this product. Local implementation is authorized; merge, paid provisioning, credentials and deployment are not. Historical milestones below remain preserved.
 
 
