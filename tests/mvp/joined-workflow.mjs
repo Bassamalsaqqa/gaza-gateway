@@ -92,6 +92,13 @@ export async function runJoinedWorkflow({origin,api,output,fixture,key,exec,star
     await admin.getByRole("button",{name:"Publish saved draft",exact:true}).click();assert.equal((await response).status(),200);
     await navigate(visitor,origin+"/contact");await visitor.getByText("shared-contact@example.test",{exact:true}).first().waitFor();
     check("actual contact settings editor save/publish reaches an independent browser");
+    await visitor.locator("#c-name").fill("Synthetic Enquirer");await visitor.locator("#c-email").fill("enquirer@example.test");await visitor.locator("#c-subject").selectOption("other");await visitor.locator("#c-message").fill("Synthetic persisted contact enquiry from another browser.");
+    response=visitor.waitForResponse(r=>r.request().method()==="POST"&&r.url().endsWith("/contact"));
+    await visitor.locator('form button[type="submit"]').click();assert.equal((await response).status(),202);
+    await navigate(admin,origin+"/admin/inbox");await admin.getByText("Synthetic Enquirer",{exact:true}).first().waitFor();
+    response=admin.waitForResponse(r=>r.request().method()==="PATCH"&&r.url().endsWith("/status"));await admin.getByRole("button",{name:"Resolve",exact:true}).click();assert.equal((await response).status(),200);
+    await admin.reload();await admin.getByText("Synthetic Enquirer",{exact:true}).first().waitFor();await admin.getByRole("button",{name:"Reopen",exact:true}).waitFor();
+    check("public contact submission reaches original Admin inbox and resolved status survives refresh");
     await drain();assert.ok(!checks.some(c=>c.startsWith("CONTRACT FAILURE") || c.startsWith("BROWSER ERROR")),checks.join("; "));
     return;
   }

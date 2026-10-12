@@ -88,8 +88,9 @@ function AdminInboxPage() {
   const mayEdit = can("engagement.edit");
 
   // Query canonical contact messages from repository
-  const { data: messages = [] } = useContactMessages();
-  const { data: staffMembers = [] } = useStaffQuery();
+  const contactQuery = useContactMessages();
+  const { data: messages = [] } = contactQuery;
+  const { data: staffMembers = [] } = useStaffQuery(!identityUiRequested);
 
   // Mutations
   const setStatusMutation = useSetContactStatus();
@@ -134,6 +135,9 @@ function AdminInboxPage() {
   if (!can("engagement.view")) {
     return <AdminDenied area={t("a2.in.title")} permission="engagement.view" />;
   }
+
+  if (contactQuery.isPending) return <p role="status">{t("adm.ops.loading")}</p>;
+  if (contactQuery.isError) return <div role="alert"><p>{t("adm.ops.loadError")}</p><button type="button" className="underline" onClick={() => void contactQuery.refetch()}>{t("adm.ops.retry")}</button></div>;
 
   const runCommand = async (action: () => Promise<unknown>) => {
     if (!mayEdit || commandLock.current) return;

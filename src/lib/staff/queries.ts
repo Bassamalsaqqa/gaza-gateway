@@ -14,9 +14,10 @@ import type {
   UpdateStaffProfileInput,
 } from "./types.ts";
 
-export function useStaffQuery() {
+export function useStaffQuery(enabled = true) {
   const { staff } = useRepositories();
   return useQuery({
+    enabled,
     queryKey: staffKeys.list(),
     queryFn: () => staff.list(),
     retry: false,

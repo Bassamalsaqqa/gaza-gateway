@@ -9,7 +9,8 @@ const message = z.object({ id: z.string().uuid(), submissionId: z.string(), send
 const receipt = z.object({ message, changed: z.boolean(), beforeStatus: status.optional(), beforeAssignee: z.string().uuid().nullable().optional() }).strict();
 const list = z.object({ items: z.array(message).max(200), countNew: z.number().int().nonnegative() }).strict();
 export class HttpContactRepository implements ContactRepository {
- constructor(private readonly client: () => MvpApiClient) {}
+ private readonly client: () => MvpApiClient;
+ constructor(client: () => MvpApiClient) { this.client = client; }
  private listeners = new Set<() => void>();
  subscribe(listener: () => void) { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; }
  private notify() { for (const listener of this.listeners) listener(); }

@@ -155,6 +155,7 @@ export function isDomainAvailableInServerMode(path: string | null): boolean {
   if (!path) return false;
   if (path === "/admin/bookings" || path === "/admin/bookings/" || /^\/admin\/bookings\/[A-Za-z0-9_-]{6,16}$/.test(path)) return true;
   if (path === "/admin" || path === "/admin/") return true;
+  if (path === "/admin/inbox" || path === "/admin/inbox/") return true;
   if (path === "/admin/website" || path === "/admin/airport" || path === "/admin/airport/") return true;
   if (path === "/admin/schedules" || path === "/admin/schedules/") return true;
   if (path.startsWith("/admin/products")) return true;

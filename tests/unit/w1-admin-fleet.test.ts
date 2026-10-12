@@ -399,16 +399,20 @@ describe("Server Mode Protection & Mock Write-Blocking", () => {
     );
   });
 
-  it("authorizes only real fleet and identity domains in server mode", () => {
+  it("authorizes integrated domains and rejects unsupported server authority", () => {
     assert.equal(isDomainAvailableInServerMode("/admin"), true);
     assert.equal(isDomainAvailableInServerMode("/admin/products"), true);
     assert.equal(isDomainAvailableInServerMode("/admin/settings"), true);
 
-    // Unwired domains are rejected
+    // Integrated shared authority stays reachable.
     assert.equal(isDomainAvailableInServerMode("/admin/flights"), false);
-    assert.equal(isDomainAvailableInServerMode("/admin/bookings"), false);
-    assert.equal(isDomainAvailableInServerMode("/admin/schedules"), false);
-    assert.equal(isDomainAvailableInServerMode("/admin/destinations"), false);
+    assert.equal(isDomainAvailableInServerMode("/admin/bookings"), true);
+    assert.equal(isDomainAvailableInServerMode("/admin/schedules"), true);
+    assert.equal(isDomainAvailableInServerMode("/admin/destinations"), true);
+    assert.equal(isDomainAvailableInServerMode("/admin/inbox"), true);
+    assert.equal(isDomainAvailableInServerMode("/admin/website"), true);
+    assert.equal(isDomainAvailableInServerMode("/admin/airport"), true);
+    assert.equal(isDomainAvailableInServerMode("/admin/customers"), false);
     assert.equal(isDomainAvailableInServerMode("/admin/content"), false);
     assert.equal(isDomainAvailableInServerMode(null), false);
   });
