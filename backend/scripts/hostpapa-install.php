@@ -237,7 +237,13 @@ PHP;
                     elseif (is_file($dest) && !unlink($dest)) $restored = false;
                 } catch (Throwable) { $restored = false; }
             }
-            if ($restored) @unlink($maintenance);
+            try {
+                if ($previous !== null) {
+                    $this->write($pointer . '.restore', $previous . "\n", 0600);
+                    if (!rename($pointer . '.restore', $pointer)) $restored = false;
+                } elseif (is_file($pointer) && !unlink($pointer)) $restored = false;
+            } catch (Throwable) { $restored = false; }
+            if ($restored) unlink($maintenance);
             throw new RuntimeException($restored ? 'Static switch failed; previous files restored. Private backup retained.' : 'Static restoration incomplete; maintenance retained. Owner recovery required.');
         }
         echo "Private pre-switch static backup retained: " . basename($backup) . "\n";
@@ -373,5 +379,7 @@ PHP;
     private function copyTree(string $source, string $dest): void { foreach ($this->scan($source) as $name) $this->copyFile($source . '/' . $name, $dest . '/' . $name); }
 }
 
-try { (new HostPapaInstaller($argv))->run(); exit(0); }
-catch (Throwable) { fwrite(STDERR, "ERROR: private release action failed; no credentials or raw exception details are printed. Preserve evidence and verify private configuration/package.\n"); exit(1); }
+if (realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === __FILE__) {
+    try { (new HostPapaInstaller($argv))->run(); exit(0); }
+    catch (Throwable) { fwrite(STDERR, "ERROR: private release action failed; no credentials or raw exception details are printed. Preserve evidence and verify private configuration/package.\n"); exit(1); }
+}
