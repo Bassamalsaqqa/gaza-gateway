@@ -1,6 +1,6 @@
 <?php
 // Disposable, synthetic SMTP acceptance only. Never a production/provider delivery certificate.
-if (getenv('MVP_BROWSER_GATE_OWNED') !== '1' || getenv('APP_ENV') !== 'testing') exit(1);
+if ((getenv('MVP_BROWSER_GATE_OWNED') !== '1' && getenv('MVP_RESERVATIONS_GATE_OWNED') !== '1') || getenv('APP_ENV') !== 'testing') exit(1);
 $root='/tmp/mvp-smtp-sink'; if (!is_dir($root)) mkdir($root,0700,true);
 $server=stream_socket_server('tcp://0.0.0.0:1025',$errno,$error); if (!$server) exit(1);
 $deadline=microtime(true)+300; $count=0;

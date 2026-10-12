@@ -111,3 +111,28 @@ Artisan::command('mvp:mail:work {--limit=25}', function () {
 
 \Illuminate\Support\Facades\Schedule::command('mvp:mail:work --limit=25')
     ->everyMinute()->withoutOverlapping();
+
+Artisan::command('mvp:identity-smtp:work {--limit=25}', function () {
+    if (config('mvp-mail.enabled') !== true || config('mvp-mail.identity_smtp_enabled') !== true) {
+        $this->error('Identity SMTP worker is disabled.');
+        return 1;
+    }
+    $limit = filter_var($this->option('limit'), FILTER_VALIDATE_INT);
+    if ($limit === false || $limit < 1 || $limit > 50) {
+        $this->error('Limit must be 1..50.');
+        return 1;
+    }
+    $dispatcher = app(\App\Mvp\Mail\IdentitySmtpDispatcher::class);
+    $count = 0;
+    while ($count < $limit && $dispatcher->runOne()) {
+        $count++;
+    }
+    $dispatcher->expireAndErase();
+    $this->info('Processed '.$count.' identity proof messages.');
+    return 0;
+})->purpose('Process bounded committed identity proof dispatch items via SMTP; never claims external delivery');
+
+if (config('mvp-mail.enabled') === true && config('mvp-mail.identity_smtp_enabled') === true) {
+    \Illuminate\Support\Facades\Schedule::command('mvp:identity-smtp:work --limit=25')
+        ->everyMinute()->withoutOverlapping();
+}

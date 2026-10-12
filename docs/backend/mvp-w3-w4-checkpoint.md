@@ -31,3 +31,9 @@ Gallery publication is now integrated with immutable revisions and a successful 
 - `node backend/scripts/run-mvp-final-gate.mjs` is the prepared exact-commit consolidated local gate. It refuses dirty product source and partial filters, records source/log/child-receipt hashes, checks focused reference/editorial/reservation/mail/site contracts, account mail and joined browsers, restart/restore, and static build. It has not yet run and cannot establish remote delivery or production acceptance.
 
 AGY's account SMTP attempt timed out with a partial implementation and a failed eight-test fixture run. Its files remain isolated pending correction and independent review. No completion is inferred from the relay's exit code.
+
+## Account-mail integration and final-gate candidate
+
+The isolated AGY correction completed with a passing nine-test worker receipt. Codex integrated its bounded files, corrected marker lock ordering, deadline/token binding and subprocess bounds, then independently passed ten SMTP PHP/PostgreSQL tests (92 assertions). The actual signup/verification/recovery/replacement-password browser slice also passed; see `mvp-identity-smtp.md` for evidence attribution and limitations. The accepted local-capture dispatcher remains unchanged; SMTP requires a separate disabled-by-default, local/testing-only opt-in.
+
+The consolidated gate is now ready to run on a clean committed candidate. Its joined slice additionally checks the original schedule editor changing an offering, actual EN/AR browser PDF output, and backup/restore/restart after reservation activity. Those added assertions and the full consolidated outcome are not yet claimed green in this source record. The final result must be tied to the exact Git SHA in the PR handback. No external provider, paid services, deployment or production cutover is authorized.

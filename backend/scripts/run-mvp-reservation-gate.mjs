@@ -70,7 +70,7 @@ try {
   }
   if (!ready) throw new Error("Owned PostgreSQL initialization deadline.");
 
-  docker("php", ["run", "-d", "--rm", "--name", php, "--network", namespace, "-w", "/workspace/backend",
+  docker("php", ["run", "-d", "--rm", "--name", php, "--network", namespace, "--network-alias", "mailpit", "-w", "/workspace/backend",
     "-e", "APP_KEY", "-e", "GUEST_OTP_PEPPER_BASE64", "-e", "APP_ENV=testing", "-e", "APP_DEBUG=false",
     "-e", "APP_URL=https://127.0.0.1:18090", "-e", "APP_ALLOWED_HOSTS=127.0.0.1,localhost,127.0.0.1:18090",
     "-e", "CORS_ALLOWED_ORIGINS=https://127.0.0.1:5173",
@@ -96,15 +96,16 @@ try {
   inside("reservations-tests", ["php", "vendor/bin/phpunit", "tests/Feature/MvpReservations", "--log-junit", "/tmp/reservations.xml", ...(filter ? ["--filter", filter] : [])], 240000);
 
   docker("copy-junit", ["cp", php + ":/tmp/reservations.xml", path.join(output, "reservations.xml")]);
-  if (!filter || (!filter.includes("mail") && !filter.includes("site"))) {
+  const isIdentitySmtpOnly = Boolean(filter && filter.includes("identity_smtp"));
+  if (!isIdentitySmtpOnly && (!filter || (!filter.includes("mail") && !filter.includes("site")))) {
     docker("copy-captures", ["cp", php + ":/tmp/reference-captures.json", path.join(output, "captures.json")]);
     command("reservation-http-contracts", process.execPath, [path.join(root, "backend/scripts/verify-reservation-gate-evidence.mjs"), path.join(output, "captures.json")]);
   }
-  if (!filter || filter.includes("mail")) {
+  if (!isIdentitySmtpOnly && (!filter || filter.includes("mail"))) {
     docker("copy-mail-captures", ["cp", php + ":/tmp/mail-captures.json", path.join(output, "mail-captures.json")]);
     command("mail-http-contracts", process.execPath, [path.join(root, "backend/scripts/verify-mail-gate-evidence.mjs"), path.join(output, "mail-captures.json")]);
   }
-  if (!filter || filter.includes("site")) {
+  if (!isIdentitySmtpOnly && (!filter || filter.includes("site"))) {
     docker("copy-site-captures", ["cp", php + ":/tmp/site-captures.json", path.join(output, "site-captures.json")]);
     command("site-http-contracts", process.execPath, [path.join(root, "backend/scripts/verify-site-gate-evidence.mjs"), path.join(output, "site-captures.json")]);
   }

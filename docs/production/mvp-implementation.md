@@ -32,9 +32,9 @@ Reuse all accepted identity endpoints and C01 fleet endpoints. W1 implements /ne
 
 ## Current status
 
-W0 scope adopted. C01 corrections independently confirmed for progression at 5c0696aab0cee19a4175cd2b008b27ed14593b9b. W1–W5 are unfinished. No working production booking, SMTP delivery or CMS publication is claimed. Main and HostPapa are unchanged; PR #3 remains draft and prior review threads preserved.
+W0 scope is adopted. W1 reference authority, W2 free reservations and W3/W4 editorial/contact/gallery/settings/ticket/account-mail authority are locally integrated behind explicit nonproduction opt-in. Focused PostgreSQL and real-browser evidence is recorded in [the integration checkpoint](../backend/mvp-w3-w4-checkpoint.md). W5 exact-commit consolidated certification remains pending; production acceptance and external delivery are not claimed. Main and HostPapa are unchanged; PR #3 remains draft and prior review threads are preserved.
 
-Launch still requires owner-authored offerings, actual mail delivery, reviewed production configuration, backup/restore, HTTPS and explicit owner GO. Local captures do not establish external delivery.
+Launch still requires owner-authored offerings, actual external mail delivery, reviewed production HTTPS/proxy/scheduler configuration, operational backup/rollback and explicit owner GO. Local synthetic acceptance does not establish external delivery. The following sections preserve the historical implementation/evidence sequence; current status above takes precedence over earlier unfinished-slice descriptions.
 
 ## Free-reservation command foundation
 
