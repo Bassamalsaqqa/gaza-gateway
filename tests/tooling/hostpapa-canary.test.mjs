@@ -17,6 +17,37 @@ function runPhp(code, args = []) {
   });
 }
 
+test("dated H0 database names require an exact disposable marker and owner binding", () => {
+  const result = runPhp(`
+    require 'tools/hostpapa-canary/src/CanaryException.php';
+    require 'tools/hostpapa-canary/src/ConfigValidator.php';
+    $names = ['gaza5045_h0_canary_20261012' => true,
+      'gaza5045_h0_canary_20261012_extra' => false,
+      'gaza5045_h0_canary_2026101' => false,
+      'production_h0_canary_20261012' => false];
+    foreach ($names as $name => $expected) {
+      try {
+        \\HostPapaCanary\\ConfigValidator::validate([
+          'CANARY_EXECUTION_AUTHORIZED' => true,
+          'CANARY_DATABASE' => $name,
+          'CONFIRMED_DISPOSABLE_DATABASE_NAME' => $name,
+        ]);
+        $actual = true;
+      } catch (\\Throwable $e) { $actual = false; }
+      if ($actual !== $expected) { exit(1); }
+    }
+    try {
+      \\HostPapaCanary\\ConfigValidator::validate([
+        'CANARY_EXECUTION_AUTHORIZED' => true,
+        'CANARY_DATABASE' => 'gaza5045_h0_canary_20261012',
+        'CONFIRMED_DISPOSABLE_DATABASE_NAME' => 'other_canary',
+      ]);
+      exit(2);
+    } catch (\\HostPapaCanary\\DatabaseGuardException $e) {}
+  `);
+  assert.equal(result.status, 0, result.stderr);
+});
+
 test("ConfigValidator strictly rejects unauthorized runs, production database names, and consent mismatches", () => {
   const phpScript = `
     require 'tools/hostpapa-canary/src/CanaryException.php';

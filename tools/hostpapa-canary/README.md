@@ -24,9 +24,9 @@ As mandated by `AGENTS.md` and `GAZA_GATEWAY_HOSTPAPA_SHARED_HOSTING_MASTER_EXEC
 
 Based on preliminary cPanel UI inspection of the HostPapa shared account:
 - **Web Server:** Apache 2.4.69
-- **PHP Web & CLI:** PHP 8.5 available, PHP 8.4 available via MultiPHP Manager. (Target is PHP >= 8.4 for Laravel 13).
+- **PHP Web & CLI:** Selector displays PHP 8.5. Actual web/CLI execution and a PHP 8.4 executable remain UNVERIFIED. Target is PHP >= 8.4 for Laravel 13.
 - **Database Server:** MySQL 8.4.11-cll-lve (CloudLinux LVE MySQL 8.4).
-- **PHP Limits:** `max_execution_time = 30s`, `memory_limit = 128M` (can be raised to 256M/512M via MultiPHP INI Editor), timezone `UTC`.
+- **PHP Limits:** Selector displays `max_execution_time = 30s`, `memory_limit = 128M`, timezone `UTC`. Higher limits and actual runtime settings remain UNVERIFIED.
 - **PHP Extensions:** `pdo_mysql`, `gmp`, `openssl`, `mbstring`, `intl`, `fileinfo`, `curl` active; `sodium` extension optional (app calls core `password_hash` with Argon2id).
 - **Cron Intervals:** cPanel menus show 15/30 minute common intervals; UI menus are not a policy guarantee and will be validated in H2.
 - **Statement / CPU Quotas:** Untested at host level; requires owner benchmarking under CloudLinux LVE.

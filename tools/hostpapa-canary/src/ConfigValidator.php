@@ -39,7 +39,7 @@ class ConfigValidator
      * Required disposable naming convention regex.
      * Database name MUST explicitly start or end with a disposable marker.
      */
-    private const REQUIRED_DISPOSABLE_PATTERN = '/^(test_[a-zA-Z0-9_]+|[a-zA-Z0-9_]+_test|[a-zA-Z0-9_]+_canary|[a-zA-Z0-9_]+_disposable)$/i';
+    private const REQUIRED_DISPOSABLE_PATTERN = '/^(test_[a-zA-Z0-9_]+|[a-zA-Z0-9_]+_test|[a-zA-Z0-9_]+_canary|[a-zA-Z0-9_]+_disposable|[a-zA-Z0-9_]+_h0_canary_[0-9]{8})$/i';
 
     /**
      * Validate the entire canary configuration array.
@@ -183,7 +183,7 @@ class ConfigValidator
             throw new DatabaseGuardException(
                 sprintf(
                     "SAFETY REFUSAL: Database name '%s' lacks required disposable naming pattern. "
-                    . "Must start with 'test_' or end with '_test', '_canary', or '_disposable'.",
+                    . "Must start with 'test_', end with '_test', '_canary', or '_disposable', or use '_h0_canary_YYYYMMDD'.",
                     $dbName
                 )
             );
