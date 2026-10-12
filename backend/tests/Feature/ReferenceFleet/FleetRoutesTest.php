@@ -68,7 +68,9 @@ final class FleetRoutesTest extends TestCase
     {
         $staff = $this->staff();
         $this->assertSame(0, DB::table('aircraft')->count());
-        $this->assertSame(0, Artisan::call('migrate:rollback', ['--step' => 2, '--force' => true]));
+        $steps=DB::table('migrations')->where('migration','>=','2026_10_11_000001_create_reference_aircraft_tables')->count();
+        $this->assertGreaterThanOrEqual(2,$steps);
+        $this->assertSame(0, Artisan::call('migrate:rollback', ['--step' => $steps, '--force' => true]));
         $this->assertFalse(Schema::hasTable('aircraft'));
         $this->assertTrue(DB::table('staff_users')->where('id', $staff['owner'])->exists());
         $this->assertSame(0, Artisan::call('migrate', ['--force' => true]));
