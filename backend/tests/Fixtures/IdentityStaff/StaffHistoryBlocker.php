@@ -13,9 +13,14 @@ final class StaffHistoryBlocker
     public static function hold(string $currentSessionId, bool $sentinel = false, ?string $unrelatedStaff = null): \Illuminate\Database\ConnectionInterface
     {
         $db = DB::connection();
-        if (getenv('APP_ENV') !== 'testing' || !app()->environment('testing') || $db->getName() !== 'pgsql_test'
-            || $db->getDriverName() !== 'pgsql' || $db->getDatabaseName() !== 'gaza_gateway_test'
-            || $db->selectOne('SELECT current_database() AS db')->db !== 'gaza_gateway_test') { throw new \LogicException('Fixture database admission failed.'); }
+        $connName = $db->getName();
+        if (getenv('APP_ENV') !== 'testing' || !app()->environment('testing')) { throw new \LogicException('Fixture database admission failed.'); }
+        if ($connName === 'mysql_test') {
+            if ($db->getDriverName() !== 'mysql' || $db->getDatabaseName() !== 'gaza_gateway_mysql_test') { throw new \LogicException('Fixture database admission failed.'); }
+        } else {
+            if ($connName !== 'pgsql_test' || $db->getDriverName() !== 'pgsql' || $db->getDatabaseName() !== 'gaza_gateway_test'
+                || $db->selectOne('SELECT current_database() AS db')->db !== 'gaza_gateway_test') { throw new \LogicException('Fixture database admission failed.'); }
+        }
         $base = (array) $db->table('staff_sessions')->where('id', $currentSessionId)->first();
         $rows = [];
         for ($i = 0; $i < 300; $i++) {
@@ -26,12 +31,18 @@ final class StaffHistoryBlocker
         }
         $db->table('staff_sessions')->insert($rows);
         $alias = 'staff_history_' . bin2hex(random_bytes(6));
-        config(['database.connections.' . $alias => config('database.connections.pgsql_test')]);
+        config(['database.connections.' . $alias => config('database.connections.' . $connName)]);
         $blocker = DB::connection($alias);
-        if ($blocker->getDriverName() !== 'pgsql' || $blocker->getDatabaseName() !== 'gaza_gateway_test'
-            || $blocker->selectOne('SELECT current_database() AS db')->db !== 'gaza_gateway_test') { throw new \LogicException('Fixture blocker admission failed.'); }
+        if ($connName === 'mysql_test') {
+            if ($blocker->getDriverName() !== 'mysql' || $blocker->getDatabaseName() !== 'gaza_gateway_mysql_test') { throw new \LogicException('Fixture blocker admission failed.'); }
+        } else {
+            if ($blocker->getDriverName() !== 'pgsql' || $blocker->getDatabaseName() !== 'gaza_gateway_test'
+                || $blocker->selectOne('SELECT current_database() AS db')->db !== 'gaza_gateway_test') { throw new \LogicException('Fixture blocker admission failed.'); }
+        }
         $blocker->beginTransaction();
-        $blocker->statement("SET LOCAL idle_in_transaction_session_timeout = '60s'");
+        if ($blocker->getDriverName() === 'pgsql') {
+            $blocker->statement("SET LOCAL idle_in_transaction_session_timeout = '60s'");
+        }
         if ($sentinel) { $blocker->table('staff_directory_control')->where('id', 1)->lockForUpdate()->first(); }
         if ($unrelatedStaff !== null) { $blocker->table('staff_users')->where('id', $unrelatedStaff)->lockForUpdate()->first(); }
         $blocker->table('staff_sessions')->whereIn('id', array_column($rows, 'id'))->orderBy('id')->lockForUpdate()->get();

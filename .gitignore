@@ -35,3 +35,7 @@ dist-ssr
 # Owned local identity gate evidence and tracked-file staging snapshots
 /scratch/gaza_identity_gate_*/
 /scratch/identity-recovery-filter.txt
+
+# Private disposable gate and release artifacts; never publish scratch contents.
+/scratch/
+/backend/tests/**/junit*.xml

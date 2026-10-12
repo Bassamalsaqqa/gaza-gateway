@@ -40,9 +40,10 @@ abstract class MySqlTestCase extends BaseTestCase
         $_ENV['DB_USERNAME'] = 'gaza_app_user';
         $_SERVER['DB_USERNAME'] = 'gaza_app_user';
 
-        putenv('DB_PASSWORD=gaza_app_local_pass');
-        $_ENV['DB_PASSWORD'] = 'gaza_app_local_pass';
-        $_SERVER['DB_PASSWORD'] = 'gaza_app_local_pass';
+        $dbPass = getenv('DB_PASSWORD') ?: 'gaza_app_local_pass';
+        putenv("DB_PASSWORD={$dbPass}");
+        $_ENV['DB_PASSWORD'] = $dbPass;
+        $_SERVER['DB_PASSWORD'] = $dbPass;
 
         $app = require __DIR__ . '/../../bootstrap/app.php';
         $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();

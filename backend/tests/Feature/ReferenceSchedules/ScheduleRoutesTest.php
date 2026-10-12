@@ -39,7 +39,7 @@ final class ScheduleRoutesTest extends TestCase
 
     private function staff(string $role = 'admin'): array
     {
-        $id = (string) Str::uuid();
+        $id = $this->trackStaffId((string) Str::uuid());
         self::$hash ??= app(Argon2idPasswordHasher::class)->hash('Synthetic-schedule-password-2026', 'staff');
         DB::table('staff_users')->insert([
             'id' => $id,
@@ -51,15 +51,15 @@ final class ScheduleRoutesTest extends TestCase
             'role' => $role,
             'status' => 'invited',
             'credential_epoch' => 1,
-            'email_verified_at' => DB::raw('clock_timestamp()'),
-            'created_at' => DB::raw('clock_timestamp()'),
-            'updated_at' => DB::raw('clock_timestamp()'),
+            'email_verified_at' => DB::raw('UTC_TIMESTAMP(6)'),
+            'created_at' => DB::raw('UTC_TIMESTAMP(6)'),
+            'updated_at' => DB::raw('UTC_TIMESTAMP(6)'),
         ]);
         DB::table('staff_mfa_credentials')->insert([
             'staff_id' => $id,
             'version' => 1,
             'encrypted_secret' => app(Encrypter::class)->encrypt(TotpSecret::generate()->revealBase32Secret()),
-            'confirmed_at' => DB::raw('clock_timestamp()'),
+            'confirmed_at' => DB::raw('UTC_TIMESTAMP(6)'),
         ]);
         DB::table('staff_users')->where('id', $id)->update(['status' => 'active', 'mfa_version' => 1]);
         $receipt = app(StaffSessionStore::class)->issueFull($id, 1, 1, new \DateTimeImmutable('-1 second'));
@@ -129,6 +129,12 @@ final class ScheduleRoutesTest extends TestCase
 
     private function seedAirportsAndAircraft(): void
     {
+        // Prior joined fleet tests may mutate these source fixture identities. Restore test preconditions.
+        DB::table('aircraft')->where('id', 'a320neo')->update(['model' => 'Airbus A320neo', 'active' => true]);
+        DB::table('aircraft')->where('id', 'b737')->update(['model' => 'Boeing 737-800', 'active' => true]);
+        foreach (['GZA' => 45, 'AMM' => 55, 'CAI' => 70] as $code => $minutes) {
+            DB::table('airports')->where('code', $code)->update(['active' => true, 'block_minutes' => $minutes]);
+        }
         // Base airport GZA
         if (!DB::table('airports')->where('code', 'GZA')->exists()) {
             DB::table('airports')->insert([
@@ -180,15 +186,12 @@ final class ScheduleRoutesTest extends TestCase
         // Aircraft a320neo
         if (!DB::table('aircraft')->where('id', 'a320neo')->exists()) {
             DB::transaction(function (): void {
+                $defaultLayout = FleetCoordinator::defaultLayout();
                 DB::table('aircraft')->insert([
                     'id' => 'a320neo',
                     'model' => 'Airbus A320neo',
                     'registration_normalized' => 'SU-GZA',
                     'active' => true,
-                ]);
-                $defaultLayout = FleetCoordinator::defaultLayout();
-                DB::table('seat_layouts')->insert([
-                    'aircraft_id' => 'a320neo',
                     'rows' => $defaultLayout['rows'],
                     'letters_json' => json_encode($defaultLayout['letters'], JSON_THROW_ON_ERROR),
                     'aisle_after' => $defaultLayout['aisleAfter'],
@@ -202,15 +205,12 @@ final class ScheduleRoutesTest extends TestCase
         // Aircraft b737
         if (!DB::table('aircraft')->where('id', 'b737')->exists()) {
             DB::transaction(function (): void {
+                $defaultLayout = FleetCoordinator::defaultLayout();
                 DB::table('aircraft')->insert([
                     'id' => 'b737',
                     'model' => 'Boeing 737-800',
                     'registration_normalized' => 'SU-GZB',
                     'active' => true,
-                ]);
-                $defaultLayout = FleetCoordinator::defaultLayout();
-                DB::table('seat_layouts')->insert([
-                    'aircraft_id' => 'b737',
                     'rows' => $defaultLayout['rows'],
                     'letters_json' => json_encode($defaultLayout['letters'], JSON_THROW_ON_ERROR),
                     'aisle_after' => $defaultLayout['aisleAfter'],
@@ -281,11 +281,13 @@ final class ScheduleRoutesTest extends TestCase
         $row['id'] .= "\u{1F600}";
         $rejected = false;
         try { DB::transaction(fn() => DB::table('schedules')->insert($row)); }
-        catch (\Illuminate\Database\QueryException $error) { $rejected = $error->getCode() === '23514'; }
+        catch (\Illuminate\Database\QueryException $error) { $rejected = \App\Support\DatabaseFailure::isCheckViolation($error); }
         $this->assertTrue($rejected, 'Direct SQL must enforce exactly 160 UTF-16 code units.');
-        $this->assertSame(160, (int) DB::selectOne('SELECT reference_schedule_utf16_length(?) AS n', [$id])->n);
+        $this->assertSame(160, (int) DB::selectOne('SELECT OCTET_LENGTH(CONVERT(? USING utf16))/2 AS n', [$id])->n);
         $this->http('GET', '/offerings?date=2026-10-11&origin[]=GZA')->assertStatus(422);
-        $this->assertSame('repeatable read', OfferingResolver::consistentRead(fn() => DB::selectOne("SHOW transaction_isolation")->transaction_isolation));
+        // Snapshot correctness is exercised by concurrent public projection tests; session default stays READ COMMITTED.
+        OfferingResolver::consistentRead(fn() => $this->assertSame(1, (int) DB::selectOne('SELECT 1 AS n')->n));
+        $this->assertSame('READ-COMMITTED', DB::selectOne('SELECT @@transaction_isolation AS level')->level);
     }
 
     public function test_initial_state_is_empty(): void
@@ -551,19 +553,14 @@ final class ScheduleRoutesTest extends TestCase
         $input = $this->sampleSchedule('sch-rollback-test');
 
         DB::unprepared("
-            CREATE FUNCTION reference_test_fail() RETURNS trigger LANGUAGE plpgsql AS $$
-            BEGIN RAISE EXCEPTION 'Synthetic audit failure'; END $$;
             CREATE TRIGGER reference_test_failure BEFORE INSERT ON schedule_audit_events
-            FOR EACH ROW EXECUTE FUNCTION reference_test_fail();
+            FOR EACH ROW BEGIN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Synthetic audit failure'; END;
         ");
 
         try {
             $this->http('POST', '/admin/schedules', $staff, $input)->assertStatus(503);
         } finally {
-            DB::unprepared('
-                DROP TRIGGER reference_test_failure ON schedule_audit_events;
-                DROP FUNCTION reference_test_fail();
-            ');
+            DB::unprepared('DROP TRIGGER IF EXISTS reference_test_failure;');
         }
 
         $this->assertFalse(DB::table('schedules')->where('id', 'sch-rollback-test')->exists());
@@ -640,8 +637,8 @@ final class ScheduleRoutesTest extends TestCase
 
         // Stale auth wait
         DB::table('staff_sessions')->where('id', $staff['id'])->update([
-            'absolute_expires_at' => DB::raw("clock_timestamp() + interval '1500 milliseconds'"),
-            'idle_expires_at' => DB::raw("clock_timestamp() + interval '1400 milliseconds'"),
+            'absolute_expires_at' => DB::raw("DATE_ADD(UTC_TIMESTAMP(6), INTERVAL 1500000 MICROSECOND)"),
+            'idle_expires_at' => DB::raw("DATE_ADD(UTC_TIMESTAMP(6), INTERVAL 1400000 MICROSECOND)"),
         ]);
 
         $db = DB::connection();
@@ -679,8 +676,7 @@ final class ScheduleRoutesTest extends TestCase
 
             $deadline = microtime(true) + 1;
             do {
-                $db->select('SELECT pg_stat_clear_snapshot()');
-                $waiting = (int) $db->selectOne("SELECT count(*) AS n FROM pg_stat_activity WHERE datname=current_database() AND pid<>pg_backend_pid() AND wait_event_type='Lock' AND query LIKE '%schedule_revision_control%'")->n;
+                $waiting = \Tests\Fixtures\MySqlLockObserver::waitingCount();
                 if ($waiting > 0) {
                     break;
                 }

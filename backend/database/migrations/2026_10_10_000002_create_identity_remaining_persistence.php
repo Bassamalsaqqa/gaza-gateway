@@ -39,6 +39,10 @@ return new class extends Migration
                 CONSTRAINT fk_booking_guest_challenges_booking FOREIGN KEY (booking_id) REFERENCES bookings (id) ON DELETE RESTRICT,
                 CONSTRAINT fk_booking_guest_challenges_session FOREIGN KEY (session_id) REFERENCES passenger_sessions (id) ON DELETE RESTRICT,
                 CONSTRAINT fk_booking_guest_challenges_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE RESTRICT,
+                CONSTRAINT chk_bgc_id_uuid CHECK (REGEXP_LIKE(id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
+                CONSTRAINT chk_bgc_booking_uuid CHECK (booking_id IS NULL OR REGEXP_LIKE(booking_id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
+                CONSTRAINT chk_bgc_session_uuid CHECK (REGEXP_LIKE(session_id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
+                CONSTRAINT chk_bgc_user_uuid CHECK (user_id IS NULL OR REGEXP_LIKE(user_id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
                 CONSTRAINT chk_booking_guest_challenges_state CHECK (state IN (\'issued\', \'consumed\', \'revoked\', \'expired\', \'exhausted\')),
                 CONSTRAINT chk_booking_guest_challenges_expires CHECK (expires_at > issued_at),
                 CONSTRAINT chk_booking_guest_challenges_consumed CHECK (((state = \'consumed\') AND (consumed_at IS NOT NULL)) OR ((state != \'consumed\') AND (consumed_at IS NULL))),
@@ -50,7 +54,7 @@ return new class extends Migration
                 CONSTRAINT chk_booking_guest_challenges_real_epoch_not_null CHECK (booking_id IS NULL OR security_epoch IS NOT NULL),
                 CONSTRAINT chk_booking_guest_challenges_code_digest CHECK (code_digest REGEXP \'^[0-9a-f]{64}$\'),
                 CONSTRAINT chk_booking_guest_challenges_pepper_version CHECK (pepper_version >= 1)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
         ');
 
         // 7. booking_guest_grants (Approved operation scope arrays with scope_version 1)
@@ -66,6 +70,8 @@ return new class extends Migration
                 expires_at DATETIME(6) NOT NULL,
                 revoked_at DATETIME(6) NULL,
                 CONSTRAINT fk_booking_guest_grants_booking FOREIGN KEY (booking_id) REFERENCES bookings (id) ON DELETE RESTRICT,
+                CONSTRAINT chk_bgg_id_uuid CHECK (REGEXP_LIKE(id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
+                CONSTRAINT chk_bgg_booking_uuid CHECK (REGEXP_LIKE(booking_id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
                 CONSTRAINT chk_booking_guest_grants_epoch CHECK (security_epoch >= 1),
                 CONSTRAINT chk_booking_guest_grants_scope_version CHECK (scope_version = 1),
                 CONSTRAINT chk_booking_guest_grants_expires CHECK (expires_at > issued_at),
@@ -75,7 +81,7 @@ return new class extends Migration
                     JSON_SCHEMA_VALID(\'{"type":"array","minItems":1,"items":{"type":"string","enum":["getBookingByRef","patchBookingContact","putBookingSeats","putBookingExtras","postCancelBooking","postCompleteCheckIn","postUndoCheckIn","getBoardingPasses"]}}\', allowed_actions)
                 ),
                 CONSTRAINT chk_booking_guest_grants_token_digest CHECK (token_digest REGEXP \'^[0-9a-f]{64}$\')
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
         ');
 
         // 8. booking_receipt_grants (Single-purpose receipt verification grant)
@@ -91,6 +97,8 @@ return new class extends Migration
                 expires_at DATETIME(6) NOT NULL,
                 revoked_at DATETIME(6) NULL,
                 CONSTRAINT fk_booking_receipt_grants_booking FOREIGN KEY (booking_id) REFERENCES bookings (id) ON DELETE RESTRICT,
+                CONSTRAINT chk_brg_id_uuid CHECK (REGEXP_LIKE(id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
+                CONSTRAINT chk_brg_booking_uuid CHECK (REGEXP_LIKE(booking_id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
                 CONSTRAINT chk_booking_receipt_grants_epoch CHECK (security_epoch >= 1),
                 CONSTRAINT chk_booking_receipt_grants_scope_version CHECK (scope_version = 1),
                 CONSTRAINT chk_booking_receipt_grants_expires CHECK (expires_at > issued_at),
@@ -100,7 +108,7 @@ return new class extends Migration
                     JSON_SCHEMA_VALID(\'{"type":"array","minItems":1,"items":{"type":"string","enum":["getBookingReceipt"]}}\', allowed_actions)
                 ),
                 CONSTRAINT chk_booking_receipt_grants_token_digest CHECK (token_digest REGEXP \'^[0-9a-f]{64}$\')
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
         ');
 
         // 9. booking_claim_proofs (Bound user claim proofs with strict state & timestamp equivalence)
@@ -121,13 +129,17 @@ return new class extends Migration
                 CONSTRAINT fk_booking_claim_proofs_booking FOREIGN KEY (booking_id) REFERENCES bookings (id) ON DELETE RESTRICT,
                 CONSTRAINT fk_booking_claim_proofs_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE RESTRICT,
                 CONSTRAINT fk_booking_claim_proofs_session FOREIGN KEY (session_id) REFERENCES passenger_sessions (id) ON DELETE RESTRICT,
+                CONSTRAINT chk_bcp_id_uuid CHECK (REGEXP_LIKE(id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
+                CONSTRAINT chk_bcp_booking_uuid CHECK (REGEXP_LIKE(booking_id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
+                CONSTRAINT chk_bcp_user_uuid CHECK (REGEXP_LIKE(user_id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
+                CONSTRAINT chk_bcp_session_uuid CHECK (REGEXP_LIKE(session_id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
                 CONSTRAINT chk_booking_claim_proofs_state CHECK (state IN (\'issued\', \'consumed\', \'revoked\', \'expired\', \'exhausted\')),
                 CONSTRAINT chk_booking_claim_proofs_expires CHECK (expires_at > issued_at),
                 CONSTRAINT chk_booking_claim_proofs_consumed CHECK (((state = \'consumed\') AND (consumed_at IS NOT NULL)) OR ((state != \'consumed\') AND (consumed_at IS NULL))),
                 CONSTRAINT chk_booking_claim_proofs_purpose CHECK (purpose = \'booking_claim_proof\'),
                 CONSTRAINT chk_booking_claim_proofs_epoch CHECK (security_epoch >= 1),
                 CONSTRAINT chk_booking_claim_proofs_token_digest CHECK (token_digest REGEXP \'^[0-9a-f]{64}$\')
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
         ');
 
         // 10. security_dispatch_outbox (Exactly one of five proof FKs, bounded payload lifetime)
@@ -151,6 +163,12 @@ return new class extends Migration
                 CONSTRAINT fk_security_dispatch_outbox_staff_inv FOREIGN KEY (staff_invitation_id) REFERENCES staff_invitations (id) ON DELETE RESTRICT,
                 CONSTRAINT fk_security_dispatch_outbox_staff_reset FOREIGN KEY (staff_reset_id) REFERENCES staff_password_resets (id) ON DELETE RESTRICT,
                 CONSTRAINT fk_security_dispatch_outbox_booking_chal FOREIGN KEY (booking_challenge_id) REFERENCES booking_guest_challenges (id) ON DELETE RESTRICT,
+                CONSTRAINT chk_sdo_id_uuid CHECK (REGEXP_LIKE(id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
+                CONSTRAINT chk_sdo_uverif_uuid CHECK (user_verification_id IS NULL OR REGEXP_LIKE(user_verification_id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
+                CONSTRAINT chk_sdo_ureset_uuid CHECK (user_reset_id IS NULL OR REGEXP_LIKE(user_reset_id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
+                CONSTRAINT chk_sdo_sinv_uuid CHECK (staff_invitation_id IS NULL OR REGEXP_LIKE(staff_invitation_id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
+                CONSTRAINT chk_sdo_sreset_uuid CHECK (staff_reset_id IS NULL OR REGEXP_LIKE(staff_reset_id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
+                CONSTRAINT chk_sdo_bchal_uuid CHECK (booking_challenge_id IS NULL OR REGEXP_LIKE(booking_challenge_id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
                 CONSTRAINT chk_security_dispatch_outbox_num_nonnulls CHECK (
                     ((user_verification_id IS NOT NULL) +
                      (user_reset_id IS NOT NULL) +
@@ -162,7 +180,7 @@ return new class extends Migration
                 CONSTRAINT chk_security_dispatch_outbox_accepted CHECK (status != \'accepted\' OR (provider_message_id IS NOT NULL AND accepted_at IS NOT NULL)),
                 CONSTRAINT chk_security_dispatch_outbox_scrubbed_payload CHECK (status NOT IN (\'scrubbed\', \'expired\') OR encrypted_payload IS NULL),
                 CONSTRAINT chk_security_dispatch_outbox_attempts CHECK (attempts >= 0)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
         ');
     }
 

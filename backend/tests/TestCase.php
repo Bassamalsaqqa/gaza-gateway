@@ -26,12 +26,33 @@ abstract class TestCase extends BaseTestCase
         return parent::createApplication();
     }
 
+    protected array $trackedStaffIds = [];
+
+    protected function trackStaffId(string $id): string
+    {
+        $this->trackedStaffIds[] = $id;
+        return $id;
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
 
         $this->assertDisposableDatabaseTarget();
+        if (getenv('MYSQL_GATE_TRACE') === '1') { $this->withoutExceptionHandling(); }
         \Tests\Fixtures\IdentityFinal\HttpCaptureRecorder::install($this->app);
+    }
+
+    protected function tearDown(): void
+    {
+        if (!empty($this->trackedStaffIds) && config('database.default') === 'mysql_test') {
+            $this->assertDisposableDatabaseTarget();
+            $ids = array_unique($this->trackedStaffIds);
+            $conn = DB::connection('mysql_test');
+            $conn->table('staff_users')->whereIn('id', $ids)->update(['status' => 'suspended']);
+            $this->trackedStaffIds = [];
+        }
+        parent::tearDown();
     }
 
     final protected function assertDisposableDatabaseTarget(): void
@@ -49,29 +70,48 @@ abstract class TestCase extends BaseTestCase
 
         // Guard: Strictly enforce default test connection
         $defaultConn = config('database.default');
-        if ($defaultConn !== 'pgsql_test') {
+        if ($defaultConn !== 'pgsql_test' && $defaultConn !== 'mysql_test') {
             throw new \RuntimeException(
-                "Test suite default connection must be [pgsql_test], got: [{$defaultConn}]"
+                "Test suite default connection must be [pgsql_test] or [mysql_test], got: [{$defaultConn}]"
             );
         }
 
         // Guard: Strictly enforce disposable test database
         $connection = DB::connection();
-        try {
-            $liveTarget = $connection->selectOne('SELECT current_database() AS database_name');
-        } catch (\Throwable) {
-            throw new \RuntimeException('Unable to verify the live disposable database target.');
-        }
-        if ($connection->getName() !== 'pgsql_test'
-            || $connection->getDriverName() !== 'pgsql'
-            || ($liveTarget->database_name ?? null) !== 'gaza_gateway_test') {
-            throw new \RuntimeException('Fixture admission rejected the live database target.');
-        }
-        $databaseName = $connection->getDatabaseName();
-        if ($databaseName !== 'gaza_gateway_test') {
-            throw new \RuntimeException(
-                "Test suite must run strictly against disposable test database [gaza_gateway_test], got: [{$databaseName}]"
-            );
+        if ($defaultConn === 'mysql_test') {
+            try {
+                $liveTarget = $connection->selectOne('SELECT DATABASE() AS database_name');
+            } catch (\Throwable) {
+                throw new \RuntimeException('Unable to verify the live disposable database target.');
+            }
+            if ($connection->getName() !== 'mysql_test'
+                || $connection->getDriverName() !== 'mysql'
+                || ($liveTarget->database_name ?? null) !== 'gaza_gateway_mysql_test') {
+                throw new \RuntimeException('Fixture admission rejected the live database target.');
+            }
+            $databaseName = $connection->getDatabaseName();
+            if ($databaseName !== 'gaza_gateway_mysql_test') {
+                throw new \RuntimeException(
+                    "Test suite must run strictly against disposable test database [gaza_gateway_mysql_test], got: [{$databaseName}]"
+                );
+            }
+        } else {
+            try {
+                $liveTarget = $connection->selectOne('SELECT current_database() AS database_name');
+            } catch (\Throwable) {
+                throw new \RuntimeException('Unable to verify the live disposable database target.');
+            }
+            if ($connection->getName() !== 'pgsql_test'
+                || $connection->getDriverName() !== 'pgsql'
+                || ($liveTarget->database_name ?? null) !== 'gaza_gateway_test') {
+                throw new \RuntimeException('Fixture admission rejected the live database target.');
+            }
+            $databaseName = $connection->getDatabaseName();
+            if ($databaseName !== 'gaza_gateway_test') {
+                throw new \RuntimeException(
+                    "Test suite must run strictly against disposable test database [gaza_gateway_test], got: [{$databaseName}]"
+                );
+            }
         }
     }
 }

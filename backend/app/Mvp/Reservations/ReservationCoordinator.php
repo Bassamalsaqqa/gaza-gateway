@@ -11,8 +11,11 @@ use App\Mvp\Reservations\Exceptions\ReservationNotFoundException;
 use App\Mvp\Reservations\Exceptions\ReservationReferenceChangedException;
 use App\Mvp\Reservations\Exceptions\ReservationSessionExpiredException;
 use App\Mvp\Reservations\Exceptions\ReservationValidationException;
+use App\Support\DatabaseClock;
+use App\Support\DatabaseFailure;
 use Carbon\CarbonImmutable;
 use Closure;
+use Illuminate\Database\QueryException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -65,7 +68,8 @@ final class ReservationCoordinator
 
         $fingerprint = hash('sha256', json_encode($command, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
 
-        return DB::transaction(function () use ($command, $session, $userId, $submissionId, $serviceId, $fingerprint, $authorize): array {
+        try {
+            return DB::transaction(function () use ($command, $session, $userId, $submissionId, $serviceId, $fingerprint, $authorize): array {
             // 1. Lock principal row then session row in accepted order
             $user = DB::table('users')->where('id', $userId)->lockForUpdate()->first();
             if (!$user || $user->status !== 'active' || $user->email_verified_at === null) {
@@ -133,8 +137,8 @@ final class ReservationCoordinator
                     'reference_revisions' => json_encode($offering['revisions'], JSON_THROW_ON_ERROR),
                     'classification' => $offering['classification'],
                     'price_minor' => 0,
-                    'created_at' => DB::raw('clock_timestamp()'),
-                    'updated_at' => DB::raw('clock_timestamp()'),
+                    'created_at' => DatabaseClock::now(),
+                    'updated_at' => DatabaseClock::now(),
                 ]);
 
                 $serviceRow = DB::table('mvp_services')->where('id', $serviceId)->lockForUpdate()->first();
@@ -164,8 +168,7 @@ final class ReservationCoordinator
             DB::table('meal_revision_control')->where('domain', 'meals')->lockForUpdate()->first();
 
             // 5. Fresh time & session authority recheck AFTER blocking on locks
-            $nowRow = DB::selectOne('SELECT clock_timestamp() AS now');
-            $now = CarbonImmutable::parse($nowRow->now);
+            $now = DatabaseClock::now();
 
             $freshSession = DB::table('passenger_sessions')->where('id', $session->sessionId)->first();
             if (!$freshSession || $freshSession->revoked_at !== null) {
@@ -325,6 +328,12 @@ final class ReservationCoordinator
 
             return $this->formatReservationResponse($reservationId, true);
         });
+        } catch (QueryException $e) {
+            if (DatabaseFailure::isDuplicate($e)) {
+                throw new ReservationConflictException('Reservation conflict.');
+            }
+            throw $e;
+        }
     }
 
     public function getReservations(PassengerSessionContext $session, int $page = 1, int $limit = 20): array
@@ -420,8 +429,7 @@ final class ReservationCoordinator
             $lockedRes = DB::table('mvp_reservations')->where('id', $row->id)->lockForUpdate()->first();
 
             // 4. Fresh time & session check AFTER locks
-            $nowRow = DB::selectOne('SELECT clock_timestamp() AS now');
-            $now = CarbonImmutable::parse($nowRow->now);
+            $now = DatabaseClock::now();
 
             $freshSession = DB::table('passenger_sessions')->where('id', $session->sessionId)->first();
             if (!$freshSession || $freshSession->revoked_at !== null) {
@@ -511,9 +519,9 @@ final class ReservationCoordinator
         if ($search !== null && trim($search) !== '') {
             $s = trim($search);
             $query->where(function ($q) use ($s) {
-                $q->where('reference', 'ilike', "%{$s}%")
-                    ->orWhere('contact_email', 'ilike', "%{$s}%")
-                    ->orWhere('service_id', 'ilike', "%{$s}%");
+                $q->whereRaw('LOWER(reference) LIKE LOWER(?)', ["%{$s}%"])
+                    ->orWhereRaw('LOWER(contact_email) LIKE LOWER(?)', ["%{$s}%"])
+                    ->orWhereRaw('LOWER(service_id) LIKE LOWER(?)', ["%{$s}%"]);
             });
         }
 
@@ -620,8 +628,7 @@ final class ReservationCoordinator
             $lockedRes = DB::table('mvp_reservations')->where('id', $row->id)->lockForUpdate()->first();
 
             // 4. Fresh time & staff session check AFTER locks
-            $nowRow = DB::selectOne('SELECT clock_timestamp() AS now');
-            $now = CarbonImmutable::parse($nowRow->now);
+            $now = DatabaseClock::now();
 
             $freshSession = DB::table('staff_sessions')->where('id', $session->sessionId)->first();
             if (!$freshSession || $freshSession->revoked_at !== null) {

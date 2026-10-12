@@ -15,13 +15,15 @@ while (($line = fgets(STDIN)) !== false) {
 $input = json_decode($rawInput, true, 512, JSON_THROW_ON_ERROR);
 
 if (($input['action'] ?? null) === 'lock') {
-    \Illuminate\Support\Facades\DB::select('SELECT pg_advisory_lock(hashtext(?))', [$input['key']]);
+    $slug = str_replace('editorial_doc:', '', (string) ($input['key'] ?? ''));
+    \Illuminate\Support\Facades\DB::beginTransaction();
+    \Illuminate\Support\Facades\DB::table('editorial_documents')->where('slug', $slug)->lockForUpdate()->first();
     echo "LOCKED\n";
     if (function_exists('ob_flush')) { @ob_flush(); }
     flush();
     $cmd = trim((string) fgets(STDIN, 16));
     if ($cmd === 'UNLOCK') {
-        \Illuminate\Support\Facades\DB::select('SELECT pg_advisory_unlock(hashtext(?))', [$input['key']]);
+        \Illuminate\Support\Facades\DB::rollBack();
         echo "UNLOCKED\n";
         if (function_exists('ob_flush')) { @ob_flush(); }
         flush();

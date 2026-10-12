@@ -33,9 +33,9 @@ final class StaffAuthenticationTest extends TestCase
         foreach ($this->owners as $id) {
             // Retain append-only audits and their principals. Revoke only our owned session residue.
             DB::table('staff_pending_auth')->where('staff_id', $id)->where('state', 'issued')
-                ->update(['state' => 'revoked', 'revoked_at' => DB::raw('clock_timestamp()')]);
+                ->update(['state' => 'revoked', 'revoked_at' => DB::raw('UTC_TIMESTAMP(6)')]);
             DB::table('staff_sessions')->where('staff_id', $id)->whereNull('revoked_at')
-                ->update(['revoked_at' => DB::raw('clock_timestamp()')]);
+                ->update(['revoked_at' => DB::raw('UTC_TIMESTAMP(6)')]);
         }
         parent::tearDown();
     }
@@ -50,10 +50,10 @@ final class StaffAuthenticationTest extends TestCase
         DB::table('staff_users')->insert(['id' => $id, 'username' => 'test-' . $id, 'email' => $id . '@example.invalid',
             'full_name_en' => 'Synthetic Staff', 'full_name_ar' => 'موظف تجريبي', 'password_hash' => self::$hash,
             'role' => 'viewer', 'status' => 'pending_enrollment', 'credential_epoch' => 1,
-            'email_verified_at' => DB::raw('clock_timestamp()'), 'created_at' => DB::raw('clock_timestamp()'), 'updated_at' => DB::raw('clock_timestamp()')]);
+            'email_verified_at' => DB::raw('UTC_TIMESTAMP(6)'), 'created_at' => DB::raw('UTC_TIMESTAMP(6)'), 'updated_at' => DB::raw('UTC_TIMESTAMP(6)')]);
         DB::table('staff_mfa_credentials')->insert(['staff_id' => $id, 'version' => 1,
             'encrypted_secret' => $this->app->make(Encrypter::class)->encrypt($secret->revealBase32Secret()),
-            'confirmed_at' => DB::raw('clock_timestamp()')]);
+            'confirmed_at' => DB::raw('UTC_TIMESTAMP(6)')]);
         DB::table('staff_users')->where('id', $id)->update(['status' => 'active', 'mfa_version' => 1]);
         return (object) ['id' => $id, 'username' => 'test-' . $id, 'secret' => $secret];
     }
@@ -97,7 +97,7 @@ final class StaffAuthenticationTest extends TestCase
 
     private function code(object $staff): string
     {
-        $now = strtotime(DB::selectOne('SELECT clock_timestamp() AS now')->now);
+        $now = strtotime(DB::selectOne('SELECT UTC_TIMESTAMP(6) AS now')->now);
         return (new TotpService())->hotp($staff->secret, intdiv($now, 30));
     }
 
@@ -295,11 +295,13 @@ final class StaffAuthenticationTest extends TestCase
             $row['revoked_at'] = $i % 2 === 0 ? now()->subDay() : null; $historical[] = $row;
         }
         DB::table('staff_sessions')->insert($historical);
-        config(['database.connections.staff_history_blocker' => config('database.connections.pgsql_test')]);
+        config(['database.connections.staff_history_blocker' => config('database.connections.'.DB::connection()->getName())]);
         $blocker = DB::connection('staff_history_blocker');
-        $this->assertSame('pgsql', $blocker->getDriverName());
-        $this->assertSame('gaza_gateway_test', $blocker->getDatabaseName());
-        $this->assertSame('gaza_gateway_test', $blocker->selectOne('SELECT current_database() AS db')->db);
+        $mysql = DB::connection()->getDriverName() === 'mysql';
+        $this->assertSame($mysql ? 'mysql' : 'pgsql', $blocker->getDriverName());
+        $target = $mysql ? 'gaza_gateway_mysql_test' : 'gaza_gateway_test';
+        $this->assertSame($target, $blocker->getDatabaseName());
+        $this->assertSame($target, $blocker->selectOne($mysql ? 'SELECT DATABASE() AS db' : 'SELECT current_database() AS db')->db);
         $blocker->beginTransaction();
         try {
             $blocker->table('staff_sessions')->whereIn('id', array_column($historical, 'id'))->orderBy('id')->lockForUpdate()->get();

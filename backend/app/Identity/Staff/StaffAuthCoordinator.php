@@ -322,12 +322,11 @@ final class StaffAuthCoordinator
 
     private function timeouts(): void
     {
-        $this->db->statement("SET LOCAL lock_timeout = '3000ms'");
-        $this->db->statement("SET LOCAL statement_timeout = '5000ms'");
+        \App\Support\DatabaseFailure::applyTimeouts($this->db, 5000, 3000);
     }
 
     private function now(): CarbonImmutable
     {
-        return CarbonImmutable::parse($this->db->selectOne('SELECT clock_timestamp() AS now')->now);
+        return \App\Support\DatabaseClock::now();
     }
 }

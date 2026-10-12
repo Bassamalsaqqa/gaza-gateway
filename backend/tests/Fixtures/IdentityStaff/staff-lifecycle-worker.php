@@ -13,9 +13,12 @@ use Illuminate\Support\Facades\DB;
 require dirname(__DIR__, 3) . '/vendor/autoload.php';
 $app = require dirname(__DIR__, 3) . '/bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap(); $db = DB::connection();
-if (getenv('APP_ENV') !== 'testing' || !$app->environment('testing') || config('database.default') !== 'pgsql_test'
-    || $db->getName() !== 'pgsql_test' || $db->getDriverName() !== 'pgsql' || $db->getDatabaseName() !== 'gaza_gateway_test'
-    || $db->selectOne('SELECT current_database() AS db')->db !== 'gaza_gateway_test') { exit(2); }
+$default = config('database.default');
+$isPgsql = $default === 'pgsql_test' && $db->getName() === 'pgsql_test' && $db->getDriverName() === 'pgsql'
+    && $db->getDatabaseName() === 'gaza_gateway_test' && (string) $db->selectOne('SELECT current_database() AS db')->db === 'gaza_gateway_test';
+$isMysql = $default === 'mysql_test' && $db->getName() === 'mysql_test' && $db->getDriverName() === 'mysql'
+    && $db->getDatabaseName() === 'gaza_gateway_mysql_test' && (string) $db->selectOne('SELECT DATABASE() AS db')->db === 'gaza_gateway_mysql_test';
+if (getenv('APP_ENV') !== 'testing' || !$app->environment('testing') || (!$isPgsql && !$isMysql)) { exit(2); }
 $line = fgets(STDIN, 16385);
 if ($line === false || strlen($line) > 16384) { exit(2); }
 $input = json_decode($line, true, 16, JSON_THROW_ON_ERROR);
@@ -43,4 +46,8 @@ try {
     fwrite(STDOUT, "ACCEPTED\n");
 } catch (StaffAuthenticationException) { fwrite(STDOUT, "DENIED\n"); }
 catch (LastAdminConflictException) { fwrite(STDOUT, "CONFLICT\n"); }
-catch (Throwable) { fwrite(STDOUT, "FAILED\n"); exit(1); }
+catch (Throwable $e) {
+    fwrite(STDERR, "WORKER ERROR: " . get_class($e) . ": " . $e->getMessage() . " at " . $e->getFile() . ":" . $e->getLine() . "\n" . $e->getTraceAsString() . "\n");
+    fwrite(STDOUT, "FAILED\n");
+    exit(1);
+}

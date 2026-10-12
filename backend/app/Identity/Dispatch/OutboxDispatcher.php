@@ -102,7 +102,7 @@ class OutboxDispatcher
         // 1. Identify candidate batch of queued items before deadline (non-authoritative index query)
         $candidateIds = $db->table('security_dispatch_outbox')
             ->where('status', 'queued')
-            ->where('expires_at', '>', $db->raw('clock_timestamp()'))
+            ->where('expires_at', '>', $db->raw('UTC_TIMESTAMP(6)'))
             ->orderBy('id', 'asc')
             ->limit($limit)
             ->pluck('id')
@@ -141,8 +141,7 @@ class OutboxDispatcher
                             &$dispatchOutcome,
                             &$liveNowCapture,
                         ) {
-                            $tx->statement("SET LOCAL statement_timeout = '5s'");
-                            $tx->statement("SET LOCAL lock_timeout = '3s'");
+                            \App\Support\DatabaseFailure::applyTimeouts($tx, 5000, 3000);
 
                             $candidate = $tx->table('security_dispatch_outbox')
                                 ->where('id', $id)
@@ -236,7 +235,7 @@ class OutboxDispatcher
                             }
 
                             // Live clock derivation strictly AFTER acquiring all locks
-                            $liveNowRow = $tx->selectOne('SELECT clock_timestamp() AS now');
+                            $liveNowRow = $tx->selectOne('SELECT UTC_TIMESTAMP(6) AS now');
                             $liveNow = CarbonImmutable::parse($liveNowRow->now);
                             $liveNowCapture = $liveNow;
                             $expiresAt = CarbonImmutable::parse($row->expires_at);
@@ -314,7 +313,7 @@ class OutboxDispatcher
                                     ->where('id', $id)
                                     ->update([
                                         'status' => 'scrubbed',
-                                        'scrubbed_at' => $tx->raw('clock_timestamp()'),
+                                        'scrubbed_at' => $tx->raw('UTC_TIMESTAMP(6)'),
                                         'encrypted_payload' => null,
                                     ]);
                                 $dispatchOutcome = ['status' => 'scrubbed'];
@@ -424,8 +423,7 @@ class OutboxDispatcher
 
             // Unsupported non-local dispatch: fails closed BEFORE submit(), payload decryption or external I/O
             $outcome = $db->transaction(function (ConnectionInterface $tx) use ($id) {
-                $tx->statement("SET LOCAL statement_timeout = '5s'");
-                $tx->statement("SET LOCAL lock_timeout = '3s'");
+                \App\Support\DatabaseFailure::applyTimeouts($tx, 5000, 3000);
 
                 $candidate = $tx->table('security_dispatch_outbox')
                     ->where('id', $id)
@@ -508,7 +506,7 @@ class OutboxDispatcher
                     return 'skipped';
                 }
 
-                $liveNowRow = $tx->selectOne('SELECT clock_timestamp() AS now');
+                $liveNowRow = $tx->selectOne('SELECT UTC_TIMESTAMP(6) AS now');
                 $liveNow = CarbonImmutable::parse($liveNowRow->now);
                 $expiresAt = CarbonImmutable::parse($row->expires_at);
 
@@ -583,7 +581,7 @@ class OutboxDispatcher
                         ->where('id', $id)
                         ->update([
                             'status' => 'scrubbed',
-                            'scrubbed_at' => $tx->raw('clock_timestamp()'),
+                            'scrubbed_at' => $tx->raw('UTC_TIMESTAMP(6)'),
                             'encrypted_payload' => null,
                         ]);
                     return 'scrubbed';
@@ -640,7 +638,7 @@ class OutboxDispatcher
 
         return $db->table('security_dispatch_outbox')
             ->where('status', 'failed')
-            ->where('expires_at', '>', $db->raw('clock_timestamp()'))
+            ->where('expires_at', '>', $db->raw('UTC_TIMESTAMP(6)'))
             ->orderBy('id', 'asc')
             ->limit($limit)
             ->update(['status' => 'queued']);
@@ -655,12 +653,11 @@ class OutboxDispatcher
         $db = $this->getDb();
 
         return $db->transaction(function (ConnectionInterface $tx) use ($limit) {
-            $tx->statement("SET LOCAL statement_timeout = '5s'");
-            $tx->statement("SET LOCAL lock_timeout = '3s'");
+            \App\Support\DatabaseFailure::applyTimeouts($tx, 5000, 3000);
 
             $expiredIds = $tx->table('security_dispatch_outbox')
                 ->whereIn('status', ['queued', 'failed'])
-                ->where('expires_at', '<=', $tx->raw('clock_timestamp()'))
+                ->where('expires_at', '<=', $tx->raw('UTC_TIMESTAMP(6)'))
                 ->orderBy('id', 'asc')
                 ->limit($limit)
                 ->lockForUpdate()
@@ -685,8 +682,7 @@ class OutboxDispatcher
         $db = $this->getDb();
 
         $db->transaction(function (ConnectionInterface $tx) use ($id) {
-            $tx->statement("SET LOCAL statement_timeout = '5s'");
-            $tx->statement("SET LOCAL lock_timeout = '3s'");
+            \App\Support\DatabaseFailure::applyTimeouts($tx, 5000, 3000);
 
             $row = $tx->table('security_dispatch_outbox')
                 ->where('id', $id)
@@ -697,7 +693,7 @@ class OutboxDispatcher
                 return;
             }
 
-            $liveNowRow = $tx->selectOne('SELECT clock_timestamp() AS now');
+            $liveNowRow = $tx->selectOne('SELECT UTC_TIMESTAMP(6) AS now');
             $liveNow = CarbonImmutable::parse($liveNowRow->now);
             $expiresAt = CarbonImmutable::parse($row->expires_at);
 

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Reference\Fleet;
 
+use App\Support\DatabaseClock;
 use Closure;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -39,9 +40,22 @@ final class FleetCoordinator
                 throw new FleetDuplicateRegistrationException();
             }
             $this->assertRegistrationFree($aircraft['registration']);
-            DB::table('aircraft')->insert(['id' => $aircraft['id'], 'model' => $aircraft['model'],
-                'registration_normalized' => $aircraft['registration'], 'active' => $aircraft['active']]);
-            $this->writeLayout($aircraft['id'], $layout, true);
+            $layoutColumns = [
+                'rows' => $layout['rows'],
+                'letters_json' => json_encode($layout['letters'], JSON_THROW_ON_ERROR),
+                'aisle_after' => $layout['aisleAfter'],
+                'zones_json' => json_encode($layout['zones'], JSON_THROW_ON_ERROR),
+                'extra_legroom_rows_json' => json_encode($layout['extraLegroomRows'], JSON_THROW_ON_ERROR),
+                'unavailable_json' => json_encode($layout['unavailable'], JSON_THROW_ON_ERROR),
+                'created_at' => DatabaseClock::now(),
+                'updated_at' => DatabaseClock::now(),
+            ];
+            DB::table('aircraft')->insert(array_merge([
+                'id' => $aircraft['id'],
+                'model' => $aircraft['model'],
+                'registration_normalized' => $aircraft['registration'],
+                'active' => $aircraft['active'],
+            ], $layoutColumns));
             return [$aircraft, true];
         });
     }
@@ -71,9 +85,12 @@ final class FleetCoordinator
             $after = array_replace($before, $patch);
             if ($after === $before) { return [$before, false]; }
             $this->assertRegistrationFree($after['registration'], $id);
-            DB::table('aircraft')->where('id', $id)->update(['model' => $after['model'],
-                'registration_normalized' => $after['registration'], 'active' => $after['active'],
-                'updated_at' => DB::raw('clock_timestamp()')]);
+            DB::table('aircraft')->where('id', $id)->update([
+                'model' => $after['model'],
+                'registration_normalized' => $after['registration'],
+                'active' => $after['active'],
+                'updated_at' => DatabaseClock::now(),
+            ]);
             return [$after, true];
         }, $receipt ? 'aircraft' : null);
     }
@@ -86,7 +103,7 @@ final class FleetCoordinator
             if (DB::table('aircraft')->where('id', $id)->lockForUpdate()->first() === null) {
                 throw new FleetNotFoundException();
             }
-            $row = DB::table('seat_layouts')->where('aircraft_id', $id)->lockForUpdate()->first();
+            $row = DB::table('seat_layouts')->where('aircraft_id', $id)->first();
             $before = SeatLayoutDto::fromRow($row)->toArray();
             $after = ['aircraftId' => $id] + $layout;
             if ($before === $after) { return [$before, false]; }
@@ -117,11 +134,23 @@ final class FleetCoordinator
             // Hash the exact compact UTF-8 bytes reconstructed with this documented encoding/order.
             $bytes = json_encode($snapshot, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
             DB::table('reference_revision_control')->where('domain', 'fleet')->update(['revision' => $revision]);
-            DB::table('reference_revisions')->insert(['domain' => 'fleet', 'revision' => $revision,
-                'snapshot_json' => $bytes, 'snapshot_bytes' => $bytes]);
-            DB::table('reference_audit_events')->insert(['id' => (string) Str::uuid(), 'domain' => 'fleet',
-                'revision' => $revision, 'staff_id' => $actor->getStaffId(), 'action' => $action,
-                'outcome' => 'success', 'aircraft_id' => $id]);
+            DB::table('reference_revisions')->insert([
+                'domain' => 'fleet',
+                'revision' => $revision,
+                'snapshot_json' => $bytes,
+                'snapshot_bytes' => $bytes,
+                'created_at' => DatabaseClock::now(),
+            ]);
+            DB::table('reference_audit_events')->insert([
+                'id' => (string) Str::uuid(),
+                'domain' => 'fleet',
+                'revision' => $revision,
+                'staff_id' => $actor->getStaffId(),
+                'action' => $action,
+                'outcome' => 'success',
+                'aircraft_id' => $id,
+                'created_at' => DatabaseClock::now(),
+            ]);
             return $receiptKind === null ? $result : [$receiptKind => $result, 'changed' => true, 'revision' => $revision];
         });
     }
@@ -135,13 +164,16 @@ final class FleetCoordinator
 
     private function writeLayout(string $id, array $layout, bool $insert): void
     {
-        $row = ['rows' => $layout['rows'], 'aisle_after' => $layout['aisleAfter']];
-        foreach (['letters' => 'letters_json', 'zones' => 'zones_json', 'extraLegroomRows' => 'extra_legroom_rows_json',
-            'unavailable' => 'unavailable_json'] as $key => $column) {
-            $row[$column] = json_encode($layout[$key], JSON_THROW_ON_ERROR);
-        }
-        if ($insert) { DB::table('seat_layouts')->insert(['aircraft_id' => $id] + $row); }
-        else { DB::table('seat_layouts')->where('aircraft_id', $id)->update($row + ['updated_at' => DB::raw('clock_timestamp()')]); }
+        $row = [
+            'rows' => $layout['rows'],
+            'aisle_after' => $layout['aisleAfter'],
+            'letters_json' => json_encode($layout['letters'], JSON_THROW_ON_ERROR),
+            'zones_json' => json_encode($layout['zones'], JSON_THROW_ON_ERROR),
+            'extra_legroom_rows_json' => json_encode($layout['extraLegroomRows'], JSON_THROW_ON_ERROR),
+            'unavailable_json' => json_encode($layout['unavailable'], JSON_THROW_ON_ERROR),
+            'updated_at' => DatabaseClock::now(),
+        ];
+        DB::table('aircraft')->where('id', $id)->update($row);
     }
 
     public static function defaultLayout(): array

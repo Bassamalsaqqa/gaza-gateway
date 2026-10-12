@@ -9,6 +9,7 @@ use App\Identity\Proofs\GuestOtpHelper;
 use App\Identity\Proofs\GuestOtpPepperRing;
 use App\Identity\Proofs\ProofIssuedReceipt;
 use App\Identity\Proofs\ProofPurpose;
+use App\Support\DatabaseClock;
 use Carbon\CarbonImmutable;
 use Closure;
 use Illuminate\Contracts\Encryption\Encrypter;
@@ -180,8 +181,7 @@ class OutboxService
             }
 
             // 9. Derive live time and check expiry
-            $nowRow = $tx->selectOne('SELECT clock_timestamp() AS now');
-            $liveNow = CarbonImmutable::parse($nowRow->now);
+            $liveNow = DatabaseClock::now($tx);
             $expiresAt = CarbonImmutable::parse($proofRow->expires_at);
 
             if ($liveNow->greaterThanOrEqualTo($expiresAt)) {
@@ -336,8 +336,7 @@ class OutboxService
             }
 
             // 4. Verify live time and expiry strictly AFTER locks
-            $nowRow = $tx->selectOne('SELECT clock_timestamp() AS now');
-            $liveNow = CarbonImmutable::parse($nowRow->now);
+            $liveNow = DatabaseClock::now($tx);
             $expiresAt = CarbonImmutable::parse($chal->expires_at);
 
             if ($liveNow->greaterThanOrEqualTo($expiresAt)) {

@@ -7,6 +7,7 @@ namespace App\Reference\Meals;
 use App\Reference\Meals\Exceptions\MealDuplicateException;
 use App\Reference\Meals\Exceptions\MealNotFoundException;
 use App\Reference\Meals\Exceptions\MealValidationException;
+use App\Support\DatabaseClock;
 use Closure;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -80,8 +81,8 @@ final class MealCoordinator
                 'label_ar' => $validated['label']['ar'],
                 'active' => $validated['active'],
                 'order_num' => $order,
-                'created_at' => DB::raw('clock_timestamp()'),
-                'updated_at' => DB::raw('clock_timestamp()'),
+                'created_at' => DatabaseClock::now(),
+                'updated_at' => DatabaseClock::now(),
             ]);
 
             // First active meal establishes the default meal if default is currently null
@@ -151,7 +152,7 @@ final class MealCoordinator
                 'label_ar' => $newLabel['ar'],
                 'active' => $newActive,
                 'order_num' => $newOrder,
-                'updated_at' => DB::raw('clock_timestamp()'),
+                'updated_at' => DatabaseClock::now(),
             ]);
 
             return ['result' => $after, 'changed' => true];
@@ -203,7 +204,7 @@ final class MealCoordinator
             foreach ($ids as $index => $id) {
                 DB::table('meal_options')->where('id', $id)->update([
                     'order_num' => $index,
-                    'updated_at' => DB::raw('clock_timestamp()'),
+                    'updated_at' => DatabaseClock::now(),
                 ]);
             }
 
@@ -306,6 +307,7 @@ final class MealCoordinator
                 'revision' => $revision,
                 'snapshot_json' => $bytes,
                 'snapshot_bytes' => $bytes,
+                'created_at' => DatabaseClock::now(),
             ]);
             DB::table('meal_audit_events')->insert([
                 'id' => (string) Str::uuid(),
@@ -315,6 +317,7 @@ final class MealCoordinator
                 'action' => $action,
                 'outcome' => 'success',
                 'meal_id' => $mealId,
+                'created_at' => DatabaseClock::now(),
             ]);
 
             if (isset($receipt['result']['revision'])) {

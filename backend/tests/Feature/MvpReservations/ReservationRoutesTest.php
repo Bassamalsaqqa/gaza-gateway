@@ -48,11 +48,8 @@ final class ReservationRoutesTest extends TestCase
                 DB::table('aircraft')->insert([
                     'id' => 'ac-b738-1',
                     'model' => 'Boeing 737-800',
-                    'registration_normalized' => 'SU-GZA',
+                    'registration_normalized' => 'T-MVPG',
                     'active' => true,
-                ]);
-                DB::table('seat_layouts')->insert([
-                    'aircraft_id' => 'ac-b738-1',
                     'rows' => 28,
                     'letters_json' => json_encode(['A', 'B', 'C', 'D', 'E', 'F'], JSON_THROW_ON_ERROR),
                     'aisle_after' => 3,
@@ -60,11 +57,12 @@ final class ReservationRoutesTest extends TestCase
                     'extra_legroom_rows_json' => json_encode([], JSON_THROW_ON_ERROR),
                     'unavailable_json' => json_encode([], JSON_THROW_ON_ERROR),
                 ]);
+            } else {
+                DB::table('aircraft')->where('id', 'ac-b738-1')->update([
+                    'rows' => 28,
+                    'zones_json' => json_encode([['id' => 'economy', 'firstRow' => 1, 'lastRow' => 28]], JSON_THROW_ON_ERROR),
+                ]);
             }
-
-            DB::table('seat_layouts')->where('aircraft_id', 'ac-b738-1')->update([
-                'rows' => 28, 'zones_json' => json_encode([['id' => 'economy', 'firstRow' => 1, 'lastRow' => 28]], JSON_THROW_ON_ERROR),
-            ]);
             DB::table('schedules')->updateOrInsert(['id' => 'curated-flight'], [
                 'number' => 'PS100', 'direction' => 'out', 'destination' => 'AMM',
                 'days_json' => '[0,1,2,3,4,5,6]', 'depart_time' => '08:00', 'arrive_time' => '09:00',
@@ -85,7 +83,7 @@ final class ReservationRoutesTest extends TestCase
 
     private function staff(string $role = 'admin'): array
     {
-        $id = (string) Str::uuid();
+        $id = $this->trackStaffId((string) Str::uuid());
         self::$staffHash ??= app(Argon2idPasswordHasher::class)->hash('Synthetic-staff-password-2026', 'staff');
         DB::table('staff_users')->insert([
             'id' => $id,
@@ -97,15 +95,15 @@ final class ReservationRoutesTest extends TestCase
             'role' => $role,
             'status' => 'invited',
             'credential_epoch' => 1,
-            'email_verified_at' => DB::raw('clock_timestamp()'),
-            'created_at' => DB::raw('clock_timestamp()'),
-            'updated_at' => DB::raw('clock_timestamp()'),
+            'email_verified_at' => DB::raw('UTC_TIMESTAMP(6)'),
+            'created_at' => DB::raw('UTC_TIMESTAMP(6)'),
+            'updated_at' => DB::raw('UTC_TIMESTAMP(6)'),
         ]);
         DB::table('staff_mfa_credentials')->insert([
             'staff_id' => $id,
             'version' => 1,
             'encrypted_secret' => app(Encrypter::class)->encrypt(TotpSecret::generate()->revealBase32Secret()),
-            'confirmed_at' => DB::raw('clock_timestamp()'),
+            'confirmed_at' => DB::raw('UTC_TIMESTAMP(6)'),
         ]);
         DB::table('staff_users')->where('id', $id)->update(['status' => 'active', 'mfa_version' => 1]);
         $receipt = app(StaffSessionStore::class)->issueFull($id, 1, 1, new \DateTimeImmutable('-1 second'));
@@ -127,9 +125,9 @@ final class ReservationRoutesTest extends TestCase
             'password_hash' => self::$passengerHash,
             'status' => $status,
             'credential_epoch' => 1,
-            'email_verified_at' => DB::raw('clock_timestamp()'),
-            'created_at' => DB::raw('clock_timestamp()'),
-            'updated_at' => DB::raw('clock_timestamp()'),
+            'email_verified_at' => DB::raw('UTC_TIMESTAMP(6)'),
+            'created_at' => DB::raw('UTC_TIMESTAMP(6)'),
+            'updated_at' => DB::raw('UTC_TIMESTAMP(6)'),
         ]);
         DB::table('passenger_profiles')->insert([
             'user_id' => $id,
@@ -139,8 +137,8 @@ final class ReservationRoutesTest extends TestCase
             'seat_preference' => 'window',
             'meal_preference' => 'standard',
             'newsletter' => true,
-            'created_at' => DB::raw('clock_timestamp()'),
-            'updated_at' => DB::raw('clock_timestamp()'),
+            'created_at' => DB::raw('UTC_TIMESTAMP(6)'),
+            'updated_at' => DB::raw('UTC_TIMESTAMP(6)'),
         ]);
         $receipt = app(PassengerSessionStore::class)->issueFull($id, 1);
         if (!$verified) DB::table('users')->where('id', $id)->update(['email_verified_at' => null]);
@@ -396,7 +394,7 @@ final class ReservationRoutesTest extends TestCase
         $cmdA = $this->sampleCommand($serviceId, '6A');
         $this->http('POST', '/reservations', $userA, $cmdA)->assertStatus(201);
 
-        DB::table('seat_layouts')->where('aircraft_id', 'ac-b738-1')->update([
+        DB::table('aircraft')->where('id', 'ac-b738-1')->update([
             'rows' => 25, 'zones_json' => json_encode([['id' => 'economy', 'firstRow' => 1, 'lastRow' => 25]], JSON_THROW_ON_ERROR),
         ]);
 
@@ -440,16 +438,15 @@ final class ReservationRoutesTest extends TestCase
         $serviceId = $this->sampleServiceId();
         $command = $this->sampleCommand($serviceId, '9A');
 
-        DB::statement("CREATE OR REPLACE FUNCTION fail_mail_intent_test() RETURNS TRIGGER LANGUAGE plpgsql AS $$
-        BEGIN
-            IF NEW.recipient_email = 'fail@atomic.test' THEN
-                RAISE EXCEPTION 'Simulated atomic rollback test' USING ERRCODE = '23514';
-            END IF;
-            RETURN NEW;
-        END $$;");
-        DB::statement('DROP TRIGGER IF EXISTS trg_fail_mail_intent_test ON mvp_reservation_mail_intents;');
-        DB::statement('CREATE TRIGGER trg_fail_mail_intent_test BEFORE INSERT ON mvp_reservation_mail_intents
-            FOR EACH ROW EXECUTE FUNCTION fail_mail_intent_test();');
+        DB::unprepared("
+            CREATE TRIGGER trg_fail_mail_intent_test BEFORE INSERT ON mvp_reservation_mail_intents
+            FOR EACH ROW
+            BEGIN
+                IF NEW.recipient_email = 'fail@atomic.test' THEN
+                    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Simulated atomic rollback test';
+                END IF;
+            END;
+        ");
 
         try {
             $command['contact']['email'] = 'fail@atomic.test';
@@ -460,8 +457,7 @@ final class ReservationRoutesTest extends TestCase
             $this->assertFalse(DB::table('mvp_reservations')->where('contact_email', 'fail@atomic.test')->exists());
             $this->assertFalse(DB::table('mvp_reservation_submissions')->where('submission_id', $command['submissionId'])->exists());
         } finally {
-            DB::statement('DROP TRIGGER IF EXISTS trg_fail_mail_intent_test ON mvp_reservation_mail_intents;');
-            DB::statement('DROP FUNCTION IF EXISTS fail_mail_intent_test();');
+            DB::unprepared('DROP TRIGGER IF EXISTS trg_fail_mail_intent_test;');
         }
     }
 
@@ -476,8 +472,8 @@ final class ReservationRoutesTest extends TestCase
         $command = $this->sampleCommand($serviceId, '10A');
 
         DB::table('passenger_sessions')->where('id', $passenger['id'])->update([
-            'absolute_expires_at' => DB::raw("clock_timestamp() + interval '1500 milliseconds'"),
-            'idle_expires_at' => DB::raw("clock_timestamp() + interval '1400 milliseconds'"),
+            'absolute_expires_at' => DB::raw("DATE_ADD(UTC_TIMESTAMP(6), INTERVAL 1500000 MICROSECOND)"),
+            'idle_expires_at' => DB::raw("DATE_ADD(UTC_TIMESTAMP(6), INTERVAL 1400000 MICROSECOND)"),
         ]);
 
         $db = DB::connection();
@@ -515,8 +511,7 @@ final class ReservationRoutesTest extends TestCase
 
             $deadline = microtime(true) + 1;
             do {
-                $db->select('SELECT pg_stat_clear_snapshot()');
-                $waiting = (int) $db->selectOne("SELECT count(*) AS n FROM pg_stat_activity WHERE datname=current_database() AND pid<>pg_backend_pid() AND wait_event_type='Lock' AND query LIKE '%reference_revision_control%'")->n;
+                $waiting = \Tests\Fixtures\MySqlLockObserver::waitingCount();
                 if ($waiting > 0) {
                     break;
                 }
@@ -1004,7 +999,7 @@ final class ReservationRoutesTest extends TestCase
         $this->assertTrue($worker->runOne());
         $this->assertSame('failed',DB::table('mvp_mail_messages')->where('id',$message->id)->value('status'));
         $root = '/tmp/booking-mail-'.Str::uuid(); config(['mvp-mail.capture_path'=>$root]);
-        DB::table('mvp_mail_messages')->where('id',$message->id)->update(['next_attempt_at'=>DB::raw('clock_timestamp()')]);
+        DB::table('mvp_mail_messages')->where('id',$message->id)->update(['next_attempt_at'=>DB::raw('UTC_TIMESTAMP(6)')]);
         $this->assertTrue($worker->runOne());
         $this->assertSame('captured_locally',DB::table('mvp_mail_messages')->where('id',$message->id)->value('status'));
         $this->assertSame(2,DB::table('mvp_mail_attempts')->where('message_id',$message->id)->count());
@@ -1033,7 +1028,7 @@ final class ReservationRoutesTest extends TestCase
         $admin = $this->staff(); $worker = app(\App\Mvp\Mail\BookingMailWorker::class);
         app(\App\Mvp\Mail\MailSettings::class)->save($this->mailConfig($admin),$admin['owner']);
         $queued = $worker->queueTest('mail-test@example.test'); $lease = (string)Str::uuid();
-        DB::table('mvp_mail_messages')->where('id',$queued['id'])->update(['status'=>'processing','attempts'=>1,'lease_id'=>$lease,'lease_until'=>DB::raw("clock_timestamp() - interval '1 minute'")]);
+        DB::table('mvp_mail_messages')->where('id',$queued['id'])->update(['status'=>'processing','attempts'=>1,'lease_id'=>$lease,'lease_until'=>DB::raw("UTC_TIMESTAMP(6) - INTERVAL 1 MINUTE")]);
         DB::table('mvp_mail_attempts')->insert(['id'=>$lease,'message_id'=>$queued['id'],'generation'=>1,'attempt'=>1,'settings_revision'=>1,'outcome'=>'processing']);
         $worker->runOne();
         $this->assertSame('uncertain',DB::table('mvp_mail_messages')->where('id',$queued['id'])->value('status'));

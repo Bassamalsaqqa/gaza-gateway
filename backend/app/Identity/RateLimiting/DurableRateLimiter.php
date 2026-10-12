@@ -229,6 +229,7 @@ final class DurableRateLimiter
         }
 
         // 4. Multi-budget atomic evaluation inside database transaction with drift retry
+        $ownsTransaction = $this->db->transactionLevel() === 0;
         for ($attempt = 1; $attempt <= 3; $attempt++) {
             try {
                 return $this->db->transaction(function () use (
@@ -283,7 +284,7 @@ final class DurableRateLimiter
                         $this->db->statement(
                             'INSERT INTO security_rate_limits (realm, operation_id, budget_id, key_digest, window_start, window_end, count)
                              VALUES (?, ?, ?, ?, ?, ?, 0)
-                             ON CONFLICT (realm, operation_id, budget_id, key_digest, window_start) DO NOTHING',
+                             ON DUPLICATE KEY UPDATE count = count',
                             [
                                 $target['realm'],
                                 $target['operation_id'],
@@ -405,10 +406,17 @@ final class DurableRateLimiter
                         budgetDetails: $sanitizedDetails,
                     );
                 });
-            } catch (WindowDriftException) {
-                if ($attempt === 3) {
-                    throw new \RuntimeException('Rate limit window drift exceeded maximum retry attempts.');
+            } catch (\Throwable $e) {
+                if ($ownsTransaction && ($e instanceof WindowDriftException || \App\Support\DatabaseFailure::isDeadlockOrTimeout($e))) {
+                    if ($attempt === 3) {
+                        throw $e instanceof WindowDriftException
+                            ? new \RuntimeException('Rate limit window drift exceeded maximum retry attempts.')
+                            : $e;
+                    }
+                    usleep((int) (pow(2, $attempt) * 5000 + random_int(1000, 5000)));
+                    continue;
                 }
+                throw $e;
             }
         }
 
@@ -422,17 +430,14 @@ final class DurableRateLimiter
             throw new \InvalidArgumentException('Rate cleanup requires a bounded owned transaction.');
         }
         return $this->db->transaction(function () use ($limit): int {
-            $this->db->statement("SET LOCAL statement_timeout = '3000ms'");
+            \App\Support\DatabaseFailure::applyTimeouts($this->db, 3000, 2000);
             return $this->db->affectingStatement(
-                "WITH expired AS (
-                    SELECT realm, operation_id, budget_id, key_digest, window_start
-                    FROM security_rate_limits WHERE window_end < clock_timestamp() - INTERVAL '1 hour'
-                    ORDER BY window_end, realm, operation_id, budget_id, key_digest, window_start
-                    LIMIT ? FOR UPDATE SKIP LOCKED
-                ) DELETE FROM security_rate_limits AS counters USING expired
-                WHERE counters.realm = expired.realm AND counters.operation_id = expired.operation_id
-                    AND counters.budget_id = expired.budget_id AND counters.key_digest = expired.key_digest
-                    AND counters.window_start = expired.window_start", [$limit],
+                "DELETE FROM security_rate_limits
+                 WHERE operation_id != 'sentinel'
+                   AND window_end < DATE_SUB(UTC_TIMESTAMP(6), INTERVAL 1 HOUR)
+                 ORDER BY window_end, realm, operation_id, budget_id, key_digest, window_start
+                 LIMIT ?",
+                [$limit],
             );
         });
     }

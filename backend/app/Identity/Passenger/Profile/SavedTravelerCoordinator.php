@@ -12,6 +12,7 @@ use App\Identity\Contracts\CommandViolation;
 use App\Identity\Contracts\IdentityCommandValidator;
 use App\Identity\Passenger\Profile\Exceptions\ProfileValidationException;
 use App\Identity\Passenger\Profile\Exceptions\TravelerNotFoundException;
+use App\Support\DatabaseClock;
 use App\Support\RequestCorrelation;
 use Carbon\CarbonImmutable;
 use DateTimeImmutable;
@@ -256,8 +257,8 @@ final class SavedTravelerCoordinator
             'dob' => $dbDob,
             'nationality' => $nationality,
             'encrypted_document' => $encryptedDocument,
-            'created_at' => $tx->raw('clock_timestamp()'),
-            'updated_at' => $tx->raw('clock_timestamp()'),
+            'created_at' => DatabaseClock::raw(),
+            'updated_at' => DatabaseClock::raw(),
         ]);
 
         $this->auditWriter->record(
@@ -432,7 +433,7 @@ final class SavedTravelerCoordinator
                     'dob' => $mergedDbDob,
                     'nationality' => $mergedNationality,
                     'encrypted_document' => $mergedEncryptedDoc,
-                    'updated_at' => $tx->raw('clock_timestamp()'),
+                    'updated_at' => DatabaseClock::raw(),
                 ]);
         }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Reference\Network;
 
+use App\Support\DatabaseClock;
 use Closure;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -97,6 +98,8 @@ final class NetworkCoordinator
                 'timezone' => $airport['timezone'],
                 'block_minutes' => $airport['blockMinutes'],
                 'active' => $airport['active'],
+                'created_at' => DatabaseClock::now(),
+                'updated_at' => DatabaseClock::now(),
             ]);
             return [$airport, true];
         }, $receipt);
@@ -123,7 +126,7 @@ final class NetworkCoordinator
             }
 
             $update = [
-                'updated_at' => DB::raw('clock_timestamp()'),
+                'updated_at' => DatabaseClock::now(),
             ];
             if (isset($patch['airportName'])) {
                 $update['airport_name_en'] = $after['airportName']['en'];
@@ -185,6 +188,7 @@ final class NetworkCoordinator
                 'revision' => $revision,
                 'snapshot_json' => $bytes,
                 'snapshot_bytes' => $bytes,
+                'created_at' => DatabaseClock::now(),
             ]);
             DB::table('network_audit_events')->insert([
                 'id' => (string) Str::uuid(),
@@ -194,6 +198,7 @@ final class NetworkCoordinator
                 'action' => $action,
                 'outcome' => 'success',
                 'airport_code' => $code,
+                'created_at' => DatabaseClock::now(),
             ]);
 
             return $receipt ? ['airport' => $result, 'changed' => true, 'revision' => $revision] : $result;

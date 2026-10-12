@@ -23,6 +23,7 @@ use App\Identity\RateLimiting\DurableRateLimiter;
 use App\Identity\Sessions\PassengerSessionContext;
 use App\Identity\Sessions\PassengerSessionStore;
 use App\Identity\Tokens\OpaqueToken;
+use App\Support\DatabaseClock;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Encryption\Encrypter;
 use Illuminate\Database\ConnectionInterface;
@@ -82,8 +83,7 @@ final class PassengerAuthCoordinator
 
         try {
             return $this->db->transaction(function (ConnectionInterface $tx) use ($payload, $normalizedEmail, $requestId, $passwordHash) {
-                $tx->statement("SET LOCAL statement_timeout = '3000ms'");
-                $tx->statement("SET LOCAL lock_timeout = '3000ms'");
+                \App\Support\DatabaseFailure::applyTimeouts($tx, 3000, 3000);
 
                 // Check existing account under lock
                 $existing = $tx->table('users')
@@ -119,8 +119,8 @@ final class PassengerAuthCoordinator
                     'password_hash' => $passwordHash,
                     'status' => 'unverified',
                     'credential_epoch' => 1,
-                    'created_at' => $tx->raw('clock_timestamp()'),
-                    'updated_at' => $tx->raw('clock_timestamp()'),
+                    'created_at' => \App\Support\DatabaseClock::raw(),
+                    'updated_at' => \App\Support\DatabaseClock::raw(),
                 ]);
 
                 $tx->table('passenger_profiles')->insert([
@@ -129,8 +129,8 @@ final class PassengerAuthCoordinator
                     'first_name' => (string) ($payload['firstName'] ?? ''),
                     'last_name' => (string) ($payload['lastName'] ?? ''),
                     'phone' => (string) ($payload['phone'] ?? ''),
-                    'created_at' => $tx->raw('clock_timestamp()'),
-                    'updated_at' => $tx->raw('clock_timestamp()'),
+                    'created_at' => \App\Support\DatabaseClock::raw(),
+                    'updated_at' => \App\Support\DatabaseClock::raw(),
                 ]);
 
                 // Issue verification proof and queue transactional outbox
@@ -157,8 +157,7 @@ final class PassengerAuthCoordinator
             // Handle concurrent duplicate registration race safely:
             // Strictly scope recovery to the lower-email uniqueness violation; rethrow any unrelated unique error.
             $msg = $e->getMessage();
-            $sqlState = (string) $e->getCode();
-            if ($sqlState === '23505' && (str_contains($msg, 'users_lower_email_idx') || str_contains($msg, 'users_email_unique') || str_contains(strtolower($msg), 'lower(email)'))) {
+            if (\App\Support\DatabaseFailure::isDuplicate($e) && (str_contains($msg, 'uq_users_normalized_email') || str_contains($msg, 'users_lower_email_idx') || str_contains($msg, 'users_email_unique') || str_contains(strtolower($msg), 'email') || str_contains(strtolower($msg), 'lower(email)'))) {
                 return [
                     'status' => 'verification_dispatched',
                     'message' => 'If the account is eligible, a verification email has been queued for dispatch.',
@@ -291,8 +290,7 @@ final class PassengerAuthCoordinator
             $incomingDigest,
             $requestId
         ) {
-            $tx->statement("SET LOCAL statement_timeout = '3000ms'");
-            $tx->statement("SET LOCAL lock_timeout = '3000ms'");
+            \App\Support\DatabaseFailure::applyTimeouts($tx, 3000, 3000);
 
             // Lock principal row first in canonical lock hierarchy
             $user = $tx->table('users')
@@ -315,8 +313,7 @@ final class PassengerAuthCoordinator
                 ->first();
 
             // Derive live database time strictly AFTER acquiring locks
-            $nowRow = $tx->selectOne('SELECT clock_timestamp() AS now');
-            $now = CarbonImmutable::parse($nowRow->now);
+            $now = DatabaseClock::now($tx);
 
             // Verify incoming bound session row under lock
             if (!$incSession || $incSession->revoked_at !== null) {
@@ -443,8 +440,7 @@ final class PassengerAuthCoordinator
     {
         $this->assertOwnTransaction();
         $this->executeAction('postPassengerLogout', $requestId, function (ConnectionInterface $tx) use ($sessionContext, $requestId) {
-            $tx->statement("SET LOCAL statement_timeout = '3000ms'");
-            $tx->statement("SET LOCAL lock_timeout = '3000ms'");
+            \App\Support\DatabaseFailure::applyTimeouts($tx, 3000, 3000);
 
             // Lock principal row
             $user = $tx->table('users')->where('id', $sessionContext->userId)->lockForUpdate()->first();
@@ -452,8 +448,7 @@ final class PassengerAuthCoordinator
                 ->where('id', $sessionContext->sessionId)->where('user_id', $sessionContext->getUserId())
                 ->lockForUpdate()->first();
 
-            $nowRow = $tx->selectOne('SELECT clock_timestamp() AS now');
-            $now = CarbonImmutable::parse($nowRow->now);
+            $now = DatabaseClock::now($tx);
 
             $this->assertCurrentFullSession($user, $callerSession, $sessionContext, $now);
 
@@ -502,8 +497,7 @@ final class PassengerAuthCoordinator
         $this->hasher->verify('Synthetic-noncredential-work-factor', self::DUMMY_HASH);
 
         return $this->db->transaction(function (ConnectionInterface $tx) use ($normalizedEmail, $requestId) {
-            $tx->statement("SET LOCAL statement_timeout = '3000ms'");
-            $tx->statement("SET LOCAL lock_timeout = '3000ms'");
+            \App\Support\DatabaseFailure::applyTimeouts($tx, 3000, 3000);
 
             $user = $tx->table('users')
                 ->whereRaw('lower(email) = ?', [$normalizedEmail])
@@ -600,8 +594,7 @@ final class PassengerAuthCoordinator
             $newPassword,
             $requestId
         ) {
-            $tx->statement("SET LOCAL statement_timeout = '3000ms'");
-            $tx->statement("SET LOCAL lock_timeout = '3000ms'");
+            \App\Support\DatabaseFailure::applyTimeouts($tx, 3000, 3000);
 
             // Canonical lock order: Principal -> Sessions -> Proofs -> Outbox
             // Lock ONLY the actual proof owner principal row discovered by hint (never caller-selected email principal)
@@ -641,8 +634,7 @@ final class PassengerAuthCoordinator
             }
 
             $userId = (string) $user->id;
-            $nowRow = $tx->selectOne('SELECT clock_timestamp() AS now');
-            $now = CarbonImmutable::parse($nowRow->now);
+            $now = DatabaseClock::now($tx);
 
             $newHash = $this->hasher->hash($newPassword, 'passenger');
             $newEpoch = (int) $user->credential_epoch + 1;
@@ -696,8 +688,7 @@ final class PassengerAuthCoordinator
         }
 
         return $this->executeAction('postPassengerEmailVerify', $requestId, function (ConnectionInterface $tx) use ($rawToken, $requestId) {
-            $tx->statement("SET LOCAL statement_timeout = '3000ms'");
-            $tx->statement("SET LOCAL lock_timeout = '3000ms'");
+            \App\Support\DatabaseFailure::applyTimeouts($tx, 3000, 3000);
 
             $consumption = $this->proofService->consume(ProofPurpose::PassengerEmailVerification, $rawToken, $tx);
             if (!$consumption->isSuccess()) {
@@ -716,8 +707,7 @@ final class PassengerAuthCoordinator
                 throw new AccountSuspendedException('Account is suspended.');
             }
 
-            $nowRow = $tx->selectOne('SELECT clock_timestamp() AS now');
-            $now = CarbonImmutable::parse($nowRow->now);
+            $now = DatabaseClock::now($tx);
 
             $tx->table('users')->where('id', $userId)->update([
                 'status' => 'active',
@@ -764,8 +754,7 @@ final class PassengerAuthCoordinator
         }
 
         return $this->db->transaction(function (ConnectionInterface $tx) use ($normalizedEmail, $requestId) {
-            $tx->statement("SET LOCAL statement_timeout = '3000ms'");
-            $tx->statement("SET LOCAL lock_timeout = '3000ms'");
+            \App\Support\DatabaseFailure::applyTimeouts($tx, 3000, 3000);
 
             $user = $tx->table('users')
                 ->whereRaw('lower(email) = ?', [$normalizedEmail])
@@ -822,8 +811,7 @@ final class PassengerAuthCoordinator
     {
         $this->assertOwnTransaction();
         return $this->db->transaction(function (ConnectionInterface $tx) use ($sessionContext) {
-            $tx->statement("SET LOCAL statement_timeout = '3000ms'");
-            $tx->statement("SET LOCAL lock_timeout = '3000ms'");
+            \App\Support\DatabaseFailure::applyTimeouts($tx, 3000, 3000);
 
             // 1. Lock principal row first in canonical order
             $user = $tx->table('users')
@@ -843,8 +831,7 @@ final class PassengerAuthCoordinator
                 ->first();
 
             // 3. Derive live database time strictly AFTER acquiring locks
-            $nowRow = $tx->selectOne('SELECT clock_timestamp() AS now');
-            $now = CarbonImmutable::parse($nowRow->now);
+            $now = DatabaseClock::now($tx);
 
             // 4. Revalidate caller authority under lock
             if (
@@ -908,8 +895,7 @@ final class PassengerAuthCoordinator
     {
         $this->assertOwnTransaction();
         return $this->executeAction('deletePassengerSession', $requestId, function (ConnectionInterface $tx) use ($targetSessionId, $sessionContext, $requestId) {
-            $tx->statement("SET LOCAL statement_timeout = '3000ms'");
-            $tx->statement("SET LOCAL lock_timeout = '3000ms'");
+            \App\Support\DatabaseFailure::applyTimeouts($tx, 3000, 3000);
 
             // 1. Lock principal row first
             $user = $tx->table('users')
@@ -943,8 +929,7 @@ final class PassengerAuthCoordinator
                 ->get()
                 ->keyBy('id');
 
-            $nowRow = $tx->selectOne('SELECT clock_timestamp() AS now');
-            $now = CarbonImmutable::parse($nowRow->now);
+            $now = DatabaseClock::now($tx);
 
             // 4. Revalidate current caller session under lock
             $callerSession = $lockedSessions->get($sessionContext->sessionId);
@@ -1024,8 +1009,7 @@ final class PassengerAuthCoordinator
             $sessionContext,
             $requestId
         ) {
-            $tx->statement("SET LOCAL statement_timeout = '3000ms'");
-            $tx->statement("SET LOCAL lock_timeout = '3000ms'");
+            \App\Support\DatabaseFailure::applyTimeouts($tx, 3000, 3000);
 
             // 1. Lock principal row first in canonical order
             $user = $tx->table('users')
@@ -1049,8 +1033,7 @@ final class PassengerAuthCoordinator
             $callerSession = $tx->table('passenger_sessions')->where('id', $sessionContext->sessionId)->where('user_id', $user->id)->first();
 
             // 4. Derive live database time strictly AFTER acquiring locks
-            $nowRow = $tx->selectOne('SELECT clock_timestamp() AS now');
-            $now = CarbonImmutable::parse($nowRow->now);
+            $now = DatabaseClock::now($tx);
 
             // 5. Revalidate caller authority under lock
             if (

@@ -46,8 +46,7 @@ final class BookingGrantAuthority
         if (!preg_match('/^[A-Z0-9-]{6,8}\z/', $ref)) { throw new BookingAccessException(); }
         try { OpaqueToken::validateCanonicalBearer($token); } catch (\Throwable) { throw new BookingAccessException(); }
         return $this->db->transaction(function () use ($table, $ttl, $ref, $token, $operation, $work) {
-            $this->db->statement("SET LOCAL lock_timeout = '3000ms'");
-            $this->db->statement("SET LOCAL statement_timeout = '5000ms'");
+            \App\Support\DatabaseFailure::applyTimeouts($this->db, 5000, 3000);
             $booking = $this->db->table('bookings')->where('pnr', $ref)->lockForUpdate()->first();
             $grant = $this->db->table($table)->where('token_digest', OpaqueToken::digestOf($token))->lockForUpdate()->first();
             $now = $this->now();
@@ -66,5 +65,5 @@ final class BookingGrantAuthority
         });
     }
 
-    private function now(): CarbonImmutable { return CarbonImmutable::parse($this->db->selectOne('SELECT clock_timestamp() AS now')->now); }
+    private function now(): CarbonImmutable { return \App\Support\DatabaseClock::now(); }
 }

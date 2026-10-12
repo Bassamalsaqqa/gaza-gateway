@@ -24,7 +24,11 @@ final class StaffDirectoryTest extends TestCase
 
     protected function setUp(): void
     {
-        parent::setUp(); config(['cors.allowed_origins' => ['https://127.0.0.1:5173']]);
+        parent::setUp();
+        config(['cors.allowed_origins' => ['https://127.0.0.1:5173']]);
+        if (config('database.default') === 'mysql_test') {
+            DB::table('staff_users')->update(['status' => 'suspended']);
+        }
     }
 
     protected function tearDown(): void
@@ -32,7 +36,7 @@ final class StaffDirectoryTest extends TestCase
         $this->assertDisposableDatabaseTarget();
         foreach ($this->owners as $id) {
             DB::table('staff_users')->where('id', $id)->update(['status' => 'suspended']);
-            DB::table('staff_sessions')->where('staff_id', $id)->whereNull('revoked_at')->update(['revoked_at' => DB::raw('clock_timestamp()')]);
+            DB::table('staff_sessions')->where('staff_id', $id)->whereNull('revoked_at')->update(['revoked_at' => DB::raw('UTC_TIMESTAMP(6)')]);
             $this->app->make(ProofService::class)->revokeAll(ProofPurpose::StaffInvitation, $id);
             $this->app->make(ProofService::class)->revokeAll(ProofPurpose::StaffPasswordReset, $id);
         }
@@ -45,11 +49,11 @@ final class StaffDirectoryTest extends TestCase
         self::$hash ??= $this->app->make(Argon2idPasswordHasher::class)->hash('Synthetic-directory-password-2026', 'staff');
         DB::table('staff_users')->insert(['id' => $id, 'username' => 'directory-' . $id, 'email' => $id . '@example.invalid',
             'full_name_en' => 'Synthetic Staff', 'full_name_ar' => 'موظف تجريبي', 'password_hash' => self::$hash,
-            'role' => $role, 'status' => 'invited', 'credential_epoch' => 1, 'email_verified_at' => DB::raw('clock_timestamp()'),
-            'created_at' => DB::raw('clock_timestamp()'), 'updated_at' => DB::raw('clock_timestamp()')]);
+            'role' => $role, 'status' => 'invited', 'credential_epoch' => 1, 'email_verified_at' => DB::raw('UTC_TIMESTAMP(6)'),
+            'created_at' => DB::raw('UTC_TIMESTAMP(6)'), 'updated_at' => DB::raw('UTC_TIMESTAMP(6)')]);
         $secret = TotpSecret::generate();
         DB::table('staff_mfa_credentials')->insert(['staff_id' => $id, 'version' => 1,
-            'encrypted_secret' => $this->app->make(Encrypter::class)->encrypt($secret->revealBase32Secret()), 'confirmed_at' => DB::raw('clock_timestamp()')]);
+            'encrypted_secret' => $this->app->make(Encrypter::class)->encrypt($secret->revealBase32Secret()), 'confirmed_at' => DB::raw('UTC_TIMESTAMP(6)')]);
         DB::table('staff_users')->where('id', $id)->update(['status' => 'active', 'mfa_version' => 1]);
         $receipt = $this->app->make(StaffSessionStore::class)->issueFull($id, 1, 1, new \DateTimeImmutable());
         return ['owner' => $id, 'id' => $receipt->sessionId, 'cookie' => $receipt->getRawToken(), 'csrf' => $receipt->getCsrfToken()];
@@ -78,10 +82,10 @@ final class StaffDirectoryTest extends TestCase
         $admin = $this->staff(); $viewer = $this->staff('viewer'); $input = $this->inviteInput();
         $this->request('GET', '/staff/users', $viewer)->assertStatus(403);
         $this->request('POST', '/staff/users', $viewer, $input)->assertStatus(403);
-        DB::table('staff_sessions')->where('id', $admin['id'])->update(['mfa_verified_at' => DB::raw("clock_timestamp() - interval '6 minutes'")]);
+        DB::table('staff_sessions')->where('id', $admin['id'])->update(['mfa_verified_at' => DB::raw("UTC_TIMESTAMP(6) - INTERVAL 6 MINUTE")]);
         $this->request('GET', '/staff/users', $admin)->assertStatus(200);
         $this->request('POST', '/staff/users', $admin, $input)->assertStatus(403);
-        DB::table('staff_sessions')->where('id', $admin['id'])->update(['mfa_verified_at' => DB::raw('clock_timestamp()')]);
+        DB::table('staff_sessions')->where('id', $admin['id'])->update(['mfa_verified_at' => DB::raw('UTC_TIMESTAMP(6)')]);
         $created = $this->request('POST', '/staff/users', $admin, $input);
         $created->assertStatus(201)->assertJsonPath('data.isActive', false)->assertJsonPath('data.mfaEnabled', false);
         $id = $created->json('data.id'); $this->owners[] = $id;
@@ -160,16 +164,16 @@ final class StaffDirectoryTest extends TestCase
     public function test_self_mfa_replacement_requires_stepup_and_retains_old_factor_until_confirmed(): void
     {
         $viewer = $this->staff('viewer');
-        DB::table('staff_sessions')->where('id', $viewer['id'])->update(['mfa_verified_at' => DB::raw("clock_timestamp() - interval '6 minutes'")]);
+        DB::table('staff_sessions')->where('id', $viewer['id'])->update(['mfa_verified_at' => DB::raw("UTC_TIMESTAMP(6) - INTERVAL 6 MINUTE")]);
         $this->request('POST', '/staff/mfa/setup', $viewer)->assertStatus(403);
-        DB::table('staff_sessions')->where('id', $viewer['id'])->update(['mfa_verified_at' => DB::raw('clock_timestamp()')]);
+        DB::table('staff_sessions')->where('id', $viewer['id'])->update(['mfa_verified_at' => DB::raw('UTC_TIMESTAMP(6)')]);
         $setup = $this->request('POST', '/staff/mfa/setup', $viewer); $setup->assertStatus(200);
         $retry = $this->request('POST', '/staff/mfa/setup', $viewer); $retry->assertStatus(200);
         $this->assertTrue(hash_equals($setup->json('data.secret'), $retry->json('data.secret')));
         $this->assertSame(1, DB::table('staff_users')->where('id', $viewer['owner'])->value('mfa_version'));
         $this->assertNull(DB::table('staff_mfa_credentials')->where('staff_id', $viewer['owner'])->where('version', 1)->value('revoked_at'));
         $secret = TotpSecret::fromBase32($setup->json('data.secret'));
-        $code = (new TotpService())->hotp($secret, intdiv(strtotime(DB::selectOne('SELECT clock_timestamp() AS now')->now), 30));
+        $code = (new TotpService())->hotp($secret, intdiv(strtotime(DB::selectOne('SELECT UTC_TIMESTAMP(6) AS now')->now), 30));
         $this->request('POST', '/staff/mfa/setup/confirm', $viewer, ['totpCode' => $code])->assertStatus(200)
             ->assertJsonPath('data.confirmed', true)->assertJsonCount(10, 'data.recoveryCodes');
         $this->assertSame(2, DB::table('staff_users')->where('id', $viewer['owner'])->value('mfa_version'));
@@ -184,12 +188,12 @@ final class StaffDirectoryTest extends TestCase
         $viewer = $this->staff('viewer'); $setup = $this->request('POST', '/staff/mfa/setup', $viewer); $setup->assertStatus(200);
         $candidate = DB::table('staff_mfa_replacements')->where('staff_id', $viewer['owner'])->where('state', 'issued')->first();
         DB::table('staff_mfa_replacements')->where('id', $candidate->id)->update([
-            'issued_at' => DB::raw("clock_timestamp() - interval '6 minutes'"), 'expires_at' => DB::raw("clock_timestamp() - interval '1 second'")]);
+            'issued_at' => DB::raw("UTC_TIMESTAMP(6) - INTERVAL 6 MINUTE"), 'expires_at' => DB::raw("UTC_TIMESTAMP(6) - INTERVAL 1 SECOND")]);
         $this->request('POST', '/staff/mfa/setup/confirm', $viewer, ['totpCode' => '000000'])->assertStatus(401);
         $new = $this->request('POST', '/staff/mfa/setup', $viewer); $new->assertStatus(200);
         $this->assertSame('', DB::table('staff_mfa_credentials')->where('staff_id', $viewer['owner'])->where('version', 2)->value('encrypted_secret'));
         $secret = TotpSecret::fromBase32($new->json('data.secret')); $totp = new TotpService();
-        $now = strtotime(DB::selectOne('SELECT clock_timestamp() AS now')->now);
+        $now = strtotime(DB::selectOne('SELECT UTC_TIMESTAMP(6) AS now')->now);
         foreach (['000000', '111111', '222222', '333333'] as $bad) { if ($totp->match($secret, $bad, $now) === []) { break; } }
         for ($i = 0; $i < 5; $i++) { $this->request('POST', '/staff/mfa/setup/confirm', $viewer, ['totpCode' => $bad])->assertStatus(401); }
         $this->assertSame('exhausted', DB::table('staff_mfa_replacements')->where('staff_id', $viewer['owner'])->where('candidate_version', 3)->value('state'));
@@ -217,7 +221,7 @@ final class StaffDirectoryTest extends TestCase
     {
         $viewer = $this->staff('viewer'); $setup = $this->request('POST', '/staff/mfa/setup', $viewer); $setup->assertStatus(200);
         $secret = TotpSecret::fromBase32($setup->json('data.secret'));
-        $code = (new TotpService())->hotp($secret, intdiv(strtotime(DB::selectOne('SELECT clock_timestamp() AS now')->now), 30));
+        $code = (new TotpService())->hotp($secret, intdiv(strtotime(DB::selectOne('SELECT UTC_TIMESTAMP(6) AS now')->now), 30));
         $input = ['operation' => 'postStaffMfaSetupConfirm', 'input' => ['totpCode' => $code],
             'cookie' => $viewer['cookie'], 'csrf' => $viewer['csrf'], 'requestId' => (string) Str::uuid()];
         $other = $input; $other['requestId'] = (string) Str::uuid();
@@ -231,7 +235,7 @@ final class StaffDirectoryTest extends TestCase
         $viewer = $this->staff('viewer'); $setup = $this->request('POST', '/staff/mfa/setup', $viewer); $setup->assertStatus(200);
         $context = $this->app->make(StaffSessionStore::class)->read($viewer['cookie']);
         $secret = TotpSecret::fromBase32($setup->json('data.secret'));
-        $code = (new TotpService())->hotp($secret, intdiv(strtotime(DB::selectOne('SELECT clock_timestamp() AS now')->now), 30));
+        $code = (new TotpService())->hotp($secret, intdiv(strtotime(DB::selectOne('SELECT UTC_TIMESTAMP(6) AS now')->now), 30));
         $audit = $this->createMock(AuditWriter::class);
         $audit->expects($this->once())->method('record')->willThrowException(new \RuntimeException('Synthetic MFA audit failure'));
         $this->app->instance(AuditWriter::class, $audit); $this->app->forgetInstance(StaffDirectoryCoordinator::class);
@@ -287,12 +291,12 @@ final class StaffDirectoryTest extends TestCase
     {
         $viewer = $this->staff('viewer'); $this->request('POST', '/staff/mfa/setup', $viewer)->assertStatus(200);
         DB::table('staff_mfa_replacements')->where('staff_id', $viewer['owner'])->update([
-            'issued_at' => DB::raw("clock_timestamp() - interval '6 minutes'"), 'expires_at' => DB::raw("clock_timestamp() - interval '1 second'")]);
+            'issued_at' => DB::raw("UTC_TIMESTAMP(6) - INTERVAL 6 MINUTE"), 'expires_at' => DB::raw("UTC_TIMESTAMP(6) - INTERVAL 1 SECOND")]);
         $anon = $this->app->make(StaffSessionStore::class)->issueAnonymous();
         DB::table('staff_pending_auth')->insert(['id' => (string) Str::uuid(), 'staff_id' => $viewer['owner'],
             'bound_session_id' => $anon->sessionId, 'token_digest' => hash('sha256', random_bytes(32)), 'purpose' => 'enroll_mfa',
             'credential_epoch' => 1, 'failed_attempts' => 0, 'state' => 'issued',
-            'issued_at' => DB::raw("clock_timestamp() - interval '6 minutes'"), 'expires_at' => DB::raw("clock_timestamp() - interval '1 second'"),
+            'issued_at' => DB::raw("UTC_TIMESTAMP(6) - INTERVAL 6 MINUTE"), 'expires_at' => DB::raw("UTC_TIMESTAMP(6) - INTERVAL 1 SECOND"),
             'encrypted_staged_secret' => $this->app->make(Encrypter::class)->encrypt(TotpSecret::generate()->revealBase32Secret())]);
         $cleanup = new \App\Identity\Staff\StaffTransientCleanup(DB::connection());
         // Each call is bounded; old retained test fixtures may precede this owned pair.

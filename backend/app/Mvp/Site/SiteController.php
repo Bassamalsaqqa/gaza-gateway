@@ -5,6 +5,7 @@ namespace App\Mvp\Site;
 use App\Identity\Protocol\CookieSecurity;
 use App\Identity\Sessions\PassengerSessionStore;
 use App\Reference\Shared\ReferenceResponse;
+use App\Support\DatabaseClock;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -58,9 +59,11 @@ final class SiteController
             $this->fields($body,$draft ? ['expectedRevision','payload'] : ['expectedRevision']);
             if (!is_int($body['expectedRevision']) || $body['expectedRevision'] < 0 || $body['expectedRevision'] > 9007199254740991) abort(422);
             $payload=$draft ? $this->contactSettings($body['payload']) : null;
-            DB::select("SELECT pg_advisory_xact_lock(hashtext('mvp_site_contact'))");
-            DB::table('mvp_site_documents')->insertOrIgnore(['slug'=>'contact']);
             $row=DB::table('mvp_site_documents')->where('slug','contact')->lockForUpdate()->first();
+            if (!$row) {
+                DB::table('mvp_site_documents')->insertOrIgnore(['slug'=>'contact']);
+                $row=DB::table('mvp_site_documents')->where('slug','contact')->lockForUpdate()->first();
+            }
             ($request->attributes->get('editorial_authorizer'))();
             if ((int)$row->revision !== $body['expectedRevision']) abort(409);
             if ($draft) {
@@ -69,7 +72,7 @@ final class SiteController
                 if ($row->draft === null) abort(409);
                 $safe=$this->contactSettings(json_decode($row->draft,true,16,JSON_THROW_ON_ERROR));
                 $revision=(int)$row->revision+1;
-                DB::table('mvp_site_revisions')->insert(['slug'=>'contact','revision'=>$revision,'payload'=>json_encode($safe,JSON_THROW_ON_ERROR),'author_id'=>$request->attributes->get('editorial_staff_session')->getStaffId()]);
+                DB::table('mvp_site_revisions')->insert(['slug'=>'contact','revision'=>$revision,'payload'=>json_encode($safe,JSON_THROW_ON_ERROR),'author_id'=>$request->attributes->get('editorial_staff_session')->getStaffId(),'created_at'=>DatabaseClock::now()]);
                 DB::table('mvp_site_documents')->where('slug','contact')->update(['published_revision'=>$revision,'revision'=>$revision,'draft'=>null]);
             } elseif ($row->draft !== null) DB::table('mvp_site_documents')->where('slug','contact')->update(['draft'=>null,'revision'=>$row->revision+1]);
         }
@@ -93,13 +96,13 @@ final class SiteController
             $csrf=$request->headers->all('x-csrf-token');
             if (!$session || count($csrf)!==1 || !is_string($csrf[0]) || !hash_equals($session->getCsrfToken(),$csrf[0])) abort(403);
             ksort($body); $hash=hash('sha256',json_encode($body,JSON_THROW_ON_ERROR));
-            DB::select('SELECT pg_advisory_xact_lock(hashtext(?))',['contact:'.$body['submissionId']]);
-            $row=DB::table('contact_messages')->where('submission_id',$body['submissionId'])->first();
+            $row=DB::table('contact_messages')->where('submission_id',$body['submissionId'])->lockForUpdate()->first();
             if ($row && !hash_equals($row->payload_hash,$hash)) abort(409);
             if (!$row) {
                 $id=(string)Str::uuid();
                 DB::table('contact_messages')->insert(['id'=>$id,'submission_id'=>$body['submissionId'],'payload_hash'=>$hash,'sender_name'=>$body['senderName'],
-                    'email'=>$body['email'],'topic'=>$body['topic'],'message'=>$body['message'],'language'=>$body['language'],'booking_ref'=>$body['bookingRef'] ?: null]);
+                    'email'=>$body['email'],'topic'=>$body['topic'],'message'=>$body['message'],'language'=>$body['language'],'booking_ref'=>$body['bookingRef'] ?: null,
+                    'reply_draft'=>'', 'created_at'=>DatabaseClock::now(), 'updated_at'=>DatabaseClock::now()]);
                 $row=DB::table('contact_messages')->where('id',$id)->first();
             }
             return ReferenceResponse::success($request,['id'=>$row->id,'createdAt'=>$this->iso($row->created_at),'status'=>'received'],202);
@@ -120,7 +123,7 @@ final class SiteController
     {
         $query=DB::table('contact_messages');
         foreach (['status','topic','language'] as $key) if ($request->query($key) && $request->query($key) !== 'all') $query->where($key,$request->query($key));
-        if ($search=$request->query('search')) { if (!is_string($search) || strlen($search)>200) abort(422); $query->where(fn($q)=>$q->where('sender_name','ilike','%'.$search.'%')->orWhere('email','ilike','%'.$search.'%')->orWhere('message','ilike','%'.$search.'%')); }
+        if ($search=$request->query('search')) { if (!is_string($search) || strlen($search)>200) abort(422); $query->where(fn($q)=>$q->whereRaw('LOWER(sender_name) LIKE LOWER(?)', ['%'.$search.'%'])->orWhereRaw('LOWER(email) LIKE LOWER(?)', ['%'.$search.'%'])->orWhereRaw('LOWER(message) LIKE LOWER(?)', ['%'.$search.'%'])); }
         return ReferenceResponse::success($request,['items'=>$query->orderByDesc('created_at')->limit(200)->get()->map(fn($r)=>$this->dto($r))->all(),'countNew'=>DB::table('contact_messages')->where('status','new')->count()]);
     }
     public function detail(Request $request,string $id)
@@ -143,13 +146,13 @@ final class SiteController
             $patch=['assigned_staff_id'=>$body['staffId']]; $changed=$row->assigned_staff_id!==$body['staffId'];
         } elseif ($kind==='notes') {
             $this->fields($body,['body']); $text=$this->text($body['body'],1,2000);
-            DB::table('contact_notes')->insert(['id'=>(string)Str::uuid(),'message_id'=>$id,'body'=>$text,'staff_id'=>$session->getStaffId()]);
+            DB::table('contact_notes')->insert(['id'=>(string)Str::uuid(),'message_id'=>$id,'body'=>$text,'staff_id'=>$session->getStaffId(),'created_at'=>DatabaseClock::now()]);
         } elseif ($kind==='reply-draft') {
             $this->fields($body,['replyDraft']); $text=$this->text($body['replyDraft'],0,5000); $patch=['reply_draft'=>$text]; $changed=$row->reply_draft!==$text;
         } else abort(404);
         if ($changed) {
-            DB::table('contact_messages')->where('id',$id)->update([...$patch,'updated_at'=>DB::raw('clock_timestamp()')]);
-            DB::table('contact_audits')->insert(['id'=>(string)Str::uuid(),'message_id'=>$id,'staff_id'=>$session->getStaffId(),'action'=>$kind]);
+            DB::table('contact_messages')->where('id',$id)->update([...$patch,'updated_at'=>DatabaseClock::now()]);
+            DB::table('contact_audits')->insert(['id'=>(string)Str::uuid(),'message_id'=>$id,'staff_id'=>$session->getStaffId(),'action'=>$kind,'created_at'=>DatabaseClock::now()]);
         }
         $result=['message'=>$this->dto(DB::table('contact_messages')->where('id',$id)->first()),'changed'=>$changed];
         if ($kind==='status') $result['beforeStatus']=$row->status;

@@ -42,12 +42,17 @@ final class OfferingResolver
         return $this->resolveScheduleOnDate($parsed['scheduleId'], $parsed['date'], $id);
     }
 
-    /** Reads all authority and revisions from one PostgreSQL MVCC snapshot.
+    /** Reads all authority and revisions from one database MVCC snapshot.
      * An existing W2 transaction retains its ordered authority locks instead.
      */
     public static function consistentRead(callable $read): mixed
     {
         if (DB::transactionLevel() > 0) return $read();
+        if (DB::connection()->getDriverName() === 'mysql') {
+            // Set characteristics for the next transaction before BEGIN. Session defaults stay unchanged.
+            DB::statement('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY');
+            return DB::transaction($read);
+        }
         return DB::transaction(function () use ($read): mixed {
             DB::statement('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY');
             return $read();

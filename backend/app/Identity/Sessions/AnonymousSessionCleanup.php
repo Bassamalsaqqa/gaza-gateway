@@ -39,8 +39,9 @@ final class AnonymousSessionCleanup
             throw new \LogicException('Clock injection is strictly restricted to testing environment and test database.');
         }
 
-        $row = $this->db->selectOne('SELECT current_database() AS db_name');
-        if (($row->db_name ?? '') !== 'gaza_gateway_test') {
+        $row = $this->db->selectOne('SELECT DATABASE() AS db_name');
+        $dbName = $row->db_name ?? '';
+        if ($dbName !== 'gaza_gateway_test' && $dbName !== 'gaza_gateway_mysql_test') {
             throw new \LogicException('Clock injection is strictly restricted to testing environment and test database.');
         }
 
@@ -74,8 +75,7 @@ final class AnonymousSessionCleanup
         }
 
         return (int) $this->db->transaction(function () use ($realm, $batchSize) {
-            $this->db->statement("SET LOCAL statement_timeout = '3000ms'");
-            $this->db->statement("SET LOCAL lock_timeout = '2000ms'");
+            \App\Support\DatabaseFailure::applyTimeouts($this->db, 3000, 2000);
             // Fresh expiry evaluation derived strictly inside transaction
             $nowIso = $this->getNow()->toIso8601String();
 
@@ -188,8 +188,7 @@ final class AnonymousSessionCleanup
         }
 
         return (int) $this->db->transaction(function () use ($batchSize, $safeHorizonSeconds) {
-            $this->db->statement("SET LOCAL statement_timeout = '3000ms'");
-            $this->db->statement("SET LOCAL lock_timeout = '2000ms'");
+            \App\Support\DatabaseFailure::applyTimeouts($this->db, 3000, 2000);
             $now = $this->getNow();
             $cutoff = $now->subSeconds($safeHorizonSeconds)->toIso8601String();
 

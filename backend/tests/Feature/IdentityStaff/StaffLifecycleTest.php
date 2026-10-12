@@ -25,7 +25,11 @@ final class StaffLifecycleTest extends TestCase
 
     protected function setUp(): void
     {
-        parent::setUp(); config(['cors.allowed_origins' => ['https://127.0.0.1:5173']]);
+        parent::setUp();
+        config(['cors.allowed_origins' => ['https://127.0.0.1:5173']]);
+        if (config('database.default') === 'mysql_test') {
+            DB::table('staff_users')->update(['status' => 'suspended']);
+        }
     }
 
     protected function tearDown(): void
@@ -35,8 +39,8 @@ final class StaffLifecycleTest extends TestCase
             $this->app->make(ProofService::class)->revokeAll(ProofPurpose::StaffInvitation, $id);
             $this->app->make(ProofService::class)->revokeAll(ProofPurpose::StaffPasswordReset, $id);
             DB::table('staff_pending_auth')->where('staff_id', $id)->where('state', 'issued')
-                ->update(['state' => 'revoked', 'revoked_at' => DB::raw('clock_timestamp()'), 'encrypted_staged_secret' => null]);
-            DB::table('staff_sessions')->where('staff_id', $id)->whereNull('revoked_at')->update(['revoked_at' => DB::raw('clock_timestamp()')]);
+                ->update(['state' => 'revoked', 'revoked_at' => DB::raw('UTC_TIMESTAMP(6)'), 'encrypted_staged_secret' => null]);
+            DB::table('staff_sessions')->where('staff_id', $id)->whereNull('revoked_at')->update(['revoked_at' => DB::raw('UTC_TIMESTAMP(6)')]);
         }
         parent::tearDown();
     }
@@ -48,12 +52,12 @@ final class StaffLifecycleTest extends TestCase
         DB::table('staff_users')->insert(['id' => $id, 'username' => 'lifecycle-' . $id, 'email' => $id . '@example.invalid',
             'full_name_en' => 'Synthetic Staff', 'full_name_ar' => 'موظف تجريبي', 'password_hash' => $active ? self::$hash : null,
             'role' => 'viewer', 'status' => 'invited', 'credential_epoch' => 1,
-            'email_verified_at' => $active ? DB::raw('clock_timestamp()') : null,
-            'created_at' => DB::raw('clock_timestamp()'), 'updated_at' => DB::raw('clock_timestamp()')]);
+            'email_verified_at' => $active ? DB::raw('UTC_TIMESTAMP(6)') : null,
+            'created_at' => DB::raw('UTC_TIMESTAMP(6)'), 'updated_at' => DB::raw('UTC_TIMESTAMP(6)')]);
         if ($active) {
             $secret = TotpSecret::generate();
             DB::table('staff_mfa_credentials')->insert(['staff_id' => $id, 'version' => 1,
-                'encrypted_secret' => $this->app->make(Encrypter::class)->encrypt($secret->revealBase32Secret()), 'confirmed_at' => DB::raw('clock_timestamp()')]);
+                'encrypted_secret' => $this->app->make(Encrypter::class)->encrypt($secret->revealBase32Secret()), 'confirmed_at' => DB::raw('UTC_TIMESTAMP(6)')]);
             DB::table('staff_users')->where('id', $id)->update(['status' => 'active', 'mfa_version' => 1]);
         }
         return DB::table('staff_users')->where('id', $id)->first();
@@ -108,7 +112,7 @@ final class StaffLifecycleTest extends TestCase
         $this->assertTrue(hash_equals($setup->json('data.secret'), $secondSetup->json('data.secret')), 'Retry must not replace staged secret.');
         $this->assertSame($setup->json('data.expiresAt'), $secondSetup->json('data.expiresAt'));
         $secret = TotpSecret::fromBase32($setup->json('data.secret'));
-        $now = strtotime(DB::selectOne('SELECT clock_timestamp() AS now')->now);
+        $now = strtotime(DB::selectOne('SELECT UTC_TIMESTAMP(6) AS now')->now);
         $code = (new TotpService())->hotp($secret, intdiv($now, 30));
         $bad = $code === '000000' ? '111111' : '000000';
         $this->request('POST', '/staff/mfa/enrollment/confirm', $session, ['totpCode' => $bad], $pending['cookie'])->assertStatus(401);
@@ -150,9 +154,9 @@ final class StaffLifecycleTest extends TestCase
     {
         $staff = $this->staff(true); $store = $this->app->make(StaffSessionStore::class);
         $receipt = $store->issueFull($staff->id, 1, 1, new \DateTimeImmutable()); $full = $this->receipt($receipt);
-        DB::table('staff_sessions')->where('id', $receipt->sessionId)->update(['mfa_verified_at' => DB::raw("clock_timestamp() - INTERVAL '301 seconds'")]);
+        DB::table('staff_sessions')->where('id', $receipt->sessionId)->update(['mfa_verified_at' => DB::raw("DATE_SUB(UTC_TIMESTAMP(6), INTERVAL 301 SECOND)")]);
         $this->request('PUT', '/staff/password', $full, ['currentPassword' => self::PASSWORD, 'newPassword' => self::NEW_PASSWORD])->assertStatus(403);
-        DB::table('staff_sessions')->where('id', $receipt->sessionId)->update(['mfa_verified_at' => DB::raw('clock_timestamp()')]);
+        DB::table('staff_sessions')->where('id', $receipt->sessionId)->update(['mfa_verified_at' => DB::raw('UTC_TIMESTAMP(6)')]);
         $this->request('PUT', '/staff/password', $full, ['currentPassword' => 'wrong', 'newPassword' => self::NEW_PASSWORD])->assertStatus(401);
         $this->request('PUT', '/staff/password', $full, ['currentPassword' => self::PASSWORD, 'newPassword' => self::NEW_PASSWORD])
             ->assertStatus(200)->assertJsonPath('data.changed', true);
@@ -249,7 +253,7 @@ final class StaffLifecycleTest extends TestCase
         $staff = $this->staff(); $session = $this->anonymous(); $pending = $this->invitation($staff, $session);
         $setup = $this->request('POST', '/staff/mfa/enrollment/setup', $session, null, $pending['cookie']);
         $setup->assertStatus(200); $secret = TotpSecret::fromBase32($setup->json('data.secret'));
-        $now = strtotime(DB::selectOne('SELECT clock_timestamp() AS now')->now);
+        $now = strtotime(DB::selectOne('SELECT UTC_TIMESTAMP(6) AS now')->now);
         foreach (['000000', '111111', '222222', '333333'] as $bad) {
             if ((new TotpService())->match($secret, $bad, $now) === []) { break; }
         }

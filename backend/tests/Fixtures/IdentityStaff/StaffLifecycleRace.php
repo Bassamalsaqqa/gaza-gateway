@@ -31,7 +31,14 @@ final class StaffLifecycleRace
                 if (fwrite($pipes[0], "GO\n") !== 3 || !fflush($pipes[0])) { throw new \RuntimeException('Staff race release failed.'); }
             }
             $results = [];
-            foreach ($processes as [$process, $pipes]) { $results[] = self::line($process, $pipes[1]); }
+            foreach ($processes as [$process, $pipes]) {
+                $line = self::line($process, $pipes[1]);
+                $err = stream_get_contents($pipes[2]);
+                if ($line === 'FAILED' && !empty($err)) {
+                    fwrite(STDERR, "\n[CHILD STDERR]: " . $err . "\n");
+                }
+                $results[] = $line;
+            }
             sort($results); return $results;
         } finally {
             foreach ($processes as [$process, $pipes]) {

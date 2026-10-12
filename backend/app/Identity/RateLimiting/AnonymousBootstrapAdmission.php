@@ -130,8 +130,9 @@ final class AnonymousBootstrapAdmission
             throw new \LogicException('Testing overrides are strictly restricted to testing environment and test database.');
         }
 
-        $row = $this->db->selectOne('SELECT current_database() AS db_name');
-        if (($row->db_name ?? '') !== 'gaza_gateway_test') {
+        $row = $this->db->selectOne('SELECT DATABASE() AS db_name');
+        $dbName = $row->db_name ?? '';
+        if ($dbName !== 'gaza_gateway_test' && $dbName !== 'gaza_gateway_mysql_test') {
             throw new \LogicException('Testing overrides are strictly restricted to testing environment and test database.');
         }
     }
@@ -250,14 +251,15 @@ final class AnonymousBootstrapAdmission
                     $windowSeconds,
                     $retainedCap
                 ): AdmissionResult {
-                    // Set finite local statement and lock timeouts for this transaction only
-                    $this->db->statement("SET LOCAL statement_timeout = '3000ms';");
-                    $this->db->statement("SET LOCAL lock_timeout = '2000ms';");
+                    // Set finite timeouts for this transaction
+                    \App\Support\DatabaseFailure::applyTimeouts($this->db, 3000, 2000);
 
-                    // Step A: Per-realm exclusive advisory transaction lock
-                    $this->db->select(
-                        'SELECT pg_advisory_xact_lock(hashtext(?))',
-                        ['anonymous_bootstrap_admission:' . $realm]
+                    // Step A: Per-realm exclusive transaction lock using seeded sentinel row
+                    $this->db->selectOne(
+                        'SELECT count FROM security_rate_limits
+                         WHERE realm = ? AND operation_id = \'sentinel\' AND budget_id = \'admission\'
+                         FOR UPDATE',
+                        [$realm]
                     );
 
                     // Step B: Hard retained-row cap check with fresh SQL count
@@ -293,8 +295,7 @@ final class AnonymousBootstrapAdmission
 
                     $this->db->statement(
                         'INSERT INTO security_rate_limits (realm, operation_id, budget_id, key_digest, window_start, window_end, count)
-                         VALUES (?, \'bootstrap\', \'global\', ?, ?, ?, 0)
-                         ON CONFLICT (realm, operation_id, budget_id, key_digest, window_start) DO NOTHING',
+                         VALUES (?, \'bootstrap\', \'global\', ?, ?, ?, 0) ON DUPLICATE KEY UPDATE count = count',
                         [
                             $realm,
                             $globalKeyDigest,
@@ -341,8 +342,7 @@ final class AnonymousBootstrapAdmission
 
                     $this->db->statement(
                         'INSERT INTO security_rate_limits (realm, operation_id, budget_id, key_digest, window_start, window_end, count)
-                         VALUES (?, \'bootstrap\', \'source_ip\', ?, ?, ?, 0)
-                         ON CONFLICT (realm, operation_id, budget_id, key_digest, window_start) DO NOTHING',
+                         VALUES (?, \'bootstrap\', \'source_ip\', ?, ?, ?, 0) ON DUPLICATE KEY UPDATE count = count',
                         [
                             $realm,
                             $sourceKeyDigest,

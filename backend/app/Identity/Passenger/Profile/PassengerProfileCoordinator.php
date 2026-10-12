@@ -13,6 +13,7 @@ use App\Identity\Contracts\IdentityCommandValidator;
 use App\Identity\Passenger\Profile\Exceptions\MealCatalogUnavailableException;
 use App\Identity\Passenger\Profile\Exceptions\ProfileNotFoundException;
 use App\Identity\Passenger\Profile\Exceptions\ProfileValidationException;
+use App\Support\DatabaseClock;
 use App\Support\RequestCorrelation;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\ConnectionInterface;
@@ -297,7 +298,7 @@ final class PassengerProfileCoordinator
                     'seat_preference' => $newSeat,
                     'meal_preference' => $newMeal,
                     'newsletter' => $newNewsletter,
-                    'updated_at' => $tx->raw('clock_timestamp()'),
+                    'updated_at' => DatabaseClock::raw(),
                 ]);
         }
 

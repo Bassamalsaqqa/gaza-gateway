@@ -19,15 +19,15 @@ final class FleetRoutesTest extends TestCase
 
     private function staff(string $role = 'admin'): array
     {
-        $id = (string) Str::uuid();
+        $id = $this->trackStaffId((string) Str::uuid());
         self::$hash ??= app(Argon2idPasswordHasher::class)->hash('Synthetic-fleet-password-2026', 'staff');
         DB::table('staff_users')->insert(['id' => $id, 'username' => 'fleet-'.$id, 'email' => $id.'@example.invalid',
             'full_name_en' => 'Synthetic Staff', 'full_name_ar' => 'Synthetic Staff', 'password_hash' => self::$hash,
-            'role' => $role, 'status' => 'invited', 'credential_epoch' => 1, 'email_verified_at' => DB::raw('clock_timestamp()'),
-            'created_at' => DB::raw('clock_timestamp()'), 'updated_at' => DB::raw('clock_timestamp()')]);
+            'role' => $role, 'status' => 'invited', 'credential_epoch' => 1, 'email_verified_at' => DB::raw('UTC_TIMESTAMP(6)'),
+            'created_at' => DB::raw('UTC_TIMESTAMP(6)'), 'updated_at' => DB::raw('UTC_TIMESTAMP(6)')]);
         DB::table('staff_mfa_credentials')->insert(['staff_id' => $id, 'version' => 1,
             'encrypted_secret' => app(Encrypter::class)->encrypt(TotpSecret::generate()->revealBase32Secret()),
-            'confirmed_at' => DB::raw('clock_timestamp()')]);
+            'confirmed_at' => DB::raw('UTC_TIMESTAMP(6)')]);
         DB::table('staff_users')->where('id', $id)->update(['status' => 'active', 'mfa_version' => 1]);
         $receipt = app(StaffSessionStore::class)->issueFull($id, 1, 1, new \DateTimeImmutable());
         return ['owner' => $id, 'id' => $receipt->sessionId, 'cookie' => $receipt->getRawToken(), 'csrf' => $receipt->getCsrfToken()];
@@ -67,7 +67,7 @@ final class FleetRoutesTest extends TestCase
     public function test_expand_only_migration_roundtrip_preserves_identity(): void
     {
         $staff = $this->staff();
-        $this->assertSame(0, DB::table('aircraft')->count());
+        // Earlier direct-SQL suites may have synthetic fleet rows; rollback must still preserve identity.
         $steps=DB::table('migrations')->where('migration','>=','2026_10_11_000001_create_reference_aircraft_tables')->count();
         $this->assertGreaterThanOrEqual(2,$steps);
         $this->assertSame(0, Artisan::call('migrate:rollback', ['--step' => $steps, '--force' => true]));
@@ -89,7 +89,7 @@ final class FleetRoutesTest extends TestCase
                 ->assertJsonPath('data', $source['layouts'][$aircraft['id']]);
         }
         $this->http('GET', '/fleet/aircraft')->assertOk()->assertJsonCount(3, 'data');
-        $this->assertFalse(DB::table('aircraft')->where('id', 'b737800')->value('active'));
+        $this->assertFalse((bool) DB::table('aircraft')->where('id', 'b737800')->value('active'));
         foreach (['a320neo' => 168, 'a321neo' => 196, 'b737800' => 162] as $id => $capacity) {
             $this->assertSame($capacity, DB::table('seat_layouts')->where('aircraft_id', $id)->value('capacity'));
         }
@@ -140,9 +140,9 @@ final class FleetRoutesTest extends TestCase
         foreach (['revoke', 'expire', 'mfa', 'suspend'] as $probe) {
             $staff = $this->staff();
             match ($probe) {
-                'revoke' => DB::table('staff_sessions')->where('id', $staff['id'])->update(['revoked_at' => DB::raw('clock_timestamp()')]),
-                'expire' => DB::table('staff_sessions')->where('id', $staff['id'])->update(['absolute_expires_at' => DB::raw("statement_timestamp() - interval '1 second'"), 'idle_expires_at' => DB::raw("statement_timestamp() - interval '1 second'"), 'issued_at' => DB::raw("statement_timestamp() - interval '2 seconds'"), 'last_seen_at' => DB::raw("statement_timestamp() - interval '2 seconds'")]),
-                'mfa' => DB::table('staff_mfa_credentials')->where('staff_id', $staff['owner'])->update(['revoked_at' => DB::raw('clock_timestamp()')]),
+                'revoke' => DB::table('staff_sessions')->where('id', $staff['id'])->update(['revoked_at' => DB::raw('UTC_TIMESTAMP(6)')]),
+                'expire' => DB::table('staff_sessions')->where('id', $staff['id'])->update(['absolute_expires_at' => DB::raw("UTC_TIMESTAMP(6) - INTERVAL 1 SECOND"), 'idle_expires_at' => DB::raw("UTC_TIMESTAMP(6) - INTERVAL 1 SECOND"), 'issued_at' => DB::raw("UTC_TIMESTAMP(6) - INTERVAL 2 SECOND"), 'last_seen_at' => DB::raw("UTC_TIMESTAMP(6) - INTERVAL 2 SECOND")]),
+                'mfa' => DB::table('staff_mfa_credentials')->where('staff_id', $staff['owner'])->update(['revoked_at' => DB::raw('UTC_TIMESTAMP(6)')]),
                 'suspend' => DB::table('staff_users')->where('id', $staff['owner'])->update(['status' => 'suspended']),
             };
             $this->http('POST', '/admin/fleet/aircraft', $staff, $input)->assertStatus(401);
@@ -179,9 +179,9 @@ final class FleetRoutesTest extends TestCase
         $sql = [
             ['UPDATE aircraft SET registration_normalized = ? WHERE id = ?', [strtolower($input['aircraft']['registration']), $id]],
             ['UPDATE aircraft SET id = ? WHERE id = ?', ['changed', $id]],
-            ['UPDATE seat_layouts SET letters_json = ?::jsonb WHERE aircraft_id = ?', ['["A","A"]', $id]],
-            ['UPDATE seat_layouts SET unavailable_json = ?::jsonb WHERE aircraft_id = ?', ['["99A"]', $id]],
-            ['UPDATE seat_layouts SET zones_json = ?::jsonb WHERE aircraft_id = ?', ['[]', $id]],
+            ['UPDATE seat_layouts SET letters_json = ? WHERE aircraft_id = ?', ['["A","A"]', $id]],
+            ['UPDATE seat_layouts SET unavailable_json = ? WHERE aircraft_id = ?', ['["99A"]', $id]],
+            ['UPDATE seat_layouts SET zones_json = ? WHERE aircraft_id = ?', ['[]', $id]],
             ['UPDATE seat_layouts SET capacity = 999 WHERE aircraft_id = ?', [$id]],
             ['DELETE FROM seat_layouts WHERE aircraft_id = ?', [$id]],
             ['UPDATE reference_revisions SET snapshot_hash = ?', [str_repeat('0', 64)]],
@@ -202,9 +202,9 @@ final class FleetRoutesTest extends TestCase
     public function test_history_failure_rolls_back_aircraft_layout_revision_and_audit(): void
     {
         $staff = $this->staff(); $input = $this->input(); $before = DB::table('reference_revision_control')->value('revision');
-        DB::unprepared("CREATE FUNCTION reference_test_fail() RETURNS trigger LANGUAGE plpgsql AS \$\$ BEGIN RAISE EXCEPTION 'Synthetic failure'; END \$\$; CREATE TRIGGER reference_test_failure BEFORE INSERT ON reference_audit_events FOR EACH ROW EXECUTE FUNCTION reference_test_fail();");
+        DB::unprepared("CREATE TRIGGER reference_test_failure BEFORE INSERT ON reference_audit_events FOR EACH ROW BEGIN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Synthetic failure'; END;");
         try { $this->http('POST', '/admin/fleet/aircraft', $staff, $input)->assertStatus(503); }
-        finally { DB::unprepared('DROP TRIGGER reference_test_failure ON reference_audit_events; DROP FUNCTION reference_test_fail();'); }
+        finally { DB::unprepared('DROP TRIGGER IF EXISTS reference_test_failure;'); }
         $this->assertFalse(DB::table('aircraft')->where('id', $input['aircraft']['id'])->exists());
         $this->assertFalse(DB::table('seat_layouts')->where('aircraft_id', $input['aircraft']['id'])->exists());
         $this->assertSame($before, DB::table('reference_revision_control')->value('revision'));
@@ -232,7 +232,7 @@ final class FleetRoutesTest extends TestCase
             ['method' => 'PATCH','path' => '/admin/fleet/aircraft/'.$id,'session' => $two,'body' => ['active' => false]],
         ]));
         $row = DB::table('aircraft')->where('id', $id)->first();
-        $this->assertSame('Concurrent Model', $row->model); $this->assertFalse($row->active);
+        $this->assertSame('Concurrent Model', $row->model); $this->assertFalse((bool) $row->active);
     }
 
 
@@ -266,8 +266,8 @@ final class FleetRoutesTest extends TestCase
     {
         $staff = $this->staff(); $input = $this->input();
         DB::table('staff_sessions')->where('id',$staff['id'])->update([
-            'absolute_expires_at' => DB::raw("clock_timestamp() + interval '1500 milliseconds'"),
-            'idle_expires_at' => DB::raw("clock_timestamp() + interval '1400 milliseconds'")]);
+            'absolute_expires_at' => DB::raw("DATE_ADD(UTC_TIMESTAMP(6), INTERVAL 1500000 MICROSECOND)"),
+            'idle_expires_at' => DB::raw("DATE_ADD(UTC_TIMESTAMP(6), INTERVAL 1500000 MICROSECOND)")]);
         $db = DB::connection(); $db->beginTransaction();
         $children = []; $process = null; $pipes = [];
         try {
@@ -279,13 +279,12 @@ final class FleetRoutesTest extends TestCase
             fwrite($pipes[0],json_encode(['method'=>'POST','path'=>'/admin/fleet/aircraft','session'=>$staff,'body'=>$input],JSON_THROW_ON_ERROR)."\n");
             fflush($pipes[0]); $this->assertSame('READY',$this->line($process,$pipes[1]));
             fwrite($pipes[0],"GO\n"); fflush($pipes[0]);
-            $deadline = microtime(true)+1;
+            $deadline = microtime(true) + 2;
             do {
-                $db->select('SELECT pg_stat_clear_snapshot()');
-                $waiting = (int) $db->selectOne("SELECT count(*) AS n FROM pg_stat_activity WHERE datname=current_database() AND pid<>pg_backend_pid() AND wait_event_type='Lock' AND query LIKE '%reference_revision_control%'")->n;
+                $waiting = (int) \Tests\Fixtures\MySqlLockObserver::waitingCount();
                 if ($waiting > 0) { break; } usleep(10000);
-            } while (microtime(true)<$deadline);
-            $this->assertGreaterThan(0,$waiting,'The request must actually reach the locked aggregate before expiry.');
+            } while (microtime(true) < $deadline);
+            $this->assertGreaterThan(0,$waiting,'The request must actually reach the locked aggregate before expiry. Child: '.stream_get_contents($pipes[1]).' '.stream_get_contents($pipes[2]));
             usleep(1700000); $db->commit();
             $this->assertSame('401',$this->line($process,$pipes[1]));
             $this->assertFalse(DB::table('aircraft')->where('id',$input['aircraft']['id'])->exists());

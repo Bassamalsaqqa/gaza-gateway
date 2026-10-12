@@ -7,6 +7,7 @@ namespace App\Reference\Schedules;
 use App\Reference\Schedules\Exceptions\ScheduleDuplicateException;
 use App\Reference\Schedules\Exceptions\ScheduleNotFoundException;
 use App\Reference\Schedules\Exceptions\ScheduleValidationException;
+use App\Support\DatabaseClock;
 use Closure;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -142,8 +143,8 @@ final class ScheduleCoordinator
                 'until_date' => $validated['until'],
                 'active' => $validated['active'],
                 'exceptions_json' => json_encode($validated['exceptions'], JSON_THROW_ON_ERROR),
-                'created_at' => DB::raw('clock_timestamp()'),
-                'updated_at' => DB::raw('clock_timestamp()'),
+                'created_at' => DatabaseClock::now(),
+                'updated_at' => DatabaseClock::now(),
             ]);
 
             return [$validated, true];
@@ -175,7 +176,7 @@ final class ScheduleCoordinator
             }
 
             $update = [
-                'updated_at' => DB::raw('clock_timestamp()'),
+                'updated_at' => DatabaseClock::now(),
             ];
 
             if (array_key_exists('number', $patch)) {
@@ -279,6 +280,7 @@ final class ScheduleCoordinator
                 'revision' => $revision,
                 'snapshot_json' => $bytes,
                 'snapshot_bytes' => $bytes,
+                'created_at' => DatabaseClock::now(),
             ]);
             DB::table('schedule_audit_events')->insert([
                 'id' => (string) Str::uuid(),
@@ -288,6 +290,7 @@ final class ScheduleCoordinator
                 'action' => $action,
                 'outcome' => 'success',
                 'schedule_id' => $scheduleId,
+                'created_at' => DatabaseClock::now(),
             ]);
 
             return [

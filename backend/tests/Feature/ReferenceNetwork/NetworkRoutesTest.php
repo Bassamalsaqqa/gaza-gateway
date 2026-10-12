@@ -32,7 +32,7 @@ final class NetworkRoutesTest extends TestCase
 
     private function staff(string $role = 'admin'): array
     {
-        $id = (string) Str::uuid();
+        $id = $this->trackStaffId((string) Str::uuid());
         self::$hash ??= app(Argon2idPasswordHasher::class)->hash('Synthetic-network-password-2026', 'staff');
         DB::table('staff_users')->insert([
             'id' => $id,
@@ -44,15 +44,15 @@ final class NetworkRoutesTest extends TestCase
             'role' => $role,
             'status' => 'invited',
             'credential_epoch' => 1,
-            'email_verified_at' => DB::raw('clock_timestamp()'),
-            'created_at' => DB::raw('clock_timestamp()'),
-            'updated_at' => DB::raw('clock_timestamp()'),
+            'email_verified_at' => DB::raw('UTC_TIMESTAMP(6)'),
+            'created_at' => DB::raw('UTC_TIMESTAMP(6)'),
+            'updated_at' => DB::raw('UTC_TIMESTAMP(6)'),
         ]);
         DB::table('staff_mfa_credentials')->insert([
             'staff_id' => $id,
             'version' => 1,
             'encrypted_secret' => app(Encrypter::class)->encrypt(TotpSecret::generate()->revealBase32Secret()),
-            'confirmed_at' => DB::raw('clock_timestamp()'),
+            'confirmed_at' => DB::raw('UTC_TIMESTAMP(6)'),
         ]);
         DB::table('staff_users')->where('id', $id)->update(['status' => 'active', 'mfa_version' => 1]);
         $receipt = app(StaffSessionStore::class)->issueFull($id, 1, 1, new \DateTimeImmutable('-1 second'));
@@ -384,16 +384,16 @@ final class NetworkRoutesTest extends TestCase
             $staff = $this->staff('admin');
             match ($probe) {
                 'revoke' => DB::table('staff_sessions')->where('id', $staff['id'])->update([
-                    'revoked_at' => DB::raw('clock_timestamp()'),
+                    'revoked_at' => DB::raw('UTC_TIMESTAMP(6)'),
                 ]),
                 'expire' => DB::table('staff_sessions')->where('id', $staff['id'])->update([
-                    'absolute_expires_at' => DB::raw("statement_timestamp() - interval '1 second'"),
-                    'idle_expires_at' => DB::raw("statement_timestamp() - interval '1 second'"),
-                    'issued_at' => DB::raw("statement_timestamp() - interval '2 seconds'"),
-                    'last_seen_at' => DB::raw("statement_timestamp() - interval '2 seconds'"),
+                    'absolute_expires_at' => DB::raw("UTC_TIMESTAMP(6) - INTERVAL 1 SECOND"),
+                    'idle_expires_at' => DB::raw("UTC_TIMESTAMP(6) - INTERVAL 1 SECOND"),
+                    'issued_at' => DB::raw("UTC_TIMESTAMP(6) - INTERVAL 2 SECOND"),
+                    'last_seen_at' => DB::raw("UTC_TIMESTAMP(6) - INTERVAL 2 SECOND"),
                 ]),
                 'mfa' => DB::table('staff_mfa_credentials')->where('staff_id', $staff['owner'])->update([
-                    'revoked_at' => DB::raw('clock_timestamp()'),
+                    'revoked_at' => DB::raw('UTC_TIMESTAMP(6)'),
                 ]),
                 'suspend' => DB::table('staff_users')->where('id', $staff['owner'])->update([
                     'status' => 'suspended',
@@ -490,12 +490,12 @@ final class NetworkRoutesTest extends TestCase
         $input = $this->sampleAirport('AMM');
         $beforeRev = (int) DB::table('network_revision_control')->value('revision');
 
-        DB::unprepared("CREATE FUNCTION network_test_fail() RETURNS trigger LANGUAGE plpgsql AS \$\$ BEGIN RAISE EXCEPTION 'Synthetic network failure'; END \$\$; CREATE TRIGGER network_test_failure BEFORE INSERT ON network_audit_events FOR EACH ROW EXECUTE FUNCTION network_test_fail();");
+        DB::unprepared("CREATE TRIGGER network_test_failure BEFORE INSERT ON network_audit_events FOR EACH ROW BEGIN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Synthetic network failure'; END;");
 
         try {
             $this->http('POST', '/admin/network/airports', $staff, $input)->assertStatus(503);
         } finally {
-            DB::unprepared('DROP TRIGGER network_test_failure ON network_audit_events; DROP FUNCTION network_test_fail();');
+            DB::unprepared('DROP TRIGGER IF EXISTS network_test_failure;');
         }
 
         $this->assertFalse(DB::table('airports')->where('code', 'AMM')->exists());
@@ -586,8 +586,8 @@ final class NetworkRoutesTest extends TestCase
         $input = $this->sampleAirport('AMM');
 
         DB::table('staff_sessions')->where('id', $staff['id'])->update([
-            'absolute_expires_at' => DB::raw("clock_timestamp() + interval '1500 milliseconds'"),
-            'idle_expires_at' => DB::raw("clock_timestamp() + interval '1400 milliseconds'"),
+            'absolute_expires_at' => DB::raw("DATE_ADD(UTC_TIMESTAMP(6), INTERVAL 1500000 MICROSECOND)"),
+            'idle_expires_at' => DB::raw("DATE_ADD(UTC_TIMESTAMP(6), INTERVAL 1500000 MICROSECOND)"),
         ]);
 
         $db = DB::connection();
@@ -621,19 +621,16 @@ final class NetworkRoutesTest extends TestCase
             fwrite($pipes[0], "GO\n");
             fflush($pipes[0]);
 
-            $deadline = microtime(true) + 1;
+            $deadline = microtime(true) + 2;
             do {
-                $db->select('SELECT pg_stat_clear_snapshot()');
-                $waiting = (int) $db->selectOne(
-                    "SELECT count(*) AS n FROM pg_stat_activity WHERE datname=current_database() AND pid<>pg_backend_pid() AND wait_event_type='Lock' AND query LIKE '%network_revision_control%'"
-                )->n;
+                $waiting = (int) \Tests\Fixtures\MySqlLockObserver::waitingCount();
                 if ($waiting > 0) {
                     break;
                 }
                 usleep(10000);
             } while (microtime(true) < $deadline);
 
-            $this->assertGreaterThan(0, $waiting, 'The request must reach the locked aggregate before expiry.');
+            $this->assertGreaterThan(0, $waiting, 'The request must reach the locked aggregate before expiry. Child: '.stream_get_contents($pipes[1]).' '.stream_get_contents($pipes[2]));
             usleep(1700000);
             $db->commit();
 
@@ -664,7 +661,7 @@ final class NetworkRoutesTest extends TestCase
     public function test_bounded_throttle_and_security_headers_are_preserved(): void
     {
         RateLimiter::for('reference', static fn($request) =>
-            \Illuminate\Cache\RateLimiting\Limit::perMinute(2)->by('reference:'.$request->ip()));
+            \Illuminate\Cache\RateLimiting\Limit::perMinute(2)->by('network-throttle-probe:'.$request->ip()));
 
         $headers = ['REMOTE_ADDR' => '192.0.2.99'];
         $this->http('GET', '/network/airports', [], null, $headers)->assertOk()->assertHeader('X-Content-Type-Options', 'nosniff');

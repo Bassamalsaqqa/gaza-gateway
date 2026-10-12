@@ -25,9 +25,10 @@ return new class extends Migration
                 created_at DATETIME(6) NOT NULL,
                 updated_at DATETIME(6) NOT NULL,
                 CONSTRAINT uq_users_normalized_email UNIQUE (normalized_email),
+                CONSTRAINT chk_users_id_uuid CHECK (REGEXP_LIKE(id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
                 CONSTRAINT chk_users_status CHECK (status IN (\'unverified\',\'active\',\'suspended\')),
                 CONSTRAINT chk_users_credential_epoch CHECK (credential_epoch >= 1)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
         ');
 
         // 2. staff_users (without circular FK to staff_mfa_credentials initially)
@@ -48,13 +49,14 @@ return new class extends Migration
                 created_at DATETIME(6) NOT NULL,
                 updated_at DATETIME(6) NOT NULL,
                 CONSTRAINT uq_staff_users_normalized_email UNIQUE (normalized_email),
+                CONSTRAINT chk_staff_users_id_uuid CHECK (REGEXP_LIKE(id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
                 CONSTRAINT chk_staff_users_role CHECK (role IN (\'admin\',\'editor\',\'viewer\')),
                 CONSTRAINT chk_staff_users_status CHECK (status IN (\'invited\',\'pending_enrollment\',\'active\',\'suspended\',\'deactivated\')),
                 CONSTRAINT chk_staff_users_credential_epoch CHECK (credential_epoch >= 1),
                 CONSTRAINT chk_staff_users_active_requirements CHECK (
                     status != \'active\' OR (email_verified_at IS NOT NULL AND password_hash IS NOT NULL AND mfa_version IS NOT NULL)
                 )
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
         ');
 
         // 3. staff_mfa_credentials
@@ -67,8 +69,9 @@ return new class extends Migration
                 revoked_at DATETIME(6) NULL,
                 PRIMARY KEY (staff_id, version),
                 CONSTRAINT fk_staff_mfa_credentials_staff_id FOREIGN KEY (staff_id) REFERENCES staff_users (id) ON DELETE RESTRICT,
+                CONSTRAINT chk_staff_mfa_cred_staff_uuid CHECK (REGEXP_LIKE(staff_id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
                 CONSTRAINT chk_staff_mfa_credentials_version CHECK (version >= 1)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
         ');
 
         // Circular FK: staff_users -> staff_mfa_credentials
@@ -93,13 +96,15 @@ return new class extends Migration
                 last_seen_at DATETIME(6) NOT NULL,
                 revoked_at DATETIME(6) NULL,
                 CONSTRAINT fk_passenger_sessions_user_id FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE RESTRICT,
+                CONSTRAINT chk_passenger_sessions_id_uuid CHECK (REGEXP_LIKE(id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
+                CONSTRAINT chk_passenger_sessions_user_uuid CHECK (user_id IS NULL OR REGEXP_LIKE(user_id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
                 CONSTRAINT chk_passenger_sessions_auth_level CHECK (auth_level IN (\'anonymous\',\'full\')),
                 CONSTRAINT chk_passenger_sessions_absolute_expires CHECK (absolute_expires_at > issued_at),
                 CONSTRAINT chk_passenger_sessions_idle_expires CHECK (idle_expires_at <= absolute_expires_at),
                 CONSTRAINT chk_passenger_sessions_auth_user CHECK (((auth_level = \'full\') AND (user_id IS NOT NULL)) OR ((auth_level != \'full\') AND (user_id IS NULL))),
                 CONSTRAINT chk_passenger_sessions_epoch CHECK (auth_level != \'full\' OR credential_epoch >= 1),
                 CONSTRAINT chk_passenger_sessions_full_epoch_not_null CHECK (auth_level != \'full\' OR credential_epoch IS NOT NULL)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
         ');
 
         // 5. staff_sessions
@@ -120,6 +125,8 @@ return new class extends Migration
                 mfa_verified_at DATETIME(6) NULL,
                 CONSTRAINT fk_staff_sessions_staff_id FOREIGN KEY (staff_id) REFERENCES staff_users (id) ON DELETE RESTRICT,
                 CONSTRAINT fk_staff_sessions_mfa FOREIGN KEY (staff_id, mfa_version) REFERENCES staff_mfa_credentials (staff_id, version) ON DELETE RESTRICT,
+                CONSTRAINT chk_staff_sessions_id_uuid CHECK (REGEXP_LIKE(id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
+                CONSTRAINT chk_staff_sessions_staff_uuid CHECK (staff_id IS NULL OR REGEXP_LIKE(staff_id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
                 CONSTRAINT chk_staff_sessions_auth_level CHECK (auth_level IN (\'anonymous\',\'full\')),
                 CONSTRAINT chk_staff_sessions_absolute_expires CHECK (absolute_expires_at > issued_at),
                 CONSTRAINT chk_staff_sessions_idle_expires CHECK (idle_expires_at <= absolute_expires_at),
@@ -127,7 +134,7 @@ return new class extends Migration
                 CONSTRAINT chk_staff_sessions_epoch CHECK (auth_level != \'full\' OR credential_epoch >= 1),
                 CONSTRAINT chk_staff_sessions_full_epoch_not_null CHECK (auth_level != \'full\' OR credential_epoch IS NOT NULL),
                 CONSTRAINT chk_staff_sessions_mfa CHECK (auth_level != \'full\' OR (mfa_version IS NOT NULL AND mfa_verified_at IS NOT NULL))
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
         ');
 
         // 6. staff_pending_auth
@@ -148,13 +155,16 @@ return new class extends Migration
                 encrypted_staged_secret TEXT NULL,
                 CONSTRAINT fk_staff_pending_auth_staff_id FOREIGN KEY (staff_id) REFERENCES staff_users (id) ON DELETE RESTRICT,
                 CONSTRAINT fk_staff_pending_auth_bound_session FOREIGN KEY (bound_session_id) REFERENCES staff_sessions (id) ON DELETE RESTRICT,
+                CONSTRAINT chk_staff_pending_auth_id_uuid CHECK (REGEXP_LIKE(id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
+                CONSTRAINT chk_staff_pending_auth_staff_uuid CHECK (REGEXP_LIKE(staff_id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
+                CONSTRAINT chk_staff_pending_auth_sess_uuid CHECK (REGEXP_LIKE(bound_session_id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
                 CONSTRAINT chk_staff_pending_auth_state CHECK (state IN (\'issued\',\'consumed\',\'revoked\',\'expired\',\'exhausted\')),
                 CONSTRAINT chk_staff_pending_auth_expires CHECK (expires_at > issued_at),
                 CONSTRAINT chk_staff_pending_auth_consumed CHECK (((state = \'consumed\') AND (consumed_at IS NOT NULL)) OR ((state != \'consumed\') AND (consumed_at IS NULL))),
                 CONSTRAINT chk_staff_pending_auth_purpose CHECK (purpose IN (\'login_mfa\',\'enroll_mfa\')),
                 CONSTRAINT chk_staff_pending_auth_failed_attempts CHECK (failed_attempts BETWEEN 0 AND 5),
                 CONSTRAINT chk_staff_pending_auth_epoch CHECK (credential_epoch >= 1)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
         ');
 
         // 7. user_email_verifications
@@ -172,12 +182,14 @@ return new class extends Migration
                 credential_epoch INT NOT NULL,
                 email_snapshot VARCHAR(255) NOT NULL,
                 CONSTRAINT fk_user_email_verifications_user_id FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE RESTRICT,
+                CONSTRAINT chk_user_email_verif_id_uuid CHECK (REGEXP_LIKE(id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
+                CONSTRAINT chk_user_email_verif_user_uuid CHECK (REGEXP_LIKE(user_id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
                 CONSTRAINT chk_user_email_verif_state CHECK (state IN (\'issued\',\'consumed\',\'revoked\',\'expired\',\'exhausted\')),
                 CONSTRAINT chk_user_email_verif_expires CHECK (expires_at > issued_at),
                 CONSTRAINT chk_user_email_verif_consumed CHECK (((state = \'consumed\') AND (consumed_at IS NOT NULL)) OR ((state != \'consumed\') AND (consumed_at IS NULL))),
                 CONSTRAINT chk_user_email_verif_epoch CHECK (credential_epoch >= 1),
                 CONSTRAINT chk_user_email_verif_purpose CHECK (purpose = \'passenger_email_verification\')
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
         ');
 
         // 8. user_password_resets
@@ -195,12 +207,14 @@ return new class extends Migration
                 credential_epoch INT NOT NULL,
                 email_snapshot VARCHAR(255) NOT NULL,
                 CONSTRAINT fk_user_password_resets_user_id FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE RESTRICT,
+                CONSTRAINT chk_user_password_resets_id_uuid CHECK (REGEXP_LIKE(id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
+                CONSTRAINT chk_user_password_resets_user_uuid CHECK (REGEXP_LIKE(user_id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
                 CONSTRAINT chk_user_password_resets_state CHECK (state IN (\'issued\',\'consumed\',\'revoked\',\'expired\',\'exhausted\')),
                 CONSTRAINT chk_user_password_resets_expires CHECK (expires_at > issued_at),
                 CONSTRAINT chk_user_password_resets_consumed CHECK (((state = \'consumed\') AND (consumed_at IS NOT NULL)) OR ((state != \'consumed\') AND (consumed_at IS NULL))),
                 CONSTRAINT chk_user_password_resets_epoch CHECK (credential_epoch >= 1),
                 CONSTRAINT chk_user_password_resets_purpose CHECK (purpose = \'passenger_password_reset\')
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
         ');
 
         // 9. staff_invitations
@@ -214,16 +228,21 @@ return new class extends Migration
                 consumed_at DATETIME(6) NULL,
                 revoked_at DATETIME(6) NULL,
                 staff_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+                invited_by_staff_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NULL DEFAULT NULL,
                 purpose VARCHAR(64) NOT NULL,
                 credential_epoch INT NOT NULL,
                 email_snapshot VARCHAR(255) NOT NULL,
                 CONSTRAINT fk_staff_invitations_staff_id FOREIGN KEY (staff_id) REFERENCES staff_users (id) ON DELETE RESTRICT,
+                CONSTRAINT fk_staff_invitations_invited_by FOREIGN KEY (invited_by_staff_id) REFERENCES staff_users (id) ON DELETE RESTRICT,
+                CONSTRAINT chk_staff_invitations_id_uuid CHECK (REGEXP_LIKE(id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
+                CONSTRAINT chk_staff_invitations_staff_uuid CHECK (REGEXP_LIKE(staff_id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
+                CONSTRAINT chk_staff_invitations_inv_by_uuid CHECK (invited_by_staff_id IS NULL OR REGEXP_LIKE(invited_by_staff_id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
                 CONSTRAINT chk_staff_invitations_state CHECK (state IN (\'issued\',\'consumed\',\'revoked\',\'expired\',\'exhausted\')),
                 CONSTRAINT chk_staff_invitations_expires CHECK (expires_at > issued_at),
                 CONSTRAINT chk_staff_invitations_consumed CHECK (((state = \'consumed\') AND (consumed_at IS NOT NULL)) OR ((state != \'consumed\') AND (consumed_at IS NULL))),
                 CONSTRAINT chk_staff_invitations_epoch CHECK (credential_epoch >= 1),
                 CONSTRAINT chk_staff_invitations_purpose CHECK (purpose = \'staff_invitation\')
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
         ');
 
         // 10. staff_password_resets
@@ -237,16 +256,21 @@ return new class extends Migration
                 consumed_at DATETIME(6) NULL,
                 revoked_at DATETIME(6) NULL,
                 staff_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+                requested_by_staff_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NULL,
                 purpose VARCHAR(64) NOT NULL,
                 credential_epoch INT NOT NULL,
                 email_snapshot VARCHAR(255) NOT NULL,
                 CONSTRAINT fk_staff_password_resets_staff_id FOREIGN KEY (staff_id) REFERENCES staff_users (id) ON DELETE RESTRICT,
+                CONSTRAINT fk_staff_password_resets_req_by FOREIGN KEY (requested_by_staff_id) REFERENCES staff_users (id) ON DELETE RESTRICT,
+                CONSTRAINT chk_staff_pwd_resets_id_uuid CHECK (REGEXP_LIKE(id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
+                CONSTRAINT chk_staff_pwd_resets_staff_uuid CHECK (REGEXP_LIKE(staff_id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
+                CONSTRAINT chk_staff_pwd_resets_req_by_uuid CHECK (requested_by_staff_id IS NULL OR REGEXP_LIKE(requested_by_staff_id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
                 CONSTRAINT chk_staff_password_resets_state CHECK (state IN (\'issued\',\'consumed\',\'revoked\',\'expired\',\'exhausted\')),
                 CONSTRAINT chk_staff_password_resets_expires CHECK (expires_at > issued_at),
                 CONSTRAINT chk_staff_password_resets_consumed CHECK (((state = \'consumed\') AND (consumed_at IS NOT NULL)) OR ((state != \'consumed\') AND (consumed_at IS NULL))),
                 CONSTRAINT chk_staff_password_resets_epoch CHECK (credential_epoch >= 1),
                 CONSTRAINT chk_staff_password_resets_purpose CHECK (purpose = \'staff_password_reset\')
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
         ');
 
         // 11. staff_mfa_replacements
@@ -269,12 +293,15 @@ return new class extends Migration
                 CONSTRAINT fk_staff_mfa_repl_session_id FOREIGN KEY (session_id) REFERENCES staff_sessions (id) ON DELETE RESTRICT,
                 CONSTRAINT fk_staff_mfa_repl_prior_ver FOREIGN KEY (staff_id, prior_version) REFERENCES staff_mfa_credentials (staff_id, version) ON DELETE RESTRICT,
                 CONSTRAINT fk_staff_mfa_repl_cand_ver FOREIGN KEY (staff_id, candidate_version) REFERENCES staff_mfa_credentials (staff_id, version) ON DELETE RESTRICT,
+                CONSTRAINT chk_staff_mfa_repl_id_uuid CHECK (REGEXP_LIKE(id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
+                CONSTRAINT chk_staff_mfa_repl_staff_uuid CHECK (REGEXP_LIKE(staff_id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
+                CONSTRAINT chk_staff_mfa_repl_sess_uuid CHECK (REGEXP_LIKE(session_id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
                 CONSTRAINT chk_staff_mfa_repl_state CHECK (state IN (\'issued\',\'consumed\',\'revoked\',\'expired\',\'exhausted\')),
                 CONSTRAINT chk_staff_mfa_repl_expires CHECK (expires_at > issued_at),
                 CONSTRAINT chk_staff_mfa_repl_consumed CHECK (((state = \'consumed\') AND (consumed_at IS NOT NULL)) OR ((state != \'consumed\') AND (consumed_at IS NULL))),
                 CONSTRAINT chk_staff_mfa_repl_candidate CHECK (candidate_version > prior_version),
                 CONSTRAINT chk_staff_mfa_repl_failed_attempts CHECK (failed_attempts BETWEEN 0 AND 5)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
         ');
 
         // 12. staff_mfa_counter_consumptions
@@ -286,8 +313,9 @@ return new class extends Migration
                 consumed_at DATETIME(6) NOT NULL,
                 PRIMARY KEY (staff_id, mfa_version, counter_step),
                 CONSTRAINT fk_staff_mfa_counter_mfa FOREIGN KEY (staff_id, mfa_version) REFERENCES staff_mfa_credentials (staff_id, version) ON DELETE RESTRICT,
+                CONSTRAINT chk_staff_mfa_counter_staff_uuid CHECK (REGEXP_LIKE(staff_id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
                 CONSTRAINT chk_staff_mfa_counter_step CHECK (counter_step >= 0)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
         ');
 
         // 13. staff_mfa_recovery_codes
@@ -300,8 +328,10 @@ return new class extends Migration
                 consumed_at DATETIME(6) NULL,
                 revoked_at DATETIME(6) NULL,
                 CONSTRAINT uq_staff_mfa_recovery_codes UNIQUE (staff_id, mfa_version, code_digest),
-                CONSTRAINT fk_staff_mfa_recovery_codes_mfa FOREIGN KEY (staff_id, mfa_version) REFERENCES staff_mfa_credentials (staff_id, version) ON DELETE RESTRICT
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+                CONSTRAINT fk_staff_mfa_recovery_codes_mfa FOREIGN KEY (staff_id, mfa_version) REFERENCES staff_mfa_credentials (staff_id, version) ON DELETE RESTRICT,
+                CONSTRAINT chk_staff_mfa_rc_id_uuid CHECK (REGEXP_LIKE(id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
+                CONSTRAINT chk_staff_mfa_rc_staff_uuid CHECK (REGEXP_LIKE(staff_id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\'))
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
         ');
 
         // 14. staff_directory_control
@@ -311,8 +341,9 @@ return new class extends Migration
                 last_mutated_at DATETIME(6) NOT NULL,
                 mutated_by_staff_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NULL,
                 CONSTRAINT fk_staff_dir_ctrl_mutated_by FOREIGN KEY (mutated_by_staff_id) REFERENCES staff_users (id) ON DELETE RESTRICT,
+                CONSTRAINT chk_staff_dir_ctrl_staff_uuid CHECK (mutated_by_staff_id IS NULL OR REGEXP_LIKE(mutated_by_staff_id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
                 CONSTRAINT chk_staff_directory_control_id CHECK (id = 1)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
         ');
 
         // Seed ONLY staff_directory_control singleton id 1 (not a staff account)
@@ -334,7 +365,15 @@ return new class extends Migration
                 PRIMARY KEY (realm, operation_id, budget_id, key_digest, window_start),
                 CONSTRAINT chk_security_rate_limits_count CHECK (count >= 0),
                 CONSTRAINT chk_security_rate_limits_window CHECK (window_end > window_start)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
+        ');
+
+        // Seed transactional sentinels for bootstrap admission serialization
+        DB::statement('
+            INSERT INTO security_rate_limits (realm, operation_id, budget_id, key_digest, window_start, window_end, count)
+            VALUES
+                (\'passenger\', \'sentinel\', \'admission\', \'0000000000000000000000000000000000000000000000000000000000000000\', \'1970-01-01 00:00:00.000000\', \'9999-12-31 23:59:59.000000\', 0),
+                (\'staff\', \'sentinel\', \'admission\', \'0000000000000000000000000000000000000000000000000000000000000000\', \'1970-01-01 00:00:00.000000\', \'9999-12-31 23:59:59.000000\', 0);
         ');
     }
 

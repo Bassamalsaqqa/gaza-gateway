@@ -10,7 +10,10 @@ use App\Gallery\Exceptions\GalleryNotFoundException;
 use App\Gallery\Exceptions\GalleryUnpublishedException;
 use App\Gallery\Exceptions\GalleryValidationException;
 use App\Gallery\Validation\GalleryValidator;
+use App\Support\DatabaseClock;
+use App\Support\DatabaseFailure;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -87,39 +90,110 @@ final class GalleryCoordinator
         string $staffId,
         callable $revalidateAuthorizer
     ): array {
-        return DB::transaction(function () use ($payload, $expectedRevision, $staffId, $revalidateAuthorizer): array {
-            $revalidateAuthorizer();
+        try {
+            return DB::transaction(function () use ($payload, $expectedRevision, $staffId, $revalidateAuthorizer): array {
+                // 1. Authorize at transaction entry (verifies staff/session locks)
+                $revalidateAuthorizer();
 
-            DB::select('SELECT pg_advisory_xact_lock(hashtext(?))', ['gallery_doc:' . self::DEFAULT_SLUG]);
+                // 2. Domain row lock
+                $doc = DB::table('gallery_documents')->where('slug', self::DEFAULT_SLUG)->lockForUpdate()->first();
+                // Fresh authority after any waited aggregate lock, before mutation.
+                $revalidateAuthorizer();
 
-            $revalidateAuthorizer();
+                if ($doc === null) {
+                    if ($expectedRevision !== 0) {
+                        throw new GalleryConflictException(
+                            "Revision conflict: document is uninitialized (version 0), but expected revision $expectedRevision was specified."
+                        );
+                    }
 
-            $doc = DB::table('gallery_documents')->where('slug', self::DEFAULT_SLUG)->lockForUpdate()->first();
+                    $this->validator->validate($payload);
+                    $canonicalJson = self::canonicalJson($payload);
+                    $newCurrentRevision = 1;
+                    $newContentRevision = 1;
 
-            if ($doc === null) {
-                if ($expectedRevision !== 0) {
+                    DB::table('gallery_documents')->insert([
+                        'slug' => self::DEFAULT_SLUG,
+                        'kind' => self::DEFAULT_SLUG,
+                        'status' => 'draft',
+                        'current_revision' => $newCurrentRevision,
+                        'published_revision' => null,
+                        'draft_revision' => null,
+                        'tombstoned' => false,
+                        'tombstoned_at' => null,
+                        'created_at' => DatabaseClock::raw(),
+                        'updated_at' => DatabaseClock::raw(),
+                    ]);
+
+                    DB::table('gallery_revisions')->insert([
+                        'slug' => self::DEFAULT_SLUG,
+                        'revision' => $newContentRevision,
+                        'snapshot_json' => $canonicalJson,
+                        'snapshot_bytes' => $canonicalJson,
+                        'snapshot_hash' => hash('sha256', $canonicalJson),
+                        'created_at' => DatabaseClock::raw(),
+                    ]);
+
+                    // MySQL checks foreign keys immediately; publish the pointer only after its revision exists.
+                    DB::table('gallery_documents')->where('slug', self::DEFAULT_SLUG)
+                        ->update(['draft_revision' => $newContentRevision]);
+
+                    DB::table('gallery_audit_events')->insert([
+                        'id' => (string) Str::uuid(),
+                        'slug' => self::DEFAULT_SLUG,
+                        'revision' => $newContentRevision,
+                        'staff_id' => $staffId,
+                        'action' => 'draft.save',
+                        'outcome' => 'success',
+                        'restored_from_revision' => null,
+                        'created_at' => DatabaseClock::raw(),
+                    ]);
+
+                    return [
+                        'slug' => self::DEFAULT_SLUG,
+                        'changed' => true,
+                        'revision' => $newContentRevision,
+                        'currentRevision' => $newCurrentRevision,
+                        'status' => 'draft',
+                    ];
+                }
+
+                $currentRevision = (int) $doc->current_revision;
+                if ($expectedRevision !== $currentRevision) {
                     throw new GalleryConflictException(
-                        "Revision conflict: document is uninitialized (version 0), but expected revision $expectedRevision was specified."
+                        "Revision conflict: current revision is $currentRevision, but expected revision $expectedRevision was specified."
                     );
+                }
+
+                $activeRevNumber = $doc->draft_revision !== null
+                    ? (int) $doc->draft_revision
+                    : ($doc->published_revision !== null ? (int) $doc->published_revision : null);
+
+                if ($activeRevNumber !== null) {
+                    $activeRev = DB::table('gallery_revisions')
+                        ->where('slug', self::DEFAULT_SLUG)
+                        ->where('revision', $activeRevNumber)
+                        ->first();
+                    if ($activeRev !== null) {
+                        $existingPayload = json_decode($activeRev->snapshot_bytes, true, 512, JSON_THROW_ON_ERROR);
+                        if (self::sameValue($existingPayload, $payload)) {
+                            return [
+                                'slug' => self::DEFAULT_SLUG,
+                                'changed' => false,
+                                'revision' => $activeRevNumber,
+                                'currentRevision' => $currentRevision,
+                                'status' => $doc->status,
+                            ];
+                        }
+                    }
                 }
 
                 $this->validator->validate($payload);
                 $canonicalJson = self::canonicalJson($payload);
-                $newCurrentRevision = 1;
-                $newContentRevision = 1;
 
-                DB::table('gallery_documents')->insert([
-                    'slug' => self::DEFAULT_SLUG,
-                    'kind' => self::DEFAULT_SLUG,
-                    'status' => 'draft',
-                    'current_revision' => $newCurrentRevision,
-                    'published_revision' => null,
-                    'draft_revision' => $newContentRevision,
-                    'tombstoned' => false,
-                    'tombstoned_at' => null,
-                    'created_at' => DB::raw('clock_timestamp()'),
-                    'updated_at' => DB::raw('clock_timestamp()'),
-                ]);
+                $maxContentRev = (int) DB::table('gallery_revisions')->where('slug', self::DEFAULT_SLUG)->max('revision');
+                $newContentRevision = $maxContentRev + 1;
+                $newCurrentRevision = $currentRevision + 1;
 
                 DB::table('gallery_revisions')->insert([
                     'slug' => self::DEFAULT_SLUG,
@@ -127,7 +201,14 @@ final class GalleryCoordinator
                     'snapshot_json' => $canonicalJson,
                     'snapshot_bytes' => $canonicalJson,
                     'snapshot_hash' => hash('sha256', $canonicalJson),
-                    'created_at' => DB::raw('clock_timestamp()'),
+                    'created_at' => DatabaseClock::raw(),
+                ]);
+
+                DB::table('gallery_documents')->where('slug', self::DEFAULT_SLUG)->update([
+                    'current_revision' => $newCurrentRevision,
+                    'draft_revision' => $newContentRevision,
+                    'status' => 'draft',
+                    'updated_at' => DatabaseClock::raw(),
                 ]);
 
                 DB::table('gallery_audit_events')->insert([
@@ -138,7 +219,7 @@ final class GalleryCoordinator
                     'action' => 'draft.save',
                     'outcome' => 'success',
                     'restored_from_revision' => null,
-                    'created_at' => DB::raw('clock_timestamp()'),
+                    'created_at' => DatabaseClock::raw(),
                 ]);
 
                 return [
@@ -148,80 +229,16 @@ final class GalleryCoordinator
                     'currentRevision' => $newCurrentRevision,
                     'status' => 'draft',
                 ];
-            }
-
-            $currentRevision = (int) $doc->current_revision;
-            if ($expectedRevision !== $currentRevision) {
+            });
+        } catch (QueryException $e) {
+            if (DatabaseFailure::isDuplicate($e)) {
                 throw new GalleryConflictException(
-                    "Revision conflict: current revision is $currentRevision, but expected revision $expectedRevision was specified."
+                    "Revision conflict: document was concurrently initialized.",
+                    previous: $e
                 );
             }
-
-            $activeRevNumber = $doc->draft_revision !== null
-                ? (int) $doc->draft_revision
-                : ($doc->published_revision !== null ? (int) $doc->published_revision : null);
-
-            if ($activeRevNumber !== null) {
-                $activeRev = DB::table('gallery_revisions')
-                    ->where('slug', self::DEFAULT_SLUG)
-                    ->where('revision', $activeRevNumber)
-                    ->first();
-                if ($activeRev !== null) {
-                    $existingPayload = json_decode($activeRev->snapshot_bytes, true, 512, JSON_THROW_ON_ERROR);
-                    if (self::sameValue($existingPayload, $payload)) {
-                        return [
-                            'slug' => self::DEFAULT_SLUG,
-                            'changed' => false,
-                            'revision' => $activeRevNumber,
-                            'currentRevision' => $currentRevision,
-                            'status' => $doc->status,
-                        ];
-                    }
-                }
-            }
-
-            $this->validator->validate($payload);
-            $canonicalJson = self::canonicalJson($payload);
-
-            $maxContentRev = (int) DB::table('gallery_revisions')->where('slug', self::DEFAULT_SLUG)->max('revision');
-            $newContentRevision = $maxContentRev + 1;
-            $newCurrentRevision = $currentRevision + 1;
-
-            DB::table('gallery_revisions')->insert([
-                'slug' => self::DEFAULT_SLUG,
-                'revision' => $newContentRevision,
-                'snapshot_json' => $canonicalJson,
-                'snapshot_bytes' => $canonicalJson,
-                'snapshot_hash' => hash('sha256', $canonicalJson),
-                'created_at' => DB::raw('clock_timestamp()'),
-            ]);
-
-            DB::table('gallery_documents')->where('slug', self::DEFAULT_SLUG)->update([
-                'current_revision' => $newCurrentRevision,
-                'draft_revision' => $newContentRevision,
-                'status' => 'draft',
-                'updated_at' => DB::raw('clock_timestamp()'),
-            ]);
-
-            DB::table('gallery_audit_events')->insert([
-                'id' => (string) Str::uuid(),
-                'slug' => self::DEFAULT_SLUG,
-                'revision' => $newContentRevision,
-                'staff_id' => $staffId,
-                'action' => 'draft.save',
-                'outcome' => 'success',
-                'restored_from_revision' => null,
-                'created_at' => DB::raw('clock_timestamp()'),
-            ]);
-
-            return [
-                'slug' => self::DEFAULT_SLUG,
-                'changed' => true,
-                'revision' => $newContentRevision,
-                'currentRevision' => $newCurrentRevision,
-                'status' => 'draft',
-            ];
-        });
+            throw $e;
+        }
     }
 
     public function discardDraft(
@@ -232,11 +249,9 @@ final class GalleryCoordinator
         return DB::transaction(function () use ($expectedRevision, $staffId, $revalidateAuthorizer): array {
             $revalidateAuthorizer();
 
-            DB::select('SELECT pg_advisory_xact_lock(hashtext(?))', ['gallery_doc:' . self::DEFAULT_SLUG]);
-
-            $revalidateAuthorizer();
-
             $doc = DB::table('gallery_documents')->where('slug', self::DEFAULT_SLUG)->lockForUpdate()->first();
+                // Fresh authority after any waited aggregate lock, before mutation.
+                $revalidateAuthorizer();
 
             if ($doc === null) {
                 throw new GalleryNotFoundException('Gallery configuration not found.');
@@ -264,7 +279,7 @@ final class GalleryCoordinator
                 'current_revision' => $newCurrentRevision,
                 'draft_revision' => null,
                 'status' => $newStatus,
-                'updated_at' => DB::raw('clock_timestamp()'),
+                'updated_at' => DatabaseClock::raw(),
             ]);
 
             DB::table('gallery_audit_events')->insert([
@@ -275,7 +290,7 @@ final class GalleryCoordinator
                 'action' => 'draft.discard',
                 'outcome' => 'success',
                 'restored_from_revision' => null,
-                'created_at' => DB::raw('clock_timestamp()'),
+                'created_at' => DatabaseClock::raw(),
             ]);
 
             $updatedDoc = DB::table('gallery_documents')->where('slug', self::DEFAULT_SLUG)->first();
@@ -291,11 +306,9 @@ final class GalleryCoordinator
         return DB::transaction(function () use ($expectedRevision, $staffId, $revalidateAuthorizer): array {
             $revalidateAuthorizer();
 
-            DB::select('SELECT pg_advisory_xact_lock(hashtext(?))', ['gallery_doc:' . self::DEFAULT_SLUG]);
-
-            $revalidateAuthorizer();
-
             $doc = DB::table('gallery_documents')->where('slug', self::DEFAULT_SLUG)->lockForUpdate()->first();
+                // Fresh authority after any waited aggregate lock, before mutation.
+                $revalidateAuthorizer();
 
             if ($doc === null) {
                 throw new GalleryNotFoundException('Gallery configuration not found.');
@@ -321,9 +334,8 @@ final class GalleryCoordinator
             }
 
             DB::statement(
-                'INSERT INTO gallery_published_revisions (slug, revision, staff_id, published_at)
-                 VALUES (?, ?, ?, clock_timestamp())
-                 ON CONFLICT (slug, revision) DO NOTHING',
+                'INSERT IGNORE INTO gallery_published_revisions (slug, revision, staff_id, published_at)
+                 VALUES (?, ?, ?, UTC_TIMESTAMP(6))',
                 [self::DEFAULT_SLUG, $revToPublish, $staffId]
             );
 
@@ -336,7 +348,7 @@ final class GalleryCoordinator
                 'status' => 'published',
                 'tombstoned' => false,
                 'tombstoned_at' => null,
-                'updated_at' => DB::raw('clock_timestamp()'),
+                'updated_at' => DatabaseClock::raw(),
             ]);
 
             DB::table('gallery_audit_events')->insert([
@@ -347,7 +359,7 @@ final class GalleryCoordinator
                 'action' => 'publish',
                 'outcome' => 'success',
                 'restored_from_revision' => null,
-                'created_at' => DB::raw('clock_timestamp()'),
+                'created_at' => DatabaseClock::raw(),
             ]);
 
             $updatedDoc = DB::table('gallery_documents')->where('slug', self::DEFAULT_SLUG)->first();
@@ -363,11 +375,9 @@ final class GalleryCoordinator
         return DB::transaction(function () use ($expectedRevision, $staffId, $revalidateAuthorizer): array {
             $revalidateAuthorizer();
 
-            DB::select('SELECT pg_advisory_xact_lock(hashtext(?))', ['gallery_doc:' . self::DEFAULT_SLUG]);
-
-            $revalidateAuthorizer();
-
             $doc = DB::table('gallery_documents')->where('slug', self::DEFAULT_SLUG)->lockForUpdate()->first();
+                // Fresh authority after any waited aggregate lock, before mutation.
+                $revalidateAuthorizer();
 
             if ($doc === null) {
                 throw new GalleryNotFoundException('Gallery configuration not found.');
@@ -395,8 +405,8 @@ final class GalleryCoordinator
                 'current_revision' => $newCurrentRevision,
                 'status' => 'unpublished',
                 'tombstoned' => true,
-                'tombstoned_at' => DB::raw('clock_timestamp()'),
-                'updated_at' => DB::raw('clock_timestamp()'),
+                'tombstoned_at' => DatabaseClock::raw(),
+                'updated_at' => DatabaseClock::raw(),
             ]);
 
             DB::table('gallery_audit_events')->insert([
@@ -407,7 +417,7 @@ final class GalleryCoordinator
                 'action' => 'unpublish',
                 'outcome' => 'success',
                 'restored_from_revision' => null,
-                'created_at' => DB::raw('clock_timestamp()'),
+                'created_at' => DatabaseClock::raw(),
             ]);
 
             $updatedDoc = DB::table('gallery_documents')->where('slug', self::DEFAULT_SLUG)->first();
@@ -424,11 +434,9 @@ final class GalleryCoordinator
         return DB::transaction(function () use ($targetRevision, $expectedRevision, $staffId, $revalidateAuthorizer): array {
             $revalidateAuthorizer();
 
-            DB::select('SELECT pg_advisory_xact_lock(hashtext(?))', ['gallery_doc:' . self::DEFAULT_SLUG]);
-
-            $revalidateAuthorizer();
-
             $doc = DB::table('gallery_documents')->where('slug', self::DEFAULT_SLUG)->lockForUpdate()->first();
+                // Fresh authority after any waited aggregate lock, before mutation.
+                $revalidateAuthorizer();
 
             if ($doc === null) {
                 throw new GalleryNotFoundException('Gallery configuration not found.');
@@ -471,14 +479,14 @@ final class GalleryCoordinator
                 'snapshot_json' => $targetRevRow->snapshot_bytes,
                 'snapshot_bytes' => $targetRevRow->snapshot_bytes,
                 'snapshot_hash' => $targetRevRow->snapshot_hash,
-                'created_at' => DB::raw('clock_timestamp()'),
+                'created_at' => DatabaseClock::raw(),
             ]);
 
             DB::table('gallery_published_revisions')->insert([
                 'slug' => self::DEFAULT_SLUG,
                 'revision' => $newContentRevision,
                 'staff_id' => $staffId,
-                'published_at' => DB::raw('clock_timestamp()'),
+                'published_at' => DatabaseClock::raw(),
             ]);
 
             DB::table('gallery_documents')->where('slug', self::DEFAULT_SLUG)->update([
@@ -488,7 +496,7 @@ final class GalleryCoordinator
                 'status' => 'published',
                 'tombstoned' => false,
                 'tombstoned_at' => null,
-                'updated_at' => DB::raw('clock_timestamp()'),
+                'updated_at' => DatabaseClock::raw(),
             ]);
 
             DB::table('gallery_audit_events')->insert([
@@ -499,7 +507,7 @@ final class GalleryCoordinator
                 'action' => 'restore',
                 'outcome' => 'success',
                 'restored_from_revision' => $targetRevision,
-                'created_at' => DB::raw('clock_timestamp()'),
+                'created_at' => DatabaseClock::raw(),
             ]);
 
             $updatedDoc = DB::table('gallery_documents')->where('slug', self::DEFAULT_SLUG)->first();

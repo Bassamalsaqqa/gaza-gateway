@@ -6,6 +6,7 @@ namespace App\Identity\Proofs;
 
 use App\Identity\Proofs\Exceptions\ProofValidationException;
 use App\Identity\Tokens\OpaqueToken;
+use App\Support\DatabaseClock;
 use Carbon\CarbonImmutable;
 use Closure;
 use Illuminate\Database\ConnectionInterface;
@@ -66,8 +67,9 @@ class ProofService
         ProofPurpose $purpose,
         string $principalId,
         ?ConnectionInterface $conn = null,
+        ?string $actorStaffId = null,
     ): ProofIssuedReceipt {
-        return $this->executeInTransaction($conn, function (ConnectionInterface $tx) use ($purpose, $principalId) {
+        return $this->executeInTransaction($conn, function (ConnectionInterface $tx) use ($purpose, $principalId, $actorStaffId) {
             // 1. Lock principal row before reading email snapshot, epoch, or time
             $principal = $tx->table($purpose->principalTable())
                 ->where('id', $principalId)
@@ -79,8 +81,7 @@ class ProofService
             }
 
             // 2. Real time derived strictly after lock acquisition (normalized to second precision)
-            $nowRow = $tx->selectOne('SELECT clock_timestamp() AS now');
-            $now = CarbonImmutable::parse($nowRow->now)->startOfSecond();
+            $now = DatabaseClock::now($tx)->startOfSecond();
             $expiresAt = $now->addSeconds($purpose->defaultTtlSeconds());
 
             // 3. Generate token & record
@@ -100,6 +101,10 @@ class ProofService
                 'credential_epoch' => (int) $principal->credential_epoch,
                 'email_snapshot' => (string) $principal->email,
             ];
+
+            if ($purpose === ProofPurpose::StaffInvitation && $actorStaffId !== null) {
+                $record['invited_by_staff_id'] = $actorStaffId;
+            }
 
             $tx->table($purpose->table())->insert($record);
 
@@ -125,8 +130,9 @@ class ProofService
         ProofPurpose $purpose,
         string $principalId,
         ?ConnectionInterface $conn = null,
+        ?string $actorStaffId = null,
     ): ProofIssuedReceipt {
-        return $this->executeInTransaction($conn, function (ConnectionInterface $tx) use ($purpose, $principalId) {
+        return $this->executeInTransaction($conn, function (ConnectionInterface $tx) use ($purpose, $principalId, $actorStaffId) {
             // 1. Lock principal row
             $principal = $tx->table($purpose->principalTable())
                 ->where('id', $principalId)
@@ -152,19 +158,18 @@ class ProofService
                     ->whereIn('id', $activeProofIds)
                     ->update([
                         'state' => 'revoked',
-                        'revoked_at' => $tx->raw('clock_timestamp()'),
+                        'revoked_at' => DatabaseClock::raw(),
                     ]);
             }
 
             // 3. Real time derived strictly after locks (normalized to second precision)
-            $nowRow = $tx->selectOne('SELECT clock_timestamp() AS now');
-            $now = CarbonImmutable::parse($nowRow->now)->startOfSecond();
+            $now = DatabaseClock::now($tx)->startOfSecond();
             $expiresAt = $now->addSeconds($purpose->defaultTtlSeconds());
 
             $token = OpaqueToken::generate($purpose->realm(), $purpose->value);
             $proofId = (string) Str::uuid();
 
-            $tx->table($purpose->table())->insert([
+            $record = [
                 'id' => $proofId,
                 'token_digest' => $token->digest,
                 'state' => 'issued',
@@ -176,7 +181,13 @@ class ProofService
                 'purpose' => $purpose->value,
                 'credential_epoch' => (int) $principal->credential_epoch,
                 'email_snapshot' => (string) $principal->email,
-            ]);
+            ];
+
+            if ($purpose === ProofPurpose::StaffInvitation && $actorStaffId !== null) {
+                $record['invited_by_staff_id'] = $actorStaffId;
+            }
+
+            $tx->table($purpose->table())->insert($record);
 
             return new ProofIssuedReceipt(
                 proofId: $proofId,
@@ -229,7 +240,7 @@ class ProofService
                 ->whereIn('id', $activeIds)
                 ->update([
                     'state' => 'revoked',
-                    'revoked_at' => $tx->raw('clock_timestamp()'),
+                    'revoked_at' => DatabaseClock::raw(),
                 ]);
         });
     }
@@ -316,8 +327,7 @@ class ProofService
             }
 
             // 3. Fresh time evaluation strictly after lock acquisition
-            $liveNowRow = $tx->selectOne('SELECT clock_timestamp() AS now');
-            $liveNow = CarbonImmutable::parse($liveNowRow->now);
+            $liveNow = DatabaseClock::now($tx);
 
             // 4. State checks
             if ($proofRow->state === 'consumed') {
@@ -370,7 +380,7 @@ class ProofService
                     ->where('id', $proofId)
                     ->update([
                         'state' => 'revoked',
-                        'revoked_at' => $tx->raw('clock_timestamp()'),
+                        'revoked_at' => DatabaseClock::raw(),
                     ]);
 
                 return ProofConsumptionResult::failure(
@@ -385,7 +395,7 @@ class ProofService
                     ->where('id', $proofId)
                     ->update([
                         'state' => 'revoked',
-                        'revoked_at' => $tx->raw('clock_timestamp()'),
+                        'revoked_at' => DatabaseClock::raw(),
                     ]);
 
                 return ProofConsumptionResult::failure(
@@ -399,7 +409,7 @@ class ProofService
                 ->where('id', $proofId)
                 ->update([
                     'state' => 'consumed',
-                    'consumed_at' => $tx->raw('clock_timestamp()'),
+                    'consumed_at' => DatabaseClock::raw(),
                 ]);
 
             return ProofConsumptionResult::success(

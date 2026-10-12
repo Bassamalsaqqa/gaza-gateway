@@ -9,7 +9,10 @@ use App\Editorial\Exceptions\EditorialNotFoundException;
 use App\Editorial\Exceptions\EditorialUnpublishedException;
 use App\Editorial\Exceptions\EditorialValidationException;
 use App\Editorial\Validation\EditorialValidator;
+use App\Support\DatabaseClock;
+use App\Support\DatabaseFailure;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -92,44 +95,110 @@ final class EditorialCoordinator
         string $staffId,
         callable $revalidateAuthorizer
     ): array {
-        return DB::transaction(function () use ($slug, $payload, $expectedRevision, $staffId, $revalidateAuthorizer): array {
-            // 1. Authorize at transaction entry before advisory/doc lock (verifies staff/session locks)
-            $revalidateAuthorizer();
+        try {
+            return DB::transaction(function () use ($slug, $payload, $expectedRevision, $staffId, $revalidateAuthorizer): array {
+                // 1. Authorize at transaction entry (verifies staff/session locks)
+                $revalidateAuthorizer();
 
-            // 2. Transactional per-slug advisory lock to serialize concurrent mutations on the same slug
-            // (including concurrent initial saves with expectedRevision=0 where no row exists yet)
-            DB::select('SELECT pg_advisory_xact_lock(hashtext(?))', ['editorial_doc:' . $slug]);
+                // 2. Domain row lock
+                $doc = DB::table('editorial_documents')->where('slug', $slug)->lockForUpdate()->first();
+                // Fresh authority after any waited aggregate lock, before mutation.
+                $revalidateAuthorizer();
 
-            // 3. Reauthorize after the domain wait (verifies session did not expire in lock queue)
-            $revalidateAuthorizer();
+                if ($doc === null) {
+                    if ($expectedRevision !== 0) {
+                        throw new EditorialConflictException(
+                            "Revision conflict: document is uninitialized (version 0), but expected revision $expectedRevision was specified."
+                        );
+                    }
 
-            // 4. Domain row lock
-            $doc = DB::table('editorial_documents')->where('slug', $slug)->lockForUpdate()->first();
+                    $this->validator->validate($slug, $payload);
+                    $canonicalJson = self::canonicalJson($payload);
+                    $newCurrentRevision = 1;
+                    $newContentRevision = 1;
 
-            if ($doc === null) {
-                if ($expectedRevision !== 0) {
+                    DB::table('editorial_documents')->insert([
+                        'slug' => $slug,
+                        'kind' => $slug,
+                        'status' => 'draft',
+                        'current_revision' => $newCurrentRevision,
+                        'published_revision' => null,
+                        'draft_revision' => null,
+                        'tombstoned' => false,
+                        'tombstoned_at' => null,
+                        'created_at' => DatabaseClock::raw(),
+                        'updated_at' => DatabaseClock::raw(),
+                    ]);
+
+                    DB::table('editorial_revisions')->insert([
+                        'slug' => $slug,
+                        'revision' => $newContentRevision,
+                        'snapshot_json' => $canonicalJson,
+                        'snapshot_bytes' => $canonicalJson,
+                        'snapshot_hash' => hash('sha256', $canonicalJson),
+                        'created_at' => DatabaseClock::raw(),
+                    ]);
+
+                    // MySQL checks foreign keys immediately; publish the pointer only after its revision exists.
+                    DB::table('editorial_documents')->where('slug', $slug)
+                        ->update(['draft_revision' => $newContentRevision]);
+
+                    DB::table('editorial_audit_events')->insert([
+                        'id' => (string) Str::uuid(),
+                        'slug' => $slug,
+                        'revision' => $newContentRevision,
+                        'staff_id' => $staffId,
+                        'action' => 'draft.save',
+                        'outcome' => 'success',
+                        'restored_from_revision' => null,
+                        'created_at' => DatabaseClock::raw(),
+                    ]);
+
+                    return [
+                        'slug' => $slug,
+                        'changed' => true,
+                        'revision' => $newContentRevision,
+                        'currentRevision' => $newCurrentRevision,
+                        'status' => 'draft',
+                    ];
+                }
+
+                $currentRevision = (int) $doc->current_revision;
+                if ($expectedRevision !== $currentRevision) {
                     throw new EditorialConflictException(
-                        "Revision conflict: document is uninitialized (version 0), but expected revision $expectedRevision was specified."
+                        "Revision conflict: current revision is $currentRevision, but expected revision $expectedRevision was specified."
                     );
+                }
+
+                $activeRevNumber = $doc->draft_revision !== null
+                    ? (int) $doc->draft_revision
+                    : ($doc->published_revision !== null ? (int) $doc->published_revision : null);
+
+                if ($activeRevNumber !== null) {
+                    $activeRev = DB::table('editorial_revisions')
+                        ->where('slug', $slug)
+                        ->where('revision', $activeRevNumber)
+                        ->first();
+                    if ($activeRev !== null) {
+                        $existingPayload = json_decode($activeRev->snapshot_bytes, true, 512, JSON_THROW_ON_ERROR);
+                        if (self::sameValue($existingPayload, $payload)) {
+                            return [
+                                'slug' => $slug,
+                                'changed' => false,
+                                'revision' => $activeRevNumber,
+                                'currentRevision' => $currentRevision,
+                                'status' => $doc->status,
+                            ];
+                        }
+                    }
                 }
 
                 $this->validator->validate($slug, $payload);
                 $canonicalJson = self::canonicalJson($payload);
-                $newCurrentRevision = 1;
-                $newContentRevision = 1;
 
-                DB::table('editorial_documents')->insert([
-                    'slug' => $slug,
-                    'kind' => $slug,
-                    'status' => 'draft',
-                    'current_revision' => $newCurrentRevision,
-                    'published_revision' => null,
-                    'draft_revision' => $newContentRevision,
-                    'tombstoned' => false,
-                    'tombstoned_at' => null,
-                    'created_at' => DB::raw('clock_timestamp()'),
-                    'updated_at' => DB::raw('clock_timestamp()'),
-                ]);
+                $maxContentRev = (int) DB::table('editorial_revisions')->where('slug', $slug)->max('revision');
+                $newContentRevision = $maxContentRev + 1;
+                $newCurrentRevision = $currentRevision + 1;
 
                 DB::table('editorial_revisions')->insert([
                     'slug' => $slug,
@@ -137,7 +206,14 @@ final class EditorialCoordinator
                     'snapshot_json' => $canonicalJson,
                     'snapshot_bytes' => $canonicalJson,
                     'snapshot_hash' => hash('sha256', $canonicalJson),
-                    'created_at' => DB::raw('clock_timestamp()'),
+                    'created_at' => DatabaseClock::raw(),
+                ]);
+
+                DB::table('editorial_documents')->where('slug', $slug)->update([
+                    'current_revision' => $newCurrentRevision,
+                    'draft_revision' => $newContentRevision,
+                    'status' => 'draft',
+                    'updated_at' => DatabaseClock::raw(),
                 ]);
 
                 DB::table('editorial_audit_events')->insert([
@@ -148,7 +224,7 @@ final class EditorialCoordinator
                     'action' => 'draft.save',
                     'outcome' => 'success',
                     'restored_from_revision' => null,
-                    'created_at' => DB::raw('clock_timestamp()'),
+                    'created_at' => DatabaseClock::raw(),
                 ]);
 
                 return [
@@ -158,80 +234,16 @@ final class EditorialCoordinator
                     'currentRevision' => $newCurrentRevision,
                     'status' => 'draft',
                 ];
-            }
-
-            $currentRevision = (int) $doc->current_revision;
-            if ($expectedRevision !== $currentRevision) {
+            });
+        } catch (QueryException $e) {
+            if (DatabaseFailure::isDuplicate($e)) {
                 throw new EditorialConflictException(
-                    "Revision conflict: current revision is $currentRevision, but expected revision $expectedRevision was specified."
+                    "Revision conflict: document was concurrently initialized.",
+                    previous: $e
                 );
             }
-
-            $activeRevNumber = $doc->draft_revision !== null
-                ? (int) $doc->draft_revision
-                : ($doc->published_revision !== null ? (int) $doc->published_revision : null);
-
-            if ($activeRevNumber !== null) {
-                $activeRev = DB::table('editorial_revisions')
-                    ->where('slug', $slug)
-                    ->where('revision', $activeRevNumber)
-                    ->first();
-                if ($activeRev !== null) {
-                    $existingPayload = json_decode($activeRev->snapshot_bytes, true, 512, JSON_THROW_ON_ERROR);
-                    if (self::sameValue($existingPayload, $payload)) {
-                        return [
-                            'slug' => $slug,
-                            'changed' => false,
-                            'revision' => $activeRevNumber,
-                            'currentRevision' => $currentRevision,
-                            'status' => $doc->status,
-                        ];
-                    }
-                }
-            }
-
-            $this->validator->validate($slug, $payload);
-            $canonicalJson = self::canonicalJson($payload);
-
-            $maxContentRev = (int) DB::table('editorial_revisions')->where('slug', $slug)->max('revision');
-            $newContentRevision = $maxContentRev + 1;
-            $newCurrentRevision = $currentRevision + 1;
-
-            DB::table('editorial_revisions')->insert([
-                'slug' => $slug,
-                'revision' => $newContentRevision,
-                'snapshot_json' => $canonicalJson,
-                'snapshot_bytes' => $canonicalJson,
-                'snapshot_hash' => hash('sha256', $canonicalJson),
-                'created_at' => DB::raw('clock_timestamp()'),
-            ]);
-
-            DB::table('editorial_documents')->where('slug', $slug)->update([
-                'current_revision' => $newCurrentRevision,
-                'draft_revision' => $newContentRevision,
-                'status' => 'draft',
-                'updated_at' => DB::raw('clock_timestamp()'),
-            ]);
-
-            DB::table('editorial_audit_events')->insert([
-                'id' => (string) Str::uuid(),
-                'slug' => $slug,
-                'revision' => $newContentRevision,
-                'staff_id' => $staffId,
-                'action' => 'draft.save',
-                'outcome' => 'success',
-                'restored_from_revision' => null,
-                'created_at' => DB::raw('clock_timestamp()'),
-            ]);
-
-            return [
-                'slug' => $slug,
-                'changed' => true,
-                'revision' => $newContentRevision,
-                'currentRevision' => $newCurrentRevision,
-                'status' => 'draft',
-            ];
-        });
+            throw $e;
+        }
     }
 
     public function discardDraft(
@@ -241,17 +253,13 @@ final class EditorialCoordinator
         callable $revalidateAuthorizer
     ): array {
         return DB::transaction(function () use ($slug, $expectedRevision, $staffId, $revalidateAuthorizer): array {
-            // 1. Authorize at transaction entry before advisory/doc lock (verifies staff/session locks)
+            // 1. Authorize at transaction entry (verifies staff/session locks)
             $revalidateAuthorizer();
 
-            // 2. Transactional per-slug advisory lock
-            DB::select('SELECT pg_advisory_xact_lock(hashtext(?))', ['editorial_doc:' . $slug]);
-
-            // 3. Reauthorize after domain wait
-            $revalidateAuthorizer();
-
-            // 4. Domain row lock
+            // 2. Domain row lock
             $doc = DB::table('editorial_documents')->where('slug', $slug)->lockForUpdate()->first();
+                // Fresh authority after any waited aggregate lock, before mutation.
+                $revalidateAuthorizer();
 
             if ($doc === null) {
                 throw new EditorialNotFoundException("Document '$slug' not found.");
@@ -279,7 +287,7 @@ final class EditorialCoordinator
                 'current_revision' => $newCurrentRevision,
                 'draft_revision' => null,
                 'status' => $newStatus,
-                'updated_at' => DB::raw('clock_timestamp()'),
+                'updated_at' => DatabaseClock::raw(),
             ]);
 
             DB::table('editorial_audit_events')->insert([
@@ -290,7 +298,7 @@ final class EditorialCoordinator
                 'action' => 'draft.discard',
                 'outcome' => 'success',
                 'restored_from_revision' => null,
-                'created_at' => DB::raw('clock_timestamp()'),
+                'created_at' => DatabaseClock::raw(),
             ]);
 
             $updatedDoc = DB::table('editorial_documents')->where('slug', $slug)->first();
@@ -305,17 +313,13 @@ final class EditorialCoordinator
         callable $revalidateAuthorizer
     ): array {
         return DB::transaction(function () use ($slug, $expectedRevision, $staffId, $revalidateAuthorizer): array {
-            // 1. Authorize at transaction entry before advisory/doc lock (verifies staff/session locks)
+            // 1. Authorize at transaction entry (verifies staff/session locks)
             $revalidateAuthorizer();
 
-            // 2. Transactional per-slug advisory lock
-            DB::select('SELECT pg_advisory_xact_lock(hashtext(?))', ['editorial_doc:' . $slug]);
-
-            // 3. Reauthorize after domain wait
-            $revalidateAuthorizer();
-
-            // 4. Domain row lock
+            // 2. Domain row lock
             $doc = DB::table('editorial_documents')->where('slug', $slug)->lockForUpdate()->first();
+                // Fresh authority after any waited aggregate lock, before mutation.
+                $revalidateAuthorizer();
 
             if ($doc === null) {
                 throw new EditorialNotFoundException("Document '$slug' not found.");
@@ -341,11 +345,10 @@ final class EditorialCoordinator
                 throw new EditorialValidationException("No draft or revision available to publish for '$slug'.");
             }
 
-            // Record into published history (ON CONFLICT DO NOTHING for idempotency / re-publish)
+            // Record into published history (INSERT IGNORE for idempotency / re-publish)
             DB::statement(
-                'INSERT INTO editorial_published_revisions (slug, revision, staff_id, published_at)
-                 VALUES (?, ?, ?, clock_timestamp())
-                 ON CONFLICT (slug, revision) DO NOTHING',
+                'INSERT IGNORE INTO editorial_published_revisions (slug, revision, staff_id, published_at)
+                 VALUES (?, ?, ?, UTC_TIMESTAMP(6))',
                 [$slug, $revToPublish, $staffId]
             );
 
@@ -358,7 +361,7 @@ final class EditorialCoordinator
                 'status' => 'published',
                 'tombstoned' => false,
                 'tombstoned_at' => null,
-                'updated_at' => DB::raw('clock_timestamp()'),
+                'updated_at' => DatabaseClock::raw(),
             ]);
 
             DB::table('editorial_audit_events')->insert([
@@ -369,7 +372,7 @@ final class EditorialCoordinator
                 'action' => 'publish',
                 'outcome' => 'success',
                 'restored_from_revision' => null,
-                'created_at' => DB::raw('clock_timestamp()'),
+                'created_at' => DatabaseClock::raw(),
             ]);
 
             $updatedDoc = DB::table('editorial_documents')->where('slug', $slug)->first();
@@ -384,17 +387,13 @@ final class EditorialCoordinator
         callable $revalidateAuthorizer
     ): array {
         return DB::transaction(function () use ($slug, $expectedRevision, $staffId, $revalidateAuthorizer): array {
-            // 1. Authorize at transaction entry before advisory/doc lock (verifies staff/session locks)
+            // 1. Authorize at transaction entry (verifies staff/session locks)
             $revalidateAuthorizer();
 
-            // 2. Transactional per-slug advisory lock
-            DB::select('SELECT pg_advisory_xact_lock(hashtext(?))', ['editorial_doc:' . $slug]);
-
-            // 3. Reauthorize after domain wait
-            $revalidateAuthorizer();
-
-            // 4. Domain row lock
+            // 2. Domain row lock
             $doc = DB::table('editorial_documents')->where('slug', $slug)->lockForUpdate()->first();
+                // Fresh authority after any waited aggregate lock, before mutation.
+                $revalidateAuthorizer();
 
             if ($doc === null) {
                 throw new EditorialNotFoundException("Document '$slug' not found.");
@@ -422,8 +421,8 @@ final class EditorialCoordinator
                 'current_revision' => $newCurrentRevision,
                 'status' => 'unpublished',
                 'tombstoned' => true,
-                'tombstoned_at' => DB::raw('clock_timestamp()'),
-                'updated_at' => DB::raw('clock_timestamp()'),
+                'tombstoned_at' => DatabaseClock::raw(),
+                'updated_at' => DatabaseClock::raw(),
             ]);
 
             DB::table('editorial_audit_events')->insert([
@@ -434,7 +433,7 @@ final class EditorialCoordinator
                 'action' => 'unpublish',
                 'outcome' => 'success',
                 'restored_from_revision' => null,
-                'created_at' => DB::raw('clock_timestamp()'),
+                'created_at' => DatabaseClock::raw(),
             ]);
 
             $updatedDoc = DB::table('editorial_documents')->where('slug', $slug)->first();
@@ -450,17 +449,13 @@ final class EditorialCoordinator
         callable $revalidateAuthorizer
     ): array {
         return DB::transaction(function () use ($slug, $targetRevision, $expectedRevision, $staffId, $revalidateAuthorizer): array {
-            // 1. Authorize at transaction entry before advisory/doc lock (verifies staff/session locks)
+            // 1. Authorize at transaction entry (verifies staff/session locks)
             $revalidateAuthorizer();
 
-            // 2. Transactional per-slug advisory lock
-            DB::select('SELECT pg_advisory_xact_lock(hashtext(?))', ['editorial_doc:' . $slug]);
-
-            // 3. Reauthorize after domain wait
-            $revalidateAuthorizer();
-
-            // 4. Domain row lock
+            // 2. Domain row lock
             $doc = DB::table('editorial_documents')->where('slug', $slug)->lockForUpdate()->first();
+                // Fresh authority after any waited aggregate lock, before mutation.
+                $revalidateAuthorizer();
 
             if ($doc === null) {
                 throw new EditorialNotFoundException("Document '$slug' not found.");
@@ -504,14 +499,14 @@ final class EditorialCoordinator
                 'snapshot_json' => $targetRevRow->snapshot_bytes,
                 'snapshot_bytes' => $targetRevRow->snapshot_bytes,
                 'snapshot_hash' => $targetRevRow->snapshot_hash,
-                'created_at' => DB::raw('clock_timestamp()'),
+                'created_at' => DatabaseClock::raw(),
             ]);
 
             DB::table('editorial_published_revisions')->insert([
                 'slug' => $slug,
                 'revision' => $newContentRevision,
                 'staff_id' => $staffId,
-                'published_at' => DB::raw('clock_timestamp()'),
+                'published_at' => DatabaseClock::raw(),
             ]);
 
             DB::table('editorial_documents')->where('slug', $slug)->update([
@@ -521,7 +516,7 @@ final class EditorialCoordinator
                 'status' => 'published',
                 'tombstoned' => false,
                 'tombstoned_at' => null,
-                'updated_at' => DB::raw('clock_timestamp()'),
+                'updated_at' => DatabaseClock::raw(),
             ]);
 
             DB::table('editorial_audit_events')->insert([
@@ -532,7 +527,7 @@ final class EditorialCoordinator
                 'action' => 'restore',
                 'outcome' => 'success',
                 'restored_from_revision' => $targetRevision,
-                'created_at' => DB::raw('clock_timestamp()'),
+                'created_at' => DatabaseClock::raw(),
             ]);
 
             $updatedDoc = DB::table('editorial_documents')->where('slug', $slug)->first();

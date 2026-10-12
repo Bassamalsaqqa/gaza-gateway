@@ -45,8 +45,7 @@ final class BookingAccessCoordinator
         if (!$charge->allowed) { throw new RateLimitExceededException($charge->retryAfterSeconds); }
         $challengeStarted = $create ? hrtime(true) : null;
         $result = $this->db->transaction(function () use ($operation, $input, $ref, $context, $cookie, $csrf, $create, $claim, $requestId) {
-            $this->db->statement("SET LOCAL lock_timeout = '3000ms'");
-            $this->db->statement("SET LOCAL statement_timeout = '5000ms'");
+            \App\Support\DatabaseFailure::applyTimeouts($this->db, 5000, 3000);
             $user = $context->getUserId() === null ? null : $this->db->table('users')->where('id', $context->getUserId())->lockForUpdate()->first();
             $candidate = isset($input['challengeId']) ? $this->db->table('booking_guest_challenges')->where('id', $input['challengeId'])->first() : null;
             $booking = $candidate?->booking_id !== null ? $this->db->table('bookings')->where('id', $candidate->booking_id)->lockForUpdate()->first()
@@ -197,5 +196,5 @@ final class BookingAccessCoordinator
             AuditOutcome::Success, AuditTargetType::Booking, $bookingId, ['success' => true], $requestId, $this->db);
     }
 
-    private function now(): CarbonImmutable { return CarbonImmutable::parse($this->db->selectOne('SELECT clock_timestamp() AS now')->now); }
+    private function now(): CarbonImmutable { return \App\Support\DatabaseClock::now(); }
 }

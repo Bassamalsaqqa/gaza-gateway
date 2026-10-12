@@ -9,6 +9,7 @@ use App\Identity\Passenger\Profile\Exceptions\UnauthorizedPassengerException;
 use App\Identity\Password\Argon2idPasswordHasher;
 use App\Identity\Sessions\PassengerSessionContext;
 use App\Identity\Tokens\OpaqueToken;
+use App\Support\DatabaseClock;
 use Carbon\CarbonImmutable;
 use Closure;
 use Illuminate\Contracts\Encryption\Encrypter;
@@ -197,8 +198,7 @@ final class PassengerProfileAuthorizer
 
         return $db->transaction(function (ConnectionInterface $tx) use ($request, $isUnsafeWrite, $action) {
             // 1. Set finite local query and lock timeouts
-            $tx->statement("SET LOCAL statement_timeout = '8000ms'");
-            $tx->statement("SET LOCAL lock_timeout = '5000ms'");
+            \App\Support\DatabaseFailure::applyTimeouts($tx, 8000, 5000);
 
             // 2. Resolve trusted session context from middleware
             $context = $request->attributes->get('identity_session_context');
@@ -297,9 +297,8 @@ final class PassengerProfileAuthorizer
                 throw new UnauthorizedPassengerException('Session has been revoked.', 'unauthorized');
             }
 
-            // 5. Derive fresh clock_timestamp AFTER lock acquisition
-            $nowRow = $tx->selectOne('SELECT clock_timestamp() AS now');
-            $now = CarbonImmutable::parse($nowRow->now);
+            // 5. Derive fresh UTC_TIMESTAMP(6) AFTER lock acquisition
+            $now = DatabaseClock::now($tx);
 
             $absoluteExpiresAt = CarbonImmutable::parse($session->absolute_expires_at);
             if ($now->greaterThanOrEqualTo($absoluteExpiresAt)) {

@@ -22,24 +22,53 @@ final class GalleryRoutesTest extends TestCase
 
     private function resetGalleryTables(): void
     {
-        if (!app()->environment('testing') || DB::connection()->getDatabaseName() !== 'gaza_gateway_test') {
+        if (!app()->environment('testing') || !in_array(DB::connection()->getDatabaseName(), ['gaza_gateway_test', 'gaza_gateway_mysql_test'], true)) {
             throw new \LogicException('Gallery cleanup requires the disposable testing database.');
         }
         if (!Schema::hasTable('gallery_documents')) return;
-        DB::transaction(function (): void {
-            DB::table('gallery_documents')->update(['draft_revision' => null, 'published_revision' => null]);
-            DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
-            $tables = ['gallery_revisions', 'gallery_published_revisions', 'gallery_audit_events'];
-            foreach ($tables as $table) DB::statement("ALTER TABLE {$table} DISABLE TRIGGER USER");
+
+        if (DB::connection()->getDriverName() === 'mysql') {
+            DB::statement('SET FOREIGN_KEY_CHECKS = 0');
             try {
+                DB::table('gallery_documents')->update(['draft_revision' => null, 'published_revision' => null]);
+                DB::unprepared('DROP TRIGGER IF EXISTS gallery_audit_immutable_del');
+                DB::unprepared('DROP TRIGGER IF EXISTS gallery_published_immutable_del');
+                DB::unprepared('DROP TRIGGER IF EXISTS gallery_revisions_immutable_del');
                 DB::table('gallery_audit_events')->delete();
                 DB::table('gallery_published_revisions')->delete();
                 DB::table('gallery_revisions')->delete();
                 DB::table('gallery_documents')->delete();
             } finally {
-                foreach ($tables as $table) DB::statement("ALTER TABLE {$table} ENABLE TRIGGER USER");
+                DB::unprepared("
+                    CREATE TRIGGER gallery_revisions_immutable_del BEFORE DELETE ON gallery_revisions
+                    FOR EACH ROW BEGIN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Gallery history is append only'; END;
+                ");
+                DB::unprepared("
+                    CREATE TRIGGER gallery_published_immutable_del BEFORE DELETE ON gallery_published_revisions
+                    FOR EACH ROW BEGIN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Gallery history is append only'; END;
+                ");
+                DB::unprepared("
+                    CREATE TRIGGER gallery_audit_immutable_del BEFORE DELETE ON gallery_audit_events
+                    FOR EACH ROW BEGIN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Gallery history is append only'; END;
+                ");
+                DB::statement('SET FOREIGN_KEY_CHECKS = 1');
             }
-        });
+        } else {
+            DB::transaction(function (): void {
+                DB::table('gallery_documents')->update(['draft_revision' => null, 'published_revision' => null]);
+                DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
+                $tables = ['gallery_revisions', 'gallery_published_revisions', 'gallery_audit_events'];
+                foreach ($tables as $table) DB::statement("ALTER TABLE {$table} DISABLE TRIGGER USER");
+                try {
+                    DB::table('gallery_audit_events')->delete();
+                    DB::table('gallery_published_revisions')->delete();
+                    DB::table('gallery_revisions')->delete();
+                    DB::table('gallery_documents')->delete();
+                } finally {
+                    foreach ($tables as $table) DB::statement("ALTER TABLE {$table} ENABLE TRIGGER USER");
+                }
+            });
+        }
     }
 
     protected function setUp(): void
@@ -60,7 +89,7 @@ final class GalleryRoutesTest extends TestCase
 
     private function staff(string $role = 'admin'): array
     {
-        $id = (string) Str::uuid();
+        $id = $this->trackStaffId((string) Str::uuid());
         self::$hash ??= app(Argon2idPasswordHasher::class)->hash('Synthetic-gallery-password-2026', 'staff');
         DB::table('staff_users')->insert([
             'id' => $id,
@@ -72,16 +101,16 @@ final class GalleryRoutesTest extends TestCase
             'role' => $role,
             'status' => 'invited',
             'credential_epoch' => 1,
-            'email_verified_at' => DB::raw('clock_timestamp()'),
-            'created_at' => DB::raw('clock_timestamp()'),
-            'updated_at' => DB::raw('clock_timestamp()'),
+            'email_verified_at' => DB::raw('UTC_TIMESTAMP(6)'),
+            'created_at' => DB::raw('UTC_TIMESTAMP(6)'),
+            'updated_at' => DB::raw('UTC_TIMESTAMP(6)'),
         ]);
 
         DB::table('staff_mfa_credentials')->insert([
             'staff_id' => $id,
             'version' => 1,
             'encrypted_secret' => app(Encrypter::class)->encrypt(TotpSecret::generate()->revealBase32Secret()),
-            'confirmed_at' => DB::raw('clock_timestamp()'),
+            'confirmed_at' => DB::raw('UTC_TIMESTAMP(6)'),
         ]);
 
         DB::table('staff_users')->where('id', $id)->update(['status' => 'active', 'mfa_version' => 1]);
@@ -638,7 +667,11 @@ final class GalleryRoutesTest extends TestCase
         foreach (['digest', 'schema'] as $fault) {
             DB::beginTransaction();
             try {
-                DB::statement('ALTER TABLE gallery_revisions DISABLE TRIGGER USER');
+                if (DB::connection()->getDriverName() === 'mysql') {
+                    DB::unprepared('DROP TRIGGER IF EXISTS gallery_revisions_immutable_upd;');
+                } else {
+                    DB::statement('ALTER TABLE gallery_revisions DISABLE TRIGGER USER');
+                }
                 // Restore creates a new immutable content revision; use the actual published pointer.
                 $revision = DB::table('gallery_documents')->where('slug', 'default')->value('published_revision');
                 $row = DB::table('gallery_revisions')->where('slug', 'default')->where('revision', $revision)->first();
@@ -653,8 +686,13 @@ final class GalleryRoutesTest extends TestCase
                 $response->assertStatus(500)->assertJsonPath('error.message', 'Published gallery snapshot integrity failure.');
                 $this->assertStringNotContainsString('CORRUPTION-SECRET', $response->getContent());
             } finally {
-                // PostgreSQL rolls back the temporary trigger change and corrupted row together.
                 DB::rollBack();
+                if (DB::connection()->getDriverName() === 'mysql') {
+                    DB::unprepared("
+                        CREATE TRIGGER gallery_revisions_immutable_upd BEFORE UPDATE ON gallery_revisions
+                        FOR EACH ROW BEGIN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Gallery history is append only'; END;
+                    ");
+                }
             }
         }
 

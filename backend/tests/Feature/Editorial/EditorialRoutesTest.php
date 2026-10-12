@@ -23,7 +23,7 @@ final class EditorialRoutesTest extends TestCase
 
     private function staff(string $role = 'admin'): array
     {
-        $id = (string) Str::uuid();
+        $id = $this->trackStaffId((string) Str::uuid());
         self::$hash ??= app(Argon2idPasswordHasher::class)->hash('Synthetic-editorial-password-2026', 'staff');
         DB::table('staff_users')->insert([
             'id' => $id,
@@ -35,16 +35,16 @@ final class EditorialRoutesTest extends TestCase
             'role' => $role,
             'status' => 'invited',
             'credential_epoch' => 1,
-            'email_verified_at' => DB::raw('clock_timestamp()'),
-            'created_at' => DB::raw('clock_timestamp()'),
-            'updated_at' => DB::raw('clock_timestamp()'),
+            'email_verified_at' => DB::raw('UTC_TIMESTAMP(6)'),
+            'created_at' => DB::raw('UTC_TIMESTAMP(6)'),
+            'updated_at' => DB::raw('UTC_TIMESTAMP(6)'),
         ]);
 
         DB::table('staff_mfa_credentials')->insert([
             'staff_id' => $id,
             'version' => 1,
             'encrypted_secret' => app(Encrypter::class)->encrypt(TotpSecret::generate()->revealBase32Secret()),
-            'confirmed_at' => DB::raw('clock_timestamp()'),
+            'confirmed_at' => DB::raw('UTC_TIMESTAMP(6)'),
         ]);
 
         DB::table('staff_users')->where('id', $id)->update(['status' => 'active', 'mfa_version' => 1]);
@@ -545,12 +545,11 @@ final class EditorialRoutesTest extends TestCase
         $currentRevision = (int) DB::table('editorial_documents')->where('slug', 'home')->value('current_revision');
 
         DB::unprepared("
-            CREATE FUNCTION editorial_test_fail() RETURNS trigger LANGUAGE plpgsql AS \$\$
-            BEGIN
-                RAISE EXCEPTION 'Synthetic audit failure';
-            END \$\$;
             CREATE TRIGGER editorial_test_failure BEFORE INSERT ON editorial_audit_events
-            FOR EACH ROW EXECUTE FUNCTION editorial_test_fail();
+            FOR EACH ROW
+            BEGIN
+                SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Synthetic audit failure';
+            END;
         ");
 
         try {
@@ -559,10 +558,7 @@ final class EditorialRoutesTest extends TestCase
                 'expectedRevision' => $currentRevision,
             ])->assertStatus(503);
         } finally {
-            DB::unprepared("
-                DROP TRIGGER editorial_test_failure ON editorial_audit_events;
-                DROP FUNCTION editorial_test_fail();
-            ");
+            DB::unprepared("DROP TRIGGER IF EXISTS editorial_test_failure;");
         }
 
         $this->assertSame($beforeRevCount, DB::table('editorial_revisions')->where('slug', 'home')->count());
@@ -746,7 +742,12 @@ final class EditorialRoutesTest extends TestCase
         $staffBlocked = $this->staff('admin');
         $source = json_decode(file_get_contents('/tmp/editorial-source.json'), true, 512, JSON_THROW_ON_ERROR);
 
-        // 1. Spawn lock holder process to hold pg_advisory_lock on editorial_doc:airport.past
+        if (!DB::table('editorial_documents')->where('slug', 'airport.past')->exists()) {
+            $this->http('PUT', '/cms/editorial/airport.past/draft', $staffHolding,
+                ['payload' => $source['airport.past'], 'expectedRevision' => 0])->assertStatus(200);
+        }
+
+        // 1. Spawn an independent holder of the actual document row lock.
         $holderPipes = [];
         $holderProc = proc_open(
             [PHP_BINARY, base_path('tests/Feature/Editorial/concurrency-worker.php')],
@@ -828,17 +829,19 @@ final class EditorialRoutesTest extends TestCase
         fwrite($workerPipes[0], "GO\n");
         fflush($workerPipes[0]);
 
-        // Wait until worker is actively blocked in PostgreSQL advisory lock queue
-        $blockedInPg = false;
+        // Wait until worker is actively blocked in lock queue
+        $blockedInDb = false;
         for ($i = 0; $i < 60; $i++) {
-            $row = DB::selectOne("SELECT count(*) as cnt FROM pg_locks WHERE locktype = 'advisory' AND NOT granted");
+            $row = DB::connection()->getDriverName() === 'mysql'
+                ? (object) ['cnt' => \Tests\Fixtures\MySqlLockObserver::waitingCount()]
+                : DB::selectOne("SELECT count(*) as cnt FROM pg_locks WHERE locktype = 'advisory' AND NOT granted");
             if ($row !== null && (int) $row->cnt > 0) {
-                $blockedInPg = true;
+                $blockedInDb = true;
                 break;
             }
             usleep(50000);
         }
-        $this->assertTrue($blockedInPg, 'Worker was not blocked in PostgreSQL lock queue');
+        $this->assertTrue($blockedInDb, 'Worker was not blocked in lock queue');
 
         // Wait 2000ms so absolute and idle expiry (1500ms) elapse while blocked in lock queue
         usleep(2000000);
@@ -1070,11 +1073,28 @@ final class EditorialRoutesTest extends TestCase
         $this->http('POST', '/cms/editorial/home/publish', $staff, ['expectedRevision' => 1])->assertStatus(200);
         $this->http('GET', '/cms/published/home')->assertStatus(200);
         // Disposable test database: simulate legacy malformed immutable bytes without promoting them.
-        DB::statement('ALTER TABLE editorial_revisions DISABLE TRIGGER USER');
-        try {
-            $bad = $source['home']; $bad['seo']['secretValue'] = 'private-sentinel';
-            DB::table('editorial_revisions')->where('slug', 'home')->update(['snapshot_bytes' => json_encode($bad, JSON_THROW_ON_ERROR), 'snapshot_json' => json_encode($bad, JSON_THROW_ON_ERROR), 'snapshot_hash' => hash('sha256', json_encode($bad, JSON_THROW_ON_ERROR))]);
-        } finally { DB::statement('ALTER TABLE editorial_revisions ENABLE TRIGGER USER'); }
+        if (DB::connection()->getDriverName() === 'mysql') {
+            DB::unprepared('DROP TRIGGER IF EXISTS editorial_revisions_immutable_upd;');
+            try {
+                $bad = $source['home']; $bad['seo']['secretValue'] = 'private-sentinel';
+                DB::table('editorial_revisions')->where('slug', 'home')->update(['snapshot_bytes' => json_encode($bad, JSON_THROW_ON_ERROR), 'snapshot_json' => json_encode($bad, JSON_THROW_ON_ERROR), 'snapshot_hash' => hash('sha256', json_encode($bad, JSON_THROW_ON_ERROR))]);
+            } finally {
+                DB::unprepared("
+                    CREATE TRIGGER editorial_revisions_immutable_upd
+                    BEFORE UPDATE ON editorial_revisions
+                    FOR EACH ROW
+                    BEGIN
+                        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Editorial history is append only';
+                    END;
+                ");
+            }
+        } else {
+            DB::statement('ALTER TABLE editorial_revisions DISABLE TRIGGER USER');
+            try {
+                $bad = $source['home']; $bad['seo']['secretValue'] = 'private-sentinel';
+                DB::table('editorial_revisions')->where('slug', 'home')->update(['snapshot_bytes' => json_encode($bad, JSON_THROW_ON_ERROR), 'snapshot_json' => json_encode($bad, JSON_THROW_ON_ERROR), 'snapshot_hash' => hash('sha256', json_encode($bad, JSON_THROW_ON_ERROR))]);
+            } finally { DB::statement('ALTER TABLE editorial_revisions ENABLE TRIGGER USER'); }
+        }
         $response = $this->http('GET', '/cms/published/home')->assertStatus(500);
         $this->assertStringNotContainsString('private-sentinel', $response->getContent());
     }

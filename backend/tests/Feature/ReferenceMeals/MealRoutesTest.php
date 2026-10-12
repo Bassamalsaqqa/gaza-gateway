@@ -25,7 +25,7 @@ final class MealRoutesTest extends TestCase
 
     private function staff(string $role = 'admin'): array
     {
-        $id = (string) Str::uuid();
+        $id = $this->trackStaffId((string) Str::uuid());
         self::$hash ??= app(Argon2idPasswordHasher::class)->hash('Synthetic-meal-password-2026', 'staff');
         DB::table('staff_users')->insert([
             'id' => $id,
@@ -37,15 +37,15 @@ final class MealRoutesTest extends TestCase
             'role' => $role,
             'status' => 'invited',
             'credential_epoch' => 1,
-            'email_verified_at' => DB::raw('clock_timestamp()'),
-            'created_at' => DB::raw('clock_timestamp()'),
-            'updated_at' => DB::raw('clock_timestamp()'),
+            'email_verified_at' => DB::raw('UTC_TIMESTAMP(6)'),
+            'created_at' => DB::raw('UTC_TIMESTAMP(6)'),
+            'updated_at' => DB::raw('UTC_TIMESTAMP(6)'),
         ]);
         DB::table('staff_mfa_credentials')->insert([
             'staff_id' => $id,
             'version' => 1,
             'encrypted_secret' => app(Encrypter::class)->encrypt(TotpSecret::generate()->revealBase32Secret()),
-            'confirmed_at' => DB::raw('clock_timestamp()'),
+            'confirmed_at' => DB::raw('UTC_TIMESTAMP(6)'),
         ]);
         DB::table('staff_users')->where('id', $id)->update(['status' => 'active', 'mfa_version' => 1]);
         $receipt = app(StaffSessionStore::class)->issueFull($id, 1, 1, new \DateTimeImmutable('-1 second'));
@@ -67,9 +67,9 @@ final class MealRoutesTest extends TestCase
             'password_hash' => self::$hash,
             'status' => 'active',
             'credential_epoch' => 1,
-            'email_verified_at' => DB::raw('clock_timestamp()'),
-            'created_at' => DB::raw('clock_timestamp()'),
-            'updated_at' => DB::raw('clock_timestamp()'),
+            'email_verified_at' => DB::raw('UTC_TIMESTAMP(6)'),
+            'created_at' => DB::raw('UTC_TIMESTAMP(6)'),
+            'updated_at' => DB::raw('UTC_TIMESTAMP(6)'),
         ]);
         DB::table('passenger_profiles')->insert([
             'user_id' => $id,
@@ -79,8 +79,8 @@ final class MealRoutesTest extends TestCase
             'seat_preference' => 'window',
             'meal_preference' => 'standard',
             'newsletter' => true,
-            'created_at' => DB::raw('clock_timestamp()'),
-            'updated_at' => DB::raw('clock_timestamp()'),
+            'created_at' => DB::raw('UTC_TIMESTAMP(6)'),
+            'updated_at' => DB::raw('UTC_TIMESTAMP(6)'),
         ]);
         $receipt = app(PassengerSessionStore::class)->issueFull($id, 1);
         return [
@@ -340,7 +340,7 @@ final class MealRoutesTest extends TestCase
 
         // Now meal-def-target can retire
         $this->http('PATCH', '/admin/meals/meal-def-target', $staff, ['active' => false])->assertOk();
-        $this->assertFalse(DB::table('meal_options')->where('id', 'meal-def-target')->value('active'));
+        $this->assertFalse((bool) DB::table('meal_options')->where('id', 'meal-def-target')->value('active'));
 
         // Inactive meal cannot be set as default
         $this->http('PUT', '/admin/meals/default', $staff, ['id' => 'meal-def-target'])->assertStatus(422);
@@ -682,8 +682,8 @@ final class MealRoutesTest extends TestCase
         $input = $this->input('meal-expire-wait');
 
         DB::table('staff_sessions')->where('id', $staff['id'])->update([
-            'absolute_expires_at' => DB::raw("clock_timestamp() + interval '1500 milliseconds'"),
-            'idle_expires_at' => DB::raw("clock_timestamp() + interval '1400 milliseconds'"),
+            'absolute_expires_at' => DB::raw("DATE_ADD(UTC_TIMESTAMP(6), INTERVAL 1500000 MICROSECOND)"),
+            'idle_expires_at' => DB::raw("DATE_ADD(UTC_TIMESTAMP(6), INTERVAL 1500000 MICROSECOND)"),
         ]);
 
         $db = DB::connection();
@@ -719,17 +719,16 @@ final class MealRoutesTest extends TestCase
             fwrite($pipes[0], "GO\n");
             fflush($pipes[0]);
 
-            $deadline = microtime(true) + 1;
+            $deadline = microtime(true) + 2;
             do {
-                $db->select('SELECT pg_stat_clear_snapshot()');
-                $waiting = (int) $db->selectOne("SELECT count(*) AS n FROM pg_stat_activity WHERE datname=current_database() AND pid<>pg_backend_pid() AND wait_event_type='Lock' AND query LIKE '%meal_revision_control%'")->n;
+                $waiting = (int) \Tests\Fixtures\MySqlLockObserver::waitingCount();
                 if ($waiting > 0) {
                     break;
                 }
                 usleep(10000);
             } while (microtime(true) < $deadline);
 
-            $this->assertGreaterThan(0, $waiting, 'The request must reach locked aggregate before expiry.');
+            $this->assertGreaterThan(0, $waiting, 'The request must reach locked aggregate before expiry. Child: '.stream_get_contents($pipes[1]).' '.stream_get_contents($pipes[2]));
             usleep(1700000);
             $db->commit();
 

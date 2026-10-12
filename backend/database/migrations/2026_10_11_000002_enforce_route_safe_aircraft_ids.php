@@ -9,11 +9,11 @@ return new class extends Migration
     public function up(): void
     {
         // Fail on existing unsafe IDs; immutable identities must never be silently renamed.
-        DB::statement("ALTER TABLE aircraft ADD CONSTRAINT aircraft_route_safe_id CHECK (id ~ '^[A-Za-z0-9_-]{1,64}$')");
+        DB::statement("ALTER TABLE aircraft ADD CONSTRAINT aircraft_route_safe_id CHECK (REGEXP_LIKE(id, '^[A-Za-z0-9_-]{1,64}$', 'c'))");
     }
 
     public function down(): void
     {
-        DB::statement('ALTER TABLE aircraft DROP CONSTRAINT aircraft_route_safe_id');
+        DB::statement('ALTER TABLE aircraft DROP CHECK aircraft_route_safe_id');
     }
 };

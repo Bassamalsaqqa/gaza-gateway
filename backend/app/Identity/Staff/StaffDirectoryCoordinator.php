@@ -16,6 +16,7 @@ use App\Identity\RateLimiting\DurableRateLimiter;
 use App\Identity\Rbac\RbacPolicy;
 use App\Identity\Sessions\StaffSessionContext;
 use App\Identity\Tokens\OpaqueToken;
+use App\Support\DatabaseClock;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Encryption\Encrypter;
 use Illuminate\Database\ConnectionInterface;
@@ -46,8 +47,7 @@ final class StaffDirectoryCoordinator
             if (!$charge->allowed) { throw new RateLimitExceededException($charge->retryAfterSeconds); }
         }
         $result = $this->db->transaction(function () use ($operation, $input, $targetId, $context, $cookie, $csrf, $requestId, $write) {
-            $this->db->statement("SET LOCAL lock_timeout = '3000ms'");
-            $this->db->statement("SET LOCAL statement_timeout = '5000ms'");
+            \App\Support\DatabaseFailure::applyTimeouts($this->db, 5000, 3000);
             $mfa = in_array($operation, self::MFA_OPERATIONS, true);
             $eligibleMutation = $write && (!$mfa || $operation === 'postStaffMfaSetupConfirm');
             if ($eligibleMutation && !$this->db->table('staff_directory_control')->where('id', 1)->lockForUpdate()->first()) {
@@ -98,7 +98,7 @@ final class StaffDirectoryCoordinator
                 $this->db->table('staff_users')->insert(['id' => $targetId, 'username' => $username, 'email' => $email,
                     'full_name_en' => $en, 'full_name_ar' => $ar, 'role' => $input['role'], 'status' => 'invited',
                     'credential_epoch' => 1, 'created_at' => $now, 'updated_at' => $now]);
-                $proof = $this->proofs->issue(ProofPurpose::StaffInvitation, $targetId, $this->db);
+                $proof = $this->proofs->issue(ProofPurpose::StaffInvitation, $targetId, $this->db, $actor->id);
                 $this->outbox->enqueueProof($proof, $this->db);
                 $data = $this->dto($this->db->table('staff_users')->where('id', $targetId)->first());
             } elseif ($operation === 'patchStaffUser') {
@@ -134,7 +134,7 @@ final class StaffDirectoryCoordinator
                     'credential_epoch' => (int) $target->credential_epoch + 1, 'updated_at' => $now]);
                 $this->revoke($targetId, $now);
                 if ($operation === 'postStaffUserInviteReissue') {
-                    $proof = $this->proofs->issue(ProofPurpose::StaffInvitation, $targetId, $this->db);
+                    $proof = $this->proofs->issue(ProofPurpose::StaffInvitation, $targetId, $this->db, $actor->id);
                     $this->outbox->enqueueProof($proof, $this->db);
                     $data = ['reissued' => true, 'expiresAt' => $proof->expiresAt->toIso8601String()];
                 } else { $data = ['revoked' => true]; }
@@ -270,7 +270,7 @@ final class StaffDirectoryCoordinator
     {
         StaffAuthorityRows::revokeLiveSessions($this->db, $id, $now);
         $this->db->table('staff_pending_auth')->where('staff_id', $id)->where('state', 'issued')
-            ->where('expires_at', '>', $this->db->raw('clock_timestamp()'))
+            ->where('expires_at', '>', DatabaseClock::raw())
             ->update(['state' => 'revoked', 'revoked_at' => $now, 'encrypted_staged_secret' => null]);
         $this->proofs->revokeAll(ProofPurpose::StaffInvitation, $id, $this->db);
         $this->proofs->revokeAll(ProofPurpose::StaffPasswordReset, $id, $this->db);
@@ -297,6 +297,6 @@ final class StaffDirectoryCoordinator
 
     private function now(): CarbonImmutable
     {
-        return CarbonImmutable::parse($this->db->selectOne('SELECT clock_timestamp() AS now')->now);
+        return \App\Support\DatabaseClock::now();
     }
 }

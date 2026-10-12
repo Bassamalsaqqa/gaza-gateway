@@ -56,8 +56,7 @@ final class StaffLifecycleCoordinator
         if ($operation === 'postStaffPasswordForgot') { $this->hasher->verify('Synthetic-staff-recovery-work', self::DUMMY_HASH); }
 
         $result = $this->db->transaction(function () use ($operation, $input, $context, $cookie, $csrf, $pendingCookie, $requestId, $newHash) {
-            $this->db->statement("SET LOCAL lock_timeout = '3000ms'");
-            $this->db->statement("SET LOCAL statement_timeout = '5000ms'");
+            \App\Support\DatabaseFailure::applyTimeouts($this->db, 5000, 3000);
             $purpose = $operation === 'postStaffInvitationAccept' ? ProofPurpose::StaffInvitation : ProofPurpose::StaffPasswordReset;
             $candidateProof = isset($input['token']) ? $this->db->table($purpose->table())->where('token_digest', hash('sha256', $input['token']))->first() : null;
             $candidatePending = $pendingCookie === null ? null : $this->db->table('staff_pending_auth')->where('token_digest', hash('sha256', $pendingCookie))->first();
@@ -213,7 +212,7 @@ final class StaffLifecycleCoordinator
     {
         StaffAuthorityRows::revokeLiveSessions($this->db, $id, $now);
         $this->db->table('staff_pending_auth')->where('staff_id', $id)->where('state', 'issued')
-            ->where('expires_at', '>', $this->db->raw('clock_timestamp()'))
+            ->where('expires_at', '>', \App\Support\DatabaseClock::raw())
             ->update(['state' => 'revoked', 'revoked_at' => $now, 'encrypted_staged_secret' => null]);
         $this->proofs->revokeAll(ProofPurpose::StaffPasswordReset, $id, $this->db);
         $this->proofs->revokeAll(ProofPurpose::StaffInvitation, $id, $this->db);
@@ -257,6 +256,6 @@ final class StaffLifecycleCoordinator
 
     private function now(): CarbonImmutable
     {
-        return CarbonImmutable::parse($this->db->selectOne('SELECT clock_timestamp() AS now')->now);
+        return \App\Support\DatabaseClock::now();
     }
 }

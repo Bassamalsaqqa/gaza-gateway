@@ -6,6 +6,7 @@ namespace App\Mvp\Mail;
 use App\Identity\Rbac\RbacPolicy;
 use App\Identity\Sessions\StaffSessionContext;
 use App\Reference\Shared\ReferenceResponse;
+use App\Support\DatabaseClock;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -60,12 +61,12 @@ final class MailController
         $replay = DB::table('mvp_mail_resends')->where('message_id',$message->id)->where('request_id',$body['requestId'])->first();
         if ($replay) return ReferenceResponse::success($request,$this->statusFor($reservation->id,$ref));
         if (!in_array($message->status,['failed','accepted','captured_locally'],true)) abort(409);
-        if (DB::table('mvp_mail_resends')->where('message_id',$message->id)->where('created_at','>',DB::raw("clock_timestamp() - interval '1 hour'"))->count() >= 3) throw new \Symfony\Component\HttpKernel\Exception\HttpException(429, '', null, ['Retry-After'=>'3600']);
+        if (DB::table('mvp_mail_resends')->where('message_id',$message->id)->where('created_at','>',DB::raw("DATE_SUB(UTC_TIMESTAMP(6), INTERVAL 1 HOUR)"))->count() >= 3) throw new \Symfony\Component\HttpKernel\Exception\HttpException(429, '', null, ['Retry-After'=>'3600']);
         $generation = (int)$message->generation+1;
         DB::table('mvp_mail_resends')->insert(['message_id'=>$message->id,'request_id'=>$body['requestId'],
             'actor_id'=>$session instanceof StaffSessionContext ? $session->getStaffId() : $session->getUserId(),'generation'=>$generation]);
         DB::table('mvp_mail_messages')->where('id',$message->id)->update(['status'=>'pending','attempts'=>0,'generation'=>$generation,
-            'accepted_at'=>null,'next_attempt_at'=>DB::raw('clock_timestamp()'),'updated_at'=>DB::raw('clock_timestamp()')]);
+            'accepted_at'=>null,'next_attempt_at'=>DatabaseClock::raw(),'updated_at'=>DatabaseClock::raw()]);
         return ReferenceResponse::success($request,$this->statusFor($reservation->id,$ref));
     }
 

@@ -46,7 +46,7 @@ return new class extends Migration
                     JSON_LENGTH(allowed_cabins) > 0 AND
                     JSON_SCHEMA_VALID(\'{"type":"array","minItems":1,"items":{"type":"string","enum":["economy","premium","business"]}}\', allowed_cabins)
                 )
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
         ');
 
         // 2. quotes (5-minute immutable quote with composite checkout_session integrity)
@@ -69,6 +69,8 @@ return new class extends Migration
                 CONSTRAINT fk_quotes_checkout_session FOREIGN KEY (checkout_session_id) REFERENCES passenger_sessions (id) ON DELETE RESTRICT,
                 CONSTRAINT fk_quotes_fare_id FOREIGN KEY (fare_id) REFERENCES fare_products (id) ON DELETE RESTRICT,
                 CONSTRAINT uq_quotes_id_session UNIQUE (id, checkout_session_id),
+                CONSTRAINT chk_quotes_id_uuid CHECK (REGEXP_LIKE(id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
+                CONSTRAINT chk_quotes_session_uuid CHECK (REGEXP_LIKE(checkout_session_id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
                 CONSTRAINT chk_quotes_cabin CHECK (cabin IN (\'economy\', \'premium\', \'business\')),
                 CONSTRAINT chk_quotes_pax_count CHECK (pax_count BETWEEN 1 AND 9),
                 CONSTRAINT chk_quotes_infant_count CHECK (infant_count >= 0 AND infant_count <= pax_count),
@@ -78,7 +80,7 @@ return new class extends Migration
                 CONSTRAINT chk_quotes_total_minor CHECK (total_minor BETWEEN 0 AND 9007199254740991),
                 CONSTRAINT chk_quotes_currency CHECK (currency = \'USD\'),
                 CONSTRAINT chk_quotes_expires_at CHECK (expires_at > issued_at)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
         ');
 
         // 3. capacity_holds (10-minute hold with composite quote & session integrity)
@@ -95,11 +97,14 @@ return new class extends Migration
                 CONSTRAINT fk_capacity_holds_quote_session FOREIGN KEY (quote_id, checkout_session_id) REFERENCES quotes (id, checkout_session_id) ON DELETE RESTRICT,
                 CONSTRAINT fk_capacity_holds_session FOREIGN KEY (checkout_session_id) REFERENCES passenger_sessions (id) ON DELETE RESTRICT,
                 CONSTRAINT uq_capacity_holds_id_quote_session UNIQUE (id, quote_id, checkout_session_id),
+                CONSTRAINT chk_holds_id_uuid CHECK (REGEXP_LIKE(id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
+                CONSTRAINT chk_holds_quote_uuid CHECK (REGEXP_LIKE(quote_id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
+                CONSTRAINT chk_holds_session_uuid CHECK (REGEXP_LIKE(checkout_session_id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
                 CONSTRAINT chk_capacity_holds_cabin CHECK (cabin IN (\'economy\', \'premium\', \'business\')),
                 CONSTRAINT chk_capacity_holds_seat_count CHECK (seat_count BETWEEN 1 AND 9),
                 CONSTRAINT chk_capacity_holds_state CHECK (state IN (\'active\', \'attached\', \'converted\', \'released\', \'expired\')),
                 CONSTRAINT chk_capacity_holds_expires_at CHECK (expires_at > issued_at)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
         ');
 
         // 4. bookings (Full commercial booking schema with immutable snapshots and exact contact fields)
@@ -132,6 +137,11 @@ return new class extends Migration
                 CONSTRAINT fk_bookings_fare FOREIGN KEY (fare_id) REFERENCES fare_products (id) ON DELETE RESTRICT,
                 CONSTRAINT uq_bookings_id_hold UNIQUE (id, hold_id),
                 CONSTRAINT uq_bookings_id_total_currency UNIQUE (id, total_minor, currency),
+                CONSTRAINT chk_bookings_id_uuid CHECK (REGEXP_LIKE(id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
+                CONSTRAINT chk_bookings_hold_uuid CHECK (REGEXP_LIKE(hold_id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
+                CONSTRAINT chk_bookings_quote_uuid CHECK (REGEXP_LIKE(quote_id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
+                CONSTRAINT chk_bookings_session_uuid CHECK (REGEXP_LIKE(checkout_session_id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
+                CONSTRAINT chk_bookings_owner_uuid CHECK (owner_user_id IS NULL OR REGEXP_LIKE(owner_user_id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
                 CONSTRAINT chk_bookings_pnr CHECK (LENGTH(TRIM(pnr)) > 0),
                 CONSTRAINT chk_bookings_security_epoch CHECK (security_epoch >= 1),
                 CONSTRAINT chk_bookings_channel CHECK (channel IN (\'web\', \'desk\')),
@@ -140,7 +150,7 @@ return new class extends Migration
                 CONSTRAINT chk_bookings_total_minor CHECK (total_minor BETWEEN 0 AND 9007199254740991),
                 CONSTRAINT chk_bookings_currency CHECK (currency = \'USD\'),
                 CONSTRAINT chk_bookings_contact_email CHECK (LENGTH(TRIM(contact_email)) > 0)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
         ');
 
         // 5. booking_passengers (Authentic passengers with same-booking infant/adult constraints)
@@ -171,6 +181,9 @@ return new class extends Migration
                 CONSTRAINT uq_booking_passengers_booking_request_local UNIQUE (booking_id, request_local_id),
                 CONSTRAINT uq_booking_passengers_booking_index UNIQUE (booking_id, passenger_index),
                 CONSTRAINT uq_booking_passengers_infant_adult UNIQUE (infant_adult_unique_key),
+                CONSTRAINT chk_bp_id_uuid CHECK (REGEXP_LIKE(id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
+                CONSTRAINT chk_bp_booking_uuid CHECK (REGEXP_LIKE(booking_id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
+                CONSTRAINT chk_bp_adult_uuid CHECK (linked_adult_passenger_id IS NULL OR REGEXP_LIKE(linked_adult_passenger_id, \'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\', \'c\')),
                 CONSTRAINT chk_booking_passengers_type CHECK (type IN (\'adult\', \'child\', \'infant\')),
                 CONSTRAINT chk_booking_passengers_infant_link CHECK (((type = \'infant\') AND (linked_adult_passenger_id IS NOT NULL)) OR ((type != \'infant\') AND (linked_adult_passenger_id IS NULL))),
                 CONSTRAINT chk_booking_passengers_no_self_link CHECK (linked_adult_passenger_id IS NULL OR linked_adult_passenger_id != id),
@@ -178,7 +191,7 @@ return new class extends Migration
                 CONSTRAINT chk_booking_passengers_title CHECK (title IS NULL OR title IN (\'Mr\', \'Mrs\', \'Ms\', \'Dr\', \'Master\', \'Miss\')),
                 CONSTRAINT chk_booking_passengers_first_name CHECK (LENGTH(TRIM(first_name)) > 0),
                 CONSTRAINT chk_booking_passengers_last_name CHECK (LENGTH(TRIM(last_name)) > 0)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;
         ');
 
         // Triggers verifying linked adult target type and preventing deletion/type mutation

@@ -441,7 +441,7 @@ class SchemaIntegrityAndConstraintsTest extends MySqlTestCase
             $this->db()->table('audit_events')->where('id', $auditId)->update(['outcome' => 'failure']);
             $this->fail('UPDATE on audit_events must be prohibited by immutability trigger.');
         } catch (QueryException $e) {
-            $this->assertStringContainsString('UPDATE is prohibited', $e->getMessage());
+            $this->assertStringContainsString('updates prohibited', $e->getMessage());
         }
 
         // DELETE must be rejected by trigger
@@ -449,7 +449,7 @@ class SchemaIntegrityAndConstraintsTest extends MySqlTestCase
             $this->db()->table('audit_events')->where('id', $auditId)->delete();
             $this->fail('DELETE on audit_events must be prohibited by immutability trigger.');
         } catch (QueryException $e) {
-            $this->assertStringContainsString('DELETE is prohibited', $e->getMessage());
+            $this->assertStringContainsString('deletes prohibited', $e->getMessage());
         }
     }
 
