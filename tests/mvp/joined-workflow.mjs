@@ -10,14 +10,16 @@ import { verifyMailCapture } from "../../backend/scripts/mail-capture-contracts.
 export async function runJoinedWorkflow({origin,api,output,fixture,key,exec,startSink,readProofToken,slice}) {
  if (slice === "persistence") return; // Owned fixture setup only; persistence verification runs in the caller.
  const browser=await chromium.launch({channel:"msedge",headless:true}); const contexts=[]; const checks=[]; let active;
- const check=name=>{checks.push(name);console.log("PASS "+name);};
+ const progress=(stage)=>fs.writeFileSync(path.join(output,"browser-progress.json"),JSON.stringify({stage,checks},null,2));
+ const check=name=>{checks.push(name);progress(name);console.log("PASS "+name);};
+ async function within(promise,milliseconds,stage){let timer;try{return await Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error("Browser deadline: "+stage)),milliseconds);})]);}finally{clearTimeout(timer);}}
  const captures={}; const contracts=["mvp-mail","mvp-site","mvp-editorial","mvp-reservations","mvp-gallery"].map(name=>JSON.parse(fs.readFileSync(new URL(`../../docs/backend/${name}.openapi.json`,import.meta.url))));
  const pendingCaptures=new Set();
- async function drain(){while(pendingCaptures.size) await Promise.all([...pendingCaptures]);}
- async function navigate(page,url){await page.waitForLoadState("networkidle");await drain();await page.goto(url);}
+ async function drain(){progress("draining completed response contracts");await within((async()=>{while(pendingCaptures.size) await Promise.all([...pendingCaptures]);})(),30000,"response contract drain");}
+ async function navigate(page,url){progress("navigate "+new URL(url).pathname);await page.waitForLoadState("networkidle");await drain();await page.goto(url);}
  async function context(options={}) {
-  const c=await browser.newContext({ignoreHTTPSErrors:true,viewport:{width:1440,height:1000},...options});contexts.push(c);
-  const p=await c.newPage();p.setDefaultTimeout(20000);p.on("requestfailed",r=>checks.push("REQUEST FAILURE: "+new URL(r.url()).pathname+" "+r.failure()?.errorText));p.on("pageerror",e=>checks.push("BROWSER ERROR: "+e.message));
+  const c=await within(browser.newContext({ignoreHTTPSErrors:true,viewport:{width:1440,height:1000},...options}),30000,"new browser context");contexts.push(c);
+  const p=await within(c.newPage(),20000,"new page");p.setDefaultTimeout(20000);p.setDefaultNavigationTimeout(30000);p.on("requestfailed",r=>checks.push("REQUEST FAILURE: "+new URL(r.url()).pathname+" "+r.failure()?.errorText));p.on("pageerror",e=>checks.push("BROWSER ERROR: "+e.message));
   p.on("response",r=>{
    const parsed=new URL(r.url());if(parsed.origin!==new URL(api).origin)return;
    const matches=[];
@@ -27,7 +29,7 @@ export async function runJoinedWorkflow({origin,api,output,fixture,key,exec,star
    }
    matches.sort((a,b)=>(a.template.match(/\{/g)??[]).length-(b.template.match(/\{/g)??[]).length);
    const matched=matches[0];if(!matched)return;
-   const task=(async()=>{try{await r.finished();const capture={operationId:matched.op.operationId,status:r.status(),contentType:r.headers()["content-type"],payload:await r.json()};verifyMailCapture(matched.spec,capture);captures[capture.operationId+":"+r.status()]=capture;}catch(e){if(r.request().failure()?.errorText === "net::ERR_ABORTED") {checks.push("UNCERTIFIED CANCELLED RESPONSE: "+matched.op.operationId);} else {checks.push("CONTRACT FAILURE: "+e.message);}}})();
+   const task=(async()=>{try{await within(r.finished(),30000,"response completion "+matched.op.operationId);const capture={operationId:matched.op.operationId,status:r.status(),contentType:r.headers()["content-type"],payload:await within(r.json(),10000,"response body "+matched.op.operationId)};verifyMailCapture(matched.spec,capture);captures[capture.operationId+":"+r.status()]=capture;}catch(e){if(r.request().failure()?.errorText === "net::ERR_ABORTED") {checks.push("UNCERTIFIED CANCELLED RESPONSE: "+matched.op.operationId);} else {checks.push("CONTRACT FAILURE: "+e.message);}}})();
    pendingCaptures.add(task);task.finally(()=>pendingCaptures.delete(task));
   });return p;
  }

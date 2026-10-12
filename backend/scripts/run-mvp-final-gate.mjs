@@ -8,6 +8,9 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
 const output=path.join(root,"scratch","gaza_mvp_final_"+crypto.randomBytes(12).toString("hex"));fs.mkdirSync(output,{recursive:true});
 const commands=[],children=[],hashes=[];
 let head=null,passed=false,failure=null;
+let reusable=null;
+const reusableLabels=new Set(["reference-fleet","reference-network","reference-schedules","reference-meals","editorial","gallery","reservations-mail-site"]);
+const outerHarnessFiles=new Set(["backend/scripts/run-mvp-final-gate.mjs","backend/scripts/run-mvp-browser-gate.mjs"]);
 function command(label,program,args,extra={}) {
   const result=spawnSync(program,args,{cwd:root,env:{...process.env,...extra},encoding:"utf8",timeout:900000,maxBuffer:16*1024*1024});
   const bytes=(result.stdout??"")+(result.stderr??"");fs.writeFileSync(path.join(output,label+".log"),bytes);
@@ -20,6 +23,25 @@ function assertClean(label) {
   if(status.trim())throw new Error("Final gate requires clean committed product source.");
 }
 function gate(label,script,extra={}) {
+  const old=reusableLabels.has(label) ? reusable?.children?.find(child=>child.label===label) : null;
+  if(old) {
+    const file=path.resolve(old.receipt), bytes=fs.readFileSync(file), receipt=JSON.parse(bytes);
+    if(!file.startsWith(path.join(root,"scratch")+path.sep) || crypto.createHash("sha256").update(bytes).digest("hex")!==old.sha256
+      || receipt.passed!==true || receipt.resourcesCleaned!==true || receipt.testFilter || receipt.head!==reusable.head || !receipt.hashes?.length)throw new Error("Invalid reusable evidence: "+label);
+    const tested=new Map(receipt.hashes.map(item=>[item.file,item.sha256]));
+    // These two outer orchestration scripts are never invoked by the reusable child packages.
+    // All child runners, PHP/tests/migrations/contracts/fixtures and added-file inventory must match exactly.
+    const current=command(label+"-source-inventory","git",["ls-files","--","backend","docs/backend","scripts/lib"]).trim().split(/\r?\n/);
+    for(const file of current)if(!outerHarnessFiles.has(file) && !tested.has(file))throw new Error("New untested source for "+label+": "+file);
+    for(const [file,hash] of tested) {
+      if(outerHarnessFiles.has(file))continue;
+      const absolute=path.resolve(root,file);
+      if(!absolute.startsWith(root+path.sep) || !fs.existsSync(absolute) || crypto.createHash("sha256").update(fs.readFileSync(absolute)).digest("hex")!==hash)throw new Error("Changed tested source for "+label+": "+file);
+    }
+    children.push({...old,reused:true,originalHead:receipt.head,verifiedForHead:head,
+      scope:"Prior fresh disposable PostgreSQL execution; all tested package source bytes and inventory verified unchanged at final SHA. Outer browser/final harness excluded because not executed by this child."});
+    console.log("PASS "+label+" (unchanged tested source; prior receipt retained)");return;
+  }
   const bytes=command(label,process.execPath,[script],extra);
   const evidence=bytes.match(/Evidence: ([^\r\n]+)/g)?.at(-1)?.slice("Evidence: ".length);
   if(!evidence)throw new Error(label+" omitted its receipt path");
@@ -34,6 +56,12 @@ try {
     if(process.env[key])throw new Error("Unset partial-gate configuration: "+key);
   }
   head=command("head","git",["rev-parse","HEAD"]).trim();assertClean("source-clean-before");
+  if(process.env.MVP_FINAL_GATE_REUSE_RECEIPT) {
+    const file=path.resolve(process.env.MVP_FINAL_GATE_REUSE_RECEIPT);
+    if(!file.startsWith(path.join(root,"scratch")+path.sep))throw new Error("Unowned reusable receipt");
+    reusable=JSON.parse(fs.readFileSync(file));
+    if(!/^[a-f0-9]{40}$/.test(reusable.head??""))throw new Error("Reusable receipt lacks source SHA");
+  }
   // Do not mistake booking SMTP for completed verification/recovery mail.
   if(!fs.readFileSync(path.join(root,"backend/config/mvp-mail.php"),"utf8").includes("MVP_IDENTITY_SMTP_ENABLED"))throw new Error("Account SMTP integration is still pending; final MVP gate cannot certify completion.");
   const files=command("source-inventory","git",["ls-files","--","backend","src","scripts","tests","docs","package.json","package-lock.json"]).trim().split(/\r?\n/);

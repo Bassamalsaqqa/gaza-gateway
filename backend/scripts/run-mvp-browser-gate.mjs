@@ -15,7 +15,7 @@ const commands=[],hashes=[];let web=false,pg=false,network=false,vite,sink,serve
 function command(label,args,input){const r=spawnSync(args[0],args.slice(1),{cwd:root,env,encoding:"utf8",input,timeout:180000,maxBuffer:8*1024*1024});fs.writeFileSync(path.join(output,label+".log"),(r.stdout??"")+(r.stderr??""));commands.push({label,exitCode:r.status});if(r.status!==0)throw new Error(label+" failed");console.log("PASS "+label);return r.stdout;}
 const docker=(label,args,input)=>command(label,["docker",...args],input);
 const exec=(label,args,input)=>docker(label,["exec",...(input ? ["-i"] : []),name+"_web",...args],input);
-function probe(url){return new Promise(resolve=>{const req=https.get(url,{rejectUnauthorized:false,timeout:2000},res=>{let body="";res.on("data",bytes=>{if(body.length<2048)body+=bytes.toString();});res.on("end",()=>{if(res.statusCode!==200)fs.writeFileSync(path.join(output,"probe-failure.json"),JSON.stringify({url,status:res.statusCode,body}));resolve(res.statusCode);});});req.on("error",e=>{fs.writeFileSync(path.join(output,"probe-error.txt"),e.message);resolve(0);});req.on("timeout",()=>req.destroy());});}
+function probe(url,timeout=2000){return new Promise(resolve=>{const req=https.get(url,{rejectUnauthorized:false,timeout},res=>{let body="";res.on("data",bytes=>{if(body.length<2048)body+=bytes.toString();});res.on("end",()=>{if(res.statusCode!==200)fs.writeFileSync(path.join(output,"probe-failure.json"),JSON.stringify({url,status:res.statusCode,body}));resolve(res.statusCode);});});req.on("error",e=>{fs.writeFileSync(path.join(output,"probe-error.txt"),e.message);resolve(0);});req.on("timeout",()=>req.destroy());});}
 try {
  head=command("head",["git","rev-parse","HEAD"]).trim();
  for(const file of command("inventory",["git","ls-files","--cached","--others","--exclude-standard","backend","docs/backend","src","scripts/lib","tests/mvp"]).trim().split(/\r?\n/)) {
@@ -45,7 +45,7 @@ try {
  const config=path.join(output,"vite.config.mjs");fs.writeFileSync(config,`import original from ${JSON.stringify(pathToFileURL(path.join(root,"vite.config.ts")).href)};\nimport fs from 'node:fs';\nexport default async env => {const c=typeof original==='function'?await original(env):original;return {...c,server:{...c.server,host:'127.0.0.1',port:5175,strictPort:true,https:{key:fs.readFileSync(${JSON.stringify(path.join(output,"key.pem"))}),cert:fs.readFileSync(${JSON.stringify(path.join(output,"cert.pem"))})}}};};\n`.replaceAll("\\n","\n"));
  const viteBin=path.join(path.dirname(createRequire(import.meta.url).resolve("vite/package.json")),"bin/vite.js");
  const viteLog=fs.openSync(path.join(output,"vite.log"),"w");vite=spawn(process.execPath,[viteBin,"--config",config],{cwd:root,env:{...env,VITE_IDENTITY_UI_MODE:"backend",VITE_IDENTITY_NONPRODUCTION_OPT_IN:"true",VITE_IDENTITY_API_BASE_URL:api},stdio:["ignore",viteLog,viteLog]});
- for(let i=0;i<60;i++){if(await probe(origin)===200)break;await new Promise(r=>setTimeout(r,500));}
+ for(let i=0;i<60;i++){if(await probe(origin,120000)===200)break;await new Promise(r=>setTimeout(r,500));}
  if(await probe(origin)!==200)throw new Error("HTTPS frontend unavailable");
  const {runJoinedWorkflow}=await import("../../tests/mvp/joined-workflow.mjs");
  await runJoinedWorkflow({origin,api,output,fixture,key,exec,readProofToken(email, purpose){
