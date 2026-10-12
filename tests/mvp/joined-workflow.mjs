@@ -29,13 +29,19 @@ export async function runJoinedWorkflow({origin,api,output,fixture,key,exec,star
    }
    matches.sort((a,b)=>(a.template.match(/\{/g)??[]).length-(b.template.match(/\{/g)??[]).length);
    const matched=matches[0];if(!matched)return;
-   const task=(async()=>{try{await within(r.finished(),30000,"response completion "+matched.op.operationId);const capture={operationId:matched.op.operationId,status:r.status(),contentType:r.headers()["content-type"],payload:await within(r.json(),10000,"response body "+matched.op.operationId)};verifyMailCapture(matched.spec,capture);captures[capture.operationId+":"+r.status()]=capture;}catch(e){if(r.request().failure()?.errorText === "net::ERR_ABORTED") {checks.push("UNCERTIFIED CANCELLED RESPONSE: "+matched.op.operationId);} else {checks.push("CONTRACT FAILURE: "+e.message);}}})();
+   const task=(async()=>{try{await within(r.finished(),30000,"response completion "+matched.op.operationId);const capture={operationId:matched.op.operationId,status:r.status(),contentType:r.headers()["content-type"],payload:await within(r.json(),10000,"response body "+matched.op.operationId)};verifyMailCapture(matched.spec,capture);captures[capture.operationId+":"+r.status()]=capture;}catch(e){if(r.request().failure()?.errorText === "net::ERR_ABORTED") {checks.push("UNCERTIFIED CANCELLED RESPONSE: "+matched.op.operationId);} else if(e.message.includes("Response body is not available for a response that was navigated away from")) {checks.push("UNCERTIFIED NAVIGATION-EVICTED RESPONSE: "+matched.op.operationId);} else {checks.push("CONTRACT FAILURE: "+e.message);}}})();
    pendingCaptures.add(task);task.finally(()=>pendingCaptures.delete(task));
   });return p;
  }
  async function apiCall(page,method,url,body,realm="staff",expected=[200]) {
-  const r=await page.evaluate(async({api,method,url,body,realm})=>{const headers={Accept:"application/json"};if(method!=="GET"){const c=await fetch(api+(realm==="staff"?"/staff/csrf":"/auth/csrf"),{credentials:"include"});const csrf=await c.json();headers["X-CSRF-TOKEN"]=csrf.csrfToken;headers["Content-Type"]="application/json";}const r=await fetch(api+url,{method,headers,credentials:"include",...(body!==undefined?{body:JSON.stringify(body)}:{})});return {status:r.status,body:await r.json()};},{api,method,url,body,realm});
-  assert.ok(expected.includes(r.status),`${method} ${url}: ${r.status} ${r.body.error?.code??""}`);return r;
+  const r=await page.evaluate(async({api,method,url,body,realm})=>{const headers={Accept:"application/json"};if(method!=="GET"){const c=await fetch(api+(realm==="staff"?"/staff/csrf":"/auth/csrf"),{credentials:"include"});const csrf=await c.json();headers["X-CSRF-TOKEN"]=csrf.csrfToken;headers["Content-Type"]="application/json";}const r=await fetch(api+url,{method,headers,credentials:"include",...(body!==undefined?{body:JSON.stringify(body)}:{})});return {status:r.status,body:await r.json(),contentType:r.headers.get("content-type")};},{api,method,url,body,realm});
+  assert.ok(expected.includes(r.status),`${method} ${url}: ${r.status} ${r.body.error?.code??""}`);
+  const candidates=[];for(const spec of contracts)for(const [template,methods]of Object.entries(spec.paths)) {
+   const op=methods[method.toLowerCase()];if(op && new RegExp("^"+template.replace(/\{[^}]+\}/g,"[^/]+")+"$").test(url.split("?")[0]))candidates.push({spec,template,op});
+  }
+  candidates.sort((a,b)=>(a.template.match(/\{/g)??[]).length-(b.template.match(/\{/g)??[]).length);
+  if(candidates[0]) {const {spec,op}=candidates[0];const capture={operationId:op.operationId,status:r.status,contentType:r.contentType,payload:r.body};verifyMailCapture(spec,capture);captures[capture.operationId+":"+r.status]=capture;}
+  return r;
  }
  function otp(){const b=Buffer.alloc(8);b.writeBigUInt64BE(BigInt(Math.floor(Date.now()/30000)));const h=crypto.createHmac("sha1",key).update(b).digest(),o=h[19]&15;return ((h.readUInt32BE(o)&0x7fffffff)%1000000).toString().padStart(6,"0");}
  try {
@@ -110,9 +116,12 @@ export async function runJoinedWorkflow({origin,api,output,fixture,key,exec,star
     const title = admin.getByRole("textbox",{name:"Display title rec-present-ruins-2008",exact:true});
     await title.fill("Synthetic shared gallery publication");
     const saved = admin.waitForResponse(r=>r.request().method()==="PUT" && r.url().endsWith("/gallery/editorial/draft"));
-    await admin.getByRole("button",{name:"Save Draft",exact:true}).click();assert.equal((await saved).status(),200);
+    await admin.getByRole("button",{name:"Save Draft",exact:true}).click();const savedResponse=await saved;assert.equal(savedResponse.status(),200);
+    const gallerySpec=contracts.find(spec=>spec.info.title.includes("Gallery") || spec.paths["/gallery/published"]);
+    const savedCapture={operationId:"putGalleryDraft",status:savedResponse.status(),contentType:savedResponse.headers()["content-type"],payload:await within(savedResponse.json(),10000,"foreground gallery draft body")};verifyMailCapture(gallerySpec,savedCapture);captures["putGalleryDraft:200"]=savedCapture;
     const published = admin.waitForResponse(r=>r.request().method()==="POST" && r.url().endsWith("/gallery/editorial/publish"));
-    await admin.getByRole("button",{name:"Publish",exact:true}).click();assert.equal((await published).status(),200);
+    await admin.getByRole("button",{name:"Publish",exact:true}).click();const publishedResponse=await published;assert.equal(publishedResponse.status(),200);
+    const publishedCapture={operationId:"postGalleryPublish",status:publishedResponse.status(),contentType:publishedResponse.headers()["content-type"],payload:await within(publishedResponse.json(),10000,"foreground gallery publication body")};verifyMailCapture(gallerySpec,publishedCapture);captures["postGalleryPublish:200"]=publishedCapture;
     const visitor = active = await context();await navigate(visitor,origin+"/gallery");
     await visitor.getByText("Synthetic shared gallery publication",{exact:true}).first().waitFor();
     await visitor.screenshot({path:path.join(output,"gallery-en-desktop.png"),fullPage:true});
@@ -125,6 +134,7 @@ export async function runJoinedWorkflow({origin,api,output,fixture,key,exec,star
     const fresh = await apiCall(mobile,"GET","/gallery/published",undefined,"public");
     assert.equal(fresh.body.data.payload.items[0].title.en,"Synthetic shared gallery publication");
     check("Arabic mobile reads the same gallery revision with RTL");
+    for(const operation of ["putGalleryDraft:200","postGalleryPublish:200","getGalleryPublished:200"])assert.ok(captures[operation],"Missing certified foreground contract: "+operation);
     await drain();assert.ok(!checks.some(c=>c.startsWith("CONTRACT FAILURE") || c.startsWith("BROWSER ERROR")),checks.join("; "));
     return;
   }
