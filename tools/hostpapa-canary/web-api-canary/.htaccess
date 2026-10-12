@@ -1,0 +1,16 @@
+# ----------------------------------------------------------------------
+# Gaza Gateway — H0 Isolated Canary API Routing Configuration
+# ----------------------------------------------------------------------
+# SCOPE: Applies ONLY to this isolated canary subfolder (e.g. public_html/canary-api/).
+# NEVER placed in root public_html or combined with production SPA rewrites.
+# ----------------------------------------------------------------------
+
+Options -Indexes
+RewriteEngine On
+
+# 1. Existing regular files: serve directly
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
+
+# 2. Rewrite dynamic API routes to local index.php
+RewriteRule ^(.*)$ index.php?canary_route=$1 [QSA,L]

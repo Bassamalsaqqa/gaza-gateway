@@ -6,8 +6,8 @@ Baseline: PR #3 `cecd1c9158111c349ac63414cfcfff89db6d197f`; main `c7be134bfa87ef
 
 | Gate | Status | Evidence / next action |
 |---|---|---|
-| H0 | IN PROGRESS / host UNVERIFIED | Prepare isolated canary and minimum owner-assisted cPanel steps; no actual account proof yet |
-| H1 | IN PROGRESS | Inventory raw SQL/migrations, select equivalent MySQL constraints and lock order, then run focused actual MySQL checks |
+| H0 | IN PROGRESS / host UNVERIFIED | Offline canary prepared and independently corrected; 10 focused safety tests pass. cPanel UI versions/limits observed; actual runtime/DDL/SMTP/cron/Laravel proof still UNVERIFIED |
+| H1 | IN PROGRESS | Independent source-hashed inventory: 282 PHP files, 18 migrations, 1471 lexical locations. AGY MySQL prototype proof under correction; real identity-schema port underway |
 | H2 | NOT STARTED | Proper deployment profiles, same-origin API, bounded post-commit SMTP and cron |
 | H3 | NOT STARTED | Exact-source static/private PHP package, protected migration control, safe rollback |
 | H4 | NOT STARTED | Isolated real HostPapa test DB/path and browser/mailbox evidence |
