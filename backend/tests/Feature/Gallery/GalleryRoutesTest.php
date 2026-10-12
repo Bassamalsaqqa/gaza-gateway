@@ -192,7 +192,7 @@ final class GalleryRoutesTest extends TestCase
             $staff = $this->staff();
             $this->assertSame(0, DB::table('gallery_documents')->count());
 
-            $this->assertSame(0, Artisan::call('migrate:rollback', ['--step' => 1, '--force' => true]));
+            $this->assertSame(0, Artisan::call('migrate:rollback', ['--step' => DB::table('migrations')->where('migration','>=','2026_10_11_000010_create_mvp_gallery_tables')->count(), '--force' => true]));
             $this->assertFalse(Schema::hasTable('gallery_documents'));
             $this->assertFalse(Schema::hasTable('gallery_revisions'));
             $this->assertFalse(Schema::hasTable('gallery_published_revisions'));

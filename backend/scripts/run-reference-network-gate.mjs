@@ -179,12 +179,14 @@ try {
     console.log("PASS actual response + negative controls + policy " + id);
   }
 
+  const receiptSpec=JSON.parse(fs.readFileSync(path.join(root,"docs/backend/mvp-network.openapi.json")));
   let negatives = 0;
   for (const capture of Object.values(captures)) {
-    verifyNetworkCapture(spec, capture);
+    const captureSpec=capture.operationId.includes("Mvp") ? receiptSpec : spec;
+    verifyNetworkCapture(captureSpec, capture);
     if (capture.status >= 400) {
       negatives++;
-      const corrupt = structuredClone(spec);
+      const corrupt = structuredClone(captureSpec);
       const [method, route] = networkOperations[capture.operationId];
       delete corrupt.paths[route][method].responses[String(capture.status)];
       let rejected = false;
@@ -197,7 +199,7 @@ try {
 
       rejected = false;
       try {
-        verifyNetworkCapture(spec, { ...capture, contentType: "text/plain" });
+        verifyNetworkCapture(captureSpec, { ...capture, contentType: "text/plain" });
       } catch {
         rejected = true;
       }
@@ -205,7 +207,7 @@ try {
 
       rejected = false;
       try {
-        verifyNetworkCapture(spec, { ...capture, payload: { ...capture.payload, success: true } });
+        verifyNetworkCapture(captureSpec, { ...capture, payload: { ...capture.payload, success: true } });
       } catch {
         rejected = true;
       }
@@ -214,6 +216,8 @@ try {
   }
 
   const required = {
+    postMvpAirportReceipt: [201,409],
+    patchMvpAirportReceipt: [200,401,403,404,422],
     getAirports: [400, 429, 503],
     getNetworkRoutes: [400, 429, 503],
     getAdminAirports: [400, 401, 403, 429, 503],

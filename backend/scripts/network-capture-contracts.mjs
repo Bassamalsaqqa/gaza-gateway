@@ -1,6 +1,8 @@
 import { validatePayloadAgainstSchema } from "../../scripts/lib/backend-contract-validation.mjs";
 
 export const networkOperations = {
+  postMvpAirportReceipt: ["post", "/admin/network/airports/receipt", 201],
+  patchMvpAirportReceipt: ["patch", "/admin/network/airports/{code}/receipt", 200],
   getAirports: ["get", "/network/airports", 200],
   getNetworkRoutes: ["get", "/network/routes", 200],
   getAdminAirports: ["get", "/admin/network/airports", 200],
