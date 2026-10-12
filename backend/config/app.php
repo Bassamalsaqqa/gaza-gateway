@@ -5,8 +5,8 @@ $isLocalOrTesting = in_array($appEnv, ['local', 'testing'], true);
 
 $defaultAllowedHosts = match ($appEnv) {
     'local', 'testing' => '127.0.0.1,localhost,127.0.0.1:18084,localhost:18084',
-    'staging' => 'staging-api.gazaairport.com',
-    'production' => 'api.gazaairport.com',
+    'staging' => 'staging.gazaairport.com',
+    'production' => 'www.gazaairport.com,gazaairport.com',
     default => '',
 };
 $rawHosts = env('APP_ALLOWED_HOSTS', $defaultAllowedHosts);
@@ -14,8 +14,8 @@ $parsedHosts = array_values(array_filter(array_map('trim', explode(',', (string)
 
 $defaultAppUrl = match ($appEnv) {
     'local', 'testing' => 'http://127.0.0.1:18084',
-    'staging' => 'https://staging-api.gazaairport.com',
-    'production' => 'https://api.gazaairport.com',
+    'staging' => 'https://staging.gazaairport.com',
+    'production' => 'https://www.gazaairport.com',
     default => '',
 };
 

@@ -10,6 +10,7 @@ use App\Services\Foundation\Mail\LocalFileMailGateway;
 use App\Services\Foundation\Mail\UnconfiguredMailGateway;
 use App\Services\Foundation\Storage\LocalPrivateStorage;
 use App\Services\Foundation\Storage\UnconfiguredPrivateStorage;
+use App\SharedHosting\SharedHostingProfile;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -19,6 +20,8 @@ use Illuminate\Support\ServiceProvider;
  * - 'local' and 'testing' environments may bind honest local file adapters.
  * - 'staging' and 'production' environments ALWAYS bind unconfigured fail-closed adapters,
  *   regardless of any configuration flags, to prevent accidental local data retention in deployment.
+ * - In shared-hosting deployment (chosen authority on HostPapa shared cPanel),
+ *   private local disk storage outside public_html is permitted.
  */
 class FoundationServicesProvider extends ServiceProvider
 {
@@ -74,14 +77,29 @@ class FoundationServicesProvider extends ServiceProvider
     {
         $this->app->singleton(PrivateStorageInterface::class, function ($app) {
             $isLocalOrTesting = $app->environment('local', 'testing');
+            $isSharedHosting = SharedHostingProfile::isEnabled();
             $driver = $app['config']->get('foundation-services.storage.driver', 'local');
 
-            // Gate: Staging and production MUST NOT use local disk storage under any circumstance
-            if ($isLocalOrTesting && $driver === 'local') {
-                $root = $app['config']->get(
+            // Gate: In shared-hosting deployment (chosen authority on HostPapa shared cPanel),
+            // private local disk storage outside public_html is permitted.
+            // In standard staging/production, local disk storage remains disallowed unless shared hosting is explicitly enabled.
+            if (($isLocalOrTesting || $isSharedHosting) && $driver === 'local') {
+                $root = (string) $app['config']->get(
                     'foundation-services.storage.local_root',
                     storage_path('app/private/object_storage')
                 );
+                if ($isSharedHosting) {
+                    SharedHostingProfile::assertPrivateStorageRoot($root);
+                }
+
+                // Enforce that private storage root is strictly outside public_html and public
+                $normalized = str_replace('\\', '/', $root);
+                if (preg_match('#/(?:public_html|public)(?:/|$)#i', $normalized) || str_ends_with($normalized, '/public') || str_ends_with($normalized, '/public_html')) {
+                    throw new \RuntimeException(
+                        "Shared hosting private storage root must be located outside public_html and public directories: {$root}"
+                    );
+                }
+
                 $maxBytes = (int) $app['config']->get(
                     'foundation-services.storage.max_object_bytes',
                     LocalPrivateStorage::DEFAULT_MAX_OBJECT_BYTES

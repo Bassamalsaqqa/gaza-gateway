@@ -85,12 +85,23 @@ class HealthController extends Controller
                 return $this->errorResponse('service_unavailable', 'Cache store is unavailable.', 503, $requestId, $now);
             }
 
-            // 5. Probe worker heartbeat (< 30s freshness)
-            $heartbeat = \Illuminate\Support\Facades\Cache::get('worker:heartbeat');
-            if ($heartbeat === null || (time() - (int) $heartbeat) > 30) {
-                return $this->errorResponse('service_unavailable', 'Worker heartbeat is missing or stale.', 503, $requestId, $now);
+            // 5. Probe worker / cron heartbeat readiness
+            $isSharedHosting = \App\SharedHosting\SharedHostingProfile::isEnabled();
+
+            if ($isSharedHosting) {
+                // Shared hosting: honest successful cron heartbeat readiness instead of continuous worker heartbeat
+                if (!\App\SharedHosting\SharedHostingCronHeartbeat::isHealthy()) {
+                    return $this->errorResponse('service_unavailable', 'Cron heartbeat is missing or stale.', 503, $requestId, $now);
+                }
+                $queueStatus = 'healthy';
+            } else {
+                // Continuous worker heartbeat probe (< 30s freshness)
+                $heartbeat = \Illuminate\Support\Facades\Cache::get('worker:heartbeat');
+                if ($heartbeat === null || (time() - (int) $heartbeat) > 30) {
+                    return $this->errorResponse('service_unavailable', 'Worker heartbeat is missing or stale.', 503, $requestId, $now);
+                }
+                $queueStatus = 'healthy';
             }
-            $queueStatus = 'healthy';
 
             return response()->json([
                 'success' => true,

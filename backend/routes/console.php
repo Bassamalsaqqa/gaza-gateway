@@ -92,11 +92,6 @@ Artisan::command('probe:check-job {probeId}', function (string $probeId) {
 | of expired/revoked anonymous sessions and stale bootstrap rate limit buckets.
 |
 */
-\Illuminate\Support\Facades\Schedule::command('identity:clean-anonymous')
-    ->hourly()
-    ->withoutOverlapping();
-
-
 Artisan::command('mvp:mail:work {--limit=25}', function () {
     if (config('mvp-mail.enabled') !== true) { $this->error('Mail worker is disabled.'); return 1; }
     $limit = filter_var($this->option('limit'), FILTER_VALIDATE_INT);
@@ -108,9 +103,6 @@ Artisan::command('mvp:mail:work {--limit=25}', function () {
     $this->info('Processed '.$count.' queued messages.');
     return 0;
 })->purpose('Process bounded committed booking mail intents; never claims external delivery');
-
-\Illuminate\Support\Facades\Schedule::command('mvp:mail:work --limit=25')
-    ->everyMinute()->withoutOverlapping();
 
 Artisan::command('mvp:identity-smtp:work {--limit=25}', function () {
     if (config('mvp-mail.enabled') !== true || config('mvp-mail.identity_smtp_enabled') !== true) {
@@ -132,7 +124,26 @@ Artisan::command('mvp:identity-smtp:work {--limit=25}', function () {
     return 0;
 })->purpose('Process bounded committed identity proof dispatch items via SMTP; never claims external delivery');
 
-if (config('mvp-mail.enabled') === true && config('mvp-mail.identity_smtp_enabled') === true) {
-    \Illuminate\Support\Facades\Schedule::command('mvp:identity-smtp:work --limit=25')
+/*
+|--------------------------------------------------------------------------
+| Shared Hosting Bounded Cron Schedule (HostPapa cPanel)
+|--------------------------------------------------------------------------
+*/
+if (\App\SharedHosting\SharedHostingProfile::isEnabled()) {
+    $cadence = \App\SharedHosting\SharedHostingCronHeartbeat::getCadenceMinutes();
+    \Illuminate\Support\Facades\Schedule::command('shared-hosting:cron --max-seconds=25 --batch-limit=25')
+        ->cron($cadence === 60 ? '0 * * * *' : '*/' . $cadence . ' * * * *')
+        ->withoutOverlapping(2);
+} else {
+    \Illuminate\Support\Facades\Schedule::command('identity:clean-anonymous')
+        ->hourly()
+        ->withoutOverlapping();
+
+    \Illuminate\Support\Facades\Schedule::command('mvp:mail:work --limit=25')
         ->everyMinute()->withoutOverlapping();
+
+    if (config('mvp-mail.enabled') === true && config('mvp-mail.identity_smtp_enabled') === true) {
+        \Illuminate\Support\Facades\Schedule::command('mvp:identity-smtp:work --limit=25')
+            ->everyMinute()->withoutOverlapping();
+    }
 }

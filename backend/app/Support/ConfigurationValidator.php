@@ -13,9 +13,18 @@ class ConfigurationValidator
 
     /**
      * Accepted production API host and frontend origins.
+     * HostPapa shared hosting: same-origin www.gazaairport.com and approved apex gazaairport.com.
      */
-    public const ACCEPTED_PRODUCTION_API_HOST = 'api.gazaairport.com';
-    public const ACCEPTED_PRODUCTION_APP_URL = 'https://api.gazaairport.com';
+    public const ACCEPTED_PRODUCTION_API_HOST = 'www.gazaairport.com';
+    public const ACCEPTED_PRODUCTION_APP_URL = 'https://www.gazaairport.com';
+    public const ACCEPTED_PRODUCTION_HOSTS = [
+        'www.gazaairport.com',
+        'gazaairport.com',
+    ];
+    public const ACCEPTED_PRODUCTION_APP_URLS = [
+        'https://www.gazaairport.com',
+        'https://gazaairport.com',
+    ];
     public const ACCEPTED_PRODUCTION_FRONTEND_ORIGINS = [
         'https://www.gazaairport.com',
         'https://gazaairport.com',
@@ -24,8 +33,14 @@ class ConfigurationValidator
     /**
      * Accepted staging API host and frontend origins.
      */
-    public const ACCEPTED_STAGING_API_HOST = 'staging-api.gazaairport.com';
-    public const ACCEPTED_STAGING_APP_URL = 'https://staging-api.gazaairport.com';
+    public const ACCEPTED_STAGING_API_HOST = 'staging.gazaairport.com';
+    public const ACCEPTED_STAGING_APP_URL = 'https://staging.gazaairport.com';
+    public const ACCEPTED_STAGING_HOSTS = [
+        'staging.gazaairport.com',
+    ];
+    public const ACCEPTED_STAGING_APP_URLS = [
+        'https://staging.gazaairport.com',
+    ];
     public const ACCEPTED_STAGING_FRONTEND_ORIGINS = [
         'https://staging.gazaairport.com',
     ];
@@ -90,29 +105,19 @@ class ConfigurationValidator
         $appUrl = trim((string) ($config['app']['url'] ?? ''));
 
         if ($env === 'production') {
-            if (empty($allowedHosts)) {
-                throw new \RuntimeException("Configuration error: [app.allowed_hosts] cannot be empty in production.");
-            }
-            foreach ($allowedHosts as $host) {
-                $hostStr = strtolower(trim((string) $host));
-                if ($hostStr !== self::ACCEPTED_PRODUCTION_API_HOST) {
-                    throw new \RuntimeException("Configuration error: [app.allowed_hosts] contains unauthorized host in production.");
-                }
-            }
-            if ($appUrl !== self::ACCEPTED_PRODUCTION_APP_URL) {
-                throw new \RuntimeException("Configuration error: [app.url] must match accepted production API URL.");
-            }
+            self::validateProductionHosts($allowedHosts);
+            self::validateProductionAppUrl($appUrl);
         } elseif ($env === 'staging') {
             if (empty($allowedHosts)) {
                 throw new \RuntimeException("Configuration error: [app.allowed_hosts] cannot be empty in staging.");
             }
             foreach ($allowedHosts as $host) {
                 $hostStr = strtolower(trim((string) $host));
-                if ($hostStr !== self::ACCEPTED_STAGING_API_HOST) {
+                if (!in_array($hostStr, self::ACCEPTED_STAGING_HOSTS, true)) {
                     throw new \RuntimeException("Configuration error: [app.allowed_hosts] contains unauthorized host in staging.");
                 }
             }
-            if ($appUrl !== self::ACCEPTED_STAGING_APP_URL) {
+            if (!in_array($appUrl, self::ACCEPTED_STAGING_APP_URLS, true)) {
                 throw new \RuntimeException("Configuration error: [app.url] must match accepted staging API URL.");
             }
         } else {
@@ -126,31 +131,7 @@ class ConfigurationValidator
 
         // 5. CORS origin validation
         $allowedOrigins = (array) ($config['cors']['allowed_origins'] ?? []);
-        if ($env === 'production') {
-            if (empty($allowedOrigins)) {
-                throw new \RuntimeException("Configuration error: [cors.allowed_origins] cannot be empty in production.");
-            }
-            foreach ($allowedOrigins as $origin) {
-                $originStr = trim((string) $origin);
-                if (!in_array($originStr, self::ACCEPTED_PRODUCTION_FRONTEND_ORIGINS, true)) {
-                    throw new \RuntimeException("Configuration error: [cors.allowed_origins] contains unauthorized origin in production.");
-                }
-            }
-        } elseif ($env === 'staging') {
-            if (empty($allowedOrigins)) {
-                throw new \RuntimeException("Configuration error: [cors.allowed_origins] cannot be empty in staging.");
-            }
-            foreach ($allowedOrigins as $origin) {
-                $originStr = trim((string) $origin);
-                if (!in_array($originStr, self::ACCEPTED_STAGING_FRONTEND_ORIGINS, true)) {
-                    throw new \RuntimeException("Configuration error: [cors.allowed_origins] contains unauthorized origin in staging.");
-                }
-            }
-        } else {
-            if (empty($allowedOrigins)) {
-                throw new \RuntimeException("Configuration error: [cors.allowed_origins] cannot be empty.");
-            }
-        }
+        self::validateAllowedOrigins($allowedOrigins, $env);
 
         // 6. Database connection configuration with ConfigurationUrlParser
         $defaultConn = (string) ($config['database']['default'] ?? '');
@@ -425,6 +406,71 @@ class ConfigurationValidator
             $expectedLockSec = (int) ceil($intAliasLock / 1000);
             if ($lockSec !== null && $expectedLockSec !== $lockSec) {
                 throw new \RuntimeException("Configuration error: Contradictory database lock timeout configuration.");
+            }
+        }
+    }
+
+    /**
+     * Validate production host allowlist.
+     *
+     * @param string|array<string> $hosts
+     */
+    public static function validateProductionHosts(string|array $hosts): void
+    {
+        $hostList = is_string($hosts) ? explode(',', $hosts) : $hosts;
+        $hostList = array_values(array_filter(array_map('trim', $hostList)));
+        if (empty($hostList)) {
+            throw new \RuntimeException("Configuration error: [app.allowed_hosts] cannot be empty in production.");
+        }
+        foreach ($hostList as $host) {
+            $hostStr = strtolower(trim((string) $host));
+            if (!in_array($hostStr, self::ACCEPTED_PRODUCTION_HOSTS, true)) {
+                throw new \RuntimeException("Configuration error: [app.allowed_hosts] contains unauthorized host in production.");
+            }
+        }
+    }
+
+    /**
+     * Validate production APP_URL against accepted canonical and legacy endpoints.
+     */
+    public static function validateProductionAppUrl(string $url): void
+    {
+        $appUrl = trim($url);
+        if (!in_array($appUrl, self::ACCEPTED_PRODUCTION_APP_URLS, true)) {
+            throw new \RuntimeException("Configuration error: [app.url] must match accepted production API URL.");
+        }
+    }
+
+    /**
+     * Validate CORS origins against environment allowlist.
+     *
+     * @param array<string> $origins
+     */
+    public static function validateAllowedOrigins(array $origins, string $env): void
+    {
+        if ($env === 'production') {
+            if (empty($origins)) {
+                throw new \RuntimeException("Configuration error: [cors.allowed_origins] cannot be empty in production.");
+            }
+            foreach ($origins as $origin) {
+                $originStr = trim((string) $origin);
+                if (!in_array($originStr, self::ACCEPTED_PRODUCTION_FRONTEND_ORIGINS, true)) {
+                    throw new \RuntimeException("Configuration error: [cors.allowed_origins] contains unauthorized origin in production.");
+                }
+            }
+        } elseif ($env === 'staging') {
+            if (empty($origins)) {
+                throw new \RuntimeException("Configuration error: [cors.allowed_origins] cannot be empty in staging.");
+            }
+            foreach ($origins as $origin) {
+                $originStr = trim((string) $origin);
+                if (!in_array($originStr, self::ACCEPTED_STAGING_FRONTEND_ORIGINS, true)) {
+                    throw new \RuntimeException("Configuration error: [cors.allowed_origins] contains unauthorized origin in staging.");
+                }
+            }
+        } else {
+            if (empty($origins)) {
+                throw new \RuntimeException("Configuration error: [cors.allowed_origins] cannot be empty.");
             }
         }
     }

@@ -45,4 +45,12 @@ return [
         'dir_mode' => 0700,
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Shared Hosting Runtime Configuration
+    |--------------------------------------------------------------------------
+    */
+    'shared_hosting_enabled' => filter_var(env('HOSTPAPA_SHARED_ENABLED', false), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) === true,
+    'cron_cadence_minutes' => (int) env('HOSTPAPA_CRON_CADENCE_MINUTES', 15),
+
 ];

@@ -26,8 +26,15 @@ export interface IdentityApiClientConfig {
   nonProductionOptIn?: boolean | undefined;
 
   /**
+   * Explicit opt-in flag for production environments.
+   * Required when live mode is enabled in production.
+   * nonProductionOptIn NEVER authorizes production.
+   */
+  productionOptIn?: boolean | undefined;
+
+  /**
    * Base URL for the identity API.
-   * Required when live mode is enabled. Must be HTTPS on approved loopback or staging host.
+   * Required when live mode is enabled. Must be HTTPS on approved loopback, staging, or production host.
    */
   baseUrl?: string | undefined;
 
@@ -57,19 +64,31 @@ export interface ResolvedIdentityApiClientConfig {
   fetch: typeof fetch;
 }
 
-const ACCEPTED_STAGING_API_HOST = "staging-api.gazaairport.com";
-
-const ACCIDENTAL_PRODUCTION_HOSTS = new Set([
-  "api.gazaairport.com",
+export const APPROVED_PRODUCTION_HOSTS = new Set([
   "www.gazaairport.com",
   "gazaairport.com",
 ]);
 
-const ALLOWED_LOOPBACK_HOSTNAMES = new Set([
+export const APPROVED_STAGING_HOSTS = new Set([
+  "staging.gazaairport.com",
+]);
+
+export const ALLOWED_LOOPBACK_HOSTNAMES = new Set([
   "localhost",
   "127.0.0.1",
   "::1",
   "[::1]",
+]);
+
+export const DISALLOWED_SUBDOMAIN_HOSTS = new Set([
+  "api.gazaairport.com",
+  "staging-api.gazaairport.com",
+]);
+
+export const ACCIDENTAL_PRODUCTION_HOSTS = new Set([
+  "api.gazaairport.com",
+  "www.gazaairport.com",
+  "gazaairport.com",
 ]);
 
 const KNOWN_NON_PRODUCTION_MODES = new Set(["development", "test", "staging"]);
@@ -159,7 +178,15 @@ export function validateTimeoutMs(timeoutMs: unknown): number {
  * - Reject accidental production API base (api.gazaairport.com, etc.).
  * - Normalize base path to preserve exact /api/v1 without duplicate or lost slashes.
  */
-export function validateAndNormalizeBaseUrl(rawUrl: string): string {
+export function validateAndNormalizeBaseUrl(
+  rawUrl: string,
+  isProductionOrOptions?: boolean | { isProduction?: boolean }
+): string {
+  const isProduction =
+    typeof isProductionOrOptions === "boolean"
+      ? isProductionOrOptions
+      : (isProductionOrOptions?.isProduction ?? false);
+
   if (typeof rawUrl !== "string" || !rawUrl.trim()) {
     throw new IdentityApiError({
       kind: "configuration",
@@ -228,14 +255,6 @@ export function validateAndNormalizeBaseUrl(rawUrl: string): string {
   const protocol = parsed.protocol.toLowerCase();
   const hostname = parsed.hostname.toLowerCase();
 
-  // Check accidental production API hosts
-  if (ACCIDENTAL_PRODUCTION_HOSTS.has(hostname)) {
-    throw new IdentityApiError({
-      kind: "configuration",
-      message: "Production API base URL is disallowed.",
-    });
-  }
-
   // Enforce HTTPS ONLY — HTTP is strictly forbidden for identity transport
   if (protocol === "http:") {
     throw new IdentityApiError({
@@ -251,23 +270,66 @@ export function validateAndNormalizeBaseUrl(rawUrl: string): string {
     });
   }
 
-  // Check approved hostnames
-  const isLoopback = ALLOWED_LOOPBACK_HOSTNAMES.has(hostname);
-  const isStaging = hostname === ACCEPTED_STAGING_API_HOST;
+  if (isProduction) {
+    // Production checks:
+    // Reject loopback hosts in production
+    if (ALLOWED_LOOPBACK_HOSTNAMES.has(hostname)) {
+      throw new IdentityApiError({
+        kind: "configuration",
+        message: "Loopback hosts are prohibited in production environment.",
+      });
+    }
 
-  if (!isLoopback && !isStaging) {
-    throw new IdentityApiError({
-      kind: "configuration",
-      message: "HTTPS protocol is permitted only on approved loopback hosts or accepted staging API host.",
-    });
-  }
+    // Reject separate subdomain (api.gazaairport.com) — HostPapa shared hosting is same-origin
+    if (DISALLOWED_SUBDOMAIN_HOSTS.has(hostname)) {
+      throw new IdentityApiError({
+        kind: "configuration",
+        message: "Production API base URL with separate subdomain is disallowed; same-origin www.gazaairport.com or gazaairport.com is required.",
+      });
+    }
 
-  // Reject arbitrary or custom ports on staging HTTPS origin
-  if (isStaging && parsed.port && parsed.port !== "443") {
-    throw new IdentityApiError({
-      kind: "configuration",
-      message: "Accepted HTTPS staging origin must not specify a custom port.",
-    });
+    // Only approved production hosts are allowed
+    if (!APPROVED_PRODUCTION_HOSTS.has(hostname)) {
+      throw new IdentityApiError({
+        kind: "configuration",
+        message: "HTTPS protocol is permitted only on approved production hosts (www.gazaairport.com or gazaairport.com).",
+      });
+    }
+
+    // Reject custom ports on production origin
+    if (parsed.port && parsed.port !== "443") {
+      throw new IdentityApiError({
+        kind: "configuration",
+        message: "Accepted HTTPS production origin must not specify a custom port.",
+      });
+    }
+  } else {
+    // Non-production checks:
+    // Reject accidental production hosts in non-production
+    if (ACCIDENTAL_PRODUCTION_HOSTS.has(hostname)) {
+      throw new IdentityApiError({
+        kind: "configuration",
+        message: "Production API base URL is disallowed in non-production environment.",
+      });
+    }
+
+    const isLoopback = ALLOWED_LOOPBACK_HOSTNAMES.has(hostname);
+    const isStaging = APPROVED_STAGING_HOSTS.has(hostname);
+
+    if (!isLoopback && !isStaging) {
+      throw new IdentityApiError({
+        kind: "configuration",
+        message: "HTTPS protocol is permitted only on approved loopback hosts or accepted staging API host.",
+      });
+    }
+
+    // Reject arbitrary or custom ports on staging HTTPS origin
+    if (isStaging && parsed.port && parsed.port !== "443") {
+      throw new IdentityApiError({
+        kind: "configuration",
+        message: "Accepted HTTPS staging origin must not specify a custom port.",
+      });
+    }
   }
 
   // Path validation & normalization
@@ -310,11 +372,11 @@ export function resolveIdentityApiClientConfig(
 
   if (!isExplicitEnabled) {
     // If enabled is false or undefined, verify no contradictory opt-in was provided
-    if (config?.nonProductionOptIn === true) {
+    if (config?.nonProductionOptIn === true || config?.productionOptIn === true) {
       throw new IdentityApiError({
         kind: "configuration",
         message:
-          "Contradictory configuration: nonProductionOptIn is true but enabled is not set to true.",
+          "Contradictory configuration: opt-in flag is true but enabled is not set to true.",
       });
     }
 
@@ -328,36 +390,97 @@ export function resolveIdentityApiClientConfig(
     };
   }
 
-  // Live mode requires explicit nonProductionOptIn: true
-  if (config.nonProductionOptIn !== true) {
-    throw new IdentityApiError({
-      kind: "configuration",
-      message: "Enabling live Identity API client requires explicit nonProductionOptIn: true.",
-    });
-  }
-
-  // Live mode requires explicit, verified non-production environment
   if (!config.environment) {
     throw new IdentityApiError({
       kind: "configuration",
       message:
-        "Enabling live Identity API client requires explicit non-production environment configuration.",
+        "Enabling live Identity API client requires explicit environment configuration.",
     });
   }
 
-  if (isProductionEnvironment(config.environment)) {
-    throw new IdentityApiError({
-      kind: "configuration",
-      message: "Identity API client cannot be enabled in production environment (disallowed).",
-    });
+  // Contradiction checks on environment
+  if (config.environment.DEV !== undefined && config.environment.PROD !== undefined) {
+    if (config.environment.DEV === config.environment.PROD) {
+      throw new IdentityApiError({
+        kind: "configuration",
+        message: `Contradictory environment flags (DEV: ${config.environment.DEV} and PROD: ${config.environment.PROD}).`,
+      });
+    }
   }
 
-  if (!isKnownNonProductionEnvironment(config.environment)) {
-    throw new IdentityApiError({
-      kind: "configuration",
-      message:
-        "Contradictory or unknown environment configuration; live client can only be enabled in verified non-production environments.",
-    });
+  const isProd = isProductionEnvironment(config.environment);
+
+  if (isProd) {
+    if (config.environment.DEV === true) {
+      throw new IdentityApiError({
+        kind: "configuration",
+        message: "Contradictory configuration: DEV is true in production environment.",
+      });
+    }
+
+    if (config.environment.PROD === false) {
+      throw new IdentityApiError({
+        kind: "configuration",
+        message: "Contradictory configuration: PROD is false in production environment.",
+      });
+    }
+
+    if (
+      typeof config.environment.MODE === "string" &&
+      config.environment.MODE.trim() &&
+      config.environment.MODE.trim().toLowerCase() !== "production"
+    ) {
+      throw new IdentityApiError({
+        kind: "configuration",
+        message: `Contradictory configuration: MODE is '${config.environment.MODE}' in production environment.`,
+      });
+    }
+    // Live mode in production requires explicit productionOptIn: true
+    if (config.nonProductionOptIn === true && config.productionOptIn !== true) {
+      throw new IdentityApiError({
+        kind: "configuration",
+        message:
+          "Enabling live Identity API client in production requires explicit productionOptIn: true; nonProductionOptIn cannot authorize production.",
+      });
+    }
+
+    if (config.productionOptIn !== true) {
+      throw new IdentityApiError({
+        kind: "configuration",
+        message: "Enabling live Identity API client in production requires explicit productionOptIn: true.",
+      });
+    }
+
+    if (config.nonProductionOptIn === true) {
+      throw new IdentityApiError({
+        kind: "configuration",
+        message: "Contradictory configuration: nonProductionOptIn cannot authorize production.",
+      });
+    }
+  } else {
+    // Non-production environment
+    if (config.productionOptIn === true) {
+      throw new IdentityApiError({
+        kind: "configuration",
+        message: "Contradictory configuration: productionOptIn is true in non-production environment.",
+      });
+    }
+
+    if (!isKnownNonProductionEnvironment(config.environment)) {
+      throw new IdentityApiError({
+        kind: "configuration",
+        message:
+          "Contradictory or unknown environment configuration; live client can only be enabled in verified non-production environments.",
+      });
+    }
+
+    // Live mode requires explicit nonProductionOptIn: true in non-production
+    if (config.nonProductionOptIn !== true) {
+      throw new IdentityApiError({
+        kind: "configuration",
+        message: "Enabling live Identity API client requires explicit nonProductionOptIn: true.",
+      });
+    }
   }
 
   if (!config.baseUrl) {
@@ -367,7 +490,7 @@ export function resolveIdentityApiClientConfig(
     });
   }
 
-  const normalizedBaseUrl = validateAndNormalizeBaseUrl(config.baseUrl);
+  const normalizedBaseUrl = validateAndNormalizeBaseUrl(config.baseUrl, isProd);
 
   const fetchFn = config.fetch ?? globalThis.fetch;
   if (typeof fetchFn !== "function") {

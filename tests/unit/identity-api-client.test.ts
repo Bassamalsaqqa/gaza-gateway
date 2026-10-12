@@ -481,14 +481,14 @@ describe("IdentityApiClient — HTTPS-Only URL & Delimiter Ambiguity Rejection",
 
   it("accepts and normalizes allowed staging HTTPS URLs on standard port only", () => {
     assert.equal(
-      validateAndNormalizeBaseUrl("https://staging-api.gazaairport.com"),
-      "https://staging-api.gazaairport.com/api/v1"
+      validateAndNormalizeBaseUrl("https://staging.gazaairport.com"),
+      "https://staging.gazaairport.com/api/v1"
     );
   });
 
   it("rejects custom port on accepted staging origin", () => {
     assert.throws(
-      () => validateAndNormalizeBaseUrl("https://staging-api.gazaairport.com:8443"),
+      () => validateAndNormalizeBaseUrl("https://staging.gazaairport.com:8443"),
       (err: unknown) => isIdentityApiError(err) && err.kind === "configuration"
     );
   });

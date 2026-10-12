@@ -4,6 +4,7 @@ import { IdentityApiError } from "./identity-client-errors.ts";
 export interface IdentityUiEnvironment extends IdentityApiEnvironment {
   VITE_IDENTITY_UI_MODE?: string;
   VITE_IDENTITY_NONPRODUCTION_OPT_IN?: string;
+  VITE_IDENTITY_PRODUCTION_OPT_IN?: string;
   VITE_IDENTITY_API_BASE_URL?: string;
 }
 
@@ -17,10 +18,13 @@ export function identityUiClientConfig(env: IdentityUiEnvironment): IdentityApiC
   if (env.VITE_IDENTITY_UI_MODE !== "backend") {
     throw new IdentityApiError({ kind: "configuration", message: "Identity preview configuration is invalid." });
   }
-  const config: IdentityApiClientConfig = { enabled: true,
+  const config: IdentityApiClientConfig = {
+    enabled: true,
     nonProductionOptIn: env.VITE_IDENTITY_NONPRODUCTION_OPT_IN === "true",
+    productionOptIn: env.VITE_IDENTITY_PRODUCTION_OPT_IN === "true",
     baseUrl: env.VITE_IDENTITY_API_BASE_URL,
-    environment: { MODE: env.MODE, DEV: env.DEV, PROD: env.PROD, NODE_ENV: env.NODE_ENV } };
+    environment: { MODE: env.MODE, DEV: env.DEV, PROD: env.PROD, NODE_ENV: env.NODE_ENV },
+  };
   resolveIdentityApiClientConfig(config); // Validate before enabling any server-mode UI action.
   return config;
 }
