@@ -222,6 +222,9 @@ final class SharedHostingCronRunner
                     : null;
             }
 
+            if ($cleanup === null && in_array(config('app.env'), ['production', 'staging'], true)) {
+                throw new \RuntimeException('Session cleanup dependency is unavailable.');
+            }
             if ($cleanup !== null) {
                 $res = $cleanup->runCleanup(
                     maxBatchesPerRealm: 2,

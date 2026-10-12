@@ -365,6 +365,18 @@ class SharedHostingCronTest extends TestCase
         $this->assertFalse(SharedHostingCronHeartbeat::isHealthy());
     }
 
+    public function test_missing_deployment_cleanup_is_an_error_not_silent_success(): void
+    {
+        config(['app.env' => 'production']);
+        $summary = ['errors' => []];
+        $method = new \ReflectionMethod(SharedHostingCronRunner::class, 'runSessionCleanup');
+        $method->invokeArgs(new SharedHostingCronRunner(), [&$summary, static fn (): float => 20.0]);
+        $this->assertCount(1, $summary['errors']);
+        $this->assertSame('session_cleanup', $summary['errors'][0]['task']);
+        $this->assertSame(\RuntimeException::class, $summary['errors'][0]['class']);
+        $this->assertArrayNotHasKey('sessions_purged', $summary);
+    }
+
     public function test_cron_backend_failure_is_not_reported_as_overlap(): void
     {
         config(['cache.default' => 'missing_store']);
