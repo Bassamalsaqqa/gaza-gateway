@@ -296,7 +296,8 @@ final class ReservationRoutesTest extends TestCase
 
     public function test_migration_cycle_reversibility(): void
     {
-        $status = Artisan::call('migrate:rollback', ['--step' => 3]);
+        $steps=DB::table('migrations')->where('migration','>=','2026_10_11_000007_create_mvp_reservation_tables')->count();
+        $status = Artisan::call('migrate:rollback', ['--step' => $steps]);
         $this->assertSame(0, $status);
         $this->assertFalse(DB::getSchemaBuilder()->hasTable('mvp_reservations'));
         $this->assertFalse(DB::getSchemaBuilder()->hasTable('mvp_services'));
@@ -942,6 +943,8 @@ final class ReservationRoutesTest extends TestCase
 
     private function mailConfig(array $staff, array $patch = []): array
     {
+        app(\App\Mvp\Mail\BookingMailWorker::class)->adoptIntents();
+        DB::table('mvp_mail_messages')->whereIn('status',['pending','failed'])->update(['status'=>'cancelled']);
         $revision = app(\App\Mvp\Mail\MailSettings::class)->read()['revision'];
         return array_replace(['expectedRevision'=>$revision,'driver'=>'capture','host'=>'mailpit','port'=>1025,'tls'=>'none',
             'senderName'=>'Gaza Gateway','senderEmail'=>'tickets@example.test','replyTo'=>'','username'=>'fixture-user','password'=>'secret-mail-sentinel'], $patch);
