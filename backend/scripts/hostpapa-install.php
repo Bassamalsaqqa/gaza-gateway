@@ -34,7 +34,7 @@ final class HostPapaInstaller
         }
     }
 
-    public function run(): void
+    public function run($inheritedLock = null): void
     {
         if (PHP_SAPI !== 'cli' || PHP_VERSION_ID < 80400) throw new RuntimeException('PHP 8.4+ CLI is required.');
         $action = $this->options['action'] ?? 'verify';
@@ -67,9 +67,23 @@ final class HostPapaInstaller
         $lockPath = $this->app . '/shared/installer.lock';
         $this->directory(dirname($lockPath));
         $this->safeAbsolute($lockPath);
-        $lock = fopen($lockPath, 'c');
-        if (!$lock || !flock($lock, LOCK_EX | LOCK_NB)) throw new RuntimeException('Another installer is active.');
-        chmod($lockPath, 0600);
+        $ownsLock = false;
+        if (is_resource($inheritedLock)) {
+            $lockStat = fstat($inheritedLock);
+            $diskStat = stat($lockPath);
+            if (!$lockStat || !$diskStat || $lockStat['ino'] !== $diskStat['ino'] || $lockStat['dev'] !== $diskStat['dev']) {
+                throw new RuntimeException('Inherited lock handle does not match installer.lock.');
+            }
+            if (!flock($inheritedLock, LOCK_EX | LOCK_NB)) {
+                throw new RuntimeException('Inherited lock resource is not exclusively locked.');
+            }
+            $lock = $inheritedLock;
+        } else {
+            $lock = fopen($lockPath, 'c');
+            if (!$lock || !flock($lock, LOCK_EX | LOCK_NB)) throw new RuntimeException('Another installer is active.');
+            chmod($lockPath, 0600);
+            $ownsLock = true;
+        }
         try {
             $this->database($a['database'] ?? null);
             if ($action === 'rollback') { $this->rollback(); return; }
@@ -85,7 +99,9 @@ final class HostPapaInstaller
             $this->assertArtifactProfile($this->package . '/public/build-receipt.json');
             $this->installOrMigrate($action, $manifest);
         } finally {
-            flock($lock, LOCK_UN); fclose($lock);
+            if ($ownsLock && is_resource($lock)) {
+                flock($lock, LOCK_UN); fclose($lock);
+            }
         }
     }
 
