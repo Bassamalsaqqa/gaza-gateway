@@ -12,15 +12,22 @@ class StrictHostGuard
 {
     /**
      * Handle an incoming request.
-     * Enforces strict host validation and rejects non-empty X-Forwarded-Host headers.
+     * Enforces strict host validation; shared hosting permits only a redundant identical forwarded host.
      * Safe fixed error messages (never echo request-supplied host names).
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // 1. Reject non-empty X-Forwarded-Host
+        // HostPapa nginx supplies X-Forwarded-Host. Never use it as authority.
+        // Permit only an identical raw Host in the explicit deployment profile;
+        // ordinary allowlist checks below still validate that Host.
         if ($request->headers->has('X-Forwarded-Host')) {
             $forwardedHost = trim((string) $request->headers->get('X-Forwarded-Host'));
-            if ($forwardedHost !== '') {
+            $sameSharedHost = config('foundation-services.shared_hosting_enabled') === true
+                && in_array(config('app.env'), ['staging', 'production'], true)
+                && is_string($request->header('Host'))
+                && $request->header('Host') !== ''
+                && strcasecmp($forwardedHost, $request->header('Host')) === 0;
+            if ($forwardedHost !== '' && !$sameSharedHost) {
                 return SystemController::formatExceptionResponse(
                     new HttpException(400, 'Untrusted forwarded host rejected.'),
                     $request
