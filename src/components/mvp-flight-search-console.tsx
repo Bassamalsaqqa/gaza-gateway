@@ -70,7 +70,7 @@ export function MvpFlightSearchConsole() {
         : results.length === 0 ? <p role="status" className="rounded-xl bg-sand p-4 text-sm">{ar ? "لا توجد رحلة منشورة لهذه الوجهة في التاريخ المختار. جرّب تاريخاً آخر." : "No flight is published for this route on your chosen date. Try another date."}</p>
         : <ul className="divide-y divide-border rounded-xl border border-border bg-card">{results.map((item) => <li key={item.id} className="flex flex-wrap items-center gap-4 p-4 sm:p-5">
           <div className="min-w-36 flex-1"><Code>{item.number}</Code><p className="mt-1 font-semibold">{pick(lang, airports.find((airport) => airport.code === search.destination)?.city ?? {en:search.destination,ar:search.destination})}</p><Code>{item.originCode} → {item.destinationCode}</Code></div>
-          <div><Code>{item.departTime} → {item.arriveTime}</Code><p className="mt-1 text-sm text-muted-foreground">{item.aircraft}</p></div>
+          <div><Code>{item.departTime} → {item.arrivalDate && item.arrivalDate !== item.date ? `${item.arrivalDate} · ` : ""}{item.arriveTime}</Code><p className="mt-1 text-sm text-muted-foreground">{ar ? "الأوقات محلية لكل مطار" : "Times local to each airport"} · {item.aircraft}</p></div>
           <AppLink to="/book" search={{offering:item.id}} className={btnClass("primary","sm")}>{ar ? "احجز مجاناً" : "Book free"}</AppLink>
         </li>)}</ul>}
     </div>}

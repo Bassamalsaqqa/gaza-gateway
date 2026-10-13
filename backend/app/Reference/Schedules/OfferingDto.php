@@ -27,11 +27,12 @@ final class OfferingDto
         public readonly array $revisions,
         public readonly string $classification = 'commemorative',
         public readonly int $priceMinor = 0,
+        public readonly array $timing = [],
     ) {}
 
     public function toArray(): array
     {
-        return [
+        return array_merge([
             'id' => $this->id,
             'scheduleId' => $this->scheduleId,
             'date' => $this->date,
@@ -48,6 +49,6 @@ final class OfferingDto
             'revisions' => $this->revisions,
             'classification' => $this->classification,
             'priceMinor' => $this->priceMinor,
-        ];
+        ], $this->timing);
     }
 }

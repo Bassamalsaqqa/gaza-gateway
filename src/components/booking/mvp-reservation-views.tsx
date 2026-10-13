@@ -86,7 +86,8 @@ export function ConfirmedReservationTicket({ data }: { data: ReservationDetail }
         <div><p className="text-sm text-muted-foreground">{ar ? "المسافر" : "Passenger"}</p><h2 className="mt-1 text-xl font-semibold">{item.passenger.firstName} {item.passenger.lastName}</h2>
           <p className="mt-2 text-sm">{ar ? "الجنسية" : "Nationality"}: {item.passenger.nationality}</p></div>
         <div><p className="text-sm text-muted-foreground">{ar ? "الرحلة" : "Flight"}</p><Code>{ticket.flight.flightNumber} · {ticket.flight.originCode} → {ticket.flight.destinationCode}</Code>
-          <p className="mt-2"><Code>{ticket.flight.date} · {ticket.flight.departTime} → {ticket.flight.arriveTime}</Code></p></div>
+          <p className="mt-2"><Code>{ticket.flight.date} · {ticket.flight.departTime} → {ticket.flight.arrivalDate && ticket.flight.arrivalDate !== ticket.flight.date ? `${ticket.flight.arrivalDate} · ` : ""}{ticket.flight.arriveTime}</Code></p>
+          {ticket.flight.originTimezone && ticket.flight.destinationTimezone && <p className="mt-1 text-xs text-muted-foreground">{ar ? "الأوقات محلية لكل مطار" : "Times are local to each airport"} <Code>{ticket.flight.originTimezone} → {ticket.flight.destinationTimezone}</Code></p>}</div>
         <div><p className="text-sm text-muted-foreground">{ar ? "المقعد" : "Seat"}</p><p className="mt-1 font-display text-3xl"><bdi dir="ltr">{item.passenger.seatCode}</bdi></p>
           <p className="mt-2 text-sm">{ar ? "الوجبة" : "Meal"}: {item.passenger.meal ? pick(lang, item.passenger.meal.label) : (ar ? "بدون وجبة" : "No meal")}</p></div>
         <div><p className="text-sm text-muted-foreground">{ar ? "الطائرة" : "Aircraft"}</p><p>{ticket.flight.aircraftModel}</p><p className="mt-3 text-sm text-muted-foreground">{ar ? "رقم التذكرة" : "Ticket number"}</p><Code>{item.ticketNumber}</Code></div>

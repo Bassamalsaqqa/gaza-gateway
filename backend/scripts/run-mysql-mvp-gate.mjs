@@ -746,6 +746,9 @@ async function main() {
         <testsuite name="MemorialNetworkExpansion">
             <file>tests/Feature/ReferenceNetwork/MemorialNetworkExpansionTest.php</file>
         </testsuite>
+        <testsuite name="OfferingLocalTime">
+            <file>tests/Unit/ReferenceSchedules/OfferingLocalTimeTest.php</file>
+        </testsuite>
         <testsuite name="SharedHostingOwner"><directory>tests/SharedHostingOwner</directory></testsuite>
         <testsuite name="MySqlIdentityFoundation">
             <directory>tests/MySqlIdentityFoundation</directory>

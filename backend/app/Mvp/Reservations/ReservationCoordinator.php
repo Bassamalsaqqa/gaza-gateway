@@ -132,7 +132,8 @@ final class ReservationCoordinator
                     'arrive_time' => $offering['arriveTime'],
                     'duration_minutes' => $offering['durationMinutes'],
                     'aircraft_id' => $offering['aircraftId'],
-                    'aircraft_snapshot' => json_encode(['model' => $aircraftModel], JSON_THROW_ON_ERROR),
+                    'aircraft_snapshot' => json_encode(['model' => $aircraftModel,
+                        'timing' => array_intersect_key($offering, array_flip(['originTimezone','destinationTimezone','departAt','arriveAt','arrivalDate']))], JSON_THROW_ON_ERROR),
                     'layout_snapshot' => json_encode($offering['layout'], JSON_THROW_ON_ERROR),
                     'reference_revisions' => json_encode($offering['revisions'], JSON_THROW_ON_ERROR),
                     'classification' => $offering['classification'],
@@ -154,12 +155,15 @@ final class ReservationCoordinator
                 }
 
                 $frozenLayout = json_decode((string) $serviceRow->layout_snapshot, true, 512, JSON_THROW_ON_ERROR);
+                $frozenAircraft = json_decode((string) $serviceRow->aircraft_snapshot, true, 512, JSON_THROW_ON_ERROR);
+                $currentTiming = array_intersect_key($offering, array_flip(['originTimezone', 'destinationTimezone', 'departAt', 'arriveAt', 'arrivalDate']));
                 if ((string) $serviceRow->aircraft_id !== (string) $offering['aircraftId'] || $frozenLayout != $offering['layout']
                     || $serviceRow->flight_number !== $offering['number']
                     || $serviceRow->depart_time !== $offering['departTime']
                     || $serviceRow->arrive_time !== $offering['arriveTime']
                     || (int) $serviceRow->duration_minutes !== $offering['durationMinutes']
-                    || json_decode($serviceRow->aircraft_snapshot, true)['model'] !== $offering['aircraft']) {
+                    || $frozenAircraft['model'] !== $offering['aircraft']
+                    || (isset($frozenAircraft['timing']) && $frozenAircraft['timing'] != $currentTiming)) {
                     throw new ReservationReferenceChangedException('Offering layout or aircraft has changed since service was materialized.');
                 }
             }
@@ -706,7 +710,7 @@ final class ReservationCoordinator
     {
         $aircraft = json_decode((string) $serviceRow->aircraft_snapshot, true, 512, JSON_THROW_ON_ERROR);
         $model = $aircraft['model'];
-        return [
+        return array_merge([
             'serviceId' => (string) $serviceRow->id,
             'flightNumber' => (string) $serviceRow->flight_number,
             'date' => (string) $serviceRow->service_date,
@@ -717,7 +721,7 @@ final class ReservationCoordinator
             'arriveTime' => (string) $serviceRow->arrive_time,
             'durationMinutes' => (int) $serviceRow->duration_minutes,
             'aircraftModel' => $model,
-        ];
+        ], $aircraft['timing'] ?? []);
     }
 
     private function buildTicketSnapshot(
@@ -730,7 +734,7 @@ final class ReservationCoordinator
     ): array {
         $aircraft = json_decode((string) $serviceRow->aircraft_snapshot, true, 512, JSON_THROW_ON_ERROR);
         $model = $aircraft['model'];
-        $flight = [
+        $flight = array_merge([
             'serviceId' => (string) $serviceRow->id,
             'flightNumber' => (string) $serviceRow->flight_number,
             'date' => (string) $serviceRow->service_date,
@@ -739,7 +743,7 @@ final class ReservationCoordinator
             'departTime' => (string) $serviceRow->depart_time,
             'arriveTime' => (string) $serviceRow->arrive_time,
             'aircraftModel' => $model,
-        ];
+        ], $aircraft['timing'] ?? []);
 
         $tickets = [];
         $idx = 1;

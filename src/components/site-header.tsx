@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 
 
 import { primaryNav, drawerNav } from "@/lib/site-navigation";
+import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
 
 function DirectLanguageButton({ className }: { className?: string }) {
   const { lang, setLang } = useI18n();
@@ -110,12 +111,12 @@ export function SiteHeader() {
             >
               {t("nav.manage")}
             </AppLink>
-            <AppLink
+            {!identityUiRequested && <AppLink
               to="/check-in"
               className="hidden text-xs 2xl:text-sm font-medium text-muted-foreground whitespace-nowrap transition-colors hover:text-foreground xl:inline-flex focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
             >
               {t("nav.checkin")}
-            </AppLink>
+            </AppLink>}
 
             {/* Direct Language Switch Button */}
             <DirectLanguageButton />
@@ -200,7 +201,7 @@ export function SiteHeader() {
 
             {/* Clean Vertical Navigation List */}
             <nav aria-label={t("nav.primary")} className="mt-6 flex flex-col divide-y divide-border border-y border-border">
-              {drawerNav.map((item) => (
+              {drawerNav.filter((item) => !identityUiRequested || item.to !== "/check-in").map((item) => (
                 <AppLink
                   key={item.to}
                   to={item.to}

@@ -479,6 +479,9 @@ export class ReleaseBuilder {
       await cp(installerSrc, path.join(installerOut, "hostpapa-install.php"));
     }
 
+    // Runtime provenance belongs to immutable release bytes, never the shared .env.
+    await writeFile(path.join(privateOut, "SOURCE_COMMIT.txt"), `${sourceSha}\n`, "utf8");
+
     // 4. Index files and calculate hashes (rejecting symlinks)
     const publicFilesList = await listDirectoryFiles(publicOut);
     const privateFilesList = await listDirectoryFiles(privateOut);

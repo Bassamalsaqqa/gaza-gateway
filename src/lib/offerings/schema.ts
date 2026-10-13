@@ -8,6 +8,10 @@ const date = z.string().refine(isValidISODate);
 const time = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$(?![\s\S])/);
 const model = z.string().min(1).max(120);
 const revision = z.number().int().min(0).max(Number.MAX_SAFE_INTEGER);
+export const offeringTimingFields = {
+  originTimezone: z.string().min(1).max(80).optional(), destinationTimezone: z.string().min(1).max(80).optional(),
+  departAt: z.string().datetime({offset:true}).optional(), arriveAt: z.string().datetime({offset:true}).optional(), arrivalDate: date.optional(),
+};
 const exceptionBase = { id: exactId, date, detail: z.string().max(500) };
 const equipment = { aircraftId: aircraftIdSchema, aircraft: model };
 const extra = z.object({ departTime: time.optional(), arriveTime: time.optional(), aircraftId: aircraftIdSchema.optional(), aircraft: model.optional() }).strict()
@@ -38,10 +42,16 @@ export const offeringWireSchema = z.object({
   aircraftId: aircraftIdSchema, aircraft: model, layout: offeringLayoutSchema,
   revisions: z.object({ fleet: revision, network: revision, schedules: revision }).strict(),
   classification: z.literal("commemorative"), priceMinor: z.literal(0),
+  ...offeringTimingFields,
 }).strict().refine(value => {
   const parsed = decodeDatedOfferingId(value.id);
   return parsed?.scheduleId === value.scheduleId && parsed.date === value.date && value.layout.aircraftId === value.aircraftId
-    && (value.direction === "out" ? value.originCode === "GZA" && value.destinationCode !== "GZA" : value.destinationCode === "GZA" && value.originCode !== "GZA");
+    && (value.direction === "out" ? value.originCode === "GZA" && value.destinationCode !== "GZA" : value.destinationCode === "GZA" && value.originCode !== "GZA")
+    && (value.departAt === undefined && value.arriveAt === undefined && value.arrivalDate === undefined && value.originTimezone === undefined && value.destinationTimezone === undefined
+      || Boolean(value.departAt && value.arriveAt && value.arrivalDate && value.originTimezone && value.destinationTimezone)
+        && Date.parse(value.arriveAt!) - Date.parse(value.departAt!) === value.durationMinutes * 60000
+        && value.departAt!.slice(0,10) === value.date && value.departAt!.slice(11,16) === value.departTime
+        && value.arriveAt!.slice(0,10) === value.arrivalDate && value.arriveAt!.slice(11,16) === value.arriveTime);
 });
 export const offeringsWireSchema = z.array(offeringWireSchema).refine(values => new Set(values.map(item => item.id)).size === values.length);
 export type DatedOffering = z.infer<typeof offeringWireSchema>;

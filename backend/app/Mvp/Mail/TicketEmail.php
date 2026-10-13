@@ -35,7 +35,8 @@ final class TicketEmail
                 $seatLabel = $ar ? 'المقعد' : 'Seat'; $mealLabel = $ar ? 'الوجبة' : 'Meal';
                 $meal = $p['meal']['label'][$lang] ?? ($ar ? 'بدون وجبة' : 'No meal');
                 $route = $f['originCode'].' → '.$f['destinationCode'];
-                $line = $f['flightNumber'].' · '.$f['date'].' · '.$f['departTime'].' – '.$f['arriveTime'];
+                $line = $f['flightNumber'].' · '.$f['date'].' · '.$f['departTime'].' – '.(($f['arrivalDate'] ?? $f['date']) !== $f['date'] ? $f['arrivalDate'].' · ' : '').$f['arriveTime'];
+                if (isset($f['originTimezone'], $f['destinationTimezone'])) $line .= ' · '.$f['originTimezone'].' → '.$f['destinationTimezone'];
                 $html .= '<article style="padding:24px;border-bottom:1px solid #d7cebb"><h2>'.$escape($name).'</h2><p dir="ltr">'.$escape($route).'</p><p dir="ltr">'.$escape($line).'</p>'
                     .'<p>'.$seatLabel.': <b dir="ltr">'.$escape($p['seatCode']).'</b></p><p>'.$mealLabel.': '.$escape($meal).'</p><small dir="ltr">'.$escape($item['ticketNumber']).'</small></article>';
                 $text .= "$name\n$route\n$line\n$seatLabel: ".$p['seatCode']."\n$mealLabel: $meal\n".$item['ticketNumber']."\n\n";

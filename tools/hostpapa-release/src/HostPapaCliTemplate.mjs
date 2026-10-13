@@ -83,7 +83,7 @@ try {
     }
 
     $releaseId = trim((string) file_get_contents($pointerFile));
-    if (!preg_match('/^[a-zA-Z0-9_]+$/', $releaseId)) {
+    if (!preg_match('/^[a-zA-Z0-9_]{1,128}$/D', $releaseId)) {
         fwrite(STDERR, "[ERROR] Invalid release ID in pointer file.\\n");
         exit(1);
     }

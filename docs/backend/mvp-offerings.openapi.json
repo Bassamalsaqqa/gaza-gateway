@@ -776,7 +776,7 @@
           },
           "destination": {
             "type": "string",
-            "enum": ["AMM", "CAI", "IST", "DOH", "DXB", "JED", "RUH"]
+            "enum": ["AMM", "CAI", "IST", "DOH", "DXB", "JED", "RUH", "BEY", "KWI", "AUH", "ATH", "FCO", "CDG", "LHR", "FRA", "MAD", "BOM", "KUL", "JFK", "YYZ"]
           },
           "days": {
             "type": "array",
@@ -1009,7 +1009,16 @@
           },
           "durationMinutes": {
             "type": "integer",
-            "minimum": 1
+            "minimum": 20,
+            "maximum": 1440
+          },
+          "originTimezone": { "type": "string", "maxLength": 80 },
+          "destinationTimezone": { "type": "string", "maxLength": 80 },
+          "departAt": { "type": "string", "format": "date-time" },
+          "arriveAt": { "type": "string", "format": "date-time" },
+          "arrivalDate": {
+            "type": "string", "format": "date",
+            "description": "Arrival local calendar date. Departure date is in the origin timezone; elapsed block minutes determine dated arrival, including DST and rollover."
           },
           "aircraftId": {
             "type": "string",

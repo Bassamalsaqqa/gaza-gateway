@@ -100,6 +100,13 @@ export class ReleaseVerifier {
     const recordedSourceCommit = (await readFile(path.join(this.releaseDir, "SOURCE_COMMIT.txt"), "utf8")).trim();
     check(recordedSourceCommit === manifest.source_sha, "SOURCE_COMMIT.txt does not match manifest source_sha");
 
+    const privateSourcePath = path.join(privateDir, 'SOURCE_COMMIT.txt');
+    if (await isFile(privateSourcePath)) {
+      check(await readFile(privateSourcePath, 'utf8') === `${manifest.source_sha}\n`, 'Private runtime source pin differs from manifest');
+    } else {
+      check(false, 'Missing private runtime source pin');
+    }
+
     const recordedReleaseId = (await readFile(path.join(this.releaseDir, "RELEASE_ID.txt"), "utf8")).trim();
     check(recordedReleaseId === manifest.release_id, "RELEASE_ID.txt does not match manifest release_id");
 

@@ -30,6 +30,8 @@ $runtimeTemplate=file_get_contents('/source/docs/production/hostpapa-runtime.env
 $env=str_replace(['REPLACE_WITH_BASE64_32_RANDOM_BYTES','REPLACE_WITH_EXACT_RELEASE_SOURCE_SHA','REPLACE_WITH_OWNER_DATABASE','REPLACE_WITH_RUNTIME_DML_USER','REPLACE_WITH_PRIVATE_RUNTIME_PASSWORD','REPLACE_WITH_SEPARATE_BASE64_32_RANDOM_BYTES'],['base64:'.base64_encode(random_bytes(32)),$manifest['source_sha'],$db,'gaza_h3_runtime',$runtimePassword,base64_encode(random_bytes(32))],$runtimeTemplate);
 $env=str_replace('APP_ENV=production','APP_ENV='.$profile,$env);
 if($isStaging){$env=str_replace('https://www.gazaairport.com,https://gazaairport.com','https://staging.gazaairport.com',$env);$env=str_replace('www.gazaairport.com,gazaairport.com','staging.gazaairport.com',$env);$env=str_replace('https://www.gazaairport.com','https://staging.gazaairport.com',$env);}
+// Deliberately stale shared metadata must never override immutable installed code.
+$env = preg_replace('/^APP_COMMIT=.*$/m', 'APP_COMMIT=' . str_repeat('a', 40), $env);
 $envPath=$home.'/runtime.env';file_put_contents($envPath,$env);chmod($envPath,0600);
 $approval=['schema_version'=>'1.0','action'=>'install','release_id'=>$manifest['release_id'],'source_sha'=>$manifest['source_sha'],'manifest_sha256'=>hash_file('sha256',$package.'/release-manifest.json'),'environment'=>$profile,'target_webroot'=>$web,'app_dir'=>$app,'database'=>['host'=>'127.0.0.1','port'=>3306,'database'=>$db,'username'=>'gaza_h3_ddl','password'=>$ddlPassword],'runtime_env_file'=>$envPath];
 $approvalPath=$home.'/approval.json';
@@ -56,17 +58,26 @@ $check($status===0,'real production-profile installation and migration UP');
 $check(!str_contains($out.$err,$ddlPassword)&&!str_contains($out.$err,$runtimePassword),'installer output excludes credentials');
 $check(trim(file_get_contents($app.'/current-release.txt'))===$manifest['release_id'],'code pointer binds actual source release');
 $expectedMigrations = count(glob($package.'/private/backend/database/migrations/*.php'));
-$check($expectedMigrations === 19, 'exact reviewed 19-migration inventory');
+$check($expectedMigrations === 21, 'exact reviewed 21-migration inventory');
 $check((int)$root->query("SELECT COUNT(*) FROM `$db`.migrations")->fetchColumn()===$expectedMigrations,'all exact package migrations installed');
 $check((int)$root->query("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA='$db' AND TABLE_TYPE='BASE TABLE' AND ENGINE<>'InnoDB'")->fetchColumn()===0,'every installed base table is InnoDB');
 $check(!str_contains(file_get_contents($app.'/shared/config/.env'),$ddlPassword),'DDL credentials never persisted in runtime env');
-$release=$app.'/releases/'.$manifest['release_id'];$cli=$release.'/bin/hostpapa-cli';
+$release=$app.'/releases/'.$manifest['release_id'];$cli=$app.'/bin/hostpapa-cli';
+$check(is_file($cli)&&(fileperms($cli)&0777)===0600,'stable private CLI installed with private permissions');
+$check(hash_file('sha256',$cli)===$manifest['private_files']['bin/hostpapa-cli']['sha256'],'stable CLI binds verified release bytes');
+file_put_contents($app.'/current-release.txt',str_repeat('x',129));
+[$status,$out,$err]=$command([PHP_BINARY,$cli,'shared-hosting:cron','--max-seconds=25','--batch-limit=1']);
+$check($status===1,'stable CLI rejects oversized pointer before framework execution');
+file_put_contents($app.'/current-release.txt',$manifest['release_id']."\n");
 [$status,$out,$err]=$command([PHP_BINARY,$cli,'shared-hosting:cron','--max-seconds=25','--batch-limit=1']);
 $check($status===0,'real installed bounded cron command executes');
 [$status,$out,$err]=$command([PHP_BINARY,$cli,'migrate','--force']);$check($status===1,'private wrapper prohibits direct migrations');
 $probe=$home.'/http.php';file_put_contents($probe,"<?php \$_SERVER['HTTPS']='on'; \$_SERVER['SERVER_PORT']='443'; \$_SERVER['HTTP_HOST']='$host'; \$_SERVER['REQUEST_METHOD']='GET'; \$_SERVER['REQUEST_URI']='/api/v1/health'; \$_SERVER['SCRIPT_NAME']='/index.php'; \$_SERVER['DOCUMENT_ROOT']='$web'; require '$web/index.php';");
 [$status,$out,$err]=$command([PHP_BINARY,$probe]);$health=json_decode($out,true);
 $check($status===0&&($health['success']??false)===true&&($health['data']['status']??'')==='ok','real public PHP bridge liveness in production profile');
+$versionProbe=$home.'/version.php';file_put_contents($versionProbe,str_replace('/api/v1/health','/api/v1/version',file_get_contents($probe)));
+[$status,$out,$err]=$command([PHP_BINARY,$versionProbe]);$version=json_decode($out,true);
+$check($status===0&&($version['data']['commit']??null)===$manifest['source_sha'],'version reports immutable source despite stale shared APP_COMMIT');
 // Model a later code/static release solely to exercise removal on rollback.
 $later=$app.'/releases/rel_later_probe';mkdir($later.'/public_snapshot',0700,true);
 file_put_contents($later.'/public_snapshot/obsolete-probe.txt','later');file_put_contents($web.'/obsolete-probe.txt','later');
@@ -76,6 +87,8 @@ $approval['action']='rollback';$save();
 $check($status===0,'real code/static rollback');
 $check(!file_exists($web.'/obsolete-probe.txt')&&file_get_contents($web.'/owner-unrelated-upload.txt')==='owner bytes','rollback removes obsolete app files and preserves unrelated uploads');
 $check(trim(file_get_contents($app.'/current-release.txt'))===$manifest['release_id']&&(int)$root->query("SELECT COUNT(*) FROM `$db`.migrations")->fetchColumn()===$expectedMigrations,'rollback retains database and restores original pointer');
+[$status,$out,$err]=$command([PHP_BINARY,$versionProbe]);$version=json_decode($out,true);
+$check($status===0&&($version['data']['commit']??null)===$manifest['source_sha']&&hash_file('sha256',$cli)===$manifest['private_files']['bin/hostpapa-cli']['sha256'],'rollback restores source provenance and stable cron bytes');
 // Unix permission failure after one new file was copied. Container drops DAC override capabilities.
 require $installer;
 $broken=$app.'/releases/rel_failure_probe';mkdir($broken.'/public_snapshot',0700,true);

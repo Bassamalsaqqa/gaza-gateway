@@ -209,7 +209,11 @@ PHP;
             $ledger[$name] = is_file($dest);
             if ($ledger[$name]) $this->copyFile($dest, $backup . '/' . $name);
         }
-        $this->write($backup . '/restore.json', json_encode(['previous_pointer' => $previous, 'files' => $ledger], JSON_THROW_ON_ERROR), 0600);
+        $stableCli = $this->app . '/bin/hostpapa-cli';
+        $this->safeAbsolute($stableCli);
+        $hadStableCli = is_file($stableCli);
+        if ($hadStableCli) $this->copyFile($stableCli, $backup . '/.operator/hostpapa-cli', 0600);
+        $this->write($backup . '/restore.json', json_encode(['previous_pointer' => $previous, 'files' => $ledger, 'private_cli_existed' => $hadStableCli], JSON_THROW_ON_ERROR), 0600);
         $maintenance = $this->app . '/shared/storage/framework/maintenance.php';
         $this->write($maintenance, "<?php http_response_code(503); header('Content-Type: application/json'); header('Cache-Control: no-store'); echo json_encode(['success'=>false,'error'=>['code'=>'service_unavailable','message'=>'Maintenance in progress.'],'meta'=>['requestId'=>sprintf('%s-%s-4%s-8%s-%s',bin2hex(random_bytes(4)),bin2hex(random_bytes(2)),substr(bin2hex(random_bytes(2)),1),substr(bin2hex(random_bytes(2)),1),bin2hex(random_bytes(6))),'timestamp'=>gmdate('Y-m-d\\TH:i:s\\Z')]]); exit;\n");
         try {
@@ -226,11 +230,21 @@ PHP;
                 $auth = implode("\n", array_filter($matches[0], static fn ($line) => !preg_match('/Require\s+all\s+(?:granted|denied)/i', $line)));
                 if ($auth !== '') $this->write($this->web . '/.htaccess', $auth . "\n" . file_get_contents($this->web . '/.htaccess'), 0644);
             }
+            // Existing verified CLI already reads the active pointer and shared configuration.
+            // Install it at a stable private path so pruning an old release never breaks cron.
+            $this->copyFile($release . '/bin/hostpapa-cli', $stableCli . '.next', 0600);
+            if (!rename($stableCli . '.next', $stableCli)) throw new RuntimeException('Stable CLI switch failed.');
             $this->write($pointer . '.next', $id . "\n", 0600);
             if (!rename($pointer . '.next', $pointer)) throw new RuntimeException('Pointer switch failed.');
             unlink($maintenance);
         } catch (Throwable $e) {
             $restored = true;
+            try {
+                if ($hadStableCli) {
+                    $this->copyFile($backup . '/.operator/hostpapa-cli', $stableCli . '.restore', 0600);
+                    if (!rename($stableCli . '.restore', $stableCli)) $restored = false;
+                } elseif (is_file($stableCli) && !unlink($stableCli)) $restored = false;
+            } catch (Throwable) { $restored = false; }
             foreach ($ledger as $name => $existed) {
                 try {
                     $dest = $this->web . '/' . $name;
@@ -266,6 +280,11 @@ PHP;
             if (!is_file($file) || hash_file('sha256', $file) !== $entry['sha256']) throw new RuntimeException('Rollback snapshot is corrupt.');
         }
         $this->assertArtifactProfile($release . '/public_snapshot/build-receipt.json');
+        $cliEntry = $manifest['private_files']['bin/hostpapa-cli'] ?? null;
+        $cliPath = $release . '/bin/hostpapa-cli'; $this->safeAbsolute($cliPath);
+        if (!is_array($cliEntry) || !is_file($cliPath) || hash_file('sha256', $cliPath) !== $cliEntry['sha256']) {
+            throw new RuntimeException('Rollback private CLI integrity failed.');
+        }
         $this->runRelease($release, false);
         $this->switchFiles($release, $id);
         echo "PASS: code/static rollback. Database, private config and shared storage retained.\n";
@@ -302,6 +321,10 @@ PHP;
         if ($expected !== $disk || trim(file_get_contents($root . '/SOURCE_COMMIT.txt')) !== $manifest['source_sha']
             || trim(file_get_contents($root . '/RELEASE_ID.txt')) !== $manifest['release_id']
             || trim(file_get_contents($root . '/STATUS.txt')) !== $manifest['classification']) throw new RuntimeException('Package inventory/control binding failed.');
+        if (!isset($manifest['private_files']['SOURCE_COMMIT.txt'])
+            || file_get_contents($root . '/private/SOURCE_COMMIT.txt') !== $manifest['source_sha'] . "\n") {
+            throw new RuntimeException('Immutable runtime source pin is missing or inconsistent.');
+        }
         return $manifest;
     }
 

@@ -1,0 +1,382 @@
+{
+  "schemaVersion": 1,
+  "classification": "commemorative",
+  "source": {
+    "url": "https://github.com/datasets/airport-codes/blob/main/data/airport-codes.csv",
+    "retrieved": "2026-10-13",
+    "sha256": "104a0ce8f950a66bd4e4f4c3dfb3aa84214134246eaa5a5295926c04ac53bd5b",
+    "gzaCoordinateSource": "https://ourairports.com/airports/PS-0006/",
+    "gza": {
+      "latitude": 31.246401,
+      "longitude": 34.2761
+    },
+    "timezoneSource": "https://github.com/eggert/tz/blob/main/zone1970.tab",
+    "durationPolicy": "Curated symbolic estimate: great-circle km / 800 km/h + 35 minutes, rounded up to 5 minutes. Not an operational route, airline promise, or published real flight time."
+  },
+  "airports": [
+    {
+      "command": {
+        "code": "BEY",
+        "airportName": {
+          "en": "Beirut Rafic Hariri International Airport",
+          "ar": "مطار بيروت رفيق الحريري الدولي"
+        },
+        "city": {
+          "en": "Beirut",
+          "ar": "بيروت"
+        },
+        "country": {
+          "en": "Lebanon",
+          "ar": "لبنان"
+        },
+        "timezone": "Asia/Beirut",
+        "blockMinutes": 60,
+        "active": true
+      },
+      "source": {
+        "ident": "OLBA",
+        "municipality": "Beirut",
+        "latitude": 33.819833,
+        "longitude": 35.487443,
+        "distanceKm": 308,
+        "photo": "none; neutral brand placeholder"
+      }
+    },
+    {
+      "command": {
+        "code": "KWI",
+        "airportName": {
+          "en": "Kuwait International Airport",
+          "ar": "مطار الكويت الدولي"
+        },
+        "city": {
+          "en": "Kuwait City",
+          "ar": "مدينة الكويت"
+        },
+        "country": {
+          "en": "Kuwait",
+          "ar": "الكويت"
+        },
+        "timezone": "Asia/Kuwait",
+        "blockMinutes": 140,
+        "active": true
+      },
+      "source": {
+        "ident": "OKKK",
+        "municipality": "Kuwait City",
+        "latitude": 29.224487,
+        "longitude": 47.969813,
+        "distanceKm": 1334,
+        "photo": "none; neutral brand placeholder"
+      }
+    },
+    {
+      "command": {
+        "code": "AUH",
+        "airportName": {
+          "en": "Zayed International Airport",
+          "ar": "مطار زايد الدولي"
+        },
+        "city": {
+          "en": "Abu Dhabi",
+          "ar": "أبوظبي"
+        },
+        "country": {
+          "en": "United Arab Emirates",
+          "ar": "الإمارات العربية المتحدة"
+        },
+        "timezone": "Asia/Dubai",
+        "blockMinutes": 200,
+        "active": true
+      },
+      "source": {
+        "ident": "OMAA",
+        "municipality": "Abu Dhabi",
+        "latitude": 24.440966,
+        "longitude": 54.649237,
+        "distanceKm": 2137,
+        "photo": "none; neutral brand placeholder"
+      }
+    },
+    {
+      "command": {
+        "code": "ATH",
+        "airportName": {
+          "en": "Athens Eleftherios Venizelos International Airport",
+          "ar": "مطار أثينا الدولي إلفثيريوس فينيزيلوس"
+        },
+        "city": {
+          "en": "Athens",
+          "ar": "أثينا"
+        },
+        "country": {
+          "en": "Greece",
+          "ar": "اليونان"
+        },
+        "timezone": "Europe/Athens",
+        "blockMinutes": 130,
+        "active": true
+      },
+      "source": {
+        "ident": "LGAV",
+        "municipality": "Spata-Artemida",
+        "latitude": 37.936401,
+        "longitude": 23.9445,
+        "distanceKm": 1202,
+        "photo": "none; neutral brand placeholder"
+      }
+    },
+    {
+      "command": {
+        "code": "FCO",
+        "airportName": {
+          "en": "Rome–Fiumicino Leonardo da Vinci International Airport",
+          "ar": "مطار روما فيوميتشينو ليوناردو دا فينشي الدولي"
+        },
+        "city": {
+          "en": "Rome",
+          "ar": "روما"
+        },
+        "country": {
+          "en": "Italy",
+          "ar": "إيطاليا"
+        },
+        "timezone": "Europe/Rome",
+        "blockMinutes": 210,
+        "active": true
+      },
+      "source": {
+        "ident": "LIRF",
+        "municipality": "Rome",
+        "latitude": 41.804532,
+        "longitude": 12.251998,
+        "distanceKm": 2281,
+        "photo": "none; neutral brand placeholder"
+      }
+    },
+    {
+      "command": {
+        "code": "CDG",
+        "airportName": {
+          "en": "Charles de Gaulle International Airport",
+          "ar": "مطار باريس شارل ديغول الدولي"
+        },
+        "city": {
+          "en": "Paris",
+          "ar": "باريس"
+        },
+        "country": {
+          "en": "France",
+          "ar": "فرنسا"
+        },
+        "timezone": "Europe/Paris",
+        "blockMinutes": 285,
+        "active": true
+      },
+      "source": {
+        "ident": "LFPG",
+        "municipality": "Paris (Roissy-en-France, Val-d'Oise)",
+        "latitude": 49.00896,
+        "longitude": 2.554117,
+        "distanceKm": 3304,
+        "photo": "none; neutral brand placeholder"
+      }
+    },
+    {
+      "command": {
+        "code": "LHR",
+        "airportName": {
+          "en": "London Heathrow Airport",
+          "ar": "مطار لندن هيثرو"
+        },
+        "city": {
+          "en": "London",
+          "ar": "لندن"
+        },
+        "country": {
+          "en": "United Kingdom",
+          "ar": "المملكة المتحدة"
+        },
+        "timezone": "Europe/London",
+        "blockMinutes": 310,
+        "active": true
+      },
+      "source": {
+        "ident": "EGLL",
+        "municipality": "London",
+        "latitude": 51.470748,
+        "longitude": -0.459909,
+        "distanceKm": 3613,
+        "photo": "none; neutral brand placeholder"
+      }
+    },
+    {
+      "command": {
+        "code": "FRA",
+        "airportName": {
+          "en": "Frankfurt Main Airport",
+          "ar": "مطار فرانكفورت"
+        },
+        "city": {
+          "en": "Frankfurt",
+          "ar": "فرانكفورت"
+        },
+        "country": {
+          "en": "Germany",
+          "ar": "ألمانيا"
+        },
+        "timezone": "Europe/Berlin",
+        "blockMinutes": 260,
+        "active": true
+      },
+      "source": {
+        "ident": "EDDF",
+        "municipality": "Frankfurt am Main",
+        "latitude": 50.026706,
+        "longitude": 8.55835,
+        "distanceKm": 2983,
+        "photo": "none; neutral brand placeholder"
+      }
+    },
+    {
+      "command": {
+        "code": "MAD",
+        "airportName": {
+          "en": "Adolfo Suárez Madrid–Barajas Airport",
+          "ar": "مطار أدولفو سواريز مدريد باراخاس"
+        },
+        "city": {
+          "en": "Madrid",
+          "ar": "مدريد"
+        },
+        "country": {
+          "en": "Spain",
+          "ar": "إسبانيا"
+        },
+        "timezone": "Europe/Madrid",
+        "blockMinutes": 300,
+        "active": true
+      },
+      "source": {
+        "ident": "LEMD",
+        "municipality": "Madrid",
+        "latitude": 40.493407,
+        "longitude": -3.572249,
+        "distanceKm": 3532,
+        "photo": "none; neutral brand placeholder"
+      }
+    },
+    {
+      "command": {
+        "code": "BOM",
+        "airportName": {
+          "en": "Chhatrapati Shivaji Maharaj International Airport",
+          "ar": "مطار تشاتراباتي شيفاجي مهراج الدولي"
+        },
+        "city": {
+          "en": "Mumbai",
+          "ar": "مومباي"
+        },
+        "country": {
+          "en": "India",
+          "ar": "الهند"
+        },
+        "timezone": "Asia/Kolkata",
+        "blockMinutes": 345,
+        "active": true
+      },
+      "source": {
+        "ident": "VABB",
+        "municipality": "Mumbai",
+        "latitude": 19.088699,
+        "longitude": 72.867897,
+        "distanceKm": 4088,
+        "photo": "none; neutral brand placeholder"
+      }
+    },
+    {
+      "command": {
+        "code": "KUL",
+        "airportName": {
+          "en": "Kuala Lumpur International Airport",
+          "ar": "مطار كوالالمبور الدولي"
+        },
+        "city": {
+          "en": "Kuala Lumpur",
+          "ar": "كوالالمبور"
+        },
+        "country": {
+          "en": "Malaysia",
+          "ar": "ماليزيا"
+        },
+        "timezone": "Asia/Kuala_Lumpur",
+        "blockMinutes": 615,
+        "active": true
+      },
+      "source": {
+        "ident": "WMKK",
+        "municipality": "Sepang",
+        "latitude": 2.74558,
+        "longitude": 101.709999,
+        "distanceKm": 7712,
+        "photo": "none; neutral brand placeholder"
+      }
+    },
+    {
+      "command": {
+        "code": "JFK",
+        "airportName": {
+          "en": "John F. Kennedy International Airport",
+          "ar": "مطار جون إف كينيدي الدولي"
+        },
+        "city": {
+          "en": "New York",
+          "ar": "نيويورك"
+        },
+        "country": {
+          "en": "United States",
+          "ar": "الولايات المتحدة"
+        },
+        "timezone": "America/New_York",
+        "blockMinutes": 720,
+        "active": true
+      },
+      "source": {
+        "ident": "KJFK",
+        "municipality": "New York",
+        "latitude": 40.639447,
+        "longitude": -73.779317,
+        "distanceKm": 9133,
+        "photo": "none; neutral brand placeholder"
+      }
+    },
+    {
+      "command": {
+        "code": "YYZ",
+        "airportName": {
+          "en": "Toronto Pearson International Airport",
+          "ar": "مطار تورونتو بيرسون الدولي"
+        },
+        "city": {
+          "en": "Toronto",
+          "ar": "تورونتو"
+        },
+        "country": {
+          "en": "Canada",
+          "ar": "كندا"
+        },
+        "timezone": "America/Toronto",
+        "blockMinutes": 735,
+        "active": true
+      },
+      "source": {
+        "ident": "CYYZ",
+        "municipality": "Toronto",
+        "latitude": 43.675935,
+        "longitude": -79.629421,
+        "distanceKm": 9320,
+        "photo": "none; neutral brand placeholder"
+      }
+    }
+  ]
+}

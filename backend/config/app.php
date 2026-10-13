@@ -12,6 +12,21 @@ $defaultAllowedHosts = match ($appEnv) {
 $rawHosts = env('APP_ALLOWED_HOSTS', $defaultAllowedHosts);
 $parsedHosts = array_values(array_filter(array_map('trim', explode(',', (string) $rawHosts))));
 
+// Packaged releases carry a hash-verified immutable pin. Shared secrets/configuration
+// survive upgrades and rollbacks, so APP_COMMIT alone cannot attest installed code.
+$sourcePin = dirname(__DIR__, 2) . '/SOURCE_COMMIT.txt';
+$sourceCommit = env('APP_COMMIT', 'unreleased-local');
+if (file_exists($sourcePin) || is_link($sourcePin)) {
+    if (is_link($sourcePin) || !is_file($sourcePin) || filesize($sourcePin) !== 41) {
+        throw new RuntimeException('Invalid release source pin.');
+    }
+    $pin = file_get_contents($sourcePin);
+    if (!is_string($pin) || preg_match('/^[a-f0-9]{40}\\n$/D', $pin) !== 1) {
+        throw new RuntimeException('Invalid release source pin.');
+    }
+    $sourceCommit = substr($pin, 0, 40);
+}
+
 $defaultAppUrl = match ($appEnv) {
     'local', 'testing' => 'http://127.0.0.1:18084',
     'staging' => 'https://staging.gazaairport.com',
@@ -38,7 +53,7 @@ return [
 
     // Injected trusted versioning information (local dirty/unknown builds labelled honestly)
     'version' => env('APP_VERSION', '1.0.0-foundation'),
-    'commit' => env('APP_COMMIT', 'unreleased-local'),
+    'commit' => $sourceCommit,
     'schema_version' => (int) env('APP_SCHEMA_VERSION', 1),
 
     // Strict host allowlist (entries preserved without stripping so ConfigurationValidator validates them strictly)

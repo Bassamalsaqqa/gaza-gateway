@@ -404,6 +404,28 @@ final class ReservationRoutesTest extends TestCase
         $this->assertSame('reference_changed', $resB->json('error.code'));
     }
 
+    public function test_frozen_timezone_identity_cannot_be_reinterpreted(): void
+    {
+        $owner = $this->passenger();
+        $other = $this->passenger();
+        $serviceId = $this->sampleServiceId('2026-12-26');
+        $created = $this->http('POST', '/reservations', $owner, $this->sampleCommand($serviceId, '6A'));
+        $created->assertStatus(201);
+        $ref = $created->json('data.reservation.reference');
+        // Same winter UTC offset/clock, different IANA authority: still an immutable change.
+        DB::table('airports')->where('code', 'AMM')->update(['timezone' => 'Africa/Cairo']);
+        try {
+            $rejected = $this->http('POST', '/reservations', $other, $this->sampleCommand($serviceId, '7A'));
+            $rejected->assertStatus(409);
+            $this->assertSame('reference_changed', $rejected->json('error.code'));
+            $ticket = $this->http('GET', '/reservations/' . $ref . '/ticket', $owner);
+            $ticket->assertStatus(200);
+            $this->assertSame('Asia/Gaza', $ticket->json('data.tickets.0.flight.destinationTimezone'));
+        } finally {
+            DB::table('airports')->where('code', 'AMM')->update(['timezone' => 'Asia/Gaza']);
+        }
+    }
+
     public function test_two_users_race_same_seat_concurrency(): void
     {
         if (getenv('REFERENCE_GATE_OWNED') !== '1') {

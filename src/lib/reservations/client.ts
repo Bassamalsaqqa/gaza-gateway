@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { MvpApiClient } from "../api/mvp-client.ts";
 import { MvpApiError } from "../api/mvp-client.ts";
 import { decodeDatedOfferingId, isValidISODate } from "../offerings/codec.ts";
-import { offeringLayoutSchema } from "../offerings/schema.ts";
+import { offeringLayoutSchema, offeringTimingFields } from "../offerings/schema.ts";
 import { seatExists } from "../fleet/layout.ts";
 
 const id = z.string().regex(/^[A-Za-z0-9_-]{1,64}(?![\s\S])/);
@@ -18,7 +18,7 @@ const contact = z.object({ email: z.string().email().max(254), phone: z.string()
 const commandContact = z.object({ email: z.string().trim().email().max(254), phone: z.string().trim().regex(/^(?:\+?[0-9 ()-]{5,32})?$/) }).strict();
 const flight = z.object({ serviceId: service, flightNumber: z.string().min(1), date, direction: z.enum(["out", "in"]).optional(),
   originCode: z.string().regex(/^[A-Z]{3}$/), destinationCode: z.string().regex(/^[A-Z]{3}$/), departTime: time, arriveTime: time,
-  durationMinutes: z.number().int().positive().optional(), aircraftModel: z.string().min(1) }).strict();
+  durationMinutes: z.number().int().positive().optional(), aircraftModel: z.string().min(1), ...offeringTimingFields }).strict();
 const passengerTicket = z.object({ ticketNumber: z.string().min(1), reference: ref, status, issuedAt: z.string().datetime({ offset: true }),
   passenger: z.object({ id, type: z.enum(["adult", "child"]), firstName: z.string(), lastName: z.string(), nationality: z.string(), seatCode: seat, meal }).strict(), flight, contact }).strict();
 const ticket = z.object({ reference: ref, status, issuedAt: z.string().datetime({ offset: true }), flight,

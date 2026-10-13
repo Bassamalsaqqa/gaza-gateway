@@ -1577,7 +1577,12 @@
           },
           "aircraftModel": {
             "type": "string"
-          }
+          },
+          "originTimezone": { "type": "string", "maxLength": 80 },
+          "destinationTimezone": { "type": "string", "maxLength": 80 },
+          "departAt": { "type": "string", "format": "date-time" },
+          "arriveAt": { "type": "string", "format": "date-time" },
+          "arrivalDate": { "type": "string", "format": "date" }
         }
       },
       "PassengerTicket": {

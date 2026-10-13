@@ -11,6 +11,20 @@ use Tests\TestCase;
 
 final class MemorialNetworkExpansionTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        DB::beginTransaction();
+        DB::table('airports')->insertOrIgnore($this->row('AMM', 750));
+        DB::table('airports')->insertOrIgnore($this->row('JFK', 750));
+    }
+
+    protected function tearDown(): void
+    {
+        if (DB::transactionLevel() > 0) DB::rollBack();
+        parent::tearDown();
+    }
+
     private function row(string $code, int $duration): array
     {
         return ['code' => $code, 'airport_name_en' => 'Synthetic airport', 'airport_name_ar' => 'مطار اختباري',

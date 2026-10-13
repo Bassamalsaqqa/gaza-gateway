@@ -167,6 +167,17 @@ final class OfferingResolver
         $destinationCode = $isOut ? (string) $row->destination : 'GZA';
 
         $durationMinutes = (int) $dest->block_minutes;
+        try {
+            $timing = OfferingLocalTime::project($date, $departTime,
+                (string) ($isOut ? $gza->timezone : $dest->timezone),
+                (string) ($isOut ? $dest->timezone : $gza->timezone), $durationMinutes);
+        } catch (\InvalidArgumentException) {
+            throw new OfferingAvailabilityException('Offering local departure time is not uniquely valid.');
+        }
+        // Schedule arrival is a nominal editorial clock. Dated reads derive authoritative local
+        // arrival from elapsed block minutes, not an unrelated HH:mm template through DST changes.
+        $arriveTime = $timing['arriveTime'];
+        unset($timing['arriveTime']);
 
         $fleetRev = (int) (DB::table('reference_revision_control')->where('domain', 'fleet')->value('revision') ?? 0);
         $networkRev = (int) (DB::table('network_revision_control')->where('domain', 'network')->value('revision') ?? 0);
@@ -198,6 +209,7 @@ final class OfferingResolver
             ],
             classification: 'commemorative',
             priceMinor: 0,
+            timing: $timing,
         );
     }
 }

@@ -44,6 +44,7 @@ import {
 import { useRepositories } from "@/lib/repositories/registry";
 import { executeAuditedAdminCommand } from "@/lib/activity";
 import { pageHead } from "@/lib/head";
+import { MvpMemorialCuration } from "@/components/admin/mvp-memorial-curation";
 
 export const Route = createFileRoute("/{-$locale}/admin/schedules")({
   head: ({ params }) =>
@@ -390,6 +391,7 @@ function AdminSchedulesPage() {
           </PermissionButton>
         }
       />
+      {identityUiRequested && mayEdit && <MvpMemorialCuration />}
 
       <Toolbar>
         <div className="flex flex-wrap items-center gap-2">
@@ -786,6 +788,11 @@ function AdminSchedulesPage() {
                 />
               </Field>
             </div>
+
+            {identityUiRequested && <p className="text-xs text-muted-foreground">{pick(lang, {
+              en: "Arrival is the nominal schedule clock. Each dated offering calculates local arrival from the destination's configured block duration and both airport time zones, including daylight-saving changes.",
+              ar: "الوصول هنا وقت إرشادي للجدول. يُحسب وقت الوصول المحلي لكل موعد من مدة الرحلة المحددة والمنطقتين الزمنيتين للمطارين، بما يشمل التوقيت الصيفي.",
+            })}</p>}
 
             <Field
               label={t("adm.col.aircraft")}

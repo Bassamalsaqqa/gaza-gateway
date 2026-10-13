@@ -3,6 +3,7 @@ import { Brand } from "./brand";
 import { useI18n } from "@/lib/i18n";
 
 import { footerColumns as columns } from "@/lib/site-navigation";
+import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
 
 export function SiteFooter() {
   const { t } = useI18n();
@@ -17,7 +18,7 @@ export function SiteFooter() {
           <nav key={col.key} aria-label={t(col.key)}>
             <h2 className="eyebrow text-clay-soft">{t(col.key)}</h2>
             <ul className="mt-4 space-y-2.5">
-              {col.links.map((link) => (
+              {col.links.filter((link) => !identityUiRequested || link.to !== "/check-in").map((link) => (
                 <li key={link.to + link.key}>
                   <AppLink to={link.to} className="text-sm text-ink-muted transition-colors hover:text-ink-foreground">
                     {t(link.key)}
