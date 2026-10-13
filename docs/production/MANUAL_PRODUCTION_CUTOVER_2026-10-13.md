@@ -7,6 +7,10 @@ Release: `rel_20261013T082656_7a8f0fa_clean`.
 Release manifest SHA-256: `f4950ad28949c874e8055cabe5af049d4467acee1583a8c916f96bb50c2f1cdf`.
 The new wrapper is separately reviewed tooling, not a rebuilt application or a relabelled application test gate. The package remains an unreviewed candidate under owner-authorized launch/testing. PR #4, main and hostpapa-deploy are not merged or changed by this procedure.
 
+## Installer correction after the first owner run
+
+The first run at 2026-10-13T09:49:03Z stopped at install. The prepared private approval incorrectly contained numeric schema_version 1; the installer correctly requires the string "1.0". A private read-only HostPapa diagnostic confirmed this exact mismatch, correct ownership/mode, safe web/app paths and no production application directory. It failed before migration or public activation. Deleting production-result.json did not clear the separate attempted marker, so later runs correctly skipped. Codex corrected the private input, added the missing exact schema-type check to the wrapper, and preserved the failed marker/log. The two affected local positive/negative preflight controls pass on PHP 8.4 with no network/database. The application artifact remains unchanged; use the corrected private files rather than re-extracting the earlier numeric-version approval.
+
 ## Prepared files
 
 Local private handoff directory: `scratch/h4-private-inputs/production-owner-ready/` in the convergence worktree. `HOSTPAPA_PRODUCTION_READY.zip` includes the exact manifested application in `release/`, private production environment/installer approval, first-owner SMTP input and `deploy-production.php`. This ZIP contains credentials; upload it only to `/home/gaza5045/gaza-live-package`, never to public_html or Git. Fresh production app secrets are independent from staging. Existing owner-provided live database and mailbox credentials are already filled. Do not reuse staging database/users or migrate its passengers/bookings/test schedule.

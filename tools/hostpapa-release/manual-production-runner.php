@@ -71,7 +71,8 @@ try {
     $env = privateInput('live-runtime.env');
     $ownerBytes = privateInput('owner-bootstrap.json');
     $owner = json_decode($ownerBytes, true, 32, JSON_THROW_ON_ERROR);
-    if (($approval['action'] ?? '') !== 'install' || ($approval['environment'] ?? '') !== 'production'
+    if (($approval['schema_version'] ?? null) !== '1.0'
+        || ($approval['action'] ?? '') !== 'install' || ($approval['environment'] ?? '') !== 'production'
         || ($approval['source_sha'] ?? '') !== SOURCE_SHA || ($approval['release_id'] ?? '') !== RELEASE_ID
         || ($approval['manifest_sha256'] ?? '') !== MANIFEST_SHA
         || ($approval['target_webroot'] ?? '') !== '/home/gaza5045/public_html'
