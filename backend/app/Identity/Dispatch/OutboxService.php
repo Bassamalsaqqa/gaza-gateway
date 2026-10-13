@@ -200,6 +200,28 @@ class OutboxService
             };
 
             $body = $this->renderProofBody($purpose, $token, $authoritativeExpiry);
+            if ($purpose === ProofPurpose::PassengerEmailVerification) {
+                // Generate both delivery methods together, in the existing proof/outbox transaction.
+                // A second enqueue must not replace the code while the original message is queued.
+                if ($tx->table('user_email_verification_codes')->where('verification_id', $proofId)->exists()) {
+                    throw new DispatchException('Verification dispatch already exists.');
+                }
+                $code = sprintf('%06d', random_int(0, 999999));
+                $tx->table('user_email_verification_codes')->insert([
+                    'verification_id' => $proofId,
+                    'code_digest' => \App\Identity\Proofs\EmailVerificationCode::digest($proofId, $authoritativeEmail, (int) $proofRow->credential_epoch, $code),
+                    'failed_attempts' => 0,
+                ]);
+                $origin = rtrim((string) config('app.url'), '/');
+                $isTestOrigin = in_array(config('app.env'), ['local', 'testing'], true)
+                    && in_array(parse_url($origin, PHP_URL_HOST), ['127.0.0.1', 'localhost'], true);
+                if (!str_starts_with($origin, 'https://') || (!$isTestOrigin && !in_array($origin, config('cors.allowed_origins', []), true))) {
+                    throw new DispatchException('Verification website origin is not approved HTTPS.');
+                }
+                $link = $origin . '/verify-email#token=' . rawurlencode($token);
+                $arabicLink = $origin . '/ar/verify-email#token=' . rawurlencode($token);
+                $body = "Palestinian Airlines — Verify your email\n\nOpen this link, then confirm your email:\n{$link}\n\nOr enter this 6-digit code: {$code}\nExpires: {$authoritativeExpiry}\nIf you did not create an account, ignore this message.\n\nالخطوط الجوية الفلسطينية — تأكيد بريدك الإلكتروني\n\nافتح الرابط ثم أكّد بريدك:\n{$arabicLink}\n\nأو أدخل رمز التحقق المكوّن من ٦ أرقام: {$code}\nينتهي في: {$authoritativeExpiry}\nإذا لم تنشئ حساباً، تجاهل هذه الرسالة.";
+            }
 
             $payload = new OutboxPayload(
                 recipient: $authoritativeEmail,

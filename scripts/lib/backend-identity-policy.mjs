@@ -37,7 +37,7 @@ export const IDENTITY_POLICY = {
     stepUp: 300,
   },
   passwords: {
-    passenger: { min: 15, max: 128 },
+    passenger: { min: 6, max: 128 },
     staff: { min: 12, max: 128 },
     algorithm: "Argon2id",
     memoryKiB: 65536,

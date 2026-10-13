@@ -61,12 +61,12 @@ export function validateOperationAuthority(spec, registry) {
   for (const name of ["RegisterRequest", "PasswordResetRequest"])
     exact(
       spec.components?.schemas?.[name]?.properties?.password,
-      { type: "string", minLength: 15, maxLength: 128 },
+      { type: "string", minLength: 6, maxLength: 128 },
       name + " password floor",
       errors,
     );
   for (const [name, field, min] of [
-    ["PassengerPasswordChangeRequest", "newPassword", 15],
+    ["PassengerPasswordChangeRequest", "newPassword", 6],
     ["StaffPasswordChangeRequest", "newPassword", 12],
     ["StaffPasswordResetRequest", "newPassword", 12],
     ["StaffInvitationAcceptRequest", "password", 12],

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "canonicalDigest": "sha256:8b3318b4156c5d4816ec2734858cbd81594c618ebab44c62b73a0bf8ec769334",
+  "canonicalDigest": "sha256:5b806ed9192eca7faf2054862a1bdb3ea98e5eabc252c6d164379d00c3f24b8c",
   "contractVersion": "1.0.0",
   "operationCount": 46,
   "operations": {
@@ -723,16 +723,41 @@
       "type": "object"
     },
     "#/components/schemas/EmailVerifyRequest": {
-      "additionalProperties": false,
-      "properties": {
-        "token": {
-          "type": "string"
+      "description": "Either opaque link token or email plus six-digit code. Both consume the same durable verification proof; never both.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "token": {
+              "pattern": "^[A-Za-z0-9_-]{43}$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "token"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "pattern": "^[0-9]{6}$",
+              "type": "string"
+            },
+            "email": {
+              "format": "email",
+              "maxLength": 254,
+              "type": "string"
+            }
+          },
+          "required": [
+            "email",
+            "code"
+          ],
+          "type": "object"
         }
-      },
-      "required": [
-        "token"
-      ],
-      "type": "object"
+      ]
     },
     "#/components/schemas/LoginRequest": {
       "additionalProperties": false,
@@ -772,7 +797,7 @@
         },
         "newPassword": {
           "maxLength": 128,
-          "minLength": 15,
+          "minLength": 6,
           "type": "string"
         }
       },
@@ -804,7 +829,7 @@
         },
         "password": {
           "maxLength": 128,
-          "minLength": 15,
+          "minLength": 6,
           "type": "string"
         },
         "token": {
@@ -879,7 +904,7 @@
         },
         "password": {
           "maxLength": 128,
-          "minLength": 15,
+          "minLength": 6,
           "type": "string"
         },
         "phone": {

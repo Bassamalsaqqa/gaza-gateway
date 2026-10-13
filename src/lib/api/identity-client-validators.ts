@@ -369,10 +369,10 @@ export function validateRegisterRequest(body: unknown): RegisterRequest {
     });
   }
   const passwordLen = countUnicodeCodePoints(password);
-  if (passwordLen < 15 || passwordLen > 128) {
+  if (passwordLen < 6 || passwordLen > 128) {
     throw new IdentityApiError({
       kind: "protocol",
-      message: "Invalid register request payload: password length must be between 15 and 128 Unicode code points.",
+      message: "Invalid register request payload: password length must be between 6 and 128 Unicode code points.",
     });
   }
 
@@ -542,10 +542,10 @@ export function validatePasswordResetRequest(body: unknown): PasswordResetReques
     });
   }
   const passwordLen = countUnicodeCodePoints(password);
-  if (passwordLen < 15 || passwordLen > 128) {
+  if (passwordLen < 6 || passwordLen > 128) {
     throw new IdentityApiError({
       kind: "protocol",
-      message: "Invalid password reset request payload: password length must be between 15 and 128 Unicode code points.",
+      message: "Invalid password reset request payload: password length must be between 6 and 128 Unicode code points.",
     });
   }
 
@@ -565,6 +565,12 @@ export function validateEmailVerifyRequest(body: unknown): EmailVerifyRequest {
   }
 
   const keys = Object.keys(body);
+  if (keys.length === 2 && keys.includes("email") && keys.includes("code")
+    && typeof body["email"] === "string" && body["email"].length <= 254
+    && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body["email"])
+    && typeof body["code"] === "string" && /^[0-9]{6}$/.test(body["code"])) {
+    return { email: body["email"], code: body["code"] };
+  }
   if (keys.length !== 1 || !keys.includes("token")) {
     throw new IdentityApiError({
       kind: "protocol",
@@ -573,7 +579,7 @@ export function validateEmailVerifyRequest(body: unknown): EmailVerifyRequest {
   }
 
   const token = body["token"];
-  if (typeof token !== "string") {
+  if (typeof token !== "string" || !/^[A-Za-z0-9_-]{43}$/.test(token)) {
     throw new IdentityApiError({
       kind: "protocol",
       message: "Invalid email verify request payload: token must be a string.",
@@ -793,10 +799,10 @@ export function validatePassengerPasswordChangeRequest(body: unknown): Passenger
     });
   }
   const newLen = countUnicodeCodePoints(newPassword);
-  if (newLen < 15 || newLen > 128) {
+  if (newLen < 6 || newLen > 128) {
     throw new IdentityApiError({
       kind: "protocol",
-      message: "Invalid password change payload: newPassword length must be between 15 and 128 code points.",
+      message: "Invalid password change payload: newPassword length must be between 6 and 128 code points.",
     });
   }
 

@@ -55,7 +55,7 @@
     },
     "passwords": {
       "passenger": {
-        "min": 15,
+        "min": 6,
         "max": 128
       },
       "staff": {

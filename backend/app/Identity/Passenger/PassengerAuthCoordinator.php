@@ -676,24 +676,27 @@ final class PassengerAuthCoordinator
     public function emailVerify(array $payload, string $ip, string $requestId): bool
     {
         $this->assertOwnTransaction();
-        $rawToken = (string) $payload['token'];
+        $rawToken = (string) ($payload['token'] ?? '');
+        $email = strtolower(trim((string) ($payload['email'] ?? '')));
 
         // 1. Charge rate limiter
         $charge = $this->rateLimiter->charge('passenger', 'proof', [
-            'subject' => $rawToken,
+            'subject' => $email !== '' ? $email : $rawToken,
             'ip' => $ip,
         ]);
         if (!$charge->allowed) {
             throw new RateLimitExceededException($charge->retryAfterSeconds);
         }
 
-        return $this->executeAction('postPassengerEmailVerify', $requestId, function (ConnectionInterface $tx) use ($rawToken, $requestId) {
+        $verified = $this->executeAction('postPassengerEmailVerify', $requestId, function (ConnectionInterface $tx) use ($rawToken, $email, $payload, $requestId) {
             \App\Support\DatabaseFailure::applyTimeouts($tx, 3000, 3000);
 
-            $consumption = $this->proofService->consume(ProofPurpose::PassengerEmailVerification, $rawToken, $tx);
+            $consumption = $email !== ''
+                ? $this->consumeEmailCode($tx, $email, (string) ($payload['code'] ?? ''))
+                : $this->proofService->consume(ProofPurpose::PassengerEmailVerification, $rawToken, $tx);
             if (!$consumption->isSuccess()) {
-
-                throw new ProofConsumptionFailedException('Invalid, expired, or previously used verification token.');
+                // Commit failed-attempt/expiry state before emitting the generic denial outside this transaction.
+                return false;
             }
 
             $userId = (string) $consumption->principalId;
@@ -731,6 +734,37 @@ final class PassengerAuthCoordinator
 
             return true;
         });
+        if (!$verified) {
+            $this->auditWriter->record(AuditActor::system(), 'postPassengerEmailVerify', AuditOutcome::Denied,
+                AuditTargetType::User, null, ['reason_code' => 'challenge_failed', 'error_code' => 'ERR_CHALLENGE_FAILED'], $requestId, $this->db);
+            throw new ProofConsumptionFailedException('Invalid, expired, or previously used verification proof.');
+        }
+        return true;
+    }
+
+    private function consumeEmailCode(ConnectionInterface $tx, string $email, #[\SensitiveParameter] string $code): \App\Identity\Proofs\ProofConsumptionResult
+    {
+        $denied = fn() => \App\Identity\Proofs\ProofConsumptionResult::failure(\App\Identity\Proofs\ProofConsumptionOutcome::NotFound);
+        if (!preg_match('/^[0-9]{6}$/D', $code)) return $denied();
+        // Common lock order with link consumption and resend: principal -> proof -> code.
+        $user = $tx->table('users')->whereRaw('lower(email) = ?', [$email])->lockForUpdate()->first();
+        if (!$user || $user->status !== 'unverified' || $user->email_verified_at !== null) return $denied();
+        $proof = $tx->table('user_email_verifications')->where('user_id', $user->id)->where('state', 'issued')
+            ->orderBy('issued_at', 'desc')->orderBy('id')->lockForUpdate()->first();
+        if (!$proof) return $denied();
+        $stored = $tx->table('user_email_verification_codes')->where('verification_id', $proof->id)->lockForUpdate()->first();
+        $now = DatabaseClock::now($tx);
+        if (!$stored || (int) $stored->failed_attempts >= 5 || $now->greaterThanOrEqualTo(CarbonImmutable::parse($proof->expires_at))
+            || (string) $proof->email_snapshot !== (string) $user->email || (int) $proof->credential_epoch !== (int) $user->credential_epoch) return $denied();
+        $digest = \App\Identity\Proofs\EmailVerificationCode::digest((string) $proof->id, (string) $proof->email_snapshot, (int) $proof->credential_epoch, $code);
+        if (!hash_equals((string) $stored->code_digest, $digest)) {
+            $attempts = (int) $stored->failed_attempts + 1;
+            $tx->table('user_email_verification_codes')->where('verification_id', $proof->id)->update(['failed_attempts' => $attempts]);
+            if ($attempts === 5) $tx->table('user_email_verifications')->where('id', $proof->id)->update(['state' => 'exhausted']);
+            return $denied();
+        }
+        $tx->table('user_email_verifications')->where('id', $proof->id)->update(['state' => 'consumed', 'consumed_at' => $now->toIso8601String()]);
+        return \App\Identity\Proofs\ProofConsumptionResult::success((string) $proof->id, (string) $user->id, (string) $user->email, (int) $user->credential_epoch, $now);
     }
 
     /**
@@ -779,6 +813,15 @@ final class PassengerAuthCoordinator
                     'message' => 'If the account is eligible, a verification email has been queued for dispatch.',
                 ];
             }
+
+            // Principal-wide resend ceiling supplements per-account/IP dispatch admission.
+            // Keep the same receipt when limited: no account-existence disclosure.
+            $recent = $tx->table('user_email_verifications')->where('user_id', $user->id)
+                ->where('issued_at', '>=', DatabaseClock::now($tx)->subMinutes(15)->toIso8601String())->count();
+            if ($recent >= 3) return [
+                'status' => 'verification_dispatched',
+                'message' => 'If the account is eligible, a verification email has been queued for dispatch.',
+            ];
 
             // Reissue verification proof and enqueue outbox
             $receipt = $this->proofService->reissue(ProofPurpose::PassengerEmailVerification, $user->id, $tx);

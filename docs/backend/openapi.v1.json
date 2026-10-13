@@ -11347,7 +11347,7 @@
           },
           "password": {
             "type": "string",
-            "minLength": 15,
+            "minLength": 6,
             "maxLength": 128
           },
           "title": {
@@ -11478,7 +11478,7 @@
           },
           "password": {
             "type": "string",
-            "minLength": 15,
+            "minLength": 6,
             "maxLength": 128
           }
         },
@@ -11490,16 +11490,41 @@
         "additionalProperties": false
       },
       "EmailVerifyRequest": {
-        "type": "object",
-        "properties": {
-          "token": {
-            "type": "string"
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "token": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]{43}$"
+              }
+            },
+            "required": [
+              "token"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "email": {
+                "type": "string",
+                "format": "email",
+                "maxLength": 254
+              },
+              "code": {
+                "type": "string",
+                "pattern": "^[0-9]{6}$"
+              }
+            },
+            "required": [
+              "email",
+              "code"
+            ],
+            "additionalProperties": false
           }
-        },
-        "required": [
-          "token"
         ],
-        "additionalProperties": false
+        "description": "Either opaque link token or email plus six-digit code. Both consume the same durable verification proof; never both."
       },
       "UpdatePassengerProfileRequest": {
         "type": "object",
@@ -16260,11 +16285,24 @@
                   "enum": [
                     "AMM",
                     "CAI",
+                    "IST",
                     "DOH",
                     "DXB",
-                    "IST",
                     "JED",
-                    "RUH"
+                    "RUH",
+                    "BEY",
+                    "KWI",
+                    "AUH",
+                    "ATH",
+                    "FCO",
+                    "CDG",
+                    "LHR",
+                    "FRA",
+                    "MAD",
+                    "BOM",
+                    "KUL",
+                    "JFK",
+                    "YYZ"
                   ]
                 },
                 "photoId": {
@@ -16338,11 +16376,24 @@
                   "enum": [
                     "AMM",
                     "CAI",
+                    "IST",
                     "DOH",
                     "DXB",
-                    "IST",
                     "JED",
-                    "RUH"
+                    "RUH",
+                    "BEY",
+                    "KWI",
+                    "AUH",
+                    "ATH",
+                    "FCO",
+                    "CDG",
+                    "LHR",
+                    "FRA",
+                    "MAD",
+                    "BOM",
+                    "KUL",
+                    "JFK",
+                    "YYZ"
                   ]
                 },
                 "seo": {
@@ -16524,7 +16575,20 @@
               "DOH",
               "DXB",
               "JED",
-              "RUH"
+              "RUH",
+              "BEY",
+              "KWI",
+              "AUH",
+              "ATH",
+              "FCO",
+              "CDG",
+              "LHR",
+              "FRA",
+              "MAD",
+              "BOM",
+              "KUL",
+              "JFK",
+              "YYZ"
             ]
           },
           "airportName": {
@@ -16542,7 +16606,7 @@
           "blockMinutes": {
             "type": "integer",
             "minimum": 15,
-            "maximum": 600
+            "maximum": 1440
           },
           "active": {
             "type": "boolean"
@@ -16575,7 +16639,20 @@
               "DOH",
               "DXB",
               "JED",
-              "RUH"
+              "RUH",
+              "BEY",
+              "KWI",
+              "AUH",
+              "ATH",
+              "FCO",
+              "CDG",
+              "LHR",
+              "FRA",
+              "MAD",
+              "BOM",
+              "KUL",
+              "JFK",
+              "YYZ"
             ]
           },
           "destinationCode": {
@@ -16588,7 +16665,20 @@
               "DOH",
               "DXB",
               "JED",
-              "RUH"
+              "RUH",
+              "BEY",
+              "KWI",
+              "AUH",
+              "ATH",
+              "FCO",
+              "CDG",
+              "LHR",
+              "FRA",
+              "MAD",
+              "BOM",
+              "KUL",
+              "JFK",
+              "YYZ"
             ]
           },
           "direction": {
@@ -16601,7 +16691,7 @@
           "blockMinutes": {
             "type": "integer",
             "minimum": 15,
-            "maximum": 600
+            "maximum": 1440
           },
           "active": {
             "type": "boolean"
@@ -16700,7 +16790,20 @@
               "DOH",
               "DXB",
               "JED",
-              "RUH"
+              "RUH",
+              "BEY",
+              "KWI",
+              "AUH",
+              "ATH",
+              "FCO",
+              "CDG",
+              "LHR",
+              "FRA",
+              "MAD",
+              "BOM",
+              "KUL",
+              "JFK",
+              "YYZ"
             ]
           },
           "days": {
@@ -19485,7 +19588,7 @@
           },
           "newPassword": {
             "type": "string",
-            "minLength": 15,
+            "minLength": 6,
             "maxLength": 128
           }
         },

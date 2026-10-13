@@ -14,7 +14,62 @@ export type DestinationPhotoId =
   | "city-jeddah"
   | "city-riyadh";
 
-export type DestinationCode = "AMM" | "CAI" | "DOH" | "DXB" | "IST" | "JED" | "RUH";
+export const CORE_PHOTO_DESTINATION_CODES = [
+  "AMM",
+  "CAI",
+  "DOH",
+  "DXB",
+  "IST",
+  "JED",
+  "RUH",
+] as const;
+
+export const MEMORIAL_EXPANSION_DESTINATION_CODES = [
+  "BEY",
+  "KWI",
+  "AUH",
+  "ATH",
+  "FCO",
+  "CDG",
+  "LHR",
+  "FRA",
+  "MAD",
+  "BOM",
+  "KUL",
+  "JFK",
+  "YYZ",
+] as const;
+
+export const ALL_NETWORK_DESTINATION_CODES = [
+  "AMM",
+  "CAI",
+  "IST",
+  "DOH",
+  "DXB",
+  "JED",
+  "RUH",
+  "BEY",
+  "KWI",
+  "AUH",
+  "ATH",
+  "FCO",
+  "CDG",
+  "LHR",
+  "FRA",
+  "MAD",
+  "BOM",
+  "KUL",
+  "JFK",
+  "YYZ",
+] as const;
+
+export type DestinationCode = (typeof ALL_NETWORK_DESTINATION_CODES)[number];
+
+export const GZA_HUB_CODE = "GZA" as const;
+export type GzaHubCode = typeof GZA_HUB_CODE;
+
+export const ALL_NETWORK_CODES = [GZA_HUB_CODE, ...ALL_NETWORK_DESTINATION_CODES] as const;
+export type AllNetworkCode = (typeof ALL_NETWORK_CODES)[number];
 
 export interface DestinationPhotoVariant {
   src: string;
@@ -44,15 +99,7 @@ export interface DestinationPhoto extends Omit<DestinationPhotoMeta, "variants">
   variants: DestinationPhotoVariant[];
 }
 
-export const APPROVED_DESTINATION_CODES: readonly DestinationCode[] = [
-  "AMM",
-  "CAI",
-  "DOH",
-  "DXB",
-  "IST",
-  "JED",
-  "RUH",
-] as const;
+export const APPROVED_DESTINATION_CODES: readonly DestinationCode[] = CORE_PHOTO_DESTINATION_CODES;
 
 export const APPROVED_DESTINATION_PHOTO_IDS: readonly DestinationPhotoId[] = [
   "city-amman",
@@ -191,7 +238,7 @@ export function isDestinationPhotoId(value: unknown): value is DestinationPhotoI
 export function isDestinationCode(value: unknown): value is DestinationCode {
   return (
     typeof value === "string" &&
-    APPROVED_DESTINATION_CODES.includes(value as DestinationCode)
+    ALL_NETWORK_DESTINATION_CODES.includes(value as DestinationCode)
   );
 }
 

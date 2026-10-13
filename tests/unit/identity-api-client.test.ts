@@ -1231,14 +1231,14 @@ describe("IdentityApiClient — All 12 Operations Positive Protocol Tests with O
       postPassengerEmailVerify: {
         reqSchema: "EmailVerifyRequest",
         resSchema: openApiSpec.paths["/auth/email/verify"]!.post!.responses!["200"]!.content!["application/json"]!.schema!,
-        requestPayload: { token: "verify-token-xyz-789" },
+        requestPayload: { token: "v".repeat(43) },
         responseEnvelope: {
           success: true,
           data: { verified: true },
           meta: metaSpecimen,
         },
         execute: (c) =>
-          c.postPassengerEmailVerify({ token: "verify-token-xyz-789" }, { requestId: fixedReqId }),
+          c.postPassengerEmailVerify({ token: "v".repeat(43) }, { requestId: fixedReqId }),
       },
       // 8. POST /auth/email/resend
       postPassengerEmailResend: {
@@ -1440,8 +1440,9 @@ describe("IdentityApiClient — All 12 Operations Positive Protocol Tests with O
       assert.ok(schema, "Actual command schema must exist");
       const ref = schema.$ref;
       const resolved = typeof ref === "string" ? openApiSpec.components.schemas[ref.split("/").at(-1)!] : schema;
-      const properties = resolved.properties as Record<string, Record<string, unknown>>;
-      const required = resolved.required as string[];
+      const alternatives = (resolved.oneOf as Array<Record<string, unknown>> | undefined) ?? [resolved];
+      const properties = Object.assign({}, ...alternatives.map((branch) => branch.properties ?? {})) as Record<string, Record<string, unknown>>;
+      const required = [...new Set(alternatives.flatMap((branch) => (branch.required ?? []) as string[]))];
       const probes: unknown[] = [item.payload, { ...item.payload, role: "admin" }, [], null];
       for (const key of required) {
         const missing = { ...item.payload }; delete missing[key]; probes.push(missing);
@@ -1463,6 +1464,22 @@ describe("IdentityApiClient — All 12 Operations Positive Protocol Tests with O
 });
 
 describe("Generator & Stale Artifact Verification (Including Constraint Changes)", () => {
+  it("accepts closed link/code verification alternatives and rejects mixed or malformed commands", () => {
+    const schema = openApiSpec.components.schemas["EmailVerifyRequest"]!;
+    const valid = [{token:"v".repeat(43)},{email:"test@example.test",code:"012345"}];
+    for (const body of valid) {
+      assert.equal(validatePayloadAgainstSchema(schema,body,openApiSpec).valid,true);
+      assert.deepEqual(requestValidators.validateEmailVerifyRequest(body),body);
+    }
+    for (const body of [{token:"v".repeat(43),email:"test@example.test",code:"012345"},{email:"test@example.test",code:"12345"},{email:"test@example.test",code:123456},{token:"bad"}]) {
+      assert.equal(validatePayloadAgainstSchema(schema,body,openApiSpec).valid,false);
+      assert.throws(()=>requestValidators.validateEmailVerifyRequest(body));
+    }
+    const mutated = structuredClone(openApiSpec);
+    const union = mutated.components.schemas["EmailVerifyRequest"]!["oneOf"] as Array<Record<string, unknown>>;
+    (union[1]!["properties"] as Record<string, unknown>)["code"] = {type:"string",not:{}};
+    assert.throws(()=>generateIdentityApiTypes(mutated),/Unsupported schema keyword 'not'/);
+  });
   it("generates identity types matching the checked-in disk artifact", () => {
     const generated = generateIdentityApiTypes(openApiSpec);
     const diskTypes = fs.readFileSync(DEFAULT_TYPES_OUTPUT_PATH, "utf8").replace(/\r\n/g, "\n");

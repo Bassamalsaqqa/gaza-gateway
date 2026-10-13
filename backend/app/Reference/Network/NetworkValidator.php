@@ -10,8 +10,8 @@ use Throwable;
 /** Bounded network and airport normalization; unknown keys/values never appear in errors. */
 final class NetworkValidator
 {
-    public const ACCEPTED_CODES = ['GZA', 'AMM', 'CAI', 'IST', 'DOH', 'DXB', 'JED', 'RUH'];
-    public const DESTINATION_CODES = ['AMM', 'CAI', 'IST', 'DOH', 'DXB', 'JED', 'RUH'];
+    public const ACCEPTED_CODES = ['GZA', 'AMM', 'CAI', 'IST', 'DOH', 'DXB', 'JED', 'RUH', 'BEY', 'KWI', 'AUH', 'ATH', 'FCO', 'CDG', 'LHR', 'FRA', 'MAD', 'BOM', 'KUL', 'JFK', 'YYZ'];
+    public const DESTINATION_CODES = ['AMM', 'CAI', 'IST', 'DOH', 'DXB', 'JED', 'RUH', 'BEY', 'KWI', 'AUH', 'ATH', 'FCO', 'CDG', 'LHR', 'FRA', 'MAD', 'BOM', 'KUL', 'JFK', 'YYZ'];
 
     /**
      * @param array<string, mixed> $input
@@ -138,7 +138,7 @@ final class NetworkValidator
 
     public function blockMinutes(mixed $value): int
     {
-        if (!is_int($value) || $value < 20 || $value > 600) {
+        if (!is_int($value) || $value < 20 || $value > 1440) {
             $this->invalid();
         }
         return $value;

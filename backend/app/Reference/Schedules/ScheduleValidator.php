@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\DB;
 
 final class ScheduleValidator
 {
+    public const DESTINATION_CODES = NetworkCoordinator::DESTINATION_CODES;
+
     private const FORBIDDEN_FIELDS = [
         'price', 'priceMinor', 'price_minor', 'fare', 'fares',
         'status', 'gate', 'terminal', 'seatsLeft', 'seats_left', 'capacity',
@@ -52,7 +54,7 @@ final class ScheduleValidator
         }
 
         if (!isset($input['destination']) || !is_string($input['destination'])
-            || !in_array($input['destination'], NetworkCoordinator::DESTINATION_CODES, true)) {
+            || !in_array($input['destination'], self::DESTINATION_CODES, true)) {
             throw new ScheduleValidationException('Invalid destination airport code.');
         }
 

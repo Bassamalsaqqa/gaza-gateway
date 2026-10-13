@@ -17,22 +17,24 @@ final class PasswordPolicyTest extends TestCase
         $this->policy = new PasswordPolicy();
     }
 
-    public function test_passenger_password_minimum_15_unicode_codepoints(): void
+    public function test_passenger_password_minimum_six_unicode_codepoints_without_composition_rules(): void
     {
-        // 14 ASCII characters -> too short
-        $tooShort = '12345678901234';
-        $this->assertSame(14, mb_strlen($tooShort, 'UTF-8'));
+        $tooShort = 'azbyc';
+        $this->assertSame(5, mb_strlen($tooShort, 'UTF-8'));
         $result = $this->policy->validatePassengerPassword($tooShort);
         $this->assertFalse($result->isValid);
         $this->assertSame('password_too_short', $result->errorCode);
 
-        // 15 ASCII characters -> valid
-        $valid15 = '123456789012345'; // wait, 123456789012345 is in common denylist!
-        // Use non-denylisted characters
-        $safe15 = 'correct-horse-7';
-        $this->assertSame(15, mb_strlen($safe15, 'UTF-8'));
-        $result = $this->policy->validatePassengerPassword($safe15);
-        $this->assertTrue($result->isValid);
+        foreach (['azbycx', '٩٨٧٦٥٤', '🌿🕊️olive', '  azby', 'correct-horse-7'] as $password) {
+            $this->assertTrue($this->policy->validatePassengerPassword($password)->isValid);
+        }
+        $this->assertFalse($this->policy->validatePassengerPassword('🌿🌿🌿🌿🌿')->isValid);
+        $this->assertTrue($this->policy->validatePassengerPassword('🌿🌿🌿🌿🌿🌿')->isValid);
+        foreach (['123456', 'PASSWORD', 'abc123', 'qwerty'] as $password) {
+            $result = $this->policy->validatePassengerPassword($password);
+            $this->assertFalse($result->isValid);
+            $this->assertSame('common_password_denied', $result->errorCode);
+        }
     }
 
     public function test_staff_password_minimum_12_unicode_codepoints(): void
@@ -49,6 +51,20 @@ final class PasswordPolicyTest extends TestCase
         $this->assertSame(12, mb_strlen($valid12, 'UTF-8'));
         $result = $this->policy->validateStaffPassword($valid12);
         $this->assertTrue($result->isValid);
+    }
+
+    public function test_all_passenger_password_commands_use_the_same_generated_floor(): void
+    {
+        $validator = new \App\Identity\Contracts\IdentityCommandValidator();
+        $commands = [
+            ['postPassengerRegister', ['email' => 'policy@example.test', 'firstName' => 'Policy', 'lastName' => 'Test'], 'password'],
+            ['postPassengerPasswordReset', ['email' => 'policy@example.test', 'token' => str_repeat('A', 43)], 'password'],
+            ['putPassengerPassword', ['currentPassword' => 'Existing-long-password'], 'newPassword'],
+        ];
+        foreach ($commands as [$operation, $body, $field]) {
+            $this->assertTrue($validator->validateJson($operation, json_encode($body + [$field => 'azbycx'], JSON_THROW_ON_ERROR))->isValid());
+            $this->assertFalse($validator->validateJson($operation, json_encode($body + [$field => 'azbyc'], JSON_THROW_ON_ERROR))->isValid());
+        }
     }
 
     public function test_maximum_128_unicode_codepoints(): void

@@ -7,7 +7,7 @@ export const unitGroups = Object.freeze({
   ],
   operations: [
     "dated-service-foundation", "dated-service-corrections", "dated-service-cutover", "dated-service-cutover-correction-01",
-    "flight-identity-regression", "legacy-freeze-baseline", "fleet-repository", "fleet-source-guards", "fleet-independent-review-01",
+    "flight-identity-regression", "legacy-freeze-baseline", "fleet-repository", "fleet-source-guards", "fleet-independent-review-01", "network-frontend-expansion",
     "fleet-correction-01", "fleet-booking-snapshots", "fleet-occupancy-collision", "network-repository", "phase6b1-schedules",
     "phase6b1-correction-01", "sellable-service-matrix", "repositories", "commercial-catalog",
   ],

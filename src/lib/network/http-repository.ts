@@ -8,7 +8,7 @@ const bilingual = z.object({ en: label, ar: label }).strict();
 export const airportWireSchema = z.object({
   code: z.enum(["GZA", ...NETWORK_CODES]), airportName: bilingual, city: bilingual, country: bilingual,
   timezone: z.string().min(1).max(80).refine(isIanaTimezone),
-  blockMinutes: z.number().int().min(20).max(600), active: z.boolean(),
+  blockMinutes: z.number().int().min(20).max(1440), active: z.boolean(),
 }).strict();
 export type AirportReference = z.infer<typeof airportWireSchema>;
 const airportsSchema = z.array(airportWireSchema).refine(items => new Set(items.map(item => item.code)).size === items.length);

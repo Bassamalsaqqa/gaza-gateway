@@ -1563,6 +1563,20 @@ export function validateSupportedSchema(schema, pathTrace = "root") {
     throw new Error(`Unsupported schema node at ${pathTrace}: expected non-null object`);
   }
 
+  // Closed object alternatives (link token versus email/code) are represented as a TS union.
+  if (schema.type === undefined && Array.isArray(schema.oneOf)) {
+    if (Object.keys(schema).some((key) => !["oneOf", "description"].includes(key)) || schema.oneOf.length < 2) {
+      throw new Error(`Unsupported schema keyword 'oneOf' at ${pathTrace}: expected closed object alternatives`);
+    }
+    schema.oneOf.forEach((branch, index) => {
+      if (branch?.type !== "object" || branch.additionalProperties !== false || !Array.isArray(branch.required) || branch.required.length === 0) {
+        throw new Error(`Expected closed object alternative at ${pathTrace}.oneOf[${index}]`);
+      }
+      validateSupportedSchema(branch, `${pathTrace}.oneOf[${index}]`);
+    });
+    return;
+  }
+
   for (const key of Object.keys(schema)) {
     if (key === "oneOf") {
       const isSupportedOneOf =
@@ -1668,6 +1682,11 @@ export function preflightReachableReferences(spec, rootSchemas) {
 
     validateSupportedSchema(schemaNode, pathTrace);
 
+    if (schemaNode.type === undefined && Array.isArray(schemaNode.oneOf)) {
+      schemaNode.oneOf.forEach((branch, index) => traverse(branch, `${pathTrace}.oneOf[${index}]`, activeStack));
+      return;
+    }
+
     if (schemaNode.$ref !== undefined) {
       const ref = schemaNode.$ref;
       const prefix = "#/components/schemas/";
@@ -1767,6 +1786,16 @@ function resolveTypeScriptType(propSchema, spec, pathTrace) {
  */
 function generateInterfaceFromSchema(interfaceName, schema, spec, propertyTypeOverrides = {}) {
   validateSupportedSchema(schema, interfaceName);
+
+  if (schema.type === undefined && Array.isArray(schema.oneOf)) {
+    const alternatives = schema.oneOf.map((branch) => {
+      const required = new Set(branch.required);
+      return `{ ${Object.entries(branch.properties).map(([name, node]) =>
+        `${name}${required.has(name) ? "" : "?"}: ${resolveTypeScriptType(node, spec, `${interfaceName}.${name}`)}`
+      ).join("; ")} }`;
+    });
+    return `export type ${interfaceName} = ${alternatives.join(" | ")};`;
+  }
 
   const required = new Set(schema.required || []);
   const lines = [`export interface ${interfaceName} {`];

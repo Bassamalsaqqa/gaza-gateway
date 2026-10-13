@@ -7,6 +7,9 @@ import { pathToFileURL, fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const scratchDir = path.join(root, "scratch");
 fs.mkdirSync(scratchDir, { recursive: true });
+const expectedMigrationCount = fs.readdirSync(path.join(root, "backend/database/migrations"))
+  .filter((name) => /^\d{4}_\d{2}_\d{2}_.*\.php$/.test(name)).length;
+if (expectedMigrationCount < 19) throw new Error("Accepted MySQL migration inventory is incomplete.");
 
 // Discover composer vendor directory
 const vendorEnv = process.env.IDENTITY_GATE_VENDOR;
@@ -554,8 +557,8 @@ async function main() {
     console.log(`Measured PHP: ${measuredPhpVersion}`);
     console.log(`Measured MySQL: ${measuredMysqlVersion}`);
 
-    // 9. Execute Full Migration Lifecycle: Up (all 18) -> Rollback (18) -> Reapply (all 18)
-    console.log("\n--- Executing Full 18-Migration Lifecycle Gate ---");
+    // A focused run applies current migrations without repeating destructive lifecycle probes.
+    console.log(`\n--- Applying ${expectedMigrationCount} current migrations ---`);
     phpExec("migrate-up-all", [
       "php",
       "artisan",
@@ -570,8 +573,8 @@ async function main() {
       "require 'vendor/autoload.php'; $app = require 'bootstrap/app.php'; $app->make('Illuminate\\Contracts\\Console\\Kernel')->bootstrap(); echo \\Illuminate\\Support\\Facades\\DB::connection('mysql_test')->table('migrations')->count();",
     ]).trim();
     console.log(`Applied migrations after up: ${countAppliedUp}`);
-    if (parseInt(countAppliedUp, 10) !== 18) {
-      throw new Error(`Expected exactly 18 applied migrations, got ${countAppliedUp}`);
+    if (parseInt(countAppliedUp, 10) !== expectedMigrationCount) {
+      throw new Error(`Expected exactly ${expectedMigrationCount} applied migrations, got ${countAppliedUp}`);
     }
 
     if (!testFilter) {
@@ -580,7 +583,7 @@ async function main() {
       "artisan",
       "migrate:rollback",
       "--database=mysql_test",
-      "--step=18",
+      `--step=${expectedMigrationCount}`,
       "--force",
     ]);
 
@@ -608,8 +611,8 @@ async function main() {
       "require 'vendor/autoload.php'; $app = require 'bootstrap/app.php'; $app->make('Illuminate\\Contracts\\Console\\Kernel')->bootstrap(); echo \\Illuminate\\Support\\Facades\\DB::connection('mysql_test')->table('migrations')->count();",
     ]).trim();
     console.log(`Applied migrations after reapply: ${countAppliedReapply}`);
-    if (parseInt(countAppliedReapply, 10) !== 18) {
-      throw new Error(`Expected exactly 18 reapplied migrations, got ${countAppliedReapply}`);
+    if (parseInt(countAppliedReapply, 10) !== expectedMigrationCount) {
+      throw new Error(`Expected exactly ${expectedMigrationCount} reapplied migrations, got ${countAppliedReapply}`);
     }
 
     }
@@ -733,6 +736,16 @@ async function main() {
          failOnRisky="true"
          failOnWarning="true">
     <testsuites>
+        <testsuite name="PassengerPasswordPolicy">
+            <file>tests/Unit/Identity/PasswordPolicyTest.php</file>
+            <file>tests/Unit/Identity/Argon2idPasswordHasherTest.php</file>
+        </testsuite>
+        <testsuite name="PassengerVerificationCode">
+            <file>tests/Feature/IdentityPassenger/PassengerVerificationCodeTest.php</file>
+        </testsuite>
+        <testsuite name="MemorialNetworkExpansion">
+            <file>tests/Feature/ReferenceNetwork/MemorialNetworkExpansionTest.php</file>
+        </testsuite>
         <testsuite name="SharedHostingOwner"><directory>tests/SharedHostingOwner</directory></testsuite>
         <testsuite name="MySqlIdentityFoundation">
             <directory>tests/MySqlIdentityFoundation</directory>
@@ -838,13 +851,13 @@ EOF`,
       source_hashes: sourceHashes,
       junit_sha256: junitSha256,
       database_audits: {
-        total_applied_migrations: 18,
+        total_applied_migrations: expectedMigrationCount,
         table_count: tableEngines.length,
         all_tables_innodb: tableEngines.every(t => t.engine === "InnoDB"),
         views: viewList,
       },
       test_results: {
-        migration_lifecycle: testFilter ? "UP ONLY (focused run; rollback/reapply not repeated)" : "PASS (18 migrations up -> rollback -> reapply)",
+        migration_lifecycle: testFilter ? "UP ONLY (focused run; rollback/reapply not repeated)" : `PASS (${expectedMigrationCount} migrations up -> rollback -> reapply)`,
         table_engine_audit: "PASS (All base tables explicit InnoDB under utf8mb4_0900_bin)",
         direct_sql_invariants: testFilter ? "NOT CERTIFIED BY FOCUSED RUN" : "PASS (registered direct SQL invariant tests)",
         multi_process_contention: "PASS (Sentinel row serialized with READ COMMITTED freshness)",

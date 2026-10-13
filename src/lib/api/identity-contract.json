@@ -2,7 +2,7 @@
   "$schema": "identity-api-contract-v1",
   "version": "1.0.0",
   "description": "Narrow contract extraction for 46 accepted Phase 13B identity transport operations",
-  "digest": "bf33a2e618b736b14fa45cd46df23abe91c762376fa4e3bec80a2d333ed75d13",
+  "digest": "3380f7fef19f928c021a9eeadc1df52a8c5fcc715ead52fe087ea42e83e822b4",
   "operations": [
     {
       "operationId": "getAuthCsrfBootstrap",
@@ -1681,7 +1681,7 @@
         },
         "password": {
           "type": "string",
-          "minLength": 15,
+          "minLength": 6,
           "maxLength": 128
         },
         "title": {
@@ -1755,7 +1755,7 @@
         },
         "password": {
           "type": "string",
-          "minLength": 15,
+          "minLength": 6,
           "maxLength": 128
         }
       },
@@ -1767,16 +1767,41 @@
       "additionalProperties": false
     },
     "EmailVerifyRequest": {
-      "type": "object",
-      "properties": {
-        "token": {
-          "type": "string"
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "token": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{43}$"
+            }
+          },
+          "required": [
+            "token"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "email": {
+              "type": "string",
+              "format": "email",
+              "maxLength": 254
+            },
+            "code": {
+              "type": "string",
+              "pattern": "^[0-9]{6}$"
+            }
+          },
+          "required": [
+            "email",
+            "code"
+          ],
+          "additionalProperties": false
         }
-      },
-      "required": [
-        "token"
       ],
-      "additionalProperties": false
+      "description": "Either opaque link token or email plus six-digit code. Both consume the same durable verification proof; never both."
     },
     "PassengerEmailResendRequest": {
       "type": "object",
@@ -1870,7 +1895,7 @@
         },
         "newPassword": {
           "type": "string",
-          "minLength": 15,
+          "minLength": 6,
           "maxLength": 128
         }
       },

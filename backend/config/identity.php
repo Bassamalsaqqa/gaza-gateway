@@ -14,7 +14,7 @@ return [
 
     'passwords' => [
         'passenger' => [
-            'min_codepoints' => 15,
+            'min_codepoints' => 6,
             'max_codepoints' => 128,
         ],
         'staff' => [

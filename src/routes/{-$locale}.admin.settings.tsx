@@ -16,12 +16,13 @@ import { MvpContactSettings } from "@/components/admin/mvp-contact-settings";
 import { MvpEmailSettings } from "@/components/admin/mvp-email-settings";
 import { StaffIdentityWorkspace } from "@/components/identity/staff-workspace";
 import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
+import { AppLink } from "@/components/app-link";
 
 const AppearanceLab = lazy(() =>
   import("@/components/admin/appearance-lab").then((m) => ({ default: m.AppearanceLab })),
 );
 
-type Tab = "airport" | "service" | "contact" | "localization" | "appearance" | "security";
+type Tab = "airport" | "service" | "contact" | "localization" | "appearance" | "security" | "email";
 
 type SettingsSearch = {
   tab?: Tab;
@@ -33,7 +34,7 @@ export const Route = createFileRoute("/{-$locale}/admin/settings")({
   validateSearch: (search: Record<string, unknown>): SettingsSearch => {
     const out: SettingsSearch = {};
     const raw = search["tab"];
-    if (raw === "airport" || raw === "service" || raw === "contact" || raw === "localization" || raw === "appearance" || raw === "security") {
+    if (raw === "airport" || raw === "service" || raw === "contact" || raw === "localization" || raw === "appearance" || raw === "security" || raw === "email") {
       out.tab = raw;
     }
     const rawPreview = search["skinPreview"];
@@ -61,9 +62,40 @@ function AdminSettingsPage() {
   return identityUiRequested ? <ServerStaffSettings /> : <MockAdminSettingsPage />;
 }
 function ServerStaffSettings() {
-  const { t } = useI18n();
-  return <div className="space-y-4"><AdminPageHeader title={t("a2.se.title")} />
-    <MvpContactSettings /><MvpEmailSettings /><AdminPanel><StaffIdentityWorkspace /></AdminPanel></div>;
+  const { t, lang } = useI18n();
+  const { can } = useAdmin();
+  const search = Route.useSearch();
+  type Section = "contact" | "email" | "security" | "appearance";
+  const initialSection = search.tab === "email" || search.tab === "security" || search.tab === "appearance" ? search.tab : "contact";
+  const [section, setSection] = useState<Section>(can("admin.manage") ? initialSection : "security");
+  const sections: { id: Section; en: string; ar: string; description: string; descriptionAr: string }[] = [
+    ...(can("admin.manage") ? [
+      {id: "contact" as const, en: "General & contact", ar: "عام والتواصل", description: "Public contact information and saved drafts.", descriptionAr: "بيانات التواصل العامة والمسودات المحفوظة."},
+      {id: "email" as const, en: "Email & notifications", ar: "البريد والإشعارات", description: "Sender configuration, test messages and delivery status.", descriptionAr: "إعدادات المرسل ورسائل الاختبار وحالة الإرسال."},
+    ] : []),
+    {id: "security", en: "Team & security", ar: "الفريق والأمان", description: "Your password, sessions and optional authenticator. Team actions require administrator permission.", descriptionAr: "كلمة مرورك وجلساتك وتطبيق المصادقة الاختياري. تتطلب إدارة الفريق صلاحية المسؤول."},
+    {id: "appearance", en: "Appearance & language", ar: "المظهر واللغة", description: "Published website presentation and bilingual content.", descriptionAr: "مظهر الموقع المنشور والمحتوى باللغتين."},
+  ];
+  const current = sections.find((item) => item.id === section) ?? sections[0]!;
+  return <div className="space-y-6"><AdminPageHeader title={t("a2.se.title")} />
+    <div className="grid items-start gap-6 lg:grid-cols-[13rem_minmax(0,1fr)]">
+      <nav aria-label={pick(lang,{en:"Settings sections",ar:"أقسام الإعدادات"})} className="flex gap-1 overflow-x-auto border-b border-border pb-3 lg:sticky lg:top-4 lg:flex-col lg:overflow-visible lg:border-b-0 lg:pb-0">
+        {sections.map((item) => <button key={item.id} type="button" aria-pressed={section === item.id} onClick={() => setSection(item.id)}
+          className={`min-h-11 shrink-0 rounded-lg px-4 py-3 text-start text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-ring ${section === item.id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-sand-deep hover:text-foreground"}`}>
+          {pick(lang,item)}
+        </button>)}
+      </nav>
+      <div className="min-w-0 space-y-5">
+        <div><h2 className="text-xl font-semibold">{pick(lang,current)}</h2><p className="mt-2 max-w-prose text-sm text-muted-foreground">{lang === "ar" ? current.descriptionAr : current.description}</p></div>
+        {/* Keep sections mounted so switching navigation does not discard unsaved form state. */}
+        {can("admin.manage") && <><div hidden={section !== "contact"}><MvpContactSettings /></div><div hidden={section !== "email"}><MvpEmailSettings /></div></>}
+        <div hidden={section !== "security"}><AdminPanel><StaffIdentityWorkspace /></AdminPanel></div>
+        <div hidden={section !== "appearance"}><AdminPanel className="space-y-4"><p className="text-sm text-muted-foreground">{pick(lang,{en:"Manage published English and Arabic website content in Website content. Only server-published changes appear to visitors.",ar:"أدر محتوى الموقع بالإنجليزية والعربية من قسم محتوى الموقع. تظهر للزوار التغييرات المنشورة على الخادم فقط."})}</p>
+          {can("content.view") && <AppLink to="/admin/website" className="inline-flex min-h-11 items-center font-semibold text-brand-deep underline underline-offset-4">{pick(lang,{en:"Open website content",ar:"فتح محتوى الموقع"})}</AppLink>}
+        </AdminPanel></div>
+      </div>
+    </div>
+  </div>;
 }
 function MockAdminSettingsPage() {
   const { t, lang } = useI18n();

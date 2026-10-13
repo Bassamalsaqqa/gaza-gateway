@@ -34,7 +34,7 @@ export const offeringLayoutSchema = z.object({ aircraftId: aircraftIdSchema, row
 export const offeringWireSchema = z.object({
   id: z.string(), scheduleId: exactId, date, number: z.string().min(1).max(12), direction: z.enum(["out", "in"]),
   originCode: z.enum(["GZA", ...NETWORK_CODES]), destinationCode: z.enum(["GZA", ...NETWORK_CODES]),
-  departTime: time, arriveTime: time, durationMinutes: z.number().int().min(20).max(600),
+  departTime: time, arriveTime: time, durationMinutes: z.number().int().min(20).max(1440),
   aircraftId: aircraftIdSchema, aircraft: model, layout: offeringLayoutSchema,
   revisions: z.object({ fleet: revision, network: revision, schedules: revision }).strict(),
   classification: z.literal("commemorative"), priceMinor: z.literal(0),

@@ -7,7 +7,8 @@ namespace App\Identity\Password;
 final class PasswordPolicy
 {
     public const MAX_BYTES = 4096;
-    public const PASSENGER_MIN_CODEPOINTS = 15;
+    // Explicit owner ease-of-use exception (Batch 01); staff policy is unchanged.
+    public const PASSENGER_MIN_CODEPOINTS = 6;
     public const PASSENGER_MAX_CODEPOINTS = 128;
     public const STAFF_MIN_CODEPOINTS = 12;
     public const STAFF_MAX_CODEPOINTS = 128;
@@ -54,6 +55,14 @@ final class PasswordPolicy
         'killer1234567890',
         'george1234567890',
         'secret1234567890',
+    ];
+
+    private const PASSENGER_COMMON_DENYLIST = [
+        '123456', '1234567', '12345678', '123456789', '1234567890',
+        'abcdef', 'abc123', 'qwerty', 'qwerty123', 'password', 'password1',
+        'password123', 'letmein', 'welcome', 'welcome1', 'iloveyou',
+        'admin123', '111111', '000000', '654321', '123123', 'monkey',
+        'dragon', 'football', 'sunshine', 'princess',
     ];
 
     /**
@@ -124,7 +133,8 @@ final class PasswordPolicy
 
         // 4. Bounded common-password local floor denylist check
         $lowerPassword = mb_strtolower($password, 'UTF-8');
-        if (in_array($lowerPassword, self::COMMON_DENYLIST, true)) {
+        if (in_array($lowerPassword, self::COMMON_DENYLIST, true)
+            || ($realm === 'passenger' && in_array($lowerPassword, self::PASSENGER_COMMON_DENYLIST, true))) {
             return PasswordValidationResult::invalid(
                 message: 'Password is too common and easily guessed.',
                 code: 'common_password_denied',

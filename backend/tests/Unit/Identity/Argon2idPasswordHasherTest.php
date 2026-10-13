@@ -90,10 +90,10 @@ final class Argon2idPasswordHasherTest extends TestCase
     {
         $hasher = new Argon2idPasswordHasher();
 
-        // Passenger password under 15 characters rejected
+        // Passenger password under six characters rejected
         try {
-            $hasher->hash('ShortPass123#', 'passenger');
-            $this->fail('Should have rejected passenger password under 15 codepoints');
+            $hasher->hash('azbyc', 'passenger');
+            $this->fail('Should have rejected passenger password under six codepoints');
         } catch (\InvalidArgumentException $e) {
             $this->assertSame('Password does not satisfy policy requirements.', $e->getMessage());
         }
@@ -113,6 +113,17 @@ final class Argon2idPasswordHasherTest extends TestCase
         } catch (\InvalidArgumentException $e) {
             $this->assertSame('Invalid password realm.', $e->getMessage());
         }
+    }
+
+    public function test_short_passenger_password_roundtrips_without_changing_staff_or_old_hashes(): void
+    {
+        $hasher = new Argon2idPasswordHasher();
+        foreach (['azbycx', '  azby', 'Existing-long-password-2026'] as $password) {
+            $hash = $hasher->hash($password, 'passenger');
+            $this->assertTrue($hasher->verify($password, $hash));
+            $this->assertFalse($hasher->verify($password . 'x', $hash));
+        }
+        $this->assertFalse((new PasswordPolicy())->validateStaffPassword('azbycx')->isValid);
     }
 
     public function test_verification_rejects_non_argon2id_hashes_and_malformed_inputs(): void

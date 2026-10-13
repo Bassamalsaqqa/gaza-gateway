@@ -23,7 +23,7 @@
    - **Current authorized scope:** execute H0?H5 in the [HostPapa master plan](docs/production/GAZA_GATEWAY_HOSTPAPA_SHARED_HOSTING_MASTER_EXECUTION_PLAN_2026-10-12.md). Preserve the existing identity, free commemorative bookings, ticket, Admin and CMS systems while converting persistence to MySQL. No real flights, airline operations, payments or check-in. Previous PostgreSQL work is historical source/evidence; mocks stay isolated until reviewed owner-authorized cutover.
    - **External Gates**: Paid services, staging/production provisioning, DNS, real credentials, traffic cutover and deployment require owner authorization. Automatic GitHub Actions remain disabled under current owner policy; use focused local gates and independent review.
    - **Mock Repository Transition**: Phase 4 made completed bookings and operational flight overrides canonical through the mock repositories. Account state, `admin-ops`, and most `admin-mock` fixtures remain separate for later phases. Keep migrated UI consumers bound to repository query/mutation hooks.
-   - Every enabled user-facing action must eventually perform a real mock mutation (no permanent toast-only or pretend actions).
+   - Every enabled user-facing action must perform a real mutation through the selected repository authority. Production uses Laravel/MySQL; mocks remain isolated with no live fallback. No permanent toast-only or pretend actions.
 
 6. **Accessibility & Responsive Standards**:
    - Support responsive breakpoints: 320px, 360px, 375px, 390px, 414px, 768px, 1024px, 1280px, 1440px, 1920px.
@@ -40,3 +40,9 @@
    - Verified historical and present-condition imagery has not been supplied; archive provenance must never be fabricated.
    - Future AI renderings must never substitute for Past/Present evidence.
    - Maintain historical accuracy for Gaza International Airport (Yasser Arafat International Airport) and Palestinian Airlines. Never fabricate historical dates, codes, or archive provenance.
+
+9. **Active Post-Launch Batch (2026-10-13)**:
+   - The owner-approved [Batch 01 master brief](docs/production/GAZA_GATEWAY_POST_LAUNCH_REFINEMENT_BATCH_01_CODEX_MASTER_BRIEF.md) controls current refinement. HostPapa PHP/MySQL/SMTP/private routing capability and initial application installation are observed; see production records for exact evidence and remaining acceptance gates.
+   - Installed application source is `7a8f0fa2f25851c4f75422f86139e0bb020ea4de`. Git source publication does not change the installed application. Never run the historical static-only `hostpapa-deploy` deployment against the PHP site; preserve API routing, private app, credentials, backups and release pointer.
+   - Passenger-only minimum six Unicode codepoints is an explicitly confirmed owner exception; staff security policy remains unchanged. Contact submission is deferred. Expanded network/timetable are symbolic commemorative offerings, never real or historical operations.
+   - Preserve the owner's current cron cadence; do not claim provider policy verification. Prepare stable-wrapper changes offline. Production release requires the exact backup/preflight/package and owner gate. No Actions or new production writes during local refinement.

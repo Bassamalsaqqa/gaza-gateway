@@ -5,6 +5,7 @@ import { minutesToLabel, type Destination } from "@/lib/data";
 import { money } from "@/lib/format";
 import { pick, useI18n } from "@/lib/i18n";
 import destinationWorldMapImg from "@/assets/media/decorative/cards/istanbul-world-map.webp";
+import gazaBrandMark from "@/assets/media/brand/gaza-mark-light.png";
 import {
   buildDestinationSrcSet,
   getDestinationPhotoByCode,
@@ -51,6 +52,9 @@ export function DestinationCard({
             className="size-full object-cover transition-transform duration-500 motion-safe:group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:transform-none"
           />
         )}
+        {!photo && <div className="flex h-full items-center justify-center bg-ink" data-destination-placeholder={destination.code}>
+          <img src={gazaBrandMark} alt="" aria-hidden="true" className="h-auto w-2/5 max-w-48 object-contain" loading="lazy" />
+        </div>}
       </div>
 
       {/* Lower Card Body: shared approved decorative world-map on dark ink surface */}

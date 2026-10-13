@@ -223,7 +223,8 @@ describe("Maintained identity state and replay protection", () => {
       I.verifyPasswordProfile({ memoryKiB: Infinity, timeCost: 4, parallelism: 1 }),
       false,
     );
-    assert.equal(I.validNewPassword("a".repeat(14), "passenger"), false);
+    assert.equal(I.validNewPassword("a".repeat(5), "passenger"), false);
+    assert.equal(I.validNewPassword("azbycx", "passenger"), true);
     assert.equal(I.validNewPassword("😀".repeat(15), "passenger"), true);
   });
   it("consumes TOTP counter and recovery code state, rejecting replay or foreign credential versions", () => {

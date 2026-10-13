@@ -40,9 +40,7 @@ export interface PasswordResetRequest {
   password: string;
 }
 
-export interface EmailVerifyRequest {
-  token: string;
-}
+export type EmailVerifyRequest = { token: string } | { email: string; code: string };
 
 export interface PassengerEmailResendRequest {
   email: string;

@@ -101,7 +101,7 @@ export const DESTINATION_PHOTOS: Record<DestinationPhotoId, DestinationPhoto> = 
   "city-riyadh": attachSources(DESTINATION_PHOTO_METADATA["city-riyadh"], riyadhSources),
 };
 
-export const DESTINATION_PHOTO_BY_CODE: Record<DestinationCode, DestinationPhoto> = {
+export const DESTINATION_PHOTO_BY_CODE: Partial<Record<DestinationCode, DestinationPhoto>> = {
   AMM: DESTINATION_PHOTOS["city-amman"],
   CAI: DESTINATION_PHOTOS["city-cairo"],
   DOH: DESTINATION_PHOTOS["city-doha"],

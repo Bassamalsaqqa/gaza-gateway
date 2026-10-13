@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { NETWORK_CODES, NetworkError } from "./types.ts";
+import { LEGACY_NETWORK_CODES, NETWORK_CODES, NetworkError } from "./types.ts";
 
 const label = z.string().trim().min(1).max(160);
 const bilingual = z.object({ en: label, ar: label }).strict();
@@ -11,15 +11,15 @@ export const networkDestinationSchema = z.object({
   code: z.enum(NETWORK_CODES),
   airportName: bilingual, city: bilingual, country: bilingual,
   timezone: z.string().trim().min(1).max(80).refine(isIanaTimezone),
-  blockMinutes: z.number().int().min(20).max(600),
+  blockMinutes: z.number().int().min(20).max(1440),
   active: z.boolean(),
 }).strict();
 export const networkPatchSchema = networkDestinationSchema.omit({ code: true }).partial().strict();
 export const networkStorageSchema = z.object({
   schemaVersion: z.literal(1),
   revision: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
-  destinations: z.array(networkDestinationSchema).length(NETWORK_CODES.length)
-    .refine(items => new Set(items.map(d => d.code)).size === NETWORK_CODES.length)
+  destinations: z.array(networkDestinationSchema).min(LEGACY_NETWORK_CODES.length).max(NETWORK_CODES.length)
+    .refine(items => new Set(items.map(d => d.code)).size === items.length && LEGACY_NETWORK_CODES.every(code => items.some(item => item.code === code)))
     .transform(items => [...items].sort((a, b) => NETWORK_CODES.indexOf(a.code) - NETWORK_CODES.indexOf(b.code))),
 }).strict();
 export function parseNetworkDestination(value: unknown) {

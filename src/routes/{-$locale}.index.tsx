@@ -1,4 +1,4 @@
-import { MvpOfferingBoard } from "@/components/mvp-offering-board";
+import { MvpFlightSearchConsole } from "@/components/mvp-flight-search-console";
 import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
 import { useNetworkQuery } from "@/lib/network/queries";
 import { NetworkReadState } from "@/components/network-read-state";
@@ -165,7 +165,7 @@ function Home() {
 
       {/* 2. Integrated Flight Search Console (Overlapping Hero Boundary) */}
       <Container className="-mt-20 sm:-mt-28 lg:-mt-32">
-        {identityUiRequested ? <MvpOfferingBoard /> : <FlightSearchForm context="home" />}
+        {identityUiRequested ? <MvpFlightSearchConsole /> : <FlightSearchForm context="home" />}
       </Container>
 
       {/* 3. Integrated passenger utility rail */}
