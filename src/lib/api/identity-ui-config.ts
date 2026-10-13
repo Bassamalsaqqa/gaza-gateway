@@ -3,6 +3,7 @@ import { IdentityApiError } from "./identity-client-errors.ts";
 
 export interface IdentityUiEnvironment extends IdentityApiEnvironment {
   VITE_IDENTITY_UI_MODE?: string;
+  VITE_HOSTPAPA_PROFILE?: string;
   VITE_IDENTITY_NONPRODUCTION_OPT_IN?: string;
   VITE_IDENTITY_PRODUCTION_OPT_IN?: string;
   VITE_IDENTITY_API_BASE_URL?: string;
@@ -18,7 +19,10 @@ export function identityUiClientConfig(env: IdentityUiEnvironment): IdentityApiC
   if (env.VITE_IDENTITY_UI_MODE !== "backend") {
     throw new IdentityApiError({ kind: "configuration", message: "Identity preview configuration is invalid." });
   }
+  const profile = env.VITE_HOSTPAPA_PROFILE ?? "production";
+  if (profile !== "production" && profile !== "staging") throw new IdentityApiError({kind:"configuration",message:"Unknown deployment profile."});
   const config: IdentityApiClientConfig = {
+    deploymentProfile: profile,
     enabled: true,
     nonProductionOptIn: env.VITE_IDENTITY_NONPRODUCTION_OPT_IN === "true",
     productionOptIn: env.VITE_IDENTITY_PRODUCTION_OPT_IN === "true",

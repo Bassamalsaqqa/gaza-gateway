@@ -2,7 +2,8 @@
  * Generates hostpapa-cli.php: a private CLI wrapper that loads the active release
  * with shared .env and storage bindings for bounded cron, migrations, and CLI management.
  */
-export function generateHostPapaCli() {
+export function generateHostPapaCli(appDirectoryName = "gaza-gateway") {
+  if (!["gaza-gateway", "gaza-gateway-staging"].includes(appDirectoryName)) throw new Error("Invalid private app directory");
   return `<?php
 /**
  * Gaza Airport / Palestinian Airlines
@@ -52,7 +53,7 @@ try {
         exit(1);
     }
 
-    $appDir = getenv('GAZA_GATEWAY_APP_DIR') ?: ($realHome . DIRECTORY_SEPARATOR . 'gaza-gateway');
+    $appDir = getenv('GAZA_GATEWAY_APP_DIR') ?: ($realHome . DIRECTORY_SEPARATOR . '${appDirectoryName}');
     $cursor = $appDir;
     while ($cursor !== '' && dirname($cursor) !== $cursor) { if (is_link($cursor)) throw new \RuntimeException('Invalid application path.'); $cursor = dirname($cursor); }
     $realAppDir = realpath($appDir);

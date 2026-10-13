@@ -82,6 +82,7 @@ final class HostPapaInstaller
             if ($manifest['classification'] !== 'UNREVIEWED_RELEASE_CANDIDATE' || $manifest['is_dirty'] !== false) {
                 throw new RuntimeException('Hosting install requires a clean exact-source candidate and explicit owner approval.');
             }
+            $this->assertArtifactProfile($this->package . '/public/build-receipt.json');
             $this->installOrMigrate($action, $manifest);
         } finally {
             flock($lock, LOCK_UN); fclose($lock);
@@ -264,6 +265,7 @@ PHP;
             $this->relative($name); $file = $release . '/public_snapshot/' . $name; $this->safeAbsolute($file);
             if (!is_file($file) || hash_file('sha256', $file) !== $entry['sha256']) throw new RuntimeException('Rollback snapshot is corrupt.');
         }
+        $this->assertArtifactProfile($release . '/public_snapshot/build-receipt.json');
         $this->runRelease($release, false);
         $this->switchFiles($release, $id);
         echo "PASS: code/static rollback. Database, private config and shared storage retained.\n";
@@ -301,6 +303,18 @@ PHP;
             || trim(file_get_contents($root . '/RELEASE_ID.txt')) !== $manifest['release_id']
             || trim(file_get_contents($root . '/STATUS.txt')) !== $manifest['classification']) throw new RuntimeException('Package inventory/control binding failed.');
         return $manifest;
+    }
+
+    private function assertArtifactProfile(string $file): void
+    {
+        $this->safeAbsolute($file);
+        $receipt = json_decode(file_get_contents($file), true, 32, JSON_THROW_ON_ERROR);
+        $profile = $receipt['flags']['VITE_HOSTPAPA_PROFILE'] ?? 'production';
+        $environment = $this->approval['environment'];
+        $origins = $environment === 'staging' ? ['https://staging.gazaairport.com'] : ['https://www.gazaairport.com','https://gazaairport.com'];
+        $appName = $environment === 'staging' ? 'gaza-gateway-staging' : 'gaza-gateway';
+        if ($profile !== $environment || !in_array($receipt['origin'] ?? '', $origins, true)
+            || $this->app !== $this->home . '/' . $appName) throw new RuntimeException('Artifact profile/private root differs from approved environment.');
     }
 
     private function database(mixed $db): void

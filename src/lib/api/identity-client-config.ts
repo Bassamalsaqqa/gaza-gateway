@@ -18,6 +18,8 @@ export interface IdentityApiClientConfig {
    * Defaults to false (mock mode with zero network calls).
    */
   enabled?: boolean | undefined;
+  /** Deployment destination is independent of Vite optimization mode. Staging never authorizes production hosts. */
+  deploymentProfile?: "production" | "staging" | undefined;
 
   /**
    * Explicit opt-in flag for non-production environments.
@@ -180,8 +182,10 @@ export function validateTimeoutMs(timeoutMs: unknown): number {
  */
 export function validateAndNormalizeBaseUrl(
   rawUrl: string,
-  isProductionOrOptions?: boolean | { isProduction?: boolean }
+  isProductionOrOptions?: boolean | { isProduction?: boolean; deploymentProfile?: "production" | "staging" }
 ): string {
+  const profile = typeof isProductionOrOptions === "object" ? isProductionOrOptions.deploymentProfile ?? "production" : "production";
+  if (!["production", "staging"].includes(profile)) throw new IdentityApiError({kind:"configuration",message:"Unknown deployment profile."});
   const isProduction =
     typeof isProductionOrOptions === "boolean"
       ? isProductionOrOptions
@@ -270,6 +274,8 @@ export function validateAndNormalizeBaseUrl(
     });
   }
 
+  if (profile === "staging" && !APPROVED_STAGING_HOSTS.has(hostname)) throw new IdentityApiError({kind:"configuration",message:"Staging profile requires the exact staging host."});
+
   if (isProduction) {
     // Production checks:
     // Reject loopback hosts in production
@@ -289,7 +295,7 @@ export function validateAndNormalizeBaseUrl(
     }
 
     // Only approved production hosts are allowed
-    if (!APPROVED_PRODUCTION_HOSTS.has(hostname)) {
+    if (!(profile === "staging" ? APPROVED_STAGING_HOSTS : APPROVED_PRODUCTION_HOSTS).has(hostname)) {
       throw new IdentityApiError({
         kind: "configuration",
         message: "HTTPS protocol is permitted only on approved production hosts (www.gazaairport.com or gazaairport.com).",
@@ -490,7 +496,7 @@ export function resolveIdentityApiClientConfig(
     });
   }
 
-  const normalizedBaseUrl = validateAndNormalizeBaseUrl(config.baseUrl, isProd);
+  const normalizedBaseUrl = validateAndNormalizeBaseUrl(config.baseUrl, {isProduction:isProd, deploymentProfile:config.deploymentProfile ?? "production"});
 
   const fetchFn = config.fetch ?? globalThis.fetch;
   if (typeof fetchFn !== "function") {

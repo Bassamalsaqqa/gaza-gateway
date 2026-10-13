@@ -14,11 +14,12 @@ if (args.includes('--help')) {
 }
 if (args.length !== 1 || !args[0].startsWith('--origin=')) throw new Error('Exactly one approved --origin is required.');
 const origin = args[0].slice('--origin='.length);
-if (!['https://www.gazaairport.com', 'https://gazaairport.com'].includes(origin)) {
-  throw new Error('Shared release requires the exact approved HTTPS www/apex origin.');
+if (!['https://www.gazaairport.com', 'https://gazaairport.com', 'https://staging.gazaairport.com'].includes(origin)) {
+  throw new Error('Shared release requires the exact approved HTTPS www/apex/staging origin.');
 }
 const flags = {
   HOSTPAPA_SHARED_ENABLED: true,
+  VITE_HOSTPAPA_PROFILE: origin === "https://staging.gazaairport.com" ? "staging" : "production",
   VITE_IDENTITY_UI_MODE: 'backend',
   VITE_IDENTITY_PRODUCTION_OPT_IN: 'true',
   VITE_IDENTITY_NONPRODUCTION_OPT_IN: 'false',

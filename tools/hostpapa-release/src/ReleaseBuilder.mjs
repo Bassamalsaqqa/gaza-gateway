@@ -296,7 +296,11 @@ export class ReleaseBuilder {
       }
 
       const flags = receipt.flags;
-      if (receipt.schema_version !== 1 || !['https://www.gazaairport.com', 'https://gazaairport.com'].includes(receipt.origin)
+      const profile = flags.VITE_HOSTPAPA_PROFILE ?? "production";
+      const origins = profile === "staging" ? ["https://staging.gazaairport.com"] : ["https://www.gazaairport.com", "https://gazaairport.com"];
+      if (!["production", "staging"].includes(profile)) throw new Error("Unknown artifact deployment profile");
+      this.deploymentProfile = profile;
+      if (receipt.schema_version !== 1 || !origins.includes(receipt.origin)
         || flags.VITE_IDENTITY_UI_MODE !== 'backend' || flags.VITE_IDENTITY_PRODUCTION_OPT_IN !== 'true'
         || flags.VITE_IDENTITY_NONPRODUCTION_OPT_IN !== 'false'
         || flags.VITE_IDENTITY_API_BASE_URL !== receipt.origin + '/api/v1') {
@@ -391,11 +395,14 @@ export class ReleaseBuilder {
       }
     }
 
+    if (this.deploymentProfile === 'staging') {
+      await writeFile(path.join(publicOut, 'robots.txt'), 'User-agent: *\nDisallow: /\n', 'utf8');
+    }
     // Write merged artifact-local .htaccess
-    await writeFile(path.join(publicOut, ".htaccess"), generateHtaccess(), "utf8");
+    await writeFile(path.join(publicOut, ".htaccess"), generateHtaccess("", this.deploymentProfile === "staging" ? "https://staging.gazaairport.com" : "https://www.gazaairport.com"), "utf8");
 
     // Write public API bridge entrypoint index.php
-    await writeFile(path.join(publicOut, "index.php"), generatePublicEntrypoint(), "utf8");
+    await writeFile(path.join(publicOut, "index.php"), generatePublicEntrypoint(this.deploymentProfile === "staging" ? "gaza-gateway-staging" : "gaza-gateway"), "utf8");
 
     // 2. Copy private Laravel backend application files
     // P2: Create source-compatible isolated layout with both private/backend and root compatibility
@@ -459,7 +466,7 @@ export class ReleaseBuilder {
     // P8: Package hostpapa-cli command runner into private bin and root
     const binOut = path.join(privateOut, "bin");
     await mkdir(binOut, { recursive: true });
-    await writeFile(path.join(binOut, "hostpapa-cli"), generateHostPapaCli(), { mode: 0o755 });
+    await writeFile(path.join(binOut, "hostpapa-cli"), generateHostPapaCli(this.deploymentProfile === "staging" ? "gaza-gateway-staging" : "gaza-gateway"), { mode: 0o755 });
     await writeFile(path.join(privateOut, "hostpapa-cli.php"), generateHostPapaCli(), "utf8");
 
     // P6: Retain public snapshot inside private package for non-destructive rollbacks

@@ -3,7 +3,8 @@
  * This file lives in public_html/ and safely delegates /api requests
  * to the active immutable Laravel release in the private directory outside webroot.
  */
-export function generatePublicEntrypoint() {
+export function generatePublicEntrypoint(appDirectoryName = "gaza-gateway") {
+  if (!["gaza-gateway", "gaza-gateway-staging"].includes(appDirectoryName)) throw new Error("Invalid private app directory");
   return `<?php
 /**
  * Gaza Airport / Palestinian Airlines
@@ -69,7 +70,7 @@ try {
     }
 
     // 2. Resolve private application root directory
-    $appDir = getenv('GAZA_GATEWAY_APP_DIR') ?: ($realHome . DIRECTORY_SEPARATOR . 'gaza-gateway');
+    $appDir = getenv('GAZA_GATEWAY_APP_DIR') ?: ($realHome . DIRECTORY_SEPARATOR . '${appDirectoryName}');
     $cursor = $appDir;
     while ($cursor !== '' && dirname($cursor) !== $cursor) { if (is_link($cursor)) throw new \RuntimeException('Invalid application path.'); $cursor = dirname($cursor); }
     $realAppDir = realpath($appDir);

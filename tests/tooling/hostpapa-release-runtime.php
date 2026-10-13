@@ -4,6 +4,10 @@ declare(strict_types=1);
 if (getenv('H3_DISPOSABLE_RELEASE_GATE') !== 'true') exit(1);
 $home = '/home/owner'; $package = $home . '/package'; $app = $home . '/gaza-gateway'; $web = $home . '/public_html';
 $manifest = json_decode(file_get_contents($package . '/release-manifest.json'), true, 64, JSON_THROW_ON_ERROR);
+$profile = $manifest['public_files']['build-receipt.json'] ? json_decode(file_get_contents($package . '/public/build-receipt.json'),true)['flags']['VITE_HOSTPAPA_PROFILE'] ?? 'production' : 'production';
+$isStaging = $profile === 'staging';
+$app = $home . ($isStaging ? '/gaza-gateway-staging' : '/gaza-gateway');
+$host = $isStaging ? 'staging.gazaairport.com' : 'www.gazaairport.com';
 $count = 0;
 $check = static function (bool $valid, string $name) use (&$count): void { if (!$valid) throw new RuntimeException('Probe failed: ' . $name); ++$count; echo 'PASS ' . $name . PHP_EOL; };
 $command = static function (array $args): array {
@@ -24,14 +28,16 @@ $root->exec("GRANT ALL PRIVILEGES ON `$db`.* TO 'gaza_h3_ddl'@'%'");
 $root->exec("GRANT SELECT,INSERT,UPDATE,DELETE ON `$db`.* TO 'gaza_h3_runtime'@'%'");
 $runtimeTemplate=file_get_contents('/source/docs/production/hostpapa-runtime.env.example');
 $env=str_replace(['REPLACE_WITH_BASE64_32_RANDOM_BYTES','REPLACE_WITH_EXACT_RELEASE_SOURCE_SHA','REPLACE_WITH_OWNER_DATABASE','REPLACE_WITH_RUNTIME_DML_USER','REPLACE_WITH_PRIVATE_RUNTIME_PASSWORD','REPLACE_WITH_SEPARATE_BASE64_32_RANDOM_BYTES'],['base64:'.base64_encode(random_bytes(32)),$manifest['source_sha'],$db,'gaza_h3_runtime',$runtimePassword,base64_encode(random_bytes(32))],$runtimeTemplate);
+$env=str_replace('APP_ENV=production','APP_ENV='.$profile,$env);
+if($isStaging){$env=str_replace('https://www.gazaairport.com,https://gazaairport.com','https://staging.gazaairport.com',$env);$env=str_replace('www.gazaairport.com,gazaairport.com','staging.gazaairport.com',$env);$env=str_replace('https://www.gazaairport.com','https://staging.gazaairport.com',$env);}
 $envPath=$home.'/runtime.env';file_put_contents($envPath,$env);chmod($envPath,0600);
-$approval=['schema_version'=>'1.0','action'=>'install','release_id'=>$manifest['release_id'],'source_sha'=>$manifest['source_sha'],'manifest_sha256'=>hash_file('sha256',$package.'/release-manifest.json'),'environment'=>'production','target_webroot'=>$web,'app_dir'=>$app,'database'=>['host'=>'127.0.0.1','port'=>3306,'database'=>$db,'username'=>'gaza_h3_ddl','password'=>$ddlPassword],'runtime_env_file'=>$envPath];
+$approval=['schema_version'=>'1.0','action'=>'install','release_id'=>$manifest['release_id'],'source_sha'=>$manifest['source_sha'],'manifest_sha256'=>hash_file('sha256',$package.'/release-manifest.json'),'environment'=>$profile,'target_webroot'=>$web,'app_dir'=>$app,'database'=>['host'=>'127.0.0.1','port'=>3306,'database'=>$db,'username'=>'gaza_h3_ddl','password'=>$ddlPassword],'runtime_env_file'=>$envPath];
 $approvalPath=$home.'/approval.json';
 $save=static function()use(&$approval,$approvalPath):void{file_put_contents($approvalPath,json_encode($approval,JSON_THROW_ON_ERROR));chmod($approvalPath,0600);};$save();
 $installer=$package.'/installer/hostpapa-install.php';
 [$status,$out,$err]=$command([PHP_BINARY,$installer,'--action=verify','--package-dir='.$package]);$check($status===0,'actual package checksum inventory');
 // A hostile profile must fail before touching any public bytes or pointer.
-file_put_contents($envPath,str_replace('APP_ENV=production','APP_ENV=local',$env));
+file_put_contents($envPath,str_replace('APP_ENV='.$profile,'APP_ENV=local',$env));
 [$status,$out,$err]=$command([PHP_BINARY,$installer,'--action=install','--package-dir='.$package,'--approval-file='.$approvalPath]);
 $check($status===1&&!file_exists($app.'/current-release.txt')&&!is_dir($web),'wrong profile refuses activation');
 file_put_contents($app.'/shared/config/.env',$env);chmod($app.'/shared/config/.env',0600);
@@ -56,7 +62,7 @@ $release=$app.'/releases/'.$manifest['release_id'];$cli=$release.'/bin/hostpapa-
 [$status,$out,$err]=$command([PHP_BINARY,$cli,'shared-hosting:cron','--max-seconds=25','--batch-limit=1']);
 $check($status===0,'real installed bounded cron command executes');
 [$status,$out,$err]=$command([PHP_BINARY,$cli,'migrate','--force']);$check($status===1,'private wrapper prohibits direct migrations');
-$probe=$home.'/http.php';file_put_contents($probe,"<?php \$_SERVER['HTTPS']='on'; \$_SERVER['SERVER_PORT']='443'; \$_SERVER['HTTP_HOST']='www.gazaairport.com'; \$_SERVER['REQUEST_METHOD']='GET'; \$_SERVER['REQUEST_URI']='/api/v1/health'; \$_SERVER['SCRIPT_NAME']='/index.php'; \$_SERVER['DOCUMENT_ROOT']='$web'; require '$web/index.php';");
+$probe=$home.'/http.php';file_put_contents($probe,"<?php \$_SERVER['HTTPS']='on'; \$_SERVER['SERVER_PORT']='443'; \$_SERVER['HTTP_HOST']='$host'; \$_SERVER['REQUEST_METHOD']='GET'; \$_SERVER['REQUEST_URI']='/api/v1/health'; \$_SERVER['SCRIPT_NAME']='/index.php'; \$_SERVER['DOCUMENT_ROOT']='$web'; require '$web/index.php';");
 [$status,$out,$err]=$command([PHP_BINARY,$probe]);$health=json_decode($out,true);
 $check($status===0&&($health['success']??false)===true&&($health['data']['status']??'')==='ok','real public PHP bridge liveness in production profile');
 // Model a later code/static release solely to exercise removal on rollback.
