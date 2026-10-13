@@ -53,14 +53,17 @@ final class BootstrapOwnerTest extends TestCase
 
     public function test_fault_rolls_back_owner_settings_proof_and_outbox_and_retains_private_input(): void
     {
+        $tables = ['staff_users','mvp_mail_settings','staff_invitations','security_dispatch_outbox'];
+        $before = [];
+        foreach ($tables as $table) $before[$table] = DB::table($table)->count();
         $file = $this->writeInput();
         DB::unprepared("CREATE TRIGGER owner_bootstrap_fault BEFORE INSERT ON audit_events FOR EACH ROW
             SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Synthetic bootstrap audit failure'");
         try {
             $this->assertSame(1, Artisan::call('hostpapa:bootstrap-owner'));
             $this->assertStringNotContainsString($this->input['smtp']['password'], Artisan::output());
-            foreach (['staff_users','mvp_mail_settings','staff_invitations','security_dispatch_outbox'] as $table) {
-                $this->assertSame(0, DB::table($table)->count(), $table . ' must roll back.');
+            foreach ($tables as $table) {
+                $this->assertSame($before[$table], DB::table($table)->count(), $table . ' must preserve prior records on rollback.');
             }
             $this->assertFileExists($file);
         } finally { DB::unprepared('DROP TRIGGER owner_bootstrap_fault'); }

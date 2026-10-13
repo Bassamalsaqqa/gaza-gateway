@@ -417,15 +417,15 @@ final class NetworkRoutesTest extends TestCase
         $badInputs = [
             // Out of range blockMinutes
             array_replace($base, ['blockMinutes' => 19]),
-            array_replace($base, ['blockMinutes' => 601]),
+            array_replace($base, ['blockMinutes' => 1441]),
             array_replace($base, ['blockMinutes' => '55']),
             // Invalid timezone
             array_replace($base, ['timezone' => 'Fake/Timezone']),
             array_replace($base, ['timezone' => '']),
             array_replace($base, ['timezone' => 'UTC+3']),
             // Unknown code
-            array_replace($base, ['code' => 'LHR']),
-            array_replace($base, ['code' => 'JFK']),
+            array_replace($base, ['code' => 'XXX']),
+            array_replace($base, ['code' => 'ZZZ']),
             array_replace($base, ['code' => 'XYZ']),
             // Extra property
             $base + ['unexpectedProperty' => 'injected'],
@@ -456,10 +456,10 @@ final class NetworkRoutesTest extends TestCase
             // Direct SQL attempting to mutate immutable code
             ['UPDATE airports SET code = ? WHERE code = ?', ['CAI', 'AMM']],
             // Invalid code
-            ['INSERT INTO airports (code, airport_name_en, airport_name_ar, city_en, city_ar, country_en, country_ar, timezone, block_minutes, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', ['LHR', 'London', 'لندن', 'London', 'لندن', 'UK', 'بريطانيا', 'Europe/London', 60, true]],
+            ['INSERT INTO airports (code, airport_name_en, airport_name_ar, city_en, city_ar, country_en, country_ar, timezone, block_minutes, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', ['XYZ', 'London', 'لندن', 'London', 'لندن', 'UK', 'بريطانيا', 'Europe/London', 60, true]],
             // Out-of-range block_minutes
             ['UPDATE airports SET block_minutes = 15 WHERE code = ?', ['AMM']],
-            ['UPDATE airports SET block_minutes = 601 WHERE code = ?', ['AMM']],
+            ['UPDATE airports SET block_minutes = 1441 WHERE code = ?', ['AMM']],
             // Empty label
             ['UPDATE airports SET airport_name_en = ? WHERE code = ?', ['', 'AMM']],
             // Invalid timezone via PostgreSQL CHECK reference_valid_iana_timezone

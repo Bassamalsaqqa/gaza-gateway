@@ -114,7 +114,8 @@ final class StaffAuthenticationTest extends TestCase
         $this->request('GET', '/staff/me', $anonymous, null, $pending['cookie'])->assertStatus(401);
         $record('postStaffMfaChallenge', $this->request('POST', '/staff/mfa/challenge', $anonymous,
             ['staffSessionChallengeId' => $pending['id']], $pending['cookie']));
-        $verify = $this->request('POST', '/staff/mfa/verify', $anonymous, ['totpCode' => $this->code($staff)], $pending['cookie']);
+        $loginCode = $this->code($staff);
+        $verify = $this->request('POST', '/staff/mfa/verify', $anonymous, ['totpCode' => $loginCode], $pending['cookie']);
         $record('postStaffMfaVerify', $verify);
         $cookie = $this->cookie($verify, 'gza_staff_session');
         $context = $this->app->make(StaffSessionStore::class)->read($cookie);
@@ -122,7 +123,7 @@ final class StaffAuthenticationTest extends TestCase
         $record('getStaffMe', $this->request('GET', '/staff/me', $full));
         $record('getStaffSessions', $this->request('GET', '/staff/sessions', $full));
         // Recovery code provides a distinct fresh factor: the login TOTP may not be replayed for step-up.
-        $this->request('POST', '/staff/step-up', $full, ['totpCode' => $this->code($staff)])->assertStatus(401);
+        $this->request('POST', '/staff/step-up', $full, ['totpCode' => $loginCode])->assertStatus(401);
         $recovery = RecoveryCode::generate();
         DB::table('staff_mfa_recovery_codes')->insert(['id' => (string) Str::uuid(), 'staff_id' => $staff->id,
             'mfa_version' => 1, 'code_digest' => $recovery->getDigest()]);

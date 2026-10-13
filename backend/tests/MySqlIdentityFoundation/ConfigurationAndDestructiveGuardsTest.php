@@ -20,8 +20,8 @@ class ConfigurationAndDestructiveGuardsTest extends MySqlTestCase
                 'key' => 'base64:' . base64_encode(random_bytes(32)),
                 'cipher' => 'AES-256-CBC',
                 'debug' => false,
-                'url' => 'https://api.gazaairport.com',
-                'allowed_hosts' => ['api.gazaairport.com'],
+                'url' => 'https://www.gazaairport.com',
+                'allowed_hosts' => ['www.gazaairport.com', 'gazaairport.com'],
             ],
             'cors' => [
                 'allowed_origins' => ['https://www.gazaairport.com', 'https://gazaairport.com'],
