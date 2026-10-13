@@ -14,3 +14,13 @@ Boundaries:
 Four focused staging configuration tests passed. Typecheck required an exact-optional fix; the corrected compiler check passed. Broad legacy suites were not repeated. A source-pinned staging build and affected local release gate follow before remote activation.
 
 Actual app migrations, cron, registration/invitations, mailbox delivery and joined browser workflow remain unverified until executed on this account. Owner mailbox credentials and initial administrator identity are separate inputs; do not invent a default password or bypass MFA to obtain a test login.
+
+## 2026-10-13 exact-source local gate and remote setup
+
+Candidate source: `de46da42e965c8e2dca38230df985d73ac07c880`. Release: `rel_20261013T033258_de46da4_clean`. Manifest SHA-256: `417ddafe202d8be2e52ff7cecc5a0d0c5383c1b10b83f0a6acdf7d60c5016c3f`.
+
+Disposable PHP 8.4/MySQL 8.4 staging package gate `h3_release_24e4236aa6cb` passed 18 affected runtime probes, all 18 migrations, code/static rollback, failed-copy recovery and actual schema backup/restore (78 InnoDB tables; zero non-InnoDB). Test MySQL disabled binary logging; this does not independently certify remote trigger privileges. No broad legacy suite was repeated.
+
+Codex uploaded the archive through cPanel to `/home/gaza5045/gaza-stage-package`, extracted and moved only the manifested files into its `release/` subdirectory. Private runtime and source-bound approval inputs are outside webroot, mode 0600. A marker-guarded one-shot cron invoked the installer using the cPanel-documented `/usr/local/bin/php`; actual result is pending. No production webroot, DNS, main or deployment branch changes occurred.
+
+AGY Hello passed, but the bounded first-owner run timed out without a final message or observable worktree changes. Its relay evidence is retained; no worker output was accepted. Codex continues directly. Initial owner identity and private SMTP password remain required before a real invitation and mailbox workflow. H4 and production readiness remain unverified.
