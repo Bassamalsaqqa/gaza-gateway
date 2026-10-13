@@ -59,6 +59,8 @@ export const EXPECTED_SECURITY_SCHEMES = Object.freeze({
 });
 
 export const STAFF_SELF_AUTH_OPS = Object.freeze([
+  "postStaffMfaEnrollmentSetup",
+  "postStaffMfaEnrollmentConfirm",
   "getStaffCsrfBootstrap",
   "postStaffLogin",
   "postStaffLogout",
@@ -74,6 +76,8 @@ export const STAFF_SELF_AUTH_OPS = Object.freeze([
 ]);
 
 export const STAFF_SELF_PROTECTED_OPS = Object.freeze([
+  "postStaffMfaEnrollmentSetup",
+  "postStaffMfaEnrollmentConfirm",
   "postStaffLogout",
   "getStaffMe",
   "getStaffSession",

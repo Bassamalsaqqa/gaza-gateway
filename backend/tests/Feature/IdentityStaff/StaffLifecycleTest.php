@@ -97,65 +97,53 @@ final class StaffLifecycleTest extends TestCase
         $proof = $this->app->make(ProofService::class)->issue(ProofPurpose::StaffInvitation, $staff->id);
         $response = $this->request('POST', '/staff/invitations/accept', $session,
             ['token' => $proof->getRawToken(), 'password' => self::PASSWORD]);
-        $response->assertStatus(200)->assertJsonPath('data.status', 'enrollment_required');
-        return ['cookie' => $this->cookie($response, 'gza_staff_pending'), 'proof' => $proof];
+        $response->assertStatus(200)->assertJsonPath('data.status', 'authenticated');
+        $cookie = $this->cookie($response, 'gza_staff_session');
+        $context = $this->app->make(StaffSessionStore::class)->read($cookie);
+        return ['session' => ['cookie' => $cookie, 'csrf' => $context->getCsrfToken(), 'id' => $context->sessionId], 'proof' => $proof];
     }
 
-    public function test_invitation_then_enrollment_grants_full_authority_only_after_fresh_totp(): void
+    public function test_invitation_grants_password_authority_then_optional_enrollment_requires_fresh_totp(): void
     {
-        $staff = $this->staff(); $session = $this->anonymous(); $pending = $this->invitation($staff, $session);
-        $this->request('GET', '/staff/me', $session, null, $pending['cookie'])->assertStatus(401);
-        $setup = $this->request('POST', '/staff/mfa/enrollment/setup', $session, null, $pending['cookie']);
-        $setup->assertStatus(200)->assertJsonStructure(['data' => ['secret', 'qrCodeUri', 'expiresAt']]);
-        $secondSetup = $this->request('POST', '/staff/mfa/enrollment/setup', $session, null, $pending['cookie']);
-        $secondSetup->assertStatus(200);
-        $this->assertTrue(hash_equals($setup->json('data.secret'), $secondSetup->json('data.secret')), 'Retry must not replace staged secret.');
-        $this->assertSame($setup->json('data.expiresAt'), $secondSetup->json('data.expiresAt'));
-        $secret = TotpSecret::fromBase32($setup->json('data.secret'));
+        $staff = $this->staff(); $anonymous = $this->anonymous(); $accepted = $this->invitation($staff, $anonymous);
+        $session = $accepted['session'];
+        $this->request('GET', '/staff/me', $anonymous)->assertStatus(401);
+        $this->request('GET', '/staff/me', $session)->assertOk()->assertJsonPath('data.mfaEnabled', false);
+        $setup = $this->request('POST', '/staff/mfa/enrollment/setup', $session, ['currentPassword' => self::PASSWORD]);
+        $setup->assertOk()->assertJsonStructure(['data' => ['secret', 'qrCodeUri', 'expiresAt']]);
+        $oldCookie = $this->cookie($setup, 'gza_staff_pending');
+        $second = $this->request('POST', '/staff/mfa/enrollment/setup', $session, ['currentPassword' => self::PASSWORD])->assertOk();
+        $pendingCookie = $this->cookie($second, 'gza_staff_pending');
+        $this->assertNotSame($setup->json('data.secret'), $second->json('data.secret'));
+        $this->assertSame('revoked', DB::table('staff_pending_auth')->where('token_digest', hash('sha256', $oldCookie))->value('state'));
+        $secret = TotpSecret::fromBase32($second->json('data.secret'));
         $now = strtotime(DB::selectOne('SELECT UTC_TIMESTAMP(6) AS now')->now);
         $code = (new TotpService())->hotp($secret, intdiv($now, 30));
         $bad = $code === '000000' ? '111111' : '000000';
-        $this->request('POST', '/staff/mfa/enrollment/confirm', $session, ['totpCode' => $bad], $pending['cookie'])->assertStatus(401);
-        $this->assertSame(1, DB::table('staff_pending_auth')->where('staff_id', $staff->id)->value('failed_attempts'));
-        $confirm = $this->request('POST', '/staff/mfa/enrollment/confirm', $session, ['totpCode' => $code], $pending['cookie']);
-        $confirm->assertStatus(200)->assertJsonPath('data.enrolled', true)->assertJsonCount(10, 'data.recoveryCodes');
+        $this->request('POST', '/staff/mfa/enrollment/confirm', $session, ['totpCode' => $bad], $pendingCookie)->assertStatus(401);
+        $this->assertSame(1, DB::table('staff_pending_auth')->where('token_digest', hash('sha256', $pendingCookie))->value('failed_attempts'));
+        $confirm = $this->request('POST', '/staff/mfa/enrollment/confirm', $session, ['totpCode' => $code], $pendingCookie);
+        $confirm->assertOk()->assertJsonPath('data.enrolled', true)->assertJsonCount(10, 'data.recoveryCodes');
         $this->assertSame('active', DB::table('staff_users')->where('id', $staff->id)->value('status'));
         $this->assertSame(10, DB::table('staff_mfa_recovery_codes')->where('staff_id', $staff->id)->count());
-        $this->assertNull(DB::table('staff_pending_auth')->where('staff_id', $staff->id)->value('encrypted_staged_secret'));
-        $this->assertNotNull(DB::table('staff_sessions')->where('id', $session['id'])->value('revoked_at'));
-        $fullCookie = $this->cookie($confirm, 'gza_staff_session');
-        $context = $this->app->make(StaffSessionStore::class)->read($fullCookie);
-        $this->assertTrue($context?->isFull());
-        $this->request('POST', '/staff/mfa/enrollment/confirm', $session, ['totpCode' => $code], $pending['cookie'])->assertStatus(401);
-        $this->assertSame(1, DB::table('staff_sessions')->where('staff_id', $staff->id)->count());
+        $this->assertFalse(DB::table('staff_pending_auth')->where('staff_id', $staff->id)->whereNotNull('encrypted_staged_secret')->exists());
+        $this->assertNull($this->app->make(StaffSessionStore::class)->read($session['cookie']));
+        $this->assertTrue($this->app->make(StaffSessionStore::class)->read($this->cookie($confirm, 'gza_staff_session'))?->isFull());
+        $this->request('POST', '/staff/mfa/enrollment/confirm', $session, ['totpCode' => $code], $pendingCookie)->assertStatus(401);
+        $this->assertSame(2, DB::table('staff_sessions')->where('staff_id', $staff->id)->count());
     }
 
-    public function test_verified_password_resumes_expired_enrollment_without_granting_staff_authority(): void
+    public function test_verified_legacy_pending_enrollment_can_sign_in_with_password_without_forced_totp(): void
     {
-        $staff = $this->staff(); $original = $this->anonymous(); $pending = $this->invitation($staff, $original);
-        $this->request('POST', '/staff/mfa/enrollment/setup', $original, null, $pending['cookie'])->assertStatus(200);
-        DB::table('staff_pending_auth')->where('staff_id', $staff->id)->update([
-            'issued_at' => DB::raw('DATE_SUB(UTC_TIMESTAMP(6), INTERVAL 301 SECOND)'),
-            'expires_at' => DB::raw('DATE_SUB(UTC_TIMESTAMP(6), INTERVAL 1 SECOND)')]);
-        $this->request('POST', '/staff/mfa/enrollment/setup', $original, null, $pending['cookie'])->assertStatus(401);
+        $staff = $this->staff(); $accepted = $this->invitation($staff, $this->anonymous());
+        DB::table('staff_users')->where('id', $staff->id)->update(['status' => 'pending_enrollment']);
         $session = $this->anonymous();
-        $this->request('POST', '/staff/login', $session,
-            ['username' => $staff->username, 'password' => 'Wrong-staff-password-2026'])->assertStatus(401);
-        $login = $this->request('POST', '/staff/login', $session,
-            ['username' => $staff->username, 'password' => self::PASSWORD]);
-        $login->assertStatus(200)->assertJsonPath('data.status', 'enrollment_required');
-        $cookie = $this->cookie($login, 'gza_staff_pending');
-        $this->assertSame('enroll_mfa', DB::table('staff_pending_auth')->where('token_digest', hash('sha256', $cookie))->value('purpose'));
-        $this->request('GET', '/staff/me', $session, null, $cookie)->assertStatus(401);
-        $this->request('POST', '/staff/mfa/challenge', $session, null, $cookie)->assertStatus(401);
-        $setup = $this->request('POST', '/staff/mfa/enrollment/setup', $session, null, $cookie)->assertStatus(200);
-        $secret = TotpSecret::fromBase32($setup->json('data.secret'));
-        $now = strtotime(DB::selectOne('SELECT UTC_TIMESTAMP(6) AS now')->now);
-        $confirm = $this->request('POST', '/staff/mfa/enrollment/confirm', $session,
-            ['totpCode' => (new TotpService())->hotp($secret, intdiv($now, 30))], $cookie);
-        $confirm->assertStatus(200)->assertJsonPath('data.enrolled', true);
-        $full = $this->app->make(StaffSessionStore::class)->read($this->cookie($confirm, 'gza_staff_session'));
-        $this->assertTrue($full?->isFull());
+        $this->request('POST', '/staff/login', $session, ['username' => $staff->username, 'password' => 'Wrong-staff-password-2026'])->assertStatus(401);
+        $login = $this->request('POST', '/staff/login', $session, ['username' => $staff->username, 'password' => self::PASSWORD]);
+        $login->assertOk()->assertJsonPath('data.status', 'authenticated');
+        $context = $this->app->make(StaffSessionStore::class)->read($this->cookie($login, 'gza_staff_session'));
+        $this->assertTrue($context?->isFull()); $this->assertSame('password', $context->assurance);
+        $this->assertNull($context->mfaVerifiedAt);
         $this->assertSame('active', DB::table('staff_users')->where('id', $staff->id)->value('status'));
     }
 
@@ -221,7 +209,8 @@ final class StaffLifecycleTest extends TestCase
         }
         $this->assertSame(['ACCEPTED', 'DENIED'], \Tests\Fixtures\IdentityStaff\StaffLifecycleRace::run($inputs));
         $this->assertSame(2, DB::table('staff_users')->where('id', $staff->id)->value('credential_epoch'));
-        $this->assertSame(1, DB::table('staff_pending_auth')->where('staff_id', $staff->id)->where('state', 'issued')->count());
+        $this->assertSame(0, DB::table('staff_pending_auth')->where('staff_id', $staff->id)->where('state', 'issued')->count());
+        $this->assertSame(1, DB::table('staff_sessions')->where('staff_id', $staff->id)->whereNull('revoked_at')->count());
         $this->assertSame('consumed', DB::table('staff_invitations')->where('id', $proof->proofId)->value('state'));
     }
 
@@ -279,8 +268,9 @@ final class StaffLifecycleTest extends TestCase
 
     public function test_enrollment_failed_attempts_exhaust_and_erase_staged_secret(): void
     {
-        $staff = $this->staff(); $session = $this->anonymous(); $pending = $this->invitation($staff, $session);
-        $setup = $this->request('POST', '/staff/mfa/enrollment/setup', $session, null, $pending['cookie']);
+        $staff = $this->staff(); $accepted = $this->invitation($staff, $this->anonymous()); $session = $accepted['session'];
+        $setup = $this->request('POST', '/staff/mfa/enrollment/setup', $session, ['currentPassword' => self::PASSWORD]);
+        $pending = ['cookie' => $this->cookie($setup, 'gza_staff_pending')];
         $setup->assertStatus(200); $secret = TotpSecret::fromBase32($setup->json('data.secret'));
         $now = strtotime(DB::selectOne('SELECT UTC_TIMESTAMP(6) AS now')->now);
         foreach (['000000', '111111', '222222', '333333'] as $bad) {
@@ -292,7 +282,8 @@ final class StaffLifecycleTest extends TestCase
         $row = DB::table('staff_pending_auth')->where('staff_id', $staff->id)->first();
         $this->assertSame('exhausted', $row->state); $this->assertSame(5, $row->failed_attempts);
         $this->assertNull($row->encrypted_staged_secret);
-        $this->assertSame('pending_enrollment', DB::table('staff_users')->where('id', $staff->id)->value('status'));
+        $this->assertSame('active', DB::table('staff_users')->where('id', $staff->id)->value('status'));
+        $this->request('GET', '/staff/me', $session)->assertOk()->assertJsonPath('data.mfaEnabled', false);
         $this->assertSame(0, DB::table('staff_mfa_credentials')->where('staff_id', $staff->id)->count());
     }
 }

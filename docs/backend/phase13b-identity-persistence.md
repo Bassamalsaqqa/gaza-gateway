@@ -1,5 +1,7 @@
 # Phase 13B Identity Persistence Specification & Catalog Evidence
 
+> Initial staff enrollment policy is superseded by the [2026-10-13 optional MFA amendment](optional-staff-mfa.md). Historical acceptance results below do not validate this amendment.
+
 This document records the design, schema catalog definitions, referential constraints, and verification evidence for the 13 inert persistence relations implemented under **Phase 13B Persistence02** (`phase13b_persistence02_20261010`).
 
 ---

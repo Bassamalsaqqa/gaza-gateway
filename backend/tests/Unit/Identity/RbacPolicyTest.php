@@ -102,6 +102,7 @@ final class RbacPolicyTest extends TestCase
             idleExpiresAt: $now->addHour(),
             lastSeenAt: $now,
             mfaVersion: 1,
+            assurance: 'mfa',
             mfaVerifiedAt: $mfaTime,
             role: 'admin',
         );
@@ -146,6 +147,7 @@ final class RbacPolicyTest extends TestCase
             'lookup_digest' => hash('sha256', 'lookup-stepup-' . uniqid()),
             'staff_id' => $staffId,
             'auth_level' => 'full',
+            'assurance' => 'mfa',
             'credential_epoch' => 1,
             'encrypted_payload' => 'payload',
             'issued_at' => $now->subSeconds(200)->toIso8601String(),
@@ -206,6 +208,7 @@ final class RbacPolicyTest extends TestCase
             idleExpiresAt: $now->addHour(),
             lastSeenAt: $now,
             mfaVersion: 1,
+            assurance: 'mfa',
             mfaVerifiedAt: $mfaTime,
             role: 'admin',
         );
@@ -224,6 +227,7 @@ final class RbacPolicyTest extends TestCase
             idleExpiresAt: $now->addHour(),
             lastSeenAt: $now,
             mfaVersion: 1,
+            assurance: 'mfa',
             mfaVerifiedAt: $mfaTime,
             role: 'admin',
         );

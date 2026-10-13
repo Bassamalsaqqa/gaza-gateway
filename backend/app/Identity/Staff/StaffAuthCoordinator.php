@@ -49,6 +49,8 @@ final class StaffAuthCoordinator
         $this->charge('login', ['subject' => $input['username'], 'ip' => $ip]);
         $result = $this->db->transaction(function () use ($input, $context, $cookie, $csrf, $ip, $userAgent, $requestId) {
             $this->timeouts();
+            // Legacy verified pending-enrollment accounts may become eligible; serialize with directory writes.
+            if (!$this->db->table('staff_directory_control')->where('id', 1)->lockForUpdate()->first()) { throw new \LogicException('Staff directory sentinel is unavailable.'); }
             $staff = $this->db->table('staff_users')->where('username', $input['username'])->lockForUpdate()->first();
             // The unknown/ineligible branch performs the same native Argon2id work.
             $usable = $staff && Argon2idPasswordHasher::isValidStoredHashStructure($staff->password_hash);
@@ -64,13 +66,25 @@ final class StaffAuthCoordinator
             if (!$this->validSession($session, $context, $cookie, $csrf, $now, false)) {
                 return null;
             }
-            $mfa = $enrollment ? null : $this->credential($staff);
-            if (!$enrollment && !$mfa) { return null; }
+            if ($staff->mfa_version === null) {
+                if ($this->db->table('staff_mfa_credentials')->where('staff_id', $staff->id)->whereNotNull('confirmed_at')->exists()) { return null; }
+                if ($enrollment) {
+                    $this->db->table('staff_users')->where('id', $staff->id)->update(['status' => 'active', 'updated_at' => $now]);
+                }
+                $this->db->table('staff_pending_auth')->where('bound_session_id', $session->id)->where('state', 'issued')
+                    ->update(['state' => 'revoked', 'revoked_at' => $now, 'encrypted_staged_secret' => null]);
+                $this->db->table('staff_sessions')->where('id', $session->id)->update(['revoked_at' => $now]);
+                $receipt = $this->sessions->issuePassword($staff->id, (int) $staff->credential_epoch, $now,
+                    ['ip_address' => $ip, 'user_agent' => mb_substr($userAgent, 0, 256)]);
+                $this->event('postStaffLogin', $staff->id, $requestId);
+                return new StaffOperationResult(['status' => 'authenticated', 'expiresAt' => $receipt->absoluteExpiresAt->format(\DateTimeInterface::ATOM)], $receipt);
+            }
+            $mfa = $this->credential($staff);
+            if (!$mfa) { return null; }
             // Binding is server-owned, encrypted, versioned and never enrollment secret material.
             $payload = $this->payload($session);
-            if ($enrollment) { unset($payload['pending_login']); }
-            else { $payload['pending_login'] = ['staffId' => $staff->id, 'epoch' => (int) $staff->credential_epoch,
-                'mfaVersion' => (int) $staff->mfa_version]; }
+            $payload['pending_login'] = ['staffId' => $staff->id, 'epoch' => (int) $staff->credential_epoch,
+                'mfaVersion' => (int) $staff->mfa_version];
             $this->db->table('staff_sessions')->where('id', $session->id)->update([
                 'encrypted_payload' => $this->encrypter->encrypt(json_encode($payload, JSON_THROW_ON_ERROR)),
             ]);
@@ -79,7 +93,7 @@ final class StaffAuthCoordinator
             if ($old->isNotEmpty()) {
                 $this->db->table('staff_pending_auth')->whereIn('id', $old)->update(['state' => 'revoked', 'revoked_at' => $now, 'encrypted_staged_secret' => null]);
             }
-            $purpose = $enrollment ? 'enroll_mfa' : 'login_mfa';
+            $purpose = 'login_mfa';
             $token = OpaqueToken::generate('staff', $purpose);
             $id = (string) Str::uuid();
             $expires = $now->addSeconds(300)->min(CarbonImmutable::parse($session->absolute_expires_at));
@@ -89,7 +103,7 @@ final class StaffAuthCoordinator
                 'purpose' => $purpose, 'credential_epoch' => $staff->credential_epoch, 'failed_attempts' => 0,
             ]);
             $this->event('postStaffLogin', $staff->id, $requestId);
-            return new StaffOperationResult(['status' => $enrollment ? 'enrollment_required' : 'mfa_required', 'expiresAt' => $expires->toIso8601String()],
+            return new StaffOperationResult(['status' => 'mfa_required', 'expiresAt' => $expires->toIso8601String()],
                 pendingToken: $token->getSecretToken(), challengeId: $id);
         });
         return $result ?? throw new StaffAuthenticationException();
@@ -187,13 +201,11 @@ final class StaffAuthCoordinator
             $now = $this->now();
             $unsafe = !in_array($operation, ['getStaffMe', 'getStaffSessions'], true);
             if ($unsafe && ($csrf === null || $csrf === '')) { return null; }
-            if (!$mfa || !$this->validSession($current, $context, $cookie, $unsafe ? $csrf : null, $now, true)
-                || (int) $current->credential_epoch !== (int) $staff->credential_epoch
-                || (int) $current->mfa_version !== (int) $staff->mfa_version
-                || $current->mfa_verified_at === null || CarbonImmutable::parse($current->mfa_verified_at)->greaterThan($now)) { return null; }
+            if (!$this->validSession($current, $context, $cookie, $unsafe ? $csrf : null, $now, true)
+                || !(new \App\Identity\Sessions\StaffSessionAuthority($this->db))->valid($staff, $current, $now)) { return null; }
             if ($operation === 'getStaffMe') {
                 return new StaffOperationResult($this->staffDto($staff) + ['fullNameEn' => $staff->full_name_en,
-                    'fullNameAr' => $staff->full_name_ar, 'mfaEnabled' => true]);
+                    'fullNameAr' => $staff->full_name_ar, 'mfaEnabled' => $staff->mfa_version !== null]);
             }
             if ($operation === 'getStaffSessions') {
                 // Principal locking serializes authority changes; history needs no session locks.
@@ -219,8 +231,16 @@ final class StaffAuthCoordinator
                 return new StaffOperationResult($data);
             }
             if ($operation === 'postStaffStepUp') {
-                if (!$this->consumeMfa($staff, $mfa, $input, $now)) { $this->denied($operation, $requestId); return null; }
-                $this->db->table('staff_sessions')->where('id', $current->id)->update(['mfa_verified_at' => $now]);
+                if ($staff->mfa_version === null) {
+                    if (array_keys($input) !== ['currentPassword'] || !$this->hasher->verify($input['currentPassword'], $staff->password_hash)) {
+                        $this->denied($operation, $requestId); return null;
+                    }
+                    $patch = ['password_verified_at' => $now];
+                } else {
+                    if (!$mfa || !$this->consumeMfa($staff, $mfa, $input, $now)) { $this->denied($operation, $requestId); return null; }
+                    $patch = ['mfa_verified_at' => $now];
+                }
+                $this->db->table('staff_sessions')->where('id', $current->id)->update($patch);
                 $this->event($operation, $staff->id, $requestId);
                 return new StaffOperationResult(['verified' => true, 'expiresAt' => $now->addSeconds(300)->toIso8601String()]);
             }
@@ -284,7 +304,7 @@ final class StaffAuthCoordinator
 
     private function eligible(object $staff): bool
     {
-        return $staff->status === 'active' && $staff->email_verified_at !== null && $staff->mfa_version !== null
+        return $staff->status === 'active' && $staff->email_verified_at !== null
             && $this->rbac->isValidRole($staff->role) && Argon2idPasswordHasher::isValidStoredHashStructure($staff->password_hash);
     }
 

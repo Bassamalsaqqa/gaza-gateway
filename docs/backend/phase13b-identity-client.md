@@ -67,7 +67,7 @@ The client implements exactly 41 named, typed methods mapping to the accepted Op
 | # | Operation ID | Method | Path | Expected Status | Requires CSRF | Auth-Changing | Description |
 |---|---|---|---|---|---|---|---|
 | 18 | `getStaffCsrfBootstrap` | `GET` | `/staff/csrf` | `200 OK` | No | No | Raw `{ csrfToken }` bootstrap |
-| 19 | `postStaffLogin` | `POST` | `/staff/login` | `200 OK` | Yes | Yes | Credential sign-in; returns pending MFA state only |
+| 19 | `postStaffLogin` | `POST` | `/staff/login` | `200 OK` | Yes | Yes | Password authority for never-enrolled staff; pending challenge for enrolled staff |
 | 20 | `postStaffLogout` | `POST` | `/staff/logout` | `200 OK` | Yes | Yes | Staff session revocation receipt |
 | 21 | `getStaffMe` | `GET` | `/staff/me` | `200 OK` | No | No | Authenticated staff profile & permissions |
 | 22 | `postStaffMfaSetup` | `POST` | `/staff/mfa/setup` | `200 OK` | Yes | No | TOTP secret and QR code URI generation |
@@ -79,8 +79,8 @@ The client implements exactly 41 named, typed methods mapping to the accepted Op
 | 28 | `postStaffUserInvite` | `POST` | `/staff/users` | `201 Created` | Yes | No | Staff user invitation creation |
 | 29 | `patchStaffUser` | `PATCH` | `/staff/users/{id}` | `200 OK` | Yes | No | Staff user profile/role update |
 | 30 | `deleteStaffUser` | `DELETE` | `/staff/users/{id}` | `200 OK` | Yes | No | Staff user account deletion |
-| 31 | `postStaffMfaEnrollmentSetup` | `POST` | `/staff/mfa/enrollment/setup` | `200 OK` | Yes | No | Mandatory MFA enrollment setup |
-| 32 | `postStaffMfaEnrollmentConfirm` | `POST` | `/staff/mfa/enrollment/confirm` | `200 OK` | Yes | Yes | Mandatory MFA enrollment confirmation |
+| 31 | `postStaffMfaEnrollmentSetup` | `POST` | `/staff/mfa/enrollment/setup` | `200 OK` | Yes | No | Optional authenticated enrollment setup with currentPassword |
+| 32 | `postStaffMfaEnrollmentConfirm` | `POST` | `/staff/mfa/enrollment/confirm` | `200 OK` | Yes | Yes | Optional authenticated enrollment confirmation |
 | 33 | `postStaffStepUp` | `POST` | `/staff/step-up` | `200 OK` | Yes | No | Step-up elevation proof submission |
 | 34 | `postStaffMfaSetupConfirm` | `POST` | `/staff/mfa/setup/confirm` | `200 OK` | Yes | Yes | Voluntary MFA setup confirmation |
 | 35 | `postStaffMfaRecoveryCodesRegenerate` | `POST` | `/staff/mfa/recovery-codes/regenerate` | `200 OK` | Yes | No | Emergency recovery codes regeneration |
@@ -167,7 +167,7 @@ For backwards compatibility with existing Phase 13A consumers, ergonomic aliases
    - A realm's cached token is dropped upon receiving HTTP `401 Unauthorized`, `419 CSRF Token Mismatch`, network failure, timeout, or protocol error.
    - Mutations are **never automatically retried or replayed** upon failure. Failure is surfaced immediately to caller; re-bootstrap occurs on the next explicit caller mutation request.
 5. **Pending Staff Identity as Non-Full Authority**:
-   - `postStaffLogin` returns `status: "mfa_required"` or `"enrollment_required"`. It never returns full staff authority or staff profile tokens. Full staff authority requires secondary MFA verification (`postStaffMfaVerify`).
+   - `postStaffLogin` returns `status: "authenticated"` with rotated password authority for never-enrolled staff, or `"mfa_required"` with pending-only authority for enrolled staff. `postStaffMfaChallenge` remains pending-only. Initial enrollment is optional from authenticated own security settings with the current password. See [optional MFA contract](optional-staff-mfa.md).
 
 ---
 

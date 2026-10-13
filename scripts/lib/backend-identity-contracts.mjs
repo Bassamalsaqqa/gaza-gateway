@@ -227,6 +227,12 @@ export function isSessionValid(session, principal, now, realm) {
   )
     return false;
   if (realm === "staff") {
+    if (session.assurance === "password") {
+      return principal.mfaVersion == null && principal.mfa == null && session.mfaVersion == null
+        && session.mfaVerifiedAt == null && Number.isFinite(seconds(session.passwordVerifiedAt))
+        && seconds(session.passwordVerifiedAt) <= t;
+    }
+    if (session.assurance !== "mfa") return false;
     const m = principal.mfa;
     if (
       !object(m) ||
@@ -317,14 +323,15 @@ export function consumeIdentityToken(account, proof, command, ctx) {
       return { ok: false };
     next.passwordHash = command.serverPasswordHash;
     next.emailVerifiedAt = ctx.now;
-    next.status = "pending_enrollment";
+    next.status = "active";
+    next.credentialEpoch++;
   } else return { ok: false };
   return {
     ok: true,
     account: next,
     proof: consumed(proof, ctx.now),
-    autoLogin: false,
-    revokeEpoch: isReset ? next.credentialEpoch : null,
+    autoLogin: ctx.purpose === "staff_invitation",
+    revokeEpoch: isReset || ctx.purpose === "staff_invitation" ? next.credentialEpoch : null,
   };
 }
 export function revokeSessions(sessions, principalId, now) {
@@ -433,8 +440,8 @@ export function evaluateStaffGuard(context, endpoint, permission = null) {
   if (required && !D.permissions[context.principal.role]?.includes(required))
     return { allowed: false };
   const t = seconds(context.now),
-    verified = seconds(context.session.mfaVerifiedAt);
-  if (STEP_UP_ROUTES.has(key) && (!Number.isFinite(verified) || verified > t || t - verified > 300))
+    verified = seconds(context.session.assurance === "password" ? context.session.passwordVerifiedAt : context.session.mfaVerifiedAt);
+  if (STEP_UP_ROUTES.has(key) && (!Number.isFinite(verified) || verified > t || t - verified >= 300))
     return { allowed: false };
   return { allowed: true, authLevel: "full" };
 }
@@ -444,7 +451,7 @@ export function completePendingMfa(principal, anonymousSession, pending, credent
     !object(anonymousSession) ||
     !object(credential) ||
     !object(ctx) ||
-    !["enroll_mfa", "login_mfa"].includes(ctx.purpose) ||
+    ctx.purpose !== "login_mfa" ||
     !Number.isFinite(seconds(anonymousSession.absoluteExpiresAt))
   )
     return { ok: false };
@@ -485,6 +492,7 @@ export function completePendingMfa(principal, anonymousSession, pending, credent
     realm: "staff",
     authLevel: "full",
     credentialEpoch: next.credentialEpoch,
+    assurance: "mfa",
     mfaVersion: c.version,
     mfaVerifiedAt: ctx.now,
     issuedAt: ctx.now,
@@ -683,11 +691,11 @@ export function evaluateLastAdminGuard(directory, proposal, lockOrder) {
     p.status === "active" &&
     nonempty(p.emailVerifiedAt) &&
     nonempty(p.passwordHash) &&
-    p.mfa?.staffId === p.id &&
+    ((p.mfaVersion == null && p.mfa == null) || (p.mfa?.staffId === p.id &&
     integer(p.mfa?.version) &&
     p.mfaVersion === p.mfa.version &&
     nonempty(p.mfa.confirmedAt) &&
-    p.mfa.revokedAt === null;
+    p.mfa.revokedAt === null));
   if (next.filter(eligible).length < 1) return { allowed: false, status: 409 };
   return { allowed: true, directory: next };
 }

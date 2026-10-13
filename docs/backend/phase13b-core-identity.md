@@ -1,5 +1,7 @@
 # Phase 13B Package 01 — Core Identity Persistence & Security Primitives
 
+> Initial staff enrollment policy is superseded by the [2026-10-13 optional MFA amendment](optional-staff-mfa.md). Historical acceptance results below do not validate this amendment.
+
 ## Overview & Scope Boundary
 
 Phase 13B Package 01 implements the foundational relational persistence and core security service primitives for authentication, sessions, and RBAC in Gaza Gateway (Palestinian Airlines / Yasser Arafat International Airport).

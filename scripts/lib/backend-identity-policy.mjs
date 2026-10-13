@@ -31,7 +31,7 @@ export const IDENTITY_POLICY = {
   },
   sessions: {
     passenger: { absolute: 604800, idle: 86400 },
-    staff: { absolute: 28800, idle: 3600 },
+    staff: { absolute: 28800, idle: 3600, assurance: ["password", "mfa"], passwordVerifiedAt: "real password proof only; never copied into mfa_verified_at" },
     anonymous: { absolute: 1800, idle: 1800 },
     pending: { absolute: 300, attempts: 5 },
     stepUp: 300,
@@ -54,6 +54,8 @@ export const IDENTITY_POLICY = {
     recoveryEntropyBits: 128,
     encryptedSecret: true,
     oneUseCounter: true,
+    initialEnrollment: "optional_authenticated_own_settings_current_password",
+    enrolledLogin: "required_totp_or_recovery",
   },
   proofs: {
     passenger_email_verification: {
@@ -177,7 +179,7 @@ export const IDENTITY_POLICY = {
       "realm_staff",
       "active",
       "verified_email",
-      "confirmed_current_mfa",
+      "password_if_never_enrolled_else_confirmed_current_mfa",
       "exact_epoch",
       "absolute_expiry",
       "idle_expiry",
@@ -239,8 +241,8 @@ export const IDENTITY_POLICY = {
       exhausted: {},
     },
     staff: {
-      invited: { accept: "pending_enrollment" },
-      pending_enrollment: { confirm_mfa: "active", deactivate: "deactivated" },
+      invited: { accept: "active" },
+      pending_enrollment: { password_login: "active", deactivate: "deactivated" },
       active: { suspend: "suspended", deactivate: "deactivated", replace_mfa: "active" },
       suspended: {},
       deactivated: {},
@@ -321,7 +323,7 @@ add(
 add("webhook", "post /payments/webhook");
 add("receipt", "get /bookings/{ref}/receipt");
 add("pending_login", "post /staff/mfa/challenge\npost /staff/mfa/verify");
-add("pending_enrollment", "post /staff/mfa/enrollment/setup\npost /staff/mfa/enrollment/confirm");
+add("staff", "post /staff/mfa/enrollment/setup\npost /staff/mfa/enrollment/confirm");
 add("public", "get /publication-snapshots/{releaseId}");
 add("staff", "get /cms/publications/{releaseId}/snapshot", "content.view");
 add(

@@ -54,6 +54,8 @@ final class StaffSessionStore
             'lookup_digest' => $token->digest,
             'staff_id' => null,
             'auth_level' => 'anonymous',
+            'assurance' => 'anonymous',
+            'password_verified_at' => null,
             'credential_epoch' => null,
             'encrypted_payload' => $encryptedPayload,
             'issued_at' => $now->toIso8601String(),
@@ -82,11 +84,22 @@ final class StaffSessionStore
      * Issue a full authenticated staff session.
      * Follows strict lock order: locks staff principal row FOR UPDATE before session creation.
      */
-    public function issueFull(
+    public function issueFull(string $staffId, int $credentialEpoch, int $mfaVersion, DateTimeInterface $mfaVerifiedAt, array $attributes = []): SessionReceipt
+    {
+        return $this->issueAuthenticated($staffId, $credentialEpoch, $mfaVersion, $mfaVerifiedAt, $attributes);
+    }
+
+    /** Called only after actual password or invitation proof verification, with no confirmed MFA history. */
+    public function issuePassword(string $staffId, int $credentialEpoch, DateTimeInterface $passwordVerifiedAt, array $attributes = []): SessionReceipt
+    {
+        return $this->issueAuthenticated($staffId, $credentialEpoch, null, $passwordVerifiedAt, $attributes);
+    }
+
+    private function issueAuthenticated(
         string $staffId,
         int $credentialEpoch,
-        int $mfaVersion,
-        DateTimeInterface $mfaVerifiedAt,
+        ?int $mfaVersion,
+        DateTimeInterface $verifiedAt,
         array $attributes = []
     ): SessionReceipt {
         if ($credentialEpoch < 1) {
@@ -97,7 +110,7 @@ final class StaffSessionStore
             $staffId,
             $credentialEpoch,
             $mfaVersion,
-            $mfaVerifiedAt,
+            $verifiedAt,
             $attributes
         ) {
             // 1. Lock principal row in documented order
@@ -117,32 +130,29 @@ final class StaffSessionStore
             if ((int) $staff->credential_epoch !== $credentialEpoch) {
                 throw new SessionValidationException('Staff credential epoch mismatch.', 'epoch_mismatch');
             }
-            if ((int) $staff->mfa_version !== $mfaVersion) {
-                throw new SessionValidationException('Staff current MFA version mismatch.', 'mfa_version_mismatch');
-            }
-
-            // 2. Lock and verify confirmed unrevoked MFA credential in documented order
-            $mfa = $this->db->table('staff_mfa_credentials')
-                ->where('staff_id', $staffId)
-                ->where('version', $mfaVersion)
-                ->lockForUpdate()
-                ->first();
-
-            if (!$mfa || $mfa->confirmed_at === null) {
-                throw new SessionValidationException('Staff MFA credential is not confirmed.', 'mfa_unconfirmed');
-            }
-            if ($mfa->revoked_at !== null) {
-                throw new SessionValidationException('Staff MFA credential is revoked.', 'mfa_revoked');
+            if ($mfaVersion === null) {
+                if ($staff->mfa_version !== null || $this->db->table('staff_mfa_credentials')->where('staff_id', $staffId)->whereNotNull('confirmed_at')->exists()) {
+                    throw new SessionValidationException('Previously enrolled staff require MFA.', 'mfa_required');
+                }
+            } else {
+                if ($staff->mfa_version === null || (int) $staff->mfa_version !== $mfaVersion) {
+                    throw new SessionValidationException('Staff current MFA version mismatch.', 'mfa_version_mismatch');
+                }
+                $mfa = $this->db->table('staff_mfa_credentials')->where('staff_id', $staffId)
+                    ->where('version', $mfaVersion)->lockForUpdate()->first();
+                if (!$mfa || $mfa->confirmed_at === null || $mfa->revoked_at !== null) {
+                    throw new SessionValidationException('MFA credential revoked or unconfirmed.', 'mfa_invalid');
+                }
             }
 
             // 3. Derive fresh time AFTER lock acquisition and verify proof timestamp
             $now = CarbonImmutable::now();
-            $mfaVerifiedCarbon = CarbonImmutable::createFromInterface($mfaVerifiedAt);
-            if ($mfaVerifiedCarbon->greaterThan($now)) {
+            $proofVerifiedCarbon = CarbonImmutable::createFromInterface($verifiedAt);
+            if ($proofVerifiedCarbon->greaterThan($now)) {
                 throw new SessionValidationException('Staff MFA timestamp is in the future.', 'mfa_future_timestamp');
             }
             // Reject MFA proof with age >= 300 seconds (exact boundary is expired)
-            if ($now->greaterThanOrEqualTo($mfaVerifiedCarbon->addSeconds(300))) {
+            if ($now->greaterThanOrEqualTo($proofVerifiedCarbon->addSeconds(300))) {
                 throw new SessionValidationException('Staff MFA proof has expired.', 'mfa_expired_timestamp');
             }
 
@@ -169,7 +179,9 @@ final class StaffSessionStore
                 'last_seen_at' => $now->toIso8601String(),
                 'revoked_at' => null,
                 'mfa_version' => $mfaVersion,
-                'mfa_verified_at' => $mfaVerifiedCarbon->toIso8601String(),
+                'mfa_verified_at' => $mfaVersion === null ? null : $proofVerifiedCarbon->toIso8601String(),
+                'assurance' => $mfaVersion === null ? 'password' : 'mfa',
+                'password_verified_at' => $mfaVersion === null ? $proofVerifiedCarbon->toIso8601String() : null,
             ]);
 
             return new SessionReceipt(
@@ -251,38 +263,7 @@ final class StaffSessionStore
             $staffStatus = null;
 
             if ($session->auth_level === 'full') {
-                if (!$staff || $staff->status !== 'active' || $staff->email_verified_at === null) {
-                    return null;
-                }
-                // Usable password requires sane Argon2id hash structure
-                if (!\App\Identity\Password\Argon2idPasswordHasher::isValidStoredHashStructure($staff->password_hash)) {
-                    return null;
-                }
-                if ((int) $staff->credential_epoch !== (int) $session->credential_epoch) {
-                    return null;
-                }
-                if ((int) $staff->mfa_version !== (int) $session->mfa_version) {
-                    return null;
-                }
-                if ($session->mfa_verified_at === null) {
-                    return null;
-                }
-
-                // Reject future MFA timestamp (fail closed)
-                $mfaVerifiedAt = CarbonImmutable::parse($session->mfa_verified_at);
-                if ($mfaVerifiedAt->greaterThan($now)) {
-                    return null;
-                }
-
-                // Verify MFA credential status
-                $mfa = $this->db->table('staff_mfa_credentials')
-                    ->where('staff_id', $session->staff_id)
-                    ->where('version', $session->mfa_version)
-                    ->first();
-
-                if (!$mfa || $mfa->confirmed_at === null || $mfa->revoked_at !== null) {
-                    return null;
-                }
+                if (!$staff || !(new StaffSessionAuthority($this->db))->valid($staff, $session, $now)) { return null; }
 
                 $role = $staff->role;
                 $username = $staff->username;
@@ -343,6 +324,8 @@ final class StaffSessionStore
                 role: $role,
                 username: $username,
                 staffStatus: $staffStatus,
+                assurance: $session->assurance,
+                passwordVerifiedAt: $session->password_verified_at === null ? null : CarbonImmutable::parse($session->password_verified_at),
             );
         });
     }
@@ -379,19 +362,6 @@ final class StaffSessionStore
                 if ((int) $staff->credential_epoch !== (int) $preCheck->credential_epoch) {
                     throw new SessionValidationException('Staff credential epoch mismatch.', 'epoch_invalid');
                 }
-                if ((int) $staff->mfa_version !== (int) $preCheck->mfa_version) {
-                    throw new SessionValidationException('Staff MFA version mismatch.', 'mfa_version_mismatch');
-                }
-
-                // Lock credential in documented order: principal -> credential -> session
-                $mfa = $this->db->table('staff_mfa_credentials')
-                    ->where('staff_id', $preCheck->staff_id)
-                    ->where('version', $preCheck->mfa_version)
-                    ->lockForUpdate()
-                    ->first();
-                if (!$mfa || $mfa->confirmed_at === null || $mfa->revoked_at !== null) {
-                    throw new SessionValidationException('MFA credential revoked or unconfirmed.', 'mfa_invalid');
-                }
             }
 
             // Lock session row FOR UPDATE
@@ -411,6 +381,9 @@ final class StaffSessionStore
             // Fresh time derivation after waiting for locks
             $now = CarbonImmutable::now();
 
+            if ($oldSession->auth_level === 'full' && (!$staff || !(new StaffSessionAuthority($this->db))->valid($staff, $oldSession, $now))) {
+                throw new SessionValidationException('Staff session authority changed.', 'staff_invalid');
+            }
             $absoluteExpiresAt = CarbonImmutable::parse($oldSession->absolute_expires_at);
             if ($now->greaterThanOrEqualTo($absoluteExpiresAt)) {
                 throw new SessionValidationException('Session has expired absolutely.', 'session_expired');
@@ -477,6 +450,8 @@ final class StaffSessionStore
                 'last_seen_at' => $now->toIso8601String(),
                 'revoked_at' => null,
                 'mfa_version' => $oldSession->mfa_version,
+                'assurance' => $oldSession->assurance,
+                'password_verified_at' => $oldSession->password_verified_at,
                 'mfa_verified_at' => $oldSession->mfa_verified_at, // MFA timestamp NOT renewed!
             ]);
 

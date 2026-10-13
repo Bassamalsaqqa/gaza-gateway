@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "canonicalDigest": "sha256:08ab7cce5b78ff4e6f9696721cc5e26b073411f59d998718ddcb91b3c36d75c9",
+  "canonicalDigest": "sha256:8b3318b4156c5d4816ec2734858cbd81594c618ebab44c62b73a0bf8ec769334",
   "contractVersion": "1.0.0",
   "operationCount": 46,
   "operations": {
@@ -375,13 +375,15 @@
       }
     },
     "postStaffMfaEnrollmentSetup": {
-      "bodyRequired": false,
-      "hasBody": false,
+      "bodyRequired": true,
+      "hasBody": true,
       "method": "POST",
       "operationId": "postStaffMfaEnrollmentSetup",
       "parameters": [],
       "path": "/staff/mfa/enrollment/setup",
-      "requestBodySchema": null
+      "requestBodySchema": {
+        "$ref": "#/components/schemas/StaffMfaEnrollmentSetupRequest"
+      }
     },
     "postStaffMfaRecoveryCodesRegenerate": {
       "bodyRequired": false,
@@ -965,6 +967,21 @@
       ],
       "type": "object"
     },
+    "#/components/schemas/StaffMfaEnrollmentSetupRequest": {
+      "additionalProperties": false,
+      "description": "Current password required for authenticated own initial MFA enrollment. Never accepts a pending login as authority.",
+      "properties": {
+        "currentPassword": {
+          "maxLength": 128,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "currentPassword"
+      ],
+      "type": "object"
+    },
     "#/components/schemas/StaffMfaSetupConfirmRequest": {
       "additionalProperties": false,
       "properties": {
@@ -1068,9 +1085,19 @@
           "required": [
             "recoveryCode"
           ]
+        },
+        {
+          "required": [
+            "currentPassword"
+          ]
         }
       ],
       "properties": {
+        "currentPassword": {
+          "maxLength": 128,
+          "minLength": 1,
+          "type": "string"
+        },
         "recoveryCode": {
           "maxLength": 32,
           "minLength": 8,

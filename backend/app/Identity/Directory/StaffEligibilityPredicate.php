@@ -15,9 +15,9 @@ use Illuminate\Database\ConnectionInterface;
  * 2. status === 'active' (invited, pending_enrollment, suspended, deactivated do NOT count)
  * 3. email_verified_at !== null (unverified emails do NOT count)
  * 4. password_hash is a canonical bounded native Argon2id hash (unusable, missing, or malformed hashes do NOT count)
- * 5. mfa_version is non-null and >= 1
- * 6. The current MFA credential (staff_id, version) is confirmed (confirmed_at !== null)
- * 7. The current MFA credential (staff_id, version) is NOT revoked (revoked_at === null)
+ * 5. Either MFA has never been confirmed, or mfa_version is >= 1
+ * 6. If enrolled, the current MFA credential (staff_id, version) is confirmed (confirmed_at !== null)
+ * 7. If enrolled, the current MFA credential (staff_id, version) is NOT revoked (revoked_at === null)
  */
 final class StaffEligibilityPredicate
 {
@@ -54,9 +54,10 @@ final class StaffEligibilityPredicate
             return false;
         }
 
-        if ($mfaVersion === null || $mfaVersion < 1) {
-            return false;
+        if ($mfaVersion === null) {
+            return $mfaConfirmedAt === null && $mfaRevokedAt === null;
         }
+        if ($mfaVersion < 1) { return false; }
 
         if ($mfaConfirmedAt === null) {
             return false;
@@ -82,7 +83,7 @@ final class StaffEligibilityPredicate
 
         // Query active admin candidates joining confirmed, unrevoked MFA credentials
         $candidates = $db->table('staff_users as su')
-            ->join('staff_mfa_credentials as smc', function ($join) {
+            ->leftJoin('staff_mfa_credentials as smc', function ($join) {
                 $join->on('smc.staff_id', '=', 'su.id')
                     ->on('smc.version', '=', 'su.mfa_version');
             })
@@ -90,9 +91,16 @@ final class StaffEligibilityPredicate
             ->where('su.status', '=', 'active')
             ->whereNotNull('su.email_verified_at')
             ->whereNotNull('su.password_hash')
-            ->whereNotNull('su.mfa_version')
-            ->whereNotNull('smc.confirmed_at')
-            ->whereNull('smc.revoked_at')
+            ->where(function ($query) {
+                $query->where(function ($password) {
+                    $password->whereNull('su.mfa_version')->whereNotExists(function ($history) {
+                        $history->selectRaw('1')->from('staff_mfa_credentials as history')
+                            ->whereColumn('history.staff_id', 'su.id')->whereNotNull('history.confirmed_at');
+                    });
+                })->orWhere(function ($mfa) {
+                    $mfa->whereNotNull('su.mfa_version')->whereNotNull('smc.confirmed_at')->whereNull('smc.revoked_at');
+                });
+            })
             ->select(['su.id', 'su.password_hash'])
             ->get();
 
@@ -133,7 +141,7 @@ final class StaffEligibilityPredicate
             ])
             ->first();
 
-        if (!$row) {
+        if (!$row || ($row->mfa_version === null && $db->table('staff_mfa_credentials')->where('staff_id', $staffId)->whereNotNull('confirmed_at')->exists())) {
             return false;
         }
 

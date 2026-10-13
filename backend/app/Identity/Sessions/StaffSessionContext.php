@@ -34,6 +34,8 @@ final class StaffSessionContext implements JsonSerializable
         #[\SensitiveParameter]
         ?string $username = null,
         public readonly ?string $staffStatus = null,
+        public readonly string $assurance = 'anonymous',
+        public readonly ?DateTimeInterface $passwordVerifiedAt = null,
     ) {
         $this->staffIdHolder = static fn(): ?string => $staffId;
         $this->csrfTokenHolder = static fn(): string => $csrfToken;
@@ -100,6 +102,8 @@ final class StaffSessionContext implements JsonSerializable
             'authLevel' => $this->authLevel,
             'role' => $this->role,
             'credentialEpoch' => $this->credentialEpoch,
+            'assurance' => $this->assurance,
+            'passwordVerifiedAt' => $this->passwordVerifiedAt?->format(DateTimeInterface::ATOM),
             'mfaVersion' => $this->mfaVersion,
             'mfaVerifiedAt' => $this->mfaVerifiedAt?->format(DateTimeInterface::ATOM),
             'issuedAt' => $this->issuedAt->format(DateTimeInterface::ATOM),
@@ -117,6 +121,8 @@ final class StaffSessionContext implements JsonSerializable
             'authLevel' => $this->authLevel,
             'role' => $this->role,
             'credentialEpoch' => $this->credentialEpoch,
+            'assurance' => $this->assurance,
+            'passwordVerifiedAt' => $this->passwordVerifiedAt?->format(DateTimeInterface::ATOM),
             'mfaVersion' => $this->mfaVersion,
             'mfaVerifiedAt' => $this->mfaVerifiedAt?->format(DateTimeInterface::ATOM),
             'issuedAt' => $this->issuedAt->format(DateTimeInterface::ATOM),
@@ -139,6 +145,8 @@ final class StaffSessionContext implements JsonSerializable
             'authLevel' => $this->authLevel,
             'role' => $this->role,
             'credentialEpoch' => $this->credentialEpoch,
+            'assurance' => $this->assurance,
+            'passwordVerifiedAt' => $this->passwordVerifiedAt?->format(DateTimeInterface::ATOM),
             'mfaVersion' => $this->mfaVersion,
             'mfaVerifiedAt' => $this->mfaVerifiedAt?->format(DateTimeInterface::ATOM),
             'issuedAt' => $this->issuedAt->format(DateTimeInterface::ATOM),

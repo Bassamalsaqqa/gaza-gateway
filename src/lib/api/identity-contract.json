@@ -2,7 +2,7 @@
   "$schema": "identity-api-contract-v1",
   "version": "1.0.0",
   "description": "Narrow contract extraction for 46 accepted Phase 13B identity transport operations",
-  "digest": "a83111c1330f7a7fa2d85704938e0b0619b34b19d4ad28ffc0cf148671640ba6",
+  "digest": "bf33a2e618b736b14fa45cd46df23abe91c762376fa4e3bec80a2d333ed75d13",
   "operations": [
     {
       "operationId": "getAuthCsrfBootstrap",
@@ -499,7 +499,7 @@
       "requiresCsrf": true,
       "isAuthChanging": true,
       "requestSchemaName": "StaffLoginRequest",
-      "responseSchemaName": "StaffPendingAuthResponse",
+      "responseSchemaName": "StaffLoginResponse",
       "authorizationBranches": []
     },
     {
@@ -1100,15 +1100,15 @@
       ],
       "security": [
         {
-          "StaffPreAuthCookieAuth": []
+          "StaffCookieAuth": []
         }
       ],
       "protocol": {
         "branches": [
           {
-            "realm": "pending_staff",
+            "realm": "staff",
             "origin": "configured_frontend",
-            "csrf": "anonymous_staff"
+            "csrf": "staff"
           }
         ],
         "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
@@ -1117,20 +1117,17 @@
         "stepUpSeconds": null
       },
       "expectedStatus": 200,
-      "realm": "pending_staff",
+      "realm": "staff",
       "requiresCsrf": true,
       "isAuthChanging": false,
-      "requestSchemaName": null,
+      "requestSchemaName": "StaffMfaEnrollmentSetupRequest",
       "responseSchemaName": "StaffMfaEnrollmentSetupResponse",
       "authorizationBranches": [
         {
-          "scheme": "StaffPreAuthCookieAuth",
-          "condition": "pending_staff_mfa",
-          "purpose": "enroll_mfa",
-          "allowedEndpoint": "postStaffMfaEnrollmentSetup",
-          "requiresBoundSession": true,
-          "requiresUnexpired": true,
-          "requiresRevocationValid": true
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff_self",
+          "requiredPermission": null,
+          "requiresActive": true
         }
       ]
     },
@@ -1143,15 +1140,15 @@
       ],
       "security": [
         {
-          "StaffPreAuthCookieAuth": []
+          "StaffCookieAuth": []
         }
       ],
       "protocol": {
         "branches": [
           {
-            "realm": "pending_staff",
+            "realm": "staff",
             "origin": "configured_frontend",
-            "csrf": "anonymous_staff"
+            "csrf": "staff"
           }
         ],
         "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
@@ -1160,20 +1157,17 @@
         "stepUpSeconds": null
       },
       "expectedStatus": 200,
-      "realm": "pending_staff",
+      "realm": "staff",
       "requiresCsrf": true,
       "isAuthChanging": true,
       "requestSchemaName": "StaffMfaEnrollmentConfirmRequest",
       "responseSchemaName": "StaffMfaEnrollmentConfirmResponse",
       "authorizationBranches": [
         {
-          "scheme": "StaffPreAuthCookieAuth",
-          "condition": "pending_staff_mfa",
-          "purpose": "enroll_mfa",
-          "allowedEndpoint": "postStaffMfaEnrollmentConfirm",
-          "requiresBoundSession": true,
-          "requiresUnexpired": true,
-          "requiresRevocationValid": true
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff_self",
+          "requiredPermission": null,
+          "requiresActive": true
         }
       ]
     },
@@ -2017,6 +2011,21 @@
       ],
       "additionalProperties": false
     },
+    "StaffMfaEnrollmentSetupRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "currentPassword"
+      ],
+      "properties": {
+        "currentPassword": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "description": "Current password required for authenticated own initial MFA enrollment. Never accepts a pending login as authority."
+    },
     "StaffStepUpRequest": {
       "type": "object",
       "properties": {
@@ -2028,6 +2037,11 @@
           "type": "string",
           "minLength": 8,
           "maxLength": 32
+        },
+        "currentPassword": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
         }
       },
       "additionalProperties": false,
@@ -2040,6 +2054,11 @@
         {
           "required": [
             "recoveryCode"
+          ]
+        },
+        {
+          "required": [
+            "currentPassword"
           ]
         }
       ]
@@ -2559,7 +2578,7 @@
       ],
       "additionalProperties": false
     },
-    "StaffPendingAuthResponse": {
+    "StaffLoginResponse": {
       "type": "object",
       "properties": {
         "success": {
@@ -2573,7 +2592,7 @@
               "type": "string",
               "enum": [
                 "mfa_required",
-                "enrollment_required"
+                "authenticated"
               ]
             },
             "expiresAt": {
@@ -2596,7 +2615,47 @@
         "data",
         "meta"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "200 receipt: authenticated rotates to password assurance for never-enrolled staff; mfa_required issues only a pending challenge for enrolled staff."
+    },
+    "StaffPendingAuthResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "const": true
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": [
+                "mfa_required"
+              ]
+            },
+            "expiresAt": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "required": [
+            "status",
+            "expiresAt"
+          ],
+          "additionalProperties": false
+        },
+        "meta": {
+          "$ref": "#/components/schemas/SuccessMeta"
+        }
+      },
+      "required": [
+        "success",
+        "data",
+        "meta"
+      ],
+      "additionalProperties": false,
+      "description": "Pending enrolled-staff challenge receipt only; never full identity."
     },
     "StaffMeResponse": {
       "type": "object",
@@ -3294,7 +3353,7 @@
             "status": {
               "type": "string",
               "enum": [
-                "enrollment_required"
+                "authenticated"
               ]
             },
             "expiresAt": {
@@ -3317,7 +3376,8 @@
         "data",
         "meta"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "200 authenticated receipt after invitation verification and password creation; optional MFA is available in authenticated account security settings."
     },
     "StaffInviteReissueResponse": {
       "type": "object",

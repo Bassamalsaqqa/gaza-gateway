@@ -35,6 +35,12 @@ final class StaffEligibilityPredicateTest extends TestCase
         );
     }
 
+    public function test_verified_password_only_admin_is_eligible_without_fabricated_mfa(): void
+    {
+        $this->assertTrue($this->predicate->isEligibleAdminAttributes('admin', 'active', self::VALID_DATE, self::VALID_HASH, null, null, null));
+        $this->assertFalse($this->predicate->isEligibleAdminAttributes('admin', 'active', self::VALID_DATE, self::VALID_HASH, null, self::VALID_DATE, null));
+    }
+
     public function test_non_admin_roles_are_ineligible(): void
     {
         foreach (['editor', 'viewer', 'superadmin', 'guest', ''] as $role) {

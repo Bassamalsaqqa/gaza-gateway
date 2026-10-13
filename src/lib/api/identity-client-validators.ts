@@ -31,6 +31,7 @@ import type {
   StaffInvitationAcceptRequest,
   PassengerRegisterReceiptData,
   PassengerAuthData,
+  StaffLoginData,
   StaffPendingAuthData,
   StaffProfile,
   PassengerProfileDto,
@@ -1010,6 +1011,13 @@ export function validateStaffMfaEnrollmentConfirmRequest(body: unknown): StaffMf
 }
 
 export function validateStaffStepUpRequest(body: unknown): StaffStepUpRequest {
+  if (isPlainObject(body) && Object.keys(body).length === 1 && "currentPassword" in body) {
+    const password = body["currentPassword"];
+    if (typeof password !== "string" || !isWellFormedUnicode(password) || countUnicodeCodePoints(password) < 1 || countUnicodeCodePoints(password) > 128) {
+      throw new IdentityApiError({ kind: "protocol", message: "Invalid current password." });
+    }
+    return { currentPassword: password };
+  }
   return validateStaffMfaVerifyRequest(body);
 }
 
@@ -1415,7 +1423,7 @@ export function validateEmailVerifyData(data: unknown): { verified: boolean } {
   return { verified: data["verified"] };
 }
 
-export function validateStaffPendingAuthData(data: unknown): StaffPendingAuthData {
+export function validateStaffLoginData(data: unknown): StaffLoginData {
   if (!isPlainObject(data)) {
     throw new IdentityApiError({
       kind: "protocol",
@@ -1432,10 +1440,10 @@ export function validateStaffPendingAuthData(data: unknown): StaffPendingAuthDat
   }
 
   const status = data["status"];
-  if (status !== "mfa_required" && status !== "enrollment_required") {
+  if (status !== "mfa_required" && status !== "authenticated") {
     throw new IdentityApiError({
       kind: "protocol",
-      message: "Malformed staff auth response: status must be mfa_required or enrollment_required.",
+      message: "Malformed staff auth response: status must be mfa_required or authenticated.",
     });
   }
 
@@ -1451,6 +1459,12 @@ export function validateStaffPendingAuthData(data: unknown): StaffPendingAuthDat
     status,
     expiresAt,
   };
+}
+
+export function validateStaffPendingAuthData(data: unknown): StaffPendingAuthData {
+  const receipt = validateStaffLoginData(data);
+  if (receipt.status !== "mfa_required") throw new IdentityApiError({ kind: "protocol", message: "Pending challenge cannot authenticate staff." });
+  return { status: "mfa_required", expiresAt: receipt.expiresAt };
 }
 
 export function validateStaffMeData(data: unknown): StaffProfile {
@@ -2488,7 +2502,7 @@ export function validateStaffPasswordResetData(data: unknown): { reset: true } {
 
 export function validateStaffInvitationAcceptData(
   data: unknown
-): { status: "enrollment_required"; expiresAt: string } {
+): { status: "authenticated"; expiresAt: string } {
   if (!isPlainObject(data)) {
     throw new IdentityApiError({
       kind: "protocol",
@@ -2504,10 +2518,10 @@ export function validateStaffInvitationAcceptData(
     });
   }
 
-  if (data["status"] !== "enrollment_required") {
+  if (data["status"] !== "authenticated") {
     throw new IdentityApiError({
       kind: "protocol",
-      message: "Malformed invitation accept response: status must be enrollment_required.",
+      message: "Malformed invitation accept response: status must be authenticated.",
     });
   }
 
@@ -2518,7 +2532,7 @@ export function validateStaffInvitationAcceptData(
     });
   }
 
-  return { status: "enrollment_required", expiresAt: data["expiresAt"] };
+  return { status: "authenticated", expiresAt: data["expiresAt"] };
 }
 
 export function validateStaffInviteReissueData(

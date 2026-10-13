@@ -47,6 +47,10 @@ final class StaffLifecycleCoordinator
         if (!in_array($operation, self::OPERATIONS, true) || $this->db->transactionLevel() !== 0) {
             throw new \LogicException('Staff lifecycle requires a closed operation and owned transaction.');
         }
+        if ($operation === 'postStaffMfaEnrollmentConfirm') {
+            try { OpaqueToken::validateCanonicalBearer($pendingCookie ?? ''); }
+            catch (\Throwable) { throw new StaffAuthenticationException(); }
+        }
         $subject = $input['email'] ?? $input['token'] ?? $pendingCookie ?? $context->sessionId;
         $charge = $this->limiter->charge('staff', $operation === 'postStaffPasswordForgot' ? 'dispatch' : 'proof',
             ['subject' => $operation === 'postStaffPasswordForgot' ? strtolower(trim($subject)) : $subject, 'ip' => $ip]);
@@ -63,7 +67,7 @@ final class StaffLifecycleCoordinator
             $staffId = match ($operation) {
                 'postStaffPasswordForgot' => $this->db->table('staff_users')->where('email', strtolower(trim($input['email'])))->value('id'),
                 'postStaffInvitationAccept', 'postStaffPasswordReset' => $candidateProof?->staff_id,
-                'postStaffMfaEnrollmentSetup', 'postStaffMfaEnrollmentConfirm' => $candidatePending?->staff_id,
+                'postStaffMfaEnrollmentSetup', 'postStaffMfaEnrollmentConfirm' => $context->getStaffId(),
                 default => $context->getStaffId(),
             };
             $eligibleMutation = !in_array($operation, ['postStaffPasswordForgot', 'postStaffMfaEnrollmentSetup'], true);
@@ -72,13 +76,13 @@ final class StaffLifecycleCoordinator
             }
             $staff = $staffId === null ? null : $this->db->table('staff_users')->where('id', $staffId)->lockForUpdate()->first();
             $before = $eligibleMutation ? (new StaffEligibilityPredicate($this->db))->countEligibleAdmins() : 0;
-            $revokes = in_array($operation, ['postStaffInvitationAccept', 'postStaffPasswordReset', 'putStaffPassword'], true);
+            $revokes = in_array($operation, ['postStaffInvitationAccept', 'postStaffPasswordReset', 'putStaffPassword', 'postStaffMfaEnrollmentConfirm'], true);
             $locked = StaffAuthorityRows::lockSessions($this->db, $context->sessionId, $revokes ? $staffId : null);
             $session = $locked->firstWhere('id', $context->sessionId);
-            $full = $operation === 'putStaffPassword';
+            $full = in_array($operation, ['putStaffPassword', 'postStaffMfaEnrollmentSetup', 'postStaffMfaEnrollmentConfirm'], true);
             $now = $this->now();
             if (!$this->validSession($session, $context, $cookie, $csrf, $now, $full)) { return null; }
-            if ($full && (!$staff || !$this->validFullStaff($staff, $session, $now))) { return null; }
+            if ($full && (!$staff || !$this->validFullStaff($staff, $session, $now, $operation === 'putStaffPassword'))) { return null; }
 
             if ($operation === 'postStaffPasswordForgot') {
                 if ($staff && $staff->status === 'active' && $staff->email_verified_at !== null) {
@@ -98,7 +102,7 @@ final class StaffLifecycleCoordinator
                 $epoch = (int) $staff->credential_epoch + 1;
                 $patch = ['password_hash' => $newHash, 'credential_epoch' => $epoch, 'updated_at' => $now];
                 if ($operation === 'postStaffInvitationAccept') {
-                    $patch += ['email_verified_at' => $now, 'status' => 'pending_enrollment'];
+                    $patch += ['email_verified_at' => $now, 'status' => 'active'];
                 }
                 $this->db->table('staff_users')->where('id', $staff->id)->update($patch);
                 $this->finish($operation, $staff->id, $requestId, $before);
@@ -106,17 +110,9 @@ final class StaffLifecycleCoordinator
                     $this->db->table('staff_sessions')->where('id', $session->id)->update(['revoked_at' => $now]);
                     return new StaffOperationResult(['reset' => true]);
                 }
-                $token = OpaqueToken::generate('staff', 'enroll_mfa');
-                $expires = $now->addSeconds(300)->min(CarbonImmutable::parse($session->absolute_expires_at));
-                // Existing binding authority is invalidated before issuing this new purpose.
-                $this->db->table('staff_pending_auth')->where('bound_session_id', $session->id)->where('state', 'issued')
-                    ->update(['state' => 'revoked', 'revoked_at' => $now]);
-                $id = (string) Str::uuid();
-                $this->db->table('staff_pending_auth')->insert(['id' => $id, 'token_digest' => $token->getDigest(),
-                    'state' => 'issued', 'issued_at' => $now, 'expires_at' => $expires, 'staff_id' => $staff->id,
-                    'bound_session_id' => $session->id, 'purpose' => 'enroll_mfa', 'credential_epoch' => $epoch, 'failed_attempts' => 0]);
-                return new StaffOperationResult(['status' => 'enrollment_required', 'expiresAt' => $expires->toIso8601String()],
-                    pendingToken: $token->getSecretToken(), challengeId: $id);
+                $this->db->table('staff_sessions')->where('id', $session->id)->update(['revoked_at' => $now]);
+                $receipt = $this->sessions->issuePassword($staff->id, $epoch, $now);
+                return new StaffOperationResult(['status' => 'authenticated', 'expiresAt' => $receipt->absoluteExpiresAt->format(\DateTimeInterface::ATOM)], $receipt);
             }
 
             if ($operation === 'putStaffPassword') {
@@ -128,25 +124,31 @@ final class StaffLifecycleCoordinator
                 return new StaffOperationResult(['changed' => true]);
             }
 
-            // Enrollment is bound to a pending-purpose cookie and the exact anonymous session.
-            if (!$candidatePending || !$staff || $staff->status !== 'pending_enrollment' || $staff->email_verified_at === null
-                || !Argon2idPasswordHasher::isValidStoredHashStructure($staff->password_hash) || $staff->mfa_version !== null) { return null; }
+            // Initial enrollment is available only from an authenticated own account.
+            if (!$staff || $staff->mfa_version !== null || $session->assurance !== 'password'
+                || $this->db->table('staff_mfa_credentials')->where('staff_id', $staff->id)->whereNotNull('confirmed_at')->exists()) { return null; }
+            if ($operation === 'postStaffMfaEnrollmentSetup') {
+                if (!$this->hasher->verify($input['currentPassword'], $staff->password_hash)) { return null; }
+                $this->db->table('staff_pending_auth')->where('bound_session_id', $session->id)->where('state', 'issued')
+                    ->update(['state' => 'revoked', 'revoked_at' => $now, 'encrypted_staged_secret' => null]);
+                $secret = TotpSecret::generate(); $token = OpaqueToken::generate('staff', 'enroll_mfa');
+                $expires = $now->addSeconds(300)->min(CarbonImmutable::parse($session->absolute_expires_at));
+                $id = (string) Str::uuid();
+                $this->db->table('staff_pending_auth')->insert(['id' => $id, 'token_digest' => $token->getDigest(),
+                    'state' => 'issued', 'issued_at' => $now, 'expires_at' => $expires, 'staff_id' => $staff->id,
+                    'bound_session_id' => $session->id, 'purpose' => 'enroll_mfa', 'credential_epoch' => $staff->credential_epoch,
+                    'failed_attempts' => 0, 'encrypted_staged_secret' => $this->encrypter->encrypt($secret->revealBase32Secret())]);
+                $this->db->table('staff_sessions')->where('id', $session->id)->update(['password_verified_at' => $now]);
+                return new StaffOperationResult(['secret' => $secret->revealBase32Secret(),
+                    'qrCodeUri' => $this->qr($staff, $secret), 'expiresAt' => $expires->toIso8601String()], pendingToken: $token->getSecretToken(), challengeId: $id);
+            }
+            if (!$candidatePending || $candidatePending->staff_id !== $staff->id
+                || !(new \App\Identity\Sessions\StaffSessionAuthority($this->db))->valid($staff, $session, $now, true)) { return null; }
             $pending = $this->db->table('staff_pending_auth')->where('id', $candidatePending->id)->lockForUpdate()->first();
-            $now = $this->now();
             if (!$pending || $pending->state !== 'issued' || $pending->purpose !== 'enroll_mfa' || $pending->revoked_at !== null
                 || $pending->consumed_at !== null || (int) $pending->failed_attempts >= 5 || $pending->bound_session_id !== $session->id
                 || (int) $pending->credential_epoch !== (int) $staff->credential_epoch
                 || $now->greaterThanOrEqualTo(CarbonImmutable::parse($pending->expires_at))) { return null; }
-            if ($operation === 'postStaffMfaEnrollmentSetup') {
-                $secret = $pending->encrypted_staged_secret === null ? TotpSecret::generate()
-                    : TotpSecret::fromBase32($this->encrypter->decrypt($pending->encrypted_staged_secret));
-                if ($pending->encrypted_staged_secret === null) {
-                    $this->db->table('staff_pending_auth')->where('id', $pending->id)->update([
-                        'encrypted_staged_secret' => $this->encrypter->encrypt($secret->revealBase32Secret())]);
-                }
-                return new StaffOperationResult(['secret' => $secret->revealBase32Secret(),
-                    'qrCodeUri' => $this->qr($staff, $secret), 'expiresAt' => CarbonImmutable::parse($pending->expires_at)->toIso8601String()]);
-            }
             $matches = [];
             if ($pending->encrypted_staged_secret !== null) {
                 $secret = TotpSecret::fromBase32($this->encrypter->decrypt($pending->encrypted_staged_secret));
@@ -170,7 +172,7 @@ final class StaffLifecycleCoordinator
             $codes = $this->recoveryCodes($staff->id, $version, $now);
             $this->db->table('staff_pending_auth')->where('id', $pending->id)->update([
                 'state' => 'consumed', 'consumed_at' => $now, 'encrypted_staged_secret' => null]);
-            $this->db->table('staff_sessions')->where('id', $session->id)->update(['revoked_at' => $now]);
+            $this->revokeAuthority($staff->id, $now);
             $receipt = $this->sessions->issueFull($staff->id, (int) $staff->credential_epoch, $version, $now);
             $this->finish($operation, $staff->id, $requestId, $before);
             return new StaffOperationResult(['enrolled' => true, 'recoveryCodes' => $codes,
@@ -195,17 +197,9 @@ final class StaffLifecycleCoordinator
         return is_array($payload) && is_string($payload['csrf_token'] ?? null) && hash_equals($payload['csrf_token'], $csrf);
     }
 
-    private function validFullStaff(object $staff, object $session, CarbonImmutable $now): bool
+    private function validFullStaff(object $staff, object $session, CarbonImmutable $now, bool $recent): bool
     {
-        $credential = $this->db->table('staff_mfa_credentials')->where('staff_id', $staff->id)
-            ->where('version', $staff->mfa_version)->lockForUpdate()->first();
-        return $staff->status === 'active' && $staff->email_verified_at !== null
-            && Argon2idPasswordHasher::isValidStoredHashStructure($staff->password_hash)
-            && (int) $staff->credential_epoch === (int) $session->credential_epoch
-            && $staff->mfa_version !== null && (int) $staff->mfa_version === (int) $session->mfa_version
-            && $credential && $credential->confirmed_at !== null && $credential->revoked_at === null
-            && $session->mfa_verified_at !== null && CarbonImmutable::parse($session->mfa_verified_at)->lessThanOrEqualTo($now)
-            && $now->lessThan(CarbonImmutable::parse($session->mfa_verified_at)->addSeconds(300));
+        return (new \App\Identity\Sessions\StaffSessionAuthority($this->db))->valid($staff, $session, $now, $recent);
     }
 
     private function revokeAuthority(string $id, CarbonImmutable $now): void

@@ -1,5 +1,7 @@
 # Phase 13B staff authentication HTTP checkpoint
 
+> Initial staff enrollment policy is superseded by the [2026-10-13 optional MFA amendment](optional-staff-mfa.md). Historical acceptance results below do not validate this amendment.
+
 Status: implemented locally, awaiting independent review. Phase 13B remains incomplete.
 
 This package adds eight accepted operations: staff login, pending MFA challenge/verify,

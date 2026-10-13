@@ -320,7 +320,7 @@ final class DirectoryTransactionGuard
      * - Exact MFA version match
      * - Confirmed unrevoked MFA credential
      * - Permission admin.manage
-     * - Recent step-up MFA timestamp: not in future, age < 300s
+     * - Explicit password or MFA proof: not in future, age < 300s
      */
     private function validateActorUnderLocks(
         string $actorStaffId,
@@ -432,49 +432,37 @@ final class DirectoryTransactionGuard
             ];
         }
 
-        // 4. Inspect current MFA credential
-        $mfa = $this->db->table('staff_mfa_credentials')
-            ->where('staff_id', $actorStaffId)
-            ->where('version', $staff->mfa_version)
-            ->first();
-
-        if (!$mfa || $mfa->confirmed_at === null) {
-            return [
-                'valid' => false,
-                'error_code' => DirectoryErrorCode::MFA_UNCONFIRMED,
-            ];
+        // Preserve the established enrolled-account error categories before the shared final gate.
+        if ($session->assurance === 'mfa') {
+            $mfa = $this->db->table('staff_mfa_credentials')->where('staff_id', $actorStaffId)
+                ->where('version', $staff->mfa_version)->first();
+            if (!$mfa || $mfa->confirmed_at === null) {
+                return ['valid' => false, 'error_code' => DirectoryErrorCode::MFA_UNCONFIRMED];
+            }
+            if ($mfa->revoked_at !== null) {
+                return ['valid' => false, 'error_code' => DirectoryErrorCode::MFA_REVOKED];
+            }
+            $proofAt = $session->mfa_verified_at;
+        } elseif ($session->assurance === 'password') {
+            if ($staff->mfa_version !== null || $session->mfa_version !== null || $session->mfa_verified_at !== null) {
+                return ['valid' => false, 'error_code' => DirectoryErrorCode::MFA_VERSION_MISMATCH];
+            }
+            $proofAt = $session->password_verified_at;
+        } else {
+            return ['valid' => false, 'error_code' => DirectoryErrorCode::SESSION_INVALID];
         }
-
-        if ($mfa->revoked_at !== null) {
-            return [
-                'valid' => false,
-                'error_code' => DirectoryErrorCode::MFA_REVOKED,
-            ];
+        if ($proofAt === null) {
+            return ['valid' => false, 'error_code' => DirectoryErrorCode::STEP_UP_REQUIRED];
         }
-
-        // 5. Recent step-up MFA timestamp validation
-        if ($session->mfa_verified_at === null) {
-            return [
-                'valid' => false,
-                'error_code' => DirectoryErrorCode::STEP_UP_REQUIRED,
-            ];
+        $verifiedAt = CarbonImmutable::parse($proofAt);
+        if ($verifiedAt->greaterThan($now)) {
+            return ['valid' => false, 'error_code' => DirectoryErrorCode::STEP_UP_FUTURE];
         }
-
-        $mfaVerifiedAt = CarbonImmutable::parse($session->mfa_verified_at);
-
-        if ($mfaVerifiedAt->greaterThan($now)) {
-            return [
-                'valid' => false,
-                'error_code' => DirectoryErrorCode::STEP_UP_FUTURE,
-            ];
+        if ($now->greaterThanOrEqualTo($verifiedAt->addSeconds(self::STEP_UP_MAX_AGE_SECONDS))) {
+            return ['valid' => false, 'error_code' => DirectoryErrorCode::STEP_UP_EXPIRED];
         }
-
-        // Exact boundary age >= 300 seconds is expired
-        if ($now->greaterThanOrEqualTo($mfaVerifiedAt->addSeconds(self::STEP_UP_MAX_AGE_SECONDS))) {
-            return [
-                'valid' => false,
-                'error_code' => DirectoryErrorCode::STEP_UP_EXPIRED,
-            ];
+        if (!(new \App\Identity\Sessions\StaffSessionAuthority($this->db))->valid($staff, $session, $now, true)) {
+            return ['valid' => false, 'error_code' => DirectoryErrorCode::MFA_UNCONFIRMED];
         }
 
         return ['valid' => true];

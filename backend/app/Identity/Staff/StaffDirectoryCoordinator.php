@@ -156,8 +156,7 @@ final class StaffDirectoryCoordinator
         if (!$actor || !$session || $session->staff_id !== $actor->id || $session->auth_level !== 'full' || $session->revoked_at !== null
             || !hash_equals($session->lookup_digest, OpaqueToken::digestOf($cookie)) || $actor->status !== 'active'
             || (int) $actor->credential_epoch !== (int) $session->credential_epoch
-            || $actor->mfa_version === null || (int) $actor->mfa_version !== (int) $session->mfa_version
-            || !$this->usable($actor) || $now->greaterThanOrEqualTo(CarbonImmutable::parse($session->absolute_expires_at))
+            || !(new \App\Identity\Sessions\StaffSessionAuthority($this->db))->valid($actor, $session, $now) || $now->greaterThanOrEqualTo(CarbonImmutable::parse($session->absolute_expires_at))
             || $now->greaterThanOrEqualTo(CarbonImmutable::parse($session->idle_expires_at))) { throw new StaffAuthenticationException(); }
         if ($directory && !$this->rbac->hasPermission($actor->role, 'admin.manage')) { throw new StaffDirectoryException(403, 'forbidden'); }
         if ($write) {
@@ -166,8 +165,7 @@ final class StaffDirectoryCoordinator
             if (!is_string($csrf) || !is_string($payload['csrf_token'] ?? null) || !hash_equals($payload['csrf_token'], $csrf)) {
                 throw new StaffAuthenticationException();
             }
-            if ($session->mfa_verified_at === null || CarbonImmutable::parse($session->mfa_verified_at)->greaterThan($now)
-                || $now->greaterThanOrEqualTo(CarbonImmutable::parse($session->mfa_verified_at)->addSeconds(300))) {
+            if (!(new \App\Identity\Sessions\StaffSessionAuthority($this->db))->valid($actor, $session, $now, true)) {
                 throw new StaffDirectoryException(403, 'step_up_required');
             }
         }
@@ -176,6 +174,7 @@ final class StaffDirectoryCoordinator
     private function mfa(string $operation, #[\SensitiveParameter] array $input, object $actor, object $session,
         CarbonImmutable $now): ?StaffOperationResult
     {
+        if ($actor->mfa_version === null || $session->assurance !== 'mfa') { throw new StaffDirectoryException(403, 'forbidden'); }
         $credentials = $this->db->table('staff_mfa_credentials')->where('staff_id', $actor->id)
             ->orderBy('version')->lockForUpdate()->get();
         $replacements = $this->db->table('staff_mfa_replacements')->where('staff_id', $actor->id)
@@ -263,7 +262,9 @@ final class StaffDirectoryCoordinator
     {
         $credential = $this->db->table('staff_mfa_credentials')->where('staff_id', $staff->id)->where('version', $staff->mfa_version)->first();
         return $staff->email_verified_at !== null && Argon2idPasswordHasher::isValidStoredHashStructure($staff->password_hash)
-            && $credential && $credential->confirmed_at !== null && $credential->revoked_at === null;
+            && ($staff->mfa_version === null
+                ? !$this->db->table('staff_mfa_credentials')->where('staff_id', $staff->id)->whereNotNull('confirmed_at')->exists()
+                : $credential && $credential->confirmed_at !== null && $credential->revoked_at === null);
     }
 
     private function revoke(string $id, CarbonImmutable $now): void

@@ -30,6 +30,7 @@ import type {
   PatchStaffUserRequest,
   StaffMfaEnrollmentConfirmRequest,
   StaffStepUpRequest,
+  StaffMfaEnrollmentSetupRequest,
   StaffMfaSetupConfirmRequest,
   StaffPasswordForgotRequest,
   StaffPasswordResetRequest,
@@ -50,6 +51,7 @@ import type {
   PassengerSessionListResponse,
   PassengerSessionRevokeResponse,
   PassengerPasswordChangeResponse,
+  StaffLoginResponse,
   StaffPendingAuthResponse,
   StaffLogoutResponse,
   StaffMeResponse,
@@ -130,7 +132,7 @@ import {
   validatePassengerSessionsData,
   validatePassengerSessionRevokeData,
   validateBooleanChangedData,
-  validateStaffPendingAuthData,
+  validateStaffLoginData,
   validateStaffMeData,
   validateStaffMfaSetupData,
   validateStaffMfaChallengeData,
@@ -203,7 +205,7 @@ export interface IdentityApiClient {
   deleteSavedTraveler(id: string, options?: IdentityApiRequestOptions): Promise<DeleteTravelerResponse>;
   patchSavedTraveler(id: string, body: PatchTravelerRequest, options?: IdentityApiRequestOptions): Promise<SavedTravelerResponse>;
   getStaffCsrfBootstrap(options?: IdentityApiRequestOptions): Promise<CsrfTokenResponse>;
-  postStaffLogin(body: StaffLoginRequest, options?: IdentityApiRequestOptions): Promise<StaffPendingAuthResponse>;
+  postStaffLogin(body: StaffLoginRequest, options?: IdentityApiRequestOptions): Promise<StaffLoginResponse>;
   postStaffLogout(options?: IdentityApiRequestOptions): Promise<StaffLogoutResponse>;
   getStaffMe(options?: IdentityApiRequestOptions): Promise<StaffMeResponse>;
   postStaffMfaSetup(options?: IdentityApiRequestOptions): Promise<StaffMfaSetupResponse>;
@@ -219,7 +221,7 @@ export interface IdentityApiClient {
   getPassengerSessions(options?: IdentityApiRequestOptions): Promise<PassengerSessionListResponse>;
   deletePassengerSession(id: string, options?: IdentityApiRequestOptions): Promise<PassengerSessionRevokeResponse>;
   putPassengerPassword(body: PassengerPasswordChangeRequest, options?: IdentityApiRequestOptions): Promise<PassengerPasswordChangeResponse>;
-  postStaffMfaEnrollmentSetup(options?: IdentityApiRequestOptions): Promise<StaffMfaEnrollmentSetupResponse>;
+  postStaffMfaEnrollmentSetup(body: StaffMfaEnrollmentSetupRequest, options?: IdentityApiRequestOptions): Promise<StaffMfaEnrollmentSetupResponse>;
   postStaffMfaEnrollmentConfirm(body: StaffMfaEnrollmentConfirmRequest, options?: IdentityApiRequestOptions): Promise<StaffMfaEnrollmentConfirmResponse>;
   postStaffStepUp(body: StaffStepUpRequest, options?: IdentityApiRequestOptions): Promise<StaffStepUpResponse>;
   postStaffMfaSetupConfirm(body: StaffMfaSetupConfirmRequest, options?: IdentityApiRequestOptions): Promise<StaffMfaSetupConfirmResponse>;
@@ -241,7 +243,7 @@ export interface IdentityApiClient {
   verifyPassengerEmail(body: EmailVerifyRequest, options?: IdentityApiRequestOptions): Promise<EmailVerifyResponse>;
   resendPassengerEmail(body: PassengerEmailResendRequest, options?: IdentityApiRequestOptions): Promise<PassengerEmailResendResponse>;
   getStaffCsrf(options?: IdentityApiRequestOptions): Promise<CsrfTokenResponse>;
-  loginStaff(body: StaffLoginRequest, options?: IdentityApiRequestOptions): Promise<StaffPendingAuthResponse>;
+  loginStaff(body: StaffLoginRequest, options?: IdentityApiRequestOptions): Promise<StaffLoginResponse>;
   logoutStaff(options?: IdentityApiRequestOptions): Promise<StaffLogoutResponse>;
 
   // Diagnostics & Lifecycle
@@ -1091,18 +1093,18 @@ class IdentityApiClientImpl implements IdentityApiClient {
   // ==========================================
   // POST /staff/login (postStaffLogin)
   // ==========================================
-  async postStaffLogin(body: StaffLoginRequest, options?: IdentityApiRequestOptions): Promise<StaffPendingAuthResponse> {
+  async postStaffLogin(body: StaffLoginRequest, options?: IdentityApiRequestOptions): Promise<StaffLoginResponse> {
     validateRequestOptions(options);
     this.#ensureEnabled();
     this.#ensureNotDisposed();
     const validatedBody = validateStaffLoginRequest(body);
-    return this.executeLiveMutation<StaffPendingAuthResponse>(
+    return this.executeLiveMutation<StaffLoginResponse>(
       "postStaffLogin",
       "staff",
       "/staff/login",
       validatedBody,
       200,
-      validateStaffPendingAuthData,
+      validateStaffLoginData,
       true,
       options,
       "POST"
@@ -1406,15 +1408,17 @@ class IdentityApiClientImpl implements IdentityApiClient {
   // ==========================================
   // POST /staff/mfa/enrollment/setup (postStaffMfaEnrollmentSetup)
   // ==========================================
-  async postStaffMfaEnrollmentSetup(options?: IdentityApiRequestOptions): Promise<StaffMfaEnrollmentSetupResponse> {
+  async postStaffMfaEnrollmentSetup(body: StaffMfaEnrollmentSetupRequest, options?: IdentityApiRequestOptions): Promise<StaffMfaEnrollmentSetupResponse> {
     validateRequestOptions(options);
     this.#ensureEnabled();
     this.#ensureNotDisposed();
+    const validatedBody = validateStaffStepUpRequest(body);
+    if (!("currentPassword" in validatedBody)) throw new IdentityApiError({ kind: "protocol", message: "Current password is required for initial MFA enrollment." });
     return this.executeLiveMutation<StaffMfaEnrollmentSetupResponse>(
       "postStaffMfaEnrollmentSetup",
       "staff",
       "/staff/mfa/enrollment/setup",
-      undefined,
+      validatedBody,
       200,
       validateStaffMfaEnrollmentSetupData,
       false,
@@ -1671,7 +1675,7 @@ class IdentityApiClientImpl implements IdentityApiClient {
     return this.getStaffCsrfBootstrap(options);
   }
 
-  loginStaff(body: StaffLoginRequest, options?: IdentityApiRequestOptions): Promise<StaffPendingAuthResponse> {
+  loginStaff(body: StaffLoginRequest, options?: IdentityApiRequestOptions): Promise<StaffLoginResponse> {
     return this.postStaffLogin(body, options);
   }
 

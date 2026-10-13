@@ -318,6 +318,27 @@ final class DirectoryTransactionGuardIntegrationTest extends TestCase
         $this->assertSame(DirectoryErrorCode::STEP_UP_FUTURE, $res->errorCode);
     }
 
+    public function test_actor_validation_preserves_revoked_mfa_error(): void
+    {
+        $admin = $this->fixture->createStaff(['mfa_revoked' => true]);
+        $session = $this->fixture->createStaffSession($admin['id']);
+        $result = $this->guard->executeAsStaff($admin['id'], $session['sessionId'], DirectoryMutationPlan::noop($admin['id']));
+        $this->assertFalse($result->success);
+        $this->assertSame(DirectoryErrorCode::MFA_REVOKED, $result->errorCode);
+    }
+
+    public function test_password_actor_preserves_expired_and_future_proof_errors(): void
+    {
+        $admin = $this->fixture->createStaff(['mfa_version' => null]);
+        foreach ([[-301, DirectoryErrorCode::STEP_UP_EXPIRED], [300, DirectoryErrorCode::STEP_UP_FUTURE]] as [$offset, $error]) {
+            $session = $this->fixture->createStaffSession($admin['id'], ['assurance' => 'password', 'mfa_version' => null,
+                'mfa_verified_at' => null, 'password_verified_at' => CarbonImmutable::now()->addSeconds($offset)->toIso8601String()]);
+            $result = $this->guard->executeAsStaff($admin['id'], $session['sessionId'], DirectoryMutationPlan::noop($admin['id']));
+            $this->assertFalse($result->success);
+            $this->assertSame($error, $result->errorCode);
+        }
+    }
+
     public function test_sentinel_missing_fails_closed_without_recreating_row(): void
     {
         $admin = $this->fixture->createStaff(['role' => 'admin', 'status' => 'active']);

@@ -1943,6 +1943,7 @@ describe("IdentityApiClient — 29 Expanded Operations Positive Protocol Tests w
       // 19. postStaffMfaEnrollmentSetup (POST /staff/mfa/enrollment/setup)
       postStaffMfaEnrollmentSetup: {
         status: "200",
+        requestPayload: { currentPassword: "Synthetic-staff-password" },
         responseEnvelope: {
           success: true,
           data: {
@@ -1952,7 +1953,7 @@ describe("IdentityApiClient — 29 Expanded Operations Positive Protocol Tests w
           },
           meta: metaSpecimen,
         },
-        execute: (c) => c.postStaffMfaEnrollmentSetup({ requestId: fixedReqId }),
+        execute: (c) => c.postStaffMfaEnrollmentSetup({ currentPassword: "Synthetic-staff-password" }, { requestId: fixedReqId }),
       },
       // 20. postStaffMfaEnrollmentConfirm (POST /staff/mfa/enrollment/confirm)
       postStaffMfaEnrollmentConfirm: {
@@ -2075,7 +2076,7 @@ describe("IdentityApiClient — 29 Expanded Operations Positive Protocol Tests w
         },
         responseEnvelope: {
           success: true,
-          data: { status: "enrollment_required", expiresAt: "2026-10-10T12:10:00.000Z" },
+          data: { status: "authenticated", expiresAt: "2026-10-10T12:10:00.000Z" },
           meta: metaSpecimen,
         },
         execute: (c) =>
@@ -2256,7 +2257,7 @@ describe("IdentityApiClient — Expanded Operations Disabled Rejection & Zero Ne
       () => client.getPassengerSessions(),
       () => client.deletePassengerSession("b65356c5-56c1-45c9-bd39-54b8a193b977"),
       () => client.putPassengerPassword({ currentPassword: "OldPassword2026!", newPassword: "NewPassword2026!" }),
-      () => client.postStaffMfaEnrollmentSetup(),
+      () => client.postStaffMfaEnrollmentSetup({ currentPassword: "Synthetic-staff-password" }),
       () => client.postStaffMfaEnrollmentConfirm({ totpCode: "123456" }),
       () => client.postStaffStepUp({ totpCode: "123456" }),
       () => client.postStaffMfaSetupConfirm({ totpCode: "123456" }),
@@ -3344,5 +3345,40 @@ describe("IdentityApiClient — Runtime Schema Gate Probes, Budgets, and Sentine
     };
     const resCap = validateRuntimePayloadAgainstSchema(anyOfCapped, {}, {});
     assert.equal(resCap.valid, false, "Reaching error cap must never make anyOf branch match");
+  });
+});
+
+
+describe("Optional initial staff MFA contract branches", () => {
+  it("uses the actual POST login transport and drops staff CSRF after an authenticated receipt", async () => {
+    let bootstraps = 0;
+    const client = createIdentityApiClient({ enabled: true, nonProductionOptIn: true, environment: VALID_DEV_ENV,
+      baseUrl: VALID_LOOPBACK_URL, fetch: async (input, init) => {
+        const url = String(input); const requestId = extractRequestId(init);
+        if (url.endsWith("/staff/csrf")) { bootstraps++; return createMockResponse({ csrfToken: "synthetic-staff-csrf" }, 200, {}, requestId); }
+        assert.equal(requestId, fixedReqId);
+        assert.ok(url.endsWith("/staff/login")); assert.equal(init?.method, "POST");
+        assert.deepEqual(JSON.parse(String(init?.body)), { username: "synthetic", password: "Synthetic-password-2026" });
+        return createMockResponse({ success: true, data: { status: "authenticated", expiresAt: "2026-10-13T12:00:00Z" },
+          meta: { requestId, timestamp: "2026-10-13T10:00:00Z" } }, 200, {}, requestId);
+      } });
+    for (let i = 0; i < 2; i++) {
+      const result = await client.postStaffLogin({ username: "synthetic", password: "Synthetic-password-2026" }, { requestId: fixedReqId });
+      assert.equal(result.data.status, "authenticated");
+    }
+    assert.equal(bootstraps, 2);
+  });
+  it("accepts authenticated password receipts and rejects obsolete compulsory enrollment receipts", () => {
+    const expiresAt = "2026-10-13T12:00:00Z";
+    assert.deepEqual(requestValidators.validateStaffLoginData({ status: "authenticated", expiresAt }), { status: "authenticated", expiresAt });
+    assert.throws(() => requestValidators.validateStaffLoginData({ status: "enrollment_required", expiresAt }));
+    assert.throws(() => requestValidators.validateStaffPendingAuthData({ status: "authenticated", expiresAt }));
+    assert.deepEqual(requestValidators.validateStaffInvitationAcceptData({ status: "authenticated", expiresAt }), { status: "authenticated", expiresAt });
+    assert.throws(() => requestValidators.validateStaffInvitationAcceptData({ status: "mfa_required", expiresAt }));
+  });
+  it("accepts a closed current-password step-up and rejects mixed factors", () => {
+    assert.deepEqual(requestValidators.validateStaffStepUpRequest({ currentPassword: "  synthetic password  " }), { currentPassword: "  synthetic password  " });
+    assert.throws(() => requestValidators.validateStaffStepUpRequest({ currentPassword: "synthetic", totpCode: "123456" }));
+    assert.throws(() => requestValidators.validateStaffStepUpRequest({ currentPassword: "" }));
   });
 });

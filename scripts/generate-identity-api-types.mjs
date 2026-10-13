@@ -551,7 +551,7 @@ export const ACCEPTED_IDENTITY_OPERATIONS = Object.freeze([
     "requiresCsrf": true,
     "isAuthChanging": true,
     "requestSchemaName": "StaffLoginRequest",
-    "responseSchemaName": "StaffPendingAuthResponse",
+    "responseSchemaName": "StaffLoginResponse",
     "authorizationBranches": []
   },
   {
@@ -1152,15 +1152,15 @@ export const ACCEPTED_IDENTITY_OPERATIONS = Object.freeze([
     ],
     "security": [
       {
-        "StaffPreAuthCookieAuth": []
+        "StaffCookieAuth": []
       }
     ],
     "protocol": {
       "branches": [
         {
-          "realm": "pending_staff",
+          "realm": "staff",
           "origin": "configured_frontend",
-          "csrf": "anonymous_staff"
+          "csrf": "staff"
         }
       ],
       "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
@@ -1169,20 +1169,17 @@ export const ACCEPTED_IDENTITY_OPERATIONS = Object.freeze([
       "stepUpSeconds": null
     },
     "expectedStatus": 200,
-    "realm": "pending_staff",
+    "realm": "staff",
     "requiresCsrf": true,
     "isAuthChanging": false,
-    "requestSchemaName": null,
+    "requestSchemaName": "StaffMfaEnrollmentSetupRequest",
     "responseSchemaName": "StaffMfaEnrollmentSetupResponse",
     "authorizationBranches": [
       {
-        "scheme": "StaffPreAuthCookieAuth",
-        "condition": "pending_staff_mfa",
-        "purpose": "enroll_mfa",
-        "allowedEndpoint": "postStaffMfaEnrollmentSetup",
-        "requiresBoundSession": true,
-        "requiresUnexpired": true,
-        "requiresRevocationValid": true
+        "scheme": "StaffCookieAuth",
+        "condition": "authenticated_staff_self",
+        "requiredPermission": null,
+        "requiresActive": true
       }
     ]
   },
@@ -1195,15 +1192,15 @@ export const ACCEPTED_IDENTITY_OPERATIONS = Object.freeze([
     ],
     "security": [
       {
-        "StaffPreAuthCookieAuth": []
+        "StaffCookieAuth": []
       }
     ],
     "protocol": {
       "branches": [
         {
-          "realm": "pending_staff",
+          "realm": "staff",
           "origin": "configured_frontend",
-          "csrf": "anonymous_staff"
+          "csrf": "staff"
         }
       ],
       "branchSelection": "trusted_credentials_no_fallback_on_invalid_cookie",
@@ -1212,20 +1209,17 @@ export const ACCEPTED_IDENTITY_OPERATIONS = Object.freeze([
       "stepUpSeconds": null
     },
     "expectedStatus": 200,
-    "realm": "pending_staff",
+    "realm": "staff",
     "requiresCsrf": true,
     "isAuthChanging": true,
     "requestSchemaName": "StaffMfaEnrollmentConfirmRequest",
     "responseSchemaName": "StaffMfaEnrollmentConfirmResponse",
     "authorizationBranches": [
       {
-        "scheme": "StaffPreAuthCookieAuth",
-        "condition": "pending_staff_mfa",
-        "purpose": "enroll_mfa",
-        "allowedEndpoint": "postStaffMfaEnrollmentConfirm",
-        "requiresBoundSession": true,
-        "requiresUnexpired": true,
-        "requiresRevocationValid": true
+        "scheme": "StaffCookieAuth",
+        "condition": "authenticated_staff_self",
+        "requiredPermission": null,
+        "requiresActive": true
       }
     ]
   },
@@ -1555,7 +1549,8 @@ export const ACCEPTED_IDENTITY_OPERATIONS = Object.freeze([
         "requiresActive": true
       }
     ]
-  },
+  }
+,
   ...bookingTransportPins,
 ]);
 
@@ -1906,6 +1901,7 @@ export function generateIdentityApiTypes(spec) {
   const createStaffUserReqCode = generateInterfaceFromSchema("CreateStaffUserRequest", spec.components.schemas["CreateStaffUserRequest"], spec);
   const patchStaffUserReqCode = generateInterfaceFromSchema("PatchStaffUserRequest", spec.components.schemas["PatchStaffUserRequest"], spec);
   const staffMfaEnrollmentConfirmReqCode = generateInterfaceFromSchema("StaffMfaEnrollmentConfirmRequest", spec.components.schemas["StaffMfaEnrollmentConfirmRequest"], spec);
+  const staffMfaEnrollmentSetupReqCode = generateInterfaceFromSchema("StaffMfaEnrollmentSetupRequest", spec.components.schemas["StaffMfaEnrollmentSetupRequest"], spec);
   const staffStepUpReqCode = generateInterfaceFromSchema("StaffStepUpRequest", spec.components.schemas["StaffStepUpRequest"], spec);
   const staffMfaSetupConfirmReqCode = generateInterfaceFromSchema("StaffMfaSetupConfirmRequest", spec.components.schemas["StaffMfaSetupConfirmRequest"], spec);
   const staffPasswordForgotReqCode = generateInterfaceFromSchema("StaffPasswordForgotRequest", spec.components.schemas["StaffPasswordForgotRequest"], spec);
@@ -1953,6 +1949,9 @@ export function generateIdentityApiTypes(spec) {
   const emailVerifyResponseCode = generateInterfaceFromSchema("EmailVerifyResponse", emailVerifyResponse, spec, { data: "{ verified: boolean }" });
 
   // Staff responses
+  const staffLoginSchema = spec.components.schemas["StaffLoginResponse"];
+  const staffLoginDataCode = generateInterfaceFromSchema("StaffLoginData", staffLoginSchema.properties.data, spec);
+  const staffLoginResponseCode = generateInterfaceFromSchema("StaffLoginResponse", staffLoginSchema, spec, { data: "StaffLoginData" });
   const staffPendingAuthSchema = spec.components.schemas["StaffPendingAuthResponse"];
   const staffPendingAuthDataCode = generateInterfaceFromSchema("StaffPendingAuthData", staffPendingAuthSchema.properties.data, spec);
   const staffPendingAuthResponseCode = generateInterfaceFromSchema("StaffPendingAuthResponse", staffPendingAuthSchema, spec, { data: "StaffPendingAuthData" });
@@ -2010,7 +2009,7 @@ export function generateIdentityApiTypes(spec) {
 
   const staffPasswordChangeResponseCode = generateInterfaceFromSchema("StaffPasswordChangeResponse", spec.components.schemas["StaffPasswordChangeResponse"], spec, { data: "{ changed: true }" });
 
-  const staffInvitationAcceptResponseCode = generateInterfaceFromSchema("StaffInvitationAcceptResponse", spec.components.schemas["StaffInvitationAcceptResponse"], spec, { data: "{ status: \"enrollment_required\"; expiresAt: string }" });
+  const staffInvitationAcceptResponseCode = generateInterfaceFromSchema("StaffInvitationAcceptResponse", spec.components.schemas["StaffInvitationAcceptResponse"], spec, { data: "{ status: \"authenticated\"; expiresAt: string }" });
 
   const staffInviteReissueResponseCode = generateInterfaceFromSchema("StaffInviteReissueResponse", spec.components.schemas["StaffInviteReissueResponse"], spec, { data: "{ reissued: true; expiresAt: string }" });
 
@@ -2027,7 +2026,7 @@ export function generateIdentityApiTypes(spec) {
   const sections = [
     "/**",
     " * Gaza Gateway / Palestinian Airlines",
-    " * Phase 13B Identity API — Narrow Generated Types",
+    " * Phase 13B Identity API â€” Narrow Generated Types",
     " *",
     " * Auto-generated from docs/backend/openapi.v1.json by scripts/generate-identity-api-types.mjs.",
     " * DO NOT HAND-EDIT THIS FILE DIRECTLY. Run `node scripts/generate-identity-api-types.mjs` to regenerate.",
@@ -2070,6 +2069,7 @@ export function generateIdentityApiTypes(spec) {
     "",
     staffMfaEnrollmentConfirmReqCode,
     "",
+    staffMfaEnrollmentSetupReqCode,
     staffStepUpReqCode,
     "",
     staffMfaSetupConfirmReqCode,
@@ -2127,6 +2127,8 @@ export function generateIdentityApiTypes(spec) {
     "",
     passengerPasswordChangeResponseCode,
     "",
+    staffLoginDataCode,
+    staffLoginResponseCode,
     staffPendingAuthDataCode,
     "",
     staffPendingAuthResponseCode,
@@ -2210,6 +2212,7 @@ export function generateIdentityApiTypes(spec) {
     "  | PassengerSessionListResponse",
     "  | PassengerSessionRevokeResponse",
     "  | PassengerPasswordChangeResponse",
+    "  | StaffLoginResponse",
     "  | StaffPendingAuthResponse",
     "  | StaffLogoutResponse",
     "  | StaffMeResponse",
@@ -2296,6 +2299,7 @@ export function generateIdentityApiContract(spec) {
     CreateStaffUserRequest: spec.components?.schemas?.["CreateStaffUserRequest"],
     PatchStaffUserRequest: spec.components?.schemas?.["PatchStaffUserRequest"],
     StaffMfaEnrollmentConfirmRequest: spec.components?.schemas?.["StaffMfaEnrollmentConfirmRequest"],
+    StaffMfaEnrollmentSetupRequest: spec.components?.schemas?.["StaffMfaEnrollmentSetupRequest"],
     StaffStepUpRequest: spec.components?.schemas?.["StaffStepUpRequest"],
     StaffMfaSetupConfirmRequest: spec.components?.schemas?.["StaffMfaSetupConfirmRequest"],
     StaffPasswordForgotRequest: spec.components?.schemas?.["StaffPasswordForgotRequest"],
@@ -2316,6 +2320,7 @@ export function generateIdentityApiContract(spec) {
     PassengerSessionListResponse: spec.components?.schemas?.["PassengerSessionListResponse"],
     PassengerSessionRevokeResponse: spec.components?.schemas?.["PassengerSessionRevokeResponse"],
     PassengerPasswordChangeResponse: spec.components?.schemas?.["PassengerPasswordChangeResponse"],
+    StaffLoginResponse: spec.components?.schemas?.["StaffLoginResponse"],
     StaffPendingAuthResponse: spec.components?.schemas?.["StaffPendingAuthResponse"],
     StaffMeResponse: spec.components?.schemas?.["StaffMeResponse"],
     StaffMfaSetupResponse: spec.components?.schemas?.["StaffMfaSetupResponse"],
@@ -2469,16 +2474,16 @@ export function runCli(argv = process.argv.slice(2)) {
   if (isCheck) {
     const result = checkIdentityApiTypes(typesPath, contractPath, specPath);
     if (!result.ok) {
-      console.error(`✗ Stale artifact: ${result.reason}`);
+      console.error(`âœ— Stale artifact: ${result.reason}`);
       console.error("  Run 'node scripts/generate-identity-api-types.mjs' to regenerate.");
       return 1;
     }
-    console.log(`✓ Identity API types and contract are up to date.`);
+    console.log(`âœ“ Identity API types and contract are up to date.`);
     return 0;
   }
 
   if (!fs.existsSync(specPath)) {
-    console.error(`✗ Spec not found: ${specPath}`);
+    console.error(`âœ— Spec not found: ${specPath}`);
     return 1;
   }
   const spec = JSON.parse(fs.readFileSync(specPath, "utf8"));
@@ -2489,7 +2494,7 @@ export function runCli(argv = process.argv.slice(2)) {
   fs.writeFileSync(typesPath, typesContent, "utf8");
   fs.writeFileSync(contractPath, contractContent, "utf8");
 
-  console.log(`✓ Generated ${path.relative(repositoryRoot, typesPath)} and ${path.relative(repositoryRoot, contractPath)} successfully.`);
+  console.log(`âœ“ Generated ${path.relative(repositoryRoot, typesPath)} and ${path.relative(repositoryRoot, contractPath)} successfully.`);
   return 0;
 }
 

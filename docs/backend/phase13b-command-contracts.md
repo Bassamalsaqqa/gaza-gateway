@@ -48,7 +48,7 @@ The package selects every accepted operation in `docs/backend/openapi.v1.json` w
 | `getPassengerSessions` | GET | `/auth/passenger/sessions` | None (bodyless) | `X-Request-Id` |
 | `deletePassengerSession` | DELETE | `/auth/passenger/sessions/{id}` | None (bodyless) | `id` (path, UUID), `X-Request-Id`, `X-CSRF-TOKEN` |
 | `putPassengerPassword` | PUT | `/auth/passenger/password` | `PassengerPasswordChangeRequest` | `X-Request-Id`, `X-CSRF-TOKEN` |
-| `postStaffMfaEnrollmentSetup` | POST | `/staff/mfa/enrollment/setup` | None (bodyless) | `X-Request-Id`, `X-CSRF-TOKEN` |
+| `postStaffMfaEnrollmentSetup` | POST | `/staff/mfa/enrollment/setup` | `StaffMfaEnrollmentSetupRequest` | `X-Request-Id`, `X-CSRF-TOKEN` |
 | `postStaffMfaEnrollmentConfirm` | POST | `/staff/mfa/enrollment/confirm` | `StaffMfaEnrollmentConfirmRequest` | `X-Request-Id`, `X-CSRF-TOKEN` |
 | `postStaffStepUp` | POST | `/staff/step-up` | `StaffStepUpRequest` | `X-Request-Id`, `X-CSRF-TOKEN` |
 | `postStaffMfaSetupConfirm` | POST | `/staff/mfa/setup/confirm` | `StaffMfaSetupConfirmRequest` | `X-Request-Id`, `X-CSRF-TOKEN` |

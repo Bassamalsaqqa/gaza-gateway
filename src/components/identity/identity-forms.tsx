@@ -93,59 +93,33 @@ export function PassengerIdentityAuth({ initial = "signin" }: { initial?: Passen
 type StaffFlow = "signin" | "forgot" | "reset" | "invite";
 export function StaffIdentityAuth({ onAuthenticated }: { onAuthenticated?: () => Promise<void> }) {
   const { lang } = useI18n(); const navigate = useAppNavigate();
-  const [flow, setFlow] = useState<StaffFlow>("signin"); const [pending, setPending] = useState<"login" | "enroll" | null>(null);
-  const [expires, setExpires] = useState<string | null>(null); const [secret, setSecret] = useState<string | null>(null);
-  const [recovery, setRecovery] = useState(false); const [codes, setCodes] = useState<string[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [settingUp, setSettingUp] = useState(false);
-  useEffect(() => {
-    if (!codes.length && !secret) return;
-    const scrub = () => { setCodes([]); setSecret(null); };
-    const hidden = () => { if (document.visibilityState === "hidden") scrub(); };
-    const timer = setTimeout(scrub, 5 * 60 * 1000);
-    document.addEventListener("visibilitychange", hidden);
-    return () => { clearTimeout(timer); document.removeEventListener("visibilitychange", hidden); };
-  }, [codes, secret]);
+  const [flow, setFlow] = useState<StaffFlow>("signin"); const [pending, setPending] = useState(false);
+  const [expires, setExpires] = useState<string | null>(null); const [recovery, setRecovery] = useState(false);
   useEffect(() => {
     if (!expires) return;
-    const timer = setTimeout(() => { setPending(null); setSecret(null); setExpires(null); }, Math.max(0, Date.parse(expires) - Date.now()));
+    const timer = setTimeout(() => { setPending(false); setExpires(null); }, Math.max(0, Date.parse(expires) - Date.now()));
     return () => clearTimeout(timer);
   }, [expires]);
+  const authenticated = async () => { await onAuthenticated?.(); await navigate({ to: "/admin" }); };
   const labels: Record<StaffFlow, [string, string]> = { signin: ["Staff sign in", "دخول الموظفين"], forgot: ["Request recovery", "طلب الاستعادة"],
     reset: ["Reset password", "إعادة تعيين كلمة المرور"], invite: ["Accept invitation", "قبول الدعوة"] };
   const submit = async (v: Record<string, string>) => {
     const api = getIdentityUiClient();
     if (flow === "signin") {
       const result = await api.postStaffLogin({ username: v["username"]!, password: v["password"]! });
-      setPending(result.data.status === "enrollment_required" ? "enroll" : "login"); setExpires(result.data.expiresAt);
+      if (result.data.status === "authenticated") { await authenticated(); return; }
+      setPending(true); setExpires(result.data.expiresAt);
     } else if (flow === "invite") {
-      const result = await api.postStaffInvitationAccept({ token: v["token"]!, password: v["password"]! });
-      setPending("enroll"); setExpires(result.data.expiresAt);
+      await api.postStaffInvitationAccept({ token: v["token"]!, password: v["password"]! });
+      await authenticated();
     } else if (flow === "forgot") await api.postStaffPasswordForgot({ email: v["email"]! });
     else await api.postStaffPasswordReset({ token: v["token"]!, newPassword: v["password"]! });
   };
-  const setup = async () => {
-    if (settingUp) return;
-    setSettingUp(true);
-    setError(null);
-    try { const result = await getIdentityUiClient().postStaffMfaEnrollmentSetup(); setSecret(result.data.secret); setExpires(result.data.expiresAt); }
-    catch (failure) { setError(identityErrorText(failure, lang)); }
-    finally { setSettingUp(false); }
-  };
-  const verify = async (v: Record<string, string>) => {
-    if (pending === "enroll") {
-      const result = await getIdentityUiClient().postStaffMfaEnrollmentConfirm({ totpCode: v["totpCode"]! });
-      setCodes(result.data.recoveryCodes); setPending(null); setSecret(null); setExpires(null);
-    } else {
-      await getIdentityUiClient().postStaffMfaVerify(recovery ? { recoveryCode: v["recoveryCode"]! } : { totpCode: v["totpCode"]! });
-      setPending(null); setExpires(null); await onAuthenticated?.(); await navigate({ to: "/admin" });
-    }
-  };
   return <PassengerAuthShell title={pick(lang, "Staff account preview", "معاينة حساب الموظف")}
-    description={pick(lang, "Staff access requires your own password and authenticator.", "يتطلب دخول الموظف كلمة مروره وتطبيق المصادقة الخاص به.")}>
-    {!pending && codes.length === 0 && <>
+    description={pick(lang, "Sign in with your password. If you have enabled an authenticator, verification is also required. You can enable it in Admin account security settings.", "سجل الدخول بكلمة المرور. إذا فعّلت تطبيق المصادقة، يلزم التحقق أيضاً. يمكنك تفعيله من إعدادات أمان الحساب في الإدارة.")}>
+    {!pending && <>
       <div className="mb-5 flex flex-wrap gap-2">{(Object.keys(labels) as StaffFlow[]).map((item) => <button key={item} type="button"
-        className={btnClass("outline", "sm")} onClick={() => { setFlow(item); setError(null); }}>{pick(lang, ...labels[item])}</button>)}</div>
+        className={btnClass("outline", "sm")} onClick={() => setFlow(item)}>{pick(lang, ...labels[item])}</button>)}</div>
       <IdentityForm key={flow} fields={flow === "signin" ? [{ name: "username", en: "Username", ar: "اسم المستخدم" }, passwordField]
         : flow === "forgot" ? [emailField] : [tokenField, passwordField]} submit={submit} button={pick(lang, ...labels[flow])}
         notice={flow === "forgot" ? pick(lang, "Recovery instructions are queued only for eligible accounts.", "تُضاف تعليمات الاستعادة إلى قائمة الإرسال للحسابات المؤهلة فقط.")
@@ -153,20 +127,15 @@ export function StaffIdentityAuth({ onAuthenticated }: { onAuthenticated?: () =>
     </>}
     {pending && <div className="space-y-4">
       <p>{pick(lang, "Complete verification before the pending session expires.", "أكمل التحقق قبل انتهاء الجلسة المعلقة.")}</p>
-      {pending === "enroll" && <><button type="button" disabled={settingUp} className={btnClass("outline", "md")} onClick={() => void setup()}>
-        {pick(lang, "Set up authenticator", "إعداد تطبيق المصادقة")}</button>
-        {secret && <p dir="ltr" className="break-all font-mono" aria-label={pick(lang, "Authenticator setup secret", "سر إعداد المصادقة")}>{secret}</p>}</>}
-      {pending === "login" && <button type="button" className={btnClass("outline", "sm")} onClick={() => setRecovery(!recovery)}>
-        {recovery ? pick(lang, "Use authenticator", "استخدام تطبيق المصادقة") : pick(lang, "Use recovery code", "استخدام رمز الاسترداد")}</button>}
-      <IdentityForm key={`${pending}-${recovery}`} fields={recovery && pending === "login" ? [{ name: "recoveryCode", en: "Recovery code", ar: "رمز الاسترداد" }] : [codeField]}
-        submit={verify} button={pick(lang, "Verify", "تحقق")} />
-      <button type="button" className={btnClass("outline", "sm")} onClick={() => { setPending(null); setSecret(null); setExpires(null); }}>
+      <button type="button" className={btnClass("outline", "sm")} onClick={() => setRecovery(!recovery)}>
+        {recovery ? pick(lang, "Use authenticator", "استخدام تطبيق المصادقة") : pick(lang, "Use recovery code", "استخدام رمز الاسترداد")}</button>
+      <IdentityForm key={String(recovery)} fields={recovery ? [{ name: "recoveryCode", en: "Recovery code", ar: "رمز الاسترداد" }] : [codeField]}
+        submit={async (v) => {
+          await getIdentityUiClient().postStaffMfaVerify(recovery ? { recoveryCode: v["recoveryCode"]! } : { totpCode: v["totpCode"]! });
+          setPending(false); setExpires(null); await authenticated();
+        }} button={pick(lang, "Verify", "تحقق")} />
+      <button type="button" className={btnClass("outline", "sm")} onClick={() => { setPending(false); setExpires(null); }}>
         {pick(lang, "Return to sign in", "العودة إلى تسجيل الدخول")}</button>
-    </div>}
-    {error && <p role="alert" className="mt-4 text-clay">{error}</p>}
-    {codes.length > 0 && <div className="space-y-4"><p>{pick(lang, "Keep these recovery codes privately. They are shown only now.", "احفظ رموز الاسترداد بشكل خاص. تُعرض الآن فقط.")}</p>
-      <ul dir="ltr" className="font-mono">{codes.map((code) => <li key={code}>{code}</li>)}</ul>
-      <button type="button" className={btnClass("primary", "md")} onClick={() => { setCodes([]); void (async () => { await onAuthenticated?.(); await navigate({ to: "/admin" }); })().catch(failure => setError(identityErrorText(failure, lang))); }}>{pick(lang, "Continue", "متابعة")}</button>
     </div>}
   </PassengerAuthShell>;
 }

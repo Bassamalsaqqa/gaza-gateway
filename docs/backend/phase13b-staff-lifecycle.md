@@ -1,5 +1,7 @@
 # Phase 13B — staff credentials, directory and MFA lifecycle
 
+> Initial staff enrollment policy is superseded by the [2026-10-13 optional MFA amendment](optional-staff-mfa.md). Historical acceptance results below do not validate this amendment.
+
 Status: locally implemented bounded package; Phase 13B remains In Progress / Awaiting Independent Review. This extends the staff HTTP checkpoint at `7570768514a5cecc4c591922cf9b76e3768e9290`. The subsequent [booking identity package](phase13b-booking-identity.md) implements guest proofs/ownership hooks locally. [Staff lock scope corrections](phase13b-staff-lock-scope-review.md) narrow current/live authority and remove the sentinel from read/recovery/setup paths. Opt-in EN/AR UI and final integrated certification remain unfinished. Remote staging gates remain deferred and unmet.
 
 ## Implemented operations

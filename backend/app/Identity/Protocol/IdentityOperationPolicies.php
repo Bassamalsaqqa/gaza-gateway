@@ -9,11 +9,11 @@ namespace App\Identity\Protocol;
  * from docs/backend/operation-policies.v1.json.
  *
  * Total operations: 46
- * Source SHA-256 Digest: 8ef70dedd85b639a4377614a37b90da2f5c76f5f4b2cddccd9595224b8098e6d
+ * Source SHA-256 Digest: a74f9c82be3ab2541fbd7f915e0005c47bfb3ce5671f007580c7166d2d25682a
  */
 final class IdentityOperationPolicies
 {
-    public const SOURCE_DIGEST = '8ef70dedd85b639a4377614a37b90da2f5c76f5f4b2cddccd9595224b8098e6d';
+    public const SOURCE_DIGEST = 'a74f9c82be3ab2541fbd7f915e0005c47bfb3ce5671f007580c7166d2d25682a';
 
     /**
      * Map of "METHOD:PATH" => OperationPolicy metadata.
@@ -627,7 +627,7 @@ final class IdentityOperationPolicies
             'method' => 'POST',
             'path' => '/staff/mfa/enrollment/confirm',
             'intent' => 'protected',
-            'realm' => 'staff_pending',
+            'realm' => 'staff',
             'branch' => 'cookie',
             'requiresOrigin' => true,
             'requiresCsrf' => true,
@@ -637,18 +637,15 @@ final class IdentityOperationPolicies
             'requiresRecentStepUp' => false,
             'allowedSecurity' => [
                 [
-                    'StaffPreAuthCookieAuth' => [],
+                    'StaffCookieAuth' => [],
                 ],
             ],
             'branchConditions' => [
                 [
-                    'scheme' => 'StaffPreAuthCookieAuth',
-                    'condition' => 'pending_staff_mfa',
-                    'purpose' => 'enroll_mfa',
-                    'allowedEndpoint' => 'postStaffMfaEnrollmentConfirm',
-                    'requiresBoundSession' => true,
-                    'requiresUnexpired' => true,
-                    'requiresRevocationValid' => true,
+                    'scheme' => 'StaffCookieAuth',
+                    'condition' => 'authenticated_staff_self',
+                    'requiredPermission' => null,
+                    'requiresActive' => true,
                 ],
             ],
         ],
@@ -657,7 +654,7 @@ final class IdentityOperationPolicies
             'method' => 'POST',
             'path' => '/staff/mfa/enrollment/setup',
             'intent' => 'protected',
-            'realm' => 'staff_pending',
+            'realm' => 'staff',
             'branch' => 'cookie',
             'requiresOrigin' => true,
             'requiresCsrf' => true,
@@ -667,18 +664,15 @@ final class IdentityOperationPolicies
             'requiresRecentStepUp' => false,
             'allowedSecurity' => [
                 [
-                    'StaffPreAuthCookieAuth' => [],
+                    'StaffCookieAuth' => [],
                 ],
             ],
             'branchConditions' => [
                 [
-                    'scheme' => 'StaffPreAuthCookieAuth',
-                    'condition' => 'pending_staff_mfa',
-                    'purpose' => 'enroll_mfa',
-                    'allowedEndpoint' => 'postStaffMfaEnrollmentSetup',
-                    'requiresBoundSession' => true,
-                    'requiresUnexpired' => true,
-                    'requiresRevocationValid' => true,
+                    'scheme' => 'StaffCookieAuth',
+                    'condition' => 'authenticated_staff_self',
+                    'requiredPermission' => null,
+                    'requiresActive' => true,
                 ],
             ],
         ],

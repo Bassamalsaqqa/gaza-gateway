@@ -1,6 +1,6 @@
 /**
  * Gaza Gateway / Palestinian Airlines
- * Phase 13B Identity API — Narrow Generated Types
+ * Phase 13B Identity API â€” Narrow Generated Types
  *
  * Auto-generated from docs/backend/openapi.v1.json by scripts/generate-identity-api-types.mjs.
  * DO NOT HAND-EDIT THIS FILE DIRECTLY. Run `node scripts/generate-identity-api-types.mjs` to regenerate.
@@ -111,9 +111,13 @@ export interface StaffMfaEnrollmentConfirmRequest {
   totpCode: string;
 }
 
+export interface StaffMfaEnrollmentSetupRequest {
+  currentPassword: string;
+}
 export interface StaffStepUpRequest {
   totpCode?: string;
   recoveryCode?: string;
+  currentPassword?: string;
 }
 
 export interface StaffMfaSetupConfirmRequest {
@@ -276,8 +280,17 @@ export interface PassengerPasswordChangeResponse {
   meta: SuccessMeta;
 }
 
+export interface StaffLoginData {
+  status: "mfa_required" | "authenticated";
+  expiresAt: string;
+}
+export interface StaffLoginResponse {
+  success: true;
+  data: StaffLoginData;
+  meta: SuccessMeta;
+}
 export interface StaffPendingAuthData {
-  status: "mfa_required" | "enrollment_required";
+  status: "mfa_required";
   expiresAt: string;
 }
 
@@ -455,7 +468,7 @@ export interface StaffPasswordChangeResponse {
 
 export interface StaffInvitationAcceptResponse {
   success: true;
-  data: { status: "enrollment_required"; expiresAt: string };
+  data: { status: "authenticated"; expiresAt: string };
   meta: SuccessMeta;
 }
 
@@ -505,6 +518,7 @@ export type IdentityResponse =
   | PassengerSessionListResponse
   | PassengerSessionRevokeResponse
   | PassengerPasswordChangeResponse
+  | StaffLoginResponse
   | StaffPendingAuthResponse
   | StaffLogoutResponse
   | StaffMeResponse

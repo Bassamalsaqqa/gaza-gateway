@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import crypto from "node:crypto";
+import { validateOperationPolicies } from "../../scripts/lib/backend-contract-validation.mjs";
 import * as I from "../../scripts/lib/backend-identity-contracts.mjs";
 import { IDENTITY_POLICY as D } from "../../scripts/lib/backend-identity-policy.mjs";
 
@@ -35,6 +36,7 @@ const session = (realm = "passenger") => ({
   principalId: realm === "staff" ? "s1" : "p1",
   authLevel: "full",
   credentialEpoch: 1,
+  assurance: "mfa",
   mfaVersion: 1,
   mfaVerifiedAt: now,
   issuedAt: now - 10,
@@ -59,6 +61,16 @@ const proof = (purpose = "passenger_password_reset", realm = "passenger") => ({
   tokenDigest: hash("secret-token"),
 });
 describe("Closed identity policy and operation authority", () => {
+  it("pins optional enrollment to own authenticated staff authority in the complete graph", () => {
+    assert.deepEqual(validateOperationPolicies(spec, policy), { valid: true, errors: [] });
+    for (const operationId of ["postStaffMfaEnrollmentSetup", "postStaffMfaEnrollmentConfirm"]) {
+      const item = policy.operations.find((p: { operationId: string }) => p.operationId === operationId);
+      assert.deepEqual(item.branchConditions, [{ scheme: "StaffCookieAuth", condition: "authenticated_staff_self", requiredPermission: null, requiresActive: true }]);
+      const altered = structuredClone(policy);
+      altered.operations.find((p: { operationId: string }) => p.operationId === operationId).branchConditions[0].condition = "authenticated_staff";
+      assert.equal(validateOperationPolicies(spec, altered).valid, false);
+    }
+  });
   it("accepts the approved complete graph", () =>
     assert.deepEqual(I.validateIdentityLifecycleManifest(manifest, fixture, spec, policy), {
       valid: true,
@@ -188,7 +200,7 @@ describe("Maintained identity state and replay protection", () => {
       "suspended",
     );
   });
-  it("accepts invitation only for its persisted staff target and enters enrollment without full login", () => {
+  it("accepts invitation only for its persisted staff target and creates password authority", () => {
     const p = { ...staff, status: "invited" },
       ctx = { now, purpose: "staff_invitation", realm: "staff" };
     const r = I.consumeIdentityToken(
@@ -198,8 +210,8 @@ describe("Maintained identity state and replay protection", () => {
       ctx,
     );
     assert.equal(r.ok, true);
-    assert.equal(r.account.status, "pending_enrollment");
-    assert.equal(r.autoLogin, false);
+    assert.equal(r.account.status, "active");
+    assert.equal(r.autoLogin, true);
     assert.equal(
       I.consumeIdentityToken(staff, proof(ctx.purpose, "staff"), { token: "secret-token" }, ctx).ok,
       false,

@@ -36,6 +36,10 @@ final class StaffLifecycleController
         if (!$context instanceof StaffSessionContext || $cookie === null || !is_string($csrf) || $ip === null) {
             return $this->errorResponse(401, 'unauthorized', 'Staff authentication is not valid.', $requestId);
         }
+        if ($operation === 'postStaffMfaEnrollmentConfirm'
+            && CookieSecurity::hasDuplicateCookie($request, CookieSecurity::COOKIE_STAFF_PENDING)) {
+            return $this->errorResponse(400, 'duplicate_cookie', 'Duplicate pending enrollment cookie.', $requestId);
+        }
         $body = $request->getContent(); $input = $body === '' ? [] : json_decode($body, true, 32, JSON_THROW_ON_ERROR);
         try {
             $result = $this->coordinator->execute($operation, $input, $context, $cookie, $csrf,

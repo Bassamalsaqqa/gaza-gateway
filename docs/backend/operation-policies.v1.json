@@ -2862,23 +2862,20 @@
       "intent": "protected",
       "allowedSecurity": [
         {
-          "StaffPreAuthCookieAuth": []
+          "StaffCookieAuth": []
         }
       ],
       "requiredPermission": null,
       "branchConditions": [
         {
-          "scheme": "StaffPreAuthCookieAuth",
-          "condition": "pending_staff_mfa",
-          "purpose": "enroll_mfa",
-          "allowedEndpoint": "postStaffMfaEnrollmentSetup",
-          "requiresBoundSession": true,
-          "requiresUnexpired": true,
-          "requiresRevocationValid": true
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff_self",
+          "requiredPermission": null,
+          "requiresActive": true
         }
       ],
       "protocol": {
-        "realm": "staff_pending",
+        "realm": "staff",
         "branch": "cookie",
         "requiresOrigin": true,
         "requiresCsrf": true,
@@ -2893,23 +2890,20 @@
       "intent": "protected",
       "allowedSecurity": [
         {
-          "StaffPreAuthCookieAuth": []
+          "StaffCookieAuth": []
         }
       ],
       "requiredPermission": null,
       "branchConditions": [
         {
-          "scheme": "StaffPreAuthCookieAuth",
-          "condition": "pending_staff_mfa",
-          "purpose": "enroll_mfa",
-          "allowedEndpoint": "postStaffMfaEnrollmentConfirm",
-          "requiresBoundSession": true,
-          "requiresUnexpired": true,
-          "requiresRevocationValid": true
+          "scheme": "StaffCookieAuth",
+          "condition": "authenticated_staff_self",
+          "requiredPermission": null,
+          "requiresActive": true
         }
       ],
       "protocol": {
-        "realm": "staff_pending",
+        "realm": "staff",
         "branch": "cookie",
         "requiresOrigin": true,
         "requiresCsrf": true,

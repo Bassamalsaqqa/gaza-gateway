@@ -86,8 +86,8 @@ final class RbacPolicy
      * - Requires database connection (never authorizes detached DTO without DB)
      * - Current durable session exists, unrevoked, unexpired, matches session ID and staff ID
      * - Current durable principal exists, active, verified email, usable Argon2id password, matching epoch
-     * - Current confirmed and unrevoked MFA credential
-     * - Same-session timestamp within bounds: 0 <= age <= 300 seconds (never future)
+     * - Explicit password assurance for never-enrolled staff, else current confirmed unrevoked MFA
+     * - Exact persisted same-session proof with 0 <= age < 300 seconds (never future)
      */
     public function hasRecentStepUp(StaffSessionContext $session, ?CarbonImmutable $now = null): bool
     {
@@ -95,96 +95,18 @@ final class RbacPolicy
             return false;
         }
 
-        if (!$session->isFull() ||
-            $session->staffId === null ||
-            $session->mfaVersion === null ||
-            $session->mfaVerifiedAt === null ||
-            $session->credentialEpoch === null
-        ) {
-            return false;
-        }
-
-        $now = $now ?? CarbonImmutable::now();
-
-        // Must not be in the future (reject future instants)
-        if ($session->mfaVerifiedAt->greaterThan($now)) {
-            return false;
-        }
-
-        // Must be under 300 seconds (exact boundary age >= 300 is expired)
-        if ($now->greaterThanOrEqualTo($session->mfaVerifiedAt->addSeconds(self::STEP_UP_MAX_AGE_SECONDS))) {
-            return false;
-        }
-
-        // 1. Verify current durable session in database
-        $dbSession = $this->db->table('staff_sessions')
-            ->where('id', $session->sessionId)
-            ->where('staff_id', $session->staffId)
-            ->first();
-
-        if (!$dbSession || $dbSession->revoked_at !== null || $dbSession->auth_level !== 'full') {
-            return false;
-        }
-
-        if ($now->greaterThanOrEqualTo(CarbonImmutable::parse($dbSession->absolute_expires_at))) {
-            return false;
-        }
-
-        if ($now->greaterThanOrEqualTo(CarbonImmutable::parse($dbSession->idle_expires_at))) {
-            return false;
-        }
-
-        if ((int) $dbSession->mfa_version !== $session->mfaVersion) {
-            return false;
-        }
-
-        if ($dbSession->mfa_verified_at === null) {
-            return false;
-        }
-
-        if (!CarbonImmutable::parse($dbSession->mfa_verified_at)->equalTo($session->mfaVerifiedAt)) {
-            return false;
-        }
-
-        if ((int) $dbSession->credential_epoch !== $session->credentialEpoch) {
-            return false;
-        }
-
-        // 2. Verify current durable principal in database
-        $staff = $this->db->table('staff_users')
-            ->where('id', $session->staffId)
-            ->first();
-
-        if (!$staff || $staff->status !== 'active' || $staff->email_verified_at === null) {
-            return false;
-        }
-
-        if (!\App\Identity\Password\Argon2idPasswordHasher::isValidStoredHashStructure($staff->password_hash)) {
-            return false;
-        }
-
-        if ($session->role !== null && $staff->role !== $session->role) {
-            return false;
-        }
-
-        if ((int) $staff->credential_epoch !== $session->credentialEpoch) {
-            return false;
-        }
-
-        if ((int) $staff->mfa_version !== $session->mfaVersion) {
-            return false;
-        }
-
-        // 3. Verify current confirmed unrevoked MFA credential
-        $mfa = $this->db->table('staff_mfa_credentials')
-            ->where('staff_id', $session->staffId)
-            ->where('version', $session->mfaVersion)
-            ->first();
-
-        if (!$mfa || $mfa->confirmed_at === null || $mfa->revoked_at !== null) {
-            return false;
-        }
-
-        return true;
+        if (!$session->isFull() || $session->getStaffId() === null || $session->credentialEpoch === null) { return false; }
+        $now ??= CarbonImmutable::now();
+        $row = $this->db->table('staff_sessions')->where('id', $session->sessionId)->where('staff_id', $session->getStaffId())->first();
+        $staff = $this->db->table('staff_users')->where('id', $session->getStaffId())->first();
+        if (!$row || !$staff || ($session->role !== null && $staff->role !== $session->role)
+            || (int) $row->credential_epoch !== $session->credentialEpoch
+            || $row->assurance !== $session->assurance
+            || ($row->mfa_version === null ? null : (int) $row->mfa_version) !== $session->mfaVersion
+            || ($row->assurance === 'password' && $session->mfaVerifiedAt !== null)) { return false; }
+        $persisted = $row->assurance === 'password' ? $row->password_verified_at : $row->mfa_verified_at;
+        $observed = $row->assurance === 'password' ? $session->passwordVerifiedAt : $session->mfaVerifiedAt;
+        if ($persisted === null || $observed === null || !CarbonImmutable::parse($persisted)->equalTo($observed)) { return false; }
+        return (new \App\Identity\Sessions\StaffSessionAuthority($this->db))->valid($staff, $row, $now, true);
     }
 }

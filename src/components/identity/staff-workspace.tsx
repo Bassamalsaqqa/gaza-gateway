@@ -79,12 +79,11 @@ export function StaffIdentityWorkspace() {
       <p dir="ltr" className="break-all text-sm">{staff.email}</p>
       <div className="my-5 flex flex-wrap gap-2"><button type="button" disabled={loading} onClick={() => void logout()} className={btnClass("outline", "sm")}>{pick(lang, "Sign out", "تسجيل الخروج")}</button>
         <button type="button" disabled={loading} onClick={() => void load()} className={btnClass("outline", "sm")}>{pick(lang, "Refresh access", "تحديث صلاحية الدخول")}</button></div>
-      <p className="mb-5 text-sm">{pick(lang, "Only identity services are enabled in this preview. Flight, booking and website administration remain separate mock services.", "خدمات الهوية وحدها مفعلة في هذه المعاينة. تبقى إدارة الرحلات والحجوزات والموقع خدمات تجريبية منفصلة.")}</p>
       {!loading && <div key={staff.id} className="max-w-3xl space-y-5">
         <Panel><h2 className="mb-4 text-lg font-semibold">{pick(lang, "Confirm a sensitive action", "تأكيد إجراء حساس")}</h2>
-          <button type="button" className={btnClass("outline", "sm")} onClick={() => setRecovery(!recovery)}>{recovery ? pick(lang, "Use authenticator", "استخدام تطبيق المصادقة") : pick(lang, "Use recovery code", "استخدام رمز الاسترداد")}</button>
-          <div className="mt-4"><IdentityForm key={String(recovery)} fields={[credentialField]} submit={async (v) => {
-            const result = await getIdentityUiClient().postStaffStepUp(recovery ? { recoveryCode: v["recoveryCode"]! } : { totpCode: v["totpCode"]! });
+          {staff.mfaEnabled && <button type="button" className={btnClass("outline", "sm")} onClick={() => setRecovery(!recovery)}>{recovery ? pick(lang, "Use authenticator", "استخدام تطبيق المصادقة") : pick(lang, "Use recovery code", "استخدام رمز الاسترداد")}</button>}
+          <div className="mt-4"><IdentityForm key={String(recovery)} fields={[staff.mfaEnabled ? credentialField : { ...passwordField, name: "currentPassword", en: "Current password", ar: "كلمة المرور الحالية" }]} submit={async (v) => {
+            const result = await getIdentityUiClient().postStaffStepUp(!staff.mfaEnabled ? { currentPassword: v["currentPassword"]! } : recovery ? { recoveryCode: v["recoveryCode"]! } : { totpCode: v["totpCode"]! });
             setStepUpUntil(result.data.expiresAt);
           }} /></div>
           {stepUpUntil && <p role="status" className="mt-3">{pick(lang, "Recent verification confirmed. The server checks it again for each sensitive action.", "تم تأكيد التحقق الحديث. يعيد الخادم فحصه لكل إجراء حساس.")}</p>}
@@ -96,7 +95,7 @@ export function StaffIdentityWorkspace() {
             notice={pick(lang, "Recent verification is required. Use 12–128 characters. All staff sessions will be revoked.", "يلزم تحقق حديث. استخدم ١٢–١٢٨ محرفاً. تُلغى جميع جلسات الموظف.")} />
         </Panel>
         <Panel><h2 className="mb-4 text-lg font-semibold">{pick(lang, "Authenticator and recovery", "المصادقة والاسترداد")}</h2>
-          <IdentityForm fields={[]} button={pick(lang, "Replace authenticator", "استبدال تطبيق المصادقة")} submit={async () => {
+          {staff.mfaEnabled ? <><IdentityForm fields={[]} button={pick(lang, "Replace authenticator", "استبدال تطبيق المصادقة")} submit={async () => {
             const result = await getIdentityUiClient().postStaffMfaSetup(); setSecret(result.data.secret);
           }} notice={pick(lang, "Requires recent verification. Your current authenticator stays valid until confirmation.", "يتطلب تحققاً حديثاً. يبقى تطبيق المصادقة الحالي صالحاً حتى التأكيد.")} />
           {secret && <div className="my-5"><p dir="ltr" className="mb-4 break-all font-mono">{secret}</p>
@@ -105,7 +104,18 @@ export function StaffIdentityWorkspace() {
             }} notice={pick(lang, "Confirmation revokes all staff sessions. Keep the new recovery codes privately.", "يلغي التأكيد جميع جلسات الموظف. احفظ رموز الاسترداد الجديدة بشكل خاص.")} /></div>}
           <div className="mt-5"><IdentityForm fields={[]} button={pick(lang, "Regenerate recovery codes", "إعادة إنشاء رموز الاسترداد")} submit={async () => {
             const result = await getIdentityUiClient().postStaffMfaRecoveryCodesRegenerate(); setCodes(result.data.recoveryCodes);
-          }} notice={pick(lang, "Requires recent verification. Previous recovery codes become invalid.", "يتطلب تحققاً حديثاً. تصبح رموز الاسترداد السابقة غير صالحة.")} /></div>
+          }} notice={pick(lang, "Requires recent verification. Previous recovery codes become invalid.", "يتطلب تحققاً حديثاً. تصبح رموز الاسترداد السابقة غير صالحة.")} /></div></> : <>
+          <p className="mb-4 text-sm">{pick(lang, "An authenticator is optional. Once enabled, it is required at sign in. Disabling it is not available.", "تطبيق المصادقة اختياري. بعد تفعيله، يلزم عند تسجيل الدخول. إلغاء التفعيل غير متاح.")}</p>
+          <IdentityForm fields={[{ ...passwordField, name: "currentPassword", en: "Current password", ar: "كلمة المرور الحالية" }]}
+            button={pick(lang, "Enable authenticator", "تفعيل تطبيق المصادقة")} submit={async (v) => {
+              const result = await getIdentityUiClient().postStaffMfaEnrollmentSetup({ currentPassword: v["currentPassword"]! }); setSecret(result.data.secret);
+            }} />
+          {secret && <div className="my-5"><p dir="ltr" className="mb-4 break-all font-mono">{secret}</p>
+            <IdentityForm fields={[{ name: "totpCode", en: "Authenticator code", ar: "رمز تطبيق المصادقة" }]} submit={async (v) => {
+              const result = await getIdentityUiClient().postStaffMfaEnrollmentConfirm({ totpCode: v["totpCode"]! });
+              setCodes(result.data.recoveryCodes); setSecret(null); setStepUpUntil(null); await load();
+            }} notice={pick(lang, "Confirm within five minutes. Confirmation revokes previous sessions and shows recovery codes once.", "أكد خلال خمس دقائق. يلغي التأكيد الجلسات السابقة ويعرض رموز الاسترداد مرة واحدة.")} /></div>}
+          </>}
         </Panel>
         <Panel><h2 className="mb-4 text-lg font-semibold">{pick(lang, "Active sessions", "الجلسات النشطة")}</h2>
           {sessions.map((session) => <div key={session.id} className="mb-4 border-b border-border pb-4">

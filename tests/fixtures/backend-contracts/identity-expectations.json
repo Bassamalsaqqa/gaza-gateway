@@ -36,7 +36,12 @@
       },
       "staff": {
         "absolute": 28800,
-        "idle": 3600
+        "idle": 3600,
+        "assurance": [
+          "password",
+          "mfa"
+        ],
+        "passwordVerifiedAt": "real password proof only; never copied into mfa_verified_at"
       },
       "anonymous": {
         "absolute": 1800,
@@ -71,7 +76,9 @@
       "recoveryCount": 10,
       "recoveryEntropyBits": 128,
       "encryptedSecret": true,
-      "oneUseCounter": true
+      "oneUseCounter": true,
+      "initialEnrollment": "optional_authenticated_own_settings_current_password",
+      "enrolledLogin": "required_totp_or_recovery"
     },
     "proofs": {
       "passenger_email_verification": {
@@ -290,7 +297,7 @@
         "realm_staff",
         "active",
         "verified_email",
-        "confirmed_current_mfa",
+        "password_if_never_enrolled_else_confirmed_current_mfa",
         "exact_epoch",
         "absolute_expiry",
         "idle_expiry",
@@ -374,10 +381,10 @@
       },
       "staff": {
         "invited": {
-          "accept": "pending_enrollment"
+          "accept": "active"
         },
         "pending_enrollment": {
-          "confirm_mfa": "active",
+          "password_login": "active",
           "deactivate": "deactivated"
         },
         "active": {

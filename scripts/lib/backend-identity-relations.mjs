@@ -64,7 +64,7 @@ const session = (name, subject, realm) =>
       col("last_seen_at", "TIMESTAMPTZ"),
       col("revoked_at", "TIMESTAMPTZ", true),
       ...(realm === "staff_users"
-        ? [col("mfa_version", "INTEGER", true), col("mfa_verified_at", "TIMESTAMPTZ", true)]
+        ? [col("mfa_version", "INTEGER", true), col("mfa_verified_at", "TIMESTAMPTZ", true), col("assurance", "TEXT"), col("password_verified_at", "TIMESTAMPTZ", true)]
         : []),
     ],
     [
@@ -81,7 +81,7 @@ const session = (name, subject, realm) =>
       "(auth_level = 'full') = (" + subject + " IS NOT NULL)",
       "auth_level != 'full' OR credential_epoch >= 1",
       ...(realm === "staff_users"
-        ? ["auth_level != 'full' OR (mfa_version IS NOT NULL AND mfa_verified_at IS NOT NULL)"]
+        ? ["(auth_level = 'anonymous' AND assurance = 'anonymous' AND password_verified_at IS NULL AND mfa_version IS NULL AND mfa_verified_at IS NULL) OR (auth_level = 'full' AND assurance = 'password' AND password_verified_at IS NOT NULL AND mfa_version IS NULL AND mfa_verified_at IS NULL) OR (auth_level = 'full' AND assurance = 'mfa' AND mfa_version IS NOT NULL AND mfa_verified_at IS NOT NULL)"]
         : []),
     ],
   );
@@ -150,7 +150,7 @@ export const IDENTITY_RELATIONS = [
       "role IN ('admin','editor','viewer')",
       "status IN ('invited','pending_enrollment','active','suspended','deactivated')",
       "credential_epoch >= 1",
-      "status != 'active' OR (email_verified_at IS NOT NULL AND password_hash IS NOT NULL AND mfa_version IS NOT NULL)",
+      "status != 'active' OR (email_verified_at IS NOT NULL AND password_hash IS NOT NULL)",
     ],
   ),
   table(

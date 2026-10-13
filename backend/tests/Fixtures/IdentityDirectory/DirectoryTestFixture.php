@@ -31,10 +31,12 @@ final class DirectoryTestFixture
     private function assertSafeTestDatabase(): void
     {
         $dbName = $this->db->getDatabaseName();
-        if (getenv('APP_ENV') !== 'testing' || config('app.env') !== 'testing'
-            || $this->db->getName() !== 'pgsql_test' || $dbName !== 'gaza_gateway_test'
-            || $this->db->selectOne('SELECT current_database() AS name')->name !== 'gaza_gateway_test'
-        ) {
+        $name = $this->db->getName();
+        $safePg = $name === 'pgsql_test' && $this->db->getDriverName() === 'pgsql' && $dbName === 'gaza_gateway_test'
+            && $this->db->selectOne('SELECT current_database() AS name')->name === 'gaza_gateway_test';
+        $safeMysql = $name === 'mysql_test' && $this->db->getDriverName() === 'mysql' && $dbName === 'gaza_gateway_mysql_test'
+            && $this->db->selectOne('SELECT DATABASE() AS name')->name === 'gaza_gateway_mysql_test';
+        if (getenv('APP_ENV') !== 'testing' || config('app.env') !== 'testing' || (!$safePg && !$safeMysql)) {
             throw new \RuntimeException('DirectoryTestFixture requires the intended disposable testing database.');
         }
     }
@@ -192,11 +194,11 @@ final class DirectoryTestFixture
 
         $mfaVersion = array_key_exists('mfa_version', $overrides)
             ? $overrides['mfa_version']
-            : (int) ($staffRow->mfa_version ?? 1);
+            : ($authLevel === 'full' ? (int) ($staffRow->mfa_version ?? 1) : null);
 
         $mfaVerifiedAt = array_key_exists('mfa_verified_at', $overrides)
             ? $overrides['mfa_verified_at']
-            : $now->subSeconds(10)->toIso8601String();
+            : ($authLevel === 'full' ? $now->subSeconds(10)->toIso8601String() : null);
 
         $revokedAt = $overrides['revoked_at'] ?? null;
 
@@ -206,9 +208,11 @@ final class DirectoryTestFixture
         $this->db->table('staff_sessions')->insert([
             'id' => $sessionId,
             'lookup_digest' => $token->digest,
-            'staff_id' => $staffId,
+            'staff_id' => $authLevel === 'full' ? $staffId : null,
             'auth_level' => $authLevel,
-            'credential_epoch' => $epoch,
+            'assurance' => $overrides['assurance'] ?? ($authLevel === 'full' ? 'mfa' : 'anonymous'),
+            'password_verified_at' => $overrides['password_verified_at'] ?? null,
+            'credential_epoch' => $authLevel === 'full' ? $epoch : null,
             'encrypted_payload' => $encryptedPayload,
             'issued_at' => $now->toIso8601String(),
             'absolute_expires_at' => $absExpiry->toIso8601String(),

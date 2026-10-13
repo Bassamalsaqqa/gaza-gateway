@@ -1,5 +1,7 @@
 # Nonproduction identity UI
 
+> Initial staff enrollment policy is superseded by the [2026-10-13 optional MFA amendment](optional-staff-mfa.md). Historical acceptance results below do not validate this amendment.
+
 Status: implemented locally / Awaiting Independent Review. This is an isolated identity preview, not a production repository cutover or acceptance of Phase 13B.
 
 The existing EN/AR sign-in, registration, recovery, account and staff route entry points select the preview only when `VITE_IDENTITY_UI_MODE=backend`. The default remains mock. An invalid explicit mode selects the blocked server boundary, never mock identity. Set `VITE_IDENTITY_NONPRODUCTION_OPT_IN=true` and `VITE_IDENTITY_API_BASE_URL=https://127.0.0.1:18090/api/v1` in an ignored local development environment. The transport requires a known nonproduction environment and rejects production flags, production hosts, plaintext HTTP, ambiguous URLs and missing opt-in. A production static build cannot enable this preview.
