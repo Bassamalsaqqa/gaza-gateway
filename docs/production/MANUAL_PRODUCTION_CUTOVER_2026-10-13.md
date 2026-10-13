@@ -1,6 +1,6 @@
 # Owner-authorized manual production cutover
 
-**Current state: INSTALLED / OWNER SETUP AND TESTING PENDING.** Steps 1-4 are complete. Do not run the installer again or re-extract the ZIP. Continue with steps 5-7 below: recurring cron, first Admin invitation acceptance and approved reference/content initialization.
+**Current state: INSTALLED / PRODUCTION INVITATION RECEIVED / OWNER SETUP AND TESTING PENDING.** Steps 1-5 are complete; the recurring cron is active and the production invitation has arrived. Do not run the installer again or re-extract the ZIP. Continue with steps 6-7 below: first Admin invitation acceptance and approved reference/content initialization.
 
 The owner requested production deployment and will perform acceptance testing afterwards. This overrides the earlier requirement to wait for all H4 checks before cutover; it is not independent reviewer acceptance. The owner initially requested manual cPanel operation, then explicitly asked Codex to repair and complete only the failed installation step. Remaining owner setup/testing is manual.
 
@@ -16,6 +16,14 @@ The first run at 2026-10-13T09:49:03Z stopped at install. The prepared private a
 The owner then asked Codex to complete the installation step through cPanel. The corrected retry staged the private application but still stopped before activation. Actual bounded read-only runtime diagnostic at 10:19:01Z proved production boot/configuration at exact 7a8f0fa PASS and runtime connection to gaza5045_gateway_live PASS, with zero tables and no active code pointer. Migration-user authentication failed (1045). A separate 10:22:01Z check confirmed the same refusal through both localhost and 127.0.0.1. The public website/backup remain unchanged. The diagnostic cron is paused; no blind retry or privilege weakening occurred. The remaining owner action is to reset only gaza5045_liveadmin's password personally and update database.password in the private live-approval.json to match. Leave runtime credentials and the string schema_version "1.0" unchanged. Codex will verify the corrected connection and finish installation before handing steps 5-7 back to the owner. Actual sanitized diagnostic receipts are retained locally outside Git.
 
 ## Prepared files
+
+### Production SMTP repair and actual delivery
+
+The owner installed the prescribed recurring cron, but the invitation did not arrive. Private diagnostics showed a valid issued invitation and failed SMTP attempts. The saved production mailbox credential differed from the existing staging credential. A bounded authentication-only probe with the staging credential passed; the production credential returned SMTP 535 when the diagnostic allowed sufficient time to observe the rejection. No mailbox password reset, TLS bypass or application timeout change was needed.
+
+After explicit owner confirmation, Codex restored that verified existing mailbox credential through the application's encrypted MailSettings service, preserving the production sender, host, port, TLS and other settings. Settings revision advanced from 1 to 2. At 2026-10-13T11:19:01Z, the normal bounded cron retried the same unexpired invitation: outbox status accepted, attempt 5, accepted_at 11:19:01.517532Z, cron healthy. Roundcube refresh then showed the new production Staff portal invitation in notifications@gazaairport.com's Inbox (message UID 6; displayed 07:19 AM in that mailbox's timezone). This independently observes mailbox arrival for this invitation, not merely SMTP acceptance.
+
+The temporary repair cron was removed; the prescribed 15-minute production cron remains. Actual private receipts and an Inbox screenshot are retained outside Git, including the earlier failures. The repair helper inherited a generic diagnostic stdout trailer saying no email was sent; that trailer is inaccurate for the repair run and is not delivery evidence. The structured repair receipt and observed Inbox arrival are the authoritative evidence. Application source remains exactly 7a8f0fa; no application files, mailbox password, staff permissions, proof token or expiry changed. Registration, ticket delivery and full production acceptance still await owner tests. The uploaded ZIP/bootstrap inputs contain obsolete credentials and must not overwrite installed configuration.
 
 ### Actual successful installation
 
