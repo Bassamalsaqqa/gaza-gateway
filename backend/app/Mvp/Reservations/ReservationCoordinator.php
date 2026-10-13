@@ -101,9 +101,6 @@ final class ReservationCoordinator
                 throw new ReservationConflictException('Submission ID already used with different command payload.');
             }
 
-            if (ReservationCommand::service($serviceId)['date'] < gmdate('Y-m-d')) {
-                throw new ReservationValidationException('Offering date cannot be in the past.');
-            }
             // 2. Lock domain controls in strict canonical order: fleet -> network -> schedule
             DB::table('reference_revision_control')->where('domain', 'fleet')->lockForUpdate()->first();
             DB::table('network_revision_control')->where('domain', 'network')->lockForUpdate()->first();
@@ -113,10 +110,6 @@ final class ReservationCoordinator
             $serviceRow = DB::table('mvp_services')->where('id', $serviceId)->lockForUpdate()->first();
             if ($serviceRow === null) {
                 $offering = $this->authority->resolve($serviceId);
-                $todayUtc = gmdate('Y-m-d');
-                if ($offering['date'] < $todayUtc) {
-                    throw new ReservationValidationException('Offering date cannot be in the past.');
-                }
 
                 $aircraftModel = $offering['aircraft'];
 
@@ -149,10 +142,6 @@ final class ReservationCoordinator
             } else {
                 // Revalidate actual offering within locked transaction
                 $offering = $this->authority->resolve($serviceId);
-                $todayUtc = gmdate('Y-m-d');
-                if ($offering['date'] < $todayUtc) {
-                    throw new ReservationValidationException('Offering date cannot be in the past.');
-                }
 
                 $frozenLayout = json_decode((string) $serviceRow->layout_snapshot, true, 512, JSON_THROW_ON_ERROR);
                 $frozenAircraft = json_decode((string) $serviceRow->aircraft_snapshot, true, 512, JSON_THROW_ON_ERROR);
@@ -173,6 +162,10 @@ final class ReservationCoordinator
 
             // 5. Fresh time & session authority recheck AFTER blocking on locks
             $now = DatabaseClock::now();
+            // The origin's calendar date is not a UTC booking deadline. Recheck the
+            // authoritative instant after every potentially blocking domain lock.
+            // Idempotent replay above remains readable even after departure.
+            ReservationDepartureBoundary::assertFuture($offering['departAt'] ?? null, $now);
 
             $freshSession = DB::table('passenger_sessions')->where('id', $session->sessionId)->first();
             if (!$freshSession || $freshSession->revoked_at !== null) {

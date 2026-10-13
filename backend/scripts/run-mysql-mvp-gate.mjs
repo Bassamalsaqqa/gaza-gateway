@@ -748,6 +748,7 @@ async function main() {
         </testsuite>
         <testsuite name="OfferingLocalTime">
             <file>tests/Unit/ReferenceSchedules/OfferingLocalTimeTest.php</file>
+            <file>tests/Unit/ReferenceSchedules/ReservationDepartureBoundaryTest.php</file>
         </testsuite>
         <testsuite name="SharedHostingOwner"><directory>tests/SharedHostingOwner</directory></testsuite>
         <testsuite name="MySqlIdentityFoundation">

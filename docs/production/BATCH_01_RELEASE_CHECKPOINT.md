@@ -1,5 +1,7 @@
 # Batch 01 release checkpoint
 
+> **Superseding owner continuation:** [Controlled production upgrade](BATCH_01_PRODUCTION_UPGRADE_2026-10-13.md) replaces the remote staging gate below with local rehearsal, read-only production preflight, backups and final owner GO. This checkpoint preserves its original staging artifact/evidence; that artifact must not be deployed to production.
+
 Status: local MySQL, combined-package, frontend-tooling and joined-browser gates passed; final package review and remote staging acceptance pending. **Do not deploy this checkpoint to production yet.**
 
 Tested and pushed implementation: `bae56674acbbd10429ca1cf193a6d902e4c47a8d`, branch `refinement/post-launch-batch-01`. Linear parents: `837082518d74fc5010d87bbe549440ccbef45875` → `b4049136aa0e037fba6b5be9b8e84bc2c0eb436b` → owner brief `22c0b4b2a24d2c14dd0815a1d472f9edf5bb295d` → HostPapa PR4 `4d096e8d720ff6bfcec993a36adac84fafd89daf`. This record is an attestation, not a claim that its own later documentation SHA reran these gates.

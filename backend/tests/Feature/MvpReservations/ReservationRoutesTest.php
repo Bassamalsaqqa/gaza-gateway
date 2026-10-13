@@ -292,6 +292,79 @@ final class ReservationRoutesTest extends TestCase
         ];
     }
 
+    public function test_authoritative_departure_instant_across_international_calendars_and_dst(): void
+    {
+        $this->assertSame('mysql', DB::connection()->getDriverName());
+        $originalAirport = DB::table('airports')->where('code', 'AMM')->first();
+        $originalSchedule = DB::table('schedules')->where('id', 'curated-flight')->first();
+        try {
+            foreach ([
+                // Origin yesterday in UTC, but its evening departure is still future.
+                ['America/New_York', '2026-07-15', '23:30', '2026-07-16T02:00:00Z', 201],
+                // Origin tomorrow on the calendar, but its departure is already past.
+                ['Pacific/Auckland', '2026-07-16', '00:30', '2026-07-15T13:00:00Z', 422],
+                ['America/New_York', '2026-03-08', '01:30', '2026-03-08T06:29:59Z', 201],
+                ['America/New_York', '2026-03-08', '03:30', '2026-03-08T07:30:00Z', 422],
+                ['America/New_York', '2026-11-01', '02:30', '2026-11-01T07:30:01Z', 422],
+                ['Asia/Kolkata', '2026-07-15', '04:30', '2026-07-14T22:59:59Z', 201],
+            ] as $index => [$zone, $date, $time, $now, $status]) {
+                DB::statement('SET timestamp = '.(new \DateTimeImmutable($now))->getTimestamp());
+                CarbonImmutable::setTestNow(new \DateTimeImmutable($now));
+                $this->assertSame((new \DateTimeImmutable($now))->getTimestamp(), \App\Support\DatabaseClock::now()->getTimestamp());
+                DB::table('airports')->where('code', 'AMM')->update(['timezone' => $zone]);
+                $schedule = (array) $originalSchedule;
+                $schedule['id'] = 'departure-boundary-'.$index;
+                $schedule['direction'] = 'in';
+                $schedule['depart_time'] = $time;
+                DB::table('schedules')->insert($schedule);
+                $passenger = $this->passenger();
+                $service = 'svc1-'.rtrim(strtr(base64_encode($schedule['id']), '+/', '-_'), '=').'-'.$date;
+                $command = $this->sampleCommand($service, ($index + 1).'A');
+                $response = $this->http('POST', '/reservations', $passenger, $command)->assertStatus($status);
+                if ($status === 422) {
+                    $this->assertSame('validation_error', $response->json('error.code'));
+                    $this->assertFalse(DB::table('mvp_reservation_submissions')->where('submission_id', $command['submissionId'])->exists());
+                    $this->assertFalse(DB::table('mvp_reservation_seat_claims')->where('service_id', $command['serviceId'])->where('seat_code', $command['passengers'][0]['seatCode'])->exists());
+                }
+            }
+        } finally {
+            DB::statement('SET timestamp = 0');
+            CarbonImmutable::setTestNow();
+            DB::table('airports')->where('code', 'AMM')->update(['timezone' => $originalAirport->timezone]);
+        }
+    }
+
+    public function test_departure_boundary_rejects_new_booking_but_preserves_idempotent_replay(): void
+    {
+        $originalAirport = DB::table('airports')->where('code', 'AMM')->first();
+        $originalSchedule = DB::table('schedules')->where('id', 'curated-flight')->first();
+        try {
+            DB::statement('SET timestamp = '.strtotime('2026-12-20T06:59:59Z'));
+            CarbonImmutable::setTestNow(new \DateTimeImmutable('2026-12-20T06:59:59Z'));
+            DB::table('airports')->where('code', 'AMM')->update(['timezone' => 'America/New_York']);
+            $schedule = (array) $originalSchedule;
+            $schedule['id'] = 'departure-exact-boundary';
+            $schedule['direction'] = 'in';
+            $schedule['depart_time'] = '02:00';
+            DB::table('schedules')->insert($schedule);
+            $owner = $this->passenger();
+            $service = 'svc1-'.rtrim(strtr(base64_encode($schedule['id']), '+/', '-_'), '=').'-2026-12-20';
+            $command = $this->sampleCommand($service, '1A');
+            $created = $this->http('POST', '/reservations', $owner, $command)->assertStatus(201);
+            DB::statement('SET timestamp = '.strtotime('2026-12-20T07:00:00Z'));
+            CarbonImmutable::setTestNow(new \DateTimeImmutable('2026-12-20T07:00:00Z'));
+            $replay = $this->http('POST', '/reservations', $owner, $command)->assertStatus(200);
+            $this->assertSame($created->json('data.reservation.reference'), $replay->json('data.reservation.reference'));
+            $other = $this->sampleCommand($command['serviceId'], '2A');
+            $this->http('POST', '/reservations', $owner, $other)->assertStatus(422);
+            $this->assertFalse(DB::table('mvp_reservation_seat_claims')->where('service_id', $command['serviceId'])->where('seat_code', '2A')->exists());
+        } finally {
+            DB::statement('SET timestamp = 0');
+            CarbonImmutable::setTestNow();
+            DB::table('airports')->where('code', 'AMM')->update(['timezone' => $originalAirport->timezone]);
+        }
+    }
+
     public function test_migration_cycle_reversibility(): void
     {
         $steps=DB::table('migrations')->where('migration','>=','2026_10_11_000007_create_mvp_reservation_tables')->count();
@@ -731,7 +804,8 @@ final class ReservationRoutesTest extends TestCase
 
         $this->http('POST', '/reservations', $passenger, null, [], 'not-a-valid-json')->assertStatus(422);
 
-        $pastCmd = $this->sampleCommand($this->sampleServiceId('2020-01-01'), '18A');
+        // Resolve a genuine past offering inside the curated schedule range.
+        $pastCmd = $this->sampleCommand($this->sampleServiceId('2026-01-01'), '18A');
         $this->http('POST', '/reservations', $passenger, $pastCmd)->assertStatus(422);
 
         $badSeatCmd = $this->sampleCommand($serviceId, '99Z');
@@ -894,6 +968,13 @@ final class ReservationRoutesTest extends TestCase
 
     public function test_historical_paid_guest_and_checkin_routes_are_absent(): void
     {
+        $routeUris = array_map(static fn($route) => $route->uri(), app('router')->getRoutes()->getRoutes());
+        foreach ($routeUris as $uri) {
+            $this->assertFalse(str_starts_with($uri, 'api/v1/cms/publications'), 'Historical ownerApproved/deployment API must not be registered.');
+            $this->assertFalse(str_starts_with($uri, 'api/v1/publication-snapshots'), 'Known sealed release IDs must not expose inactive content.');
+        }
+        $this->http('GET', '/publication-snapshots/known-sealed-release')->assertStatus(404);
+        $this->http('GET', '/cms/publications/known-sealed-release/snapshot')->assertStatus(404);
         foreach (['POST /bookings', 'POST /payments/intents', 'POST /payments/webhook', 'POST /check-in',
             'POST /bookings/GZA-NONE/challenge', 'POST /bookings/GZA-NONE/verify-challenge',
             'POST /bookings/GZA-NONE/claim-challenge', 'POST /bookings/GZA-NONE/verify-claim-challenge'] as $route) {
@@ -905,6 +986,23 @@ final class ReservationRoutesTest extends TestCase
             $this->assertNotContains('api/v1/bookings/{ref}/verify-claim-challenge', $routeUris);
             $this->http($method, $path, [], [])->assertStatus(str_starts_with($path, '/bookings/GZA-') ? 403 : 404);
         }
+    }
+
+    public function test_excluded_infant_and_payment_commands_cannot_enter_free_mvp_authority(): void
+    {
+        $owner = $this->passenger();
+        $command = $this->sampleCommand($this->sampleServiceId(), '1A');
+        $infant = $command;
+        $infant['passengers'][0]['type'] = 'infant';
+        $infant['passengers'][0]['dob'] = '2026-01-01';
+        $this->http('POST', '/reservations', $owner, $infant)->assertStatus(422);
+        $linked = $command;
+        $linked['passengers'][0]['linkedAdultPassengerId'] = 'invented-adult';
+        $this->http('POST', '/reservations', $owner, $linked)->assertStatus(422);
+        $paid = $command;
+        $paid['priceMinor'] = 100;
+        $this->http('POST', '/reservations', $owner, $paid)->assertStatus(422);
+        $this->assertFalse(DB::table('mvp_reservation_submissions')->where('submission_id', $command['submissionId'])->exists());
     }
 
     private function race(array $inputs): array

@@ -1099,4 +1099,25 @@ final class EditorialRoutesTest extends TestCase
         $this->assertStringNotContainsString('private-sentinel', $response->getContent());
     }
 
+    public function test_known_unpublished_revision_is_not_public_authority(): void
+    {
+        $staff = $this->staff('admin');
+        $source = json_decode(file_get_contents('/tmp/editorial-source.json'), true, 512, JSON_THROW_ON_ERROR);
+        $initial = (int) (DB::table('editorial_documents')->where('slug', 'home')->value('current_revision') ?? 0);
+        $seed = $this->http('PUT', '/cms/editorial/home/draft', $staff, ['expectedRevision' => $initial, 'payload' => $source['home']])->assertStatus(200);
+        $this->http('POST', '/cms/editorial/home/publish', $staff, ['expectedRevision' => $seed->json('data.currentRevision')])->assertStatus(200);
+        $payload = $source['home'];
+        $payload['copy']['h1']['en'] = 'PRIVATE UNPUBLISHED SPECIMEN';
+        $before = $this->http('GET', '/cms/published/home')->assertStatus(200)->json('data');
+        $revision = (int) DB::table('editorial_documents')->where('slug', 'home')->value('current_revision');
+        $draft = $this->http('PUT', '/cms/editorial/home/draft', $staff, ['expectedRevision' => $revision, 'payload' => $payload])->assertStatus(200);
+        $knownDraft = $draft->json('data.currentRevision');
+        $public = $this->http('GET', '/cms/published/home?revision='.$knownDraft)->assertStatus(200);
+        $this->assertSame($before['payload'], $public->json('data.payload'));
+        $this->assertSame($before['revisionNumber'], $public->json('data.revisionNumber'));
+        $this->assertStringNotContainsString('PRIVATE UNPUBLISHED SPECIMEN', $public->getContent());
+        $this->assertSame(1, DB::table('editorial_documents')->where('slug', 'home')->count());
+        $this->assertSame($before['revisionNumber'], (int) DB::table('editorial_documents')->where('slug', 'home')->value('published_revision'));
+    }
+
 }
