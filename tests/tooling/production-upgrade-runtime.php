@@ -33,7 +33,7 @@ function writePrivate(string $file, string $bytes): void {
     if (file_put_contents($file,$bytes)!==strlen($bytes) || !chmod($file,0600)) throw new RuntimeException('Fixture write failed.');
 }
 
-$old = '/old-package';
+$old = $home.'/original-package';
 $oldManifest = json_decode(file_get_contents($old.'/release-manifest.json'),true,64,JSON_THROW_ON_ERROR);
 check($oldManifest['source_sha']==='7a8f0fa2f25851c4f75422f86139e0bb020ea4de'
     && hash_file('sha256',$old.'/release-manifest.json')==='f4950ad28949c874e8055cabe5af049d4467acee1583a8c916f96bb50c2f1cdf', 'exact original 7a8f0fa package and immutable manifest');
@@ -51,6 +51,7 @@ $approval=['schema_version'=>'1.0','action'=>'install','release_id'=>$oldManifes
     'database'=>['host'=>'127.0.0.1','port'=>3306,'database'=>$db,'username'=>'gaza5045_liveadmin','password'=>$ddl],'runtime_env_file'=>$home.'/runtime.env'];
 writePrivate($home.'/gaza-live-package/live-approval.json',json_encode($approval,JSON_THROW_ON_ERROR));
 [$code,$out,$err]=command([PHP_BINARY,$old.'/installer/hostpapa-install.php','--action=install','--package-dir='.$old,'--approval-file='.$home.'/gaza-live-package/live-approval.json']);
+if($code!==0) echo 'SANITIZED BASELINE INSTALL: '.$err;
 check($code===0,'real original production-profile install (no bootstrap)');
 check((int)$root->query("SELECT COUNT(*) FROM `$db`.migrations")->fetchColumn()===19,'original 19 migrations');
 $pdo=new PDO('mysql:host=127.0.0.1;dbname='.$db,'gaza5045_liveadmin',$ddl,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
@@ -59,8 +60,13 @@ $p=$pdo->prepare("INSERT INTO users(id,email,password_hash,status,email_verified
 $p->execute([$uuid,'owned-synthetic@example.test',password_hash('synthetic-retained-password',PASSWORD_ARGON2ID)]);
 $p=$pdo->prepare("INSERT INTO staff_users(id,username,email,full_name_en,full_name_ar,password_hash,role,status,credential_epoch,created_at,updated_at) VALUES(?,?,?,'Synthetic','Synthetic',?,'viewer','invited',1,UTC_TIMESTAMP(6),UTC_TIMESTAMP(6))");
 $p->execute([$staff,'retained-staff','owned-staff@example.test',password_hash('synthetic-staff-password',PASSWORD_ARGON2ID)]);
+require $app.'/releases/'.$oldManifest['release_id'].'/backend/vendor/autoload.php';
+$parsedEnv=\Dotenv\Dotenv::parse($env);
+$encrypter=new \Illuminate\Encryption\Encrypter(base64_decode(substr($parsedEnv['APP_KEY'],7)), 'AES-256-CBC');
+$ciphertext=$encrypter->encryptString(json_encode(['driver'=>'smtp','host'=>'mail.gazaairport.com','port'=>465,'tls'=>'tls','username'=>'owned-synthetic@example.test',
+    'password'=>'SYNTHETIC-NOT-A-PROVIDER-CREDENTIAL','senderName'=>'Synthetic','senderEmail'=>'owned-synthetic@example.test','replyTo'=>'','usernameSet'=>true,'passwordSet'=>true],JSON_THROW_ON_ERROR));
 $p=$pdo->prepare('INSERT INTO mvp_mail_settings(id,revision,encrypted_config,updated_by) VALUES(1,17,?,?)');
-$p->execute(['synthetic-ciphertext-preservation-specimen-not-a-mail-certificate',$staff]);
+$p->execute([$ciphertext,$staff]);
 $userBefore=$pdo->query('SELECT * FROM users ORDER BY id')->fetchAll(PDO::FETCH_ASSOC);
 $mailBefore=$pdo->query('SELECT * FROM mvp_mail_settings')->fetchAll(PDO::FETCH_ASSOC);
 $envHash=hash_file('sha256',$app.'/shared/config/.env');
@@ -69,6 +75,10 @@ $runner=$kit.'/production-upgrade-runner.php';
 [$code,$out,$err]=command([PHP_BINARY,$runner,'--check']);
 check($code===0,'real complete non-destructive production preflight');
 check(hash_file('sha256',$app.'/shared/config/.env')===$envHash && $pdo->query('SELECT * FROM users ORDER BY id')->fetchAll(PDO::FETCH_ASSOC)===$userBefore,'preflight preserves configuration and accounts');
+file_put_contents($app.'/current-release.txt','unapproved-other-release');
+[$code]=command([PHP_BINARY,$runner,'--check']);
+check($code===1 && !file_exists($kit.'/production-upgrade-attempted') && (int)$pdo->query('SELECT COUNT(*) FROM migrations')->fetchColumn()===19,'complete wrong-baseline preflight blocks before migration/attempt');
+file_put_contents($app.'/current-release.txt',$oldManifest['release_id']);
 [$code,$out,$err]=command([PHP_BINARY,$runner,'--upgrade']);
 check($code===1 && str_contains($err,'Explicit final owner GO') && !file_exists($kit.'/production-upgrade-attempted'),'missing release GO blocks execution before attempt');
 [$code,$out,$err]=command([PHP_BINARY,$runner,'--upgrade','--confirm-upgrade'],390);
@@ -77,6 +87,11 @@ check($code===0,'real production-profile upgrade with backups and inherited inst
 $receipt=json_decode(file_get_contents($kit.'/production-upgrade-result.json'),true,32,JSON_THROW_ON_ERROR);
 check($receipt['outcome']==='DEPLOYED_OWNER_TESTING_PENDING' && (int)$pdo->query('SELECT COUNT(*) FROM migrations')->fetchColumn()===21,'exact target release and 19 to 21 additive migration');
 check($pdo->query('SELECT * FROM users ORDER BY id')->fetchAll(PDO::FETCH_ASSOC)===$userBefore && $pdo->query('SELECT * FROM mvp_mail_settings')->fetchAll(PDO::FETCH_ASSOC)===$mailBefore && hash_file('sha256',$app.'/shared/config/.env')===$envHash,'accounts, staff-bound SMTP settings and secrets remain byte-identical');
+check($encrypter->decryptString($pdo->query('SELECT encrypted_config FROM mvp_mail_settings')->fetchColumn())===$encrypter->decryptString($ciphertext),'retained SMTP ciphertext still decrypts with unchanged key');
+$probe=$home.'/version-probe.php';
+writePrivate($probe,"<?php \$_SERVER['HTTPS']='on'; \$_SERVER['SERVER_PORT']='443'; \$_SERVER['HTTP_HOST']='www.gazaairport.com'; \$_SERVER['REQUEST_METHOD']='GET'; \$_SERVER['REQUEST_URI']='/api/v1/version'; \$_SERVER['SCRIPT_NAME']='/index.php'; \$_SERVER['DOCUMENT_ROOT']='$home/public_html'; require '$home/public_html/index.php';");
+[$code,$out]=command([PHP_BINARY,$probe]);$version=json_decode($out,true);
+check($code===0 && ($version['data']['commit']??null)===$receipt['source_sha'],'actual production PHP bridge reports new immutable source despite old shared APP_COMMIT');
 check(!file_exists($app.'/shared/storage/app/private/owner-bootstrap.json'),'no first-owner bootstrap or invitation');
 [$code,$out]=command([PHP_BINARY,$runner,'--upgrade','--confirm-upgrade']);check($code===0 && str_contains($out,'SKIP'),'repeated cron cannot retry an attempted upgrade');
 $backup=$app.'/shared/backups/'.$receipt['backups_retained'];

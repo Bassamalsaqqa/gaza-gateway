@@ -292,7 +292,7 @@ try {
     // Inside kit lock: check attempt marker
     $attemptPath = $kitRoot . '/production-upgrade-attempted';
     safePath($attemptPath, $home);
-    if (is_file($attemptPath)) {
+    if ($mode === '--upgrade' && is_file($attemptPath)) {
         echo "SKIP: upgrade already attempted; inspect production-upgrade-result.json and remove temporary cron.\n";
         return;
     }
@@ -472,8 +472,8 @@ try {
         if ($currentMigrations !== TARGET_MIGRATIONS) {
             throw new RuntimeException("Rollback requires target 21 migrations in place, found {$currentMigrations}.");
         }
-        // Require target backend pin: release/backend/SOURCE_COMMIT.txt
-        $targetBackendPin = $appRoot . '/releases/' . $targetReleaseId . '/backend/SOURCE_COMMIT.txt';
+        // Require target backend pin: release/SOURCE_COMMIT.txt
+        $targetBackendPin = $appRoot . '/releases/' . $targetReleaseId . '/SOURCE_COMMIT.txt';
         safePath($targetBackendPin, $home);
         if (!is_file($targetBackendPin) || trim(file_get_contents($targetBackendPin)) !== $targetSourceSha) {
             throw new RuntimeException('Target release backend source pin mismatch.');
@@ -686,7 +686,7 @@ PHP;
     }
 
     // Verified Private Backups during maintenance
-    $stage = 'backups';
+    $stage = 'backup_database';
     $backupRunId = gmdate('Ymd_His') . '_' . bin2hex(random_bytes(4));
     $backupDir = $appRoot . '/shared/backups/upgrade_' . $backupRunId;
     safePath($backupDir, $home);
@@ -733,6 +733,7 @@ PHP;
     chmod($dbDumpPath, 0600);
 
     // 2. Public webroot backup & tar integrity verification
+    $stage = 'backup_public';
     $publicBackupPath = $backupDir . '/preupgrade-public.tar.gz';
     safePath($publicBackupPath, $home);
     runBounded([$tarBin, '-czf', $publicBackupPath, '-C', $webroot, '.'], 120);
@@ -743,9 +744,15 @@ PHP;
     chmod($publicBackupPath, 0600);
 
     // 3. Private state backup & tar integrity verification
+    $stage = 'backup_private';
     $privateBackupPath = $backupDir . '/preupgrade-private-state.tar.gz';
     safePath($privateBackupPath, $home);
-    runBounded([$tarBin, '-czf', $privateBackupPath, '-C', $appRoot, 'current-release.txt', 'bin/hostpapa-cli', 'shared/config', 'releases/' . INSTALLED_RELEASE_ID], 120);
+    $privateEntries = ['current-release.txt', 'shared/config', 'shared/storage', 'releases/' . INSTALLED_RELEASE_ID];
+    // The original 7a8 installer placed its pointer-following CLI only inside the
+    // immutable release. Batch 01 adds the stable app/bin wrapper for later use.
+    if (is_dir($appRoot . '/bin')) $privateEntries[] = 'bin';
+    runBounded([$tarBin, '-czf', $privateBackupPath, '--exclude=shared/storage/logs', '--exclude=shared/storage/framework/cache',
+        '-C', $appRoot, ...$privateEntries], 120);
     if (!is_file($privateBackupPath) || filesize($privateBackupPath) < 1024) {
         throw new RuntimeException('Private state backup failed or too small.');
     }
@@ -815,8 +822,8 @@ PHP;
     if (trim(file_get_contents($pointerPath)) !== $targetReleaseId) {
         throw new RuntimeException('Pointer update verification failed.');
     }
-    // Verify required new source path is release/backend/SOURCE_COMMIT.txt
-    $newSourceFile = $appRoot . '/releases/' . $targetReleaseId . '/backend/SOURCE_COMMIT.txt';
+    // Verify required new source path is release/SOURCE_COMMIT.txt
+    $newSourceFile = $appRoot . '/releases/' . $targetReleaseId . '/SOURCE_COMMIT.txt';
     safePath($newSourceFile, $home);
     if (!is_file($newSourceFile) || trim(file_get_contents($newSourceFile)) !== $targetSourceSha) {
         throw new RuntimeException('New release backend source commit verification failed.');
