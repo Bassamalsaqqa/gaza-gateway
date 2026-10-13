@@ -72,12 +72,19 @@ export function PassengerIdentityAuth({ initial = "signin" }: { initial?: Passen
   const [resendWait, setResendWait] = useState(0);
   useEffect(() => { if (!resendWait) return; const timer = setTimeout(() => setResendWait(resendWait - 1), 1000); return () => clearTimeout(timer); }, [resendWait]);
   useEffect(() => {
-    if (initial !== "verify" || !window.location.hash) return;
-    const fragment = window.location.hash.slice(1);
-    // Remove secret-bearing URL before making any request; never persist it or put it in search params.
-    window.history.replaceState(null, "", window.location.pathname + window.location.search);
-    const token = new URLSearchParams(fragment).get("token");
-    if (token && /^[A-Za-z0-9_-]{43}$/.test(token)) setLinkToken(token);
+    if (initial !== "verify") return;
+    const readLink = () => {
+      if (!window.location.hash) return;
+      const fragment = window.location.hash.slice(1);
+      // Preserve router state; capture same-page mailbox links as well as cold loads.
+      // Clear the URL before any verification request. The secret stays only in memory.
+      window.history.replaceState(window.history.state, "", window.location.pathname + window.location.search);
+      const token = new URLSearchParams(fragment).get("token");
+      if (token && /^[A-Za-z0-9_-]{43}$/.test(token)) setLinkToken(token);
+    };
+    readLink();
+    window.addEventListener("hashchange", readLink);
+    return () => window.removeEventListener("hashchange", readLink);
   }, [initial]);
   const titles: Record<PassengerFlow, [string, string]> = {
     guest: ["Guest booking verification", "التحقق من حجز الضيف"],

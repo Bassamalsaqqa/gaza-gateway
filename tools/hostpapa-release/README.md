@@ -19,3 +19,17 @@ Code pointer replacement is atomic. Static copying is **not** atomic and is not 
 Migrations are UP-only, with approved temporary DDL credentials held in memory. Runtime credentials are a separate account with only DML access. MySQL DDL autocommits: code/static rollback never undoes schema or application data. A tested database backup/restore and actual cPanel install remain release gates.
 
 See `docs/production/H3_CPANEL_RELEASE_AND_ROLLBACK.md` for owner steps and evidence limits.
+
+## Batch 01 build entry point
+
+From clean committed source, prepare a combined staging candidate with:
+
+```text
+node scripts/build-hostpapa-update.mjs --mode=full-stack --origin=https://staging.gazaairport.com --output-dir=scratch/batch01-staging --vendor-dir=<locked-no-dev-vendor>
+```
+
+The build receipt is a sibling of the package, includes the manifest/installer hashes, and records `deployed: false`. This batch changes server authority and migrations; a frontend-only package is incompatible with the currently installed `7a8f0fa` backend.
+
+For later frontend changes with identical backend authority/contracts, the entry point also accepts `--mode=frontend-only` and an exact `--backend-sha`. It refuses incompatible source before building. The frontend package excludes executable PHP and Apache routing files; its CLI-only `frontend-deploy.php` stays outside `public/`. It requires an owner approval bound to the manifest, deployment profile and installed immutable backend pin, shares the installer lock, backs up changed files, preserves unrelated uploads, and preflights rollback evidence before writing. Static replacement remains non-atomic. Do not use it for this batch's first upgrade or the historical static-only Deploy HEAD workflow.
+
+Local focused tooling evidence is produced by `node --test tests/tooling/frontend-release.test.mjs`; this does not establish HostPapa installation or owner acceptance.
