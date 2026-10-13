@@ -55,7 +55,9 @@ if($status!==0){
 $check($status===0,'real production-profile installation and migration UP');
 $check(!str_contains($out.$err,$ddlPassword)&&!str_contains($out.$err,$runtimePassword),'installer output excludes credentials');
 $check(trim(file_get_contents($app.'/current-release.txt'))===$manifest['release_id'],'code pointer binds actual source release');
-$check((int)$root->query("SELECT COUNT(*) FROM `$db`.migrations")->fetchColumn()===18,'all 18 real migrations installed');
+$expectedMigrations = count(glob($package.'/private/backend/database/migrations/*.php'));
+$check($expectedMigrations === 19, 'exact reviewed 19-migration inventory');
+$check((int)$root->query("SELECT COUNT(*) FROM `$db`.migrations")->fetchColumn()===$expectedMigrations,'all exact package migrations installed');
 $check((int)$root->query("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA='$db' AND TABLE_TYPE='BASE TABLE' AND ENGINE<>'InnoDB'")->fetchColumn()===0,'every installed base table is InnoDB');
 $check(!str_contains(file_get_contents($app.'/shared/config/.env'),$ddlPassword),'DDL credentials never persisted in runtime env');
 $release=$app.'/releases/'.$manifest['release_id'];$cli=$release.'/bin/hostpapa-cli';
@@ -73,7 +75,7 @@ $approval['action']='rollback';$save();
 [$status,$out,$err]=$command([PHP_BINARY,$installer,'--action=rollback','--approval-file='.$approvalPath,'--confirm-rollback']);
 $check($status===0,'real code/static rollback');
 $check(!file_exists($web.'/obsolete-probe.txt')&&file_get_contents($web.'/owner-unrelated-upload.txt')==='owner bytes','rollback removes obsolete app files and preserves unrelated uploads');
-$check(trim(file_get_contents($app.'/current-release.txt'))===$manifest['release_id']&&(int)$root->query("SELECT COUNT(*) FROM `$db`.migrations")->fetchColumn()===18,'rollback retains database and restores original pointer');
+$check(trim(file_get_contents($app.'/current-release.txt'))===$manifest['release_id']&&(int)$root->query("SELECT COUNT(*) FROM `$db`.migrations")->fetchColumn()===$expectedMigrations,'rollback retains database and restores original pointer');
 // Unix permission failure after one new file was copied. Container drops DAC override capabilities.
 require $installer;
 $broken=$app.'/releases/rel_failure_probe';mkdir($broken.'/public_snapshot',0700,true);
@@ -86,3 +88,4 @@ $check($failed&&!file_exists($web.'/000-new.txt')&&file_get_contents($web.'/zzz-
 $check(trim(file_get_contents($app.'/current-release.txt'))===$manifest['release_id'],'mid-copy failure preserves original code pointer');
 $check(is_file($app.'/shared/storage/framework/maintenance.php'),'failed restoration retains maintenance and private backup');
 echo 'PROBE_COUNT='.$count.PHP_EOL;
+echo 'MIGRATION_COUNT='.$expectedMigrations.PHP_EOL;
