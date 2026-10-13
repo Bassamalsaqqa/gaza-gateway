@@ -14,7 +14,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
-/** Creates no password/MFA secret. Normal invitation acceptance and enrollment remain required. */
+/** Creates no password/MFA secret. Normal invitation acceptance is required; initial MFA enrollment is optional. */
 final class BootstrapSharedHostingOwner extends Command
 {
     protected $signature = 'hostpapa:bootstrap-owner';
@@ -57,7 +57,7 @@ final class BootstrapSharedHostingOwner extends Command
             // Do not send while holding identity locks; the shared cron dispatcher handles delivery.
             // Keep a fixed output even if erasing the owner file needs operator attention.
             $erased = @unlink($path);
-            $this->info('First staff invitation queued; normal password setup and MFA enrollment are required.');
+            $this->info('First staff invitation queued; normal password setup is required. Initial MFA enrollment is optional in Admin Settings.');
             if (!$erased) {
                 $this->warn('Remove the private owner-bootstrap configuration after successful setup.');
             }
