@@ -1,5 +1,7 @@
 # Batch 01: controlled production upgrade
 
+> **Current operational authority — 2026-10-14:** recorded installed source is `b3afa9cf08fc746a9ff7e3e9fbee66c38244fb87` with 21 migration identities; `main` is source authority. Follow the [operative full-stack upgrade guide](../HOSTPAPA_DEPLOYMENT.md) for the next release. Baseline-specific `7a8f0fa`/19→21 steps below remain historical preparation/evidence, not instructions to replay against the upgraded site. Reverify the actual installed baseline, preserve failures/backups and require explicit final owner GO. Never deploy the unrelated static branch.
+
 ## Owner directive and authority
 
 The October 13 owner continuation supersedes the remote staging requirement in the Batch 01 checkpoint/master brief. No remote staging deployment is required. The release gate is exact-source local rehearsal, a non-destructive live preflight, verified private backups and an explicitly authorized, bounded production upgrade. The previous staging ZIP is not a production artifact.

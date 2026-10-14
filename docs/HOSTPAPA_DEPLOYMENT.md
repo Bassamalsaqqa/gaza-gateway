@@ -1,144 +1,34 @@
-# HostPapa Git Deployment Guide
+# HostPapa full-stack production upgrade guide
 
-> **Controlling hosting decision ? 2026-10-12:** complete production targets the existing HostPapa shared cPanel account only (static React/Vite, Laravel/PHP, MySQL/InnoDB, HostPapa SMTP, bounded cron). Historical Render/PostgreSQL and static-only topology is superseded. H0 account proof is UNVERIFIED. No deployment/merge is authorized. [HostPapa-only ADR](architecture/ADR_HOSTPAPA_SHARED_HOSTING_ONLY.md).
+Operative guidance as of 2026-10-14. The existing shared cPanel account runs prebuilt React/Vite, Laravel 13/PHP 8.4+, MySQL/InnoDB, HostPapa SMTP and one bounded cron dispatcher. Private application/configuration/storage remain outside `public_html`; public Apache routing serves the frontend and private API. No production Node daemon or external application host.
 
+## Authority and installed baseline
 
-> **Runtime model:** HostPapa serves a prebuilt static release. It does not run Node, npm, Vite, Nitro, or Bun.
->
-> **Live status:** Repository tooling never initiates production deployment. The owner deploys from cPanel after reviewing the release and confirming the document root.
+- `main` is source authority. Review branches and pushed commits are not installed releases or merge approval.
+- Recorded installed source: `b3afa9cf08fc746a9ff7e3e9fbee66c38244fb87`, with 21 migration identities. Reverify the actual pointer, retained manifest, immutable installed bytes and migration ledger before each upgrade.
+- Deployment authority requires an approved exact source SHA, new production-profile full-stack ZIP, immutable archive SHA-256 and per-file manifest. Public frontend and private PHP files must belong to the same release.
+- `hostpapa-deploy` is unrelated legacy static-release history. Never merge or deploy its HEAD or run its static-only deployment script against this PHP application. Git pull / cPanel Deploy HEAD is not the full-stack upgrade mechanism.
 
-## Release flow
+## Guarded release workflow
 
-```text
-main
-→ local npm verification
-→ npm run build:hostpapa
-→ npm run hostpapa:prepare
-→ npm run hostpapa:verify
-→ hostpapa-deploy branch
-→ cPanel: Update from Remote
-→ cPanel: Deploy HEAD Commit
-→ $HOME/public_html/
-```
+1. Review source and integrate to `main` only with owner authorization and preserved history. Build a new clean exact-source production package with the approved origins, prebuilt frontend and locked no-dev Composer dependencies. Verify all archive/profile/source and file-manifest pins. Do not reuse the old staging ZIP or initial `7a8f0fa` installer.
+2. Rehearse migration-up, installation and code/static rollback locally against a disposable matching MySQL baseline. Preserve failed evidence and exact source attribution; do not relabel an older gate as execution at a new SHA.
+3. Prepare a private upload kit reusing installed shared runtime configuration and existing private migration approval. No new database/password request, database reset, staging-data copy or first-owner bootstrap belongs in a routine upgrade.
+4. Perform non-destructive production preflight: compare actual installed source/schema/configuration with the expected `b3afa9c`/21-migration baseline, candidate hashes, tools/privileges and backup capacity. An unexpected baseline or existing attempt marker requires diagnosis, not removal or blind retry.
+5. Present exact source/package hashes, rehearsal/preflight evidence, verified-backup and rollback procedures, and minimal private cPanel upload/execution instructions. **Stop for explicit final owner release GO.** Source publication or PR approval alone does not authorize deployment.
+6. After GO, run the reviewed guarded upgrade once: acquire upgrade guards and the existing dispatcher's database lease, enter canonical maintenance, take and verify consistent database plus public/private backups, apply reviewed migration UP only if needed, then activate matching public/private files. Preserve live users, bookings, content, SMTP settings, shared credentials and private storage. No destructive migration or automatic database restore.
+7. Verify version/source pointer, complete migration identities, preserved authority and readiness. Retain sanitized receipts, failed attempts and backups. Resume the existing single pointer-following cron; do not duplicate it or change cadence. The owner retains responsibility for one-minute cron policy; provider approval is not independently verified. GitHub Actions stay disabled.
 
-The `hostpapa-deploy` branch is static-only. Application source and build tooling remain on `main`.
+## Failure and rollback
 
-## Local verification
+Inspect retained diagnostics, active pointer, installed bytes, migration ledger and maintenance ownership before retry. A failure receipt does not prove activation never happened. Do not delete evidence or clear another operation's maintenance blindly.
 
-From an accepted `main` commit:
+Use the rehearsed, owner-authorized code/static rollback preserving shared configuration and live database records. MySQL DDL autocommits: never automatically roll migrations down or import a backup. Data restoration or incompatible-schema recovery requires a separate reviewed owner decision. Never overwrite live files with the legacy static release.
 
-```bash
-npm ci
-npm run typecheck
-npm run lint
-npm run build
-npm run build:hostpapa
-git diff --check
-```
+## Historical records — not current execution instructions
 
-The HostPapa build produces `dist/client/`. Production uses only that directory. Build-time server output is never deployed.
+- [Batch 01 upgrade record](production/BATCH_01_PRODUCTION_UPGRADE_2026-10-13.md) preserves the original `7a8f0fa` → `b3afa9c` baseline-specific procedure/evidence.
+- [Initial installation record](production/MANUAL_PRODUCTION_CUTOVER_2026-10-13.md) preserves initial setup and mail provenance; do not replay first-owner/database setup against the installed application.
+- [Historical static deployment guide](production/HISTORICAL_HOSTPAPA_STATIC_DEPLOYMENT_GUIDE.md) is preserved byte-for-byte from source `216a0ffffc9bc994fb83e1082d030c1e5a325857`. Its static-branch commands are superseded and must not be executed against the PHP site. Relative paths in that archived text refer to its original `docs/HOSTPAPA_DEPLOYMENT.md` location.
 
-## Static routing architecture
-
-The Apache release preserves four distinct fallback shells:
-
-| Shell | Namespace |
-| --- | --- |
-| `_shell.html` | English public dynamic routes |
-| `ar/_shell.html` | Arabic public dynamic routes |
-| `admin/_shell.html` | English administration routes |
-| `ar/admin/_shell.html` | Arabic administration routes |
-
-Prerendered route files take precedence. `public/.htaccess`, copied to `site/.htaccess`, serves existing files and prerendered pages first, returns a real 404 for missing static assets, and sends remaining application routes to the correct shell.
-
-Do not merge these shells or replace them with one generic SPA fallback. Their separation prevents locale, direction, and public/admin hydration mismatches.
-
-## Prepare and verify
-
-```bash
-npm run hostpapa:prepare
-npm run hostpapa:verify
-```
-
-Preparation recreates the ignored `.hostpapa-release/` directory:
-
-```text
-.cpanel.yml
-deploy-hostpapa.sh
-SOURCE_COMMIT.txt
-release-manifest.txt
-site/
-```
-
-`site/` is an exact copy of `dist/client/`, including `.htaccess`. `SOURCE_COMMIT.txt` records the full accepted source SHA. `release-manifest.txt` lists every managed site file in sorted order.
-
-Verification rejects missing shells, pages, assets, locale foundations, and deployment controls. It also rejects server bundles, environment files, source trees, orchestration folders, and unresolved HTML asset references.
-
-## Deployment branch
-
-Create or update `hostpapa-deploy` in an isolated worktree. Copy only `.hostpapa-release/` contents to its root and commit with the recorded source SHA. Never force-push published deployment history; use normal linear deployment commits.
-
-The branch contains only the five entries above. It must not contain application source, `node_modules`, raw owner image masters, agent records, credentials, or server build output.
-
-## cPanel configuration
-
-The deployment branch contains:
-
-```yaml
----
-deployment:
-  tasks:
-    - /bin/bash deploy-hostpapa.sh "$HOME/public_html/"
-```
-
-Before first deployment, confirm in cPanel that `$HOME/public_html/` is the correct document root for `gazaairport.com`.
-
-Use the cPanel interface:
-
-```text
-Git Version Control
-→ Manage
-→ Checked-Out Branch: hostpapa-deploy
-→ Update
-→ Pull or Deploy
-→ Update from Remote
-→ Deploy HEAD Commit
-```
-
-No shell access or server-side package installation is required.
-
-## Deployment safety
-
-`deploy-hostpapa.sh`:
-
-- uses strict shell mode;
-- rejects empty, root, parent-traversal, and non-`$HOME` targets;
-- verifies the release and four shells;
-- copies `site/.`, including `.htaccess`;
-- tracks managed files in `$HOME/.gazaairport-deployed-files`;
-- removes only obsolete files recorded by the previous managed manifest;
-- never recursively deletes the target;
-- never deletes `.well-known`;
-- never builds, downloads, or accesses the network.
-
-Unknown cPanel and server-managed files remain untouched. Empty directories left by older releases are harmless.
-
-## First deployment responsibilities
-
-The owner manages the existing WordPress installation separately:
-
-1. Back up the old site.
-2. Remove obsolete WordPress files in File Manager.
-3. Preserve server-managed directories such as `.well-known/`.
-4. Confirm document root and SSL/domain configuration.
-5. Run the cPanel Git deployment.
-
-The deployment script intentionally contains no WordPress cleanup logic.
-
-## Recovery and boundary
-
-Every deployment commit records its source commit. Recovery uses a previous accepted deployment commit through a normal non-rewriting update. File Manager is reserved for initial cleanup and emergency recovery; manual upload is not the normal workflow.
-
-This preparation does not add apex/`www` redirect policy, CI/CD, backend services, or databases.
-
-**NOT DEPLOYED TO HOSTPAPA — OWNER CPANEL ACTION REQUIRED.**
+This documentation correction does not build a release or authorize a merge, deployment, production write or infrastructure change.

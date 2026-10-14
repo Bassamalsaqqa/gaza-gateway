@@ -1,5 +1,7 @@
 # Gaza Gateway
 
+> **Operative production/source authority — 2026-10-14:** the installed HostPapa application is recorded at `b3afa9cf08fc746a9ff7e3e9fbee66c38244fb87` (Laravel/MySQL, 21 migration identities). `main` is source authority; pending review branches are not deployed. Use the [guarded full-stack production upgrade process](docs/HOSTPAPA_DEPLOYMENT.md), requiring a new exact-source production ZIP, local rehearsal, read-only preflight, verified backups and explicit final owner GO. Never deploy the historical static `hostpapa-deploy` branch against the PHP site. Earlier phase/status and installation statements below are dated provenance superseded by this notice; historical source SHAs and review dispositions remain unchanged.
+
 > **Controlling hosting decision ? 2026-10-12:** complete production targets the existing HostPapa shared cPanel account only (static React/Vite, Laravel/PHP, MySQL/InnoDB, HostPapa SMTP, bounded cron). Historical Render/PostgreSQL and static-only topology is superseded. H0 account proof is UNVERIFIED. No deployment/merge is authorized. [HostPapa-only ADR](docs/architecture/ADR_HOSTPAPA_SHARED_HOSTING_ONLY.md).
 
 
