@@ -199,13 +199,14 @@ function RootComponent() {
 function SiteFrame() {
   const path = stripLocale(usePathname());
   const isAdmin = path === "/admin" || path.startsWith("/admin/");
+  const isHome = path === "/" || path === "";
 
   return (
     <>
       {isAdmin ? (
         <Outlet />
       ) : (
-        <div className="flex min-h-screen flex-col bg-ambient">
+        <div className={isHome ? "flex min-h-screen flex-col home-cinematic-frame bg-transparent" : "flex min-h-screen flex-col bg-ambient"}>
           <SiteHeader />
           <main id="main" className="flex-1">
             {/* Required: nested routes render here. */}

@@ -69,7 +69,7 @@ final class EditorialValidator
     ];
 
     public const HOME_COPY_KEYS = [
-        'h1', 'sub', 'heritageSpotlightTitle', 'heritageSpotlightDesc',
+        'h1', 'sub',
         'past', 'pastSub', 'present', 'presentSub', 'future', 'futureSub',
         'destTitle', 'destSub', 'manageTitle', 'manageSub', 'infoTitle',
         'archiveTitle', 'archiveSub',
@@ -255,15 +255,20 @@ final class EditorialValidator
         if (!isset($payload['copy']) || !is_array($payload['copy'])) {
             throw new EditorialValidationException("home 'copy' object is required.");
         }
-        $copyKeys = array_keys($payload['copy']);
-        sort($copyKeys);
-        $expectedCopyKeys = self::HOME_COPY_KEYS;
-        sort($expectedCopyKeys);
-        if ($copyKeys !== $expectedCopyKeys) {
-            throw new EditorialValidationException("home 'copy' must contain exactly the 17 defined keys.");
-        }
+        // Retired presentation fields may remain in saved drafts/revisions. They
+        // are never required by the current editor; all other extra keys fail closed.
+        $retiredKeys = ['heritageSpotlightTitle', 'heritageSpotlightDesc'];
+        $this->validateClosedShape($payload['copy'], [...self::HOME_COPY_KEYS, ...$retiredKeys], 'copy');
         foreach (self::HOME_COPY_KEYS as $k) {
+            if (!array_key_exists($k, $payload['copy'])) {
+                throw new EditorialValidationException("home 'copy' must contain all 15 active keys.");
+            }
             $this->validateLocalized($payload['copy'][$k], "copy.$k");
+        }
+        foreach ($retiredKeys as $k) {
+            if (array_key_exists($k, $payload['copy'])) {
+                $this->validateLocalized($payload['copy'][$k], "copy.$k");
+            }
         }
 
         if (!isset($payload['sections']) || !is_array($payload['sections']) || count($payload['sections']) !== 8) {

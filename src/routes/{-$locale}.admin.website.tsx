@@ -118,8 +118,6 @@ const HOME_COPY_GROUPS: {
     groupId: "heritage",
     groupLabelKey: "cms.copy.heritageGroup",
     keys: [
-      { key: "heritageSpotlightTitle", labelKey: "cms.copy.heritageSpotlightTitle" },
-      { key: "heritageSpotlightDesc", labelKey: "cms.copy.heritageSpotlightDesc", isTextarea: true },
       { key: "past", labelKey: "cms.copy.past" },
       { key: "pastSub", labelKey: "cms.copy.pastSub", isTextarea: true },
       { key: "present", labelKey: "cms.copy.present" },

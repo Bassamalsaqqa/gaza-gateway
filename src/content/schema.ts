@@ -4,7 +4,7 @@ import { SOURCE_REGISTRY } from "../lib/archive/sources.ts";
 import { HOME_SECTION_POLICY, type ContentDocument, type ContentKey, type HomeCopyKey, type LocalizedText } from "./types.ts";
 
 const HOME_COPY_KEYS: HomeCopyKey[] = [
-  "h1", "sub", "heritageSpotlightTitle", "heritageSpotlightDesc", "past", "pastSub",
+  "h1", "sub", "past", "pastSub",
   "present", "presentSub", "future", "futureSub", "destTitle", "destSub",
   "manageTitle", "manageSub", "infoTitle", "archiveTitle", "archiveSub",
 ];
@@ -33,7 +33,14 @@ const homeSection = z.object({
   id: z.enum(["hero", "search", "board", "heritage", "destinations", "manage", "travel", "archive"]),
   visible: z.boolean(),
 }).strict().refine((section) => !HOME_SECTION_POLICY[section.id].required || section.visible);
-const homeCopy = z.object(Object.fromEntries(HOME_COPY_KEYS.map((key) => [key, localized])) as Record<HomeCopyKey, typeof localized>).strict();
+const homeCopy = z
+  .object(Object.fromEntries(HOME_COPY_KEYS.map((key) => [key, localized])) as Record<HomeCopyKey, typeof localized>)
+  .extend({
+    // Read legacy drafts/revisions without restoring the retired public section.
+    heritageSpotlightTitle: localized.optional(),
+    heritageSpotlightDesc: localized.optional(),
+  })
+  .strict();
 const home = z.object({
   ...envelope, id: z.literal("home"), kind: z.literal("home"),
   copy: homeCopy, sections: z.array(homeSection).length(8),

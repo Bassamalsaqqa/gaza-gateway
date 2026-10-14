@@ -24,6 +24,23 @@ class MemoryStorage implements Storage {
 const clone = <T>(value: T): T => structuredClone(value);
 
 describe("typed published editorial content", () => {
+  it("retires the heritage introduction while accepting strictly validated saved revisions", () => {
+    assert.equal(Object.keys(publishedHome.copy).length, 15);
+    assert.equal("heritageSpotlightTitle" in publishedHome.copy, false);
+    const legacy = { ...clone(publishedHome), copy: { ...clone(publishedHome.copy),
+      heritageSpotlightTitle: { en: "Old saved heading", ar: "عنوان محفوظ" },
+      heritageSpotlightDesc: { en: "Old saved description", ar: "وصف محفوظ" } } };
+    assert.equal(isValidContent("home", legacy), true);
+    const oneRetired = clone(legacy);
+    delete (oneRetired.copy as Record<string, unknown>).heritageSpotlightDesc;
+    assert.equal(isValidContent("home", oneRetired), true);
+    const missing = clone(legacy);
+    delete (missing.copy as Record<string, unknown>).past;
+    assert.equal(isValidContent("home", missing), false);
+    assert.equal(isValidContent("home", { ...legacy, copy: { ...legacy.copy, unknownField: { en: "X", ar: "س" } } }), false);
+    assert.equal(isValidContent("home", { ...legacy, copy: { ...legacy.copy, heritageSpotlightTitle: null } }), false);
+    assert.equal(isValidContent("home", { ...legacy, copy: { ...legacy.copy, heritageSpotlightDesc: { en: "<script>bad</script>", ar: "وصف" } } }), false);
+  });
   it("validates all compiled bilingual proof documents", () => {
     assert.equal(isValidContent("home", publishedHome), true);
     assert.equal(isValidContent("travel", publishedTravel), true);

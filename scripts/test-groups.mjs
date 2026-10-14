@@ -21,6 +21,7 @@ export const unitGroups = Object.freeze({
   archive: ["archive-foundation", "archive-drafts", "archive-admin-editor", "archive-admin-catalog", "phase7b-boundaries"],
   ui: ["admin-activity-presentation", "surface-grammar", "studio-protocol", "public-media", "destination-media", "i18n-parity", "format", "phase9-translations", "network-status", "cms-translations", "seo-metadata"],
   contracts: ["backend-contracts", "backend-identity-contracts", "backend-foundation-contracts"],
+  cinematic: ["cinematic-components", "cinematic-manifest"],
   api: ["system-api-client", "identity-api-client", "identity-ui-boundary", "staff-access-link", "shared-hosting-runtime-client", "mvp-api-client", "w1-admin-fleet", "mvp-reference-clients", "mvp-cms-client", "mvp-reservation-client", "mvp-gallery-client"],
   tooling: [],
 });

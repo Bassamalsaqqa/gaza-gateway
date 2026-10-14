@@ -472,3 +472,247 @@
     background-image: none !important;
   }
 }
+
+/* Homepage Continuous Cinematic Experience */
+.home-cinematic-frame {
+  background-color: transparent;
+  background-image: none;
+}
+
+.home-cinematic-frame footer {
+  position: relative;
+  z-index: 10;
+  background-color: color-mix(in oklch, var(--ink) 88%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid var(--ink-border);
+}
+
+@media print, (forced-colors: active) {
+  [data-slot="home-cinematic-backdrop"],
+  [data-slot="home-cinematic-fixed-label"] {
+    display: none !important;
+  }
+}
+
+/* Homepage editorial depth: progressive scroll timeline for heritage card group (~24px subtle translation) */
+@supports (animation-timeline: view()) {
+  @media (min-width: 640px) and (prefers-reduced-motion: no-preference) and (forced-colors: none) {
+    .heritage-depth-group {
+      view-timeline-name: --heritage-viewport;
+      view-timeline-axis: block;
+      animation: heritage-depth-float linear both;
+      animation-timeline: --heritage-viewport;
+      animation-range: entry 0% exit 100%;
+    }
+    @keyframes heritage-depth-float {
+      0% {
+        transform: translateY(16px);
+      }
+      100% {
+        transform: translateY(-8px);
+      }
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce), (forced-colors: active), print {
+  .heritage-depth-group {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+/* Floating search consoles respond to their own width, not the full viewport. */
+.home-cinematic-search { container-type: inline-size; }
+.home-search-layout,
+.home-offering-layout { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); }
+.home-search-layout > [data-zone],
+.home-offering-layout > div { grid-column: 1 / -1; min-width: 0; }
+@container (min-width: 600px) {
+  .home-search-layout > [data-zone="route"] { grid-column: span 7; }
+  .home-search-layout > [data-zone="dates"] { grid-column: span 5; }
+  .home-search-layout > [data-zone="travellers"],
+  .home-search-layout > [data-zone="cabin"],
+  .home-search-layout > [data-zone="search-action"] { grid-column: span 4; }
+  .home-offering-layout > div:first-child { grid-column: span 7; }
+  .home-offering-layout > div:nth-child(2) { grid-column: span 5; }
+}
+
+/* Homepage Hero Viewport Adaptation */
+.home-hero-section {
+  min-height: calc(100svh - var(--header-height, 64px));
+  min-height: calc(100dvh - var(--header-height, 64px));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-top: 1rem;
+  padding-bottom: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .home-hero-section {
+    min-height: calc(100svh - var(--header-height, 72px));
+    min-height: calc(100dvh - var(--header-height, 72px));
+    padding-top: 1.5rem;
+    padding-bottom: 2rem;
+  }
+}
+
+/* Height-constrained laptop and desktop viewports (e.g. 1366x768, 1280x720, 1024x600) */
+@media (max-height: 800px) {
+  .home-hero-section {
+    padding-top: 0.75rem;
+    padding-bottom: 1rem;
+  }
+  .home-hero-title {
+    font-size: clamp(1.75rem, 3.8vw, 2.75rem) !important;
+    line-height: 1.12 !important;
+    margin-top: 0.75rem !important;
+  }
+  .home-hero-sub {
+    font-size: 0.9375rem !important;
+    line-height: 1.4 !important;
+    margin-top: 0.5rem !important;
+  }
+  .home-hero-ctas {
+    margin-top: 1rem !important;
+  }
+}
+
+@media (max-height: 680px) {
+  .home-hero-section {
+    min-height: auto;
+    padding-top: 0.5rem;
+    padding-bottom: 0.75rem;
+  }
+  .home-hero-title {
+    font-size: clamp(1.4rem, 3.2vw, 2.1rem) !important;
+    line-height: 1.1 !important;
+    margin-top: 0.4rem !important;
+  }
+  .home-hero-sub {
+    font-size: 0.84rem !important;
+    line-height: 1.35 !important;
+    margin-top: 0.35rem !important;
+  }
+  .home-hero-ctas {
+    margin-top: 0.75rem !important;
+    gap: 0.5rem !important;
+  }
+}
+
+/* Landscape phone short-height override (e.g. 844x390) */
+@media (max-height: 480px) and (orientation: landscape) {
+  .home-hero-section {
+    min-height: auto;
+    padding-top: 0.25rem;
+    padding-bottom: 0.5rem;
+  }
+  .home-hero-title {
+    font-size: 1.35rem !important;
+    line-height: 1.1 !important;
+    margin-top: 0.25rem !important;
+  }
+  .home-hero-sub {
+    font-size: 0.75rem !important;
+    line-height: 1.25 !important;
+    margin-top: 0.25rem !important;
+  }
+  .home-hero-ctas {
+    margin-top: 0.5rem !important;
+    gap: 0.5rem !important;
+  }
+}
+
+/*
+ * Home Frosted Glass Surface
+ * Uniform branded ink/olive tinted glass over continuous background video.
+ * Fallback to opaque ink 90% where backdrop-filter is unsupported.
+ */
+.home-frosted-glass {
+  background-color: color-mix(in srgb, var(--ink) 90%, transparent);
+  border: 0;
+}
+
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .home-frosted-glass {
+    background-color: color-mix(in srgb, var(--ink) 74%, transparent);
+    -webkit-backdrop-filter: blur(18px) saturate(110%);
+    backdrop-filter: blur(18px) saturate(110%);
+  }
+
+  @media (max-width: 639px) {
+    .home-frosted-glass {
+      -webkit-backdrop-filter: blur(12px) saturate(110%);
+      backdrop-filter: blur(12px) saturate(110%);
+    }
+  }
+}
+
+/* Keep the prefixed-only Safari path in a separate feature query: the CSS
+ * transformer otherwise retains only the last equivalent filter declaration. */
+@supports (-webkit-backdrop-filter: blur(1px)) and (not (backdrop-filter: blur(1px))) {
+  .home-frosted-glass {
+    -webkit-backdrop-filter: blur(18px) saturate(110%);
+  }
+  @media (max-width: 639px) {
+    .home-frosted-glass {
+      -webkit-backdrop-filter: blur(12px) saturate(110%);
+    }
+  }
+  @media (forced-colors: active), print {
+    .home-frosted-glass {
+      -webkit-backdrop-filter: none !important;
+    }
+  }
+}
+
+@media (forced-colors: active) {
+  .home-frosted-glass {
+    background-color: Canvas !important;
+    color: CanvasText !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    border: 1px solid CanvasText !important;
+  }
+}
+
+@media print {
+  .home-frosted-glass {
+    background-color: transparent !important;
+    color: CanvasText !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    border: none !important;
+  }
+}
+
+/* Scoped Home Board overrides: single parent filter, reduced row backing */
+.home-flight-board-glass table tbody tr:not([id^="flight-details-"]) {
+  background-color: color-mix(in srgb, var(--ink) 45%, transparent);
+}
+.home-flight-board-glass table tbody tr:not([id^="flight-details-"]):hover {
+  background-color: color-mix(in srgb, var(--ink) 65%, transparent);
+}
+.home-flight-board-glass table thead {
+  background-color: color-mix(in srgb, var(--ink) 55%, transparent);
+}
+.home-flight-board-glass .space-y-3 > div {
+  background-color: color-mix(in srgb, var(--ink) 50%, transparent);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.home-flight-board-glass [id^="flight-details-"] {
+  background-color: color-mix(in srgb, var(--sand) 96%, transparent);
+  color: var(--foreground);
+}
+@media (forced-colors: active), print {
+  .home-flight-board-glass table tbody tr,
+  .home-flight-board-glass table thead,
+  .home-flight-board-glass .space-y-3 > div,
+  .home-flight-board-glass [id^="flight-details-"] {
+    background-color: Canvas !important;
+    color: CanvasText !important;
+  }
+}

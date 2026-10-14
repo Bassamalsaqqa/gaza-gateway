@@ -39,3 +39,9 @@ dist-ssr
 # Private disposable gate and release artifacts; never publish scratch contents.
 /scratch/
 /backend/tests/**/junit*.xml
+
+# Cinematic master video and root derivatives (immutable originals preserved in scratch/inputs)
+/Gaza-Airport-Video.mp4
+/scrub-720p-g6-crf25.mp4
+/scrub-540p-g4-crf25.mp4
+/future-cinematic-poster.webp

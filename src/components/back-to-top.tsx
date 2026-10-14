@@ -21,6 +21,7 @@ export function BackToTop() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const normalizedPath = pathname.replace(/\/$/, "");
   const isBookingRoute = normalizedPath === "/book" || normalizedPath === "/ar/book";
+  const isHomePage = normalizedPath === "" || normalizedPath === "/ar";
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -45,11 +46,16 @@ export function BackToTop() {
     };
 
     window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    const resizeObserver = new ResizeObserver(onScroll);
+    resizeObserver.observe(document.body);
     // Initial check on mount
     checkScroll();
 
     return () => {
       window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      resizeObserver.disconnect();
       if (rafId.current !== null) {
         cancelAnimationFrame(rafId.current);
         rafId.current = null;
@@ -86,12 +92,16 @@ export function BackToTop() {
       aria-hidden={!visible}
       tabIndex={visible ? 0 : -1}
       title={t("common.backToTop")}
+      style={{ filter: `drop-shadow(0 1px 3px color-mix(in oklch, var(--ink) ${isHomePage ? "60%" : "25%"}, transparent))` }}
       className={cn(
         "fixed end-4 sm:end-6 bottom-[calc(1.5rem+env(safe-area-inset-bottom,0px))] z-30",
         isBookingRoute ? "hidden lg:flex" : "flex",
-        "size-11 min-h-11 min-w-11 items-center justify-center rounded-full border border-border bg-card/95 text-foreground shadow-sm cursor-pointer select-none",
-        "hover:bg-secondary hover:text-primary active:scale-[0.98] transition-all duration-200 motion-reduce:transition-none motion-reduce:active:scale-100",
-        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring rounded-full",
+        "size-12 min-h-12 min-w-12 sm:size-[52px] sm:min-h-[52px] sm:min-w-[52px] items-center justify-center rounded-full bg-transparent border-0 cursor-pointer select-none",
+        isHomePage
+          ? "text-sand hover:text-white focus-visible:outline-white"
+          : "text-brand hover:text-brand-deep focus-visible:outline-brand",
+        "motion-safe:hover:-translate-y-0.5 active:scale-95 transition-all duration-200 motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100",
+        "focus-visible:outline-2 focus-visible:outline-offset-2",
         visible
           ? "opacity-100 translate-y-0 pointer-events-auto"
           : "opacity-0 translate-y-2 pointer-events-none",
@@ -105,26 +115,26 @@ export function BackToTop() {
         <circle
           cx="22"
           cy="22"
-          r="20.5"
+          r="18"
           fill="none"
           stroke="currentColor"
-          strokeOpacity="0.12"
-          strokeWidth="1"
+          strokeOpacity="0.25"
+          strokeWidth="4.5"
         />
         <circle
           cx="22"
           cy="22"
-          r="20.5"
+          r="18"
           fill="none"
           stroke="currentColor"
-          strokeWidth="1.5"
+          strokeWidth="4.5"
           strokeLinecap="round"
           pathLength="1"
           strokeDasharray="1"
           strokeDashoffset={1 - progress}
         />
       </svg>
-      <ArrowUp aria-hidden="true" className="size-4 shrink-0" />
+      <ArrowUp aria-hidden="true" className="size-6 shrink-0" strokeWidth={4.5} />
       <span className="sr-only">{t("common.backToTop")}</span>
     </button>
   );

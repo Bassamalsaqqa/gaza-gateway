@@ -24,7 +24,7 @@ interface ContentEnvelope<K extends ContentKey> {
 }
 
 export type HomeCopyKey =
-  | "h1" | "sub" | "heritageSpotlightTitle" | "heritageSpotlightDesc"
+  | "h1" | "sub"
   | "past" | "pastSub" | "present" | "presentSub" | "future" | "futureSub"
   | "destTitle" | "destSub" | "manageTitle" | "manageSub" | "infoTitle"
   | "archiveTitle" | "archiveSub";
@@ -35,7 +35,11 @@ export interface HomeSection {
   visible: boolean;
 }
 export interface HomeContent extends ContentEnvelope<"home"> {
-  copy: Record<HomeCopyKey, LocalizedText>;
+  copy: Record<HomeCopyKey, LocalizedText> & {
+    /** Compatibility only for saved revisions; absent from the active CMS editor. */
+    heritageSpotlightTitle?: LocalizedText;
+    heritageSpotlightDesc?: LocalizedText;
+  };
   sections: HomeSection[];
 }
 

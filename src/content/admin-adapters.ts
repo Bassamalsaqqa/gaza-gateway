@@ -8,7 +8,7 @@ const visible = (id: string) => publishedHome.sections.find((section) => section
 
 export const homeSections = [
   { id: "hero", labelKey: "a2.web.hp.hero", heading: publishedHome.copy.h1, body: publishedHome.copy.sub, visible: visible("hero") },
-  { id: "heritage", labelKey: "a2.web.hp.story", heading: publishedHome.copy.heritageSpotlightTitle, body: publishedHome.copy.heritageSpotlightDesc, visible: visible("heritage") },
+  { id: "heritage", labelKey: "a2.web.hp.story", heading: { en: "Airport chapters", ar: "فصول المطار" }, body: blank, visible: visible("heritage") },
   { id: "destinations", labelKey: "a2.web.hp.featured", heading: publishedHome.copy.destTitle, body: publishedHome.copy.destSub, visible: visible("destinations") },
   { id: "manage", labelKey: "a2.web.hp.manage", heading: publishedHome.copy.manageTitle, body: publishedHome.copy.manageSub, visible: visible("manage") },
   { id: "travel", labelKey: "a2.web.hp.shortcuts", heading: publishedHome.copy.infoTitle, body: blank, visible: visible("travel") },

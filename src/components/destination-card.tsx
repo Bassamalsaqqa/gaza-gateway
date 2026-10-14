@@ -1,4 +1,5 @@
 import { AppLink } from "@/components/app-link";
+import { cn } from "@/lib/utils";
 import { ArrowRight, Clock } from "lucide-react";
 import { Code } from "./kit";
 import { minutesToLabel, type Destination } from "@/lib/data";
@@ -18,11 +19,13 @@ export function DestinationCard({
   size = "md",
   photoOverride,
   focalOverride,
+  variant = "default",
 }: {
   destination: Pick<Destination, "code" | "city" | "country" | "flightMinutes"> & { priceFrom?: number };
   size?: "md" | "lg" | undefined;
   photoOverride?: DestinationPhoto | undefined;
   focalOverride?: { x: number; y: number } | undefined;
+  variant?: "default" | "cinematic";
 }) {
   const { t, lang } = useI18n();
   const photo = photoOverride ?? getDestinationPhotoByCode(destination.code);
@@ -33,7 +36,12 @@ export function DestinationCard({
       to="/destinations/$code"
       params={{ code: destination.code }}
       data-surface-target="home.destination-card"
-      className="group relative flex flex-col overflow-hidden rounded-xl border border-border bg-card transition-shadow hover:shadow-[var(--shadow-lift)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      className={cn(
+        "group relative flex flex-col overflow-hidden rounded-xl transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+        variant === "cinematic"
+          ? "border-0 bg-ink/80 shadow-xl hover:shadow-2xl hover:-translate-y-0.5 motion-reduce:transform-none"
+          : "border border-border bg-card hover:shadow-[var(--shadow-lift)]",
+      )}
     >
       {/* Top Media Stage: Owner city photograph with responsive WebP variants */}
       <div className={size === "lg" ? "relative aspect-[4/3] overflow-hidden" : "relative aspect-[3/2] overflow-hidden"}>
@@ -58,14 +66,14 @@ export function DestinationCard({
       </div>
 
       {/* Lower Card Body: shared approved decorative world-map on dark ink surface */}
-      <div className="relative flex flex-1 flex-col gap-1 overflow-hidden bg-ink p-4 text-ink-foreground">
+      <div className={cn("relative flex flex-1 flex-col gap-1 overflow-hidden p-4 text-ink-foreground", variant === "cinematic" ? "bg-ink/75 backdrop-blur-xs" : "bg-ink")}>
         <img
           data-decorative-asset="destination-card-body"
           src={destinationWorldMapImg}
           alt=""
           aria-hidden="true"
           loading="lazy"
-          className="pointer-events-none absolute inset-0 size-full select-none object-cover object-center"
+          className={cn("pointer-events-none absolute inset-0 size-full select-none object-cover object-center", variant === "cinematic" && "opacity-30")}
         />
         <div className="relative z-10 flex flex-1 flex-col gap-1">
           <div className="flex items-baseline justify-between gap-2">
@@ -79,7 +87,7 @@ export function DestinationCard({
           <p className="text-sm font-medium text-ink-muted">
             {pick(lang, destination.country)}
           </p>
-          <div className="mt-3 flex items-center justify-between border-t border-ink-border pt-3 text-sm">
+          <div className={cn("mt-3 flex items-center justify-between pt-3 text-sm", variant === "cinematic" ? "border-t border-ink-border/40" : "border-t border-ink-border")}>
             <span className="inline-flex items-center gap-1.5 font-medium text-ink-muted">
               <Clock aria-hidden="true" className="size-3.5" />
               <span className="numeral">{minutesToLabel(destination.flightMinutes, lang)}</span>

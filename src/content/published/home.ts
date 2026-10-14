@@ -23,14 +23,6 @@ export const publishedHome = {
       "en": "Search Palestinian Airlines schedules to seven regional gateways, view departures and arrivals, and explore the past, present and future of Gaza International Airport.",
       "ar": "ابحث في جداول الخطوط الجوية الفلسطينية إلى سبع محطات إقليمية، وتابع المغادرة والوصول، واستكشف ماضي مطار غزة الدولي وحاضره ومستقبله."
     },
-    "heritageSpotlightTitle": {
-      "en": "Gaza International Airport — past, present, and future.",
-      "ar": "مطار غزة الدولي — الماضي والحاضر والمستقبل."
-    },
-    "heritageSpotlightDesc": {
-      "en": "Gaza International Airport was the Palestinian Authority's civil aviation gateway. This section brings together its history, present condition, and future vision. Verified documentary material and primary sources are published under archival standards, while future-vision sections use clearly labeled illustrative concept imagery.",
-      "ar": "كان مطار غزة الدولي البوابة المدنية لسلطة الطيران الفلسطيني. يجمع هذا القسم بين تاريخ المطار وواقعه الحالي ورؤيته المستقبلية. تُنشر المواد التوثيقية المعتمدة والمصادر الأولية وفق معايير أرشيفية، وتستخدم أقسام الرؤية المستقبلية تصوّرات معمارية توضيحية معلنة."
-    },
     "past": {
       "en": "Past",
       "ar": "الماضي"

@@ -50,6 +50,7 @@ export interface FlightSearchFormProps {
   /** Explicit console context: "home" | "standard" (default). */
   context?: FlightSearchConsoleContext;
   initial?: Partial<SearchCriteria>;
+  variant?: "default" | "cinematic";
 }
 
 /* -------------------------------------------------------------------------- */
@@ -59,6 +60,7 @@ export interface FlightSearchFormProps {
 export function FlightSearchForm({
   initial,
   context = "standard",
+  variant = "default",
 }: FlightSearchFormProps) {
   const { t, lang } = useI18n();
   const { bookingDraft: draftRepo } = useRepositories();
@@ -323,15 +325,20 @@ export function FlightSearchForm({
       data-decorative-asset={isHome ? "home-flight-search-ticket" : undefined}
       data-testid={isHome ? "home-flight-search-ticket" : undefined}
       className={cn(
-        "relative overflow-hidden rounded-2xl border transition-shadow",
-        isHome
-          ? "border-clay/40 shadow-[var(--shadow-lift)]"
-          : "border-border shadow-[var(--shadow-soft)]",
+        "relative overflow-hidden rounded-2xl transition-shadow",
+        variant === "cinematic"
+          ? "home-cinematic-search home-frosted-glass border-0 shadow-xl"
+          : isHome
+          ? "border border-clay/40 shadow-[var(--shadow-lift)]"
+          : "border border-border shadow-[var(--shadow-soft)]",
       )}
     >
       {/* ── Red Ticket background (decorative, unmirrored) ── */}
       <div
-        className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl bg-clay"
+        className={cn(
+          "pointer-events-none absolute inset-0 overflow-hidden rounded-2xl",
+          variant === "cinematic" ? "bg-ink/20" : "bg-clay",
+        )}
         aria-hidden="true"
       >
         <img
@@ -345,7 +352,12 @@ export function FlightSearchForm({
           alt=""
           aria-hidden="true"
           loading="lazy"
-          className="size-full select-none object-cover object-center opacity-100"
+          className={cn(
+            "size-full select-none",
+            variant === "cinematic"
+              ? "object-contain object-top sm:object-cover opacity-85 blur-[1px]"
+              : "object-cover object-center opacity-100",
+          )}
         />
       </div>
 
@@ -373,6 +385,8 @@ export function FlightSearchForm({
                     "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                     isSelected
                       ? "bg-primary text-primary-foreground shadow-xs"
+                      : variant === "cinematic"
+                      ? "bg-ink/60 text-sand/90 hover:bg-ink/80 border border-sand/20"
                       : "bg-white/20 text-white/95 hover:bg-white/30 backdrop-blur-xs",
                   )}
                 >
@@ -386,8 +400,11 @@ export function FlightSearchForm({
         {/* ═══ Inner limestone console ═══ */}
         <div
           className={cn(
-            "mx-2 mb-2 rounded-xl bg-card shadow-sm sm:mx-5 sm:mb-5",
-            "border border-border/40 overflow-hidden",
+            "mx-2 mb-2 rounded-xl shadow-sm sm:mx-5 sm:mb-5",
+            variant === "cinematic"
+              ? "border-0 bg-sand/85 text-foreground"
+              : "border border-border/40 bg-card",
+            "overflow-hidden",
           )}
           data-flight-search-console={`${ctx}-inner`}
         >
@@ -400,7 +417,7 @@ export function FlightSearchForm({
           <div
             className={cn(
               "grid grid-cols-12",
-              "xl:flex xl:flex-row xl:items-stretch xl:divide-x xl:divide-border/60 rtl:xl:divide-x-reverse",
+              variant === "cinematic" ? "home-search-layout" : "xl:flex xl:flex-row xl:items-stretch xl:divide-x xl:divide-border/60 rtl:xl:divide-x-reverse",
             )}
           >
             {/* 1. Route zone (Origin ↔ Destination) */}
@@ -409,7 +426,9 @@ export function FlightSearchForm({
               className={cn(
                 "col-span-12 md:col-span-7 xl:col-auto xl:min-w-0",
                 criteria.tripType === "oneway" ? "xl:flex-[3]" : "xl:flex-[2.6]",
-                "border-b border-border/60 md:border-b md:border-e rtl:md:border-e-0 rtl:md:border-s xl:border-b-0 xl:border-e-0",
+                variant === "cinematic"
+                  ? "border-b border-sand-deep/40 md:border-b md:border-e rtl:md:border-e-0 rtl:md:border-s xl:border-b-0 xl:border-e-0"
+                  : "border-b border-border/60 md:border-b md:border-e rtl:md:border-e-0 rtl:md:border-s xl:border-b-0 xl:border-e-0",
                 "p-1.5 sm:p-2.5",
               )}
             >
@@ -467,7 +486,9 @@ export function FlightSearchForm({
               className={cn(
                 "col-span-12 md:col-span-5 xl:col-auto xl:min-w-0",
                 criteria.tripType === "oneway" ? "xl:flex-[1.4]" : "xl:flex-[2.2]",
-                "border-b border-border/60 md:border-b xl:border-b-0",
+                variant === "cinematic"
+                  ? "border-b border-sand-deep/40 md:border-b xl:border-b-0"
+                  : "border-b border-border/60 md:border-b xl:border-b-0",
                 "p-1.5 sm:p-2.5 flex items-center",
               )}
             >
@@ -497,7 +518,9 @@ export function FlightSearchForm({
               data-zone="travellers"
               className={cn(
                 "col-span-12 md:col-span-4 xl:col-auto xl:flex-1 xl:min-w-0",
-                "border-b border-border/60 md:border-b-0 md:border-e rtl:md:border-e-0 rtl:md:border-s xl:border-e-0",
+                variant === "cinematic"
+                  ? "border-b border-sand-deep/40 md:border-b-0 md:border-e rtl:md:border-e-0 rtl:md:border-s xl:border-e-0"
+                  : "border-b border-border/60 md:border-b-0 md:border-e rtl:md:border-e-0 rtl:md:border-s xl:border-e-0",
                 "p-1.5 sm:p-2.5 flex items-center",
               )}
             >
@@ -523,7 +546,9 @@ export function FlightSearchForm({
               data-zone="cabin"
               className={cn(
                 "col-span-12 md:col-span-4 xl:col-auto xl:flex-1 xl:min-w-0",
-                "border-b border-border/60 md:border-b-0 md:border-e rtl:md:border-e-0 rtl:md:border-s xl:border-e-0",
+                variant === "cinematic"
+                  ? "border-b border-sand-deep/40 md:border-b-0 md:border-e rtl:md:border-e-0 rtl:md:border-s xl:border-e-0"
+                  : "border-b border-border/60 md:border-b-0 md:border-e rtl:md:border-e-0 rtl:md:border-s xl:border-e-0",
                 "p-1.5 sm:p-2.5 flex items-center",
               )}
             >

@@ -12,17 +12,19 @@ export function FlightTable({
   flights,
   mode,
   compact = false,
+  variant = "default",
 }: {
   flights: Flight[];
   mode: "departures" | "arrivals";
   compact?: boolean;
+  variant?: "default" | "cinematic";
 }) {
   const { t, lang } = useI18n();
   const [open, setOpen] = useState<string | null>(null);
 
   if (flights.length === 0) {
     return (
-      <p className="border-t border-border py-10 text-center text-sm text-muted-foreground">{t("flights.none")}</p>
+      <p className={cn("py-10 text-center text-sm", variant === "cinematic" ? "text-sand" : "border-t border-border text-muted-foreground")}>{t("flights.none")}</p>
     );
   }
 
@@ -41,24 +43,29 @@ export function FlightTable({
           return (
             <div
               key={flight.id}
-              className="flex flex-col rounded-xl border border-border bg-card p-3.5 text-start transition-colors"
+              className={cn(
+                "flex flex-col rounded-xl p-3.5 text-start transition-colors",
+                variant === "cinematic"
+                  ? "border border-sand/20 bg-ink/80 text-sand backdrop-blur-xs shadow-md"
+                  : "border border-border bg-card",
+              )}
             >
               {/* Primary Bar: Time, Flight Number, Status */}
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <span className="code-id text-base font-bold text-foreground">{time}</span>
+                  <span className={cn("code-id text-base font-bold", variant === "cinematic" ? "text-sand" : "text-foreground")}>{time}</span>
                   <Code className="text-xs font-semibold">{flight.number}</Code>
                 </div>
-                <StatusBadge status={flight.status} />
+                <StatusBadge status={flight.status} className={variant === "cinematic" ? "bg-sand/95" : ""} />
               </div>
 
               {/* Secondary Bar: City, Airport Code, and Accessible Expand/Details Control */}
               <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-border/60 pt-2.5">
                 <div className="min-w-0 flex-1">
-                  <span className="block break-words text-sm font-semibold text-foreground">
+                  <span className={cn("block break-words text-sm font-semibold", variant === "cinematic" ? "text-sand" : "text-foreground")}>
                     {pick(lang, other.city)}
                   </span>
-                  <Code className="text-xs text-muted-foreground">{other.code}</Code>
+                  <Code className={cn("text-xs", variant === "cinematic" ? "text-sand/80" : "text-muted-foreground")}>{other.code}</Code>
                 </div>
                 <button
                   type="button"
@@ -66,7 +73,7 @@ export function FlightTable({
                   aria-expanded={expanded}
                   aria-controls={`flight-details-m-${flight.id}`}
                   id={`flight-btn-m-${flight.id}`}
-                  className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                  className={cn("inline-flex min-h-11 shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring", variant === "cinematic" ? "text-sand hover:bg-ink hover:text-sand" : "text-muted-foreground hover:bg-secondary hover:text-foreground")}
                 >
                   <span>{t("flights.details")}</span>
                   <span className="sr-only"> {flight.number}</span>
@@ -126,10 +133,10 @@ export function FlightTable({
       </div>
 
       {/* Desktop Tabular View (hidden sm:table): Preserves semantic table */}
-      <GazaTable className="hidden sm:table w-full border-collapse text-start">
+      <GazaTable className={cn("hidden sm:table w-full text-start", variant === "cinematic" ? "border-separate border-spacing-y-2" : "border-collapse")}>
         <GazaTableCaption className="sr-only">{t(mode === "departures" ? "flights.departures" : "flights.arrivals")}</GazaTableCaption>
-        <GazaTableHeader className="table-header-group">
-          <GazaTableRow className="border-b border-border text-start text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <GazaTableHeader className={cn("table-header-group", variant === "cinematic" && "bg-ink/80 text-sand [&_th]:text-sand [&_tr]:border-0")}>
+          <GazaTableRow className={cn("border-b text-start text-xs font-semibold uppercase tracking-wider", variant === "cinematic" ? "border-sand/20 text-sand/80" : "border-border text-muted-foreground")}>
             <GazaTableHead scope="col" className="py-3 pe-4 text-start">
               {t("flights.scheduled")}
             </GazaTableHead>
@@ -159,7 +166,7 @@ export function FlightTable({
             const expanded = open === flight.id;
             return (
               <Fragment key={flight.id}>
-                <GazaTableRow className="border-b border-border align-middle">
+                <GazaTableRow className={cn("align-middle transition-colors", variant === "cinematic" ? "border-0 bg-ink/75 hover:bg-ink/90 text-sand" : "border-b border-border")}>
                   <GazaTableCell className="py-3.5 pe-4">
                     <span className="code-id text-lg font-semibold sm:text-base">{time}</span>
                   </GazaTableCell>
@@ -169,11 +176,11 @@ export function FlightTable({
                   <GazaTableCell className="py-3.5 pe-4">
                     <span className="flex flex-col">
                       <span className="text-sm font-semibold">{pick(lang, other.city)}</span>
-                      <Code className="text-xs text-muted-foreground">{other.code}</Code>
+                      <Code className={cn("text-xs", variant === "cinematic" ? "text-sand/80" : "text-muted-foreground")}>{other.code}</Code>
                     </span>
                   </GazaTableCell>
                   <GazaTableCell className="py-3.5 pe-4">
-                    <StatusBadge status={flight.status} />
+                    <StatusBadge status={flight.status} className={variant === "cinematic" ? "bg-sand/95" : ""} />
                   </GazaTableCell>
                   {!compact ? (
                     <GazaTableCell className="hidden py-3.5 pe-4 md:table-cell">
@@ -187,7 +194,7 @@ export function FlightTable({
                       aria-expanded={expanded}
                       aria-controls={`flight-details-d-${flight.id}`}
                       id={`flight-btn-d-${flight.id}`}
-                      className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-semibold text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                      className={cn("inline-flex min-h-11 items-center gap-1 rounded-md px-2 py-1.5 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring", variant === "cinematic" ? "text-sand hover:bg-ink hover:text-sand" : "text-muted-foreground hover:bg-secondary hover:text-foreground")}
                     >
                       <span className="hidden sm:inline">{t("flights.details")}</span>
                       <span className="sr-only"> {flight.number}</span>
