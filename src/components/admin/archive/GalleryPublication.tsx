@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { AlertTriangle, ArrowDown, ArrowUp, Eye, EyeOff, RefreshCw, Search } from "lucide-react";
 import { Input, Textarea, btnClass } from "@/components/kit";
 import {
@@ -16,6 +16,7 @@ import {
   GazaTableHeader,
   GazaTableRow,
 } from "@/components/gaza-table";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { useAdmin } from "@/lib/admin-store";
 import { useI18n } from "@/lib/i18n";
 import { getGalleryItems, type GalleryDisplayItem } from "@/lib/archive/catalog";
@@ -33,7 +34,16 @@ import {
 } from "@/lib/archive/gallery-publication";
 import { MvpApiError } from "@/lib/api/mvp-client";
 
-export function GalleryPublication() {
+export interface GalleryEditState {
+  dirty: boolean;
+  saving: boolean;
+}
+
+export interface GalleryPublicationProps {
+  onEditState?: (state: GalleryEditState) => void;
+}
+
+export function GalleryPublication({ onEditState }: GalleryPublicationProps = {}) {
   const { t, lang: uiLang } = useI18n();
   const { can, toast } = useAdmin();
   const isAr = uiLang === "ar";
@@ -51,6 +61,30 @@ export function GalleryPublication() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [restoreRevision, setRestoreRevision] = useState("");
   const [search, setSearch] = useState("");
+  const [reloadConfirmOpen, setReloadConfirmOpen] = useState(false);
+  const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
+
+  const onEditStateRef = useRef(onEditState);
+  onEditStateRef.current = onEditState;
+
+  useEffect(() => {
+    onEditStateRef.current?.({ dirty, saving });
+  }, [dirty, saving]);
+
+  useEffect(() => {
+    return () => {
+      onEditStateRef.current?.({ dirty: false, saving: false });
+    };
+  }, []);
+
+  const dirtyRef = useRef(dirty);
+  dirtyRef.current = dirty;
+  const editorialRef = useRef(editorial);
+  editorialRef.current = editorial;
+
+
+  const loadSeqRef = useRef(0);
+  const activeAbortRef = useRef<AbortController | null>(null);
 
   const compiledItems = useMemo(() => getGalleryItems(), []);
   const compiledById = useMemo(() => {
@@ -62,12 +96,34 @@ export function GalleryPublication() {
     return new Map(list.map((s) => [s.id, s]));
   }, []);
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (force = false) => {
+    activeAbortRef.current?.abort();
+    const abortController = new AbortController();
+    activeAbortRef.current = abortController;
+
+    const seq = ++loadSeqRef.current;
     setLoading(true);
     setLoadError(null);
-    setConflict(false);
+
     try {
-      const doc = await fetchGalleryEditorial();
+      const doc = await fetchGalleryEditorial(abortController.signal);
+      if (seq !== loadSeqRef.current || abortController.signal.aborted) return;
+
+      const remoteRev = doc?.currentRevision ?? 0;
+      const localRev = editorialRef.current?.currentRevision ?? 0;
+
+      // If we have unsaved local edits and are not forcing an explicit reload:
+      if (dirtyRef.current && !force) {
+        if (remoteRev > localRev) {
+          // A remote-higher revision was detected while having local dirty edits!
+          // Do NOT adopt CAS version alone or silently overwrite.
+          // Produce conflict state requiring explicit reload confirmation.
+          setConflict(true);
+          return;
+        }
+        return;
+      }
+
       setEditorial(doc);
       if (doc?.payload?.items) {
         setItems(doc.payload.items);
@@ -77,28 +133,38 @@ export function GalleryPublication() {
         setItems(defaultCfg.items);
       }
       setDirty(false);
+      setConflict(false);
     } catch (err) {
+      if (seq !== loadSeqRef.current || abortController.signal.aborted) return;
       if (err instanceof MvpApiError && err.status === 404) {
-        // Uninitialized document in PostgreSQL
-        setEditorial(null);
-        const defaultCfg = buildDefaultGalleryConfiguration(compiledItems);
-        setItems(defaultCfg.items);
-        setDirty(false);
+        // Uninitialized gallery document in the selected backend
+        if (!dirtyRef.current || force) {
+          setEditorial(null);
+          const defaultCfg = buildDefaultGalleryConfiguration(compiledItems);
+          setItems(defaultCfg.items);
+          setDirty(false);
+          setConflict(false);
+        }
       } else {
         const msg = err instanceof Error ? err.message : "Failed to load gallery publication.";
         setLoadError(msg);
       }
     } finally {
-      setLoading(false);
+      if (seq === loadSeqRef.current) {
+        setLoading(false);
+      }
     }
   }, [compiledItems]);
 
   useEffect(() => {
     void loadData();
+    return () => {
+      activeAbortRef.current?.abort();
+    };
   }, [loadData]);
 
   const handleMove = (index: number, direction: "up" | "down") => {
-    if (!mayEdit) return;
+    if (!mayEdit || loading || saving) return;
     const target = direction === "up" ? index - 1 : index + 1;
     if (target < 0 || target >= items.length) return;
     const next = [...items];
@@ -110,7 +176,7 @@ export function GalleryPublication() {
   };
 
   const handleToggleVisible = (index: number) => {
-    if (!mayEdit) return;
+    if (!mayEdit || loading || saving) return;
     const next = [...items];
     next[index] = { ...next[index]!, visible: !next[index]!.visible };
     setItems(next);
@@ -118,7 +184,7 @@ export function GalleryPublication() {
   };
 
   const handleTitleChange = (index: number, val: string) => {
-    if (!mayEdit) return;
+    if (!mayEdit || loading || saving) return;
     const next = [...items];
     const item = next[index]!;
     next[index] = {
@@ -133,7 +199,7 @@ export function GalleryPublication() {
   };
 
   const handleCaptionChange = (index: number, val: string) => {
-    if (!mayEdit) return;
+    if (!mayEdit || loading || saving) return;
     const next = [...items];
     const item = next[index]!;
     next[index] = {
@@ -147,80 +213,155 @@ export function GalleryPublication() {
     setDirty(true);
   };
 
+  const handleRefreshClick = () => {
+    if (loading || saving) return;
+    if (dirty) {
+      setReloadConfirmOpen(true);
+    } else {
+      void loadData();
+    }
+  };
+
   const handleSaveDraft = async () => {
-    if (!mayEdit || saving) return;
+    if (!mayEdit || loading || saving) return;
     setSaving(true);
     try {
       const expectedRevision = editorial?.currentRevision ?? 0;
-      await saveGalleryDraft({ items }, expectedRevision);
+      const submittedItems = [...items];
+      const receipt = await saveGalleryDraft({ items: submittedItems }, expectedRevision);
       toast(isAr ? "تم حفظ المسودة بنجاح" : "Draft saved successfully.");
       setDirty(false);
-      // Refresh state
-      await loadData();
+      setConflict(false);
+      setEditorial((prev) =>
+        prev
+          ? {
+              ...prev,
+              revisionNumber: receipt.currentRevision,
+              currentRevision: receipt.currentRevision,
+              draftRevision: receipt.status === "draft" ? receipt.currentRevision : prev.draftRevision,
+              hasDraft: receipt.status === "draft",
+              status: receipt.status,
+              payload: { items: submittedItems },
+            }
+          : {
+              id: "gallery",
+              kind: "gallery",
+              slug: "default",
+              revisionNumber: receipt.currentRevision,
+              currentRevision: receipt.currentRevision,
+              publishedRevision: null,
+              draftRevision: receipt.status === "draft" ? receipt.currentRevision : null,
+              status: receipt.status,
+              hasDraft: receipt.status === "draft",
+              tombstoned: false,
+              updatedAt: "",
+              payload: { items: submittedItems },
+            },
+      );
     } catch (err) {
       if (err instanceof MvpApiError && err.status === 409) {
         setConflict(true);
         toast(isAr ? "تعارض في النسخة: قام مستخدم آخر بالتعديل" : "Revision conflict: data changed on server.");
       } else {
-        toast(err instanceof Error ? err.message : "Failed to save draft.");
+        toast(err instanceof Error ? err.message : (isAr ? "فشل حفظ المسودة." : "Failed to save draft."));
       }
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDiscardDraft = async () => {
-    if (!mayEdit || saving) return;
-    setSaving(true);
-    try {
-      const expectedRevision = editorial?.currentRevision ?? 0;
-      await discardGalleryDraft(expectedRevision);
-      toast(isAr ? "تم إلغاء المسودة" : "Draft discarded.");
-      setDirty(false);
-      await loadData();
-    } catch (err) {
-      if (err instanceof MvpApiError && err.status === 409) {
-        setConflict(true);
+  const handleDiscardDraftClick = () => {
+    if (!mayEdit || loading || saving) return;
+    setDiscardDialogOpen(true);
+  };
+
+  const handleConfirmDiscard = async () => {
+    setDiscardDialogOpen(false);
+    if (!mayEdit || loading || saving) return;
+    if (editorial?.hasDraft) {
+      setSaving(true);
+      try {
+        const expectedRevision = editorial?.currentRevision ?? 0;
+        const doc = await discardGalleryDraft(expectedRevision);
+        setEditorial(doc);
+        if (doc?.payload?.items) {
+          setItems(doc.payload.items);
+        } else {
+          const defaultCfg = buildDefaultGalleryConfiguration(compiledItems);
+          setItems(defaultCfg.items);
+        }
+        toast(isAr ? "تم إلغاء المسودة" : "Draft discarded.");
+        setDirty(false);
+        setConflict(false);
+      } catch (err) {
+        if (err instanceof MvpApiError && err.status === 409) {
+          setConflict(true);
+          toast(isAr ? "تعارض في النسخة: قام مستخدم آخر بالتعديل" : "Revision conflict: data changed on server.");
+        } else {
+          toast(err instanceof Error ? err.message : (isAr ? "فشل إلغاء المسودة." : "Failed to discard draft."));
+        }
+      } finally {
+        setSaving(false);
       }
-      toast(err instanceof Error ? err.message : "Failed to discard draft.");
-    } finally {
-      setSaving(false);
+    } else {
+      // Revert local in-memory edits to loaded server document or compiled baseline
+      if (editorial?.payload?.items) {
+        setItems(editorial.payload.items);
+      } else {
+        const defaultCfg = buildDefaultGalleryConfiguration(compiledItems);
+        setItems(defaultCfg.items);
+      }
+      setDirty(false);
+      setConflict(false);
+      toast(isAr ? "تم إلغاء التعديلات غير المحفوظة" : "Unsaved edits discarded.");
     }
   };
 
   const handlePublish = async () => {
-    if (!mayPublish || saving || dirty) return;
+    if (!mayPublish || loading || saving || dirty) return;
     setSaving(true);
     try {
       const expectedRevision = editorial?.currentRevision ?? 0;
       const doc = await publishGallery(expectedRevision);
       setEditorial(doc);
+      if (doc?.payload?.items) {
+        setItems(doc.payload.items);
+      }
       toast(isAr ? "تم نشر المعرض للعامة بنجاح" : "Gallery published successfully.");
-      await loadData();
+      setDirty(false);
+      setConflict(false);
     } catch (err) {
       if (err instanceof MvpApiError && err.status === 409) {
         setConflict(true);
+        toast(isAr ? "تعارض في النسخة: قام مستخدم آخر بالتعديل" : "Revision conflict: data changed on server.");
+      } else {
+        toast(err instanceof Error ? err.message : (isAr ? "فشل نشر المعرض." : "Failed to publish gallery."));
       }
-      toast(err instanceof Error ? err.message : "Failed to publish gallery.");
     } finally {
       setSaving(false);
     }
   };
 
   const handleUnpublish = async () => {
-    if (!mayPublish || saving || dirty) return;
+    if (!mayPublish || loading || saving || dirty) return;
     setSaving(true);
     try {
       const expectedRevision = editorial?.currentRevision ?? 0;
       const doc = await unpublishGallery(expectedRevision);
       setEditorial(doc);
+      if (doc?.payload?.items) {
+        setItems(doc.payload.items);
+      }
       toast(isAr ? "تم إلغاء نشر المعرض" : "Gallery unpublished.");
-      await loadData();
+      setDirty(false);
+      setConflict(false);
     } catch (err) {
       if (err instanceof MvpApiError && err.status === 409) {
         setConflict(true);
+        toast(isAr ? "تعارض في النسخة: قام مستخدم آخر بالتعديل" : "Revision conflict: data changed on server.");
+      } else {
+        toast(err instanceof Error ? err.message : (isAr ? "فشل إلغاء نشر المعرض." : "Failed to unpublish gallery."));
       }
-      toast(err instanceof Error ? err.message : "Failed to unpublish gallery.");
     } finally {
       setSaving(false);
     }
@@ -228,20 +369,26 @@ export function GalleryPublication() {
 
   const handleRestore = async () => {
     const revNum = parseInt(restoreRevision, 10);
-    if (!mayPublish || saving || dirty || isNaN(revNum) || revNum < 1) return;
+    if (!mayPublish || loading || saving || dirty || isNaN(revNum) || revNum < 1) return;
     setSaving(true);
     try {
       const expectedRevision = editorial?.currentRevision ?? 0;
       const doc = await restoreGallery(expectedRevision, revNum);
       setEditorial(doc);
+      if (doc?.payload?.items) {
+        setItems(doc.payload.items);
+      }
       setRestoreRevision("");
       toast(isAr ? `تمت استعادة الإصدار ${revNum} بنجاح` : `Restored revision ${revNum} successfully.`);
-      await loadData();
+      setDirty(false);
+      setConflict(false);
     } catch (err) {
       if (err instanceof MvpApiError && err.status === 409) {
         setConflict(true);
+        toast(isAr ? "تعارض في النسخة: قام مستخدم آخر بالتعديل" : "Revision conflict: data changed on server.");
+      } else {
+        toast(err instanceof Error ? err.message : (isAr ? "فشل استعادة الإصدار." : "Failed to restore revision."));
       }
-      toast(err instanceof Error ? err.message : "Failed to restore revision.");
     } finally {
       setSaving(false);
     }
@@ -312,6 +459,7 @@ export function GalleryPublication() {
                 type="button"
                 className={btnClass(editLang === "en" ? "secondary" : "ghost", "sm")}
                 onClick={() => setEditLang("en")}
+                disabled={loading || saving}
               >
                 English
               </button>
@@ -319,6 +467,7 @@ export function GalleryPublication() {
                 type="button"
                 className={btnClass(editLang === "ar" ? "secondary" : "ghost", "sm")}
                 onClick={() => setEditLang("ar")}
+                disabled={loading || saving}
               >
                 العربية
               </button>
@@ -327,8 +476,9 @@ export function GalleryPublication() {
             <button
               type="button"
               className={btnClass("outline", "sm")}
-              onClick={() => void loadData()}
+              onClick={handleRefreshClick}
               disabled={loading || saving}
+              aria-label={isAr ? "تحديث" : "Refresh"}
               title={isAr ? "تحديث" : "Refresh"}
             >
               <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
@@ -350,7 +500,8 @@ export function GalleryPublication() {
             <button
               type="button"
               className={btnClass("destructive", "sm")}
-              onClick={() => void loadData()}
+              onClick={handleRefreshClick}
+              disabled={loading || saving}
             >
               {isAr ? "إعادة تحميل" : "Reload"}
             </button>
@@ -366,7 +517,7 @@ export function GalleryPublication() {
         {/* Action Command Bar */}
         <div className="mt-4 flex flex-wrap items-center gap-2 pt-2">
           <PermissionButton
-            allowed={mayEdit && dirty && !saving}
+            allowed={mayEdit && dirty && !loading && !saving}
             reason={t("adm.edit.readOnly")}
             variant="primary"
             onClick={handleSaveDraft}
@@ -375,16 +526,16 @@ export function GalleryPublication() {
           </PermissionButton>
 
           <PermissionButton
-            allowed={mayEdit && (editorial?.hasDraft || dirty) && !saving}
+            allowed={mayEdit && (editorial?.hasDraft || dirty) && !loading && !saving}
             reason={t("adm.edit.readOnly")}
             variant="outline"
-            onClick={handleDiscardDraft}
+            onClick={handleDiscardDraftClick}
           >
             {isAr ? "إلغاء المسودة" : "Discard Draft"}
           </PermissionButton>
 
           <PermissionButton
-            allowed={mayPublish && !dirty && !saving && (editorial?.hasDraft || editorial?.status === "draft")}
+            allowed={mayPublish && !dirty && !loading && !saving && (editorial?.hasDraft || editorial?.status === "draft")}
             reason={t("adm.edit.readOnly")}
             variant="primary"
             onClick={handlePublish}
@@ -393,7 +544,7 @@ export function GalleryPublication() {
           </PermissionButton>
 
           <PermissionButton
-            allowed={mayPublish && !dirty && !saving && Boolean(editorial?.publishedRevision) && !editorial?.tombstoned}
+            allowed={mayPublish && !dirty && !loading && !saving && Boolean(editorial?.publishedRevision) && !editorial?.tombstoned}
             reason={t("adm.edit.readOnly")}
             variant="outline"
             onClick={handleUnpublish}
@@ -409,11 +560,12 @@ export function GalleryPublication() {
               placeholder={isAr ? "رقم الإصدار" : "Rev #"}
               value={restoreRevision}
               onChange={(e) => setRestoreRevision(e.target.value)}
+              disabled={loading || saving}
               className="w-24 text-xs"
               dir="ltr"
             />
             <PermissionButton
-              allowed={mayPublish && !dirty && !saving && parseInt(restoreRevision, 10) > 0}
+              allowed={mayPublish && !dirty && !loading && !saving && parseInt(restoreRevision, 10) > 0}
               reason={t("adm.edit.readOnly")}
               variant="outline"
               onClick={handleRestore}
@@ -441,6 +593,7 @@ export function GalleryPublication() {
               placeholder={isAr ? "البحث بالمعرف أو العنوان..." : "Search by ID or title..."}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              disabled={loading || saving}
               className="ps-9 text-xs"
             />
           </div>
@@ -496,7 +649,7 @@ export function GalleryPublication() {
                           <button
                             type="button"
                             aria-label={isAr ? `\u0646\u0642\u0644 ${item.recordId} \u0644\u0623\u0639\u0644\u0649` : `Move ${item.recordId} up`}
-                            disabled={!mayEdit || originalIndex === 0}
+                            disabled={!mayEdit || loading || saving || originalIndex === 0}
                             onClick={() => handleMove(originalIndex, "up")}
                             className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-20"
                           >
@@ -505,7 +658,7 @@ export function GalleryPublication() {
                           <button
                             type="button"
                             aria-label={isAr ? `\u0646\u0642\u0644 ${item.recordId} \u0644\u0623\u0633\u0641\u0644` : `Move ${item.recordId} down`}
-                            disabled={!mayEdit || originalIndex === items.length - 1}
+                            disabled={!mayEdit || loading || saving || originalIndex === items.length - 1}
                             onClick={() => handleMove(originalIndex, "down")}
                             className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-20"
                           >
@@ -521,7 +674,7 @@ export function GalleryPublication() {
                         type="button"
                         aria-pressed={item.visible}
                         aria-label={isAr ? `\u062a\u063a\u064a\u064a\u0631 \u0638\u0647\u0648\u0631 ${item.recordId}` : `Toggle visibility for ${item.recordId}`}
-                        disabled={!mayEdit}
+                        disabled={!mayEdit || loading || saving}
                         onClick={() => handleToggleVisible(originalIndex)}
                         className={`inline-flex items-center justify-center rounded p-1.5 transition-colors ${
                           item.visible
@@ -559,7 +712,7 @@ export function GalleryPublication() {
                         aria-label={isAr ? `\u0627\u0644\u0639\u0646\u0648\u0627\u0646 ${item.recordId}` : `Display title ${item.recordId}`}
                         maxLength={500}
                         value={currentTitle}
-                        disabled={!mayEdit}
+                        disabled={!mayEdit || loading || saving}
                         onChange={(e) => handleTitleChange(originalIndex, e.target.value)}
                         placeholder={compiled?.title[editLang] ?? ""}
                         className="text-xs"
@@ -574,7 +727,7 @@ export function GalleryPublication() {
                         aria-label={isAr ? `\u0627\u0644\u0634\u0631\u062d ${item.recordId}` : `Display caption ${item.recordId}`}
                         maxLength={2000}
                         value={currentCaption}
-                        disabled={!mayEdit}
+                        disabled={!mayEdit || loading || saving}
                         onChange={(e) => handleCaptionChange(originalIndex, e.target.value)}
                         placeholder={compiled?.caption?.[editLang] ?? ""}
                         className="text-xs resize-y"
@@ -604,6 +757,39 @@ export function GalleryPublication() {
           </GazaTable>
         </div>
       </AdminPanel>
+
+      {/* Confirm Reload Modal */}
+      <ConfirmDialog
+        open={reloadConfirmOpen}
+        title={t("cms.conflict.confirmTitle")}
+        body={t("cms.conflict.confirmDesc")}
+        confirmLabel={t("cms.conflict.reload")}
+        cancelLabel={t("cms.conflict.keep")}
+        pending={loading || saving}
+        onConfirm={() => {
+          setReloadConfirmOpen(false);
+          void loadData(true);
+        }}
+        onClose={() => setReloadConfirmOpen(false)}
+      />
+
+      {/* Discard Draft Modal */}
+      <ConfirmDialog
+        open={discardDialogOpen}
+        title={t("cms.discard.title")}
+        body={
+          editorial?.hasDraft
+            ? (isAr
+                ? "هل تريد إلغاء مسودة المعرض المحفوظة على الخادم واستعادة الحالة المنشورة؟"
+                : "Discard the server draft and revert to the published gallery configuration?")
+            : t("cms.discard.desc")
+        }
+        confirmLabel={t("cms.discard.confirm")}
+        cancelLabel={t("a2.cancel")}
+        pending={saving}
+        onConfirm={handleConfirmDiscard}
+        onClose={() => setDiscardDialogOpen(false)}
+      />
     </div>
   );
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Reference\Fleet;
 
 use App\Support\DatabaseClock;
+use App\Support\ReferenceWriteBarrier;
 use Closure;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -119,6 +120,10 @@ final class FleetCoordinator
             $authorize();
             $control = DB::table('reference_revision_control')->where('domain', 'fleet')->lockForUpdate()->first();
             if ($control === null) { throw new \LogicException('Missing reference control.'); }
+
+            // Fresh maintenance & release pointer revalidation under lock: reject in-flight admitted writers
+            ReferenceWriteBarrier::guard();
+
             // Fresh wall clock / persisted authority after waiting; no detached role authorization.
             $actor = $authorize();
             [$result, $changed] = $write();

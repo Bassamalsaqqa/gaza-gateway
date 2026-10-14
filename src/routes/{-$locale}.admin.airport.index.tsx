@@ -1,6 +1,6 @@
 import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
 import { createFileRoute, useBlocker } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, ChevronDown, ChevronUp, Plus, RefreshCw, Trash2, X } from "lucide-react";
 import { Input, Select, Textarea, btnClass } from "@/components/kit";
 import {
@@ -245,11 +245,13 @@ function AdminAirportPage() {
   const [editingSource, setEditingSource] = useState<{ source: SourceRecord | null; isNew: boolean } | null>(null);
   const [recordEditorDirty, setRecordEditorDirty] = useState(false);
   const [sourceEditorDirty, setSourceEditorDirty] = useState(false);
+  const [galleryDirty, setGalleryDirty] = useState(false);
+  const [gallerySaving, setGallerySaving] = useState(false);
 
-  // Synchronize search params tab if provided
-  useEffect(() => {
-    setTab(search.tab ?? "past");
-  }, [search.tab]);
+  const handleGalleryEditState = useCallback((state: { dirty: boolean; saving: boolean }) => {
+    setGalleryDirty(state.dirty);
+    setGallerySaving(state.saving);
+  }, []);
 
   // Navigation controls the opened sheet, not every query refresh.
   useEffect(() => {
@@ -308,6 +310,7 @@ function AdminAirportPage() {
     if (tabName === "past") return pastCms.dirty;
     if (tabName === "present") return presentCms.dirty;
     if (tabName === "future") return futureCms.dirty;
+    if (tabName === "gallery") return galleryDirty;
     if (tabName === "archive") return recordEditorDirty;
     if (tabName === "sources") return sourceEditorDirty;
     return false;
@@ -315,13 +318,33 @@ function AdminAirportPage() {
 
   const currentIsDirty = isTabDirty(tab);
 
-  const busy = pastCms.saving || presentCms.saving || futureCms.saving;
-  const anyDirty = pastCms.dirty || presentCms.dirty || futureCms.dirty || recordEditorDirty || sourceEditorDirty;
+  const busy = pastCms.saving || presentCms.saving || futureCms.saving || gallerySaving;
+  const anyDirty = pastCms.dirty || presentCms.dirty || futureCms.dirty || galleryDirty || recordEditorDirty || sourceEditorDirty;
   const navigationBlocker = useBlocker({
     shouldBlockFn: () => anyDirty || busy,
     enableBeforeUnload: anyDirty || busy,
     withResolver: true,
   });
+
+  const prevSearchTabRef = useRef<Tab | undefined>(search.tab as Tab | undefined);
+
+  // Synchronize search params tab only on genuine external search.tab changes
+  useEffect(() => {
+    const prevSearchTab = prevSearchTabRef.current;
+    if (search.tab === prevSearchTab) return;
+    prevSearchTabRef.current = search.tab as Tab | undefined;
+
+    const targetTab = (search.tab as Tab | undefined) ?? "past";
+    if (targetTab === tab || busy) return;
+
+    if (currentIsDirty) {
+      setPendingTab(targetTab);
+    } else {
+      setEditingRecord(null);
+      setEditingSource(null);
+      setTab(targetTab);
+    }
+  }, [search.tab, tab, busy, currentIsDirty]);
 
   useEffect(() => {
     if (!search.item) return;
@@ -351,6 +374,10 @@ function AdminAirportPage() {
     if (tab === "past") pastCms.resetLocalEdits();
     if (tab === "present") presentCms.resetLocalEdits();
     if (tab === "future") futureCms.resetLocalEdits();
+    if (tab === "gallery") {
+      setGalleryDirty(false);
+      setGallerySaving(false);
+    }
     if (tab === "archive") {
       setEditingRecord(null);
       setRecordEditorDirty(false);
@@ -1540,7 +1567,7 @@ function AdminAirportPage() {
           {/* TAB: GALLERY (Phase 13 Gallery Publication)                         */}
           {/* ------------------------------------------------------------------ */}
           {identityUiRequested && tab === "gallery" && (
-            <GalleryPublication />
+            <GalleryPublication onEditState={handleGalleryEditState} />
           )}
 
           {/* ------------------------------------------------------------------ */}
@@ -1559,9 +1586,21 @@ function AdminAirportPage() {
         </AdminTabs>
       </AdminPanel>
 
-      <ConfirmDialog open={navigationBlocker.status === "blocked"} title={t("cms.unsaved.title")}
-        body={t("cms.unsaved.desc")} confirmLabel={t("cms.unsaved.leave")} cancelLabel={t("a2.cancel")}
-        onConfirm={() => { if (!busy) navigationBlocker.proceed?.(); }} onClose={() => navigationBlocker.reset?.()} />
+      <ConfirmDialog
+        open={navigationBlocker.status === "blocked"}
+        title={t("cms.unsaved.title")}
+        body={t("cms.unsaved.desc")}
+        confirmLabel={t("cms.unsaved.leave")}
+        cancelLabel={t("a2.cancel")}
+        pending={busy}
+        onConfirm={() => {
+          if (!busy) {
+            setGalleryDirty(false);
+            navigationBlocker.proceed?.();
+          }
+        }}
+        onClose={() => navigationBlocker.reset?.()}
+      />
       <ConfirmDialog open={reloadConflictOpen} title={t("cms.conflict.confirmTitle")}
         body={t("cms.conflict.confirmDesc")} confirmLabel={t("cms.conflict.reload")} cancelLabel={t("a2.cancel")}
         onConfirm={() => { if (!busy) { const cms = tab === "past" ? pastCms : tab === "present" ? presentCms : futureCms; void cms.reloadRemote(); setReloadConflictOpen(false); } }}
@@ -1588,6 +1627,7 @@ function AdminAirportPage() {
         body={t("cms.unsaved.desc")}
         confirmLabel={t("cms.unsaved.discardAndLeave")}
         cancelLabel={t("a2.cancel")}
+        pending={busy}
         onConfirm={handleConfirmTabSwitch}
         onClose={handleCancelTabSwitch}
       />

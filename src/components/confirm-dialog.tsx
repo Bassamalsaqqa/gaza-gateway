@@ -85,7 +85,7 @@ export function ConfirmDialog({
           </p>
         ) : null}
         <AlertDialogFooter>
-          <AlertDialogCancel autoFocus disabled={pending}>
+          <AlertDialogCancel disabled={pending}>
             {cancelLabel ?? t("common.keep")}
           </AlertDialogCancel>
           <AlertDialogAction

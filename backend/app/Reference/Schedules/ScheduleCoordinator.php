@@ -8,6 +8,7 @@ use App\Reference\Schedules\Exceptions\ScheduleDuplicateException;
 use App\Reference\Schedules\Exceptions\ScheduleNotFoundException;
 use App\Reference\Schedules\Exceptions\ScheduleValidationException;
 use App\Support\DatabaseClock;
+use App\Support\ReferenceWriteBarrier;
 use Closure;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -237,6 +238,9 @@ final class ScheduleCoordinator
             if ($control === null) {
                 throw new LogicException('Missing schedule reference control.');
             }
+
+            // Fresh maintenance & release pointer revalidation under lock: reject in-flight admitted writers
+            ReferenceWriteBarrier::guard();
 
             // 5. Schedule sorted IDs row lock
             if ($scheduleId !== '') {

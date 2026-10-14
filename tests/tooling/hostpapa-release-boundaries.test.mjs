@@ -42,6 +42,84 @@ test('generated Apache rules preserve inherited Directory Privacy and canonical 
  assert.ok(!text.includes('Require all granted'));
  assert.ok(text.indexOf('^/api')<text.indexOf('Existing regular files'));
 });
+test('generated Apache rules include mp4, webm, avif in missing static asset 404 guard and preserve routing hierarchy',()=>{
+ const text=generateHtaccess();
+ const staticRuleMatch=text.match(/RewriteCond %\{REQUEST_URI\} \\\.([^\s]+) \[NC\]\r?\nRewriteRule \^ - \[R=404,L\]/);
+ assert.ok(staticRuleMatch,'Missing static asset 404 rule must exist');
+ const staticRegex=new RegExp(`\\.(${staticRuleMatch[1]})$`,'i');
+
+ const positiveCases=[
+  '/media/takeoff.mp4',
+  '/media/takeoff.MP4',
+  '/videos/cinematic-future.webm',
+  '/videos/cinematic-future.WEBM',
+  '/images/heritage-poster.avif',
+  '/images/heritage-poster.AVIF',
+  '/assets/index.css',
+  '/assets/index.js',
+  '/assets/vendor.mjs',
+  '/images/logo.png',
+  '/images/archive.jpg',
+  '/images/archive.jpeg',
+  '/images/spinner.gif',
+  '/images/hero.webp',
+  '/icons/plane.svg',
+  '/favicon.ico',
+  '/fonts/plex.woff',
+  '/fonts/plex.woff2',
+  '/fonts/plex.ttf',
+  '/fonts/plex.eot',
+  '/assets/index.js.map',
+ ];
+ for (const uri of positiveCases) {
+  assert.match(uri,staticRegex,`Expected ${uri} to match missing static asset guard`);
+ }
+
+ const negativeCases=[
+  '/api/v1/flights',
+  '/api/v1/admin/dashboard',
+  '/api/health',
+  '/',
+  '/flights',
+  '/ar/flights',
+  '/destinations/AMM',
+  '/admin',
+  '/admin/bookings',
+  '/ar/admin',
+  '/manage/GZA-7K8P',
+  '/index.html',
+  '/index.php',
+  '/mp4-player',
+  '/webm-stream',
+  '/avif-preview',
+  '/assets/manifest.json',
+ ];
+ for (const uri of negativeCases) {
+  assert.doesNotMatch(uri,staticRegex,`Expected ${uri} NOT to match missing static asset guard`);
+ }
+
+ const apiIdx=text.indexOf('RewriteCond %{REQUEST_URI} ^/api');
+ const existingFilesIdx=text.indexOf('RewriteCond %{REQUEST_FILENAME} -f');
+ const prerenderIdx=text.indexOf('RewriteCond %{DOCUMENT_ROOT}/$1/index.html -f');
+ const missingStaticIdx=text.indexOf('RewriteCond %{REQUEST_URI} \\.(?:css|');
+ const arAdminIdx=text.indexOf('RewriteRule ^ar/admin');
+ const enAdminIdx=text.indexOf('RewriteRule ^admin');
+ const arPublicIdx=text.indexOf('RewriteRule ^ar(?:/.*)?$ ar/_shell.html');
+ const enPublicIdx=text.indexOf('RewriteRule ^ _shell.html');
+
+ assert.ok(apiIdx>0,'API routing rule present');
+ assert.ok(existingFilesIdx>apiIdx,'API routing must precede existing regular files rule');
+ assert.ok(prerenderIdx>existingFilesIdx,'Existing files must precede prerendered directory matching');
+ assert.ok(missingStaticIdx>prerenderIdx,'Prerendered directory matching must precede missing static asset 404');
+ assert.ok(arAdminIdx>missingStaticIdx,'Missing static asset 404 must precede dynamic SPA fallbacks');
+ assert.ok(enAdminIdx>arAdminIdx,'Arabic admin fallback must precede English admin fallback');
+ assert.ok(arPublicIdx>enAdminIdx,'Admin fallbacks must precede Arabic public fallback');
+ assert.ok(enPublicIdx>arPublicIdx,'Arabic public fallback must precede English public dynamic fallback');
+
+ assert.ok(!text.includes('mod_deflate'),'Must not add gzip/compression directives');
+ assert.ok(!text.includes('mod_expires'),'Must not add expires/caching directives');
+ assert.ok(!text.includes('Cache-Control'),'Must not add Cache-Control headers');
+});
 test('packaged normative inputs are real source authorities',async()=>{
  const contract=JSON.parse(await readFile(path.join(root,'docs/backend/openapi.v1.json'),'utf8'));
  assert.equal(contract.openapi,'3.1.0');

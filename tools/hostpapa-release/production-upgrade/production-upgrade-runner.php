@@ -63,6 +63,33 @@ function assertRollbackCompatible(PDO $pdo): void {
     }
 }
 
+function beginRollbackReferenceBarrier(PDO $pdo): void {
+    $pdo->exec('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED');
+    $pdo->exec('SET SESSION innodb_lock_wait_timeout = 10');
+    $pdo->beginTransaction();
+    // Same order as the cross-domain schedule mutation coordinator.
+    foreach ([
+        ['reference_revision_control', 'fleet'],
+        ['network_revision_control', 'network'],
+        ['schedule_revision_control', 'schedules'],
+    ] as [$table, $domain]) {
+        $statement = $pdo->prepare("SELECT domain FROM {$table} WHERE domain = ? FOR UPDATE");
+        $statement->execute([$domain]);
+        if ($statement->fetch(PDO::FETCH_ASSOC) === false) {
+            throw new RuntimeException('Missing rollback reference control sentinel.');
+        }
+    }
+}
+
+function assertRollbackMigrationLedger(PDO $pdo, array $expected): void {
+    $actual = $pdo->query('SELECT migration FROM migrations ORDER BY migration')->fetchAll(PDO::FETCH_COLUMN);
+    sort($actual, SORT_STRING);
+    sort($expected, SORT_STRING);
+    if ($actual !== $expected) {
+        throw new RuntimeException('Rollback requires the exact candidate migration ledger.');
+    }
+}
+
 function preservationDigests(PDO $pdo, ?array $tables = null): array {
     // Preserve durable application records, including credentials/settings ciphertext,
     // without emitting them. Cache/lease/heartbeat bookkeeping is intentionally mutable.
@@ -510,19 +537,20 @@ try {
             throw new RuntimeException('Retained backup file hash verification failed.');
         }
 
-        // Old seven-destination code must not be restored over expanded authority.
-        assertRollbackCompatible($pdo);
+        // Issue #10: Guard acquisition FIRST before compatibility assertion or mutation
+        $stage = 'rollback_guards';
 
-        // Acquire installer lock for rollback
+        // 1. Acquire installer lock EX NB
         $installerLockPath = $appRoot . '/shared/installer.lock';
         safePath($installerLockPath, $home);
+        if (!is_dir(dirname($installerLockPath))) mkdir(dirname($installerLockPath), 0700, true);
         $installerLock = fopen($installerLockPath, 'c');
         if (!$installerLock || !flock($installerLock, LOCK_EX | LOCK_NB)) {
             throw new RuntimeException('Installer lock active; cannot rollback.');
         }
         chmod($installerLockPath, 0600);
 
-        // Exclude cron via Cache::lock on target active release
+        // 2. Exclude cron via real Cache::lock on target active release
         $leaseToken = bin2hex(random_bytes(16));
         $leaseScript = <<<'PHP'
 set_time_limit(30);
@@ -547,13 +575,62 @@ PHP;
         }
         $cronLeaseOwner = $leaseToken;
 
-        // Enter maintenance mode
+        // 3. Establish canonical maintenance mode; refuse pre-existing maintenance.php and down
         safePath($maintenancePath, $home);
-        file_put_contents($maintenancePath, makeMaintenancePayload(), LOCK_EX);
-        chmod($maintenancePath, 0600);
+        $frameworkDir = dirname($maintenancePath);
+        safePath($frameworkDir, $home);
+        if (!is_dir($frameworkDir)) {
+            mkdir($frameworkDir, 0700, true);
+        }
+        $legacyDownPath = $frameworkDir . '/down';
+        safePath($legacyDownPath, $home);
+        if (is_file($maintenancePath) || is_file($legacyDownPath)) {
+            throw new RuntimeException('Pre-existing maintenance mode active (maintenance.php or down); rollback refused.');
+        }
+
+        // Exclusive maintenance creation with checked write and chmod
+        $maintHandle = @fopen($maintenancePath, 'x');
+        if (!$maintHandle) {
+            throw new RuntimeException('Failed to exclusively create maintenance mode file; file may already exist or cannot be opened.');
+        }
+        $maintPayload = makeMaintenancePayload();
+        $writtenBytes = fwrite($maintHandle, $maintPayload);
+        fclose($maintHandle);
+        if ($writtenBytes !== strlen($maintPayload)) {
+            @unlink($maintenancePath);
+            throw new RuntimeException('Incomplete write of maintenance payload.');
+        }
+        if (!chmod($maintenancePath, 0600)) {
+            @unlink($maintenancePath);
+            throw new RuntimeException('Failed to set permissions on maintenance file.');
+        }
         $maintenanceSet = true;
-        // Maintenance rejects new HTTP requests; a single-transaction dump records a consistent DB snapshot.
-    // Preservation digests below detect any remaining in-flight mutation during upgrade.
+
+        // 4. Stage: rollback_serialization (InnoDB domain barrier)
+        $stage = 'rollback_serialization';
+        beginRollbackReferenceBarrier($pdo);
+
+        // 5. Stage: rollback_compatibility (revalidation under barrier immediately before pointer/public changes)
+        $stage = 'rollback_compatibility';
+
+        // Re-read active pointer from disk
+        $currentPointerNow = trim((string)file_get_contents($pointerPath));
+        if ($currentPointerNow !== $targetReleaseId) {
+            throw new RuntimeException("Active pointer changed unexpectedly to {$currentPointerNow}; rollback refused.");
+        }
+
+        // Re-read backend source pin
+        if (!is_file($targetBackendPin) || trim(file_get_contents($targetBackendPin)) !== $targetSourceSha) {
+            throw new RuntimeException('Target release backend source pin mismatch during barrier verification.');
+        }
+
+        assertRollbackMigrationLedger($pdo, $expectedMigrationNames);
+
+        // Verify compatibility predicate: reference airports and destination limits
+        assertRollbackCompatible($pdo);
+
+        // 6. Stage: rollback_execute (HOLD barrier across verified HostPapaInstaller using inherited filelock)
+        $stage = 'rollback_execute';
 
         $rollbackApproval = [
             'schema_version' => '1.0',
@@ -587,9 +664,23 @@ PHP;
         ]);
         $inst->run($installerLock);
 
-        if (is_file($maintenancePath)) {
-            @unlink($maintenancePath);
-            $maintenanceSet = false;
+        // Post-rollback pointer verification
+        $postRollbackPointer = trim((string)file_get_contents($pointerPath));
+        if ($postRollbackPointer !== INSTALLED_RELEASE_ID) {
+            throw new RuntimeException("Rollback failed to restore pointer to " . INSTALLED_RELEASE_ID . "; found {$postRollbackPointer}");
+        }
+
+        // Commit barrier transaction BEFORE removing maintenance
+        $pdo->commit();
+
+        // Remove maintenance mode created by this runner
+        if ($maintenanceSet) {
+            if (is_file($maintenancePath)) {
+                if (!unlink($maintenancePath)) {
+                    throw new RuntimeException('Failed to remove maintenance mode file after rollback completion; maintenance remains active.');
+                }
+                $maintenanceSet = false;
+            }
         }
 
         echo "PASS: guarded code and static rollback complete. Additive database migrations are preserved and not automatically reverted.\n";
@@ -915,6 +1006,9 @@ PHP;
     echo "PASS: release installed, migrations verified at 21, previous bytes and consistent database dump retained.\n";
     if (function_exists('pcntl_alarm')) pcntl_alarm(0);
 } catch (Throwable $e) {
+    if (isset($pdo) && $pdo instanceof PDO && $pdo->inTransaction()) {
+        try { $pdo->rollBack(); } catch (\Throwable) {}
+    }
     if ($ownsKitLock && is_dir($kitRoot)) {
         $failureReceipt = [
             'outcome' => 'FAIL',
@@ -922,7 +1016,7 @@ PHP;
             'preflight_checkpoint' => $stage === 'preflight' ? $preflightCheckpoint : null,
             'source_sha' => $targetSourceSha ?? null,
             'time' => gmdate('c'),
-            'message' => 'Upgrade stopped; inspect private configuration, backup logs and retained backups before retry.',
+            'message' => 'Upgrade or rollback stopped; inspect private configuration, backup logs and retained backups before retry.',
             'maintenance_retained' => $maintenanceSet,
             'maintenance_observed' => is_file($maintenancePath),
         ];

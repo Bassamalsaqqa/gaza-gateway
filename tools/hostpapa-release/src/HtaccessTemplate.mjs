@@ -70,7 +70,7 @@ RewriteRule ^(.*)/?$ $1/index.html [L]
 # ----------------------------------------------------------------------
 # 6. Missing static assets: return 404 directly (never serve HTML shell or PHP)
 # ----------------------------------------------------------------------
-RewriteCond %{REQUEST_URI} \\.(?:css|js|mjs|png|jpe?g|gif|webp|svg|ico|woff2?|ttf|eot|map)$ [NC]
+RewriteCond %{REQUEST_URI} \\.(?:css|js|mjs|png|jpe?g|gif|webp|avif|svg|ico|woff2?|ttf|eot|mp4|webm|map)$ [NC]
 RewriteRule ^ - [R=404,L]
 
 # ----------------------------------------------------------------------
