@@ -237,6 +237,7 @@ function makeMaintenancePayload(): string {
 }
 
 $stage = 'preflight';
+$preflightCheckpoint = 'startup';
 $ownsKitLock = false;
 $kitLock = null;
 $installerLock = null;
@@ -297,6 +298,7 @@ try {
         return;
     }
 
+    $preflightCheckpoint = 'kit_manifest';
     // 1. Read CLOSED upgrade kit manifest
     $upgradeManifestFile = $kitRoot . '/upgrade-manifest.json';
     privatePath($upgradeManifestFile, $home);
@@ -350,9 +352,11 @@ try {
         throw new RuntimeException('Candidate installer integrity verification failed against upgrade manifest.');
     }
 
+    $preflightCheckpoint = 'candidate_inventory';
     // Candidate verifier must execute in ALL modes (including --check) before reading live credentials
     runBounded([PHP_BINARY, '-d', 'display_errors=0', $installerPath, '--action=verify', '--package-dir=' . $candidatePkgDir], 90);
 
+    $preflightCheckpoint = 'ddl_approval';
     // 2. Read and validate DDL credentials from existing private live approval
     $liveApprovalFile = $livePackageRoot . '/live-approval.json';
     $liveApprovalRaw = privateInput($liveApprovalFile, $home, 32768, false);
@@ -371,6 +375,7 @@ try {
     $ddlUsername = (string)$db['username'];
     $ddlPassword = (string)$db['password'];
 
+    $preflightCheckpoint = 'runtime_configuration';
     // 3. Read and validate runtime credentials from shared/config/.env (read-only, no writing or chmod)
     $sharedConfigEnv = $appRoot . '/shared/config/.env';
     $runtimeEnvPath = null;
@@ -393,12 +398,14 @@ try {
     }
     $runtimePassword = (string)$envVars['DB_PASSWORD'];
 
+    $preflightCheckpoint = 'backup_tools';
     // 4. Check host backup binaries availability (tar and mysqldump)
     $mysqldumpBin = getenv('HOSTPAPA_MYSQLDUMP_BIN') ?: 'mysqldump';
     $tarBin = getenv('HOSTPAPA_TAR_BIN') ?: 'tar';
     runBounded([$tarBin, '--version'], 5);
     runBounded([$mysqldumpBin, '--version'], 5);
 
+    $preflightCheckpoint = 'database_connectivity';
     // 5. Connect with DDL user to check database name and migrations
     $dsn = "mysql:host={$ddlHost};port={$ddlPort};dbname={$ddlDatabase};charset=utf8mb4";
     $pdo = new PDO($dsn, $ddlUsername, $ddlPassword, [
@@ -422,6 +429,7 @@ try {
     $runtimeSelectedDb = $runtimePdo->query('SELECT DATABASE() AS name')->fetch()['name'] ?? '';
     if ($runtimeSelectedDb !== EXPECTED_DB_NAME) throw new RuntimeException('Runtime user connected to unexpected database.');
 
+    $preflightCheckpoint = 'installed_inventory';
     // 6. Check active release pointer and baseline state
     $pointerPath = $appRoot . '/current-release.txt';
     safePath($pointerPath, $home);
@@ -585,6 +593,36 @@ PHP;
         }
 
         echo "PASS: guarded code and static rollback complete. Additive database migrations are preserved and not automatically reverted.\n";
+        if (function_exists('pcntl_alarm')) pcntl_alarm(0);
+        return;
+    }
+
+    // A read-only check is valid after a completed upgrade, too. Verify actual
+    // installed bytes/schema instead of rejecting the new state as an old-baseline failure.
+    $preflightCheckpoint = 'active_release_and_schema';
+    if ($mode === '--check' && $activePointer === $targetReleaseId) {
+        $installedTarget = $appRoot . '/releases/' . $targetReleaseId;
+        safePath($installedTarget, $home);
+        if (!is_file($installedTarget . '/SOURCE_COMMIT.txt')
+            || trim(file_get_contents($installedTarget . '/SOURCE_COMMIT.txt')) !== $targetSourceSha
+            || !is_file($installedTarget . '/release-manifest.json')
+            || hash_file('sha256', $installedTarget . '/release-manifest.json') !== $targetManifestSha) {
+            throw new RuntimeException('Installed target source or manifest mismatch.');
+        }
+        foreach (['private_files' => $installedTarget, 'public_files' => $webroot] as $section => $base) {
+            foreach ($candidateManifest[$section] ?? [] as $relative => $entry) {
+                $file = $base . '/' . $relative;
+                safePath($file, $home);
+                if (!is_file($file) || hash_file('sha256', $file) !== $entry['sha256']) {
+                    throw new RuntimeException('Installed target inventory mismatch.');
+                }
+            }
+        }
+        $actualNames = $pdo->query('SELECT migration FROM migrations ORDER BY migration')->fetchAll(PDO::FETCH_COLUMN);
+        if ($expectedMigrationNames !== $actualNames || is_file($maintenancePath)) {
+            throw new RuntimeException('Installed target schema or maintenance state requires investigation.');
+        }
+        echo "PASS: already-installed target source, private/public bytes and 21 migration identities verified; no upgrade or evidence rewrite.\n";
         if (function_exists('pcntl_alarm')) pcntl_alarm(0);
         return;
     }
@@ -868,6 +906,11 @@ PHP;
     safePath($resultPath, $home);
     file_put_contents($resultPath, json_encode($receipt, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR) . "\n", LOCK_EX);
     chmod($resultPath, 0600);
+    // Retain a separate durable success attestation; later checks cannot replace it.
+    $successPath = $kitRoot . '/production-upgrade-success.json';
+    safePath($successPath, $home);
+    file_put_contents($successPath, json_encode($receipt, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR) . "\n", LOCK_EX);
+    chmod($successPath, 0600);
 
     echo "PASS: release installed, migrations verified at 21, previous bytes and consistent database dump retained.\n";
     if (function_exists('pcntl_alarm')) pcntl_alarm(0);
@@ -876,12 +919,21 @@ PHP;
         $failureReceipt = [
             'outcome' => 'FAIL',
             'stage' => $stage,
+            'preflight_checkpoint' => $stage === 'preflight' ? $preflightCheckpoint : null,
             'source_sha' => $targetSourceSha ?? null,
             'time' => gmdate('c'),
             'message' => 'Upgrade stopped; inspect private configuration, backup logs and retained backups before retry.',
             'maintenance_retained' => $maintenanceSet,
+            'maintenance_observed' => is_file($maintenancePath),
         ];
-        @file_put_contents($kitRoot . '/production-upgrade-result.json', json_encode($failureReceipt, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR) . "\n", LOCK_EX);
+        // Observational failures must not destroy installation/rollback evidence.
+        // Retain every invocation and use a separate last-failure report.
+        $failureBytes = json_encode($failureReceipt, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR) . "\n";
+        $eventPath = $kitRoot . '/production-upgrade-failure-' . gmdate('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '.json';
+        @file_put_contents($eventPath, $failureBytes, LOCK_EX);
+        @chmod($eventPath, 0600);
+        @file_put_contents($kitRoot . '/production-upgrade-last-failure.json', $failureBytes, LOCK_EX);
+        @chmod($kitRoot . '/production-upgrade-last-failure.json', 0600);
     }
     // If failure occurred pre-migration before backups, safe to clear maintenance; otherwise retain it!
     if ($stage === 'maintenance' && $maintenanceSet && is_file($maintenancePath)) {
