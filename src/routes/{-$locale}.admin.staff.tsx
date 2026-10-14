@@ -1,5 +1,7 @@
 import { GazaTable, GazaTableBody, GazaTableCaption, GazaTableCell, GazaTableHead, GazaTableHeader, GazaTableRow } from "@/components/gaza-table";
 import { createFileRoute } from "@tanstack/react-router";
+import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
+import { StaffIdentityWorkspace } from "@/components/identity/staff-workspace";
 import { useState } from "react";
 import { Field, Input, Select, btnClass } from "@/components/kit";
 import { AdminChip, AdminPageHeader, AdminPanel, GazaSheet, Ltr, PermissionButton } from "@/components/admin/admin-kit";
@@ -28,7 +30,7 @@ export const Route = createFileRoute("/{-$locale}/admin/staff")({
       ar: { title: "الموظفون والأدوار — إدارة مطار غزة الدولي", description: "حسابات الموظفين وأدوار الإدارة الثلاثة." },
       noindex: true,
     }),
-  component: AdminStaffPage,
+  component: () => identityUiRequested ? <StaffIdentityWorkspace /> : <AdminStaffPage />,
 });
 
 type SheetKind = "create" | "role" | null;

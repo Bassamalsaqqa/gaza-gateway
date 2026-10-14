@@ -1,5 +1,7 @@
 import { GazaTable, GazaTableBody, GazaTableCaption, GazaTableCell, GazaTableHead, GazaTableHeader, GazaTableRow } from "@/components/gaza-table";
 import { createFileRoute } from "@tanstack/react-router";
+import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
+import { LiveCustomersPage } from "@/components/admin/live-admin-data";
 import { useMemo, useState } from "react";
 import { AppLink } from "@/components/app-link";
 import { Input, btnClass } from "@/components/kit";
@@ -19,7 +21,7 @@ export const Route = createFileRoute("/{-$locale}/admin/customers/")({
       ar: { title: "العملاء — إدارة مطار غزة الدولي", description: "حسابات المسافرين والمسافرون المحفوظون." },
       noindex: true,
     }),
-  component: AdminCustomersPage,
+  component: () => identityUiRequested ? <LiveCustomersPage /> : <AdminCustomersPage />,
 });
 
 function AdminCustomersPage() {

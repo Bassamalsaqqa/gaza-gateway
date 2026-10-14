@@ -124,6 +124,22 @@ export function SeatMap({
   );
 
   const isReadOnly = readOnly || !onSelect;
+  const previewViewport = useRef<HTMLDivElement>(null);
+  const previewPlane = useRef<HTMLDivElement>(null);
+  const [previewFit, setPreviewFit] = useState({ scale: 1, height: 0, left: 0 });
+  useEffect(() => {
+    if (!isReadOnly || !previewViewport.current || !previewPlane.current) return;
+    const viewport = previewViewport.current; const plane = previewPlane.current;
+    const update = () => {
+      const width = plane.offsetWidth;
+      if (!width || !viewport.clientWidth) return;
+      const scale = Math.min(1, viewport.clientWidth / width);
+      setPreviewFit({ scale, height: plane.offsetHeight * scale, left: Math.max(0, (viewport.clientWidth - width * scale) / 2) });
+    };
+    const observer = new ResizeObserver(update);
+    observer.observe(viewport); observer.observe(plane); update();
+    return () => observer.disconnect();
+  }, [isReadOnly, effectiveLayout]);
   const isAllCabins = isReadOnly || cabin === "all" || !cabin;
 
   const taken = useMemo(() => new Set(Object.values(assignments)), [assignments]);
@@ -369,7 +385,7 @@ export function SeatMap({
           <span className="flex size-5 items-center justify-center rounded border border-clay/60 bg-clay-soft text-accent-foreground">
             <AircraftSeatIcon />
           </span>
-          <span>{`${t("book.seatExtra")} · ${money(extraLegroomPrice, lang)}`}</span>
+          <span>{extraLegroomPrice > 0 ? `${t("book.seatExtra")} · ${money(extraLegroomPrice, lang)}` : t("book.seatExtra")}</span>
         </li>
         <li className="flex items-center gap-1.5">
           <span className="flex size-5 items-center justify-center rounded border border-transparent bg-secondary text-muted-foreground/40 opacity-70">
@@ -380,14 +396,17 @@ export function SeatMap({
       </ul>
 
       {/* Aircraft seating grid container with strict LTR physical geometry */}
-      <div className="mt-5 w-full min-w-0 max-w-full overflow-x-auto pb-3">
+      <div ref={previewViewport} dir="ltr" className={cn("mt-5 w-full min-w-0 max-w-full pb-3", isReadOnly ? "overflow-hidden" : "overflow-x-auto")}
+        style={isReadOnly && previewFit.height ? { height: previewFit.height + 12 } : undefined}>
         <div
+          ref={previewPlane}
           dir="ltr"
           role="grid"
           aria-label={t("book.seatTitle")}
           aria-rowcount={rows.length + 1}
           aria-colcount={effectiveLayout.letters.length}
           className="mx-auto w-max rounded-t-[3.5rem] border border-border bg-sand px-3 pt-7 pb-6 sm:px-8 shadow-[var(--shadow-soft)]"
+          style={isReadOnly ? { transform: `scale(${previewFit.scale})`, transformOrigin: "top left", marginInline: 0, marginLeft: previewFit.left } : undefined}
         >
           {/* Nose / Front of aircraft indicator */}
           <div className="mb-5 flex flex-col items-center justify-center text-muted-foreground/70 select-none">

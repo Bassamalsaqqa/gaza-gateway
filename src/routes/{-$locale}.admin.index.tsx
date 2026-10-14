@@ -46,6 +46,7 @@ import { pageHead } from "@/lib/head";
 import { cn } from "@/lib/utils";
 import { validateFlightEdit } from "@/lib/admin-flight-edit";
 import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
+import { LiveAdminDashboard } from "@/components/admin/live-admin-data";
 
 const STATUSES: FlightStatus[] = [
   "Scheduled",
@@ -87,23 +88,9 @@ type EditState = {
 
 function loadOf(flight: OpsFlight, bookings: Booking[]): number { return flightBookingMetrics(flight.id, bookings).total; }
 
-function ServerPreviewDashboard() {
-  const { t, lang } = useI18n();
-  const fleet = useFleetQuery();
-  return <div className="space-y-4">
-    <AdminPageHeader title={t("adm.nav.dashboard")} />
-    <AdminPanel title={t("adm.prod.tab.aircraft")}>
-      {fleet.isPending ? <p role="status">{pick(lang, { en: "Loading...", ar: "\u062c\u0627\u0631\u064a \u0627\u0644\u062a\u062d\u0645\u064a\u0644..." })}</p>
-        : fleet.isError ? <p role="alert">{t("adm.ops.saveError")}</p>
-        : <p>{fleet.data?.aircraft.filter(item => item.active).length ?? 0} / {fleet.data?.aircraft.length ?? 0}</p>}
-      <AppLink to="/admin/products?tab=aircraft" className={btnClass("outline", "sm")}>{t("adm.prod.tab.aircraft")}</AppLink>
-    </AdminPanel>
-  </div>;
-}
-
 function AdminDashboardPage() {
   if (identityUiRequested) {
-    return <ServerPreviewDashboard />;
+    return <LiveAdminDashboard />;
   }
   return <MockDashboardPage />;
 }

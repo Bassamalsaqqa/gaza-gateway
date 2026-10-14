@@ -828,6 +828,13 @@ EOF`,
 
     // Copy junit.xml out of the container
     docker("copy-junit", ["cp", `${phpName}:/workspace/backend/phpunit-junit.xml`, path.join(outputDir, "junit.xml")]);
+    // Admin wiring tests record real response/status contracts independently of legacy captures.
+    const hasAdminCaptures = docker("check-admin-read-captures", ["exec", phpName, "sh", "-c", "if test -f /tmp/admin-read-captures.json; then echo yes; else echo no; fi"]);
+    if (hasAdminCaptures.trim() === "yes") {
+      const capturePath = path.join(outputDir, "admin-read-captures.json");
+      docker("copy-admin-read-captures", ["cp", `${phpName}:/tmp/admin-read-captures.json`, capturePath]);
+      runCommand("validate-admin-read-captures", process.execPath, [path.join(root, "scripts/validate-admin-read-captures.mjs"), capturePath]);
+    }
 
     // 14. Bounded cleanup & residual absence inspection
     const junitSha256 = crypto.createHash('sha256').update(fs.readFileSync(path.join(outputDir, 'junit.xml'))).digest('hex');

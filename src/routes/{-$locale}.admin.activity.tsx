@@ -1,5 +1,7 @@
 import { GazaTable, GazaTableBody, GazaTableCaption, GazaTableCell, GazaTableHead, GazaTableHeader, GazaTableRow } from "@/components/gaza-table";
 import { createFileRoute } from "@tanstack/react-router";
+import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
+import { LiveActivityPage } from "@/components/admin/live-admin-data";
 import { useMemo, useState } from "react";
 import { Input, Select, btnClass } from "@/components/kit";
 import { AdminChip, AdminEmpty, AdminPageHeader, AdminPanel, GazaSheet, Ltr, Toolbar } from "@/components/admin/admin-kit";
@@ -18,7 +20,7 @@ export const Route = createFileRoute("/{-$locale}/admin/activity")({
       ar: { title: "سجل النشاط — إدارة مطار غزة الدولي", description: "التغييرات الأخيرة التي أجراها الموظفون." },
       noindex: true,
     }),
-  component: AdminActivityPage,
+  component: () => identityUiRequested ? <LiveActivityPage /> : <AdminActivityPage />,
 });
 
 function formatTimestamp(isoStr: string): string {

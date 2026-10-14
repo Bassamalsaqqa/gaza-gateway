@@ -588,7 +588,7 @@ function SeatMapTab() {
   const cabinsList = draft ? layoutCabins(draft) : [];
 
   return (
-    <div className="space-y-4" data-testid="fleet-seatmaps">
+    <div className="@container/fleet-layout min-w-0 space-y-4" data-testid="fleet-seatmaps">
       {remoteConflict ? <p role="alert" className="text-sm text-clay">{t("fleet.remoteConflict")} <button type="button" className={btnClass("outline", "sm")} onClick={() => setIsDirty(false)}>{t("fleet.reloadLayout")}</button></p> : null}
 
       <div className="flex flex-wrap items-end gap-3">
@@ -617,7 +617,7 @@ function SeatMapTab() {
       {!draft ? (
         <p className="text-sm text-muted-foreground">{t("adm.common.empty")}</p>
       ) : (
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
+        <div className="grid min-w-0 grid-cols-1 gap-4 @[56rem]/fleet-layout:grid-cols-[minmax(0,1fr)_minmax(0,28rem)]">
           <div className="min-w-0 space-y-3">
             {saveError ? (
               <p role="alert" className="text-xs font-semibold text-status-cancelled">
@@ -877,7 +877,7 @@ function SeatMapTab() {
           </div>
 
           {/* Passenger-style preview using dynamic SeatMap */}
-          <div className="rounded-md border border-border bg-sand p-3" data-testid="seatmap-preview">
+          <div className="min-w-0 rounded-md border border-border bg-sand p-3" data-testid="seatmap-preview">
             <div className="flex items-center justify-between">
               <p className="text-sm font-bold">{t("adm.prod.sm.preview")}</p>
               <span className="text-xs font-semibold text-muted-foreground">
@@ -886,7 +886,7 @@ function SeatMapTab() {
             </div>
             <p className="mt-0.5 text-xs text-muted-foreground">{t("adm.prod.sm.previewNote")}</p>
             <div className="mt-3">
-              <SeatMap layout={draft} />
+              <SeatMap layout={draft} extraLegroomPrice={identityUiRequested ? 0 : undefined} />
             </div>
           </div>
         </div>

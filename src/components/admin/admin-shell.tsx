@@ -194,7 +194,7 @@ function SidebarBody({
       adminNav
         .map((group) => ({
           ...group,
-          items: group.items.filter((item) => can(item.permission)),
+          items: group.items.filter((item) => can(item.permission) && (!identityUiRequested || isDomainAvailableInServerMode(item.to))),
         }))
         .filter((group) => group.items.length > 0),
     [can],
@@ -647,7 +647,7 @@ export function AdminShell({ children, breadcrumb }: { children: ReactNode; brea
               ) : null}
               <span className="hidden sm:inline-flex items-center gap-1.5 text-xs text-muted-foreground">
                 <span className={cn("size-1.5 rounded-full", identityUiRequested ? "bg-clay" : "bg-muted-foreground/60")} aria-hidden="true" />
-                {identityUiRequested ? pick(lang, { en: "Server Preview (W1)", ar: "معاينة الخادم (W1)" }) : t("adm.shell.simulation")}
+                {identityUiRequested ? pick(lang, { en: "Live administration", ar: "الإدارة المباشرة" }) : t("adm.shell.simulation")}
               </span>
             </div>
 

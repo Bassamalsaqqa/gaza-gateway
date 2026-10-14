@@ -188,6 +188,16 @@ final class ReservationRoutesTest extends TestCase
         );
 
         $routePath = parse_url($path, PHP_URL_PATH);
+        $adminReadOperation = match ($routePath) {
+            '/admin/dashboard' => 'getAdminDashboard', '/admin/customers' => 'getAdminCustomers', '/admin/activity' => 'getAdminActivity', default => null,
+        };
+        if ($adminReadOperation !== null && $method === 'GET') {
+            $file = '/tmp/admin-read-captures.json';
+            $all = is_file($file) ? json_decode(file_get_contents($file), true, 32, JSON_THROW_ON_ERROR) : [];
+            $all[$adminReadOperation.':'.$response->status()] ??= ['path'=>$routePath,'status'=>$response->status(),
+                'contentType'=>$response->headers->get('Content-Type'),'payload'=>$response->json()];
+            file_put_contents($file, json_encode($all, JSON_THROW_ON_ERROR), LOCK_EX);
+        }
         $operation = match (true) {
             $method === 'GET' && str_starts_with($routePath, '/offerings/') => 'getOfferingSeats',
             $method === 'POST' && $routePath === '/reservations' => 'postReservation',
@@ -725,6 +735,62 @@ final class ReservationRoutesTest extends TestCase
         $rebook = $this->http('POST', '/reservations', $userB, $this->sampleCommand($serviceId, '15A'));
         $rebook->assertStatus(201);
         $this->assertSame('15A', $rebook->json('data.reservation.passengers.0.seatCode'));
+    }
+
+    public function test_live_admin_dashboard_tracks_real_booking_and_cancellation(): void
+    {
+        $staff = $this->staff(); $passenger = $this->passenger();
+        $before = $this->http('GET', '/admin/dashboard', $staff, null, [], null, 'gza_staff_session')->assertStatus(200)->json('data');
+        $created = $this->http('POST', '/reservations', $passenger, $this->sampleCommand($this->sampleServiceId(), '16A'))->assertStatus(201);
+        $this->http('GET', '/admin/dashboard', $staff, null, [], null, 'gza_staff_session')->assertStatus(200)
+            ->assertJsonPath('data.confirmedBookings', $before['confirmedBookings'] + 1)
+            ->assertJsonPath('data.confirmedPassengers', $before['confirmedPassengers'] + 1);
+        $this->http('POST', '/reservations/'.$created->json('data.reservation.reference').'/cancel', $passenger)->assertStatus(200);
+        $this->http('GET', '/admin/dashboard', $staff, null, [], null, 'gza_staff_session')->assertStatus(200)
+            ->assertJsonPath('data.confirmedBookings', $before['confirmedBookings'])
+            ->assertJsonPath('data.cancelledBookings', $before['cancelledBookings'] + 1);
+    }
+
+    public function test_live_admin_customers_are_paginated_and_exclude_private_credentials(): void
+    {
+        $staff = $this->staff(); $passenger = $this->passenger();
+        $response = $this->http('GET', '/admin/customers', $staff, null, [], null, 'gza_staff_session')->assertStatus(200);
+        $items = $response->json('data.items');
+        $this->assertLessThanOrEqual(25, count($items));
+        $this->assertGreaterThanOrEqual(1, $response->json('data.total'));
+        $found = array_values(array_filter($items, fn ($row) => $row['id'] === $passenger['owner']));
+        $this->assertCount(1, $found); $this->assertSame('Amina Al-Saqqa', $found[0]['name']);
+        $this->assertSame(['id','name','email','phone','status','bookingCount','createdAt'], array_keys($found[0]));
+        $this->http('GET', '/admin/customers?page=0', $staff, null, [], null, 'gza_staff_session')->assertStatus(400);
+        $this->http('GET', '/admin/customers?page%5B%5D=1', $staff, null, [], null, 'gza_staff_session')->assertStatus(400);
+    }
+
+    public function test_live_admin_read_permissions_preserve_staff_and_passenger_realms(): void
+    {
+        $editor = $this->staff('editor'); $viewer = $this->staff('viewer'); $passenger = $this->passenger();
+        $this->http('GET', '/admin/dashboard', $editor, null, [], null, 'gza_staff_session')->assertStatus(200);
+        $this->http('GET', '/admin/customers', $editor, null, [], null, 'gza_staff_session')->assertStatus(403);
+        $this->http('GET', '/admin/customers', $viewer, null, [], null, 'gza_staff_session')->assertStatus(200);
+        $this->http('GET', '/admin/activity', $viewer, null, [], null, 'gza_staff_session')->assertStatus(403);
+        foreach (['/admin/dashboard', '/admin/customers', '/admin/activity'] as $path) {
+            $this->http('GET', $path)->assertStatus(401);
+            $this->http('GET', $path, $passenger)->assertStatus(401);
+        }
+    }
+
+    public function test_live_admin_activity_reads_immutable_records_without_metadata(): void
+    {
+        $staff = $this->staff();
+        $id = (string) Str::uuid();
+        DB::table('audit_events')->insert(['id'=>$id,'realm'=>'staff','action'=>'postStaffLogin','outcome'=>'success',
+            'staff_id'=>$staff['owner'],'is_system_actor'=>false,'request_id'=>(string) Str::uuid(),
+            'target_type'=>'staff','target_id'=>$staff['owner'],'metadata'=>'{"secret":"DO_NOT_EXPOSE_SENTINEL"}']);
+        $response = $this->http('GET', '/admin/activity', $staff, null, [], null, 'gza_staff_session')->assertStatus(200);
+        $this->assertStringNotContainsString('DO_NOT_EXPOSE_SENTINEL', $response->getContent());
+        $items = array_values(array_filter($response->json('data.items'), fn ($event) => $event['id'] === 'identity:'.$id));
+        $this->assertCount(1, $items); $this->assertSame('postStaffLogin', $items[0]['action']);
+        $this->assertSame(['id','domain','action','outcome','actorId','targetId','occurredAt'], array_keys($items[0]));
+        $this->http('GET', '/admin/activity?page=-1', $staff, null, [], null, 'gza_staff_session')->assertStatus(400);
     }
 
     public function test_admin_reservations_operations(): void
