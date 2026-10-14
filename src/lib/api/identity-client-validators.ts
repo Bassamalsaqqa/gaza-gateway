@@ -633,10 +633,10 @@ export function validateStaffLoginRequest(body: unknown): StaffLoginRequest {
   }
 
   const username = body["username"];
-  if (typeof username !== "string" || username.length < 1) {
+  if (typeof username !== "string" || Array.from(username).length < 1 || Array.from(username).length > 254 || !isWellFormedUnicode(username)) {
     throw new IdentityApiError({
       kind: "protocol",
-      message: "Invalid staff login request payload: username must be a non-empty string.",
+      message: "Invalid staff login request payload: expected a staff username or email of 1–254 characters.",
     });
   }
 

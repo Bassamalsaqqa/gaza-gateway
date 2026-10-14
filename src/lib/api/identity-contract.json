@@ -2,7 +2,7 @@
   "$schema": "identity-api-contract-v1",
   "version": "1.0.0",
   "description": "Narrow contract extraction for 46 accepted Phase 13B identity transport operations",
-  "digest": "3380f7fef19f928c021a9eeadc1df52a8c5fcc715ead52fe087ea42e83e822b4",
+  "digest": "702c5802d92b5eb883f87caa3896bab9799937c5a22ac6729129ba7be10cf19b",
   "operations": [
     {
       "operationId": "getAuthCsrfBootstrap",
@@ -1910,7 +1910,9 @@
       "properties": {
         "username": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 254,
+          "description": "Staff username or normalized staff email; staff realm only. Ambiguous matches are denied."
         },
         "password": {
           "type": "string",

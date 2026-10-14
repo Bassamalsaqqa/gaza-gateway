@@ -11629,7 +11629,9 @@
         "properties": {
           "username": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "maxLength": 254,
+            "description": "Staff username or normalized staff email; staff realm only. Ambiguous matches are denied."
           },
           "password": {
             "type": "string",

@@ -497,13 +497,13 @@ class OutboxService
                 $expires
             ),
             ProofPurpose::StaffInvitation => sprintf(
-                "Welcome to Palestinian Airlines.\n\nYou have been invited to register for the staff portal.\n\nInvitation token: %s\n\nThis invitation expires at %s.",
-                $rawToken,
+                "Palestinian Airlines — Admin invitation\n\nAccept your staff invitation and choose a password:\n%s\n\nThis invitation expires at %s.\nIf you did not expect this invitation, disregard it.\n\nدعوة إدارة الخطوط الجوية الفلسطينية\nافتح الرابط أعلاه لقبول الدعوة واختيار كلمة مرور. إذا لم تكن تتوقع هذه الدعوة، تجاهلها.",
+                StaffAccessLink::build($purpose, $rawToken),
                 $expires
             ),
             ProofPurpose::StaffPasswordReset => sprintf(
-                "Palestinian Airlines Staff Security Notice\n\nA password reset was requested for your staff portal account.\n\nReset token: %s\n\nThis token expires at %s.\nIf you did not request this, please notify an administrator immediately.",
-                $rawToken,
+                "Palestinian Airlines — Admin password recovery\n\nChoose a new staff password using this link:\n%s\n\nThis link expires at %s.\nIf you did not request this reset, disregard it. Your password has not changed.\n\nاستعادة كلمة مرور الإدارة\nافتح الرابط أعلاه لاختيار كلمة مرور جديدة. إذا لم تطلب الاستعادة، تجاهل الرسالة؛ لم تتغير كلمة مرورك.",
+                StaffAccessLink::build($purpose, $rawToken),
                 $expires
             ),
         };

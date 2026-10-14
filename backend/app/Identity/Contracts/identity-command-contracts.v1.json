@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "canonicalDigest": "sha256:5b806ed9192eca7faf2054862a1bdb3ea98e5eabc252c6d164379d00c3f24b8c",
+  "canonicalDigest": "sha256:8828a59989cb9f22cfa404f2323993c70a1df04198807e12302cc002f46b157a",
   "contractVersion": "1.0.0",
   "operationCount": 46,
   "operations": {
@@ -956,6 +956,8 @@
           "type": "string"
         },
         "username": {
+          "description": "Staff username or normalized staff email; staff realm only. Ambiguous matches are denied.",
+          "maxLength": 254,
           "minLength": 1,
           "type": "string"
         }

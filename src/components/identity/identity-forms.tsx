@@ -14,9 +14,10 @@ import { Eye, EyeOff } from "lucide-react";
 const codeField: IdentityField = { name: "totpCode", en: "Authenticator code", ar: "رمز تطبيق المصادقة" };
 
 /** Closed caller-built commands; no automatic JSON/body display or credential persistence. */
-export function IdentityForm({ fields, submit, button, after, notice, blocked = false }: {
+export function IdentityForm({ fields, submit, button, after, notice, blocked = false, errorText }: {
   fields: IdentityField[]; submit: (values: Record<string, string>) => Promise<void>;
   button?: string; after?: () => void; notice?: string | undefined; blocked?: boolean;
+  errorText?: ((failure: unknown) => string | undefined) | undefined;
 }) {
   const { lang } = useI18n(); const id = useId();
   const [values, setValues] = useState<Record<string, string>>(() => Object.fromEntries(fields.map((f) => [f.name, f.initial ?? ""])));
@@ -29,7 +30,7 @@ export function IdentityForm({ fields, submit, button, after, notice, blocked = 
     event.preventDefault(); if (pending || blocked) return;
     setPending(true); setError(null); setDone(false);
     try { await submit(values); setDone(true); after?.(); }
-    catch (failure) { setError(identityErrorText(failure, lang)); }
+    catch (failure) { setError(errorText?.(failure) ?? identityErrorText(failure, lang)); }
     finally {
       setPending(false);
       setVisiblePasswords({});
@@ -140,10 +141,11 @@ export function PassengerIdentityAuth({ initial = "signin" }: { initial?: Passen
   </PassengerAuthShell>;
 }
 
-type StaffFlow = "signin" | "forgot" | "reset" | "invite";
 export function StaffIdentityAuth({ onAuthenticated }: { onAuthenticated?: () => Promise<void> }) {
   const { lang } = useI18n(); const navigate = useAppNavigate();
-  const [flow, setFlow] = useState<StaffFlow>("signin"); const [pending, setPending] = useState(false);
+  const [ready, setReady] = useState(false);
+  useEffect(() => { setReady(true); }, []);
+  const [pending, setPending] = useState(false);
   const [expires, setExpires] = useState<string | null>(null); const [recovery, setRecovery] = useState(false);
   useEffect(() => {
     if (!expires) return;
@@ -151,41 +153,32 @@ export function StaffIdentityAuth({ onAuthenticated }: { onAuthenticated?: () =>
     return () => clearTimeout(timer);
   }, [expires]);
   const authenticated = async () => { await onAuthenticated?.(); await navigate({ to: "/admin" }); };
-  const labels: Record<StaffFlow, [string, string]> = { signin: ["Staff sign in", "دخول الموظفين"], forgot: ["Request recovery", "طلب الاستعادة"],
-    reset: ["Reset password", "إعادة تعيين كلمة المرور"], invite: ["Accept invitation", "قبول الدعوة"] };
-  const submit = async (v: Record<string, string>) => {
-    const api = getIdentityUiClient();
-    if (flow === "signin") {
-      const result = await api.postStaffLogin({ username: v["username"]!, password: v["password"]! });
-      if (result.data.status === "authenticated") { await authenticated(); return; }
-      setPending(true); setExpires(result.data.expiresAt);
-    } else if (flow === "invite") {
-      await api.postStaffInvitationAccept({ token: v["token"]!, password: v["password"]! });
-      await authenticated();
-    } else if (flow === "forgot") await api.postStaffPasswordForgot({ email: v["email"]! });
-    else await api.postStaffPasswordReset({ token: v["token"]!, newPassword: v["password"]! });
-  };
-  return <PassengerAuthShell title={pick(lang, "Staff sign in", "دخول الموظفين")}
-    description={pick(lang, "Sign in with your password. If you have enabled an authenticator, verification is also required. You can enable it in Admin account security settings.", "سجل الدخول بكلمة المرور. إذا فعّلت تطبيق المصادقة، يلزم التحقق أيضاً. يمكنك تفعيله من إعدادات أمان الحساب في الإدارة.")}>
-    {!pending && <>
-      <div className="mb-5 flex flex-wrap gap-2">{(Object.keys(labels) as StaffFlow[]).map((item) => <button key={item} type="button"
-        className={btnClass("outline", "sm")} onClick={() => setFlow(item)}>{pick(lang, ...labels[item])}</button>)}</div>
-      <IdentityForm key={flow} fields={flow === "signin" ? [{ name: "username", en: "Username", ar: "اسم المستخدم", autoComplete: "username" }, { ...passwordField, autoComplete: "current-password" }]
-        : flow === "forgot" ? [emailField] : [tokenField, passwordField]} submit={submit} button={pick(lang, ...labels[flow])}
-        notice={flow === "forgot" ? pick(lang, "Recovery instructions are queued only for eligible accounts.", "تُضاف تعليمات الاستعادة إلى قائمة الإرسال للحسابات المؤهلة فقط.")
-          : pick(lang, "Staff passwords require 12–128 characters.", "تتطلب كلمات مرور الموظفين ١٢–١٢٨ محرفاً.")} />
-    </>}
-    {pending && <div className="space-y-4">
-      <p>{pick(lang, "Complete verification before the pending session expires.", "أكمل التحقق قبل انتهاء الجلسة المعلقة.")}</p>
-      <button type="button" className={btnClass("outline", "sm")} onClick={() => setRecovery(!recovery)}>
-        {recovery ? pick(lang, "Use authenticator", "استخدام تطبيق المصادقة") : pick(lang, "Use recovery code", "استخدام رمز الاسترداد")}</button>
-      <IdentityForm key={String(recovery)} fields={recovery ? [{ name: "recoveryCode", en: "Recovery code", ar: "رمز الاسترداد" }] : [codeField]}
-        submit={async (v) => {
-          await getIdentityUiClient().postStaffMfaVerify(recovery ? { recoveryCode: v["recoveryCode"]! } : { totpCode: v["totpCode"]! });
+  return <PassengerAuthShell title={pick(lang, "Admin sign in", "تسجيل دخول الإدارة")}
+    description={pick(lang, "Use your staff username or staff email address and password.", "استخدم اسم مستخدم الموظف أو بريده الإلكتروني وكلمة المرور.")}>
+    {!ready ? <p role="status">{pick(lang,"Loading staff sign-in…","جارٍ تحميل تسجيل دخول الموظفين…")}</p> : !pending ? <>
+      <IdentityForm fields={[{name:"username",en:"Username or staff email",ar:"اسم المستخدم أو بريد الموظف",autoComplete:"username",maxLength:254}, {...passwordField,autoComplete:"current-password"}]}
+        button={pick(lang,"Sign in","تسجيل الدخول")}
+        notice={pick(lang,"Staff passwords use 12–128 characters.","تتكون كلمات مرور الموظفين من ١٢ إلى ١٢٨ محرفاً.")}
+        errorText={failure => {
+          const status = typeof failure === "object" && failure !== null && "status" in failure ? failure.status : undefined;
+          return status === 401 ? pick(lang,"Unable to sign in. Check your staff username/email and password.","تعذر تسجيل الدخول. تحقق من اسم مستخدم الموظف أو بريده الإلكتروني وكلمة المرور.") : undefined;
+        }}
+        submit={async values => {
+          const result=await getIdentityUiClient().postStaffLogin({username:values["username"]!.trim(),password:values["password"]!});
+          if(result.data.status === "authenticated") {await authenticated(); return;}
+          setPending(true); setExpires(result.data.expiresAt);
+        }} />
+      <AppLink to="/admin/forgot-password" className="inline-block text-sm font-semibold text-brand underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring">{pick(lang,"Forgot password?","نسيت كلمة المرور؟")}</AppLink>
+      <p className="text-sm text-muted-foreground">{pick(lang,"Staff access is by invitation from an administrator.","يُمنح دخول الموظفين بدعوة من المسؤول.")}</p>
+    </> : <div className="space-y-4">
+      <p>{pick(lang,"Enter your authenticator code to finish signing in.","أدخل رمز تطبيق المصادقة لإكمال تسجيل الدخول.")}</p>
+      <button type="button" className={btnClass("outline","sm")} onClick={()=>setRecovery(!recovery)}>{recovery ? pick(lang,"Use authenticator","استخدام تطبيق المصادقة") : pick(lang,"Use recovery code","استخدام رمز الاسترداد")}</button>
+      <IdentityForm key={String(recovery)} fields={recovery ? [{name:"recoveryCode",en:"Recovery code",ar:"رمز الاسترداد"}] : [codeField]}
+        submit={async values => {
+          await getIdentityUiClient().postStaffMfaVerify(recovery ? {recoveryCode:values["recoveryCode"]!} : {totpCode:values["totpCode"]!});
           setPending(false); setExpires(null); await authenticated();
-        }} button={pick(lang, "Verify", "تحقق")} />
-      <button type="button" className={btnClass("outline", "sm")} onClick={() => { setPending(false); setExpires(null); }}>
-        {pick(lang, "Return to sign in", "العودة إلى تسجيل الدخول")}</button>
+        }} button={pick(lang,"Verify","تحقق")} />
+      <button type="button" className={btnClass("outline","sm")} onClick={()=>{setPending(false);setExpires(null);}}>{pick(lang,"Return to sign in","العودة إلى تسجيل الدخول")}</button>
     </div>}
   </PassengerAuthShell>;
 }

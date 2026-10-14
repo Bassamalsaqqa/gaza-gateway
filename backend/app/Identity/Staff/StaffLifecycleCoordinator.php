@@ -65,7 +65,7 @@ final class StaffLifecycleCoordinator
             $candidateProof = isset($input['token']) ? $this->db->table($purpose->table())->where('token_digest', hash('sha256', $input['token']))->first() : null;
             $candidatePending = $pendingCookie === null ? null : $this->db->table('staff_pending_auth')->where('token_digest', hash('sha256', $pendingCookie))->first();
             $staffId = match ($operation) {
-                'postStaffPasswordForgot' => $this->db->table('staff_users')->where('email', strtolower(trim($input['email'])))->value('id'),
+                'postStaffPasswordForgot' => $this->db->table('staff_users')->where('normalized_email', strtolower(trim($input['email'])))->value('id'),
                 'postStaffInvitationAccept', 'postStaffPasswordReset' => $candidateProof?->staff_id,
                 'postStaffMfaEnrollmentSetup', 'postStaffMfaEnrollmentConfirm' => $context->getStaffId(),
                 default => $context->getStaffId(),

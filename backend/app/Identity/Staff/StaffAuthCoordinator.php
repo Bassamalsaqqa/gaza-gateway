@@ -46,12 +46,17 @@ final class StaffAuthCoordinator
         string $requestId,
     ): StaffOperationResult {
         $this->ownTransaction();
-        $this->charge('login', ['subject' => $input['username'], 'ip' => $ip]);
-        $result = $this->db->transaction(function () use ($input, $context, $cookie, $csrf, $ip, $userAgent, $requestId) {
+        // Both aliases charge the same durable account subject; ambiguous aliases
+        // never select an arbitrary account. Lookup is repeated under the sentinel.
+        $identifier = $input['username'];
+        $subjectId = $this->resolveStaffIdentifier($identifier);
+        $this->charge('login', ['subject' => $subjectId ?? $identifier, 'ip' => $ip]);
+        $result = $this->db->transaction(function () use ($input, $context, $cookie, $csrf, $ip, $userAgent, $requestId, $subjectId) {
             $this->timeouts();
             // Legacy verified pending-enrollment accounts may become eligible; serialize with directory writes.
             if (!$this->db->table('staff_directory_control')->where('id', 1)->lockForUpdate()->first()) { throw new \LogicException('Staff directory sentinel is unavailable.'); }
-            $staff = $this->db->table('staff_users')->where('username', $input['username'])->lockForUpdate()->first();
+            $id = $this->resolveStaffIdentifier($input['username']);
+            $staff = $id !== null && $id === $subjectId ? $this->db->table('staff_users')->where('id', $id)->lockForUpdate()->first() : null;
             // The unknown/ineligible branch performs the same native Argon2id work.
             $usable = $staff && Argon2idPasswordHasher::isValidStoredHashStructure($staff->password_hash);
             $passwordOk = $this->hasher->verify($input['password'], $usable ? $staff->password_hash : self::DUMMY_HASH);
@@ -337,6 +342,15 @@ final class StaffAuthCoordinator
     {
         $this->audit->record(AuditActor::system(), $operation, AuditOutcome::Denied,
             AuditTargetType::StaffUser, null, ['reason_code' => 'invalid_credentials'], $requestId, $this->db);
+    }
+
+    private function resolveStaffIdentifier(#[\SensitiveParameter] string $identifier): ?string
+    {
+        $matches = $this->db->table('staff_users')->where(function ($query) use ($identifier): void {
+            $query->where('username', $identifier);
+            if (filter_var($identifier, FILTER_VALIDATE_EMAIL)) $query->orWhere('normalized_email', strtolower($identifier));
+        })->limit(2)->pluck('id');
+        return $matches->count() === 1 ? $matches->first() : null;
     }
 
     private function ownTransaction(): void

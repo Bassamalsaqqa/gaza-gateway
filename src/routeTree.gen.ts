@@ -49,6 +49,9 @@ import { Route as Char123LocaleChar125AdminSchedulesRouteImport } from './routes
 import { Route as Char123LocaleChar125AdminSettingsRouteImport } from './routes/{-$locale}.admin.settings'
 import { Route as Char123LocaleChar125AdminStaffRouteImport } from './routes/{-$locale}.admin.staff'
 import { Route as Char123LocaleChar125AdminWebsiteRouteImport } from './routes/{-$locale}.admin.website'
+import { Route as Char123LocaleChar125AdminAcceptInvitationRouteImport } from './routes/{-$locale}.admin_.accept-invitation'
+import { Route as Char123LocaleChar125AdminForgotPasswordRouteImport } from './routes/{-$locale}.admin_.forgot-password'
+import { Route as Char123LocaleChar125AdminResetPasswordRouteImport } from './routes/{-$locale}.admin_.reset-password'
 import { Route as Char123LocaleChar125AdminSigninRouteImport } from './routes/{-$locale}.admin_.signin'
 import { Route as Char123LocaleChar125AirportIndexRouteImport } from './routes/{-$locale}.airport.index'
 import { Route as Char123LocaleChar125AirportFutureRouteImport } from './routes/{-$locale}.airport.future'
@@ -317,6 +320,24 @@ const Char123LocaleChar125AdminWebsiteRoute =
     path: '/website',
     getParentRoute: () => Char123LocaleChar125AdminRoute,
   } as any)
+const Char123LocaleChar125AdminAcceptInvitationRoute =
+  Char123LocaleChar125AdminAcceptInvitationRouteImport.update({
+    id: '/admin_/accept-invitation',
+    path: '/admin/accept-invitation',
+    getParentRoute: () => Char123LocaleChar125Route,
+  } as any)
+const Char123LocaleChar125AdminForgotPasswordRoute =
+  Char123LocaleChar125AdminForgotPasswordRouteImport.update({
+    id: '/admin_/forgot-password',
+    path: '/admin/forgot-password',
+    getParentRoute: () => Char123LocaleChar125Route,
+  } as any)
+const Char123LocaleChar125AdminResetPasswordRoute =
+  Char123LocaleChar125AdminResetPasswordRouteImport.update({
+    id: '/admin_/reset-password',
+    path: '/admin/reset-password',
+    getParentRoute: () => Char123LocaleChar125Route,
+  } as any)
 const Char123LocaleChar125AdminSigninRoute =
   Char123LocaleChar125AdminSigninRouteImport.update({
     id: '/admin_/signin',
@@ -525,6 +546,9 @@ export interface FileRoutesByFullPath {
   '/{-$locale}/admin/settings': typeof Char123LocaleChar125AdminSettingsRoute
   '/{-$locale}/admin/staff': typeof Char123LocaleChar125AdminStaffRoute
   '/{-$locale}/admin/website': typeof Char123LocaleChar125AdminWebsiteRoute
+  '/{-$locale}/admin/accept-invitation': typeof Char123LocaleChar125AdminAcceptInvitationRoute
+  '/{-$locale}/admin/forgot-password': typeof Char123LocaleChar125AdminForgotPasswordRoute
+  '/{-$locale}/admin/reset-password': typeof Char123LocaleChar125AdminResetPasswordRoute
   '/{-$locale}/admin/signin': typeof Char123LocaleChar125AdminSigninRoute
   '/{-$locale}/airport/future': typeof Char123LocaleChar125AirportFutureRoute
   '/{-$locale}/airport/past': typeof Char123LocaleChar125AirportPastRoute
@@ -589,6 +613,9 @@ export interface FileRoutesByTo {
   '/{-$locale}/admin/settings': typeof Char123LocaleChar125AdminSettingsRoute
   '/{-$locale}/admin/staff': typeof Char123LocaleChar125AdminStaffRoute
   '/{-$locale}/admin/website': typeof Char123LocaleChar125AdminWebsiteRoute
+  '/{-$locale}/admin/accept-invitation': typeof Char123LocaleChar125AdminAcceptInvitationRoute
+  '/{-$locale}/admin/forgot-password': typeof Char123LocaleChar125AdminForgotPasswordRoute
+  '/{-$locale}/admin/reset-password': typeof Char123LocaleChar125AdminResetPasswordRoute
   '/{-$locale}/admin/signin': typeof Char123LocaleChar125AdminSigninRoute
   '/{-$locale}/airport/future': typeof Char123LocaleChar125AirportFutureRoute
   '/{-$locale}/airport/past': typeof Char123LocaleChar125AirportPastRoute
@@ -660,6 +687,9 @@ export interface FileRoutesById {
   '/{-$locale}/admin/settings': typeof Char123LocaleChar125AdminSettingsRoute
   '/{-$locale}/admin/staff': typeof Char123LocaleChar125AdminStaffRoute
   '/{-$locale}/admin/website': typeof Char123LocaleChar125AdminWebsiteRoute
+  '/{-$locale}/admin_/accept-invitation': typeof Char123LocaleChar125AdminAcceptInvitationRoute
+  '/{-$locale}/admin_/forgot-password': typeof Char123LocaleChar125AdminForgotPasswordRoute
+  '/{-$locale}/admin_/reset-password': typeof Char123LocaleChar125AdminResetPasswordRoute
   '/{-$locale}/admin_/signin': typeof Char123LocaleChar125AdminSigninRoute
   '/{-$locale}/airport/future': typeof Char123LocaleChar125AirportFutureRoute
   '/{-$locale}/airport/past': typeof Char123LocaleChar125AirportPastRoute
@@ -732,6 +762,9 @@ export interface FileRouteTypes {
     | '/{-$locale}/admin/settings'
     | '/{-$locale}/admin/staff'
     | '/{-$locale}/admin/website'
+    | '/{-$locale}/admin/accept-invitation'
+    | '/{-$locale}/admin/forgot-password'
+    | '/{-$locale}/admin/reset-password'
     | '/{-$locale}/admin/signin'
     | '/{-$locale}/airport/future'
     | '/{-$locale}/airport/past'
@@ -796,6 +829,9 @@ export interface FileRouteTypes {
     | '/{-$locale}/admin/settings'
     | '/{-$locale}/admin/staff'
     | '/{-$locale}/admin/website'
+    | '/{-$locale}/admin/accept-invitation'
+    | '/{-$locale}/admin/forgot-password'
+    | '/{-$locale}/admin/reset-password'
     | '/{-$locale}/admin/signin'
     | '/{-$locale}/airport/future'
     | '/{-$locale}/airport/past'
@@ -866,6 +902,9 @@ export interface FileRouteTypes {
     | '/{-$locale}/admin/settings'
     | '/{-$locale}/admin/staff'
     | '/{-$locale}/admin/website'
+    | '/{-$locale}/admin_/accept-invitation'
+    | '/{-$locale}/admin_/forgot-password'
+    | '/{-$locale}/admin_/reset-password'
     | '/{-$locale}/admin_/signin'
     | '/{-$locale}/airport/future'
     | '/{-$locale}/airport/past'
@@ -1183,6 +1222,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/{-$locale}/admin/website'
       preLoaderRoute: typeof Char123LocaleChar125AdminWebsiteRouteImport
       parentRoute: typeof Char123LocaleChar125AdminRoute
+    }
+    '/{-$locale}/admin_/accept-invitation': {
+      id: '/{-$locale}/admin_/accept-invitation'
+      path: '/admin/accept-invitation'
+      fullPath: '/{-$locale}/admin/accept-invitation'
+      preLoaderRoute: typeof Char123LocaleChar125AdminAcceptInvitationRouteImport
+      parentRoute: typeof Char123LocaleChar125Route
+    }
+    '/{-$locale}/admin_/forgot-password': {
+      id: '/{-$locale}/admin_/forgot-password'
+      path: '/admin/forgot-password'
+      fullPath: '/{-$locale}/admin/forgot-password'
+      preLoaderRoute: typeof Char123LocaleChar125AdminForgotPasswordRouteImport
+      parentRoute: typeof Char123LocaleChar125Route
+    }
+    '/{-$locale}/admin_/reset-password': {
+      id: '/{-$locale}/admin_/reset-password'
+      path: '/admin/reset-password'
+      fullPath: '/{-$locale}/admin/reset-password'
+      preLoaderRoute: typeof Char123LocaleChar125AdminResetPasswordRouteImport
+      parentRoute: typeof Char123LocaleChar125Route
     }
     '/{-$locale}/admin_/signin': {
       id: '/{-$locale}/admin_/signin'
@@ -1579,6 +1639,9 @@ interface Char123LocaleChar125RouteChildren {
   Char123LocaleChar125TravelRoute: typeof Char123LocaleChar125TravelRoute
   Char123LocaleChar125VerifyEmailRoute: typeof Char123LocaleChar125VerifyEmailRoute
   Char123LocaleChar125IndexRoute: typeof Char123LocaleChar125IndexRoute
+  Char123LocaleChar125AdminAcceptInvitationRoute: typeof Char123LocaleChar125AdminAcceptInvitationRoute
+  Char123LocaleChar125AdminForgotPasswordRoute: typeof Char123LocaleChar125AdminForgotPasswordRoute
+  Char123LocaleChar125AdminResetPasswordRoute: typeof Char123LocaleChar125AdminResetPasswordRoute
   Char123LocaleChar125AdminSigninRoute: typeof Char123LocaleChar125AdminSigninRoute
   Char123LocaleChar125BookingConfirmationRefRoute: typeof Char123LocaleChar125BookingConfirmationRefRoute
   Char123LocaleChar125DestinationsCodeRoute: typeof Char123LocaleChar125DestinationsCodeRoute
@@ -1613,6 +1676,12 @@ const Char123LocaleChar125RouteChildren: Char123LocaleChar125RouteChildren = {
   Char123LocaleChar125TravelRoute: Char123LocaleChar125TravelRoute,
   Char123LocaleChar125VerifyEmailRoute: Char123LocaleChar125VerifyEmailRoute,
   Char123LocaleChar125IndexRoute: Char123LocaleChar125IndexRoute,
+  Char123LocaleChar125AdminAcceptInvitationRoute:
+    Char123LocaleChar125AdminAcceptInvitationRoute,
+  Char123LocaleChar125AdminForgotPasswordRoute:
+    Char123LocaleChar125AdminForgotPasswordRoute,
+  Char123LocaleChar125AdminResetPasswordRoute:
+    Char123LocaleChar125AdminResetPasswordRoute,
   Char123LocaleChar125AdminSigninRoute: Char123LocaleChar125AdminSigninRoute,
   Char123LocaleChar125BookingConfirmationRefRoute:
     Char123LocaleChar125BookingConfirmationRefRoute,

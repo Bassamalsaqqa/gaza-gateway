@@ -101,6 +101,127 @@ final class StaffAuthenticationTest extends TestCase
         return (new TotpService())->hotp($staff->secret, intdiv($now, 30));
     }
 
+    public function test_staff_access_email_alias_preserves_mfa_and_staff_realm(): void
+    {
+        $staff = $this->staff(); $anonymous = $this->anonymous();
+        $email = DB::table('staff_users')->where('id', $staff->id)->value('email');
+        $passengerPassword='Passenger-only-password-2026';
+        DB::table('users')->insert(['id'=>(string) Str::uuid(),'email'=>$email,'status'=>'active','credential_epoch'=>1,
+            'password_hash'=>app(Argon2idPasswordHasher::class)->hash($passengerPassword,'passenger'),
+            'email_verified_at'=>DB::raw('UTC_TIMESTAMP(6)'),'created_at'=>DB::raw('UTC_TIMESTAMP(6)'),'updated_at'=>DB::raw('UTC_TIMESTAMP(6)')]);
+        $this->request('POST','/staff/login',$this->anonymous(),['username'=>$email,'password'=>$passengerPassword])->assertStatus(401);
+        $response = $this->request('POST', '/staff/login', $anonymous, ['username'=>strtoupper($email),'password'=>self::PASSWORD]);
+        $response->assertStatus(200)->assertJsonPath('data.status', 'mfa_required');
+        $pending = $this->cookie($response, 'gza_staff_pending');
+        $this->request('GET', '/staff/me', $anonymous, null, $pending)->assertStatus(401);
+        $this->request('POST', '/staff/login', $this->anonymous(), ['username'=>$staff->username,'password'=>self::PASSWORD])
+            ->assertStatus(200)->assertJsonPath('data.status', 'mfa_required');
+        $this->request('POST', '/staff/login', $this->anonymous(), ['username'=>'passenger-only@example.invalid','password'=>self::PASSWORD])->assertStatus(401);
+    }
+
+    public function test_staff_access_never_enrolled_staff_email_signin_uses_password_only_session(): void
+    {
+        $id=(string) Str::uuid(); $this->owners[]=$id;
+        DB::table('staff_users')->insert(['id'=>$id,'username'=>'password-only-'.$id,'email'=>$id.'@example.invalid',
+            'full_name_en'=>'Synthetic viewer','full_name_ar'=>'مستخدم تجريبي','role'=>'viewer','status'=>'active',
+            'password_hash'=>app(Argon2idPasswordHasher::class)->hash(self::PASSWORD,'staff'),'credential_epoch'=>1,
+            'email_verified_at'=>DB::raw('UTC_TIMESTAMP(6)'),'created_at'=>DB::raw('UTC_TIMESTAMP(6)'),'updated_at'=>DB::raw('UTC_TIMESTAMP(6)')]);
+        $response=$this->request('POST','/staff/login',$this->anonymous(),['username'=>strtoupper($id.'@example.invalid'),'password'=>self::PASSWORD])
+            ->assertStatus(200)->assertJsonPath('data.status','authenticated');
+        $cookie=$this->cookie($response,'gza_staff_session');
+        $full=['cookie'=>$cookie,'csrf'=>app(StaffSessionStore::class)->read($cookie)->getCsrfToken()];
+        $this->request('GET','/staff/me',$full)->assertStatus(200)->assertJsonPath('data.id',$id)->assertJsonPath('data.mfaEnabled',false);
+    }
+
+    public function test_staff_access_username_and_email_share_one_account_login_budget(): void
+    {
+        $staff = $this->staff(); $anonymous = $this->anonymous();
+        $email = DB::table('staff_users')->where('id', $staff->id)->value('email');
+        // Fixed source IP is necessary to exercise the subject/IP budget across aliases.
+        for ($attempt=0; $attempt<6; $attempt++) {
+            $this->flushHeaders();
+            $response=$this->call('POST','https://127.0.0.1:18090/api/v1/staff/login',[],[],[],[
+                'HTTPS'=>'on','SERVER_PORT'=>443,'HTTP_HOST'=>'127.0.0.1:18090','HTTP_ORIGIN'=>'https://127.0.0.1:5173',
+                'HTTP_COOKIE'=>'gza_staff_session='.$anonymous['cookie'],'HTTP_X_CSRF_TOKEN'=>$anonymous['csrf'],
+                'HTTP_ACCEPT'=>'application/json','CONTENT_TYPE'=>'application/json','REMOTE_ADDR'=>'192.0.2.211',
+            ],json_encode(['username'=>$attempt%2 ? strtoupper($email) : $staff->username,'password'=>'Incorrect-staff-password'],JSON_THROW_ON_ERROR));
+            $response->assertStatus($attempt<5 ? 401 : 429);
+        }
+    }
+
+    public function test_staff_access_ambiguous_username_email_alias_is_denied(): void
+    {
+        $first=$this->staff(); $second=$this->staff();
+        $email=DB::table('staff_users')->where('id',$first->id)->value('email');
+        DB::table('staff_users')->where('id',$second->id)->update(['username'=>$email]);
+        $this->request('POST','/staff/login',$this->anonymous(),['username'=>$email,'password'=>self::PASSWORD])->assertStatus(401);
+        $this->request('POST','/staff/login',$this->anonymous(),['username'=>$first->username,'password'=>self::PASSWORD])->assertStatus(200);
+    }
+
+    public function test_staff_access_outbox_contains_clickable_fragment_links_not_query_tokens(): void
+    {
+        $staff=$this->staff();
+        $invitee=(string) Str::uuid(); $this->owners[]=$invitee;
+        DB::table('staff_users')->insert(['id'=>$invitee,'username'=>'invite-'.$invitee,'email'=>$invitee.'@example.invalid',
+            'full_name_en'=>'Synthetic invitee','full_name_ar'=>'مدعو تجريبي','role'=>'viewer','status'=>'invited',
+            'credential_epoch'=>1,'created_at'=>DB::raw('UTC_TIMESTAMP(6)'),'updated_at'=>DB::raw('UTC_TIMESTAMP(6)')]);
+        $saved=['app.env'=>config('app.env'),'app.url'=>config('app.url')];
+        try {
+            config(['app.env'=>'production','app.url'=>'https://www.gazaairport.com']);
+            foreach ([['staff_password_reset',$staff->id,'reset-password'], ['staff_invitation',$invitee,'accept-invitation']] as [$purposeValue,$principal,$path]) {
+                $purpose=\App\Identity\Proofs\ProofPurpose::from($purposeValue);
+                $proof=(new \App\Identity\Proofs\ProofService(DB::connection()))->issue($purpose,$principal);
+                $outbox=app(\App\Identity\Dispatch\OutboxService::class)->enqueueProofReceipt($proof);
+                $ciphertext=DB::table('security_dispatch_outbox')->where('id',$outbox)->value('encrypted_payload');
+                $payload=\App\Identity\Dispatch\OutboxPayload::fromJson(app(Encrypter::class)->decrypt($ciphertext));
+                $expected='https://www.gazaairport.com/admin/'.$path.'#token='.$proof->getRawToken();
+                $this->assertStringContainsString($expected,$payload->getBody());
+                $this->assertStringNotContainsString('?token=',$payload->getBody());
+                $this->assertSame($proof->getRawToken(),$payload->getTokenOrCode());
+                $this->assertSame('queued',DB::table('security_dispatch_outbox')->where('id',$outbox)->value('status'));
+                $this->assertStringNotContainsString($proof->getRawToken(),$ciphertext);
+            }
+        } finally { config($saved); }
+    }
+
+    public function test_staff_access_reset_link_changes_password_then_email_login_and_mfa_work(): void
+    {
+        $staff=$this->staff();
+        $email=DB::table('staff_users')->where('id',$staff->id)->value('email');
+        $this->request('POST','/staff/password/forgot',$this->anonymous(),['email'=>$email])->assertStatus(202);
+        $proofId=DB::table('staff_password_resets')->where('staff_id',$staff->id)->orderByDesc('issued_at')->value('id');
+        $row=DB::table('security_dispatch_outbox')->where('staff_reset_id',$proofId)->first();
+        $this->assertNotNull($row);
+        $payload=\App\Identity\Dispatch\OutboxPayload::fromJson(app(Encrypter::class)->decrypt($row->encrypted_payload));
+        $token=$payload->getTokenOrCode();
+        $this->assertStringContainsString('/admin/reset-password#token='.$token,$payload->getBody());
+        $password='Changed-staff-password-2026-safe';
+        $this->request('POST','/staff/password/reset',$this->anonymous(),['token'=>$token,'newPassword'=>$password])->assertStatus(200);
+        $this->request('POST','/staff/password/reset',$this->anonymous(),['token'=>$token,'newPassword'=>$password])->assertStatus(401);
+        $this->request('POST','/staff/login',$this->anonymous(),['username'=>$email,'password'=>self::PASSWORD])->assertStatus(401);
+        $session=$this->anonymous();
+        $login=$this->request('POST','/staff/login',$session,['username'=>$email,'password'=>$password])->assertStatus(200)->assertJsonPath('data.status','mfa_required');
+        $pending=$this->cookie($login,'gza_staff_pending');
+        $verified=$this->request('POST','/staff/mfa/verify',$session,['totpCode'=>$this->code($staff)],$pending)->assertStatus(200);
+        $full=['cookie'=>$this->cookie($verified,'gza_staff_session')];
+        $full['csrf']=app(StaffSessionStore::class)->read($full['cookie'])->getCsrfToken();
+        $this->request('GET','/staff/me',$full)->assertStatus(200)->assertJsonPath('data.id',$staff->id);
+    }
+
+    public function test_staff_access_links_reject_unapproved_or_insecure_production_origins(): void
+    {
+        $saved=['app.env'=>config('app.env'),'app.url'=>config('app.url')];
+        $token=\App\Identity\Tokens\OpaqueToken::generate('staff','staff_password_reset')->getRawToken();
+        try {
+            config(['app.env'=>'production']);
+            foreach (['http://www.gazaairport.com','https://evil.example','https://attacker@www.gazaairport.com','https://www.gazaairport.com?redirect=evil','https://localhost'] as $url) {
+                config(['app.url'=>$url]);
+                try { \App\Identity\Dispatch\StaffAccessLink::build(\App\Identity\Proofs\ProofPurpose::StaffPasswordReset,$token); $this->fail('Unsafe production origin accepted.'); }
+                catch (\LogicException) { $this->assertTrue(true); }
+            }
+        } finally { config($saved); }
+    }
+
     public function test_eight_operation_http_chain_and_contract_captures(): void
     {
         $staff = $this->staff(); $anonymous = $this->anonymous(); $captures = [];
