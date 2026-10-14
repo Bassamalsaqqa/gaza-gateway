@@ -68,6 +68,16 @@ The old upgrade builder/runner installed pins remain historical 7a8f0fa/19-migra
 
 ## Local preview
 
+### PR #12 first-frame readiness follow-up — 2026-10-15
+
+The independent review at ec548dbcf48d2cb61b86df57bdf23c7e6e2a47b6 accepted Gallery and rollback source boundaries and requested one focused first-frame correction/proof. A native Chromium regression reproduced the race: at 75% restored document scroll, the requested seek was 6 seconds, but loadeddata/presentation at 0 seconds called onReady and exposed the video while that seek was deliberately held.
+
+VideoScrubRenderer now reveals only when the latest target is settled with ready data. With requestVideoFrameCallback, presented mediaTime must also match the latest target, allowing one 24fps frame plus the existing seek deadband for quantization. Presented time is retained so either ordering of presentation/seeked can complete readiness. Without frame callbacks, loadeddata and seeked still pass the same latest-target/ready-data gate. Existing 36ms coalescing, 5-second load deadline, 1.5-second seek deadline, source choice, error fallback and pause/remove-src/load teardown remain.
+
+One focused test is committed at tests/mvp/cinematic-first-frame-readiness.mjs; run `node --test tests/mvp/cinematic-first-frame-readiness.mjs` with installed project dependencies and local Microsoft Edge. It owns an ephemeral loopback Vite dev server and browser, uses the actual React renderer, pinned MP4 and native decoder, and holds currentTime assignments to control slow seeks. It does not fabricate decoded frames or backend responses. The exact final test fails on the reviewed ec548db baseline at the premature-readiness assertion and passes on the corrected source with six checks: frame-0 poster retention; rejection of an older 6-second presented frame after changing the target to 2 seconds; correct single readiness at 2 seconds; visibility and stale-callback cleanup; bounded seek-error fallback; and readiness/unmount without frame callbacks. The manually delivered canceled callback is solely a lifecycle-race check, not native presentation evidence.
+
+Local receipts are retained at scratch/cinematic-readiness-evidence/receipt.json in the feature worktree and scratch/cinematic-readiness-baseline-final/receipt.json in the isolated readiness-test-worker. The pass receipt records actual presentation times 0/6/2, one onReady at 2 seconds, one expected timeout fallback, decoder source removal and six passing checks. Renderer/test scoped ESLint and TypeScript passed. No broad suite, build, Actions, merge or production operation was run. This proves local Chromium renderer behavior; physical Safari/Android and production media/release acceptance remain separate gates. AGY's bounded test-only delegation timed out without edits, so Codex completed and independently ran the focused test.
+
 - English homepage: http://192.168.1.118:5173/
 - Arabic homepage: http://192.168.1.118:5173/ar
 - Original Future page: http://192.168.1.118:5173/airport/future
