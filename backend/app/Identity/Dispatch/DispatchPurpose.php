@@ -31,8 +31,8 @@ enum DispatchPurpose: string
         return match ($this) {
             self::PassengerEmailVerification => 'Palestinian Airlines: Verify your email address',
             self::PassengerPasswordReset => 'Palestinian Airlines: Reset your account password',
-            self::StaffInvitation => 'Palestinian Airlines: Staff portal invitation',
-            self::StaffPasswordReset => 'Palestinian Airlines: Reset your staff account password',
+            self::StaffInvitation => 'Gaza Gateway: Admin invitation',
+            self::StaffPasswordReset => 'Gaza Gateway: Admin password recovery',
             self::BookingGuestChallenge => 'Palestinian Airlines: Booking verification code',
         };
     }

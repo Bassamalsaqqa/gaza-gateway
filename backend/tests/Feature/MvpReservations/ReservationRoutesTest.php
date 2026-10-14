@@ -770,7 +770,7 @@ final class ReservationRoutesTest extends TestCase
         $editor = $this->staff('editor'); $viewer = $this->staff('viewer'); $passenger = $this->passenger();
         $this->http('GET', '/admin/dashboard', $editor, null, [], null, 'gza_staff_session')->assertStatus(200);
         $this->http('GET', '/admin/customers', $editor, null, [], null, 'gza_staff_session')->assertStatus(403);
-        $this->http('GET', '/admin/customers', $viewer, null, [], null, 'gza_staff_session')->assertStatus(200);
+        $this->http('GET', '/admin/customers', $viewer, null, [], null, 'gza_staff_session')->assertStatus(403);
         $this->http('GET', '/admin/activity', $viewer, null, [], null, 'gza_staff_session')->assertStatus(403);
         foreach (['/admin/dashboard', '/admin/customers', '/admin/activity'] as $path) {
             $this->http('GET', $path)->assertStatus(401);
@@ -791,6 +791,46 @@ final class ReservationRoutesTest extends TestCase
         $this->assertCount(1, $items); $this->assertSame('postStaffLogin', $items[0]['action']);
         $this->assertSame(['id','domain','action','outcome','actorId','targetId','occurredAt'], array_keys($items[0]));
         $this->http('GET', '/admin/activity?page=-1', $staff, null, [], null, 'gza_staff_session')->assertStatus(400);
+    }
+
+    public function test_live_admin_activity_query_measurement_on_mysql(): void
+    {
+        $this->assertSame('mysql', DB::connection()->getDriverName());
+        $staff = $this->staff();
+        // Deliberately skewed 20k-event workload: identity is the busy source.
+        // Other audit sources retain genuine fixture records; all nine are queried.
+        $before = DB::table('audit_events')->count();
+        $requestId = (string) Str::uuid();
+        for ($batch = 0; $batch < 40; $batch++) {
+            $rows = [];
+            for ($i = 0; $i < 500; $i++) {
+                $rows[] = ['id'=>(string) Str::uuid(), 'realm'=>'staff', 'action'=>'postStaffLogin',
+                    'outcome'=>'success', 'staff_id'=>$staff['owner'], 'is_system_actor'=>false,
+                    'request_id'=>$requestId, 'target_type'=>'staff', 'target_id'=>$staff['owner'],
+                    'metadata'=>'{}', 'occurred_at'=>sprintf('2026-10-14 10:%02d:%02d', $batch, $i % 60)];
+            }
+            DB::table('audit_events')->insert($rows);
+        }
+        $this->assertSame($before + 20000, DB::table('audit_events')->count());
+        $measurements = [];
+        foreach ([1, 10] as $page) {
+            DB::flushQueryLog(); DB::enableQueryLog();
+            $start = hrtime(true);
+            $response = $this->http('GET', '/admin/activity?page='.$page, $staff, null, [], null, 'gza_staff_session')->assertStatus(200);
+            $elapsed = (hrtime(true) - $start) / 1e6;
+            $queries = DB::getQueryLog(); DB::disableQueryLog();
+            $this->assertCount(25, $response->json('data.items'));
+            $this->assertGreaterThanOrEqual(20000, $response->json('data.total'));
+            $plans = [];
+            foreach ($queries as $query) {
+                if (!str_contains(strtolower($query['query']), 'union all')) continue;
+                $plan = DB::select('EXPLAIN ANALYZE '.$query['query'], $query['bindings']);
+                $plans[] = ['queryMs'=>$query['time'], 'plan'=>$plan];
+            }
+            $this->assertCount(2, $plans); // Actual endpoint COUNT plus page query.
+            $measurements[] = ['page'=>$page, 'httpMs'=>round($elapsed, 2), 'total'=>$response->json('data.total'), 'queries'=>$plans];
+        }
+        fwrite(STDERR, "\nACTIVITY_MYSQL_MEASUREMENT ".json_encode($measurements, JSON_THROW_ON_ERROR)."\n");
     }
 
     public function test_admin_reservations_operations(): void

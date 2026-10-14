@@ -117,7 +117,7 @@ export const adminNav: AdminNavGroup[] = [
       { id: "products", labelKey: "adm.nav.products", icon: ArmchairIcon, to: "/admin/products", permission: "commercial.view" },
       { id: "bookings", labelKey: "adm.nav.bookings", icon: Ticket, to: "/admin/bookings", permission: "commercial.view" },
       { id: "checkin", labelKey: "adm.nav.checkin", icon: ScanLine, to: "/admin/check-in", permission: "commercial.view" },
-      { id: "customers", labelKey: "adm.nav.customers", icon: UsersRound, to: "/admin/customers", permission: "commercial.view" },
+      { id: "customers", labelKey: "adm.nav.customers", icon: UsersRound, to: "/admin/customers", permission: "admin.manage" },
     ],
   },
   {

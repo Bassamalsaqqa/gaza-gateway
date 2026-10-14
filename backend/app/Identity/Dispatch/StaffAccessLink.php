@@ -7,9 +7,10 @@ use App\Identity\Tokens\OpaqueToken;
 
 final class StaffAccessLink
 {
-    public static function build(ProofPurpose $purpose, #[\SensitiveParameter] string $token): string
+    public static function build(ProofPurpose $purpose, #[\SensitiveParameter] string $token, string $locale = 'en'): string
     {
         OpaqueToken::validateCanonicalBearer($token);
+        if (!in_array($locale, ['en', 'ar'], true)) throw new \InvalidArgumentException('Unsupported staff link locale.');
         $path = match ($purpose) {
             ProofPurpose::StaffInvitation => '/admin/accept-invitation',
             ProofPurpose::StaffPasswordReset => '/admin/reset-password',
@@ -30,6 +31,6 @@ final class StaffAccessLink
         };
         if (!$approved) throw new \LogicException('Staff frontend origin is not approved for this profile.');
         $origin = $scheme.'://'.$host.($port !== null && !(($scheme === 'https' && $port === 443) || ($scheme === 'http' && $port === 80)) ? ':'.$port : '');
-        return $origin.$path.'#token='.$token;
+        return $origin.($locale === 'ar' ? '/ar' : '').$path.'#token='.$token;
     }
 }

@@ -12,7 +12,8 @@ import { IdentityForm } from "./identity-forms";
 
 export function StaffAccessPage({ flow }: { flow: "forgot" | "reset" | "invite" }) {
   const { lang } = useI18n(); const [done, setDone] = useState(false);
-  const { refreshStaff } = useAdmin();
+  const { refreshStaff, staff } = useAdmin();
+  const [refreshComplete, setRefreshComplete] = useState(false);
   const proof = useRef<ReturnType<typeof parseStaffAccessFragment> | null>(null);
   const [ready, setReady] = useState(false);
   const [token, setToken] = useState<string | null>(null);
@@ -21,7 +22,7 @@ export function StaffAccessPage({ flow }: { flow: "forgot" | "reset" | "invite" 
     const receive = () => {
       proof.current = parseStaffAccessFragment(window.location.hash);
       window.history.replaceState(window.history.state, "", window.location.pathname);
-      setToken(proof.current.token); setReady(true); setDone(false);
+      setToken(proof.current.token); setReady(true); setDone(false); setRefreshComplete(false);
     };
     // Preserve the first read during StrictMode's effect replay, but accept a
     // newly opened email link even when its path matches the current page.
@@ -41,7 +42,9 @@ export function StaffAccessPage({ flow }: { flow: "forgot" | "reset" | "invite" 
       : done ? <div className="space-y-4"><p role="status">{flow === "forgot"
         ? pick(lang,"If this email belongs to an eligible staff account, a password-reset link will be emailed. Check your inbox and spam folder.","إذا كان هذا البريد مرتبطاً بحساب موظف مؤهل، فسيُرسل رابط لإعادة تعيين كلمة المرور. تحقق من البريد الوارد ومجلد الرسائل غير المرغوب فيها.")
         : flow === "reset" ? pick(lang,"Your staff password has been changed. Sign in with your new password.","تم تغيير كلمة مرور الموظف. سجل الدخول بكلمة المرور الجديدة.")
-          : pick(lang,"Your invitation has been accepted. Continue through staff sign-in to access Admin.","تم قبول دعوتك. تابع من صفحة دخول الموظفين للوصول إلى الإدارة.")}</p></div>
+          : !refreshComplete ? pick(lang,"Your invitation has been accepted. Checking your staff session…","تم قبول دعوتك. جارٍ التحقق من جلسة الموظف…")
+            : staff ? pick(lang,"Your invitation has been accepted. You are signed in and can continue to Admin.","تم قبول دعوتك. أنت مسجل الدخول ويمكنك المتابعة إلى الإدارة.")
+              : pick(lang,"Your invitation has been accepted. Sign in to continue, as your session could not be confirmed.","تم قبول دعوتك. سجل الدخول للمتابعة إذ تعذر تأكيد جلستك.")}</p></div>
       : flow !== "forgot" && !token ? <div role="alert" className="space-y-3"><p>{pick(lang,"This link is missing or invalid. Open the complete link from your email.","هذا الرابط مفقود أو غير صالح. افتح الرابط الكامل من رسالة البريد الإلكتروني.")}</p>
         {flow === "reset" ? <AppLink to="/admin/forgot-password" className="text-brand underline underline-offset-4">{pick(lang,"Request a new reset link","طلب رابط استعادة جديد")}</AppLink>
           : <p>{pick(lang,"Ask your administrator to reissue an invitation if needed.","اطلب من المسؤول إعادة إرسال الدعوة عند الحاجة.")}</p>}</div>
@@ -62,10 +65,14 @@ export function StaffAccessPage({ flow }: { flow: "forgot" | "reset" | "invite" 
             else await api.postStaffInvitationAccept({token,password:values["password"]!});
           }
           complete();
-          if (flow !== "forgot") await refreshStaff();
+          if (flow !== "forgot") {
+            try { await refreshStaff(); } finally { setRefreshComplete(true); }
+          }
         }} />}
     <div className="mt-5 flex flex-wrap items-center gap-4">
-      <AppLink to="/admin/signin" className={btnClass("outline","md")}>{pick(lang,"Back to Admin sign-in","العودة إلى تسجيل دخول الإدارة")}</AppLink>
+      {flow === "invite" && done && refreshComplete && staff
+        ? <AppLink to="/admin" className={btnClass("primary","md")}>{pick(lang,"Continue to Admin","المتابعة إلى الإدارة")}</AppLink>
+        : <AppLink to="/admin/signin" className={btnClass("outline","md")}>{pick(lang,"Back to Admin sign-in","العودة إلى تسجيل دخول الإدارة")}</AppLink>}
       {flow === "reset" && token && !done && <AppLink to="/admin/forgot-password" className="text-sm font-semibold text-brand underline underline-offset-4">{pick(lang,"Request a new reset link","طلب رابط استعادة جديد")}</AppLink>}
     </div>
   </PassengerAuthShell>;

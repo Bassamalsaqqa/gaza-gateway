@@ -101,7 +101,7 @@
             "StaffCookieAuth": []
           }
         ],
-        "x-required-permission": "commercial.view",
+        "x-required-permission": "admin.manage",
         "responses": {
           "200": {
             "description": "Success",

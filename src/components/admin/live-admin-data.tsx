@@ -9,6 +9,7 @@ import { btnClass } from "@/components/kit";
 import { useAdmin } from "@/lib/admin-store";
 import { pick, useI18n } from "@/lib/i18n";
 import { getMvpUiClient } from "@/lib/api/mvp-ui-runtime";
+import { activityActionLabel, activityDomainLabel, activityOutcomeLabel, formatActivityTimestamp } from "@/lib/admin-activity-presentation";
 
 const count = z.number().int().nonnegative();
 const dashboardSchema = z.object({ confirmedBookings: count, confirmedPassengers: count, cancelledBookings: count,
@@ -53,9 +54,9 @@ function ReadState({ loading, error, retry }: { loading: boolean; error: boolean
 
 export function LiveCustomersPage() {
   const { t, lang } = useI18n(); const { staff, can } = useAdmin(); const [page, setPage] = useState(1);
-  const query = useQuery({ queryKey: ["live-admin-customers", staff?.id, page], enabled: Boolean(staff && can("commercial.view")),
+  const query = useQuery({ queryKey: ["live-admin-customers", staff?.id, page], enabled: Boolean(staff && can("admin.manage")),
     queryFn: ({ signal }) => getMvpUiClient().request({ method: "GET", path: `/admin/customers?page=${page}`, realm: "staff", schema: customerPageSchema, signal }) });
-  if (!can("commercial.view")) return <AdminDenied area={t("adm.nav.customers")} permission="commercial.view" />;
+  if (!can("admin.manage")) return <AdminDenied area={t("adm.nav.customers")} permission="admin.manage" />;
   return <div className="min-w-0 space-y-4"><AdminPageHeader title={t("adm.nav.customers")} />
     <ReadState loading={query.isPending} error={query.isError} retry={() => void query.refetch()} />
     {query.data && <><GazaTable><GazaTableHeader><GazaTableRow>{[t("adm.nav.customers"), pick(lang,{en:"Email",ar:"البريد الإلكتروني"}), pick(lang,{en:"Status",ar:"الحالة"}), t("adm.nav.bookings")].map(label => <GazaTableHead key={label}>{label}</GazaTableHead>)}</GazaTableRow></GazaTableHeader>
@@ -73,8 +74,8 @@ export function LiveActivityPage() {
   if (!can("admin.manage")) return <AdminDenied area={t("adm.nav.activity")} permission="admin.manage" />;
   return <div className="min-w-0 space-y-4"><AdminPageHeader title={t("adm.nav.activity")} description={pick(lang,{en:"Server-recorded account, booking and administration activity.",ar:"نشاط الحسابات والحجوزات والإدارة المسجل على الخادم."})}/>
     <ReadState loading={query.isPending} error={query.isError} retry={() => void query.refetch()} />
-    {query.data && <><GazaTable><GazaTableHeader><GazaTableRow>{[pick(lang,{en:"Time (UTC)",ar:"الوقت (UTC)"}),pick(lang,{en:"Area",ar:"المجال"}),pick(lang,{en:"Action",ar:"الإجراء"}),pick(lang,{en:"Result",ar:"النتيجة"})].map(label=><GazaTableHead key={label}>{label}</GazaTableHead>)}</GazaTableRow></GazaTableHeader>
-      <GazaTableBody>{query.data.items.map(event=><GazaTableRow key={event.id}><GazaTableCell><span dir="ltr">{event.occurredAt}</span></GazaTableCell><GazaTableCell><span dir="ltr">{event.domain}</span></GazaTableCell><GazaTableCell><span dir="ltr">{event.action}</span></GazaTableCell><GazaTableCell>{pick(lang,{en:{success:"Success",failure:"Failed",denied:"Denied"}[event.outcome]??event.outcome,ar:{success:"نجاح",failure:"فشل",denied:"مرفوض"}[event.outcome]??event.outcome})}</GazaTableCell></GazaTableRow>)}</GazaTableBody></GazaTable>
+    {query.data && <><GazaTable><GazaTableHeader><GazaTableRow>{[pick(lang,{en:"Time (your timezone)",ar:"الوقت (منطقتك الزمنية)"}),pick(lang,{en:"Area",ar:"المجال"}),pick(lang,{en:"Action",ar:"الإجراء"}),pick(lang,{en:"Result",ar:"النتيجة"})].map(label=><GazaTableHead key={label}>{label}</GazaTableHead>)}</GazaTableRow></GazaTableHeader>
+      <GazaTableBody>{query.data.items.map(event=><GazaTableRow key={event.id}><GazaTableCell><time dateTime={Number.isFinite(Date.parse(event.occurredAt)) ? event.occurredAt : undefined}>{formatActivityTimestamp(event.occurredAt, lang)}</time></GazaTableCell><GazaTableCell>{activityDomainLabel(event.domain, lang)}</GazaTableCell><GazaTableCell>{activityActionLabel(event.domain, event.action, lang)}<details className="mt-1 text-xs text-muted-foreground"><summary>{pick(lang,{en:"Technical identifier",ar:"المعرف التقني"})}</summary><code dir="ltr" className="break-all">{event.domain}:{event.action}</code></details></GazaTableCell><GazaTableCell>{activityOutcomeLabel(event.outcome, lang)}</GazaTableCell></GazaTableRow>)}</GazaTableBody></GazaTable>
       {!query.data.items.length && <p>{pick(lang,{en:"No recorded activity yet.",ar:"لا يوجد نشاط مسجل بعد."})}</p>}<Pages page={page} total={query.data.total} setPage={setPage}/></>}
   </div>;
 }

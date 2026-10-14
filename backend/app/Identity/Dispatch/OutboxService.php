@@ -497,13 +497,17 @@ class OutboxService
                 $expires
             ),
             ProofPurpose::StaffInvitation => sprintf(
-                "Palestinian Airlines — Admin invitation\n\nAccept your staff invitation and choose a password:\n%s\n\nThis invitation expires at %s.\nIf you did not expect this invitation, disregard it.\n\nدعوة إدارة الخطوط الجوية الفلسطينية\nافتح الرابط أعلاه لقبول الدعوة واختيار كلمة مرور. إذا لم تكن تتوقع هذه الدعوة، تجاهلها.",
+                "Gaza Gateway — Gaza International Airport\nAdmin invitation\n\nEnglish — Accept your staff invitation and choose a password:\n%s\n\nThis invitation expires at %s.\nIf you did not expect this invitation, disregard it.\n\nبوابة غزة — مطار غزة الدولي\nدعوة الإدارة\n\nالعربية — اقبل دعوة الموظف واختر كلمة مرور:\n%s\n\nتنتهي صلاحية الدعوة في %s.\nإذا لم تكن تتوقع هذه الدعوة، تجاهلها.",
                 StaffAccessLink::build($purpose, $rawToken),
+                $expires,
+                StaffAccessLink::build($purpose, $rawToken, 'ar'),
                 $expires
             ),
             ProofPurpose::StaffPasswordReset => sprintf(
-                "Palestinian Airlines — Admin password recovery\n\nChoose a new staff password using this link:\n%s\n\nThis link expires at %s.\nIf you did not request this reset, disregard it. Your password has not changed.\n\nاستعادة كلمة مرور الإدارة\nافتح الرابط أعلاه لاختيار كلمة مرور جديدة. إذا لم تطلب الاستعادة، تجاهل الرسالة؛ لم تتغير كلمة مرورك.",
+                "Gaza Gateway — Gaza International Airport\nAdmin password recovery\n\nEnglish — Choose a new staff password:\n%s\n\nThis link expires at %s.\nIf you did not request this reset, disregard it. Your password has not changed.\n\nبوابة غزة — مطار غزة الدولي\nاستعادة كلمة مرور الإدارة\n\nالعربية — اختر كلمة مرور جديدة للموظف:\n%s\n\nتنتهي صلاحية الرابط في %s.\nإذا لم تطلب الاستعادة، تجاهل الرسالة؛ لم تتغير كلمة مرورك.",
                 StaffAccessLink::build($purpose, $rawToken),
+                $expires,
+                StaffAccessLink::build($purpose, $rawToken, 'ar'),
                 $expires
             ),
         };

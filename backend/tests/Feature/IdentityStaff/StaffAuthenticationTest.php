@@ -176,6 +176,9 @@ final class StaffAuthenticationTest extends TestCase
                 $payload=\App\Identity\Dispatch\OutboxPayload::fromJson(app(Encrypter::class)->decrypt($ciphertext));
                 $expected='https://www.gazaairport.com/admin/'.$path.'#token='.$proof->getRawToken();
                 $this->assertStringContainsString($expected,$payload->getBody());
+                $this->assertStringContainsString('https://www.gazaairport.com/ar/admin/'.$path.'#token='.$proof->getRawToken(),$payload->getBody());
+                $this->assertStringContainsString('Gaza Gateway — Gaza International Airport',$payload->getBody());
+                $this->assertStringContainsString('بوابة غزة — مطار غزة الدولي',$payload->getBody());
                 $this->assertStringNotContainsString('?token=',$payload->getBody());
                 $this->assertSame($proof->getRawToken(),$payload->getTokenOrCode());
                 $this->assertSame('queued',DB::table('security_dispatch_outbox')->where('id',$outbox)->value('status'));
