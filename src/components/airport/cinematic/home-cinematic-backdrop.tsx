@@ -2,6 +2,7 @@ import { useEffect, useState, lazy, Suspense } from "react";
 import { CINEMATIC_MANIFEST } from "../../../lib/media/cinematic-manifest.ts";
 import { cn } from "@/lib/utils";
 import { computeHomeCinematicProgress } from "./cinematic-scroll.ts";
+import { CinematicPoster } from "./cinematic-poster.tsx";
 
 /**
  * Lazy loaded MP4 scrub renderer: loaded only on client-visible Home.
@@ -18,7 +19,7 @@ export interface HomeCinematicBackdropProps {
 /**
  * Gaza Gateway — Homepage Continuous Cinematic Backdrop
  *
- * Provides a continuous, persistent 16:9 cinematic background behind the ENTIRE homepage.
+ * Provides a continuous viewport-filling cinematic background behind the entire homepage.
  * All editorial sections, cards, and consoles float above it in z-10 with open visual space.
  *
  * Invariants:
@@ -167,26 +168,18 @@ export function HomeCinematicBackdrop({ className }: HomeCinematicBackdropProps)
       {/* Visual media layer: static poster or scrubable MP4 video */}
       <div className="relative size-full overflow-hidden">
         {isStaticMode ? (
-          <img
-            src={posterSrc}
-            alt=""
-            aria-hidden="true"
-            width={CINEMATIC_MANIFEST.poster.width}
-            height={CINEMATIC_MANIFEST.poster.height}
+          <CinematicPoster
             loading="eager"
             fetchPriority="high"
-            className="size-full object-contain lg:object-cover"
+            className="size-full"
           />
         ) : (
           <Suspense
             fallback={
-              <img
-                src={posterSrc}
-                alt=""
-                aria-hidden="true"
-                width={CINEMATIC_MANIFEST.poster.width}
-                height={CINEMATIC_MANIFEST.poster.height}
-                className="size-full object-contain lg:object-cover"
+              <CinematicPoster
+                loading="eager"
+                fetchPriority="high"
+                className="size-full"
               />
             }
           >

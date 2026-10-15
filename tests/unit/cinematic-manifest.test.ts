@@ -87,6 +87,39 @@ describe("Future Airport Cinematic Manifest & Provenance Registry", () => {
     }
   });
 
+  test("pins mobile framing, compressed media and aligned first-frame posters", () => {
+    for (const mobile of [CINEMATIC_MANIFEST.mobilePortrait, CINEMATIC_MANIFEST.mobileLandscape]) {
+      for (const asset of [mobile.video, mobile.poster]) {
+        const file = path.join(workspaceRoot, "public", asset.src.slice(1));
+        assert.equal(fileSha256(file), asset.sha256);
+        assert.equal(fs.statSync(file).size, asset.fileSizeBytes);
+        assert.ok(asset.src.includes(asset.sha256.slice(0, 8)));
+      }
+      assert.equal(mobile.poster.width, mobile.video.width);
+      assert.equal(mobile.poster.height, mobile.video.height);
+      assert.equal(mobile.video.durationSeconds, 8);
+      assert.equal(mobile.video.fps, 24);
+      assert.equal(mobile.video.gopFrames, 4);
+      assert.equal(mobile.video.keyframeCount, 48);
+      assert.equal(mobile.video.hasAudio, false);
+      assert.equal(mobile.sourceCrop.y, 24);
+      assert.equal(mobile.sourceCrop.height, 672);
+      const bytes = fs.readFileSync(path.join(workspaceRoot, "public", mobile.video.src.slice(1)));
+      // Inspect top-level ISO BMFF atoms, rather than searching compressed bytes.
+      const atoms: string[] = [];
+      for (let offset = 0; offset + 8 <= bytes.length;) {
+        const size = bytes.readUInt32BE(offset);
+        assert.ok(size >= 8 && offset + size <= bytes.length);
+        atoms.push(bytes.toString("ascii", offset + 4, offset + 8));
+        offset += size;
+      }
+      assert.ok(atoms.indexOf("moov") >= 0 && atoms.indexOf("moov") < atoms.indexOf("mdat"));
+    }
+    assert.deepEqual(CINEMATIC_MANIFEST.mobilePortrait.sourceCrop, { x: 562, y: 24, width: 378, height: 672 });
+    assert.ok(CINEMATIC_MANIFEST.mobilePortrait.video.fileSizeBytes < 1_600_000);
+    assert.ok(CINEMATIC_MANIFEST.mobileLandscape.video.fileSizeBytes < 3_000_000);
+  });
+
   test("ensures 4 chronological story phases with complete 0.0 to 1.0 coverage and honest copy", () => {
     const phases = CINEMATIC_MANIFEST.phases;
     assert.equal(phases.length, 4);

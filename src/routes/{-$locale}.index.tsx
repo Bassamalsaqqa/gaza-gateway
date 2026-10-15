@@ -52,7 +52,7 @@ export const Route = createFileRoute("/{-$locale}/")({
   head: ({ params }) => {
     const isAr = params.locale === "ar";
     const lang = isAr ? "ar" : "en";
-    return pageHead({
+    const head = pageHead({
       locale: params.locale,
       path: "/",
       en: {
@@ -77,6 +77,13 @@ export const Route = createFileRoute("/{-$locale}/")({
         getAirlineSchema(lang),
       ],
     });
+    return {
+      ...head,
+      meta: [
+        ...head.meta,
+        { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+      ],
+    };
   },
   component: Home,
 });

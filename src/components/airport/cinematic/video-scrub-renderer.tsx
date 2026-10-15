@@ -2,6 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import type { CinematicRendererProps } from "./cinematic-types";
 import { CINEMATIC_MANIFEST } from "@/lib/media/cinematic-manifest";
 import { cn } from "@/lib/utils";
+import {
+  CinematicPoster,
+  resolveCinematicVideoSrc,
+  useCinematicSourceMode,
+} from "./cinematic-poster";
 
 const SEEK_INTERVAL_MS = 36;
 const LOAD_TIMEOUT_MS = 5000;
@@ -9,20 +14,38 @@ const SEEK_TIMEOUT_MS = 1500;
 // One 24fps frame plus the existing seek deadband accommodates frame quantization.
 const PRESENTED_FRAME_TOLERANCE_SECONDS = 0.075;
 
-/** DEV comparison: one latest target, one decoder lifecycle, bounded seeking. */
-export function VideoScrubRenderer({
-  progress, isNearViewport, onReady, onError, onSeekStateChange, posterSrc, className,
-}: CinematicRendererProps) {
+interface InnerVideoScrubProps {
+  videoSrc: string;
+  progress: number;
+  isNearViewport: boolean;
+  onReady?: (() => void) | undefined;
+  onError?: ((error: string) => void) | undefined;
+  onSeekStateChange?: ((seeking: boolean) => void) | undefined;
+  ready: boolean;
+}
+
+/**
+ * Keyed single-decoder video scrub engine.
+ * Ensures complete teardown and resource release of previous decoders before new ones initialize.
+ */
+function InnerVideoScrub({
+  videoSrc,
+  progress,
+  isNearViewport,
+  onReady,
+  onError,
+  onSeekStateChange,
+  ready,
+}: InnerVideoScrubProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const latest = useRef({ progress, onReady, onError, onSeekStateChange });
   latest.current = { progress, onReady, onError, onSeekStateChange };
   const queue = useRef<(() => void) | null>(null);
-  const [ready, setReady] = useState(false);
+
   useEffect(() => {
-    setReady(false);
-    if (!isNearViewport) return;
+    if (!isNearViewport) return undefined;
     const video = videoRef.current;
-    if (!video) return;
+    if (!video) return undefined;
     let active = true, decoded = false, pending = true, lastSeek = -Infinity;
     let retry: ReturnType<typeof setTimeout> | undefined;
     let deadline: ReturnType<typeof setTimeout> | undefined;
@@ -56,7 +79,7 @@ export function VideoScrubRenderer({
       const target = targetTime();
       if (Math.abs(video.currentTime - target) >= 0.03) return;
       if (supportsFrameCallbacks && (presentedTime === undefined || Math.abs(presentedTime - target) > PRESENTED_FRAME_TOLERANCE_SECONDS)) return;
-      decoded = true; clearTimeout(loadDeadline); setReady(true); latest.current.onReady?.();
+      decoded = true; clearTimeout(loadDeadline); latest.current.onReady?.();
       if (frameCallback !== undefined) { video.cancelVideoFrameCallback(frameCallback); frameCallback = undefined; }
     };
     const awaitPresentedFrame = () => {
@@ -86,13 +109,11 @@ export function VideoScrubRenderer({
     video.addEventListener("seeked", seeked);
     video.addEventListener("error", fail);
     const loadDeadline = setTimeout(fail, LOAD_TIMEOUT_MS);
-    // Restore source on every setup, including React effect replay. No source
-    // children are owned by React and changed imperatively during teardown.
-    video.src = window.matchMedia("(min-width: 1024px)").matches
-      ? CINEMATIC_MANIFEST.derivatives.desktop720p.src
-      : CINEMATIC_MANIFEST.derivatives.standard540p.src;
+
+    video.src = videoSrc;
     video.load();
     awaitPresentedFrame();
+
     return () => {
       active = false; queue.current = null;
       clearTimeout(retry); clearTimeout(deadline); clearTimeout(loadDeadline);
@@ -104,14 +125,87 @@ export function VideoScrubRenderer({
       video.pause(); video.removeAttribute("src"); video.load();
       latest.current.onSeekStateChange?.(false);
     };
-  }, [isNearViewport]);
+  }, [isNearViewport, videoSrc]);
+
   useEffect(() => { queue.current?.(); }, [progress]);
+
+  return (
+    <video
+      ref={videoRef}
+      muted
+      playsInline
+      preload="none"
+      tabIndex={-1}
+      aria-hidden="true"
+      className={cn(
+        "size-full object-cover object-center select-none",
+        ready ? "opacity-100" : "opacity-0",
+      )}
+    />
+  );
+}
+
+/**
+ * DEV comparison & background video scrub renderer.
+ * One latest target, one decoder lifecycle, bounded seeking.
+ * Manages responsive crop source selection and ensures zero stale frame reveals.
+ */
+export function VideoScrubRenderer({
+  progress,
+  isNearViewport,
+  onReady,
+  onError,
+  onSeekStateChange,
+  posterSrc = CINEMATIC_MANIFEST.poster.src,
+  className,
+}: CinematicRendererProps) {
+  const detectedMode = useCinematicSourceMode();
+  const activeVideoSrc = resolveCinematicVideoSrc(CINEMATIC_MANIFEST, detectedMode);
+
+  const [readySource, setReadySource] = useState<string | null>(null);
+
+  // Synchronous ready-source identity gating: only ready if activeVideoSrc matches decoded source
+  const ready = isNearViewport && readySource === activeVideoSrc;
+
+  // Invalidate ready state synchronously whenever active source changes or viewport presence drops
+  const [prevTracked, setPrevTracked] = useState({ activeVideoSrc, isNearViewport });
+  if (
+    prevTracked.activeVideoSrc !== activeVideoSrc ||
+    prevTracked.isNearViewport !== isNearViewport
+  ) {
+    setPrevTracked({ activeVideoSrc, isNearViewport });
+    if (!isNearViewport || prevTracked.activeVideoSrc !== activeVideoSrc) {
+      setReadySource(null);
+    }
+  }
+
+  const handleReady = () => {
+    setReadySource(activeVideoSrc);
+    onReady?.();
+  };
+
   return (
     <div className={cn("relative size-full overflow-hidden bg-ink", className)}>
-      <img src={posterSrc} alt="" aria-hidden="true" width={960} height={540}
-        className={cn("absolute inset-0 size-full object-contain", ready ? "opacity-0" : "opacity-100")} />
-      {isNearViewport && <video ref={videoRef} muted playsInline preload="none" tabIndex={-1} aria-hidden="true"
-        className={cn("size-full object-contain lg:object-cover select-none", ready ? "opacity-100" : "opacity-0")} />}
+      <CinematicPoster
+        posterSrc={posterSrc}
+        className={cn(
+          "absolute inset-0 size-full pointer-events-none",
+          ready ? "opacity-0" : "opacity-100",
+        )}
+        imgClassName={ready ? "opacity-0" : "opacity-100"}
+      />
+      {isNearViewport && (
+        <InnerVideoScrub
+          key={activeVideoSrc}
+          videoSrc={activeVideoSrc}
+          progress={progress}
+          isNearViewport={isNearViewport}
+          onReady={handleReady}
+          onError={onError}
+          onSeekStateChange={onSeekStateChange}
+          ready={ready}
+        />
+      )}
     </div>
   );
 }

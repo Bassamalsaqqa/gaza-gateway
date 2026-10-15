@@ -22,6 +22,13 @@ export interface CinematicVideoDerivative {
   faststart: boolean;
 }
 
+export interface CinematicMobileFraming {
+  video: CinematicVideoDerivative;
+  poster: CinematicManifest["poster"];
+  /** Pixel coordinates in the 1280 x 720 master, before any downscale. */
+  sourceCrop: { x: number; y: number; width: number; height: number };
+}
+
 export interface CinematicMilestoneStill {
   key: "daylight" | "sunset" | "twilight" | "night";
   src: string;
@@ -76,6 +83,9 @@ export interface CinematicManifest {
     standard540p: CinematicVideoDerivative;
     desktop720p: CinematicVideoDerivative;
   };
+  /** Authored crops from the same immutable master; desktop assets stay unchanged. */
+  mobilePortrait: CinematicMobileFraming;
+  mobileLandscape: CinematicMobileFraming;
   milestones: Record<"daylight" | "sunset" | "twilight" | "night", CinematicMilestoneStill>;
   phases: readonly CinematicPhase[];
   experimentalFrameSequence: {
@@ -157,6 +167,68 @@ export const CINEMATIC_MANIFEST: CinematicManifest = {
       hasAudio: false,
       faststart: true,
     },
+  },
+  mobilePortrait: {
+    "video": {
+      "src": "/media/future/cinematic/mobile-7f4323c0/mobile-portrait.mp4",
+      "width": 378,
+      "height": 672,
+      "fileSizeBytes": 1502795,
+      "sha256": "7f4323c07ea7ed1024fd52e71045c464eb9d3e9e3c9eae79f527019269b52747",
+      "fps": 24,
+      "durationSeconds": 8.0,
+      "gopFrames": 4,
+      "keyframeCount": 48,
+      "crf": 25,
+      "hasAudio": false,
+      "faststart": true
+    },
+    "poster": {
+      "src": "/media/future/cinematic/mobile-4d93a238/mobile-portrait.webp",
+      "width": 378,
+      "height": 672,
+      "fileSizeBytes": 43448,
+      "sha256": "4d93a2389481d1a3fbb66258c57ce32619873c411bef447808eccec7a17560c1",
+      "altEn": "Illustrative future airport terminal and control tower, framed for mobile portrait",
+      "altAr": "تصوّر توضيحي لمبنى المطار المستقبلي وبرج المراقبة"
+    },
+    "sourceCrop": {
+      "x": 562,
+      "y": 24,
+      "width": 378,
+      "height": 672
+    }
+  },
+  mobileLandscape: {
+    "video": {
+      "src": "/media/future/cinematic/mobile-ccf5d232/mobile-landscape.mp4",
+      "width": 960,
+      "height": 504,
+      "fileSizeBytes": 2925325,
+      "sha256": "ccf5d232dc7cff439d08dedba6ca59bf66f0fd24015ffa8ae0d1418e0f0b85ea",
+      "fps": 24,
+      "durationSeconds": 8.0,
+      "gopFrames": 4,
+      "keyframeCount": 48,
+      "crf": 25,
+      "hasAudio": false,
+      "faststart": true
+    },
+    "poster": {
+      "src": "/media/future/cinematic/mobile-a7f9e809/mobile-landscape.webp",
+      "width": 960,
+      "height": 504,
+      "fileSizeBytes": 79120,
+      "sha256": "a7f9e809b91823b680cb1ba3b2ae68e61d3077b27b09ee0eeef957cd71670a13",
+      "altEn": "Illustrative future airport terminal and control tower, framed for mobile landscape",
+      "altAr": "تصوّر توضيحي لمبنى المطار المستقبلي وبرج المراقبة"
+    },
+    "sourceCrop": {
+      "x": 0,
+      "y": 24,
+      "width": 1280,
+      "height": 672
+    }
   },
   milestones: {
     daylight: {
