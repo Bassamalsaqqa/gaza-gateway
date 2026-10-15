@@ -227,7 +227,7 @@ function createSyntheticReleasePackage(targetDir, overrides = {}) {
 
 test('generator rejects missing package directory', async () => {
   const missingDir = path.join(root, 'scratch/does-not-exist-' + Date.now());
-  const builder = new ProductionUpgradeKitBuilder({ packageDir: missingDir });
+  const builder = new ProductionUpgradeKitBuilder({ packageDir: missingDir, profile: 'legacy_7a_19' });
   await assert.rejects(builder.build(), /does not exist/);
 });
 
@@ -235,7 +235,7 @@ test('generator rejects dirty packages', async () => {
   const dir = path.join(root, 'scratch/test-dirty-' + Date.now());
   try {
     createSyntheticReleasePackage(dir, { isDirty: true, classification: 'ENGINEERING_TEST_BUILD' });
-    const builder = new ProductionUpgradeKitBuilder({ packageDir: dir, expectedSourceSha: 'a'.repeat(40) });
+    const builder = new ProductionUpgradeKitBuilder({ packageDir: dir, expectedSourceSha: 'a'.repeat(40), profile: 'legacy_7a_19' });
     await assert.rejects(builder.build(), /dirty/i);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
@@ -246,7 +246,7 @@ test('generator rejects staging profile and staging origin', async () => {
   const dir = path.join(root, 'scratch/test-staging-' + Date.now());
   try {
     createSyntheticReleasePackage(dir, { profile: 'staging', origin: 'https://staging.gazaairport.com' });
-    const builder = new ProductionUpgradeKitBuilder({ packageDir: dir, expectedSourceSha: 'a'.repeat(40) });
+    const builder = new ProductionUpgradeKitBuilder({ packageDir: dir, expectedSourceSha: 'a'.repeat(40), profile: 'legacy_7a_19' });
     await assert.rejects(builder.build(), /Refusing package with profile "staging"/);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
@@ -257,7 +257,7 @@ test('generator rejects package with wrong migration count (19 instead of 21)', 
   const dir = path.join(root, 'scratch/test-migrations-' + Date.now());
   try {
     createSyntheticReleasePackage(dir, { migrationCount: 19 });
-    const builder = new ProductionUpgradeKitBuilder({ packageDir: dir, expectedSourceSha: 'a'.repeat(40) });
+    const builder = new ProductionUpgradeKitBuilder({ packageDir: dir, expectedSourceSha: 'a'.repeat(40), profile: 'legacy_7a_19' });
     await assert.rejects(builder.build(), /Expected exactly 21 migrations/);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
@@ -279,6 +279,7 @@ test('generator builds clean upgrade kit with exact hashes, runner, and zip arch
       outputDir: kitDir,
       outputZip: zipPath,
       expectedSourceSha: sourceSha,
+      profile: 'legacy_7a_19',
     });
 
     const result = await builder.build();

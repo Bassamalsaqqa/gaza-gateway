@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
+import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import {
   ProductionUpgradeKitBuilder,
@@ -88,6 +90,7 @@ test('builder rejects overriding installed pin without test permissions', () => 
   assert.throws(
     () => new ProductionUpgradeKitBuilder({
       packageDir: path.join(root, 'scratch'),
+      profile: 'legacy_7a_19',
       installedBinding: { source_sha: 'wrong' },
       allowTestOverride: false,
     }),
@@ -172,4 +175,105 @@ test('builder rejects symlinks in installed-manifest path when supported', async
       fs.rmSync(scratchTestDir, { recursive: true, force: true });
     }
   }
+});
+
+test('builder constructor rejects omitted or empty profile with clear required error', () => {
+  assert.throws(
+    () => new ProductionUpgradeKitBuilder({ packageDir: path.join(root, 'scratch') }),
+    /--profile=b3_21 required/
+  );
+  assert.throws(
+    () => new ProductionUpgradeKitBuilder({ packageDir: path.join(root, 'scratch'), profile: '' }),
+    /--profile=b3_21 required/
+  );
+  assert.throws(
+    () => new ProductionUpgradeKitBuilder({ packageDir: path.join(root, 'scratch'), profile: '   ' }),
+    /--profile=b3_21 required/
+  );
+});
+
+test('builder rejects selecting legacy profile when expectedSourceSha is current 965 release', () => {
+  assert.throws(
+    () => new ProductionUpgradeKitBuilder({
+      packageDir: path.join(root, 'scratch'),
+      profile: 'legacy_7a_19',
+      expectedSourceSha: '96538d9affdc843d08ef3c801f15c7f92dfd46b3',
+    }),
+    /Release 96538d9affdc843d08ef3c801f15c7f92dfd46b3 requires --profile=b3_21/
+  );
+});
+
+test('builder constructor accepts explicit b3_21 and requires manifest at build', async () => {
+  const pkgDir = path.join(root, 'scratch/test-b3-pos-' + Date.now());
+  fs.mkdirSync(pkgDir, { recursive: true });
+  try {
+    const builder = new ProductionUpgradeKitBuilder({
+      packageDir: pkgDir,
+      profile: 'b3_21',
+      expectedSourceSha: '96538d9affdc843d08ef3c801f15c7f92dfd46b3',
+    });
+    assert.equal(builder.profileConfig.id, 'b3_21');
+    assert.equal(builder.profileConfig.migration_count, 21);
+    await assert.rejects(
+      builder.build(),
+      /Profile b3_21 requires explicit --installed-manifest/
+    );
+  } finally {
+    fs.rmSync(pkgDir, { recursive: true, force: true });
+  }
+});
+
+test('builder API allows explicit legacy selection for historical replay', () => {
+  const historicalSha = '7a8f0fa2f25851c4f75422f86139e0bb020ea4de';
+  const builder = new ProductionUpgradeKitBuilder({
+    packageDir: path.join(root, 'scratch'),
+    profile: 'legacy_7a_19',
+    expectedSourceSha: historicalSha,
+  });
+  assert.equal(builder.profileConfig.id, 'legacy_7a_19');
+  assert.equal(builder.profileConfig.migration_count, 19);
+});
+
+test('CLI fails before creating output when profile is omitted', () => {
+  const cliScript = path.join(root, 'scripts/prepare-hostpapa-production-upgrade.mjs');
+  const outDir = path.join(root, 'scratch/test-cli-omitted-' + Date.now());
+  const res = spawnSync(process.execPath, [
+    cliScript,
+    `--output-dir=${outDir}`,
+    '--no-zip',
+  ], { encoding: 'utf8' });
+
+  assert.notEqual(res.status, 0);
+  assert.match(res.stderr, /--profile=b3_21 required/);
+  assert.equal(fs.existsSync(outDir), false, 'outputDir must not be created when profile is omitted');
+});
+
+test('CLI fails before creating output when profile is empty', () => {
+  const cliScript = path.join(root, 'scripts/prepare-hostpapa-production-upgrade.mjs');
+  const outDir = path.join(root, 'scratch/test-cli-empty-' + Date.now());
+  const res = spawnSync(process.execPath, [
+    cliScript,
+    '--profile=',
+    `--output-dir=${outDir}`,
+    '--no-zip',
+  ], { encoding: 'utf8' });
+
+  assert.notEqual(res.status, 0);
+  assert.match(res.stderr, /--profile=b3_21 required/);
+  assert.equal(fs.existsSync(outDir), false, 'outputDir must not be created when profile is empty');
+});
+
+test('CLI rejects explicit legacy profile before creating output', () => {
+  const cliScript = path.join(root, 'scripts/prepare-hostpapa-production-upgrade.mjs');
+  const outDir = path.join(root, 'scratch/test-cli-legacy-' + Date.now());
+  const res = spawnSync(process.execPath, [
+    cliScript,
+    '--profile=legacy_7a_19',
+    `--output-dir=${outDir}`,
+    '--no-zip',
+  ], { encoding: 'utf8' });
+
+  assert.notEqual(res.status, 0);
+  assert.match(res.stderr, /--profile=b3_21 required/);
+  assert.equal(fs.existsSync(outDir), false, 'outputDir must not be created when legacy profile is rejected');
 });

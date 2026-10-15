@@ -31,7 +31,7 @@ Tooling provenance must remain distinct from application release payload. Never 
 
 ### 1. Prepare (Offline / Worktree Kit Generation)
 - Target release candidate must be a clean package from `main` (e.g. `96538d9affdc843d08ef3c801f15c7f92dfd46b3`).
-- Select closed profile: default `legacy_7a_19` (initial baseline `7a8f0fa`, 19 migrations) or reviewed `b3_21` (installed baseline `b3afa9c`, 21 migrations).
+- This release requires explicit `--profile=b3_21` (installed baseline `b3afa9c`, 21 migrations). Omitted or empty profiles fail before preparation. The production CLI rejects historical profiles; the builder API retains explicit `legacy_7a_19` only for archival local replay and rejects it for application source `96538d9`.
 - Profile `b3_21` requires explicit immutable `--installed-manifest=<path>` (verified SHA-256 `2c5f93cd4e1772a018e1f125575acdc8950f9678f879a9039e388186b58f42a0`). Unimplemented baselines and arbitrary descriptor overrides are rejected.
 - Generate kit to a dedicated profile output directory:
   ```sh

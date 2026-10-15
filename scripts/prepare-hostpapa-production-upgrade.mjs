@@ -29,7 +29,7 @@ function parseArgs() {
     outputDir: path.join(root, 'scratch/production-upgrade-kit'),
     outputZip: path.join(root, 'scratch/production-upgrade-kit.zip'),
     sourceSha: null,
-    profile: 'legacy_7a_19',
+    profile: null,
     installedManifest: null,
   };
 
@@ -46,7 +46,7 @@ Options:
   --output-dir=<path>         Output kit directory (default: scratch/production-upgrade-kit)
   --output-zip=<path>         Output kit zip file (default: scratch/production-upgrade-kit.zip)
   --source-sha=<sha>          Expected git commit SHA
-  --profile=<id>              Baseline profile (default: legacy_7a_19, options: legacy_7a_19, b3_21)
+  --profile=b3_21             Baseline profile (mandatory: b3_21; legacy is archived)
   --installed-manifest=<path> Path to verified immutable baseline release-manifest.json (required for b3_21)
   --no-zip                    Skip zip generation
   --help                      Show this message
@@ -77,6 +77,16 @@ Options:
 
 async function main() {
   const options = parseArgs();
+
+  if (!options.profile || options.profile.trim() === '') {
+    console.error('Error: --profile=b3_21 required (profile cannot be omitted or empty; historical default removed).');
+    process.exit(1);
+  }
+  if (options.profile !== 'b3_21') {
+    console.error(`Error: --profile=b3_21 required (production CLI accepts ONLY explicit --profile=b3_21; profile "${options.profile}" is rejected; archive legacy is available via builder API for local historical replay only).`);
+    process.exit(1);
+  }
+
   console.log('Building HostPapa production upgrade kit...');
   console.log(`- Package Directory: ${options.packageDir}`);
   console.log(`- Kit Directory:     ${options.outputDir}`);

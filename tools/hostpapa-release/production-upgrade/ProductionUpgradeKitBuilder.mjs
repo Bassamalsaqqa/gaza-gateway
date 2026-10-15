@@ -168,6 +168,15 @@ function collectAllFiles(dir, base = '') {
 export class ProductionUpgradeKitBuilder {
   constructor(options = {}) {
     this.root = options.root ? path.resolve(options.root) : path.resolve(__dirname, '../../..');
+
+    if (!options.profile || typeof options.profile !== 'string' || options.profile.trim() === '') {
+      throw new Error('--profile=b3_21 required (baseline profile must be explicitly specified; historical default has been removed).');
+    }
+    const profileId = options.profile.trim();
+    if (!Object.prototype.hasOwnProperty.call(BASELINE_PROFILES, profileId)) {
+      throw new Error(`Unknown profile: ${profileId}. Allowed profiles: ${Object.keys(BASELINE_PROFILES).join(', ')}`);
+    }
+
     if (!options.packageDir) {
       throw new Error('packageDir option is required');
     }
@@ -177,10 +186,10 @@ export class ProductionUpgradeKitBuilder {
     this.expectedSourceSha = options.expectedSourceSha || null;
     this.strict = options.strict ?? true;
 
-    const profileId = options.profile || 'legacy_7a_19';
-    if (!Object.prototype.hasOwnProperty.call(BASELINE_PROFILES, profileId)) {
-      throw new Error(`Unknown profile: ${profileId}. Allowed profiles: ${Object.keys(BASELINE_PROFILES).join(', ')}`);
+    if (this.expectedSourceSha === '96538d9affdc843d08ef3c801f15c7f92dfd46b3' && profileId === 'legacy_7a_19') {
+      throw new Error('Release 96538d9affdc843d08ef3c801f15c7f92dfd46b3 requires --profile=b3_21; legacy profile is rejected for this release.');
     }
+
     this.profileConfig = BASELINE_PROFILES[profileId];
     if (!/^[a-zA-Z0-9_-]+$/.test(this.profileConfig.kit_folder)) {
       throw new Error(`Unsafe kit folder name: ${this.profileConfig.kit_folder}`);
@@ -275,6 +284,10 @@ export class ProductionUpgradeKitBuilder {
     const manifestPath = path.join(this.packageDir, 'release-manifest.json');
     const manifestSha256 = computeFileSha256(manifestPath);
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+
+    if (manifest.source_sha === '96538d9affdc843d08ef3c801f15c7f92dfd46b3' && this.profileConfig.id === 'legacy_7a_19') {
+      throw new Error('Release 96538d9affdc843d08ef3c801f15c7f92dfd46b3 requires --profile=b3_21; legacy profile is rejected for this release.');
+    }
 
     // Refuse dirty or test builds
     if (manifest.is_dirty !== false) {
