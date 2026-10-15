@@ -36,6 +36,33 @@ const EXPECTED_DB_NAME = 'gaza5045_gateway_live';
 const EXPECTED_DDL_USER = 'gaza5045_liveadmin';
 const EXPECTED_RUNTIME_USER = 'gaza5045_liveruntime';
 
+const ALLOWED_REASON_CODES = [
+    'BASELINE_POINTER_MISMATCH',
+    'BASELINE_MIGRATION_INVENTORY_COUNT_MISMATCH',
+    'LEDGER_IDENTITIES_MISMATCH',
+    'INITIAL_COUNT_MISMATCH',
+    'TARGET_SOURCE_MISMATCH',
+    'TARGET_MANIFEST_MISMATCH',
+    'TARGET_INVENTORY_MISMATCH',
+    'TARGET_SCHEMA_MISMATCH',
+    'TARGET_MAINTENANCE_ACTIVE',
+    'DATABASE_QUERY_FAILURE',
+    'UNEXPECTED_ERROR',
+];
+
+class UpgradeDiagnosticException extends RuntimeException {
+    public function __construct(
+        private readonly string $reasonCode,
+        ?Throwable $previous = null,
+    ) {
+        parent::__construct($reasonCode, 0, $previous);
+    }
+
+    public function getReasonCode(): string {
+        return $this->reasonCode;
+    }
+}
+
 
 function safePath(string $path, string $home): void {
     if (($path !== $home && !str_starts_with($path, $home . '/')) || preg_match('#[\\\\\x00-\x1f]|(?:^|/)\.{1,2}(?:/|$)#', $path)) {
@@ -263,8 +290,18 @@ function makeMaintenancePayload(): string {
     return "<?php http_response_code(503); header('Content-Type: application/json'); header('Cache-Control: no-store'); echo json_encode(['success'=>false,'error'=>['code'=>'service_unavailable','message'=>'Maintenance in progress.'],'meta'=>['requestId'=>sprintf('%s-%s-4%s-8%s-%s',bin2hex(random_bytes(4)),bin2hex(random_bytes(2)),substr(bin2hex(random_bytes(2)),1),substr(bin2hex(random_bytes(2)),1),bin2hex(random_bytes(6))),'timestamp'=>gmdate('Y-m-d\\TH:i:s\\Z')]]); exit;\n";
 }
 
+$invocationId = bin2hex(random_bytes(8));
+$startTime = gmdate('Y-m-d\TH:i:s\Z');
+$phpVersion = PHP_VERSION;
+$runnerHash = hash_file('sha256', __FILE__);
+$upgradeManifestHash = null;
+
+$modeRaw = $argv[1] ?? '';
+$mode = in_array($modeRaw, ['--check', '--upgrade', '--rollback'], true) ? $modeRaw : 'unknown';
+
 $stage = 'preflight';
 $preflightCheckpoint = 'startup';
+$preflightSubstep = null;
 $ownsKitLock = false;
 $kitLock = null;
 $installerLock = null;
@@ -277,7 +314,6 @@ $maintenancePath = $appRoot . '/shared/storage/framework/maintenance.php';
 
 try {
     if (PHP_VERSION_ID < 80400) throw new RuntimeException('PHP 8.4+ CLI required.');
-    $mode = $argv[1] ?? '';
     if (!in_array($mode, ['--check', '--upgrade', '--rollback'], true)) {
         throw new RuntimeException('Usage: production-upgrade-runner.php --check|--upgrade|--rollback');
     }
@@ -286,7 +322,7 @@ try {
     if ($mode === '--upgrade') {
         $hasOwnerGo = in_array('--confirm-upgrade', $argv, true) || in_array('--owner-go', $argv, true);
         if (!$hasOwnerGo) {
-            fwrite(STDERR, "FAIL: upgrade runner stopped at preflight; no credential details printed. Explicit final owner GO required (--confirm-upgrade or --owner-go).\n");
+            fwrite(STDERR, "FAIL: upgrade runner stopped at preflight; no credential details printed. Explicit final owner GO required (--confirm-upgrade or --owner-go). (invocation: {$invocationId})\n");
             exit(1);
         }
     }
@@ -321,16 +357,19 @@ try {
     $attemptPath = $kitRoot . '/production-upgrade-attempted';
     safePath($attemptPath, $home);
     if ($mode === '--upgrade' && is_file($attemptPath)) {
-        echo "SKIP: upgrade already attempted; inspect production-upgrade-result.json and remove temporary cron.\n";
+        echo "SKIP: upgrade already attempted; inspect production-upgrade-result.json and remove temporary cron. (invocation: {$invocationId})\n";
         return;
     }
 
     $preflightCheckpoint = 'kit_manifest';
+    $preflightSubstep = null;
+    $preflightSubstep = 'read_manifest';
     // 1. Read CLOSED upgrade kit manifest
     $upgradeManifestFile = $kitRoot . '/upgrade-manifest.json';
     privatePath($upgradeManifestFile, $home);
     if (!is_file($upgradeManifestFile) || filesize($upgradeManifestFile) > 65536) throw new RuntimeException('Invalid non-secret upgrade manifest.');
     $upgradeManifestRaw = file_get_contents($upgradeManifestFile);
+    $upgradeManifestHash = hash('sha256', $upgradeManifestRaw);
     $upgradeManifest = json_decode($upgradeManifestRaw, true, 32, JSON_THROW_ON_ERROR);
 
     $targetRelease = $upgradeManifest['target_release'] ?? [];
@@ -380,10 +419,12 @@ try {
     }
 
     $preflightCheckpoint = 'candidate_inventory';
+    $preflightSubstep = null;
     // Candidate verifier must execute in ALL modes (including --check) before reading live credentials
     runBounded([PHP_BINARY, '-d', 'display_errors=0', $installerPath, '--action=verify', '--package-dir=' . $candidatePkgDir], 90);
 
     $preflightCheckpoint = 'ddl_approval';
+    $preflightSubstep = null;
     // 2. Read and validate DDL credentials from existing private live approval
     $liveApprovalFile = $livePackageRoot . '/live-approval.json';
     $liveApprovalRaw = privateInput($liveApprovalFile, $home, 32768, false);
@@ -403,6 +444,7 @@ try {
     $ddlPassword = (string)$db['password'];
 
     $preflightCheckpoint = 'runtime_configuration';
+    $preflightSubstep = null;
     // 3. Read and validate runtime credentials from shared/config/.env (read-only, no writing or chmod)
     $sharedConfigEnv = $appRoot . '/shared/config/.env';
     $runtimeEnvPath = null;
@@ -426,38 +468,18 @@ try {
     $runtimePassword = (string)$envVars['DB_PASSWORD'];
 
     $preflightCheckpoint = 'backup_tools';
+    $preflightSubstep = null;
     // 4. Check host backup binaries availability (tar and mysqldump)
     $mysqldumpBin = getenv('HOSTPAPA_MYSQLDUMP_BIN') ?: 'mysqldump';
     $tarBin = getenv('HOSTPAPA_TAR_BIN') ?: 'tar';
+    $preflightSubstep = 'check_tar';
     runBounded([$tarBin, '--version'], 5);
+    $preflightSubstep = 'check_mysqldump';
     runBounded([$mysqldumpBin, '--version'], 5);
 
-    $preflightCheckpoint = 'database_connectivity';
-    // 5. Connect with DDL user to check database name and migrations
-    $dsn = "mysql:host={$ddlHost};port={$ddlPort};dbname={$ddlDatabase};charset=utf8mb4";
-    $pdo = new PDO($dsn, $ddlUsername, $ddlPassword, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_TIMEOUT => 5,
-    ]);
-    $runtimePdo = new PDO('mysql:host='.($envVars['DB_HOST'] ?? '127.0.0.1').';port='.($envVars['DB_PORT'] ?? '3306').';dbname='.EXPECTED_DB_NAME.';charset=utf8mb4', $envVars['DB_USERNAME'], $envVars['DB_PASSWORD'], [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_TIMEOUT => 5]);
-    if ($runtimePdo->query('SELECT DATABASE()')->fetchColumn() !== EXPECTED_DB_NAME) throw new RuntimeException('Runtime database connectivity mismatch.');
-    $selectedDb = $pdo->query('SELECT DATABASE() AS name')->fetch()['name'] ?? '';
-    if ($selectedDb !== EXPECTED_DB_NAME) throw new RuntimeException('Database name mismatch.');
-    $currentMigrations = (int)($pdo->query('SELECT COUNT(*) AS cnt FROM migrations')->fetch()['cnt'] ?? -1);
-
-    // Also validate runtime user connectivity in read-only preflight
-    $runtimeDsn = "mysql:host={$ddlHost};port={$ddlPort};dbname={$ddlDatabase};charset=utf8mb4";
-    $runtimePdo = new PDO($runtimeDsn, EXPECTED_RUNTIME_USER, $runtimePassword, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_TIMEOUT => 5,
-    ]);
-    $runtimeSelectedDb = $runtimePdo->query('SELECT DATABASE() AS name')->fetch()['name'] ?? '';
-    if ($runtimeSelectedDb !== EXPECTED_DB_NAME) throw new RuntimeException('Runtime user connected to unexpected database.');
-
     $preflightCheckpoint = 'installed_inventory';
-    // 6. Check active release pointer and baseline state
+    $preflightSubstep = null;
+    // 5. Check active release pointer and baseline state
     $pointerPath = $appRoot . '/current-release.txt';
     safePath($pointerPath, $home);
     if (!is_file($pointerPath)) throw new RuntimeException('Missing active release pointer.');
@@ -477,6 +499,7 @@ try {
         throw new RuntimeException('Installed release identity mismatch with baseline.');
     }
     // Verify immutable private files of baseline release
+    $preflightSubstep = 'verify_baseline_files';
     foreach ($installedManifest['private_files'] ?? [] as $relName => $entry) {
         $pfile = $installedReleaseDir . '/' . $relName;
         safePath($pfile, $home);
@@ -491,6 +514,46 @@ try {
         if (trim(file_get_contents($optionalSourceCommit)) !== INSTALLED_SOURCE_SHA) {
             throw new RuntimeException('Installed SOURCE_COMMIT.txt mismatch with baseline.');
         }
+    }
+
+    $preflightCheckpoint = 'database_connectivity';
+    $preflightSubstep = null;
+    // Open connections after baseline hashing; later target/backup scans can still incur idle time.
+    $dsn = "mysql:host={$ddlHost};port={$ddlPort};dbname={$ddlDatabase};charset=utf8mb4";
+    $preflightSubstep = 'connect_ddl';
+    try {
+        $pdo = new PDO($dsn, $ddlUsername, $ddlPassword, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_TIMEOUT => 5,
+        ]);
+    } catch (PDOException $e) {
+        throw new UpgradeDiagnosticException('DATABASE_QUERY_FAILURE', $e);
+    }
+    $preflightSubstep = 'connect_runtime';
+    try {
+        $runtimePdo = new PDO('mysql:host='.($envVars['DB_HOST'] ?? '127.0.0.1').';port='.($envVars['DB_PORT'] ?? '3306').';dbname='.EXPECTED_DB_NAME.';charset=utf8mb4', $envVars['DB_USERNAME'], $envVars['DB_PASSWORD'], [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_TIMEOUT => 5]);
+        if ($runtimePdo->query('SELECT DATABASE()')->fetchColumn() !== EXPECTED_DB_NAME) throw new RuntimeException('Runtime database connectivity mismatch.');
+        $selectedDb = $pdo->query('SELECT DATABASE() AS name')->fetch()['name'] ?? '';
+        if ($selectedDb !== EXPECTED_DB_NAME) throw new RuntimeException('Database name mismatch.');
+        $currentMigrations = (int)($pdo->query('SELECT COUNT(*) AS cnt FROM migrations')->fetch()['cnt'] ?? -1);
+    } catch (PDOException $e) {
+        throw new UpgradeDiagnosticException('DATABASE_QUERY_FAILURE', $e);
+    }
+
+    // Also validate runtime user connectivity in read-only preflight
+    $preflightSubstep = 'verify_runtime_user';
+    try {
+        $runtimeDsn = "mysql:host={$ddlHost};port={$ddlPort};dbname={$ddlDatabase};charset=utf8mb4";
+        $runtimePdo = new PDO($runtimeDsn, EXPECTED_RUNTIME_USER, $runtimePassword, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_TIMEOUT => 5,
+        ]);
+        $runtimeSelectedDb = $runtimePdo->query('SELECT DATABASE() AS name')->fetch()['name'] ?? '';
+        if ($runtimeSelectedDb !== EXPECTED_DB_NAME) throw new RuntimeException('Runtime user connected to unexpected database.');
+    } catch (PDOException $e) {
+        throw new UpgradeDiagnosticException('DATABASE_QUERY_FAILURE', $e);
     }
 
     // -------------------------------------------------------------
@@ -692,45 +755,75 @@ PHP;
     // installed bytes/schema instead of rejecting the new state as an old-baseline failure.
     $preflightCheckpoint = 'active_release_and_schema';
     if ($mode === '--check' && $activePointer === $targetReleaseId) {
+        $preflightSubstep = 'target_source';
         $installedTarget = $appRoot . '/releases/' . $targetReleaseId;
         safePath($installedTarget, $home);
         if (!is_file($installedTarget . '/SOURCE_COMMIT.txt')
-            || trim(file_get_contents($installedTarget . '/SOURCE_COMMIT.txt')) !== $targetSourceSha
-            || !is_file($installedTarget . '/release-manifest.json')
-            || hash_file('sha256', $installedTarget . '/release-manifest.json') !== $targetManifestSha) {
-            throw new RuntimeException('Installed target source or manifest mismatch.');
+            || trim(file_get_contents($installedTarget . '/SOURCE_COMMIT.txt')) !== $targetSourceSha) {
+            throw new UpgradeDiagnosticException('TARGET_SOURCE_MISMATCH');
         }
+        $preflightSubstep = 'target_manifest';
+        if (!is_file($installedTarget . '/release-manifest.json')
+            || hash_file('sha256', $installedTarget . '/release-manifest.json') !== $targetManifestSha) {
+            throw new UpgradeDiagnosticException('TARGET_MANIFEST_MISMATCH');
+        }
+        $preflightSubstep = 'target_inventory';
         foreach (['private_files' => $installedTarget, 'public_files' => $webroot] as $section => $base) {
             foreach ($candidateManifest[$section] ?? [] as $relative => $entry) {
                 $file = $base . '/' . $relative;
                 safePath($file, $home);
                 if (!is_file($file) || hash_file('sha256', $file) !== $entry['sha256']) {
-                    throw new RuntimeException('Installed target inventory mismatch.');
+                    throw new UpgradeDiagnosticException('TARGET_INVENTORY_MISMATCH');
                 }
             }
         }
-        $actualNames = $pdo->query('SELECT migration FROM migrations ORDER BY migration')->fetchAll(PDO::FETCH_COLUMN);
-        if ($expectedMigrationNames !== $actualNames || is_file($maintenancePath)) {
-            throw new RuntimeException('Installed target schema or maintenance state requires investigation.');
+        $preflightSubstep = 'target_ledger_query';
+        try {
+            $actualNames = $pdo->query('SELECT migration FROM migrations ORDER BY migration')->fetchAll(PDO::FETCH_COLUMN);
+        } catch (PDOException $e) {
+            throw new UpgradeDiagnosticException('DATABASE_QUERY_FAILURE', $e);
+        }
+        $preflightSubstep = 'target_ledger_compare';
+        if ($expectedMigrationNames !== $actualNames) {
+            throw new UpgradeDiagnosticException('TARGET_SCHEMA_MISMATCH');
+        }
+        $preflightSubstep = 'target_maintenance';
+        if (is_file($maintenancePath)) {
+            throw new UpgradeDiagnosticException('TARGET_MAINTENANCE_ACTIVE');
         }
         echo "PASS: already-installed target source, private/public bytes and 21 migration identities verified; no upgrade or evidence rewrite.\n";
+        echo "invocation: {$invocationId}\n";
         if (function_exists('pcntl_alarm')) pcntl_alarm(0);
         return;
     }
 
     // Baseline checks for --check and --upgrade: active pointer must be 7a8f0fa baseline
+    $preflightSubstep = 'baseline_pointer';
     if ($activePointer !== INSTALLED_RELEASE_ID) {
-        throw new RuntimeException("Active release pointer mismatch: expected " . INSTALLED_RELEASE_ID . ", got {$activePointer}");
+        throw new UpgradeDiagnosticException('BASELINE_POINTER_MISMATCH');
     }
+    $preflightSubstep = 'baseline_inventory';
     $oldNames = [];
     foreach (array_keys($installedManifest['private_files'] ?? []) as $file) {
         if (preg_match('#^backend/database/migrations/([a-zA-Z0-9_]+)\\.php$#D', $file, $m)) $oldNames[] = $m[1];
     }
     sort($oldNames, SORT_STRING);
-    $actualNames = $pdo->query('SELECT migration FROM migrations ORDER BY migration')->fetchAll(PDO::FETCH_COLUMN);
-    if (count($oldNames) !== INSTALLED_MIGRATIONS || $oldNames !== $actualNames) throw new RuntimeException('Installed migration identities differ from immutable baseline.');
+    if (count($oldNames) !== INSTALLED_MIGRATIONS) {
+        throw new UpgradeDiagnosticException('BASELINE_MIGRATION_INVENTORY_COUNT_MISMATCH');
+    }
+    $preflightSubstep = 'baseline_ledger_query';
+    try {
+        $actualNames = $pdo->query('SELECT migration FROM migrations ORDER BY migration')->fetchAll(PDO::FETCH_COLUMN);
+    } catch (PDOException $e) {
+        throw new UpgradeDiagnosticException('DATABASE_QUERY_FAILURE', $e);
+    }
+    $preflightSubstep = 'baseline_ledger_compare';
+    if ($oldNames !== $actualNames) {
+        throw new UpgradeDiagnosticException('LEDGER_IDENTITIES_MISMATCH');
+    }
+    $preflightSubstep = 'baseline_count_compare';
     if ($currentMigrations !== INSTALLED_MIGRATIONS) {
-        throw new RuntimeException("Current migrations count ({$currentMigrations}) does not match expected 19 baseline.");
+        throw new UpgradeDiagnosticException('INITIAL_COUNT_MISMATCH');
     }
 
     // -------------------------------------------------------------
@@ -738,6 +831,7 @@ PHP;
     // -------------------------------------------------------------
     if ($mode === '--check') {
         echo "PASS: verified baseline source 7a8f0fa, active release rel_20261013T082656_7a8f0fa_clean, 19 migrations, and upgrade candidate package.\n";
+        echo "invocation: {$invocationId}\n";
         if (function_exists('pcntl_alarm')) pcntl_alarm(0);
         return;
     }
@@ -1009,31 +1103,107 @@ PHP;
     if (isset($pdo) && $pdo instanceof PDO && $pdo->inTransaction()) {
         try { $pdo->rollBack(); } catch (\Throwable) {}
     }
+
+    $errorClass = 'Throwable';
+    $allowedClasses = [
+        UpgradeDiagnosticException::class => 'UpgradeDiagnosticException',
+        PDOException::class => 'PDOException',
+        RuntimeException::class => 'RuntimeException',
+        InvalidArgumentException::class => 'InvalidArgumentException',
+        TypeError::class => 'TypeError',
+        Error::class => 'Error',
+        Exception::class => 'Exception',
+    ];
+    foreach ($allowedClasses as $cls => $name) {
+        if ($e instanceof $cls) {
+            $errorClass = $name;
+            break;
+        }
+    }
+
+    $reasonCode = 'UNEXPECTED_ERROR';
+    $sqlstate = null;
+    $driverCode = null;
+
+    $underlying = $e;
+    if ($e instanceof UpgradeDiagnosticException) {
+        $candidateCode = $e->getReasonCode();
+        if (in_array($candidateCode, ALLOWED_REASON_CODES, true)) {
+            $reasonCode = $candidateCode;
+        }
+        if ($e->getPrevious() !== null) {
+            $underlying = $e->getPrevious();
+        }
+    }
+
+    if ($underlying instanceof PDOException) {
+        if ($reasonCode === 'UNEXPECTED_ERROR') {
+            $reasonCode = 'DATABASE_QUERY_FAILURE';
+        }
+        $errorClass = 'PDOException';
+        $rawCode = (string)$underlying->getCode();
+        if (is_array($underlying->errorInfo) && isset($underlying->errorInfo[0]) && is_string($underlying->errorInfo[0])) {
+            $rawCode = $underlying->errorInfo[0];
+        }
+        if (preg_match('/^[A-Z0-9]{5}$/D', $rawCode)) {
+            $sqlstate = $rawCode;
+        }
+        if (is_array($underlying->errorInfo) && isset($underlying->errorInfo[1])) {
+            $rawDriver = $underlying->errorInfo[1];
+            if (is_int($rawDriver)) {
+                if ($rawDriver >= 0 && $rawDriver <= 2147483647) {
+                    $driverCode = $rawDriver;
+                }
+            } elseif (is_string($rawDriver) && preg_match('/^[0-9]{1,10}$/D', $rawDriver)) {
+                $intVal = (int)$rawDriver;
+                if ($intVal >= 0 && $intVal <= 2147483647 && (string)$intVal === $rawDriver) {
+                    $driverCode = $intVal;
+                }
+            }
+        }
+    }
+
     if ($ownsKitLock && is_dir($kitRoot)) {
-        $failureReceipt = [
-            'outcome' => 'FAIL',
-            'stage' => $stage,
-            'preflight_checkpoint' => $stage === 'preflight' ? $preflightCheckpoint : null,
-            'source_sha' => $targetSourceSha ?? null,
-            'time' => gmdate('c'),
-            'message' => 'Upgrade or rollback stopped; inspect private configuration, backup logs and retained backups before retry.',
-            'maintenance_retained' => $maintenanceSet,
-            'maintenance_observed' => is_file($maintenancePath),
-        ];
-        // Observational failures must not destroy installation/rollback evidence.
-        // Retain every invocation and use a separate last-failure report.
-        $failureBytes = json_encode($failureReceipt, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR) . "\n";
-        $eventPath = $kitRoot . '/production-upgrade-failure-' . gmdate('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '.json';
-        @file_put_contents($eventPath, $failureBytes, LOCK_EX);
-        @chmod($eventPath, 0600);
-        @file_put_contents($kitRoot . '/production-upgrade-last-failure.json', $failureBytes, LOCK_EX);
-        @chmod($kitRoot . '/production-upgrade-last-failure.json', 0600);
+        try {
+            $failureReceipt = [
+                'outcome' => 'FAIL',
+                'invocation_id' => $invocationId,
+                'mode' => $mode,
+                'start_time' => $startTime,
+                'time' => gmdate('c'),
+                'php_version' => $phpVersion,
+                'runner_hash' => $runnerHash,
+                'upgrade_manifest_hash' => $upgradeManifestHash,
+                'stage' => $stage,
+                'preflight_checkpoint' => $stage === 'preflight' ? $preflightCheckpoint : null,
+                'preflight_substep' => $stage === 'preflight' ? $preflightSubstep : null,
+                'reason_code' => $reasonCode,
+                'sqlstate' => $sqlstate,
+                'driver_code' => $driverCode,
+                'error_class' => $errorClass,
+                'source_sha' => isset($targetSourceSha) && is_string($targetSourceSha)
+                    && preg_match('/^[a-f0-9]{40}$/D', $targetSourceSha) === 1 ? $targetSourceSha : null,
+                'message' => 'Upgrade or rollback stopped; inspect private configuration, backup logs and retained backups before retry.',
+                'maintenance_retained' => $maintenanceSet,
+                'maintenance_observed' => is_file($maintenancePath),
+            ];
+            // Observational failures must not destroy installation/rollback evidence.
+            // Retain every invocation and use a separate last-failure report.
+            $failureBytes = json_encode($failureReceipt, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR) . "\n";
+            $eventPath = $kitRoot . '/production-upgrade-failure-' . gmdate('Ymd_His') . '_' . $invocationId . '.json';
+            @file_put_contents($eventPath, $failureBytes, LOCK_EX);
+            @chmod($eventPath, 0600);
+            @file_put_contents($kitRoot . '/production-upgrade-last-failure.json', $failureBytes, LOCK_EX);
+            @chmod($kitRoot . '/production-upgrade-last-failure.json', 0600);
+        } catch (\Throwable) {
+            // Diagnostic writes must never clobber success evidence or prevent finally cleanup.
+        }
     }
     // If failure occurred pre-migration before backups, safe to clear maintenance; otherwise retain it!
     if ($stage === 'maintenance' && $maintenanceSet && is_file($maintenancePath)) {
         @unlink($maintenancePath);
     }
-    fwrite(STDERR, "FAIL: upgrade runner stopped at " . $stage . "; no credential details printed. Do not remove the attempt marker or retry blindly.\n");
+    fwrite(STDERR, "FAIL: upgrade runner stopped at " . $stage . " [" . $reasonCode . "] (invocation: " . $invocationId . "); no credential details printed. Do not remove the attempt marker or retry blindly.\n");
     $failed = true;
 } finally {
     // Release cron lease if acquired

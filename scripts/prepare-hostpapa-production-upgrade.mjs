@@ -29,6 +29,8 @@ function parseArgs() {
     outputDir: path.join(root, 'scratch/production-upgrade-kit'),
     outputZip: path.join(root, 'scratch/production-upgrade-kit.zip'),
     sourceSha: null,
+    profile: 'legacy_7a_19',
+    installedManifest: null,
   };
 
   for (const arg of args) {
@@ -40,12 +42,14 @@ Packages a clean production-origin release bundle into a private upgrade kit
 with the CLI upgrade runner and pinned metadata. Never includes secrets.
 
 Options:
-  --package-dir=<path>  Source release package directory (default: scratch/.hostpapa-shared-release)
-  --output-dir=<path>   Output kit directory (default: scratch/production-upgrade-kit)
-  --output-zip=<path>   Output kit zip file (default: scratch/production-upgrade-kit.zip)
-  --source-sha=<sha>    Expected git commit SHA
-  --no-zip              Skip zip generation
-  --help                Show this message
+  --package-dir=<path>        Source release package directory (default: scratch/.hostpapa-shared-release)
+  --output-dir=<path>         Output kit directory (default: scratch/production-upgrade-kit)
+  --output-zip=<path>         Output kit zip file (default: scratch/production-upgrade-kit.zip)
+  --source-sha=<sha>          Expected git commit SHA
+  --profile=<id>              Baseline profile (default: legacy_7a_19, options: legacy_7a_19, b3_21)
+  --installed-manifest=<path> Path to verified immutable baseline release-manifest.json (required for b3_21)
+  --no-zip                    Skip zip generation
+  --help                      Show this message
 `);
       process.exit(0);
     } else if (arg.startsWith('--package-dir=')) {
@@ -58,6 +62,10 @@ Options:
       options.outputZip = null;
     } else if (arg.startsWith('--source-sha=')) {
       options.sourceSha = arg.split('=')[1];
+    } else if (arg.startsWith('--profile=')) {
+      options.profile = arg.split('=')[1];
+    } else if (arg.startsWith('--installed-manifest=')) {
+      options.installedManifest = path.resolve(root, arg.split('=')[1]);
     } else {
       console.error(`Unknown argument: ${arg}`);
       process.exit(1);
@@ -72,6 +80,10 @@ async function main() {
   console.log('Building HostPapa production upgrade kit...');
   console.log(`- Package Directory: ${options.packageDir}`);
   console.log(`- Kit Directory:     ${options.outputDir}`);
+  console.log(`- Profile:           ${options.profile}`);
+  if (options.installedManifest) {
+    console.log(`- Installed Manifest:${options.installedManifest}`);
+  }
   if (options.outputZip) {
     console.log(`- Kit ZIP Archive:   ${options.outputZip}`);
   }
@@ -82,6 +94,8 @@ async function main() {
       outputDir: options.outputDir,
       outputZip: options.outputZip,
       expectedSourceSha: options.sourceSha,
+      profile: options.profile,
+      installedManifest: options.installedManifest,
     });
 
     const result = await builder.build();
@@ -90,6 +104,7 @@ async function main() {
     console.log(`- Target Release ID:     ${result.targetReleaseId}`);
     console.log(`- Target Source SHA:     ${result.targetSourceSha}`);
     console.log(`- Target Manifest SHA:   ${result.targetManifestSha256}`);
+    console.log(`- Baseline Profile:      ${result.profile}`);
     console.log(`- Pinned Installed SHA:  ${result.installedBinding.source_sha}`);
     console.log(`- Pinned Installed Rel:  ${result.installedBinding.release_id}`);
     console.log(`- Verified Migrations:   ${result.migrationCount}`);
@@ -98,7 +113,8 @@ async function main() {
       console.log(`- Kit Output ZIP:        ${result.zipPath} (SHA: ${result.zipSha256})`);
     }
     console.log(`- Upgrade Manifest SHA:  ${result.upgradeManifestSha256}`);
-    console.log(`- Runner Script SHA:     ${result.runnerSha256}`);
+    console.log(`- Runner Rendered SHA:   ${result.runnerSha256}`);
+    console.log(`- Runner Template SHA:   ${result.templateRunnerSha256}`);
     console.log('\nZero credentials or private inputs included. UNREVIEWED candidate; final owner release authorization is required.');
   } catch (error) {
     console.error(`\nUpgrade kit generation failed: ${error.message}`);

@@ -10,15 +10,123 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const RUNNER_SOURCE_FILE = path.join(__dirname, 'production-upgrade-runner.php');
 
-export const INSTALLED_PIN = Object.freeze({
-  source_sha: '7a8f0fa2f25851c4f75422f86139e0bb020ea4de',
-  release_id: 'rel_20261013T082656_7a8f0fa_clean',
-  manifest_sha256: 'f4950ad28949c874e8055cabe5af049d4467acee1583a8c916f96bb50c2f1cdf',
-  migration_count: 19,
-  database: 'gaza5045_gateway_live',
-  app_dir: '/home/gaza5045/gaza-gateway',
-  target_webroot: '/home/gaza5045/public_html',
+const BUILDER_SOURCE_FILE = fileURLToPath(import.meta.url);
+const CLI_SOURCE_FILE = path.resolve(path.dirname(BUILDER_SOURCE_FILE), '../../../scripts/prepare-hostpapa-production-upgrade.mjs');
+
+export const BASELINE_PROFILES = Object.freeze({
+  legacy_7a_19: Object.freeze({
+    id: 'legacy_7a_19',
+    source_sha: '7a8f0fa2f25851c4f75422f86139e0bb020ea4de',
+    release_id: 'rel_20261013T082656_7a8f0fa_clean',
+    manifest_sha256: 'f4950ad28949c874e8055cabe5af049d4467acee1583a8c916f96bb50c2f1cdf',
+    migration_count: 19,
+    database: 'gaza5045_gateway_live',
+    app_dir: '/home/gaza5045/gaza-gateway',
+    target_webroot: '/home/gaza5045/public_html',
+    kit_folder: 'gaza-upgrade-package',
+    rollback_policy: 'legacy_8_airport_600m',
+  }),
+  b3_21: Object.freeze({
+    id: 'b3_21',
+    source_sha: 'b3afa9cf08fc746a9ff7e3e9fbee66c38244fb87',
+    release_id: 'rel_20261013T204811_b3afa9c_clean',
+    manifest_sha256: '2c5f93cd4e1772a018e1f125575acdc8950f9678f879a9039e388186b58f42a0',
+    migration_count: 21,
+    database: 'gaza5045_gateway_live',
+    app_dir: '/home/gaza5045/gaza-gateway',
+    target_webroot: '/home/gaza5045/public_html',
+    kit_folder: 'gaza-upgrade-package-b3',
+    rollback_policy: 'expanded_21_airport_1440m',
+  }),
 });
+
+export const INSTALLED_PIN = BASELINE_PROFILES.legacy_7a_19;
+
+export function replaceExactAnchor(source, anchor, replacement) {
+  const normSource = source.replace(/\r\n/g, '\n');
+  const normAnchor = anchor.replace(/\r\n/g, '\n');
+  const normReplacement = replacement.replace(/\r\n/g, '\n');
+  const parts = normSource.split(normAnchor);
+  if (parts.length !== 2) {
+    throw new Error(`Expected exactly 1 occurrence of anchor, found ${parts.length - 1}`);
+  }
+  return parts.join(normReplacement);
+}
+
+function renderRunnerSource(rawRunner, profile) {
+  if (profile.id === 'legacy_7a_19') {
+    return rawRunner;
+  }
+  if (profile.id === 'b3_21') {
+    let rendered = rawRunner;
+
+    // 1. Unique allowlisted kit folder
+    rendered = replaceExactAnchor(
+      rendered,
+      "$kitRoot = $home . '/gaza-upgrade-package';",
+      `$kitRoot = $home . '/${profile.kit_folder}';`
+    );
+
+    // 2. Exact immutable baseline constants
+    const oldConstants = `const INSTALLED_SOURCE_SHA = '7a8f0fa2f25851c4f75422f86139e0bb020ea4de';
+const INSTALLED_RELEASE_ID = 'rel_20261013T082656_7a8f0fa_clean';
+const INSTALLED_MANIFEST_SHA = 'f4950ad28949c874e8055cabe5af049d4467acee1583a8c916f96bb50c2f1cdf';
+const INSTALLED_MIGRATIONS = 19;`;
+
+    const newConstants = `const INSTALLED_SOURCE_SHA = '${profile.source_sha}';
+const INSTALLED_RELEASE_ID = '${profile.release_id}';
+const INSTALLED_MANIFEST_SHA = '${profile.manifest_sha256}';
+const INSTALLED_MIGRATIONS = ${profile.migration_count};`;
+
+    rendered = replaceExactAnchor(rendered, oldConstants, newConstants);
+
+    // 3. Rollback compatibility predicate: exactly what b3 supports
+    const oldRollback = `function assertRollbackCompatible(PDO $pdo): void {
+    $codes = ['GZA', 'AMM', 'CAI', 'DOH', 'DXB', 'IST', 'JED', 'RUH'];
+    $statement = $pdo->query('SELECT code, block_minutes FROM airports');
+    while ($row = $statement->fetch(PDO::FETCH_ASSOC)) {
+        if (!in_array($row['code'], $codes, true) || (int)$row['block_minutes'] > 600) {
+            throw new RuntimeException('Expanded reference authority requires a compatible forward repair; old-code rollback refused.');
+        }
+    }
+}`;
+
+    const newRollback = `function assertRollbackCompatible(PDO $pdo): void {
+    $codes = ['GZA', 'AMM', 'CAI', 'IST', 'DOH', 'DXB', 'JED', 'RUH', 'BEY', 'KWI', 'AUH', 'ATH', 'FCO', 'CDG', 'LHR', 'FRA', 'MAD', 'BOM', 'KUL', 'JFK', 'YYZ'];
+    $statement = $pdo->query('SELECT code, block_minutes FROM airports');
+    while ($row = $statement->fetch(PDO::FETCH_ASSOC)) {
+        $mins = (int)$row['block_minutes'];
+        if (!in_array($row['code'], $codes, true) || $mins < 20 || $mins > 1440) {
+            throw new RuntimeException('Expanded reference authority requires a compatible forward repair; old-code rollback refused.');
+        }
+    }
+}`;
+
+    rendered = replaceExactAnchor(rendered, oldRollback, newRollback);
+
+    // 4. Preflight check verification message (diagnostics worker appends metadata on line 2)
+    rendered = replaceExactAnchor(
+      rendered,
+      'echo "PASS: verified baseline source 7a8f0fa, active release rel_20261013T082656_7a8f0fa_clean, 19 migrations, and upgrade candidate package.\\n";',
+      `echo "PASS: verified baseline source ${profile.source_sha.slice(0, 7)}, active release ${profile.release_id}, ${profile.migration_count} migrations, and upgrade candidate package.\\n";`
+    );
+
+    return rendered;
+  }
+  throw new Error(`Unsupported profile for rendering: ${profile.id}`);
+}
+
+export function renderRunnerForProfile(profileId) {
+  if (!Object.prototype.hasOwnProperty.call(BASELINE_PROFILES, profileId)) {
+    throw new Error(`Unknown profile: ${profileId}. Allowed profiles: ${Object.keys(BASELINE_PROFILES).join(', ')}`);
+  }
+  const profile = BASELINE_PROFILES[profileId];
+  if (!fs.existsSync(RUNNER_SOURCE_FILE)) {
+    throw new Error(`Upgrade runner source file not found: ${RUNNER_SOURCE_FILE}`);
+  }
+  const rawRunner = fs.readFileSync(RUNNER_SOURCE_FILE, 'utf8');
+  return renderRunnerSource(rawRunner, profile);
+}
 
 function computeFileSha256(filePath) {
   const content = fs.readFileSync(filePath);
@@ -69,14 +177,24 @@ export class ProductionUpgradeKitBuilder {
     this.expectedSourceSha = options.expectedSourceSha || null;
     this.strict = options.strict ?? true;
 
+    const profileId = options.profile || 'legacy_7a_19';
+    if (!Object.prototype.hasOwnProperty.call(BASELINE_PROFILES, profileId)) {
+      throw new Error(`Unknown profile: ${profileId}. Allowed profiles: ${Object.keys(BASELINE_PROFILES).join(', ')}`);
+    }
+    this.profileConfig = BASELINE_PROFILES[profileId];
+    if (!/^[a-zA-Z0-9_-]+$/.test(this.profileConfig.kit_folder)) {
+      throw new Error(`Unsafe kit folder name: ${this.profileConfig.kit_folder}`);
+    }
+    this.installedManifestPath = options.installedManifest ? path.resolve(options.installedManifest) : null;
+
     // Pin cannot be overridden except explicitly in test mode
     if (options.installedBinding) {
       if (!options.allowTestOverride || process.env.NODE_ENV !== 'test') {
         throw new Error('Overriding installed pin is forbidden.');
       }
-      this.installedBinding = Object.freeze({ ...INSTALLED_PIN, ...options.installedBinding });
+      this.installedBinding = Object.freeze({ ...this.profileConfig, ...options.installedBinding });
     } else {
-      this.installedBinding = INSTALLED_PIN;
+      this.installedBinding = this.profileConfig;
     }
   }
 
@@ -85,6 +203,35 @@ export class ProductionUpgradeKitBuilder {
 
     if (!fs.existsSync(this.packageDir) || !fs.statSync(this.packageDir).isDirectory()) {
       throw new Error(`Package directory does not exist or is not a directory: ${this.packageDir}`);
+    }
+
+    if (this.profileConfig.id !== 'legacy_7a_19') {
+      if (!this.installedManifestPath) {
+        throw new Error(`Profile ${this.profileConfig.id} requires explicit --installed-manifest=<path>`);
+      }
+      await assertNoSymlinksInPath(this.installedManifestPath);
+      if (!fs.existsSync(this.installedManifestPath) || !fs.statSync(this.installedManifestPath).isFile()) {
+        throw new Error(`Installed manifest file does not exist or is not a file: ${this.installedManifestPath}`);
+      }
+      if (/(?:public_html|public)(?:[\\/]|$)/i.test(this.installedManifestPath)) {
+        throw new Error(`Installed manifest cannot reside inside webroot/public directory: ${this.installedManifestPath}`);
+      }
+      const actualManifestSha = computeFileSha256(this.installedManifestPath);
+      if (actualManifestSha !== this.profileConfig.manifest_sha256) {
+        throw new Error(`Installed manifest checksum mismatch: expected ${this.profileConfig.manifest_sha256}, got ${actualManifestSha}`);
+      }
+      const manifestJson = JSON.parse(fs.readFileSync(this.installedManifestPath, 'utf8'));
+      if (manifestJson.source_sha !== this.profileConfig.source_sha) {
+        throw new Error(`Installed manifest source_sha mismatch: expected ${this.profileConfig.source_sha}, got ${manifestJson.source_sha}`);
+      }
+      if (manifestJson.release_id !== this.profileConfig.release_id) {
+        throw new Error(`Installed manifest release_id mismatch: expected ${this.profileConfig.release_id}, got ${manifestJson.release_id}`);
+      }
+      const migrationKeys = Object.keys(manifestJson.private_files || {})
+        .filter(k => /^backend\/database\/migrations\/[a-zA-Z0-9_]+\.php$/.test(k));
+      if (migrationKeys.length !== this.profileConfig.migration_count) {
+        throw new Error(`Installed manifest migration count mismatch: expected ${this.profileConfig.migration_count}, got ${migrationKeys.length}`);
+      }
     }
 
     // 1. Output directory and zip must be strictly inside this worktree scratch
@@ -183,12 +330,15 @@ export class ProductionUpgradeKitBuilder {
       throw new Error('Candidate installer checksum mismatch with manifest');
     }
 
-    // 7. Ensure upgrade runner template is present
+    // 7. Ensure upgrade runner template is present and render for profile
     if (!fs.existsSync(RUNNER_SOURCE_FILE)) {
       throw new Error(`Upgrade runner source file not found: ${RUNNER_SOURCE_FILE}`);
     }
-    const runnerSha256 = computeFileSha256(RUNNER_SOURCE_FILE);
-    const runnerSize = fs.statSync(RUNNER_SOURCE_FILE).size;
+    const rawRunner = fs.readFileSync(RUNNER_SOURCE_FILE, 'utf8');
+    const templateRunnerSha256 = crypto.createHash('sha256').update(rawRunner).digest('hex');
+    const renderedRunner = renderRunnerSource(rawRunner, this.profileConfig);
+    const renderedRunnerSha256 = crypto.createHash('sha256').update(renderedRunner).digest('hex');
+    const renderedRunnerSize = Buffer.byteLength(renderedRunner, 'utf8');
 
     // 8. Create kit output directory
     fs.mkdirSync(kitDir, { recursive: true });
@@ -198,15 +348,16 @@ export class ProductionUpgradeKitBuilder {
     const targetReleaseDir = path.join(kitDir, 'release');
     copyDirectoryRecursive(this.packageDir, targetReleaseDir);
 
-    // b) copy production-upgrade-runner.php
+    // b) write rendered production-upgrade-runner.php
     const targetRunnerPath = path.join(kitDir, 'production-upgrade-runner.php');
-    fs.copyFileSync(RUNNER_SOURCE_FILE, targetRunnerPath);
+    fs.writeFileSync(targetRunnerPath, renderedRunner, { mode: 0o644 });
 
     // c) generate closed upgrade-manifest.json
     const upgradeManifest = {
       schema_version: '1.0',
       kit_type: 'production_upgrade',
       created_at: new Date().toISOString(),
+      profile: this.profileConfig.id,
       target_release: {
         release_id: manifest.release_id,
         source_sha: manifest.source_sha,
@@ -214,6 +365,7 @@ export class ProductionUpgradeKitBuilder {
         migration_count: migrationFiles.length,
       },
       installed_binding: {
+        profile: this.profileConfig.id,
         source_sha: this.installedBinding.source_sha,
         release_id: this.installedBinding.release_id,
         manifest_sha256: this.installedBinding.manifest_sha256,
@@ -221,21 +373,33 @@ export class ProductionUpgradeKitBuilder {
         database: this.installedBinding.database,
         app_dir: this.installedBinding.app_dir,
         target_webroot: this.installedBinding.target_webroot,
+        kit_folder: this.installedBinding.kit_folder,
+        rollback_policy: this.installedBinding.rollback_policy,
       },
       runner: {
         path: 'production-upgrade-runner.php',
-        sha256: runnerSha256,
-        size: runnerSize,
+        template_sha256: templateRunnerSha256,
+        sha256: renderedRunnerSha256,
+        size: renderedRunnerSize,
+        rendered: this.profileConfig.id !== 'legacy_7a_19',
       },
       installer: {
         path: 'release/installer/hostpapa-install.php',
         sha256: installerSha256,
       },
       operator_instructions: {
-        upload_target: '/home/gaza5045/gaza-upgrade-package',
-        check_command: 'php /home/gaza5045/gaza-upgrade-package/production-upgrade-runner.php --check',
-        upgrade_command: 'php /home/gaza5045/gaza-upgrade-package/production-upgrade-runner.php --upgrade --confirm-upgrade',
-        rollback_command: 'php /home/gaza5045/gaza-upgrade-package/production-upgrade-runner.php --rollback --confirm-rollback',
+        upload_target: `/home/gaza5045/${this.profileConfig.kit_folder}`,
+        check_command: `php /home/gaza5045/${this.profileConfig.kit_folder}/production-upgrade-runner.php --check`,
+        upgrade_command: `php /home/gaza5045/${this.profileConfig.kit_folder}/production-upgrade-runner.php --upgrade --confirm-upgrade`,
+        rollback_command: `php /home/gaza5045/${this.profileConfig.kit_folder}/production-upgrade-runner.php --rollback --confirm-rollback`,
+      },
+      tooling: {
+        builder_path: 'tools/hostpapa-release/production-upgrade/ProductionUpgradeKitBuilder.mjs',
+        builder_sha256: computeFileSha256(BUILDER_SOURCE_FILE),
+        cli_path: 'scripts/prepare-hostpapa-production-upgrade.mjs',
+        cli_sha256: computeFileSha256(CLI_SOURCE_FILE),
+        runner_template_path: 'tools/hostpapa-release/production-upgrade/production-upgrade-runner.php',
+        runner_template_sha256: templateRunnerSha256,
       },
     };
 
@@ -265,9 +429,11 @@ export class ProductionUpgradeKitBuilder {
       targetSourceSha: manifest.source_sha,
       targetManifestSha256: manifestSha256,
       upgradeManifestSha256,
-      runnerSha256,
+      runnerSha256: renderedRunnerSha256,
+      templateRunnerSha256,
       migrationCount: migrationFiles.length,
       installedBinding: this.installedBinding,
+      profile: this.profileConfig.id,
     };
   }
 }
