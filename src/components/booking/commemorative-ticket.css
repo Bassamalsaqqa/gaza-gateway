@@ -1,0 +1,784 @@
+/**
+ * Gaza Gateway — Commemorative Ticket Scoped CSS.
+ *
+ * EXACT Physical Dimensions: 8 x 3.25 inches = 203.2 x 82.55 mm
+ * Landscape Aspect Ratio: 32 / 13 = 2.461538
+ * Composition Canvas: 960 x 390 px (exact 32:13 ratio)
+ * Grid Distribution: Main 78% (748.8px), Stub 22% (211.2px) with vertical perforation.
+ *
+ * Visual targets:
+ * - Fonts: var(--font-body-family, "Manrope", "IBM Plex Sans Arabic", system-ui, sans-serif)
+ * - Brand Colors: Warm paper #FCF9F2 / #F7F2E8, Deep olive #23372D, Muted brass #C7A46A,
+ *   Gaza clay var(--clay, #A92D32), High-contrast ink #171A18.
+ * - Bidi RTL/LTR isolation for technical aviation codes, dates, and references.
+ */
+
+.gza-ticket-wrapper {
+  width: 100%;
+  max-width: 1020px;
+  margin: 0 auto;
+  color: #171A18;
+  font-family: var(--font-body-family, "Manrope", "IBM Plex Sans Arabic", system-ui, sans-serif);
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+}
+
+.gza-ticket-wrapper * {
+  box-sizing: border-box;
+}
+
+.gza-ticket-wrapper ::selection {
+  background: #23372D;
+  color: #FCF9F2;
+}
+
+/* ─── Eyebrow / Disclosure Header ─── */
+.gza-ticket-disclosure-banner {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #5B625D;
+  text-align: center;
+  margin: 0 0 12px;
+  padding: 8px 14px;
+  background: #F7F2E8;
+  border: 1px solid #DAD2C6;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.gza-ticket-disclosure-notice {
+  font-weight: 500;
+  opacity: 0.85;
+  margin-inline-start: 6px;
+}
+
+/* ─── Ticket Item Container ─── */
+.gza-ticket-item-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+  width: 100%;
+}
+
+/* ─── Action Bar (Zoom / Print) ─── */
+.gza-ticket-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.gza-ticket-zoom-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #F7F2E8;
+  color: #23372D;
+  border: 1px solid #DAD2C6;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.gza-ticket-zoom-btn:hover {
+  background: #ECE5D8;
+  border-color: #B8A383;
+}
+
+.gza-ticket-zoom-btn:focus-visible {
+  outline: 2px solid #23372D;
+  outline-offset: 2px;
+}
+
+/* ─── Scaler Wrapper (Maintains 32/13 Aspect Ratio at All Screen Sizes) ─── */
+.gza-ticket-scaler-wrapper {
+  width: 100%;
+  max-width: 960px;
+  aspect-ratio: 32 / 13;
+  margin: 0 auto;
+  position: relative;
+  overflow: hidden;
+}
+
+.gza-ticket-scalable-canvas {
+  width: 960px;
+  height: 390px;
+  position: absolute;
+  top: 0;
+  transform-origin: top left;
+}
+
+[dir="rtl"] .gza-ticket-scalable-canvas {
+  transform-origin: top right;
+}
+
+/* ─── Physical Ticket Shell (Fixed 960 × 390 Native Canvas) ─── */
+.gza-ticket {
+  display: grid;
+  grid-template-columns: 78% 22%;
+  width: 960px;
+  height: 390px;
+  background: linear-gradient(125deg, #fffdf8 0%, #f8f2e7 52%, #e9e1d2 100%);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 8px 28px rgba(55, 50, 41, 0.12);
+  border: 1px solid #DAD2C6;
+  position: relative;
+  box-sizing: border-box;
+  font-family: var(--font-body-family, "Manrope", "IBM Plex Sans Arabic", system-ui, sans-serif);
+  color: #171A18;
+}
+
+.gza-ticket-cancelled {
+  border-color: var(--clay, #A92D32);
+}
+
+/* ─── Cancelled Inner Banner (Inside Physical Card) ─── */
+.gza-ticket-cancelled-banner-inner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: var(--clay, #A92D32);
+  color: #FFFFFF;
+  text-align: center;
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  padding: 4px 8px;
+  text-transform: uppercase;
+  z-index: 10;
+}
+
+/* ─── Main Section (78% = 748.8px) ─── */
+.gza-ticket-main {
+  position: relative;
+  min-width: 0;
+  display: grid;
+  grid-template-rows: 125fr 115fr 75fr 75fr;
+  height: 100%;
+  background: transparent;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* ─── Row 1: Hero Area (125fr) ─── */
+.gza-ticket-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  background-color: #FCF9F2;
+  height: 100%;
+}
+
+.gza-ticket-hero-photo {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background-position: center 48%;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+.gza-ticket-hero-overlay-ltr {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(90deg, #FCF9F2 0%, #FCF9F2 28%, rgba(252, 249, 242, 0.94) 46%, rgba(252, 249, 242, 0.65) 64%, rgba(252, 249, 242, 0.15) 86%);
+}
+
+.gza-ticket-hero-overlay-rtl {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(270deg, #FCF9F2 0%, #FCF9F2 28%, rgba(252, 249, 242, 0.94) 46%, rgba(252, 249, 242, 0.65) 64%, rgba(252, 249, 242, 0.15) 86%);
+}
+
+.gza-ticket-hero-olive {
+  position: absolute;
+  opacity: 0.10;
+  inset-inline-end: 28%;
+  top: -40px;
+  width: 190px;
+  height: auto;
+  pointer-events: none;
+  transform: rotate(-10deg);
+  z-index: 0;
+}
+
+.gza-ticket-hero-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: 62%;
+  z-index: 1;
+}
+
+.gza-ticket-logo {
+  width: 135px;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.gza-ticket-hero-separator {
+  height: 70px;
+  border-inline-start: 1px solid #B8A383;
+  margin: 0 2px;
+  flex: none;
+}
+
+.gza-ticket-claim {
+  font-family: var(--font-display-family, "Bricolage Grotesque", "IBM Plex Sans Arabic", system-ui, sans-serif);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  line-height: 1.5;
+  font-weight: 700;
+  color: #23372D;
+}
+
+.gza-ticket-claim-sub {
+  display: block;
+  font-size: 13px;
+  letter-spacing: normal;
+  font-weight: 600;
+  margin-top: 1px;
+  color: #23372D;
+}
+
+.gza-ticket-courtesy {
+  text-align: end;
+  letter-spacing: 0.14em;
+  font-size: 18px;
+  color: #23372D;
+  z-index: 1;
+  font-weight: 900;
+  padding: 8px 0;
+  -webkit-text-stroke: 0.3px currentColor;
+  text-shadow: 0 1px 0 #fffdf8;
+  line-height: 1.4;
+}
+
+.gza-ticket-courtesy strong {
+  display: block;
+  font-family: var(--font-display-family, "Bricolage Grotesque", "IBM Plex Sans Arabic", system-ui, sans-serif);
+  font-size: 40px;
+  letter-spacing: normal;
+  line-height: 1.4;
+  font-weight: 900;
+}
+
+.gza-ticket-concept-tag {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  background: rgba(252, 249, 242, 0.92);
+  border: 1px solid #C7A46A;
+  border-radius: 4px;
+  color: #4E554F;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ─── Row 2: Route & Passenger Central (115fr) ─── */
+.gza-ticket-route-pax {
+  display: grid;
+  grid-template-columns: 1.45fr 1fr;
+  align-items: center;
+  padding: 0 20px;
+  gap: 16px;
+  border-top: 1px solid #D4CCBF;
+  border-bottom: 1px solid #D4CCBF;
+  background: transparent;
+  height: 100%;
+}
+
+.gza-ticket-route-col {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.gza-ticket-station {
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
+.gza-ticket-station-dest {
+  text-align: end;
+}
+
+.gza-ticket-station-label {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: #5B625D;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.gza-ticket-station-iata {
+  font-family: var(--font-display-family, "Bricolage Grotesque", "IBM Plex Sans Arabic", system-ui, sans-serif);
+  font-size: 34px;
+  line-height: 1.05;
+  color: #23372D;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 1px 0;
+}
+
+.gza-ticket-station-city {
+  font-size: 14px;
+  font-weight: 700;
+  color: #171A18;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gza-ticket-flight-line {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  color: #23372D;
+  min-width: 50px;
+}
+
+.gza-ticket-flight-airplane {
+  width: 20px;
+  height: 20px;
+  color: #23372D;
+}
+
+.gza-ticket-flight-airplane-rtl {
+  transform: scaleX(-1);
+}
+
+.gza-ticket-flight-tag {
+  font-size: 12px;
+  font-weight: 700;
+  color: #C7A46A;
+  margin-top: 2px;
+}
+
+.gza-ticket-pax-col {
+  border-inline-start: 1px solid #DAD2C6;
+  padding-inline-start: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+.gza-ticket-passenger-name {
+  font-weight: 700;
+  color: #171A18;
+  font-size: 17px;
+  line-height: 1.15;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
+}
+
+.gza-ticket-passenger-tag {
+  font-size: 12px;
+  color: #5B625D;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+/* ─── Row 3: Travel Essentials Bar (75fr) ─── */
+.gza-ticket-essentials {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: center;
+  padding: 0 20px;
+  background: transparent;
+  height: 100%;
+}
+
+.gza-ticket-field {
+  min-width: 0;
+  border-inline-start: 1px solid #DAD2C6;
+  padding: 0 10px;
+}
+
+.gza-ticket-field:first-child {
+  border-inline-start: 0;
+  padding-inline-start: 0;
+}
+
+.gza-ticket-field-label {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: #5B625D;
+  text-transform: uppercase;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.gza-ticket-field-value {
+  font-size: 16px;
+  margin-top: 2px;
+  font-weight: 700;
+  color: #171A18;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gza-ticket-overnight-badge {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--clay, #A92D32);
+  margin-inline-start: 4px;
+}
+
+/* ─── Row 4: Decorative Footer Area (75fr) ─── */
+.gza-ticket-footer {
+  position: relative;
+  background: transparent;
+  border-top: 1px solid #D4CCBF;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 6px 20px;
+  height: 100%;
+}
+
+.gza-ticket-footer-pattern {
+  position: absolute;
+  inset: 0;
+  opacity: 0.35;
+  background-repeat: repeat;
+  background-size: 72px 72px;
+  pointer-events: none;
+}
+
+.gza-ticket-footer-notice {
+  font-size: 11px;
+  color: #5B625D;
+  font-weight: 600;
+  text-align: center;
+  border-bottom: 1px solid #E3DCCF;
+  padding: 2px 0;
+  z-index: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gza-ticket-footer-bar {
+  display: grid;
+  grid-template-columns: 1.5fr 1.75fr 0.8fr;
+  align-items: center;
+  height: 100%;
+  gap: 16px;
+  z-index: 1;
+}
+
+.gza-ticket-footer-verification {
+  font-size: 14px;
+  color: #23372D;
+  font-weight: 700;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.gza-ticket-footer-meta-label {
+  display: block;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: #5B625D;
+}
+
+.gza-ticket-footer-verification > div + div { margin-top: 4px; }
+.gza-ticket-footer-verification bdi { display: block; overflow-wrap: anywhere; }
+
+.gza-ticket-footer-verification strong {
+  font-weight: 800;
+}
+
+.gza-ticket-footer-message {
+  text-align: center;
+  color: #23372D;
+  line-height: 1.2;
+}
+
+.gza-ticket-footer-message strong {
+  display: block;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.gza-ticket-footer-message small {
+  display: block;
+  font-size: 11px;
+  margin-top: 5px;
+  letter-spacing: 0.08em;
+  color: #5B625D;
+  font-weight: 600;
+}
+
+.gza-ticket-footer-skyline {
+  width: 100%;
+  height: 58px;
+  opacity: 1;
+  filter: contrast(1.65) saturate(1.25);
+  object-fit: contain;
+}
+
+/* ─── Stub Section (22% = 211.2px) ─── */
+.gza-ticket-stub {
+  position: relative;
+  background: transparent;
+  border-inline-start: 2px dashed #8E8372;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 10px 12px 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* Notch Cutouts */
+.gza-ticket-stub::before,
+.gza-ticket-stub::after {
+  content: "";
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #E7E1D7;
+  z-index: 3;
+}
+
+.gza-ticket-stub-ltr::before {
+  top: -8px;
+  left: -9px;
+}
+.gza-ticket-stub-ltr::after {
+  bottom: -8px;
+  left: -9px;
+}
+
+.gza-ticket-stub-rtl::before {
+  top: -8px;
+  right: -9px;
+}
+.gza-ticket-stub-rtl::after {
+  bottom: -8px;
+  right: -9px;
+}
+
+/* Status Badge kept FULLY inside stub (no translateY(-50%) clipping) */
+.gza-ticket-status-tag {
+  position: absolute;
+  inset-inline-end: 10px;
+  top: 8px;
+  padding: 3px 8px;
+  background: #23372D;
+  color: #FCF9F2;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  border-radius: 4px;
+  z-index: 3;
+  line-height: 1.2;
+}
+
+.gza-ticket-status-tag-cancelled {
+  background: var(--clay, #A92D32);
+  color: #FFFFFF;
+}
+
+.gza-ticket-stub-logo {
+  width: 95px;
+  max-width: 90%;
+  align-self: center;
+  margin: 4px 0 6px;
+  height: auto;
+  object-fit: contain;
+}
+
+.gza-ticket-stub-label {
+  font-size: 11px;
+  color: #5B625D;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.gza-ticket-stub-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #171A18;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.gza-ticket-stub-pax {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.gza-ticket-stub-route {
+  font-weight: 800;
+  font-size: 14px;
+  color: #23372D;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.gza-ticket-stub-ref-box {
+  border: 1px dashed #8E8573;
+  color: #23372D;
+  background: transparent;
+  border-radius: 4px;
+  padding: 4px 6px;
+  margin: 6px 0;
+  text-align: center;
+}
+
+.gza-ticket-stub-ref-code {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.gza-ticket-stub-band {
+  background: #23372D;
+  color: #FCF9F2;
+  margin: auto -12px 0;
+  padding: 5px 12px;
+  flex-shrink: 0;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  line-height: 1.25;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* ─── Mobile-Friendly Booking Detail Summary Card ─── */
+.gza-ticket-detail-summary {
+  background: #F7F2E8;
+  border: 1px solid #DAD2C6;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-top: 10px;
+  box-shadow: 0 2px 10px rgba(55, 50, 41, 0.06);
+  font-family: var(--font-body-family, "Manrope", "IBM Plex Sans Arabic", system-ui, sans-serif);
+}
+
+.gza-ticket-detail-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #D4CCBF;
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+}
+
+.gza-ticket-detail-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.gza-ticket-detail-title h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #23372D;
+}
+
+.gza-ticket-detail-ref {
+  font-size: 12px;
+  color: #5B625D;
+}
+
+.gza-ticket-detail-status {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.gza-ticket-detail-status.is-confirmed {
+  background: #2F684A;
+  color: #FFFFFF;
+}
+
+.gza-ticket-detail-status.is-cancelled {
+  background: var(--clay, #A92D32);
+  color: #FFFFFF;
+}
+
+.gza-ticket-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px 18px;
+}
+
+.gza-ticket-detail-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.gza-ticket-detail-label {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5B625D;
+  font-weight: 700;
+}
+
+.gza-ticket-detail-val {
+  font-size: 14px;
+  color: #171A18;
+  margin-top: 2px;
+  font-weight: 600;
+}
+
+.gza-ticket-detail-sub {
+  font-size: 12px;
+  color: #7B746B;
+  margin-top: 1px;
+}
+
+.gza-ticket-clay-tag {
+  color: var(--clay, #A92D32);
+}

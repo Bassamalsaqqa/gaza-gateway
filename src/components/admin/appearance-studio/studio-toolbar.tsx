@@ -173,7 +173,7 @@ export function StudioToolbar({
             <button
               type="button"
               onClick={() => onLocaleChange("en")}
-              aria-label="Preview English (LTR)"
+              aria-label="Preview English"
               className={cn(
                 "rounded px-2 py-1 text-xs font-semibold transition-colors",
                 locale === "en"
@@ -186,7 +186,7 @@ export function StudioToolbar({
             <button
               type="button"
               onClick={() => onLocaleChange("ar")}
-              aria-label="Preview Arabic (RTL)"
+              aria-label="Preview Arabic"
               className={cn(
                 "rounded px-2 py-1 text-xs font-semibold transition-colors",
                 locale === "ar"

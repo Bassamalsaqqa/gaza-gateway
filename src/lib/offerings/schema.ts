@@ -55,3 +55,45 @@ export const offeringWireSchema = z.object({
 });
 export const offeringsWireSchema = z.array(offeringWireSchema).refine(values => new Set(values.map(item => item.id)).size === values.length);
 export type DatedOffering = z.infer<typeof offeringWireSchema>;
+
+export const offeringAvailabilityWireSchema = z.object({
+  origin: z.enum(["GZA", ...NETWORK_CODES]),
+  destination: z.enum(["GZA", ...NETWORK_CODES]),
+  date,
+  days: z.number().int().min(1).max(60),
+  rangeStart: date,
+  rangeEnd: date,
+  offerings: z.array(offeringWireSchema),
+  availableDates: z.array(date),
+}).strict().refine((val) => {
+  // 1. Coherent route: exactly one hub GZA
+  if (!((val.origin === "GZA") !== (val.destination === "GZA"))) return false;
+
+  // 2. Bounded date range: rangeStart <= rangeEnd and span <= 60 days
+  if (val.rangeStart > val.rangeEnd) return false;
+  const spanDays = Math.round((Date.parse(`${val.rangeEnd}T00:00:00Z`) - Date.parse(`${val.rangeStart}T00:00:00Z`)) / 86400000) + 1;
+  if (spanDays < 1 || spanDays > 60) return false;
+
+  // 3. Unique offering IDs
+  if (new Set(val.offerings.map((o) => o.id)).size !== val.offerings.length) return false;
+
+  // 4. All offerings match envelope origin, destination, date range, and have required projected timing
+  const allMatch = val.offerings.every((o) =>
+    o.originCode === val.origin &&
+    o.destinationCode === val.destination &&
+    o.date >= val.rangeStart &&
+    o.date <= val.rangeEnd &&
+    Boolean(o.departAt && o.arriveAt && o.arrivalDate && o.originTimezone && o.destinationTimezone)
+  );
+  if (!allMatch) return false;
+
+  // 5. availableDates unique, sorted ascending, and exact set of returned offerings' dates
+  const isSorted = val.availableDates.every((d, i, arr) => i === 0 || arr[i - 1]! < d);
+  if (!isSorted) return false;
+
+  const offeringDates = Array.from(new Set(val.offerings.map((o) => o.date))).sort();
+  if (offeringDates.length !== val.availableDates.length) return false;
+  return offeringDates.every((d, i) => d === val.availableDates[i]);
+});
+
+export type OfferingAvailability = z.infer<typeof offeringAvailabilityWireSchema>;

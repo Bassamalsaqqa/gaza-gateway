@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Route;
 if (config('schedules.enabled') === true) {
     Route::middleware('throttle:reference')->group(function (): void {
         Route::get('/schedules', [ScheduleController::class, 'index'])->name('getSchedules');
+        Route::get('/offerings/availability', [OfferingController::class, 'availability'])->name('getOfferingAvailability');
         Route::get('/offerings', [OfferingController::class, 'index'])->name('getOfferings');
         Route::get('/offerings/{id}', [OfferingController::class, 'show'])->name('getOfferingById');
 

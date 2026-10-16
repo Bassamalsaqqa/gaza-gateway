@@ -395,12 +395,12 @@ export function SurfaceMedia({
   caption,
   provenance,
   truthClass,
-  illustrativeLabel,
+  illustrativeLabel: _illustrativeLabel,
   aspect = "16:10",
   className,
   overlay,
-  focalX,
-  focalY,
+  focalX: _focalX,
+  focalY: _focalY,
   contextKind,
   treatment = "side",
 }: {
@@ -431,11 +431,6 @@ export function SurfaceMedia({
     return null;
   }
 
-  const defaultIllustrativeLabel = isAr
-    ? "دراسة تصورية · توضيحي"
-    : "Concept Study · Illustrative";
-  const badgeText = illustrativeLabel ?? defaultIllustrativeLabel;
-
   const aspectClass =
     treatment === "cover" || treatment === "watermark" || aspect === "auto"
       ? "size-full min-h-full"
@@ -462,7 +457,6 @@ export function SurfaceMedia({
     none: "hidden",
   }[treatment ?? "side"];
 
-  const showIllustrativeBadge = truthClass === "future-concept-ai";
   const showBrandBadge = truthClass === "brand-mark";
 
   return (
@@ -479,14 +473,7 @@ export function SurfaceMedia({
             aria-hidden="true"
           />
         ) : null}
-        {showIllustrativeBadge ? (
-          <span
-            data-testid="truth-disclosure-badge"
-            className="absolute bottom-2.5 start-3 z-20 rounded bg-ink/80 px-2 py-0.5 font-mono text-[10px] text-ink-muted uppercase tracking-wider backdrop-blur-xs"
-          >
-            {badgeText}
-          </span>
-        ) : showBrandBadge ? (
+        {showBrandBadge ? (
           <span
             data-testid="truth-disclosure-badge"
             className="absolute bottom-2.5 start-3 z-20 rounded bg-ink/80 px-2 py-0.5 font-mono text-[10px] text-ink-muted uppercase tracking-wider backdrop-blur-xs"

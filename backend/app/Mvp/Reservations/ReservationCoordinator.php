@@ -56,8 +56,36 @@ final class ReservationCoordinator
     public function createReservation(array $command, PassengerSessionContext $session, ?Closure $authorize = null): array
     {
         $userId = $session->getUserId();
-        if ($userId === null) {
+        if ($userId === null || !$session->isFull()) {
             throw new ReservationValidationException('Authenticated passenger user ID required.');
+        }
+
+        return $this->executeCreation($command, $session, $authorize, $userId);
+    }
+
+    public function createGuestReservation(array $command, PassengerSessionContext $session, ?Closure $authorize = null): array
+    {
+        if (!$session->isAnonymous() || $session->getUserId() !== null) {
+            throw new ReservationValidationException('Guest reservation requires an anonymous passenger session without a user ID.');
+        }
+
+        return $this->executeCreation($command, $session, $authorize, null);
+    }
+
+    private function executeCreation(
+        array $command,
+        PassengerSessionContext $session,
+        ?Closure $authorize,
+        ?string $userId
+    ): array {
+        if ($userId === null) {
+            if (!$session->isAnonymous() || $session->getUserId() !== null) {
+                throw new ReservationValidationException('Guest reservation requires an anonymous passenger session without a user ID.');
+            }
+        } else {
+            if (!$session->isFull() || $session->getUserId() !== $userId) {
+                throw new ReservationValidationException('Authenticated reservation requires a full passenger session matching the user ID.');
+            }
         }
 
         $submissionId = $command['submissionId'];
@@ -70,261 +98,393 @@ final class ReservationCoordinator
 
         try {
             return DB::transaction(function () use ($command, $session, $userId, $submissionId, $serviceId, $fingerprint, $authorize): array {
-            // 1. Lock principal row then session row in accepted order
-            $user = DB::table('users')->where('id', $userId)->lockForUpdate()->first();
-            if (!$user || $user->status !== 'active' || $user->email_verified_at === null) {
-                throw new ReservationSessionExpiredException('User is not active or verified.');
-            }
+                $now = DatabaseClock::now();
 
-            $sessionRow = DB::table('passenger_sessions')->where('id', $session->sessionId)->lockForUpdate()->first();
-            if (!$sessionRow || $sessionRow->revoked_at !== null) {
-                throw new ReservationSessionExpiredException('Session revoked.');
-            }
-
-            if ((int) $user->credential_epoch !== (int) $sessionRow->credential_epoch) {
-                throw new ReservationSessionExpiredException('Credential epoch mismatch.');
-            }
-
-            // Already-locked principal/session authority precedes idempotent lookup.
-            if (!$authorize || $authorize()->sessionId !== $session->sessionId) throw new HttpException(401);
-            // 6. Check replay: owner-bound submission UUID + canonical normalized command fingerprint
-            $existingSub = DB::table('mvp_reservation_submissions')
-                ->where('owner_user_id', $userId)
-                ->where('submission_id', $submissionId)
-                ->lockForUpdate()
-                ->first();
-
-            if ($existingSub) {
-                if ($existingSub->command_fingerprint === $fingerprint) {
-                    return $this->formatReservationResponse($existingSub->reservation_id, false);
-                }
-                throw new ReservationConflictException('Submission ID already used with different command payload.');
-            }
-
-            // 2. Lock domain controls in strict canonical order: fleet -> network -> schedule
-            DB::table('reference_revision_control')->where('domain', 'fleet')->lockForUpdate()->first();
-            DB::table('network_revision_control')->where('domain', 'network')->lockForUpdate()->first();
-            DB::table('schedule_revision_control')->where('domain', 'schedules')->lockForUpdate()->first();
-
-            // 3. Service row: lock or race-safe materialization
-            $serviceRow = DB::table('mvp_services')->where('id', $serviceId)->lockForUpdate()->first();
-            if ($serviceRow === null) {
-                $offering = $this->authority->resolve($serviceId);
-
-                $aircraftModel = $offering['aircraft'];
-
-                DB::table('mvp_services')->insertOrIgnore([
-                    'id' => $serviceId,
-                    'schedule_id' => $offering['scheduleId'],
-                    'service_date' => $offering['date'],
-                    'flight_number' => $offering['number'],
-                    'direction' => $offering['direction'],
-                    'origin_code' => $offering['originCode'],
-                    'destination_code' => $offering['destinationCode'],
-                    'depart_time' => $offering['departTime'],
-                    'arrive_time' => $offering['arriveTime'],
-                    'duration_minutes' => $offering['durationMinutes'],
-                    'aircraft_id' => $offering['aircraftId'],
-                    'aircraft_snapshot' => json_encode(['model' => $aircraftModel,
-                        'timing' => array_intersect_key($offering, array_flip(['originTimezone','destinationTimezone','departAt','arriveAt','arrivalDate']))], JSON_THROW_ON_ERROR),
-                    'layout_snapshot' => json_encode($offering['layout'], JSON_THROW_ON_ERROR),
-                    'reference_revisions' => json_encode($offering['revisions'], JSON_THROW_ON_ERROR),
-                    'classification' => $offering['classification'],
-                    'price_minor' => 0,
-                    'created_at' => DatabaseClock::now(),
-                    'updated_at' => DatabaseClock::now(),
-                ]);
-
-                $serviceRow = DB::table('mvp_services')->where('id', $serviceId)->lockForUpdate()->first();
-                if (!$serviceRow) {
-                    throw new ReservationValidationException('Failed to materialize service row.');
-                }
-            } else {
-                // Revalidate actual offering within locked transaction
-                $offering = $this->authority->resolve($serviceId);
-
-                $frozenLayout = json_decode((string) $serviceRow->layout_snapshot, true, 512, JSON_THROW_ON_ERROR);
-                $frozenAircraft = json_decode((string) $serviceRow->aircraft_snapshot, true, 512, JSON_THROW_ON_ERROR);
-                $currentTiming = array_intersect_key($offering, array_flip(['originTimezone', 'destinationTimezone', 'departAt', 'arriveAt', 'arrivalDate']));
-                if ((string) $serviceRow->aircraft_id !== (string) $offering['aircraftId'] || $frozenLayout != $offering['layout']
-                    || $serviceRow->flight_number !== $offering['number']
-                    || $serviceRow->depart_time !== $offering['departTime']
-                    || $serviceRow->arrive_time !== $offering['arriveTime']
-                    || (int) $serviceRow->duration_minutes !== $offering['durationMinutes']
-                    || $frozenAircraft['model'] !== $offering['aircraft']
-                    || (isset($frozenAircraft['timing']) && $frozenAircraft['timing'] != $currentTiming)) {
-                    throw new ReservationReferenceChangedException('Offering layout or aircraft has changed since service was materialized.');
-                }
-            }
-
-            // 4. Lock meal control after service lock
-            DB::table('meal_revision_control')->where('domain', 'meals')->lockForUpdate()->first();
-
-            // 5. Fresh time & session authority recheck AFTER blocking on locks
-            $now = DatabaseClock::now();
-            // The origin's calendar date is not a UTC booking deadline. Recheck the
-            // authoritative instant after every potentially blocking domain lock.
-            // Idempotent replay above remains readable even after departure.
-            ReservationDepartureBoundary::assertFuture($offering['departAt'] ?? null, $now);
-
-            $freshSession = DB::table('passenger_sessions')->where('id', $session->sessionId)->first();
-            if (!$freshSession || $freshSession->revoked_at !== null) {
-                throw new ReservationSessionExpiredException('Session revoked.');
-            }
-            if ($now->greaterThanOrEqualTo(CarbonImmutable::parse($freshSession->absolute_expires_at))
-                || $now->greaterThanOrEqualTo(CarbonImmutable::parse($freshSession->idle_expires_at))) {
-                throw new ReservationSessionExpiredException('Session expired while waiting for lock.');
-            }
-
-            $freshUser = DB::table('users')->where('id', $userId)->first();
-            if (!$freshUser || $freshUser->status !== 'active' || (int) $freshUser->credential_epoch !== (int) $freshSession->credential_epoch) {
-                throw new ReservationSessionExpiredException('User or credential epoch invalid.');
-            }
-
-            if (!$authorize || $authorize()->sessionId !== $session->sessionId) throw new HttpException(401);
-            // 7. Physical seats validation in authoritative frozen layout
-            $layout = json_decode((string) $serviceRow->layout_snapshot, true, 512, JSON_THROW_ON_ERROR);
-            $validLetters = $layout['letters'];
-            $maxRows = (int) $layout['rows'];
-            $unavailableSeats = array_flip($layout['unavailable'] ?? []);
-
-            foreach ($command['passengers'] as $p) {
-                $seat = $p['seatCode'];
-                if (preg_match('/\A(\d+)([A-Z])\z/', $seat, $m) !== 1) {
-                    throw new ReservationValidationException("Seat {$seat} is malformed.");
-                }
-                $row = (int) $m[1];
-                $letter = $m[2];
-                if ($row < 1 || $row > $maxRows || !in_array($letter, $validLetters, true) || isset($unavailableSeats[$seat])) {
-                    throw new ReservationValidationException("Seat {$seat} is not a valid or available physical seat.");
-                }
-            }
-
-            // 8. Seat claim check
-            $requestedSeats = array_column($command['passengers'], 'seatCode');
-            $existingClaims = DB::table('mvp_reservation_seat_claims')
-                ->where('service_id', $serviceId)
-                ->whereIn('seat_code', $requestedSeats)
-                ->lockForUpdate()
-                ->pluck('seat_code')
-                ->all();
-
-            if (!empty($existingClaims)) {
-                throw new ReservationConflictException('One or more requested seats are already occupied.');
-            }
-
-            // 9. Meal validation: reject retired/inactive meals, snapshot active meal bilingual label
-            $mealSnapshots = [];
-            foreach ($command['passengers'] as $p) {
-                if ($p['mealId'] !== null) {
-                    $mealRow = DB::table('meal_options')->where('id', $p['mealId'])->where('active', true)->first();
-                    if (!$mealRow) {
-                        throw new ReservationValidationException("Meal {$p['mealId']} is not active or does not exist.");
+                if ($userId !== null) {
+                    // 1. Lock principal row then session row in accepted order
+                    $user = DB::table('users')->where('id', $userId)->lockForUpdate()->first();
+                    if (!$user || $user->status !== 'active' || $user->email_verified_at === null) {
+                        throw new ReservationSessionExpiredException('User is not active or verified.');
                     }
-                    $mealSnapshots[$p['id']] = [
-                        'id' => (string) $mealRow->id,
-                        'label' => [
-                            'en' => (string) $mealRow->label_en,
-                            'ar' => (string) $mealRow->label_ar,
-                        ],
-                    ];
+
+                    $sessionRow = DB::table('passenger_sessions')->where('id', $session->sessionId)->lockForUpdate()->first();
+                    if (!$sessionRow || $sessionRow->revoked_at !== null) {
+                        throw new ReservationSessionExpiredException('Session revoked.');
+                    }
+
+                    if ((int) $user->credential_epoch !== (int) $sessionRow->credential_epoch) {
+                        throw new ReservationSessionExpiredException('Credential epoch mismatch.');
+                    }
+
+                    // Already-locked principal/session authority precedes idempotent lookup.
+                    if (!$authorize || $authorize()->sessionId !== $session->sessionId) {
+                        throw new HttpException(401);
+                    }
+
+                    // Replay check for authenticated passenger
+                    $existingSub = DB::table('mvp_reservation_submissions')
+                        ->where('owner_user_id', $userId)
+                        ->where('submission_id', $submissionId)
+                        ->lockForUpdate()
+                        ->first();
+
+                    if ($existingSub) {
+                        if ($existingSub->command_fingerprint === $fingerprint) {
+                            return $this->formatReservationResponse($existingSub->reservation_id, false);
+                        }
+                        throw new ReservationConflictException('Submission ID already used with different command payload.');
+                    }
                 } else {
-                    $mealSnapshots[$p['id']] = null;
+                    // Guest flow: verify session row
+                    $sessionRow = DB::table('passenger_sessions')->where('id', $session->sessionId)->lockForUpdate()->first();
+                    if (!$sessionRow || $sessionRow->revoked_at !== null) {
+                        throw new ReservationSessionExpiredException('Session revoked.');
+                    }
+                    if ($sessionRow->auth_level !== 'anonymous' || $sessionRow->user_id !== null) {
+                        throw new ReservationValidationException('Guest reservation requires an anonymous passenger session without a user ID.');
+                    }
+
+                    if (!$authorize || $authorize()->sessionId !== $session->sessionId) {
+                        throw new HttpException(401);
+                    }
+
+                    // Session locking may have waited: replay also requires fresh proof.
+                    $now = DatabaseClock::now();
+                    // Verify contact email has been verified for this session
+                    $contactEmail = strtolower(trim((string) $command['contact']['email']));
+                    $emailVerified = DB::table('mvp_guest_email_grants')
+                        ->where('session_id', $session->sessionId)
+                        ->whereRaw('LOWER(email) = ?', [$contactEmail])
+                        ->where('expires_at', '>', $now->toIso8601String())
+                        ->exists();
+
+                    if (!$emailVerified) {
+                        throw new HttpException(403, 'Contact email verification required.');
+                    }
+
+                    // Replay check for guest
+                    $existingSub = DB::table('mvp_guest_reservation_submissions')
+                        ->where('session_id', $session->sessionId)
+                        ->where('submission_id', $submissionId)
+                        ->lockForUpdate()
+                        ->first();
+
+                    if ($existingSub) {
+                        if ($existingSub->command_fingerprint === $fingerprint) {
+                            $resRow = DB::table('mvp_reservations')->where('id', $existingSub->reservation_id)->first();
+                            if ($resRow) {
+                                $sessionAbsoluteExpiry = CarbonImmutable::parse($sessionRow->absolute_expires_at);
+                                $grantExpiresAt = $now->addSeconds(1800);
+                                if ($grantExpiresAt->greaterThan($sessionAbsoluteExpiry)) {
+                                    $grantExpiresAt = $sessionAbsoluteExpiry;
+                                }
+
+                                $existingGrant = DB::table('mvp_guest_access_grants')
+                                    ->where('session_id', $session->sessionId)
+                                    ->where('reservation_id', $resRow->id)
+                                    ->first();
+
+                                if ($existingGrant) {
+                                    DB::table('mvp_guest_access_grants')->where('id', $existingGrant->id)->update([
+                                        'reference' => (string) $resRow->reference,
+                                        'allowed_actions' => json_encode(['show', 'ticket', 'cancel'], JSON_THROW_ON_ERROR),
+                                        'issued_at' => $now->toIso8601String(),
+                                        'expires_at' => $grantExpiresAt->toIso8601String(),
+                                    ]);
+                                } else {
+                                    DB::table('mvp_guest_access_grants')->insert([
+                                        'id' => (string) Str::uuid(),
+                                        'session_id' => $session->sessionId,
+                                        'reservation_id' => (string) $resRow->id,
+                                        'reference' => (string) $resRow->reference,
+                                        'allowed_actions' => json_encode(['show', 'ticket', 'cancel'], JSON_THROW_ON_ERROR),
+                                        'issued_at' => $now->toIso8601String(),
+                                        'expires_at' => $grantExpiresAt->toIso8601String(),
+                                    ]);
+                                }
+                            }
+                            return $this->formatReservationResponse($existingSub->reservation_id, false);
+                        }
+                        throw new ReservationConflictException('Submission ID already used with different command payload.');
+                    }
                 }
-            }
 
-            // 10. Generate unique reference and ID
-            $ref = $this->generateUniqueReference();
-            $reservationId = (string) Str::uuid();
+                // 2. Lock domain controls in strict canonical order: fleet -> network -> schedule
+                DB::table('reference_revision_control')->where('domain', 'fleet')->lockForUpdate()->first();
+                DB::table('network_revision_control')->where('domain', 'network')->lockForUpdate()->first();
+                DB::table('schedule_revision_control')->where('domain', 'schedules')->lockForUpdate()->first();
 
-            $ticketSnapshot = $this->buildTicketSnapshot($reservationId, $ref, $serviceRow, $command, $mealSnapshots, $now);
-            $flightSnapshot = $this->buildFlightSnapshot($serviceRow);
+                // 3. Service row: lock or race-safe materialization
+                $serviceRow = DB::table('mvp_services')->where('id', $serviceId)->lockForUpdate()->first();
+                if ($serviceRow === null) {
+                    $offering = $this->authority->resolve($serviceId);
 
-            // 11. Atomic database writes
-            DB::table('mvp_reservations')->insert([
-                'id' => $reservationId,
-                'reference' => $ref,
-                'owner_user_id' => $userId,
-                'service_id' => $serviceId,
-                'status' => 'confirmed',
-                'contact_email' => $command['contact']['email'],
-                'contact_phone' => $command['contact']['phone'],
-                'passenger_count' => count($command['passengers']),
-                'flight_snapshot' => json_encode($flightSnapshot, JSON_THROW_ON_ERROR),
-                'ticket_snapshot' => json_encode($ticketSnapshot, JSON_THROW_ON_ERROR),
-                'created_at' => $now->toIso8601String(),
-                'updated_at' => $now->toIso8601String(),
-                'cancelled_at' => null,
-            ]);
+                    $aircraftModel = $offering['aircraft'];
 
-            foreach ($command['passengers'] as $p) {
-                $pUuid = (string) Str::uuid();
-                $mealSnap = $mealSnapshots[$p['id']] ?? null;
+                    DB::table('mvp_services')->insertOrIgnore([
+                        'id' => $serviceId,
+                        'schedule_id' => $offering['scheduleId'],
+                        'service_date' => $offering['date'],
+                        'flight_number' => $offering['number'],
+                        'direction' => $offering['direction'],
+                        'origin_code' => $offering['originCode'],
+                        'destination_code' => $offering['destinationCode'],
+                        'depart_time' => $offering['departTime'],
+                        'arrive_time' => $offering['arriveTime'],
+                        'duration_minutes' => $offering['durationMinutes'],
+                        'aircraft_id' => $offering['aircraftId'],
+                        'aircraft_snapshot' => json_encode(['model' => $aircraftModel,
+                            'timing' => array_intersect_key($offering, array_flip(['originTimezone','destinationTimezone','departAt','arriveAt','arrivalDate']))], JSON_THROW_ON_ERROR),
+                        'layout_snapshot' => json_encode($offering['layout'], JSON_THROW_ON_ERROR),
+                        'reference_revisions' => json_encode($offering['revisions'], JSON_THROW_ON_ERROR),
+                        'classification' => $offering['classification'],
+                        'price_minor' => 0,
+                        'created_at' => DatabaseClock::now(),
+                        'updated_at' => DatabaseClock::now(),
+                    ]);
 
-                DB::table('mvp_reservation_passengers')->insert([
-                    'id' => $pUuid,
-                    'reservation_id' => $reservationId,
-                    'passenger_client_id' => $p['id'],
-                    'type' => $p['type'],
-                    'first_name' => $p['firstName'],
-                    'last_name' => $p['lastName'],
-                    'dob' => $p['dob'],
-                    'nationality' => $p['nationality'],
-                    'document' => $p['document'],
-                    'seat_code' => $p['seatCode'],
-                    'meal_id' => $p['mealId'],
-                    'meal_snapshot' => $mealSnap !== null ? json_encode($mealSnap, JSON_THROW_ON_ERROR) : null,
-                    'created_at' => $now->toIso8601String(),
-                ]);
+                    $serviceRow = DB::table('mvp_services')->where('id', $serviceId)->lockForUpdate()->first();
+                    if (!$serviceRow) {
+                        throw new ReservationValidationException('Failed to materialize service row.');
+                    }
+                } else {
+                    // Revalidate actual offering within locked transaction
+                    $offering = $this->authority->resolve($serviceId);
 
-                DB::table('mvp_reservation_seat_claims')->insert([
+                    $frozenLayout = json_decode((string) $serviceRow->layout_snapshot, true, 512, JSON_THROW_ON_ERROR);
+                    $frozenAircraft = json_decode((string) $serviceRow->aircraft_snapshot, true, 512, JSON_THROW_ON_ERROR);
+                    $currentTiming = array_intersect_key($offering, array_flip(['originTimezone', 'destinationTimezone', 'departAt', 'arriveAt', 'arrivalDate']));
+                    if ((string) $serviceRow->aircraft_id !== (string) $offering['aircraftId'] || $frozenLayout != $offering['layout']
+                        || $serviceRow->flight_number !== $offering['number']
+                        || $serviceRow->depart_time !== $offering['departTime']
+                        || $serviceRow->arrive_time !== $offering['arriveTime']
+                        || (int) $serviceRow->duration_minutes !== $offering['durationMinutes']
+                        || $frozenAircraft['model'] !== $offering['aircraft']
+                        || (isset($frozenAircraft['timing']) && $frozenAircraft['timing'] != $currentTiming)) {
+                        throw new ReservationReferenceChangedException('Offering layout or aircraft has changed since service was materialized.');
+                    }
+                }
+
+                // 4. Lock meal control after service lock
+                DB::table('meal_revision_control')->where('domain', 'meals')->lockForUpdate()->first();
+
+                // 5. Fresh time & session authority recheck AFTER blocking on locks
+                $now = DatabaseClock::now();
+                ReservationDepartureBoundary::assertFuture($offering['departAt'] ?? null, $now);
+
+                $freshSession = DB::table('passenger_sessions')->where('id', $session->sessionId)->first();
+                if (!$freshSession || $freshSession->revoked_at !== null) {
+                    throw new ReservationSessionExpiredException('Session revoked.');
+                }
+                if ($now->greaterThanOrEqualTo(CarbonImmutable::parse($freshSession->absolute_expires_at))
+                    || $now->greaterThanOrEqualTo(CarbonImmutable::parse($freshSession->idle_expires_at))) {
+                    throw new ReservationSessionExpiredException('Session expired while waiting for lock.');
+                }
+
+                if ($userId !== null) {
+                    $freshUser = DB::table('users')->where('id', $userId)->first();
+                    if (!$freshUser || $freshUser->status !== 'active' || (int) $freshUser->credential_epoch !== (int) $freshSession->credential_epoch) {
+                        throw new ReservationSessionExpiredException('User or credential epoch invalid.');
+                    }
+                } else {
+                    if ($freshSession->auth_level !== 'anonymous' || $freshSession->user_id !== null) {
+                        throw new ReservationValidationException('Guest reservation requires an anonymous passenger session without a user ID.');
+                    }
+
+                    $contactEmail = strtolower(trim((string) $command['contact']['email']));
+                    $emailVerifiedFresh = DB::table('mvp_guest_email_grants')
+                        ->where('session_id', $session->sessionId)
+                        ->whereRaw('LOWER(email) = ?', [$contactEmail])
+                        ->where('expires_at', '>', $now->toIso8601String())
+                        ->exists();
+
+                    if (!$emailVerifiedFresh) {
+                        throw new HttpException(403, 'Contact email verification expired.');
+                    }
+                }
+
+                if (!$authorize || $authorize()->sessionId !== $session->sessionId) {
+                    throw new HttpException(401);
+                }
+
+                // 7. Physical seats validation in authoritative frozen layout
+                $layout = json_decode((string) $serviceRow->layout_snapshot, true, 512, JSON_THROW_ON_ERROR);
+                $validLetters = $layout['letters'];
+                $maxRows = (int) $layout['rows'];
+                $unavailableSeats = array_flip($layout['unavailable'] ?? []);
+
+                foreach ($command['passengers'] as $p) {
+                    $seat = $p['seatCode'];
+                    if (preg_match('/\A(\d+)([A-Z])\z/', $seat, $m) !== 1) {
+                        throw new ReservationValidationException("Seat {$seat} is malformed.");
+                    }
+                    $row = (int) $m[1];
+                    $letter = $m[2];
+                    if ($row < 1 || $row > $maxRows || !in_array($letter, $validLetters, true) || isset($unavailableSeats[$seat])) {
+                        throw new ReservationValidationException("Seat {$seat} is not a valid or available physical seat.");
+                    }
+                }
+
+                // 8. Seat claim check
+                $requestedSeats = array_column($command['passengers'], 'seatCode');
+                $existingClaims = DB::table('mvp_reservation_seat_claims')
+                    ->where('service_id', $serviceId)
+                    ->whereIn('seat_code', $requestedSeats)
+                    ->lockForUpdate()
+                    ->pluck('seat_code')
+                    ->all();
+
+                if (!empty($existingClaims)) {
+                    throw new ReservationConflictException('One or more requested seats are already occupied.');
+                }
+
+                // 9. Meal validation: reject retired/inactive meals, snapshot active meal bilingual label
+                $mealSnapshots = [];
+                foreach ($command['passengers'] as $p) {
+                    if ($p['mealId'] !== null) {
+                        $mealRow = DB::table('meal_options')->where('id', $p['mealId'])->where('active', true)->first();
+                        if (!$mealRow) {
+                            throw new ReservationValidationException("Meal {$p['mealId']} is not active or does not exist.");
+                        }
+                        $mealSnapshots[$p['id']] = [
+                            'id' => (string) $mealRow->id,
+                            'label' => [
+                                'en' => (string) $mealRow->label_en,
+                                'ar' => (string) $mealRow->label_ar,
+                            ],
+                        ];
+                    } else {
+                        $mealSnapshots[$p['id']] = null;
+                    }
+                }
+
+                // 10. Generate unique reference and ID
+                $ref = $this->generateUniqueReference();
+                $reservationId = (string) Str::uuid();
+
+                $ticketSnapshot = $this->buildTicketSnapshot($reservationId, $ref, $serviceRow, $command, $mealSnapshots, $now);
+                $flightSnapshot = $this->buildFlightSnapshot($serviceRow);
+
+                // 11. Atomic database writes
+                DB::table('mvp_reservations')->insert([
+                    'id' => $reservationId,
+                    'reference' => $ref,
+                    'owner_user_id' => $userId,
                     'service_id' => $serviceId,
-                    'seat_code' => $p['seatCode'],
-                    'reservation_id' => $reservationId,
-                    'passenger_id' => $pUuid,
-                    'claimed_at' => $now->toIso8601String(),
-                ]);
-
-                DB::table('mvp_reservation_seat_claim_history')->insert([
-                    'service_id' => $serviceId,
-                    'seat_code' => $p['seatCode'],
-                    'reservation_id' => $reservationId,
-                    'passenger_id' => $pUuid,
-                    'action' => 'claimed',
+                    'status' => 'confirmed',
+                    'contact_email' => $command['contact']['email'],
+                    'contact_phone' => $command['contact']['phone'],
+                    'passenger_count' => count($command['passengers']),
+                    'flight_snapshot' => json_encode($flightSnapshot, JSON_THROW_ON_ERROR),
+                    'ticket_snapshot' => json_encode($ticketSnapshot, JSON_THROW_ON_ERROR),
                     'created_at' => $now->toIso8601String(),
+                    'updated_at' => $now->toIso8601String(),
+                    'cancelled_at' => null,
                 ]);
-            }
 
-            DB::table('mvp_reservation_submissions')->insert([
-                'owner_user_id' => $userId,
-                'submission_id' => $submissionId,
-                'command_fingerprint' => $fingerprint,
-                'reservation_id' => $reservationId,
-                'created_at' => $now->toIso8601String(),
-            ]);
+                foreach ($command['passengers'] as $p) {
+                    $pUuid = (string) Str::uuid();
+                    $mealSnap = $mealSnapshots[$p['id']] ?? null;
 
-            // Exactly ONE logical mail intent row
-            DB::table('mvp_reservation_mail_intents')->insert([
-                'id' => (string) Str::uuid(),
-                'reservation_id' => $reservationId,
-                'recipient_email' => $command['contact']['email'],
-                'status' => 'pending',
-                'payload' => json_encode($ticketSnapshot, JSON_THROW_ON_ERROR),
-                'created_at' => $now->toIso8601String(),
-                'updated_at' => $now->toIso8601String(),
-            ]);
+                    DB::table('mvp_reservation_passengers')->insert([
+                        'id' => $pUuid,
+                        'reservation_id' => $reservationId,
+                        'passenger_client_id' => $p['id'],
+                        'type' => $p['type'],
+                        'first_name' => $p['firstName'],
+                        'last_name' => $p['lastName'],
+                        'dob' => $p['dob'],
+                        'nationality' => $p['nationality'],
+                        'document' => $p['document'],
+                        'seat_code' => $p['seatCode'],
+                        'meal_id' => $p['mealId'],
+                        'meal_snapshot' => $mealSnap !== null ? json_encode($mealSnap, JSON_THROW_ON_ERROR) : null,
+                        'created_at' => $now->toIso8601String(),
+                    ]);
 
-            DB::table('mvp_reservation_audits')->insert([
-                'reservation_id' => $reservationId,
-                'actor_type' => 'passenger',
-                'actor_id' => (string) $userId,
-                'action' => 'created',
-                'details' => json_encode(['submissionId' => $submissionId], JSON_THROW_ON_ERROR),
-                'created_at' => $now->toIso8601String(),
-            ]);
+                    DB::table('mvp_reservation_seat_claims')->insert([
+                        'service_id' => $serviceId,
+                        'seat_code' => $p['seatCode'],
+                        'reservation_id' => $reservationId,
+                        'passenger_id' => $pUuid,
+                        'claimed_at' => $now->toIso8601String(),
+                    ]);
 
-            return $this->formatReservationResponse($reservationId, true);
-        });
+                    DB::table('mvp_reservation_seat_claim_history')->insert([
+                        'service_id' => $serviceId,
+                        'seat_code' => $p['seatCode'],
+                        'reservation_id' => $reservationId,
+                        'passenger_id' => $pUuid,
+                        'action' => 'claimed',
+                        'created_at' => $now->toIso8601String(),
+                    ]);
+                }
+
+                if ($userId !== null) {
+                    DB::table('mvp_reservation_submissions')->insert([
+                        'owner_user_id' => $userId,
+                        'submission_id' => $submissionId,
+                        'command_fingerprint' => $fingerprint,
+                        'reservation_id' => $reservationId,
+                        'created_at' => $now->toIso8601String(),
+                    ]);
+
+                    DB::table('mvp_reservation_audits')->insert([
+                        'reservation_id' => $reservationId,
+                        'actor_type' => 'passenger',
+                        'actor_id' => (string) $userId,
+                        'action' => 'created',
+                        'details' => json_encode(['submissionId' => $submissionId], JSON_THROW_ON_ERROR),
+                        'created_at' => $now->toIso8601String(),
+                    ]);
+                } else {
+                    DB::table('mvp_guest_reservation_submissions')->insert([
+                        'session_id' => $session->sessionId,
+                        'submission_id' => $submissionId,
+                        'command_fingerprint' => $fingerprint,
+                        'reservation_id' => $reservationId,
+                        'created_at' => $now->toIso8601String(),
+                    ]);
+
+                    $sessionAbsoluteExpiry = CarbonImmutable::parse($freshSession->absolute_expires_at);
+                    $grantExpiresAt = $now->addSeconds(1800);
+                    if ($grantExpiresAt->greaterThan($sessionAbsoluteExpiry)) {
+                        $grantExpiresAt = $sessionAbsoluteExpiry;
+                    }
+
+                    DB::table('mvp_guest_access_grants')->insert([
+                        'id' => (string) Str::uuid(),
+                        'session_id' => $session->sessionId,
+                        'reservation_id' => $reservationId,
+                        'reference' => $ref,
+                        'allowed_actions' => json_encode(['show', 'ticket', 'cancel'], JSON_THROW_ON_ERROR),
+                        'issued_at' => $now->toIso8601String(),
+                        'expires_at' => $grantExpiresAt->toIso8601String(),
+                    ]);
+
+                    DB::table('mvp_reservation_audits')->insert([
+                        'reservation_id' => $reservationId,
+                        'actor_type' => 'passenger',
+                        'actor_id' => (string) $session->sessionId,
+                        'action' => 'created',
+                        'details' => json_encode(['submissionId' => $submissionId, 'guest' => true], JSON_THROW_ON_ERROR),
+                        'created_at' => $now->toIso8601String(),
+                    ]);
+                }
+
+                // Exactly ONE logical mail intent row
+                DB::table('mvp_reservation_mail_intents')->insert([
+                    'id' => (string) Str::uuid(),
+                    'reservation_id' => $reservationId,
+                    'recipient_email' => $command['contact']['email'],
+                    'status' => 'pending',
+                    'payload' => json_encode($ticketSnapshot, JSON_THROW_ON_ERROR),
+                    'created_at' => $now->toIso8601String(),
+                    'updated_at' => $now->toIso8601String(),
+                ]);
+
+                return $this->formatReservationResponse($reservationId, true);
+            });
         } catch (QueryException $e) {
             if (DatabaseFailure::isDuplicate($e)) {
                 throw new ReservationConflictException('Reservation conflict.');
@@ -336,6 +496,9 @@ final class ReservationCoordinator
     public function getReservations(PassengerSessionContext $session, int $page = 1, int $limit = 20): array
     {
         $userId = $session->getUserId();
+        if ($userId === null || !$session->isFull()) {
+            throw new ReservationValidationException('Authenticated passenger user ID required.');
+        }
         $limit = max(1, min(50, $limit));
         $page = max(1, $page);
         $offset = ($page - 1) * $limit;
@@ -380,6 +543,9 @@ final class ReservationCoordinator
     public function getReservationByRef(string $ref, PassengerSessionContext $session): array
     {
         $userId = $session->getUserId();
+        if ($userId === null || !$session->isFull()) {
+            throw new ReservationValidationException('Authenticated passenger user ID required.');
+        }
         $row = DB::table('mvp_reservations')->where('reference', $ref)->first();
         if (!$row || $row->owner_user_id !== $userId) {
             throw new ReservationNotFoundException();
@@ -391,7 +557,7 @@ final class ReservationCoordinator
     public function cancelReservation(string $ref, PassengerSessionContext $session, ?Closure $authorize = null): array
     {
         $userId = $session->getUserId();
-        if ($userId === null) {
+        if ($userId === null || !$session->isFull()) {
             throw new ReservationValidationException('Authenticated passenger user ID required.');
         }
 
@@ -487,6 +653,9 @@ final class ReservationCoordinator
     public function getReservationTicket(string $ref, PassengerSessionContext $session): array
     {
         $userId = $session->getUserId();
+        if ($userId === null || !$session->isFull()) {
+            throw new ReservationValidationException('Authenticated passenger user ID required.');
+        }
         $row = DB::table('mvp_reservations')->where('reference', $ref)->first();
         if (!$row || $row->owner_user_id !== $userId) {
             throw new ReservationNotFoundException();
@@ -536,7 +705,7 @@ final class ReservationCoordinator
             $items[] = [
                 'id' => (string) $row->id,
                 'reference' => (string) $row->reference,
-                'ownerUserId' => (string) $row->owner_user_id,
+                'ownerUserId' => ($row->owner_user_id !== null && (string) $row->owner_user_id !== '') ? (string) $row->owner_user_id : null,
                 'status' => (string) $row->status,
                 'serviceId' => (string) $row->service_id,
                 'flightNumber' => (string) ($flight['flightNumber'] ?? ''),
@@ -585,7 +754,7 @@ final class ReservationCoordinator
             ];
         }
 
-        $formatted['reservation']['ownerUserId'] = (string) $row->owner_user_id;
+        $formatted['reservation']['ownerUserId'] = ($row->owner_user_id !== null && (string) $row->owner_user_id !== '') ? (string) $row->owner_user_id : null;
         $formatted['reservation']['audits'] = $auditList;
 
         return $formatted;
@@ -771,7 +940,7 @@ final class ReservationCoordinator
         ];
     }
 
-    private function formatReservationResponse(string $reservationId, bool $isNew = false): array
+    public function formatReservationResponse(string $reservationId, bool $isNew = false): array
     {
         $res = DB::table('mvp_reservations')->where('id', $reservationId)->first();
         if (!$res) {

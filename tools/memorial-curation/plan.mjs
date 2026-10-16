@@ -1,11 +1,11 @@
 import catalog from './catalog.v1.json' with {type:'json'};
-import {addDays,firstUpcomingMonday,planTimetable,verifyTimetable} from './timetable.mjs';
+import {addDays,firstUpcomingMonday,planTimetable,verifyTimetable,planFullNetworkTimetable,verifyNetworkTimetable} from './timetable.mjs';
 
 const canonical=value=>Array.isArray(value)?value.map(canonical):value&&typeof value==='object'
   ?Object.fromEntries(Object.keys(value).sort().map(key=>[key,canonical(value[key])])):value;
 
 /** A deterministic preview built exclusively from real queried authority, with no browser seeds. */
-export function buildCurationPlan(snapshot,{today,activateStandby=false}={}) {
+export function buildCurationPlan(snapshot,{today,activateStandby=false,scope='all'}={}) {
   const additions=catalog.airports.map(item=>item.command).filter(item=>!snapshot.airports.some(airport=>airport.code===item.code));
   const airports=[...snapshot.airports,...additions].filter(airport=>airport.active);
   const fleet=snapshot.fleet.aircraft.map(aircraft=>({...aircraft}));const fleetUpdates=[];
@@ -19,7 +19,11 @@ export function buildCurationPlan(snapshot,{today,activateStandby=false}={}) {
   if(starts.length>1) throw new Error('Existing curated periods differ; manual review is required.');
   const from=starts[0]??firstUpcomingMonday(today);
   const until=[addDays(firstUpcomingMonday(today),365),...existing.map(schedule=>schedule.until)].sort().at(-1);
-  const planned=planTimetable({airports,fleet,from,until});
+
+  const planned=scope==='core'
+    ?planTimetable({airports,fleet,from,until})
+    :planFullNetworkTimetable({airports,fleet,from,until});
+
   for(const schedule of planned.schedules) {
     if(snapshot.fleet.layouts[schedule.aircraftId]?.aircraftId!==schedule.aircraftId) throw new Error('An approved physical seat layout is missing.');
   }
@@ -35,9 +39,16 @@ export function buildCurationPlan(snapshot,{today,activateStandby=false}={}) {
     .map(schedule=>({...schedule,from:schedule.from<from?from:schedule.from,until:schedule.until>until?until:schedule.until})).filter(schedule=>schedule.from<=schedule.until);
   const numbers=new Set(planned.schedules.map(schedule=>schedule.number.replace(/\s/g,'')));
   if(others.some(schedule=>numbers.has(schedule.number.replace(/\s/g,'')))) throw new Error('A curated flight number is already in use; manual review is required.');
-  const verification=verifyTimetable([...planned.schedules,...others],airports);
-  return {schemaVersion:1,classification:'commemorative',from,until,additions,fleetUpdates,scheduleAdds,scheduleExtensions,verification,
-    snapshotFingerprint:snapshotFingerprint(snapshot)};
+
+  const verification=others.length>0
+    ?verifyTimetable([...(planned.coreSchedules??planned.schedules),...others],airports)
+    :planned.verification;
+  const networkVerification=others.length>0
+    ?verifyNetworkTimetable([...planned.schedules,...others],airports)
+    :planned.networkVerification;
+
+  return {schemaVersion:1,classification:'commemorative',from,until,additions,fleetUpdates,scheduleAdds,scheduleExtensions,
+    verification,networkVerification,snapshotFingerprint:snapshotFingerprint(snapshot)};
 }
 
 export function snapshotFingerprint(snapshot) {

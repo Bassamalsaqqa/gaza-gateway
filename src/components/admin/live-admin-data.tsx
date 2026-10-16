@@ -33,7 +33,7 @@ export function LiveAdminDashboard() {
   } as const;
   if (!can("dashboard.view")) return <AdminDenied area={t("adm.nav.dashboard")} permission="dashboard.view" />;
   return <div className="min-w-0 space-y-5" data-testid="live-admin-dashboard">
-    <AdminPageHeader title={t("adm.nav.dashboard")} description={pick(lang, { en: "Live totals for the commemorative booking website.", ar: "إحصاءات مباشرة لموقع الحجوزات التذكارية." })} />
+    <AdminPageHeader title={t("adm.nav.dashboard")} description={pick(lang, { en: "Live totals for the flight booking website.", ar: "إحصاءات مباشرة لموقع حجوزات الطيران." })} />
     <ReadState loading={query.isPending} error={query.isError} retry={() => void query.refetch()} />
     {query.data && <div className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-4">{Object.entries(labels).map(([key, label]) =>
       <Metric key={key} label={pick(lang, { en: label[0], ar: label[1] })} value={query.data[key as keyof typeof labels]} />)}</div>}

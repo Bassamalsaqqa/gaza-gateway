@@ -7,7 +7,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ArrowRight, Clock, Info, Plane } from "lucide-react";
 import { DestinationCard } from "@/components/destination-card";
 import { FlightSearchForm } from "@/components/flight-search-form";
-import { btnClass, Code, Container, EmptyState, Eyebrow, Notice } from "@/components/kit";
+import { btnClass, Code, Container, EmptyState, Eyebrow } from "@/components/kit";
 import {
   GZA,
   destinationByCode,
@@ -206,7 +206,14 @@ function DestinationPage() {
       <Container className="mt-14 grid gap-8 lg:grid-cols-[1.6fr_1fr]">
         <div>
           <h2 className="text-2xl font-bold">{t("dest.about")}</h2>
-          <p className="mt-3 text-base leading-relaxed text-muted-foreground">{pick(lang, editorial!.blurb)}</p>
+          <p className="mt-3 text-base leading-relaxed text-muted-foreground">
+            {editorial?.blurb
+              ? pick(lang, editorial.blurb)
+              : pick(lang, {
+                  en: `Discover flights and travel information for ${city} from Gaza International Airport.`,
+                  ar: `اكتشف معلومات السفر والرحلات إلى ${city} من مطار غزة الدولي.`,
+                })}
+          </p>
 
           {!identityUiRequested && <><h3 className="mt-10 text-lg font-bold">{t("dest.schedule")}</h3>
           <div className="mt-4 flex flex-wrap gap-2">
@@ -226,15 +233,6 @@ function DestinationPage() {
                 </span>
               );
             })}
-          </div>
-
-          <div className="mt-6">
-            <Notice title={t("common.notice")}>
-              {pick(lang, {
-                en: "Schedules and fares on this page are illustrative placeholders for design purposes.",
-                ar: "الجداول والأسعار في هذه الصفحة عناصر توضيحية مؤقتة لأغراض التصميم.",
-              })}
-            </Notice>
           </div></>}
         </div>
 
@@ -245,12 +243,33 @@ function DestinationPage() {
               {t("dest.goodToKnow")}
             </h3>
             <ul className="mt-3 space-y-2.5 text-sm text-muted-foreground">
-              {editorial!.goodToKnow.filter((point) => point.visible).map((point) => (
-                <li key={point.id} className="flex gap-2">
-                  <Clock aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-brand-deep" />
-                  {pick(lang, point.text)}
-                </li>
-              ))}
+              {(
+                editorial?.goodToKnow ?? [
+                  {
+                    id: "general-schedule",
+                    visible: true,
+                    text: {
+                      en: "Destination route in the Palestinian Airlines network vision.",
+                      ar: "مسار وجهة ضمن رؤية شبكة الخطوط الجوية الفلسطينية.",
+                    },
+                  },
+                  {
+                    id: "general-terminal",
+                    visible: true,
+                    text: {
+                      en: "Direct service connecting Gaza International Airport to international gateways.",
+                      ar: "خدمة مباشرة تربط مطار غزة الدولي بالوجهات العالمية.",
+                    },
+                  },
+                ]
+              )
+                .filter((point) => point.visible)
+                .map((point) => (
+                  <li key={point.id} className="flex gap-2">
+                    <Clock aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-brand-deep" />
+                    {pick(lang, point.text)}
+                  </li>
+                ))}
             </ul>
           </div>
           {!identityUiRequested && <div className="surface p-5">

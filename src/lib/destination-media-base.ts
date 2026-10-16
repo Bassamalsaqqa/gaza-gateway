@@ -12,7 +12,20 @@ export type DestinationPhotoId =
   | "city-dubai"
   | "city-istanbul"
   | "city-jeddah"
-  | "city-riyadh";
+  | "city-riyadh"
+  | "city-abu-dhabi"
+  | "city-athens"
+  | "city-beirut"
+  | "city-frankfurt"
+  | "city-kuala-lumpur"
+  | "city-kuwait-city"
+  | "city-london"
+  | "city-madrid"
+  | "city-mumbai"
+  | "city-new-york"
+  | "city-paris"
+  | "city-rome"
+  | "city-toronto";
 
 export const CORE_PHOTO_DESTINATION_CODES = [
   "AMM",
@@ -99,7 +112,7 @@ export interface DestinationPhoto extends Omit<DestinationPhotoMeta, "variants">
   variants: DestinationPhotoVariant[];
 }
 
-export const APPROVED_DESTINATION_CODES: readonly DestinationCode[] = CORE_PHOTO_DESTINATION_CODES;
+export const APPROVED_DESTINATION_CODES: readonly DestinationCode[] = ALL_NETWORK_DESTINATION_CODES;
 
 export const APPROVED_DESTINATION_PHOTO_IDS: readonly DestinationPhotoId[] = [
   "city-amman",
@@ -109,6 +122,19 @@ export const APPROVED_DESTINATION_PHOTO_IDS: readonly DestinationPhotoId[] = [
   "city-istanbul",
   "city-jeddah",
   "city-riyadh",
+  "city-abu-dhabi",
+  "city-athens",
+  "city-beirut",
+  "city-frankfurt",
+  "city-kuala-lumpur",
+  "city-kuwait-city",
+  "city-london",
+  "city-madrid",
+  "city-mumbai",
+  "city-new-york",
+  "city-paris",
+  "city-rome",
+  "city-toronto",
 ] as const;
 
 export const DESTINATION_PHOTO_METADATA: Record<DestinationPhotoId, DestinationPhotoMeta> = {
@@ -223,6 +249,214 @@ export const DESTINATION_PHOTO_METADATA: Record<DestinationPhotoId, DestinationP
       { width: 1920, height: 1281 },
     ],
     defaultFocalPoint: { x: 50, y: 50 },
+  },
+  "city-abu-dhabi": {
+    id: "city-abu-dhabi",
+    cityCode: "AUH",
+    cityNameEn: "Abu Dhabi",
+    cityNameAr: "أبوظبي",
+    width: 1920,
+    height: 1296,
+    variants: [
+      { width: 480, height: 324 },
+      { width: 800, height: 540 },
+      { width: 1200, height: 810 },
+      { width: 1600, height: 1080 },
+      { width: 1920, height: 1296 },
+    ],
+    defaultFocalPoint: { x: 65, y: 50 },
+  },
+  "city-athens": {
+    id: "city-athens",
+    cityCode: "ATH",
+    cityNameEn: "Athens",
+    cityNameAr: "أثينا",
+    width: 1920,
+    height: 1440,
+    variants: [
+      { width: 480, height: 360 },
+      { width: 800, height: 600 },
+      { width: 1200, height: 900 },
+      { width: 1600, height: 1200 },
+      { width: 1920, height: 1440 },
+    ],
+    defaultFocalPoint: { x: 55, y: 50 },
+  },
+  "city-beirut": {
+    id: "city-beirut",
+    cityCode: "BEY",
+    cityNameEn: "Beirut",
+    cityNameAr: "بيروت",
+    width: 1920,
+    height: 1023,
+    variants: [
+      { width: 480, height: 256 },
+      { width: 800, height: 426 },
+      { width: 1200, height: 640 },
+      { width: 1600, height: 853 },
+      { width: 1920, height: 1023 },
+    ],
+    defaultFocalPoint: { x: 45, y: 55 },
+  },
+  "city-frankfurt": {
+    id: "city-frankfurt",
+    cityCode: "FRA",
+    cityNameEn: "Frankfurt",
+    cityNameAr: "فرانكفورت",
+    width: 1920,
+    height: 1272,
+    variants: [
+      { width: 480, height: 318 },
+      { width: 800, height: 530 },
+      { width: 1200, height: 795 },
+      { width: 1600, height: 1060 },
+      { width: 1920, height: 1272 },
+    ],
+    defaultFocalPoint: { x: 50, y: 50 },
+  },
+  "city-kuala-lumpur": {
+    id: "city-kuala-lumpur",
+    cityCode: "KUL",
+    cityNameEn: "Kuala Lumpur",
+    cityNameAr: "كوالالمبور",
+    width: 1920,
+    height: 1280,
+    variants: [
+      { width: 480, height: 320 },
+      { width: 800, height: 533 },
+      { width: 1200, height: 800 },
+      { width: 1600, height: 1067 },
+      { width: 1920, height: 1280 },
+    ],
+    defaultFocalPoint: { x: 50, y: 45 },
+  },
+  "city-kuwait-city": {
+    id: "city-kuwait-city",
+    cityCode: "KWI",
+    cityNameEn: "Kuwait City",
+    cityNameAr: "مدينة الكويت",
+    width: 1920,
+    height: 1239,
+    variants: [
+      { width: 480, height: 310 },
+      { width: 800, height: 516 },
+      { width: 1200, height: 775 },
+      { width: 1600, height: 1033 },
+      { width: 1920, height: 1239 },
+    ],
+    defaultFocalPoint: { x: 55, y: 45 },
+  },
+  "city-london": {
+    id: "city-london",
+    cityCode: "LHR",
+    cityNameEn: "London",
+    cityNameAr: "لندن",
+    width: 1920,
+    height: 1280,
+    variants: [
+      { width: 480, height: 320 },
+      { width: 800, height: 533 },
+      { width: 1200, height: 800 },
+      { width: 1600, height: 1067 },
+      { width: 1920, height: 1280 },
+    ],
+    defaultFocalPoint: { x: 60, y: 50 },
+  },
+  "city-madrid": {
+    id: "city-madrid",
+    cityCode: "MAD",
+    cityNameEn: "Madrid",
+    cityNameAr: "مدريد",
+    width: 1920,
+    height: 1280,
+    variants: [
+      { width: 480, height: 320 },
+      { width: 800, height: 533 },
+      { width: 1200, height: 800 },
+      { width: 1600, height: 1067 },
+      { width: 1920, height: 1280 },
+    ],
+    defaultFocalPoint: { x: 50, y: 50 },
+  },
+  "city-mumbai": {
+    id: "city-mumbai",
+    cityCode: "BOM",
+    cityNameEn: "Mumbai",
+    cityNameAr: "مومباي",
+    width: 1920,
+    height: 1280,
+    variants: [
+      { width: 480, height: 320 },
+      { width: 800, height: 533 },
+      { width: 1200, height: 800 },
+      { width: 1600, height: 1067 },
+      { width: 1920, height: 1280 },
+    ],
+    defaultFocalPoint: { x: 50, y: 40 },
+  },
+  "city-new-york": {
+    id: "city-new-york",
+    cityCode: "JFK",
+    cityNameEn: "New York",
+    cityNameAr: "نيويورك",
+    width: 1920,
+    height: 1224,
+    variants: [
+      { width: 480, height: 306 },
+      { width: 800, height: 510 },
+      { width: 1200, height: 765 },
+      { width: 1600, height: 1020 },
+      { width: 1920, height: 1224 },
+    ],
+    defaultFocalPoint: { x: 50, y: 45 },
+  },
+  "city-paris": {
+    id: "city-paris",
+    cityCode: "CDG",
+    cityNameEn: "Paris",
+    cityNameAr: "باريس",
+    width: 1920,
+    height: 1280,
+    variants: [
+      { width: 480, height: 320 },
+      { width: 800, height: 533 },
+      { width: 1200, height: 800 },
+      { width: 1600, height: 1067 },
+      { width: 1920, height: 1280 },
+    ],
+    defaultFocalPoint: { x: 60, y: 50 },
+  },
+  "city-rome": {
+    id: "city-rome",
+    cityCode: "FCO",
+    cityNameEn: "Rome",
+    cityNameAr: "روما",
+    width: 1920,
+    height: 1280,
+    variants: [
+      { width: 480, height: 320 },
+      { width: 800, height: 533 },
+      { width: 1200, height: 800 },
+      { width: 1600, height: 1067 },
+      { width: 1920, height: 1280 },
+    ],
+    defaultFocalPoint: { x: 50, y: 40 },
+  },
+  "city-toronto": {
+    id: "city-toronto",
+    cityCode: "YYZ",
+    cityNameEn: "Toronto",
+    cityNameAr: "تورونتو",
+    width: 1920,
+    height: 1280,
+    variants: [
+      { width: 480, height: 320 },
+      { width: 800, height: 533 },
+      { width: 1200, height: 800 },
+      { width: 1600, height: 1067 },
+      { width: 1920, height: 1280 },
+    ],
+    defaultFocalPoint: { x: 50, y: 52 },
   },
 };
 

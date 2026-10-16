@@ -353,12 +353,11 @@ export const TARGET_REGISTRY: Record<TargetId, TargetMeta> = {
     familyId: "editorial",
     nameEn: "Future Vision Concept Study",
     nameAr: "دراسة الرؤية والمفاهيم المستقبلية",
-    descriptionEn: "Architectural visual concept study with mandatory illustrative disclosure labeling.",
-    descriptionAr: "دراسة تصورية معمارية مستقبلية مع وسم الإفصاح التوضيحي الإلزامي.",
+    descriptionEn: "Architectural visual concept study of the future passenger terminal.",
+    descriptionAr: "دراسة تصورية معمارية مستقبلية لمبنى المسافرين.",
     route: "/airport/future",
     scenarioId: "airport.future",
     mediaAllowed: true,
-    // Permitted to use illustrative AI future concepts with mandatory disclosure
     allowedTruthClasses: ["future-concept-ai", "brand-mark", "placeholder"],
     allowedControls: {
       ...FAMILY_CONTROLS_BASE,

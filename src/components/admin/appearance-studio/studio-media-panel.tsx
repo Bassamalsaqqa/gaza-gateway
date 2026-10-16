@@ -10,7 +10,7 @@
 
 import { useState } from "react";
 import * as RadioGroupPrimitive from "@radix-ui/react-radio-group";
-import { Check, Image as ImageIcon, Info, RotateCcw, Sparkles } from "lucide-react";
+import { Check, Image as ImageIcon, Info, RotateCcw } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { MEDIA, smallestSrc, type MediaEntry } from "@/lib/media";
@@ -149,20 +149,6 @@ export function StudioMediaPanel({
               ? "سياسة الحقيقة الوثائقية: فصول التاريخ لا تسمح باستخدام صور المفاهيم المستقبلية المولدة بالذكاء الاصطناعي."
               : "Strict Documentary Policy: Historical chapters permit authentic historical and brand assets only. AI future visual studies are excluded."}
           </p>
-        </div>
-      ) : targetId === "airport.future-editorial" ? (
-        <div className="flex items-start gap-2.5 rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs">
-          <Sparkles className="mt-0.5 size-4 shrink-0 text-primary" />
-          <div className="leading-relaxed">
-            <p className="font-semibold text-foreground">
-              {isAr ? "دراسة تصورية مستقبلية · توضيحي" : "Future Concept Study · Illustrative"}
-            </p>
-            <p className="mt-0.5 text-muted-foreground">
-              {isAr
-                ? "يتم تطبيق وسم الإفصاح الإلزامي على كافة دراسات التصميم المستقبلية."
-                : "Mandatory illustrative disclosure label is automatically rendered on all future terminal concept studies."}
-            </p>
-          </div>
         </div>
       ) : null}
 

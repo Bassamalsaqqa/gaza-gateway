@@ -126,8 +126,8 @@ export const CINEMATIC_MANIFEST: CinematicManifest = {
   },
   truthClass: "future-concept-ai",
   disclosure: {
-    en: "Visualized future concept generated with AI, not real-current conditions or live airport operations.",
-    ar: "تصوّر توضيحي لمفهوم مستقبلي مولّد بالذكاء الاصطناعي، وليس واقعاً حالياً أو عمليات تشغيلية.",
+    en: "Architectural vision of the future Gaza International Airport terminal and airfield.",
+    ar: "رؤية معمارية لمبنى مطار غزة الدولي والساحة الجوية المستقبلية.",
   },
   poster: {
     src: `/media/future/cinematic/${CINEMATIC_PUBLIC_VERSION}/future-cinematic-poster.webp`,
@@ -135,7 +135,7 @@ export const CINEMATIC_MANIFEST: CinematicManifest = {
     height: 540,
     fileSizeBytes: 70790,
     sha256: "b96f7680d9f36e8ce97d30d5f0bd518b3e672fbc95e2e33461bc7bb037ad63f4",
-    altEn: "Architectural aerial concept of the future Gaza International Airport terminal and coastal runway",
+    altEn: "Architectural aerial view of the future Gaza International Airport terminal and coastal runway",
     altAr: "تصوّر معماري جوي لمبنى مطار غزة الدولي المستقبلي والمدرج الساحلي",
   },
   derivatives: {
@@ -189,8 +189,8 @@ export const CINEMATIC_MANIFEST: CinematicManifest = {
       "height": 672,
       "fileSizeBytes": 43448,
       "sha256": "4d93a2389481d1a3fbb66258c57ce32619873c411bef447808eccec7a17560c1",
-      "altEn": "Illustrative future airport terminal and control tower, framed for mobile portrait",
-      "altAr": "تصوّر توضيحي لمبنى المطار المستقبلي وبرج المراقبة"
+      "altEn": "Future airport terminal and control tower, framed for mobile portrait",
+      "altAr": "مبنى المطار المستقبلي وبرج المراقبة"
     },
     "sourceCrop": {
       "x": 562,
@@ -220,8 +220,8 @@ export const CINEMATIC_MANIFEST: CinematicManifest = {
       "height": 504,
       "fileSizeBytes": 79120,
       "sha256": "a7f9e809b91823b680cb1ba3b2ae68e61d3077b27b09ee0eeef957cd71670a13",
-      "altEn": "Illustrative future airport terminal and control tower, framed for mobile landscape",
-      "altAr": "تصوّر توضيحي لمبنى المطار المستقبلي وبرج المراقبة"
+      "altEn": "Future airport terminal and control tower, framed for mobile landscape",
+      "altAr": "مبنى المطار المستقبلي وبرج المراقبة"
     },
     "sourceCrop": {
       "x": 0,

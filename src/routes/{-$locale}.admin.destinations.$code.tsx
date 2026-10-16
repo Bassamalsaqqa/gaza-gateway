@@ -32,8 +32,11 @@ import type {
 } from "@/content/types";
 import {
   DESTINATION_PHOTOS,
+  getDestinationPhotoByCode,
   getDestinationPhotoById,
+  isDestinationCode,
   smallestDestinationSrc,
+  type DestinationCode,
   type DestinationPhotoId,
 } from "@/lib/destination-media";
 import {
@@ -151,8 +154,9 @@ function AdminDestinationEditorPage() {
     return <AdminDenied area={t("adm.dest.title")} permission="ops.view" />;
   }
 
-  // If code is not recognized in both operational and editorial authority
-  if (!legacyEditorial && !currentEditorial) {
+  // If code is not recognized in operational, editorial, or network media authority
+  const isKnown = isDestinationCode(code) || Boolean(legacyEditorial) || Boolean(currentEditorial);
+  if (!isKnown) {
     return (
       <div className="space-y-4">
         <AppLink to="/admin/destinations" className={btnClass("outline", "sm")}>
@@ -286,20 +290,47 @@ function AdminDestinationEditorPage() {
     }));
   };
 
+  const defaultPhoto = isDestinationCode(code) ? getDestinationPhotoByCode(code) : undefined;
+  const effectiveAssignment: DestinationPhotoAssignment | undefined =
+    currentAssignment ??
+    (defaultPhoto
+      ? {
+          code: code as DestinationCode,
+          photoId: defaultPhoto.id,
+          focalPoint: defaultPhoto.defaultFocalPoint,
+        }
+      : undefined);
+
   // Helper to update destinations.presentation
   const updatePresentation = (patch: Partial<DestinationPhotoAssignment>) => {
-    presentationCms.setDraft((cur) => ({
-      ...cur,
-      assignments: cur.assignments.map((a) =>
-        a.code === code ? { ...a, ...patch } : a,
-      ),
-    }));
+    if (!effectiveAssignment) return;
+    presentationCms.setDraft((cur) => {
+      const existingIndex = cur.assignments.findIndex((a) => a.code === code);
+      if (existingIndex >= 0) {
+        return {
+          ...cur,
+          assignments: cur.assignments.map((a, i) =>
+            i === existingIndex ? { ...a, ...patch } : a,
+          ),
+        };
+      }
+      return {
+        ...cur,
+        assignments: [
+          ...cur.assignments,
+          {
+            ...effectiveAssignment,
+            ...patch,
+          },
+        ],
+      };
+    });
   };
 
-  const selectedPhoto = currentAssignment
-    ? getDestinationPhotoById(currentAssignment.photoId)
+  const selectedPhoto = effectiveAssignment
+    ? getDestinationPhotoById(effectiveAssignment.photoId)
     : null;
-  const currentFocal = currentAssignment?.focalPoint ?? { x: 50, y: 50 };
+  const currentFocal = effectiveAssignment?.focalPoint ?? { x: 50, y: 50 };
 
   const langTabs = (
     <div role="group" aria-label={t("adm.common.english")} className="flex rounded-md border border-border">
@@ -425,7 +456,7 @@ function AdminDestinationEditorPage() {
               </div>
 
               {/* 1. Visual Presentation (Photo & Focal Point) */}
-              {currentAssignment && selectedPhoto ? (
+              {effectiveAssignment && selectedPhoto ? (
                 <section aria-labelledby="dst-pres-heading" className="rounded-lg border border-border bg-card p-4 space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
                     <h3 id="dst-pres-heading" className="text-sm font-bold">
@@ -468,7 +499,7 @@ function AdminDestinationEditorPage() {
                         <Select
                           id={`dst-pres-${code}-photo`}
                           dir="ltr"
-                          value={currentAssignment.photoId}
+                          value={effectiveAssignment.photoId}
                           disabled={!mayEditContent || !presentationCms.ready || presentationCms.saving}
                           onChange={(e) =>
                             updatePresentation({ photoId: e.target.value as DestinationPhotoId })

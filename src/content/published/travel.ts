@@ -7,21 +7,21 @@ export const publishedTravel = {
   "seo": {
     "title": {
       "en": "Travel information \u2014 Gaza International Airport (GZA)",
-      "ar": "معلومات السفر"
+      "ar": "معلومات السفر \u2014 مطار غزة الدولي (GZA)"
     },
     "description": {
-      "en": "Prepare for your flight from Gaza International Airport: travel documents, baggage rules, accessibility and what to expect at the airport.",
-      "ar": "ما تحتاج معرفته قبل رحلتك عبر مطار غزة وخلالها وبعدها."
+      "en": "Guide to Gaza International Airport: flight bookings, passenger details, printable tickets, airport history, and website accessibility.",
+      "ar": "دليل مطار غزة الدولي: حجز الرحلات، بيانات المسافرين، التذاكر، تاريخ المطار، وإمكانية الوصول الرقمية."
     }
   },
   "intro": {
     "title": {
-      "en": "Travel information",
-      "ar": "معلومات السفر"
+      "en": "Travel guide & flight booking",
+      "ar": "دليل السفر والرحلات"
     },
     "description": {
-      "en": "What you need before, during and after your journey through GZA.",
-      "ar": "ما تحتاج معرفته قبل رحلتك عبر مطار غزة وخلالها وبعدها."
+      "en": "Everything you need to know about searching flights, passenger details, generating tickets, managing bookings, and exploring airport heritage.",
+      "ar": "كل ما تحتاج معرفته حول البحث في الرحلات، بيانات المسافرين، إصدار التذاكر، إدارة الحجوزات، واستكشاف إرث المطار."
     }
   },
   "sections": [
@@ -29,35 +29,35 @@ export const publishedTravel = {
       "id": "prepare",
       "visible": true,
       "title": {
-        "en": "Preparing to travel",
-        "ar": "التحضير للسفر"
+        "en": "Planning your journey",
+        "ar": "التخطيط لرحلتك"
       },
       "body": {
-        "en": "Check-in opens 24 hours before departure and closes 60 minutes before scheduled departure for all Palestinian Airlines flights.",
-        "ar": "يبدأ تسجيل الوصول قبل 24 ساعة من المغادرة ويُغلق 60 دقيقة قبل الموعد المقرر لجميع رحلات الخطوط الجوية الفلسطينية."
+        "en": "Search published flight timetables across the route network. You can select one-way or round-trip journeys and complete guest booking without creating an account.",
+        "ar": "ابحث في جداول الرحلات المنشورة عبر شبكة الوجهات. يمكنك اختيار رحلات ذهاب فقط أو ذهاب وعودة وإتمام الحجز كمسافر ضيف دون الحاجة لإنشاء حساب."
       },
       "points": [
         {
           "id": "prepare-1",
           "text": {
-            "en": "Arrive at the terminal 2 hours before departure.",
-            "ar": "الوصول إلى المبنى قبل ساعتين من المغادرة."
+            "en": "Search published flight dates and available one-way or round-trip routes.",
+            "ar": "البحث في مواعيد الرحلات المنشورة ومسارات الذهاب أو الذهاب والعودة المتاحة."
           },
           "visible": true
         },
         {
           "id": "prepare-2",
           "text": {
-            "en": "Keep your booking reference available.",
-            "ar": "احتفظ برقم الحجز في متناول يدك."
+            "en": "Complete booking as a guest with your passenger details; email confirmation is queued upon submission.",
+            "ar": "إتمام الحجز كمسافر ضيف بإدخال بيانات الراكب؛ يتم إرسال بريد التأكيد فور إتمام الطلب."
           },
           "visible": true
         },
         {
           "id": "prepare-3",
           "text": {
-            "en": "Confirm document validity for your destination.",
-            "ar": "تأكد من صلاحية وثائقك لمحطة وصولك."
+            "en": "Keep your booking reference code to view, print, or manage your ticket.",
+            "ar": "الاحتفاظ برمز الحجز لاستعراض تذكرتك أو طباعتها أو إدارتها في أي وقت."
           },
           "visible": true
         }
@@ -67,35 +67,35 @@ export const publishedTravel = {
       "id": "documents",
       "visible": true,
       "title": {
-        "en": "Travel documents",
-        "ar": "وثائق السفر"
+        "en": "Passenger details & verification",
+        "ar": "بيانات المسافر والتحقق"
       },
       "body": {
-        "en": "Passengers are responsible for holding valid travel documents and any permits or visas required by the destination and transit countries.",
-        "ar": "يتحمّل المسافر مسؤولية حمل وثائق سفر صالحة وأي تصاريح أو تأشيرات تطلبها دولة الوصول أو العبور."
+        "en": "The reservation form requests passenger name, date of birth, nationality, and a document reference for the booking record. Keep your details accurate for verification.",
+        "ar": "يطلب نموذج الحجز اسم المسافر وتاريخ ميلاده وجنسيته ورقم وثيقة السفر لسجل الحجز. احرص على دقة البيانات للتحقق."
       },
       "points": [
         {
           "id": "documents-1",
           "text": {
-            "en": "Passport valid for at least six months.",
-            "ar": "جواز سفر صالح ستة أشهر على الأقل."
+            "en": "Complete passenger details including name, birth date, nationality, and document reference as shown on the form.",
+            "ar": "استكمال بيانات المسافر بما في ذلك الاسم وتاريخ الميلاد والجنسية ورقم الوثيقة كما يظهر في النموذج."
           },
           "visible": true
         },
         {
           "id": "documents-2",
           "text": {
-            "en": "Names must match the booking exactly.",
-            "ar": "يجب تطابق الأسماء مع الحجز تماماً."
+            "en": "Provide a valid email address to receive booking confirmation and a 6-digit code when managing reservations.",
+            "ar": "توفير عنوان بريد إلكتروني صالح لاستلام تأكيد الحجز ورمز التحقق المكون من 6 أرقام عند إدارة الحجز."
           },
           "visible": true
         },
         {
           "id": "documents-3",
           "text": {
-            "en": "Travelling with children requires additional documents.",
-            "ar": "السفر مع الأطفال يتطلب وثائق إضافية."
+            "en": "Document references are recorded for the booking; keep your details handy when managing reservations.",
+            "ar": "يتم تسجيل أرقام الوثائق في سجل الحجز؛ يُرجى الاحتفاظ ببياناتك عند إدارة الحجز."
           },
           "visible": true
         }
@@ -105,35 +105,35 @@ export const publishedTravel = {
       "id": "baggage",
       "visible": true,
       "title": {
-        "en": "Baggage",
-        "ar": "الأمتعة"
+        "en": "Your ticket & booking reference",
+        "ar": "تذكرتك ورمز الحجز"
       },
       "body": {
-        "en": "Every fare includes one cabin bag up to 7 kg. Checked allowance depends on the fare you choose, and extra bags can be added during booking or in Manage booking.",
-        "ar": "تشمل كل أجرة حقيبة كابينة حتى 7 كغ. يعتمد الوزن المسجّل على الأجرة المختارة، ويمكن إضافة حقائب أثناء الحجز أو من إدارة الحجز."
+        "en": "Confirmed bookings generate a ticket showing passenger details, route, local times, assigned seats, and booking reference. You can print or save your ticket directly using your browser.",
+        "ar": "يُصدر الحجز المؤكد تذكرة توضح بيانات المسافر، المسار، المواعيد المحلية، المقاعد المحددة، ورمز الحجز. يمكنك طباعة تذكرتك أو حفظها مباشرة عبر المتصفح."
       },
       "points": [
         {
           "id": "baggage-1",
           "text": {
-            "en": "Cabin bag: 7 kg, 55 × 40 × 20 cm.",
-            "ar": "حقيبة الكابينة: 7 كغ، 55 × 40 × 20 سم."
+            "en": "Tickets display flight numbers, departure and arrival times, and assigned seat allocations.",
+            "ar": "تعرض التذاكر أرقام الرحلات، مواعيد الإقلاع والوصول، وتفاصيل المقاعد المحددة."
           },
           "visible": true
         },
         {
           "id": "baggage-2",
           "text": {
-            "en": "Checked bag: 23 kg per piece.",
-            "ar": "الحقيبة المسجّلة: 23 كغ للقطعة."
+            "en": "All bookings on this platform are free of charge with zero fees, commercial charges, or paid upgrades.",
+            "ar": "كافة الحجوزات عبر المنصة مجانية بالكامل دون أي رسوم تجارية أو مدفوعات أو ترقيات مدفوعة."
           },
           "visible": true
         },
         {
           "id": "baggage-3",
           "text": {
-            "en": "Extra bag from $35 when added online.",
-            "ar": "حقيبة إضافية من 35 دولاراً عند الإضافة إلكترونياً."
+            "en": "Retrieve, view, or cancel your reservation anytime in Manage booking using your reference code and email.",
+            "ar": "استرجاع الحجز أو استعراضه أو إلغاؤه في أي وقت عبر إدارة الحجز باستخدام رمز الحجز والبريد الإلكتروني."
           },
           "visible": true
         }
@@ -143,35 +143,35 @@ export const publishedTravel = {
       "id": "airport",
       "visible": true,
       "title": {
-        "en": "At the airport",
-        "ar": "في المطار"
+        "en": "Terminal architecture & history",
+        "ar": "عمارة المطار وتاريخه"
       },
       "body": {
-        "en": "The passenger journey through the terminal — check-in, security, passport control, gates and boarding — is described here and will be updated with the operating terminal layout.",
-        "ar": "تُوصف هنا رحلة المسافر داخل المبنى — تسجيل الوصول والتفتيش والجوازات والبوابات والصعود — وستُحدّث وفق مخطط المبنى التشغيلي."
+        "en": "Explore the architectural legacy of Gaza International Airport and visionary terminal concepts.",
+        "ar": "استكشف الإرث المعماري لمطار غزة الدولي والرؤى المفهومية للمبنى."
       },
       "points": [
         {
           "id": "airport-1",
           "text": {
-            "en": "Boarding closes 20 minutes before departure.",
-            "ar": "يُغلق الصعود قبل 20 دقيقة من المغادرة."
+            "en": "Read documented history and timeline chapters on the dedicated Past and Present pages.",
+            "ar": "الاطلاع على التاريخ الموثق وفصول الخط الزمني عبر صفحات الماضي والحاضر المخصصة."
           },
           "visible": true
         },
         {
           "id": "airport-2",
           "text": {
-            "en": "Gate information is shown on the flight board.",
-            "ar": "تظهر معلومات البوابة على لوحة الرحلات."
+            "en": "View future concepts representing architectural visions for Palestinian aviation.",
+            "ar": "استعراض المفاهيم المستقبلية التي تمثل رؤى معمارية للطيران الفلسطيني."
           },
           "visible": true
         },
         {
           "id": "airport-3",
           "text": {
-            "en": "Quiet areas and family rooms are planned.",
-            "ar": "مناطق هادئة وغرف عائلية مخططة."
+            "en": "Discover terminal masterplans, passenger concourses, and historical airport facilities.",
+            "ar": "استكشاف المخططات الرئيسية للمبنى وصالات الركاب ومرافق المطار التاريخية."
           },
           "visible": true
         }
@@ -181,35 +181,35 @@ export const publishedTravel = {
       "id": "accessibility",
       "visible": true,
       "title": {
-        "en": "Accessibility",
-        "ar": "إمكانية الوصول"
+        "en": "Website accessibility & navigation",
+        "ar": "إمكانية الوصول والتصفح"
       },
       "body": {
-        "en": "Special assistance can be requested during booking or up to 48 hours before departure. Our team confirms every request individually.",
-        "ar": "يمكن طلب المساعدة الخاصة أثناء الحجز أو حتى 48 ساعة قبل المغادرة. يؤكد فريقنا كل طلب على حدة."
+        "en": "This website is designed for clear digital reading, with keyboard navigation support, responsive layouts, and full Arabic and English parity.",
+        "ar": "تم تصميم هذا الموقع لضمان وضوح التصفح والقراءة، مع دعم التنقل بلوحة المفاتيح والتوافق مع مختلف الشاشات باللغتين العربية والإنجليزية."
       },
       "points": [
         {
           "id": "accessibility-1",
           "text": {
-            "en": "Wheelchair assistance from kerb to gate.",
-            "ar": "مساعدة بكرسي متحرك من المدخل إلى البوابة."
+            "en": "Full keyboard navigation support with prominent visible focus indicators across all interactive controls.",
+            "ar": "دعم كامل للتنقل عبر لوحة المفاتيح مع مؤشرات تركيز مرئية واضحة لكافة العناصر التفاعلية."
           },
           "visible": true
         },
         {
           "id": "accessibility-2",
           "text": {
-            "en": "Step-free routes throughout the terminal.",
-            "ar": "مسارات بدون درجات في كل المبنى."
+            "en": "Complete bilingual parity with authentic Arabic typography and layout direction.",
+            "ar": "تكافؤ لغوي كامل مع دعم أصيل للغة العربية خطاً وتنسيقاً."
           },
           "visible": true
         },
         {
           "id": "accessibility-3",
           "text": {
-            "en": "Assistance animals accepted with documentation.",
-            "ar": "حيوانات المساندة مقبولة بالوثائق اللازمة."
+            "en": "Pages adapt to standard browser zoom controls and responsive window resizing.",
+            "ar": "تتوافق صفحات الموقع مع خيارات تكبير المتصفح وإعادة ضبط حجم النوافذ بسلاسة."
           },
           "visible": true
         }

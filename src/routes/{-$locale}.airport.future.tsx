@@ -127,10 +127,6 @@ function FuturePage() {
           <p className="mt-4 max-w-2xl text-base leading-relaxed text-ink-muted sm:text-lg">
             {pick(lang, content.copy.subtitle)}
           </p>
-          {/* Single plain disclosure */}
-          <p className="mt-4 text-xs text-ink-muted/90 sm:text-sm font-medium">
-            {t("airport.futurePlainDisclosure")}
-          </p>
         </Container>
       </section>
 
@@ -415,8 +411,8 @@ function FuturePage() {
           </h2>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
             {lang === "ar"
-              ? "تصوّرات إضافية من المالك تُكمل رؤية النهار — جميعها مواد توضيحية مستقبلية."
-              : "Additional owner-provided visualizations complementing the day sequence — all illustrative future concepts."}
+              ? "تصوّرات إضافية من المالك تُكمل رؤية النهار."
+              : "Additional owner-provided visualizations complementing the day sequence."}
           </p>
           <ul className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3" aria-label={lang === "ar" ? "دراسات ليلية وداخلية" : "Night and interior studies"}>
             {nightStudies.map((study) => {

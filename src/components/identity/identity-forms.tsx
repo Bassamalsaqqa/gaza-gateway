@@ -118,7 +118,7 @@ export function PassengerIdentityAuth({ initial = "signin" }: { initial?: Passen
     setReceipt(true); await query.cancelQueries({ queryKey: ["mvp", "reservations"] }); query.removeQueries({ queryKey: ["mvp", "reservations"] }); query.removeQueries({ queryKey: passengerKeys.all });
   };
   return <PassengerAuthShell title={pick(lang, ...titles[flow])}
-    description={flow === "signin" ? pick(lang, "Welcome back. Sign in to view your commemorative bookings.", "مرحباً بعودتك. سجّل الدخول لعرض حجوزاتك التذكارية.")
+    description={flow === "signin" ? pick(lang, "Welcome back. Sign in to view your bookings.", "مرحباً بعودتك. سجّل الدخول لعرض حجوزاتك.")
       : flow === "register" ? pick(lang, "Create your account, then verify your email to start booking.", "أنشئ حسابك ثم أكّد بريدك الإلكتروني لبدء الحجز.")
       : flow === "verify" ? linkToken ? pick(lang, "Your verification link is ready. Confirm below to verify your email.", "رابط التحقق جاهز. أكّد أدناه لتأكيد بريدك الإلكتروني.")
         : pick(lang, "Enter the six-digit code from your email, or open the verification link in the same message.", "أدخل رمز التحقق المكوّن من ٦ أرقام من بريدك أو افتح رابط التحقق في الرسالة نفسها.")

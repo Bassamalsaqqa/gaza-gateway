@@ -69,8 +69,8 @@ export const Route = createFileRoute("/{-$locale}/")({
       },
       image: "/social/gaza-airport.jpg",
       imageAlt: isAr
-        ? "تصور معماري لمطار غزة الدولي — مفهوم مستقبلي توضيحي"
-        : "Aerial architectural concept of the future Gaza International Airport — illustrative future concept.",
+        ? "تصور معماري لمطار غزة الدولي"
+        : "Aerial architectural concept of the future Gaza International Airport.",
       schema: [
         getWebSiteSchema(lang),
         getAirportSchema(lang),
@@ -121,9 +121,6 @@ function Home() {
                 </span>
                 <span className="text-sm font-semibold text-sand/90">
                   {t("brand.airline")}
-                </span>
-                <span className="text-xs font-medium text-clay-soft">
-                  · {isAr ? "مبادرة تذكارية رمزية" : "Symbolic Commemorative Initiative"}
                 </span>
               </div>
 
@@ -365,11 +362,6 @@ function Home() {
                         className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/30 to-transparent" />
-                      {chapter.isFuture && (
-                        <span className="absolute bottom-2.5 end-3 rounded bg-ink/80 px-1.5 py-0.5 font-mono text-[0.65rem] text-ink-muted">
-                          {t("media.conceptShortLabel")}
-                        </span>
-                      )}
                     </div>
 
                     <div

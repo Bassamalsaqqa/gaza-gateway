@@ -1,10 +1,26 @@
 const DAY = 86400000;
 const formatters = new Map();
 const offsets = new Map();
-const CORE = [
+export const CORE = [
   ['AMM', [0,1,2,3,4,5,6], 0, '07:00'], ['CAI', [0,1,2,4,6], 0, '13:00'],
   ['IST', [0,2,4,6], 1, '07:00'], ['JED', [0,3,5], 1, '15:00'],
   ['DOH', [1,3,5], 2, '05:00'], ['DXB', [2,4,6], 2, '05:00'], ['RUH', [1,4,6], 2, '15:00'],
+];
+
+export const EXPANDED = [
+  ['BEY', [0,1,2,4,5], [0,1,2,4,5], '09:30', '11:45', 'a320neo'],
+  ['KWI', [0,1,3,6], [0,1,3,6], '10:30', '15:30', 'b737800'],
+  ['AUH', [0,3,5], [0,3,5], '11:00', '16:30', 'a320neo'],
+  ['ATH', [1,4,6], [1,4,6], '08:30', '12:30', 'a320neo'],
+  ['FCO', [0,2,5], [0,2,5], '09:00', '14:30', 'a320neo'],
+  ['CDG', [1,3,6], [1,3,6], '08:00', '14:00', 'a321neo'],
+  ['LHR', [0,2,4], [0,2,4], '07:30', '13:00', 'a321neo'],
+  ['FRA', [0,3,5], [0,3,5], '08:45', '14:15', 'a320neo'],
+  ['MAD', [1,5], [1,5], '09:15', '15:30', 'a320neo'],
+  ['BOM', [2,6], [2,6], '06:30', '18:15', 'a321neo'],
+  ['KUL', [1,4], [2,5], '19:30', '14:30', 'a321neo'],
+  ['JFK', [0,3], [1,4], '09:30', '18:00', 'a321neo'],
+  ['YYZ', [2,5], [3,6], '09:00', '17:30', 'a321neo'],
 ];
 
 export function addDays(date, days) {
@@ -126,4 +142,109 @@ export function planTimetable({airports,fleet,from,until}) {
     }
   });
   return {schemaVersion:1,classification:'commemorative',schedules,verification:verifyTimetable(schedules,airports)};
+}
+
+export function planExpandedTimetable({airports,fleet,from,until,baseIndex=7}) {
+  if(Date.parse(until)-Date.parse(from)<365*DAY) throw new Error('At least a full year of recurring service is required.');
+  const byCode=airportsByCode(airports); const gza=byCode.get('GZA');
+  const activeFleet=fleet.filter(item=>item.active);
+  if(!activeFleet.length) throw new Error('At least one active approved aircraft is required.');
+  const schedules=[];
+  EXPANDED.forEach(([code,days,inDays,outDepart,inDepart,preferredAircraftId],index)=> {
+    const target=byCode.get(code); if(!target) throw new Error(`Expanded destination authority is missing: ${code}.`);
+    const plane=activeFleet.find(item=>item.id===preferredAircraftId)??activeFleet[0];
+    if(!plane||!plane.model||!plane.id||!plane.active) throw new Error(`Approved active aircraft authority is required for commemorative route ${code}.`);
+    const scheduleIndex=baseIndex+index;
+    const outArrival=localClock(localInstant(from,outDepart,gza.timezone)+target.blockMinutes*60000,target.timezone);
+    schedules.push({id:`memorial-b01-${code.toLowerCase()}-out`,number:`PS ${201+scheduleIndex*2}`,direction:'out',destination:code,
+      days:[...days],departTime:outDepart,arriveTime:outArrival.time,aircraft:plane.model,aircraftId:plane.id,
+      from,until,active:true,exceptions:[]});
+    const inArrival=localClock(localInstant(from,inDepart,target.timezone)+target.blockMinutes*60000,gza.timezone);
+    schedules.push({id:`memorial-b01-${code.toLowerCase()}-in`,number:`PS ${201+scheduleIndex*2+1}`,direction:'in',destination:code,
+      days:[...inDays],departTime:inDepart,arriveTime:inArrival.time,aircraft:plane.model,aircraftId:plane.id,
+      from,until,active:true,exceptions:[]});
+  });
+  return {schemaVersion:1,classification:'commemorative',schedules};
+}
+
+export function verifyNetworkTimetable(schedules,airports) {
+  const byCode=airportsByCode(airports); const gza=byCode.get('GZA');
+  if(!gza) throw new Error('Active GZA authority is required.');
+  if(!schedules||schedules.length===0) throw new Error('At least one schedule is required.');
+  const numbers=new Set(); const ids=new Set(); const destinations=new Set(); const pairs=new Map();
+  let totalLegs=0;
+  for(const schedule of schedules) {
+    if(ids.has(schedule.id)) throw new Error(`Duplicate schedule ID: ${schedule.id}`);
+    ids.add(schedule.id);
+    const num=schedule.number.replace(/\s/g,'');
+    if(numbers.has(num)) throw new Error(`Duplicate flight number: ${schedule.number}`);
+    numbers.add(num);
+    const target=byCode.get(schedule.destination);
+    if(!target) throw new Error(`Schedule destination authority is missing for ${schedule.destination}.`);
+    destinations.add(schedule.destination);
+    const pair=pairs.get(schedule.destination)??{out:false,in:false};
+    if(schedule.direction==='out') pair.out=true;
+    if(schedule.direction==='in') pair.in=true;
+    pairs.set(schedule.destination,pair);
+    const out=schedule.direction==='out';
+    const originZone=out?gza.timezone:target.timezone;
+    const destZone=out?target.timezone:gza.timezone;
+    for(const date of dates(schedule.from,schedule.until)) {
+      const effects=(schedule.exceptions??[]).filter(item=>item.date===date&&item.effect);
+      if(effects.some(item=>item.kind==='cancelled'&&item.effect.cancelled)) continue;
+      const extra=effects.find(item=>item.kind==='extra')?.effect;
+      if(!schedule.days.includes(new Date(date+'T00:00:00Z').getUTCDay())&&!extra) continue;
+      const time=effects.find(item=>item.kind==='time')?.effect;
+      const departTime=time?.departTime??extra?.departTime??schedule.departTime;
+      const depInstant=localInstant(date,departTime,originZone);
+      const arrInstant=depInstant+target.blockMinutes*60000;
+      localClock(arrInstant,destZone);
+      totalLegs++;
+    }
+  }
+  for(const [code,pair] of pairs.entries()) {
+    if(!pair.out||!pair.in) throw new Error(`Destination ${code} lacks bidirectional symmetry.`);
+  }
+  const coreDestCodes=new Set(CORE.map(([c])=>c));
+  let coreLegs=0; let expandedLegs=0;
+  for(const schedule of schedules) {
+    let count=0;
+    for(const date of dates(schedule.from,schedule.until)) {
+      const effects=(schedule.exceptions??[]).filter(item=>item.date===date&&item.effect);
+      if(effects.some(item=>item.kind==='cancelled'&&item.effect.cancelled)) continue;
+      const extra=effects.find(item=>item.kind==='extra')?.effect;
+      if(!schedule.days.includes(new Date(date+'T00:00:00Z').getUTCDay())&&!extra) continue;
+      count++;
+    }
+    if(coreDestCodes.has(schedule.destination)) coreLegs+=count;
+    else expandedLegs+=count;
+  }
+  return {
+    destinationCount:destinations.size,
+    scheduleCount:schedules.length,
+    bidirectionalPairCount:pairs.size,
+    totalLegCount:totalLegs,
+    coreLegCount:coreLegs,
+    expandedLegCount:expandedLegs,
+    destinations:[...destinations],
+    aircraftCount:new Set(schedules.map(s=>s.aircraftId).filter(Boolean)).size,
+    firstDate:schedules[0]?.from,
+    lastDate:schedules[0]?.until,
+  };
+}
+
+export function planFullNetworkTimetable({airports,fleet,from,until}) {
+  const coreResult=planTimetable({airports,fleet,from,until});
+  const expandedResult=planExpandedTimetable({airports,fleet,from,until,baseIndex:7});
+  const allSchedules=[...coreResult.schedules,...expandedResult.schedules];
+  const networkVerification=verifyNetworkTimetable(allSchedules,airports);
+  return {
+    schemaVersion:1,
+    classification:'commemorative',
+    schedules:allSchedules,
+    coreSchedules:coreResult.schedules,
+    expandedSchedules:expandedResult.schedules,
+    verification:coreResult.verification,
+    networkVerification,
+  };
 }

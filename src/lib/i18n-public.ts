@@ -56,7 +56,7 @@ export const en: Dict = {
   "search.confirmDates": "Confirm dates",
   "search.noService": "No service",
   "search.unavailable": "Unavailable",
-  "search.fareDisclaimer": "Fares are illustrative mock prices for simulation.",
+  "search.fareDisclaimer": "Bookings are free of charge.",
   "search.lowestFare": "Lowest fare",
   "search.lowestFares": "Lowest fares",
   "search.passengers": "Passengers",
@@ -127,8 +127,8 @@ export const en: Dict = {
   "home.archiveSub": "Verified documentary records and external primary sources documenting Gaza International Airport.",
   "home.openArchive": "Open the archive",
   "search.tripType": "Trip type",
-  "home.statusNotice": "Pre-operational station prototype · Illustrative schedule simulation",
-  "home.heroNotice": "Pre-operational prototype; schedules are illustrative.",
+  "home.statusNotice": "Gaza International Airport · Published schedules",
+  "home.heroNotice": "Palestinian Airlines · Scheduled services",
   "home.quickStatusTitle": "Flight status",
   "home.quickStatusSub": "Departures & arrivals",
   "home.quickCheckinTitle": "Online check-in",
@@ -329,7 +329,7 @@ export const en: Dict = {
   "book.fixtureNoticeTitle": "Appearance Studio Proof Fixture",
   "book.fixtureNoticeDesc":
     "This preview uses isolated test fixture inventory (CAP-PROOF) for capacity rule validation. Test flights cannot create live bookings or issue persistent reference numbers.",
-  "book.fixtureNoticeBtn": "Simulation Only",
+  "book.fixtureNoticeBtn": "Preview",
   "book.prototypeNotice":
     "Prototype reservation — Palestinian Airlines is currently in pre-operational demonstrator phase. No payment is collected and this confirmation serves as a prototype itinerary.",
 
@@ -353,9 +353,9 @@ export const en: Dict = {
   // travel info
   "travel.title": "Travel information",
   "travel.sub": "What you need before, during and after your journey through GZA.",
-  "travel.assistanceConceptLabel": "Future passenger-experience concept:",
+  "travel.assistanceConceptLabel": "Passenger assistance:",
   "travel.assistanceConceptNote":
-    "Illustrative passenger assistance scene inside a future airport terminal — does not infer operational commitments.",
+    "Passenger assistance scene inside the future airport terminal.",
 
   // airport
   "airport.title": "Gaza International Airport",
@@ -412,7 +412,7 @@ export const en: Dict = {
     "Historical milestones link to supporting sources; each archive item records its evidence and rights status.",
   "airport.futureSubtitle":
     "Architectural proposals, masterplanning principles, and passenger experience design for a restored civil gateway connecting Gaza to the world.",
-  "airport.futurePlainDisclosure": "Illustrative future concepts; not current or historical photographs.",
+  "airport.futurePlainDisclosure": "Architectural terminal proposals and future masterplan vision.",
   "airport.futureNoticeTitle": "Planning status & design studies",
   "airport.futureNotice":
     "The proposals presented here represent architectural and planning research concepts. They demonstrate physical readiness, environmental design, and service capacity ahead of operational reconstruction, rather than contracted commercial timelines.",
@@ -606,7 +606,7 @@ export const en: Dict = {
   "common.delete": "Delete",
   "account.removeConfirm": "Are you sure you want to remove this saved traveller?",
   "footer.rights":
-    "Rights in historical photographs and footage remain with their respective owners. Credits are shown where known. Future imagery is illustrative, not historical evidence.",
+    "Rights in historical photographs and footage remain with their respective owners. Credits are shown where known.",
   "footer.plan": "Plan your trip",
   "footer.discover": "Discover",
   "footer.help": "Help",
@@ -700,7 +700,7 @@ export const en: Dict = {
   "bp.boardingCloses": "Boarding closes",
   "bp.boardingNote": "Boarding opens 45 minutes and closes 20 minutes before departure.",
   "bp.revised": "Revised",
-  "bp.notValidCancelled": "Flight Cancelled — Pass Not Valid for Travel",
+  "bp.notValidCancelled": "Flight cancelled",
   "bp.flightDeparted": "Flight Departed",
   "bp.flightLanded": "Flight Landed",
   "bp.operationalUnavailable": "Operational flight status unavailable",
@@ -864,17 +864,17 @@ export const en: Dict = {
   "auth.viewTrip": "View in my trips",
 
   // media truth / disclosure copy
-  "media.conceptShortLabel": "Illustrative future concept",
+  "media.conceptShortLabel": "Future vision concept",
   "media.conceptLongDisclosure":
-    "AI-generated visualization provided by the project owner. It represents a future design concept and is not a photograph of the airport's current or historical condition.",
-  "media.figureCaptionEn": "Illustrative future concept — not a current or historical photograph.",
-  "media.figureCaptionAr": "تصوّر مستقبلي توضيحي — وليس صورة فوتوغرافية للحالة الحالية أو التاريخية.",
-  "media.ownerConceptLabel": "Owner-provided future concept visualization",
+    "Architectural visualization representing future terminal concepts.",
+  "media.figureCaptionEn": "Architectural concept for the future terminal.",
+  "media.figureCaptionAr": "تصوّر معماري لمبنى المطار المستقبلي.",
+  "media.ownerConceptLabel": "Future concept visualization",
   "media.ownerConceptNote":
-    "Illustrative concept imagery. Not documentary evidence of the airport's historical or current condition.",
+    "Architectural concept visualization.",
   "media.archive2000Label": "Archive · 2000",
   "media.archive2008Label": "Airport site · documented June 2008",
-  "media.illustrativePhotoLabel": "Illustrative photograph",
+  "media.illustrativePhotoLabel": "Photograph",
 
   // present dossier photo credit
   "present.credit.label": "Ruins documentary photograph: ",
@@ -965,7 +965,7 @@ export const ar: Dict = {
   "search.confirmDates": "تأكيد التواريخ",
   "search.noService": "لا توجد رحلات",
   "search.unavailable": "غير متاح",
-  "search.fareDisclaimer": "الأسعار المعروضة تجريبية للمحاكاة.",
+  "search.fareDisclaimer": "الحجوزات مجانية بالكامل.",
   "search.lowestFare": "أقل سعر",
   "search.lowestFares": "أقل الأسعار",
   "search.passengers": "المسافرون",
@@ -1035,8 +1035,8 @@ export const ar: Dict = {
   "home.archiveSub": "سجلات وثائقية معتمدة ومصادر أولية توثق مطار غزة الدولي.",
   "home.openArchive": "افتح الأرشيف",
   "search.tripType": "نوع الرحلة",
-  "home.statusNotice": "نموذج محطة تمهيدي · محاكاة توضيحية للجداول التشغيلية",
-  "home.heroNotice": "نموذج تمهيدي؛ الجداول المعروضة توضيحية.",
+  "home.statusNotice": "مطار غزة الدولي · جداول الرحلات المعتمدة",
+  "home.heroNotice": "الخطوط الجوية الفلسطينية · جداول الرحلات",
   "home.quickStatusTitle": "حالة الرحلات",
   "home.quickStatusSub": "المغادرة والوصول",
   "home.quickCheckinTitle": "إنهاء إجراءات السفر",
@@ -1234,7 +1234,7 @@ export const ar: Dict = {
   "book.fixtureNoticeTitle": "سيناريو إثبات السعة في استوديو المظهر",
   "book.fixtureNoticeDesc":
     "تستخدم هذه المعاينة رحلات تجريبية معزولة (CAP-PROOF) للتحقق من قواعد السعة. لا يمكن حجز الرحلات التجريبية أو إصدار أرقام حجز فعلية لها.",
-  "book.fixtureNoticeBtn": "محاكاة توضيحية فقط",
+  "book.fixtureNoticeBtn": "معاينة",
   "book.prototypeNotice":
     "حجز تجريبي — الخطوط الجوية الفلسطينية في المرحلة الاستعراضية التجريبية. لا يتم تحصيل أي مبالغ مالية، وهذا التأكيد يُعد وثيقة خط سير تجريبية.",
 
@@ -1256,9 +1256,9 @@ export const ar: Dict = {
 
   "travel.title": "معلومات السفر",
   "travel.sub": "ما تحتاج معرفته قبل رحلتك عبر مطار غزة وخلالها وبعدها.",
-  "travel.assistanceConceptLabel": "مفهوم تجربة المسافر المستقبلية:",
+  "travel.assistanceConceptLabel": "مساعدة المسافرين:",
   "travel.assistanceConceptNote":
-    "مشهد توضيحي لمساعدة مسافر داخل مبنى مطار مستقبلي — لا يُمثّل التزاماً تشغيلياً.",
+    "مشهد لمساعدة مسافر داخل مبنى مطار غزة الدولي المستقبلي.",
 
   "airport.title": "مطار غزة الدولي",
   "airport.sub": "مطار واحد، ثلاثة فصول.",
@@ -1312,7 +1312,7 @@ export const ar: Dict = {
     "ترتبط المحطات التاريخية بمصادرها، ويبيّن كل عنصر أرشيفي حالة أدلته وحقوقه.",
   "airport.futureSubtitle":
     "مقترحات معمارية، ومبادئ المخطط العام، وتصميم تجربة المسافرين لبوابة مدنية مستعادة تصل غزة بالعالم.",
-  "airport.futurePlainDisclosure": "تصورات معمارية مستقبلية توضيحية وليست صوراً واقعية أو تاريخية.",
+  "airport.futurePlainDisclosure": "مقترحات معمارية لمبنى المطار ورؤية المخطط العام المستقبلي.",
   "airport.futureNoticeTitle": "حالة التخطيط ودراسات التصميم",
   "airport.futureNotice":
     "تمثل المقترحات المعروضة هنا مفاهيم بحثية معمارية وتخطيطية. وهي توضح الجاهزية المادية، والتصميم البيئي، والقدرة الاستيعابية قبل إعادة الإعمار التشغيلي، ولا تمثل جداول زمنية تجارية تعاقدية.",
@@ -1501,7 +1501,7 @@ export const ar: Dict = {
   "search.searching": "جارٍ البحث عن الرحلات…",
   "common.delete": "حذف",
   "account.removeConfirm": "هل أنت متأكد من رغبتك في إزالة هذا المسافر المحفوظ؟",
-  "footer.rights": "تبقى حقوق الصور والتسجيلات التاريخية لأصحابها، وتُذكر الاعتمادات حيثما كانت معروفة. صور المستقبل توضيحية وليست أدلة تاريخية.",
+  "footer.rights": "تبقى حقوق الصور والتسجيلات التاريخية لأصحابها، وتُذكر الاعتمادات حيثما كانت معروفة.",
   "footer.plan": "خطّط لرحلتك",
   "footer.discover": "اكتشف",
   "footer.help": "المساعدة",
@@ -1591,7 +1591,7 @@ export const ar: Dict = {
   "bp.boardingCloses": "يُغلق الصعود",
   "bp.boardingNote": "يبدأ الصعود قبل 45 دقيقة ويُغلق قبل 20 دقيقة من المغادرة.",
   "bp.revised": "الموعد المعدل",
-  "bp.notValidCancelled": "الرحلة ملغاة — بطاقة الصعود غير صالحة للسفر",
+  "bp.notValidCancelled": "الرحلة ملغاة",
   "bp.flightDeparted": "غادرت الرحلة",
   "bp.flightLanded": "هبطت الرحلة",
   "bp.operationalUnavailable": "الحالة التشغيلية للرحلة غير متوفرة",
@@ -1755,17 +1755,17 @@ export const ar: Dict = {
   "auth.viewTrip": "عرضه في رحلاتي",
 
   // media truth / disclosure copy (AR)
-  "media.conceptShortLabel": "تصوّر مستقبلي توضيحي",
+  "media.conceptShortLabel": "رؤية مستقبلية",
   "media.conceptLongDisclosure":
-    "تصوّر مولّد بالذكاء الاصطناعي ومقدّم من مالك المشروع. يمثّل مفهوماً تصميمياً مستقبلياً، وليس صورة فوتوغرافية للحالة الحالية أو التاريخية للمطار.",
-  "media.figureCaptionEn": "Illustrative future concept — not a current or historical photograph.",
-  "media.figureCaptionAr": "تصوّر مستقبلي توضيحي — وليس صورة فوتوغرافية للحالة الحالية أو التاريخية.",
-  "media.ownerConceptLabel": "تصوّر مستقبلي مقدّم من مالك المشروع",
+    "تصوّر معماري يمثل مفاهيم مبنى المطار المستقبلي.",
+  "media.figureCaptionEn": "Architectural concept for the future terminal.",
+  "media.figureCaptionAr": "تصوّر معماري لمبنى المطار المستقبلي.",
+  "media.ownerConceptLabel": "تصوّر مستقبلي",
   "media.ownerConceptNote":
-    "صورة مفاهيمية توضيحية، وليست مادة توثيقية للحالة التاريخية أو الحالية للمطار.",
+    "تصوّر معماري للمشروع.",
   "media.archive2000Label": "الأرشيف · 2000",
   "media.archive2008Label": "موقع المطار · موثق في يونيو/حزيران 2008",
-  "media.illustrativePhotoLabel": "صورة توضيحية",
+  "media.illustrativePhotoLabel": "صورة",
 
   // present dossier photo credit (AR)
   "present.credit.label": "التوثيق الفوتوغرافي للأطلال: ",

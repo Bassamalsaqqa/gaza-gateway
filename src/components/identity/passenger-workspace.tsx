@@ -108,8 +108,8 @@ export function PassengerIdentityWorkspace() {
                 button={pick(lang, "Revoke session", "إلغاء الجلسة")} />
             </div>)}
           </Panel>
-        </> : <Panel><p>{pick(lang, "This operational account service is not enabled for commemorative bookings. Your booking tickets are available under My bookings.",
-          "هذه الخدمة التشغيلية غير مفعلة للحجوزات التذكارية. تذاكرك متاحة ضمن حجوزاتي.")}</p></Panel>}
+        </> : <Panel><p>{pick(lang, "This service is currently unavailable. Your tickets are accessible under My bookings.",
+          "هذه الخدمة غير متاحة حالياً. تذاكرك متاحة ضمن حجوزاتي.")}</p></Panel>}
       </div>
     </>}
   </Container>;

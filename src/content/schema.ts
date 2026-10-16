@@ -171,7 +171,29 @@ const present = z.object({
   }
 });
 
-const destinationCode = z.enum(["AMM", "CAI", "DOH", "DXB", "IST", "JED", "RUH"]);
+const coreDestinationCodes = ["AMM", "CAI", "DOH", "DXB", "IST", "JED", "RUH"] as const;
+const presentationDestinationCode = z.enum([
+  "AMM",
+  "CAI",
+  "DOH",
+  "DXB",
+  "IST",
+  "JED",
+  "RUH",
+  "AUH",
+  "ATH",
+  "BEY",
+  "FRA",
+  "KUL",
+  "KWI",
+  "LHR",
+  "MAD",
+  "BOM",
+  "JFK",
+  "CDG",
+  "FCO",
+  "YYZ",
+]);
 const destinationPhotoId = z.enum([
   "city-amman",
   "city-cairo",
@@ -180,13 +202,26 @@ const destinationPhotoId = z.enum([
   "city-istanbul",
   "city-jeddah",
   "city-riyadh",
+  "city-abu-dhabi",
+  "city-athens",
+  "city-beirut",
+  "city-frankfurt",
+  "city-kuala-lumpur",
+  "city-kuwait-city",
+  "city-london",
+  "city-madrid",
+  "city-mumbai",
+  "city-new-york",
+  "city-paris",
+  "city-rome",
+  "city-toronto",
 ]);
 const focalPoint = z.object({
   x: z.number().min(0).max(100),
   y: z.number().min(0).max(100),
 }).strict();
 const destinationAssignment = z.object({
-  code: destinationCode,
+  code: presentationDestinationCode,
   photoId: destinationPhotoId,
   focalPoint: focalPoint.optional(),
 }).strict();
@@ -194,13 +229,14 @@ const destinationsPresentation = z.object({
   ...envelope,
   id: z.literal("destinations.presentation"),
   kind: z.literal("destinations.presentation"),
-  assignments: z.array(destinationAssignment).length(7),
+  assignments: z.array(destinationAssignment).min(7).max(20),
 }).strict().refine(
   (doc) =>
     unique(doc.assignments.map((a) => a.code)) &&
-    ["AMM", "CAI", "DOH", "DXB", "IST", "JED", "RUH"].every((code) =>
+    coreDestinationCodes.every((code) =>
       doc.assignments.some((a) => a.code === code)
     ),
+  { message: "Assignments must have unique codes and contain all 7 core destination codes" },
 );
 
 const future = z.object({

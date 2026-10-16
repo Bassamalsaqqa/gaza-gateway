@@ -1,0 +1,37 @@
+﻿[
+    {
+        "path":  "src/assets/media/tickets/architectural-skyline-approximation.svg",
+        "sha256":  "3270ceef78d4e88e7b4c9913841bee01626e8b58153902b05770813a6b1b66ef",
+        "bytes":  2130
+    },
+    {
+        "path":  "src/assets/media/tickets/gaza-palestinian-airlines-logo.png",
+        "sha256":  "b192302988d55561971e2059a749a42fa15205492e6bce7a34acf648e3b0b71b",
+        "bytes":  16871
+    },
+    {
+        "path":  "src/assets/media/tickets/gaza-palestinian-airlines-logo.webp",
+        "sha256":  "228fb7d840b6bb9069f2934c4e0f2c612cb6270c2ab2871ebad0a403f06de0c6",
+        "bytes":  10244
+    },
+    {
+        "path":  "src/assets/media/tickets/low-contrast-geometric-pattern.svg",
+        "sha256":  "bfe3c73da894b9ebb667ab04fa47d37cc34de4624d970d3757031f31e636a229",
+        "bytes":  347
+    },
+    {
+        "path":  "src/assets/media/tickets/olive-branch.svg",
+        "sha256":  "b342eacb8b177616315562ec762a7328ab5705ce9e1d1149c9d317080778e51f",
+        "bytes":  1065
+    },
+    {
+        "path":  "src/assets/media/tickets/olive-branch-footer.svg",
+        "sha256":  "6038e495bcd258e7ecd171e7f2940caeeacfd73d574b0c309bed1e45c3391c82",
+        "bytes":  556
+    },
+    {
+        "path":  "src/assets/media/tickets/terminal-concept-clean.webp",
+        "sha256":  "dea0e7aee41841a401fa38eeba4c4dc452d4cc9aab8064de7c4c111e642ae83e",
+        "bytes":  212766
+    }
+]

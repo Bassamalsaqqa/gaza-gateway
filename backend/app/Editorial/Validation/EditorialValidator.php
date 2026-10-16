@@ -63,9 +63,18 @@ final class EditorialValidator
 
     public const DESTINATION_CODES = ['AMM', 'CAI', 'DOH', 'DXB', 'IST', 'JED', 'RUH'];
 
+    public const PRESENTATION_DESTINATION_CODES = [
+        'AMM', 'CAI', 'DOH', 'DXB', 'IST', 'JED', 'RUH',
+        'AUH', 'ATH', 'BEY', 'FRA', 'KUL', 'KWI', 'LHR',
+        'MAD', 'BOM', 'JFK', 'CDG', 'FCO', 'YYZ',
+    ];
+
     public const DESTINATION_PHOTO_IDS = [
         'city-amman', 'city-cairo', 'city-doha', 'city-dubai',
         'city-istanbul', 'city-jeddah', 'city-riyadh',
+        'city-abu-dhabi', 'city-athens', 'city-beirut', 'city-frankfurt',
+        'city-kuala-lumpur', 'city-kuwait-city', 'city-london', 'city-madrid',
+        'city-mumbai', 'city-new-york', 'city-paris', 'city-rome', 'city-toronto',
     ];
 
     public const HOME_COPY_KEYS = [
@@ -530,8 +539,12 @@ final class EditorialValidator
 
     private function validateDestinationsPresentation(array $payload): void
     {
-        if (!isset($payload['assignments']) || !is_array($payload['assignments']) || count($payload['assignments']) !== 7) {
-            throw new EditorialValidationException("destinations.presentation 'assignments' must have exactly 7 items.");
+        if (!isset($payload['assignments']) || !is_array($payload['assignments'])) {
+            throw new EditorialValidationException("destinations.presentation 'assignments' must be an array.");
+        }
+        $count = count($payload['assignments']);
+        if ($count < 7 || $count > 20) {
+            throw new EditorialValidationException("destinations.presentation 'assignments' must contain between 7 and 20 items.");
         }
         $seen = [];
         foreach ($payload['assignments'] as $i => $item) {
@@ -540,7 +553,7 @@ final class EditorialValidator
             }
             // Closed shape for each assignment
             $this->validateClosedShape($item, self::DEST_ASSIGN_KEYS, "assignments[$i]");
-            if (!in_array($item['code'], self::DESTINATION_CODES, true) || in_array($item['code'], $seen, true)) {
+            if (!in_array($item['code'], self::PRESENTATION_DESTINATION_CODES, true) || in_array($item['code'], $seen, true)) {
                 throw new EditorialValidationException("Invalid or duplicate destination code '{$item['code']}'.");
             }
             $seen[] = $item['code'];
@@ -558,6 +571,13 @@ final class EditorialValidator
                 if (!is_numeric($x) || $x < 0 || $x > 100 || !is_numeric($y) || $y < 0 || $y > 100) {
                     throw new EditorialValidationException("assignments[$i].focalPoint x and y must be between 0 and 100.");
                 }
+            }
+        }
+
+        // All 7 core destination codes are required
+        foreach (self::DESTINATION_CODES as $coreCode) {
+            if (!in_array($coreCode, $seen, true)) {
+                throw new EditorialValidationException("Required core destination code '$coreCode' is missing from assignments.");
             }
         }
     }

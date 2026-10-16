@@ -96,3 +96,17 @@ test("real transport uses passenger CSRF, accepts new/replayed receipts and reje
     assert.equal(calls.length, 2);
   }
 });
+
+test("staff projection accepts genuine guest ownership and bounded guest audit metadata", () => {
+  const d = detail();
+  const guest = { ...d, reservation: { ...d.reservation, ownerUserId: null,
+    audits: [{ id: 1, actorType: "passenger", actorId: crypto.randomUUID(), action: "created",
+      details: { submissionId: crypto.randomUUID(), guest: true }, createdAt: "2026-10-16T00:00:00Z" }] } };
+  assert.equal(adminReservationDetailSchema.safeParse(guest).success, true);
+  assert.equal(reservationDetailSchema.safeParse(guest).success, false);
+  assert.equal(adminReservationDetailSchema.safeParse({ ...guest, reservation: { ...guest.reservation, ownerUserId: "" } }).success, false);
+  const cancel = { ...guest, reservation: { ...guest.reservation, audits: [{ ...guest.reservation.audits[0], action: "cancelled", details: { actor: "guest" } }] } };
+  assert.equal(adminReservationDetailSchema.safeParse(cancel).success, true);
+  cancel.reservation.audits[0]!.details = { actor: "unknown" };
+  assert.equal(adminReservationDetailSchema.safeParse(cancel).success, false);
+});

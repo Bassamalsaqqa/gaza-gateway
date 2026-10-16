@@ -50,7 +50,12 @@ return Application::configure(basePath: dirname(__DIR__))
         };
 
         // Establish a verified realm principal before purpose-specific throttles.
-        foreach ([\App\Mvp\Reservations\RequirePassengerReservationAuth::class, \App\Mvp\Reservations\RequireStaffReservationAuth::class, \App\Mvp\Admin\RequireAdminRead::class] as $auth) {
+        foreach ([
+            \App\Mvp\Reservations\RequirePassengerReservationAuth::class,
+            \App\Mvp\Reservations\RequireGuestReservationSession::class,
+            \App\Mvp\Reservations\RequireStaffReservationAuth::class,
+            \App\Mvp\Admin\RequireAdminRead::class,
+        ] as $auth) {
             $middleware->prependToPriorityList(\Illuminate\Routing\Middleware\ThrottleRequests::class, $auth);
         }
 

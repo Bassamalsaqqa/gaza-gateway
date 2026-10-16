@@ -1,0 +1,873 @@
+{
+  "pipeline": "Gaza Gateway Destination Ingestion v1",
+  "quality": 80,
+  "method": 6,
+  "cities": [
+    {
+      "code": "AUH",
+      "cityEn": "Abu Dhabi",
+      "cityAr": "أبوظبي",
+      "photoId": "city-abu-dhabi",
+      "slug": "abu-dhabi",
+      "inputFile": "Abu-Dhabi.jpg",
+      "inputSha256": "4e24a4091e4127df24bab43000dedac1a538b151c02f49459ba871ceff16d4bf",
+      "inputBytes": 2140154,
+      "rawDimensions": {
+        "width": 5084,
+        "height": 3431
+      },
+      "normalizedDimensions": {
+        "width": 5084,
+        "height": 3431
+      },
+      "focalPoint": {
+        "x": 65,
+        "y": 50
+      },
+      "alt": {
+        "en": "Modern waterfront skyline and towers in Abu Dhabi under daylight sky",
+        "ar": "أفق وأبراج الواجهة البحرية الحديثة في أبوظبي في وضح النهار"
+      },
+      "variants": [
+        {
+          "width": 480,
+          "height": 324,
+          "filename": "abu-dhabi-480.webp",
+          "bytes": 19980,
+          "sha256": "dcd425c904d70cd383e339714d6e765e84a7ebb12ff78f6545e63ef1729fcbcb"
+        },
+        {
+          "width": 800,
+          "height": 540,
+          "filename": "abu-dhabi-800.webp",
+          "bytes": 49276,
+          "sha256": "cc9f271849aab1b7b5db717f7310cccc72b7fc732a9c6f8cf2a2dd8a0a95e19b"
+        },
+        {
+          "width": 1200,
+          "height": 810,
+          "filename": "abu-dhabi-1200.webp",
+          "bytes": 103626,
+          "sha256": "33bc2a0d8c77fad11229c6e84ac02043c2b119887fd1cffc3de3488ea5b35dcf"
+        },
+        {
+          "width": 1600,
+          "height": 1080,
+          "filename": "abu-dhabi-1600.webp",
+          "bytes": 174778,
+          "sha256": "5ad3abf61e46bba97eaefcac6bbfbb2d33e58c76a80ffdeaf15ea733496934f3"
+        },
+        {
+          "width": 1920,
+          "height": 1296,
+          "filename": "abu-dhabi-1920.webp",
+          "bytes": 240636,
+          "sha256": "50144c604b77bdae26c5b7cb9848bab8818eb49c1e6add3ab34d2ed757dff929"
+        }
+      ],
+      "totalOutputBytes": 588296,
+      "savingsBytes": 1551858,
+      "savingsPercent": 72.51
+    },
+    {
+      "code": "ATH",
+      "cityEn": "Athens",
+      "cityAr": "أثينا",
+      "photoId": "city-athens",
+      "slug": "athens",
+      "inputFile": "Athens.jpg",
+      "inputSha256": "858fd245f87398d707e2a32e3ad80410c0b8e9da23dfbbb48c45bf0f3787872a",
+      "inputBytes": 1353391,
+      "rawDimensions": {
+        "width": 3648,
+        "height": 2736
+      },
+      "normalizedDimensions": {
+        "width": 3648,
+        "height": 2736
+      },
+      "focalPoint": {
+        "x": 55,
+        "y": 50
+      },
+      "alt": {
+        "en": "Daylight panoramic view across Athens towards Mount Lycabettus",
+        "ar": "مشهد بانورامي نهاري لمدينة أثينا باتجاه تلة ليكابيتوس"
+      },
+      "variants": [
+        {
+          "width": 480,
+          "height": 360,
+          "filename": "athens-480.webp",
+          "bytes": 28282,
+          "sha256": "2b88afb9b42f62fc78c091a40b16568ac211515e2650f0120b9c64050afe394e"
+        },
+        {
+          "width": 800,
+          "height": 600,
+          "filename": "athens-800.webp",
+          "bytes": 72016,
+          "sha256": "6afdc6250b9f3f641595fcec7bfd869845fb777e8313c3cc7f30fd6029f401c1"
+        },
+        {
+          "width": 1200,
+          "height": 900,
+          "filename": "athens-1200.webp",
+          "bytes": 145162,
+          "sha256": "16b9925459eb38cab53345d9a1db5b61fb19f45367b50a205f59eaa79f4745d0"
+        },
+        {
+          "width": 1600,
+          "height": 1200,
+          "filename": "athens-1600.webp",
+          "bytes": 228802,
+          "sha256": "4e50845f18b05526631f42e0b521565a97ac912c482c91e6bd3d921c3eb685e2"
+        },
+        {
+          "width": 1920,
+          "height": 1440,
+          "filename": "athens-1920.webp",
+          "bytes": 303970,
+          "sha256": "6cf8ce8ae17d0cd77c964c5a6c7c83ae3627dbef9232aa99dfb77af3369d2e88"
+        }
+      ],
+      "totalOutputBytes": 778232,
+      "savingsBytes": 575159,
+      "savingsPercent": 42.5
+    },
+    {
+      "code": "BEY",
+      "cityEn": "Beirut",
+      "cityAr": "بيروت",
+      "photoId": "city-beirut",
+      "slug": "beirut",
+      "inputFile": "Beirut.jpg",
+      "inputSha256": "bb405e2c448d7c64a755cff68604414e84e713a196833e2c8e6de28065a2eada",
+      "inputBytes": 5350033,
+      "rawDimensions": {
+        "width": 8605,
+        "height": 4587
+      },
+      "normalizedDimensions": {
+        "width": 8605,
+        "height": 4587
+      },
+      "focalPoint": {
+        "x": 45,
+        "y": 55
+      },
+      "alt": {
+        "en": "Coastal sea rocks and Mediterranean coastline in Beirut at dusk",
+        "ar": "صخور الروشة والساحل المتوسطي في بيروت عند الغروب"
+      },
+      "variants": [
+        {
+          "width": 480,
+          "height": 256,
+          "filename": "beirut-480.webp",
+          "bytes": 21214,
+          "sha256": "9f12e4a75fcf666034e624ccccc36740d79673f722bb35e0fb3a83769dd8a7aa"
+        },
+        {
+          "width": 800,
+          "height": 426,
+          "filename": "beirut-800.webp",
+          "bytes": 57222,
+          "sha256": "7af9e826f4f74d7920b47516d409216f4a025fd0b03a48b334e28595c0264a1e"
+        },
+        {
+          "width": 1200,
+          "height": 640,
+          "filename": "beirut-1200.webp",
+          "bytes": 125940,
+          "sha256": "735d045b6303011c7a99e9466a4a6be1ff95827a4f8c9cca9e6fd86bc39f328e"
+        },
+        {
+          "width": 1600,
+          "height": 853,
+          "filename": "beirut-1600.webp",
+          "bytes": 221390,
+          "sha256": "1a131267fe17cfb71660fda0e7802061383778634e7df6fbc467840d4b0babcd"
+        },
+        {
+          "width": 1920,
+          "height": 1023,
+          "filename": "beirut-1920.webp",
+          "bytes": 313532,
+          "sha256": "447665c1ba5cc4dd000fc61ddbca15fe8f585fb2925a951f67309b327f7efdf2"
+        }
+      ],
+      "totalOutputBytes": 739298,
+      "savingsBytes": 4610735,
+      "savingsPercent": 86.18
+    },
+    {
+      "code": "FRA",
+      "cityEn": "Frankfurt",
+      "cityAr": "فرانكفورت",
+      "photoId": "city-frankfurt",
+      "slug": "frankfurt",
+      "inputFile": "Frankfurt.jpg",
+      "inputSha256": "f9c427434aac7b3536ac5bb14c6a49a57a9cbd4afebea5bee527255534f64f30",
+      "inputBytes": 2959924,
+      "rawDimensions": {
+        "width": 4928,
+        "height": 3264
+      },
+      "normalizedDimensions": {
+        "width": 4928,
+        "height": 3264
+      },
+      "focalPoint": {
+        "x": 50,
+        "y": 50
+      },
+      "alt": {
+        "en": "River Main and downtown skyline of Frankfurt under daylight",
+        "ar": "نهر الماين وأفق وسط مدينة فرانكفورت نهاراً"
+      },
+      "variants": [
+        {
+          "width": 480,
+          "height": 318,
+          "filename": "frankfurt-480.webp",
+          "bytes": 18394,
+          "sha256": "f3a22d42d584dd26727ae88524f27853d13c1cf4e5671dfb4c928e8a7593fcf3"
+        },
+        {
+          "width": 800,
+          "height": 530,
+          "filename": "frankfurt-800.webp",
+          "bytes": 48000,
+          "sha256": "69dee1e741d2867c2681a29cf124bc842b20400ffc201cacf1070482b1879634"
+        },
+        {
+          "width": 1200,
+          "height": 795,
+          "filename": "frankfurt-1200.webp",
+          "bytes": 109568,
+          "sha256": "07b5e6770d283dd7263bba292672dedbb769817939add55cec96bd22130ccb80"
+        },
+        {
+          "width": 1600,
+          "height": 1060,
+          "filename": "frankfurt-1600.webp",
+          "bytes": 200830,
+          "sha256": "7fa663bdc3951b9d8236d489a7f558ccf2fb2a7a129ed50de5974c941eb9bbf4"
+        },
+        {
+          "width": 1920,
+          "height": 1272,
+          "filename": "frankfurt-1920.webp",
+          "bytes": 293730,
+          "sha256": "55fbb7c0d1f2d6d3b66fabc84bbd24084e0db21fb92980d6dd88b7623bfac400"
+        }
+      ],
+      "totalOutputBytes": 670522,
+      "savingsBytes": 2289402,
+      "savingsPercent": 77.35
+    },
+    {
+      "code": "KUL",
+      "cityEn": "Kuala Lumpur",
+      "cityAr": "كوالالمبور",
+      "photoId": "city-kuala-lumpur",
+      "slug": "kuala-lumpur",
+      "inputFile": "Kuala Lumpur.jpg",
+      "inputSha256": "23ed3c4e71fdded594954c0fb93127711dbc8a3f2dd022516b9bf6349ebca500",
+      "inputBytes": 3140298,
+      "rawDimensions": {
+        "width": 5988,
+        "height": 3992
+      },
+      "normalizedDimensions": {
+        "width": 5988,
+        "height": 3992
+      },
+      "focalPoint": {
+        "x": 50,
+        "y": 45
+      },
+      "alt": {
+        "en": "Petronas Twin Towers and central cityscape of Kuala Lumpur illuminated at night",
+        "ar": "برجا بتروناس التوأم وأفق كوالالمبور مضاءين ليلاً"
+      },
+      "variants": [
+        {
+          "width": 480,
+          "height": 320,
+          "filename": "kuala-lumpur-480.webp",
+          "bytes": 24296,
+          "sha256": "7b3140d01d3da03bbb15c5d5161491e8c427a7df867a5e27baf4e0b81c8cf101"
+        },
+        {
+          "width": 800,
+          "height": 533,
+          "filename": "kuala-lumpur-800.webp",
+          "bytes": 61462,
+          "sha256": "3de764f9864c856d7eb98e7964cf0ecee0f6d9135b4a62169f983a701e58cc84"
+        },
+        {
+          "width": 1200,
+          "height": 800,
+          "filename": "kuala-lumpur-1200.webp",
+          "bytes": 125258,
+          "sha256": "aa5afccdc853d1a1d714f931da07ae411ad3309d30325d19657f61995bdbf24a"
+        },
+        {
+          "width": 1600,
+          "height": 1067,
+          "filename": "kuala-lumpur-1600.webp",
+          "bytes": 204794,
+          "sha256": "134bd8104b4c4c1ff1fe7e4f1e7458c7c470d78d1ad3566a1dead04ac452c7e0"
+        },
+        {
+          "width": 1920,
+          "height": 1280,
+          "filename": "kuala-lumpur-1920.webp",
+          "bytes": 277602,
+          "sha256": "c990eaf42bf225dd6c37a50a0098017bba4b1104da7dbb68d09ccd9b8082aede"
+        }
+      ],
+      "totalOutputBytes": 693412,
+      "savingsBytes": 2446886,
+      "savingsPercent": 77.92
+    },
+    {
+      "code": "KWI",
+      "cityEn": "Kuwait City",
+      "cityAr": "مدينة الكويت",
+      "photoId": "city-kuwait-city",
+      "slug": "kuwait-city",
+      "inputFile": "Kuwait City.jpg",
+      "inputSha256": "51d58015c45448b2cef1220e1dde257c0390102c3a88d07a06cd29e77d1623cb",
+      "inputBytes": 2200468,
+      "rawDimensions": {
+        "width": 5789,
+        "height": 3737
+      },
+      "normalizedDimensions": {
+        "width": 5789,
+        "height": 3737
+      },
+      "focalPoint": {
+        "x": 55,
+        "y": 45
+      },
+      "alt": {
+        "en": "Waterfront skyline of Kuwait City with Liberation Tower and minaret in daylight",
+        "ar": "أفق الواجهة البحرية لمدينة الكويت مع برج التحرير ومئذنة المسجد نهاراً"
+      },
+      "variants": [
+        {
+          "width": 480,
+          "height": 310,
+          "filename": "kuwait-city-480.webp",
+          "bytes": 20080,
+          "sha256": "9459be9c321bf5c30a412604524f89d3030cbab2f80226c5a5cba0a1dfb985db"
+        },
+        {
+          "width": 800,
+          "height": 516,
+          "filename": "kuwait-city-800.webp",
+          "bytes": 49118,
+          "sha256": "14aacd93116f4e79b20e0639260ebf905e74614d6b388658cd3a6389847257c8"
+        },
+        {
+          "width": 1200,
+          "height": 775,
+          "filename": "kuwait-city-1200.webp",
+          "bytes": 102898,
+          "sha256": "3920aeed8e6056146814f2a639900cd5ec9210e7ee86b5854d2f96aa04c24898"
+        },
+        {
+          "width": 1600,
+          "height": 1033,
+          "filename": "kuwait-city-1600.webp",
+          "bytes": 168448,
+          "sha256": "16e214952ce5f22c2f8edf5f67c689eb212f6fe8b884da666b0db5f367a960ba"
+        },
+        {
+          "width": 1920,
+          "height": 1239,
+          "filename": "kuwait-city-1920.webp",
+          "bytes": 228806,
+          "sha256": "62d96c9191928a3ca6caf56ef1a08bc230c365c7fe071bfc7109e6b2a27e87c3"
+        }
+      ],
+      "totalOutputBytes": 569350,
+      "savingsBytes": 1631118,
+      "savingsPercent": 74.13
+    },
+    {
+      "code": "LHR",
+      "cityEn": "London",
+      "cityAr": "لندن",
+      "photoId": "city-london",
+      "slug": "london",
+      "inputFile": "London.jpg",
+      "inputSha256": "c2192afc470239eb16c2cd6eb0cee1ae32596fb960ede5b115d44741e2047365",
+      "inputBytes": 2380713,
+      "rawDimensions": {
+        "width": 5184,
+        "height": 3456
+      },
+      "normalizedDimensions": {
+        "width": 5184,
+        "height": 3456
+      },
+      "focalPoint": {
+        "x": 60,
+        "y": 50
+      },
+      "alt": {
+        "en": "River Thames, Westminster Bridge and the Palace of Westminster in London",
+        "ar": "نهر التايمز وجسر وستمنستر وقصر وستمنستر في لندن"
+      },
+      "variants": [
+        {
+          "width": 480,
+          "height": 320,
+          "filename": "london-480.webp",
+          "bytes": 22670,
+          "sha256": "22995b98111ec7081c8be4bc64c57f3668bfcfdbcc43622d453f419a691cb462"
+        },
+        {
+          "width": 800,
+          "height": 533,
+          "filename": "london-800.webp",
+          "bytes": 60926,
+          "sha256": "2a97cf92069a72be28ea3e4b9ece6b5057f07ce69992328edd032100dac771cd"
+        },
+        {
+          "width": 1200,
+          "height": 800,
+          "filename": "london-1200.webp",
+          "bytes": 131614,
+          "sha256": "3f0ea14e87daea3786a36ca1b8daf8dc1eedc6dd634647458c6597269bafd97a"
+        },
+        {
+          "width": 1600,
+          "height": 1067,
+          "filename": "london-1600.webp",
+          "bytes": 226020,
+          "sha256": "6b4835dc05eb18b1fd5515266293fe0da1ffba8056608b7d0b3bc95276bf252f"
+        },
+        {
+          "width": 1920,
+          "height": 1280,
+          "filename": "london-1920.webp",
+          "bytes": 312276,
+          "sha256": "209a4a4a75d26e062fc11685147943df6dba18f3db5742b4e096a5156169d30d"
+        }
+      ],
+      "totalOutputBytes": 753506,
+      "savingsBytes": 1627207,
+      "savingsPercent": 68.35
+    },
+    {
+      "code": "MAD",
+      "cityEn": "Madrid",
+      "cityAr": "مدريد",
+      "photoId": "city-madrid",
+      "slug": "madrid",
+      "inputFile": "Madrid.jpg",
+      "inputSha256": "d769e5b3bacc68b15121dd56ee0e0bd1302987ab4ce6e88a46552a138a840cf5",
+      "inputBytes": 4084934,
+      "rawDimensions": {
+        "width": 8256,
+        "height": 5504
+      },
+      "normalizedDimensions": {
+        "width": 8256,
+        "height": 5504
+      },
+      "focalPoint": {
+        "x": 50,
+        "y": 50
+      },
+      "alt": {
+        "en": "Cityscape of Madrid featuring Cybele Palace under daylight sky",
+        "ar": "مشهد حضري لمدينة مدريد يبرز قصر سيبيليس نهاراً"
+      },
+      "variants": [
+        {
+          "width": 480,
+          "height": 320,
+          "filename": "madrid-480.webp",
+          "bytes": 23800,
+          "sha256": "98a14e5c00fdc452a78f5d7c32de858cc15045809aa4463b6921a81a8f077c63"
+        },
+        {
+          "width": 800,
+          "height": 533,
+          "filename": "madrid-800.webp",
+          "bytes": 57246,
+          "sha256": "db66512501f844bcc5713a074cb02cd8ea6aa117d3e1dc84da88ab3e1dd0f8c0"
+        },
+        {
+          "width": 1200,
+          "height": 800,
+          "filename": "madrid-1200.webp",
+          "bytes": 111878,
+          "sha256": "7835dd36e1808dfb38b9eeca9e1093a3534e81a5325e0d6786fc3d0dd6bbbe9c"
+        },
+        {
+          "width": 1600,
+          "height": 1067,
+          "filename": "madrid-1600.webp",
+          "bytes": 181248,
+          "sha256": "d4e1c1a8e16c838659758ba373be97a7447642660bf669a33d2df83375bf6be2"
+        },
+        {
+          "width": 1920,
+          "height": 1280,
+          "filename": "madrid-1920.webp",
+          "bytes": 241782,
+          "sha256": "ec2a932a761e5589f91c611e9f77aaf2a4d8649bb9f4c323909ba2974f1173b6"
+        }
+      ],
+      "totalOutputBytes": 615954,
+      "savingsBytes": 3468980,
+      "savingsPercent": 84.92
+    },
+    {
+      "code": "BOM",
+      "cityEn": "Mumbai",
+      "cityAr": "مومباي",
+      "photoId": "city-mumbai",
+      "slug": "mumbai",
+      "inputFile": "Mumbai.jpg",
+      "inputSha256": "7d552d55d51303c2cba1b749427b194513b402a90160ba4a9ed0ee66b3373673",
+      "inputBytes": 5238754,
+      "rawDimensions": {
+        "width": 6000,
+        "height": 4000
+      },
+      "normalizedDimensions": {
+        "width": 6000,
+        "height": 4000
+      },
+      "focalPoint": {
+        "x": 50,
+        "y": 40
+      },
+      "alt": {
+        "en": "Gateway of India monument in Mumbai with visitors in the plaza",
+        "ar": "نصب بوابة الهند في مومباي مع الزوار في الساحة"
+      },
+      "variants": [
+        {
+          "width": 480,
+          "height": 320,
+          "filename": "mumbai-480.webp",
+          "bytes": 21996,
+          "sha256": "89c61781f75959e99d84e4cd3410e6df0ebbc938c66ca6ca361ee36d59900917"
+        },
+        {
+          "width": 800,
+          "height": 533,
+          "filename": "mumbai-800.webp",
+          "bytes": 53064,
+          "sha256": "600813ca6d683c554cffdd1c8153a437e59f536330ab59684a13ee0cd267c364"
+        },
+        {
+          "width": 1200,
+          "height": 800,
+          "filename": "mumbai-1200.webp",
+          "bytes": 106272,
+          "sha256": "50c7ce6acc6cac92cc5d67727dacfd73a1fc3c4db53c1de06f54b9418a5aa5c5"
+        },
+        {
+          "width": 1600,
+          "height": 1067,
+          "filename": "mumbai-1600.webp",
+          "bytes": 196562,
+          "sha256": "7f201bac14599d3e1acc20613ab6b34158e9df35123c6e9baefd83715a16f5f8"
+        },
+        {
+          "width": 1920,
+          "height": 1280,
+          "filename": "mumbai-1920.webp",
+          "bytes": 324192,
+          "sha256": "0bcaf0a7878850b7243bec6d789d1a57b1863f2ccabbfe190b45d9f195c8b87f"
+        }
+      ],
+      "totalOutputBytes": 702086,
+      "savingsBytes": 4536668,
+      "savingsPercent": 86.6
+    },
+    {
+      "code": "JFK",
+      "cityEn": "New York",
+      "cityAr": "نيويورك",
+      "photoId": "city-new-york",
+      "slug": "new-york",
+      "inputFile": "New York.jpg",
+      "inputSha256": "09dd8b77c40544c8e3cabb5a3f936251a3c37fa2388e4e1b3c35f991a6cfd6ac",
+      "inputBytes": 5343643,
+      "rawDimensions": {
+        "width": 7952,
+        "height": 5071
+      },
+      "normalizedDimensions": {
+        "width": 7952,
+        "height": 5071
+      },
+      "focalPoint": {
+        "x": 50,
+        "y": 45
+      },
+      "alt": {
+        "en": "Aerial view over Midtown Manhattan overlooking Central Park in daylight",
+        "ar": "مشهد جوي لأبراج وسط مانهاتن وحديقة سنترال بارك في نيويورك نهاراً"
+      },
+      "variants": [
+        {
+          "width": 480,
+          "height": 306,
+          "filename": "new-york-480.webp",
+          "bytes": 31894,
+          "sha256": "c1bef016425562ffa884a6ac0086fcff2b2fbf4e2ff977dd2e1b80b44ab7e01b"
+        },
+        {
+          "width": 800,
+          "height": 510,
+          "filename": "new-york-800.webp",
+          "bytes": 81050,
+          "sha256": "c2f57f38617f401aa18a5694f49ca5be33491dfe3245b2786d731532cd23e79e"
+        },
+        {
+          "width": 1200,
+          "height": 765,
+          "filename": "new-york-1200.webp",
+          "bytes": 166444,
+          "sha256": "dcbd19574d1bb0de699ef96cd41d9e2939e2f337baa7a19e8933da67a22f5e7f"
+        },
+        {
+          "width": 1600,
+          "height": 1020,
+          "filename": "new-york-1600.webp",
+          "bytes": 268954,
+          "sha256": "53ed7485d283d266b0e2b80dda7d72211f2c89a8d743f4701d1e8b75b084825c"
+        },
+        {
+          "width": 1920,
+          "height": 1224,
+          "filename": "new-york-1920.webp",
+          "bytes": 360462,
+          "sha256": "2c94104c2f40dfedf8865f2c18814f8447c28817d1370d924febf2e6705e3855"
+        }
+      ],
+      "totalOutputBytes": 908804,
+      "savingsBytes": 4434839,
+      "savingsPercent": 82.99
+    },
+    {
+      "code": "CDG",
+      "cityEn": "Paris",
+      "cityAr": "باريس",
+      "photoId": "city-paris",
+      "slug": "paris",
+      "inputFile": "Paris.jpg",
+      "inputSha256": "172eb4b508c96b94bd164c1c638fad55c085b8886a742e0fcc62448566b5076f",
+      "inputBytes": 1646816,
+      "rawDimensions": {
+        "width": 4731,
+        "height": 3154
+      },
+      "normalizedDimensions": {
+        "width": 4731,
+        "height": 3154
+      },
+      "focalPoint": {
+        "x": 60,
+        "y": 50
+      },
+      "alt": {
+        "en": "Parisian rooftops and classical architecture with the Eiffel Tower in the distance",
+        "ar": "أسطح باريس والعمارة الكلاسيكية مع برج إيفل في الأفق"
+      },
+      "variants": [
+        {
+          "width": 480,
+          "height": 320,
+          "filename": "paris-480.webp",
+          "bytes": 23686,
+          "sha256": "48c7d0c0d99f781240b2f413564c144ebd1e010300dce3dc5aba54c87c9cd141"
+        },
+        {
+          "width": 800,
+          "height": 533,
+          "filename": "paris-800.webp",
+          "bytes": 59004,
+          "sha256": "3b45ae3bb80985e5730a4b7f95d5c382a6dcb8aa400fa79936be4193ae79b899"
+        },
+        {
+          "width": 1200,
+          "height": 800,
+          "filename": "paris-1200.webp",
+          "bytes": 117398,
+          "sha256": "0421813c73a8b7f0659f64a9d0b3dcc0c22a8b8c9fccb8e62554c0c004d6b697"
+        },
+        {
+          "width": 1600,
+          "height": 1067,
+          "filename": "paris-1600.webp",
+          "bytes": 192026,
+          "sha256": "8673dfca9b03d84afe76ff19de4a5c21fa3dca06f6a3b58dd04c622799013b34"
+        },
+        {
+          "width": 1920,
+          "height": 1280,
+          "filename": "paris-1920.webp",
+          "bytes": 259104,
+          "sha256": "27a38dc1723dfb084bca8bed902551a32f739e70c4ec6145fb8470024a5305e7"
+        }
+      ],
+      "totalOutputBytes": 651218,
+      "savingsBytes": 995598,
+      "savingsPercent": 60.46
+    },
+    {
+      "code": "FCO",
+      "cityEn": "Rome",
+      "cityAr": "روما",
+      "photoId": "city-rome",
+      "slug": "rome",
+      "inputFile": "Rome.jpg",
+      "inputSha256": "e2ff3f22dd60611765f5c1738b3f52b6cf962b3d7c02b5a8021d7ea54e0442b0",
+      "inputBytes": 6933894,
+      "rawDimensions": {
+        "width": 7008,
+        "height": 4672
+      },
+      "normalizedDimensions": {
+        "width": 7008,
+        "height": 4672
+      },
+      "focalPoint": {
+        "x": 50,
+        "y": 40
+      },
+      "alt": {
+        "en": "The Colosseum in Rome bathed in warm afternoon sunlight",
+        "ar": "الكولوسيوم في روما في ضوء شمس بعد الظهيرة الدافئ"
+      },
+      "variants": [
+        {
+          "width": 480,
+          "height": 320,
+          "filename": "rome-480.webp",
+          "bytes": 30270,
+          "sha256": "1842f438e5ffa97188bf81a662492a1488688ef5ce0d4b181124ec0941937fe5"
+        },
+        {
+          "width": 800,
+          "height": 533,
+          "filename": "rome-800.webp",
+          "bytes": 75196,
+          "sha256": "da5e7dec865d8c7b814ceb0d5ad6766064df405b5e83a4763b31db50b8615fc2"
+        },
+        {
+          "width": 1200,
+          "height": 800,
+          "filename": "rome-1200.webp",
+          "bytes": 158400,
+          "sha256": "4dc62ec9a028bc9cfe597466f509c406eb4bc1dcd1cae31ec6ee2e961fc53f30"
+        },
+        {
+          "width": 1600,
+          "height": 1067,
+          "filename": "rome-1600.webp",
+          "bytes": 282744,
+          "sha256": "d9340b09e98237a457599518c5bd77fb6d674668d5d0fdf7bb857e6a0ebb47d9"
+        },
+        {
+          "width": 1920,
+          "height": 1280,
+          "filename": "rome-1920.webp",
+          "bytes": 419654,
+          "sha256": "31d762a85c4075a3da9ec8bf42b795826b1d73072c73c67db902d2bf8cfd8491"
+        }
+      ],
+      "totalOutputBytes": 966264,
+      "savingsBytes": 5967630,
+      "savingsPercent": 86.06
+    },
+    {
+      "code": "YYZ",
+      "cityEn": "Toronto",
+      "cityAr": "تورونتو",
+      "photoId": "city-toronto",
+      "slug": "toronto",
+      "inputFile": "Toronto.jpg",
+      "inputSha256": "bba45d396c1ddff23dd2236e957384bc2be37f986f126dfbcc06b3972135a584",
+      "inputBytes": 4171819,
+      "rawDimensions": {
+        "width": 5851,
+        "height": 3901
+      },
+      "normalizedDimensions": {
+        "width": 5851,
+        "height": 3901
+      },
+      "focalPoint": {
+        "x": 50,
+        "y": 52
+      },
+      "alt": {
+        "en": "Panoramic skyline of Toronto and the CN Tower across Lake Ontario",
+        "ar": "أفق مدينة تورونتو وبرج سي إن عبر بحيرة أونتاريو نهاراً"
+      },
+      "variants": [
+        {
+          "width": 480,
+          "height": 320,
+          "filename": "toronto-480.webp",
+          "bytes": 16698,
+          "sha256": "aa0b8114f85ed76d098be2e7079c45033c73382e901cce0b0e09e2e54c43b105"
+        },
+        {
+          "width": 800,
+          "height": 533,
+          "filename": "toronto-800.webp",
+          "bytes": 40854,
+          "sha256": "4c1898f3f09d61fa443c7e51c48a8556ee6fee65828080dd1ae9d95d21f3aca8"
+        },
+        {
+          "width": 1200,
+          "height": 800,
+          "filename": "toronto-1200.webp",
+          "bytes": 83740,
+          "sha256": "da1849e1a3480f68e9158b26a87627364358cd6dd94a527ceebaa58f2cd840cd"
+        },
+        {
+          "width": 1600,
+          "height": 1067,
+          "filename": "toronto-1600.webp",
+          "bytes": 145976,
+          "sha256": "69ad07bf1b595890f1dfcee1a615694f4d964b76c5109b0c3bc9d613319b5214"
+        },
+        {
+          "width": 1920,
+          "height": 1280,
+          "filename": "toronto-1920.webp",
+          "bytes": 206742,
+          "sha256": "1b99f731f77155b8ff11a0d736af23049f6eb5332045e0e4e9fa956439f6c330"
+        }
+      ],
+      "totalOutputBytes": 494010,
+      "savingsBytes": 3677809,
+      "savingsPercent": 88.16
+    }
+  ],
+  "summary": {
+    "cityCount": 13,
+    "totalVariants": 65,
+    "totalInputBytes": 46944841,
+    "totalOutputBytes": 9130952,
+    "totalSavingsBytes": 37813889,
+    "totalSavingsPercent": 80.55
+  }
+}

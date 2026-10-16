@@ -163,11 +163,6 @@ function AirportPage() {
                         <span>·</span>
                         <span>{t(ch.tagKey)}</span>
                       </span>
-                      {ch.isFuture && (
-                        <span className="text-[11px] text-clay-soft/90 font-mono">
-                          {t("media.conceptShortLabel")}
-                        </span>
-                      )}
                     </div>
                   </div>
 

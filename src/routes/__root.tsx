@@ -131,7 +131,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         property: "og:image:alt",
         content:
-          "Aerial architectural concept of the future Gaza International Airport — illustrative future concept.",
+          "Aerial architectural concept of the future Gaza International Airport.",
       },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:image", content: "/social/gaza-airport.jpg" },

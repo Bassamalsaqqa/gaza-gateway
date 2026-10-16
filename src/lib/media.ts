@@ -484,8 +484,8 @@ export const MEDIA: Record<ApprovedMediaId, MediaEntry> = {
       { src: assistance1376, width: 1376, height: 768 },
     ],
     truthClass: "future-concept-ai",
-    altEn: "Illustrative passenger assistance scene inside a future airport terminal.",
-    altAr: "مشهد توضيحي لمساعدة مسافر داخل مبنى مطار مستقبلي.",
+    altEn: "Passenger assistance scene inside the future airport terminal.",
+    altAr: "مشهد لمساعدة مسافر داخل مبنى مطار غزة الدولي المستقبلي.",
   },
 
   "logo": {

@@ -28,11 +28,11 @@ describe('Twenty-destination memorial network compatibility', () => {
     assert.ok(networkStorageSchema.safeParse(expanded).success);
     assert.equal(networkStorageSchema.safeParse({...expanded,destinations:[...expanded.destinations,fixture('BEY')]}).success,false);
   });
-  it('rejects invalid durations and preserves only seven genuine photo catalog entries', () => {
+  it('rejects invalid durations and admits all twenty genuine photo catalog entries', () => {
     for (const duration of [20,600,750,1440]) assert.ok(airportWireSchema.safeParse(fixture('JFK',duration)).success);
     for (const duration of [19,1441,NaN,Infinity]) assert.equal(airportWireSchema.safeParse(fixture('JFK',duration)).success,false);
-    assert.equal(APPROVED_DESTINATION_PHOTO_IDS.length,7);
-    assert.equal(Object.keys(DESTINATION_PHOTO_METADATA).length,7);
-    assert.equal(Object.values(DESTINATION_PHOTO_METADATA).some(photo=>photo.cityCode==='JFK'),false);
+    assert.equal(APPROVED_DESTINATION_PHOTO_IDS.length,20);
+    assert.equal(Object.keys(DESTINATION_PHOTO_METADATA).length,20);
+    assert.equal(Object.values(DESTINATION_PHOTO_METADATA).some(photo=>photo.cityCode==='JFK'),true);
   });
 });

@@ -42,11 +42,14 @@ export const reservationDetailSchema = z.object({ reservation: z.object({ id: z.
   });
 const audit = z.object({ id: z.number().int().positive(), actorType: z.enum(["passenger", "staff"]), actorId: z.string().uuid(),
   action: z.enum(["created", "cancelled"]), details: z.union([
-    z.object({ submissionId: z.string().uuid() }).strict(), z.object({ actor: z.literal("owner") }).strict(),
+    z.object({ submissionId: z.string().uuid() }).strict(),
+    z.object({ submissionId: z.string().uuid(), guest: z.literal(true) }).strict(),
+    z.object({ actor: z.literal("owner") }).strict(),
+    z.object({ actor: z.literal("guest") }).strict(),
     z.object({ role: z.enum(["admin", "editor", "viewer"]) }).strict(),
   ]), createdAt: z.string().min(1) }).strict();
 export const adminReservationDetailSchema = z.object({
-  reservation: reservationDetailSchema.innerType().shape.reservation.extend({ ownerUserId: z.string().uuid(), audits: z.array(audit) }), ticket,
+  reservation: reservationDetailSchema.innerType().shape.reservation.extend({ ownerUserId: z.string().uuid().nullable(), audits: z.array(audit) }), ticket,
 }).strict().superRefine((data, ctx) => {
   const { ownerUserId: _owner, audits: _audits, ...reservation } = data.reservation;
   const checked = reservationDetailSchema.safeParse({ reservation, ticket: data.ticket });
@@ -56,7 +59,7 @@ const summaryFields = { id: z.string().uuid(), reference: ref, status, serviceId
   originCode: z.string(), destinationCode: z.string(), passengerCount: z.number().int().min(1).max(9), createdAt: z.string().min(1) };
 const pagination = z.object({ page: z.number().int().positive(), limit: z.number().int().min(1).max(50), total: z.number().int().nonnegative(), totalPages: z.number().int().nonnegative() }).strict();
 const listSchema = z.object({ items: z.array(z.object(summaryFields).strict()), pagination }).strict();
-const adminListSchema = z.object({ items: z.array(z.object({ ...summaryFields, ownerUserId: z.string().uuid(), contactEmail: z.string().email() }).strict()), pagination }).strict();
+const adminListSchema = z.object({ items: z.array(z.object({ ...summaryFields, ownerUserId: z.string().uuid().nullable(), contactEmail: z.string().email() }).strict()), pagination }).strict();
 export const occupancySchema = z.object({ serviceId: service, layout: offeringLayoutSchema, occupiedSeats: z.array(seat) }).strict().superRefine((data, ctx) => {
   if (new Set(data.occupiedSeats).size !== data.occupiedSeats.length || data.occupiedSeats.some(code => !seatExists(data.layout, code)))
     ctx.addIssue({ code: "custom", message: "Invalid occupancy projection." });

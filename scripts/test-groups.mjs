@@ -4,12 +4,13 @@ export const unitGroups = Object.freeze({
     "booking-rules", "booking-draft-repository", "boarding-pass", "draft-recovery", "repositories", "sellable-service-matrix",
     "phase5c-manage-checkin-boarding-pass", "phase6a-admin-commercial-desk", "phase6a-correction", "phase6a-correction-02",
     "fleet-booking-snapshots", "fleet-occupancy-collision", "dated-service-cutover", "dated-service-cutover-correction-01", "commercial-catalog",
+    "offering-search", "guest-reservation-client", "trip-reservation-client", "ticket-presentation",
   ],
   operations: [
     "dated-service-foundation", "dated-service-corrections", "dated-service-cutover", "dated-service-cutover-correction-01",
     "flight-identity-regression", "legacy-freeze-baseline", "fleet-repository", "fleet-source-guards", "fleet-independent-review-01", "network-frontend-expansion", "memorial-timetable", "memorial-curation", "offering-local-time-contract",
-    "fleet-correction-01", "fleet-booking-snapshots", "fleet-occupancy-collision", "network-repository", "phase6b1-schedules",
-    "phase6b1-correction-01", "sellable-service-matrix", "repositories", "commercial-catalog",
+    "memorial-expanded-timetable", "fleet-correction-01", "fleet-booking-snapshots", "fleet-occupancy-collision", "network-repository", "phase6b1-schedules",
+    "phase6b1-correction-01", "sellable-service-matrix", "repositories", "commercial-catalog", "offering-search",
   ],
   passenger: ["passenger-repository", "booking-draft-repository", "draft-recovery", "customer-directory", "phase5c-manage-checkin-boarding-pass"],
   admin: [
@@ -19,9 +20,9 @@ export const unitGroups = Object.freeze({
   ],
   content: ["content", "content-storage", "content-inventory", "content-domains", "content-commands", "cms-website-editor", "cms-translations", "cms-edit-session", "phase7-content-boundaries"],
   archive: ["archive-foundation", "archive-drafts", "archive-admin-editor", "archive-admin-catalog", "phase7b-boundaries"],
-  ui: ["admin-activity-presentation", "surface-grammar", "studio-protocol", "public-media", "destination-media", "i18n-parity", "format", "phase9-translations", "network-status", "cms-translations", "seo-metadata"],
+  ui: ["travel-guide", "ticket-presentation", "admin-activity-presentation", "surface-grammar", "studio-protocol", "public-media", "destination-media", "i18n-parity", "format", "phase9-translations", "network-status", "cms-translations", "seo-metadata"],
   contracts: ["backend-contracts", "backend-identity-contracts", "backend-foundation-contracts"],
   cinematic: ["cinematic-components", "cinematic-manifest", "cinematic-mobile-viewport"],
-  api: ["system-api-client", "identity-api-client", "identity-ui-boundary", "staff-access-link", "shared-hosting-runtime-client", "mvp-api-client", "w1-admin-fleet", "mvp-reference-clients", "mvp-cms-client", "mvp-reservation-client", "mvp-gallery-client"],
+  api: ["guest-reservation-client", "trip-reservation-client", "system-api-client", "identity-api-client", "identity-ui-boundary", "staff-access-link", "shared-hosting-runtime-client", "mvp-api-client", "w1-admin-fleet", "mvp-reference-clients", "mvp-cms-client", "mvp-reservation-client", "mvp-gallery-client"],
   tooling: [],
 });

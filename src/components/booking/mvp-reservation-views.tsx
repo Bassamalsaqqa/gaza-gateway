@@ -1,4 +1,5 @@
 import { BookingEmailStatus } from "./mvp-booking-email";
+import { CommemorativeTicket } from "./commemorative-ticket";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AppLink } from "@/components/app-link";
@@ -73,25 +74,12 @@ export function ReservationView({ reference, staff = false }: { reference: strin
   </section>;
 }
 
-export function ConfirmedReservationTicket({ data }: { data: ReservationDetail }) {
-  const { lang } = useI18n(); const ar = lang === "ar"; const { reservation, ticket } = data;
-  return <div id="mvp-reservation-ticket" className="space-y-5">
-    <style>{"@media print { body * { visibility:hidden } #mvp-reservation-ticket, #mvp-reservation-ticket * { visibility:visible } #mvp-reservation-ticket { position:absolute; inset:0; padding:16px; } #mvp-reservation-ticket article { break-inside:avoid; } #mvp-reservation-ticket [data-ticket-heading] { background:transparent !important; color:var(--foreground) !important; border-bottom:1px solid var(--border); } }"}</style>
-    {ticket.tickets.map(item => <article key={item.ticketNumber} className="overflow-hidden rounded-2xl border border-border bg-card">
-      <div data-ticket-heading className="flex flex-wrap items-center justify-between gap-4 bg-brand px-6 py-5 text-primary-foreground">
-        <div><p className="font-display text-xl font-bold">{ar ? "مطار غزة الدولي" : "Gaza International Airport"}</p><p className="mt-1 text-sm">{ar ? "الخطوط الجوية الفلسطينية" : "Palestinian Airlines"}</p><p className="mt-1 text-sm">{ar ? "تذكرة الحجز" : "Booking ticket"}</p></div>
-        <div><Code>{reservation.reference}</Code><p className="mt-1 text-sm">{reservation.status === "confirmed" ? (ar ? "مؤكد" : "Confirmed") : (ar ? "ملغى" : "Cancelled")}</p></div>
-      </div>
-      <div className="grid gap-5 p-6 sm:grid-cols-2">
-        <div><p className="text-sm text-muted-foreground">{ar ? "المسافر" : "Passenger"}</p><h2 className="mt-1 text-xl font-semibold">{item.passenger.firstName} {item.passenger.lastName}</h2>
-          <p className="mt-2 text-sm">{ar ? "الجنسية" : "Nationality"}: {item.passenger.nationality}</p></div>
-        <div><p className="text-sm text-muted-foreground">{ar ? "الرحلة" : "Flight"}</p><Code>{ticket.flight.flightNumber} · {ticket.flight.originCode} → {ticket.flight.destinationCode}</Code>
-          <p className="mt-2"><Code>{ticket.flight.date} · {ticket.flight.departTime} → {ticket.flight.arrivalDate && ticket.flight.arrivalDate !== ticket.flight.date ? `${ticket.flight.arrivalDate} · ` : ""}{ticket.flight.arriveTime}</Code></p>
-          {ticket.flight.originTimezone && ticket.flight.destinationTimezone && <p className="mt-1 text-xs text-muted-foreground">{ar ? "الأوقات محلية لكل مطار" : "Times are local to each airport"} <Code>{ticket.flight.originTimezone} → {ticket.flight.destinationTimezone}</Code></p>}</div>
-        <div><p className="text-sm text-muted-foreground">{ar ? "المقعد" : "Seat"}</p><p className="mt-1 font-display text-3xl"><bdi dir="ltr">{item.passenger.seatCode}</bdi></p>
-          <p className="mt-2 text-sm">{ar ? "الوجبة" : "Meal"}: {item.passenger.meal ? pick(lang, item.passenger.meal.label) : (ar ? "بدون وجبة" : "No meal")}</p></div>
-        <div><p className="text-sm text-muted-foreground">{ar ? "الطائرة" : "Aircraft"}</p><p>{ticket.flight.aircraftModel}</p><p className="mt-3 text-sm text-muted-foreground">{ar ? "رقم التذكرة" : "Ticket number"}</p><Code>{item.ticketNumber}</Code></div>
-      </div>
-    </article>)}
-  </div>;
+export function ConfirmedReservationTicket({
+  data,
+  printRoot = true,
+}: {
+  data: ReservationDetail;
+  printRoot?: boolean;
+}) {
+  return <CommemorativeTicket data={data} printRoot={printRoot} />;
 }

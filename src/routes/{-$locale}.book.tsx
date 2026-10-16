@@ -77,6 +77,7 @@ import { cn } from "@/lib/utils";
 
 type BookSearch = {
   offering?: string;
+  returnOffering?: string;
   step?: BookingStep;
   skinPreview?: "1" | 1;
   studioPreview?: "1" | 1;
@@ -90,6 +91,7 @@ export const Route = createFileRoute("/{-$locale}/book")({
   validateSearch: (search: Record<string, unknown>): BookSearch => {
     const out: BookSearch = {};
     if (typeof search["offering"] === "string" && decodeDatedOfferingId(search["offering"])) out.offering = search["offering"];
+    if (typeof search["returnOffering"] === "string" && decodeDatedOfferingId(search["returnOffering"])) out.returnOffering = search["returnOffering"];
     const rawStep = search["step"];
     if (typeof rawStep === "string" && (bookingSteps as readonly string[]).includes(rawStep)) {
       out.step = rawStep as BookingStep;
@@ -131,8 +133,8 @@ export const Route = createFileRoute("/{-$locale}/book")({
 
 
 function BookPage() {
-  const { offering } = Route.useSearch();
-  return identityUiRequested ? <MvpFreeBooking offeringId={offering} /> : <MockBookPage />;
+  const { offering, returnOffering } = Route.useSearch();
+  return identityUiRequested ? <MvpFreeBooking offeringId={offering} returnOfferingId={returnOffering} /> : <MockBookPage />;
 }
 
 function MockBookPage() {

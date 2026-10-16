@@ -50,8 +50,8 @@ export const privacySections: { heading: LocalizedText; body: LocalizedText[] }[
     heading: { en: "Imagery and archive material", ar: "الصور ومواد الأرشيف" },
     body: [
       {
-        en: "Historical images include licensed material and selected owner-supplied copies whose reuse rights remain unconfirmed. Rights remain with their respective owners; credits are shown where known. Future concepts are illustrative, not evidence of historical or current conditions.",
-        ar: "تشمل الصور التاريخية مواد مرخّصة ونسخاً مختارة قدّمها مالك المشروع ولم تُثبت حقوق إعادة استخدامها. وتبقى الحقوق لأصحابها، وتُذكر الاعتمادات حيثما كانت معروفة. تصورات المستقبل توضيحية وليست أدلة على الحالة التاريخية أو الراهنة.",
+        en: "Historical images include licensed material and selected owner-supplied copies whose reuse rights remain unconfirmed. Rights remain with their respective owners; credits are shown where known.",
+        ar: "تشمل الصور التاريخية مواد مرخّصة ونسخاً مختارة قدّمها مالك المشروع ولم تُثبت حقوق إعادة استخدامها. وتبقى الحقوق لأصحابها، وتُذكر الاعتمادات حيثما كانت معروفة.",
       },
     ],
   },
@@ -111,8 +111,8 @@ export const termsSections: { heading: LocalizedText; body: LocalizedText[] }[] 
     heading: { en: "Content, imagery and the archive", ar: "المحتوى والصور والأرشيف" },
     body: [
       {
-        en: "Historical images include licensed material and selected owner-supplied copies whose reuse rights remain unconfirmed. Rights remain with their respective owners; credits are shown where known. Future concepts are illustrative, not evidence of historical or current conditions.",
-        ar: "تشمل الصور التاريخية مواد مرخّصة ونسخاً مختارة قدّمها مالك المشروع ولم تُثبت حقوق إعادة استخدامها. وتبقى الحقوق لأصحابها، وتُذكر الاعتمادات حيثما كانت معروفة. تصورات المستقبل توضيحية وليست أدلة على الحالة التاريخية أو الراهنة.",
+        en: "Historical images include licensed material and selected owner-supplied copies whose reuse rights remain unconfirmed. Rights remain with their respective owners; credits are shown where known.",
+        ar: "تشمل الصور التاريخية مواد مرخّصة ونسخاً مختارة قدّمها مالك المشروع ولم تُثبت حقوق إعادة استخدامها. وتبقى الحقوق لأصحابها، وتُذكر الاعتمادات حيثما كانت معروفة.",
       },
     ],
   },
@@ -132,8 +132,8 @@ export const aboutCopy = [{
           ar: "مطار غزة الدولي وناقله الوطني في مكان واحد: خدمة سفر عاملة وسجل للمطار نفسه.",
         },
 {
-              en: "GZA opened in 1998 as the civil airport serving Gaza. This site presents its history, its present-day state, and the vision for its future. Historical records identify their evidence status; future concepts are illustrative.",
-              ar: "افتُتح مطار غزة الدولي عام 1998 بصفته المطار المدني الذي يخدم غزة. يقدم هذا الموقع تاريخه وواقعه الراهن ورؤية مستقبله. وتبيّن السجلات التاريخية حالة أدلتها، بينما تُعرض تصورات المستقبل بوصفها توضيحية.",
+              en: "GZA opened in 1998 as the civil airport serving Gaza. This site presents its history, its present-day state, and the vision for its future.",
+              ar: "افتُتح مطار غزة الدولي عام 1998 بصفته المطار المدني الذي يخدم غزة. يقدم هذا الموقع تاريخه وواقعه الراهن ورؤية مستقبله.",
             },
 {
               en: "Palestinian Airlines is the home carrier at GZA. The opening network links Gaza with seven regional gateways, flown by Airbus A320-family aircraft.",
@@ -141,6 +141,6 @@ export const aboutCopy = [{
             },
 { en: "About the material", ar: "عن المواد المعروضة" },
 {
-              en: "Historical images include licensed material and selected owner-supplied copies whose reuse rights remain unconfirmed. Rights remain with their respective owners; credits are shown where known. Future concepts are illustrative, not evidence of historical or current conditions. Flight schedules, fares and bookings remain demonstration data held in your browser only.",
-              ar: "تشمل الصور التاريخية مواد مرخّصة ونسخاً مختارة قدّمها مالك المشروع ولم تُثبت حقوق إعادة استخدامها. وتبقى الحقوق لأصحابها، وتُذكر الاعتمادات حيثما كانت معروفة. تصورات المستقبل توضيحية وليست أدلة على الحالة التاريخية أو الراهنة. وتبقى جداول الرحلات والأسعار والحجوزات بيانات توضيحية محفوظة في متصفحك فقط.",
+              en: "Historical images include licensed material and selected owner-supplied copies whose reuse rights remain unconfirmed. Rights remain with their respective owners; credits are shown where known.",
+              ar: "تشمل الصور التاريخية مواد مرخّصة ونسخاً مختارة قدّمها مالك المشروع ولم تُثبت حقوق إعادة استخدامها. وتبقى الحقوق لأصحابها، وتُذكر الاعتمادات حيثما كانت معروفة.",
             }];

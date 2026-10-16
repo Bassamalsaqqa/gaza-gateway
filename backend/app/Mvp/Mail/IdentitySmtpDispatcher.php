@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Mvp\Mail;
 
+use App\Mvp\Reservations\GuestAccessEmail;
 use App\SharedHosting\SharedHostingTimeoutException;
 use App\Deployment\SmtpDeadline;
 use App\Deployment\SmtpDeadlineException;
@@ -13,6 +14,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Encryption\Encrypter;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
 use Symfony\Component\Mime\Address;
@@ -22,6 +24,8 @@ final class IdentitySmtpDispatcher
 {
     /** @var ?callable */
     private $beforeFinalizeHook = null;
+
+    private int $consecutiveIdentityDispatches = 0;
 
     public function __construct(
         private readonly MailSettings $settings,
@@ -92,6 +96,15 @@ final class IdentitySmtpDispatcher
 
         // Bounded reconciliation of expired leases / processing markers to uncertain
         $this->reconcileExpiredMarkers();
+
+        // Bounded alternating check to prevent guest starvation if identity queue is perpetually full
+        if ($this->consecutiveIdentityDispatches >= 5) {
+            $guestRan = $this->runGuestOne($config);
+            if ($guestRan) {
+                $this->consecutiveIdentityDispatches = 0;
+                return true;
+            }
+        }
 
         // 1. Send-Admission Linearization Transaction:
         // Canonical lock hierarchy: Principal -> Proof -> Outbox -> Marker
@@ -368,10 +381,15 @@ final class IdentitySmtpDispatcher
         });
 
         if ($admission === null) {
-            return false;
+            $guestRan = $this->runGuestOne($config);
+            if ($guestRan) {
+                $this->consecutiveIdentityDispatches = 0;
+            }
+            return $guestRan;
         }
 
         if ($admission['admitted'] !== true) {
+            $this->consecutiveIdentityDispatches++;
             return true; // Item was processed and scrubbed/expired without SMTP
         }
 
@@ -529,6 +547,8 @@ final class IdentitySmtpDispatcher
             ]);
         });
 
+        $this->consecutiveIdentityDispatches++;
+
         if ($outerTimeoutException !== null) {
             throw $outerTimeoutException;
         }
@@ -539,7 +559,7 @@ final class IdentitySmtpDispatcher
     public function reconcileExpiredMarkers(): int
     {
         $db = $this->getDb();
-        return $db->transaction(function (ConnectionInterface $tx): int {
+        $count = $db->transaction(function (ConnectionInterface $tx): int {
             $ids = $tx->table('security_smtp_attempts')
                 ->where('status', 'processing')
                 ->where('deadline', '<=', $tx->raw('UTC_TIMESTAMP(6)'))
@@ -558,6 +578,38 @@ final class IdentitySmtpDispatcher
                 'updated_at' => $tx->raw('UTC_TIMESTAMP(6)'),
             ]);
         });
+
+        // Bounded reconciliation of expired guest processing claims to uncertain terminal (no auto retry)
+        if (Schema::hasTable('mvp_guest_mail_outbox')) {
+            $guestCount = $db->transaction(function (ConnectionInterface $tx): int {
+                $expiredGuestIds = $tx->table('mvp_guest_mail_outbox')
+                    ->where('status', 'processing')
+                    ->whereNotNull('claim_deadline')
+                    ->where('claim_deadline', '<=', $tx->raw('UTC_TIMESTAMP(6)'))
+                    ->orderBy('id')
+                    ->limit(100)
+                    ->lock('FOR UPDATE SKIP LOCKED')
+                    ->pluck('id')
+                    ->all();
+
+                if (empty($expiredGuestIds)) {
+                    return 0;
+                }
+
+                return $tx->table('mvp_guest_mail_outbox')
+                    ->whereIn('id', $expiredGuestIds)
+                    ->update([
+                        'status' => 'uncertain',
+                        'encrypted_payload' => null,
+                        'claim_nonce' => null,
+                        'claim_deadline' => null,
+                        'updated_at' => $tx->raw('UTC_TIMESTAMP(6)'),
+                    ]);
+            });
+            $count += $guestCount;
+        }
+
+        return $count;
     }
 
     public function expireAndErase(int $limit = 50): int
@@ -565,7 +617,7 @@ final class IdentitySmtpDispatcher
         $limit = min(max($limit, 1), 100);
         $db = $this->getDb();
 
-        return $db->transaction(function (ConnectionInterface $tx) use ($limit): int {
+        $count = $db->transaction(function (ConnectionInterface $tx) use ($limit): int {
             $expiredIds = $tx->table('security_dispatch_outbox')
                 ->whereNotNull('encrypted_payload')
                 ->where('expires_at', '<=', $tx->raw('UTC_TIMESTAMP(6)'))
@@ -597,6 +649,38 @@ final class IdentitySmtpDispatcher
 
             return count($expiredIds);
         });
+
+        if (Schema::hasTable('mvp_guest_mail_outbox')) {
+            $guestCount = $db->transaction(function (ConnectionInterface $tx) use ($limit): int {
+                $expiredGuestIds = $tx->table('mvp_guest_mail_outbox')
+                    ->whereNotNull('encrypted_payload')
+                    ->where('expires_at', '<=', $tx->raw('UTC_TIMESTAMP(6)'))
+                    ->orderBy('id', 'asc')
+                    ->limit($limit)
+                    ->lockForUpdate()
+                    ->pluck('id')
+                    ->all();
+
+                if (empty($expiredGuestIds)) {
+                    return 0;
+                }
+
+                $tx->table('mvp_guest_mail_outbox')
+                    ->whereIn('id', $expiredGuestIds)
+                    ->update([
+                        'encrypted_payload' => null,
+                        'status' => DB::raw("CASE WHEN status IN ('sent', 'accepted') THEN status ELSE 'expired' END"),
+                        'claim_nonce' => null,
+                        'claim_deadline' => null,
+                        'updated_at' => $tx->raw('UTC_TIMESTAMP(6)'),
+                    ]);
+
+                return count($expiredGuestIds);
+            });
+            $count += $guestCount;
+        }
+
+        return $count;
     }
 
     private function scrubCandidate(ConnectionInterface $tx, string $outboxId): void
@@ -649,5 +733,474 @@ final class IdentitySmtpDispatcher
                 'updated_at' => $tx->raw('UTC_TIMESTAMP(6)'),
             ]
         );
+    }
+
+    private function resolveVerificationKey(): string
+    {
+        $key = config('app.key');
+        if (!is_string($key) || !str_starts_with($key, 'base64:')) {
+            throw new \LogicException('Verification key is not configured.');
+        }
+        $decoded = base64_decode(substr($key, 7), true);
+        if (!is_string($decoded) || strlen($decoded) !== 32) {
+            throw new \LogicException('Verification key is not configured.');
+        }
+        return $decoded;
+    }
+
+    private function scrubGuestCandidate(ConnectionInterface $tx, string $outboxId): void
+    {
+        $tx->table('mvp_guest_mail_outbox')->where('id', $outboxId)->update([
+            'status' => 'scrubbed',
+            'encrypted_payload' => null,
+            'claim_nonce' => null,
+            'claim_deadline' => null,
+            'updated_at' => $tx->raw('UTC_TIMESTAMP(6)'),
+        ]);
+    }
+
+    private function expireGuestCandidate(ConnectionInterface $tx, string $outboxId, int $attempt): void
+    {
+        $tx->table('mvp_guest_mail_outbox')->where('id', $outboxId)->update([
+            'status' => 'expired',
+            'encrypted_payload' => null,
+            'attempts' => $attempt,
+            'claim_nonce' => null,
+            'claim_deadline' => null,
+            'updated_at' => $tx->raw('UTC_TIMESTAMP(6)'),
+        ]);
+    }
+
+    private function runGuestOne(array $config): bool
+    {
+        $db = $this->getDb();
+
+        if (!Schema::hasTable('mvp_guest_mail_outbox')) {
+            return false;
+        }
+
+        $admission = $db->transaction(function (ConnectionInterface $tx): ?array {
+            // 1. Candidate discovery: non-locking read of oldest eligible outbox row
+            $candidate = $tx->table('mvp_guest_mail_outbox')
+                ->whereIn('status', ['queued', 'failed'])
+                ->where('attempts', '<', 5)
+                ->whereNotNull('encrypted_payload')
+                ->where('expires_at', '>', $tx->raw('UTC_TIMESTAMP(6)'))
+                ->where(function ($q) use ($tx) {
+                    $q->whereNull('next_attempt_at')
+                        ->orWhere('next_attempt_at', '<=', $tx->raw('UTC_TIMESTAMP(6)'));
+                })
+                ->orderBy('created_at', 'asc')
+                ->orderBy('id', 'asc')
+                ->first();
+
+            if (!$candidate) {
+                return null;
+            }
+
+            $outboxId = (string) $candidate->id;
+            $challengeType = (string) $candidate->challenge_type;
+            $challengeId = (string) $candidate->challenge_id;
+
+            $challengeTable = match ($challengeType) {
+                'email_verification' => 'mvp_guest_email_challenges',
+                'access_challenge' => 'mvp_guest_access_challenges',
+                default => null,
+            };
+
+            if ($challengeTable === null) {
+                $this->scrubGuestCandidate($tx, $outboxId);
+                return ['admitted' => false];
+            }
+
+            // Preliminary non-locking read of challenge for session lookup
+            $challengePrelim = $tx->table($challengeTable)
+                ->where('id', $challengeId)
+                ->first(['id', 'session_id']);
+
+            if (!$challengePrelim) {
+                $this->scrubGuestCandidate($tx, $outboxId);
+                return ['admitted' => false];
+            }
+
+            $sessionId = (string) $challengePrelim->session_id;
+
+            // Canonical lock hierarchy: 1. Session -> 2. Challenge -> 3. Outbox
+            // 1. Lock Session FIRST
+            $session = $tx->table('passenger_sessions')
+                ->where('id', $sessionId)
+                ->lockForUpdate()
+                ->first();
+
+            // 2. Lock Challenge SECOND
+            $challenge = $tx->table($challengeTable)
+                ->where('id', $challengeId)
+                ->lockForUpdate()
+                ->first();
+
+            // 3. Lock Outbox THIRD
+            $outbox = $tx->table('mvp_guest_mail_outbox')
+                ->where('id', $outboxId)
+                ->lockForUpdate()
+                ->first();
+
+            // Recheck exact eligibility post-lock:
+            if (!$outbox || !in_array($outbox->status, ['queued', 'failed'], true) || (int) $outbox->attempts >= 5 || $outbox->encrypted_payload === null) {
+                return null;
+            }
+
+            $attempt = (int) $outbox->attempts + 1;
+
+            if (!$session || !$challenge) {
+                $this->scrubGuestCandidate($tx, $outboxId);
+                return ['admitted' => false];
+            }
+
+            // Sample live clock strictly AFTER acquiring ALL locks
+            $liveNowRow = $tx->selectOne('SELECT UTC_TIMESTAMP(6) AS now');
+            $liveNow = CarbonImmutable::parse($liveNowRow->now);
+
+            // Expiry checks against live DB time
+            $outboxExpiresAt = CarbonImmutable::parse($outbox->expires_at);
+            if ($liveNow->greaterThanOrEqualTo($outboxExpiresAt)) {
+                $this->expireGuestCandidate($tx, $outboxId, $attempt);
+                return ['admitted' => false];
+            }
+
+            $challengeExpiresAt = CarbonImmutable::parse($challenge->expires_at);
+            if ($liveNow->greaterThanOrEqualTo($challengeExpiresAt)) {
+                $this->expireGuestCandidate($tx, $outboxId, $attempt);
+                return ['admitted' => false];
+            }
+
+            // Verify Session eligibility: anonymous, unrevoked, unexpired
+            if ($session->auth_level !== 'anonymous'
+                || $session->revoked_at !== null
+                || $liveNow->greaterThanOrEqualTo(CarbonImmutable::parse($session->absolute_expires_at))
+                || $liveNow->greaterThanOrEqualTo(CarbonImmutable::parse($session->idle_expires_at))
+            ) {
+                $this->scrubGuestCandidate($tx, $outboxId);
+                return ['admitted' => false];
+            }
+
+            // Verify Challenge state: issued only
+            if ($challenge->state !== 'issued') {
+                $this->scrubGuestCandidate($tx, $outboxId);
+                return ['admitted' => false];
+            }
+
+            // Decrypt and verify payload
+            try {
+                $decrypted = $this->encrypter->decrypt((string) $outbox->encrypted_payload);
+                $payload = json_decode($decrypted, true, 512, JSON_THROW_ON_ERROR);
+            } catch (\Throwable) {
+                $this->scrubGuestCandidate($tx, $outboxId);
+                return ['admitted' => false];
+            }
+
+            $type = (string) ($payload['type'] ?? '');
+            $code = (string) ($payload['code'] ?? '');
+            $payloadRecipient = (string) ($payload['recipient'] ?? '');
+            $outboxRecipient = (string) $outbox->recipient_email;
+
+            if ($type !== $challengeType) {
+                $this->scrubGuestCandidate($tx, $outboxId);
+                return ['admitted' => false];
+            }
+
+            if (!preg_match('/^\d{6}$/', $code)) {
+                $this->scrubGuestCandidate($tx, $outboxId);
+                return ['admitted' => false];
+            }
+
+            if (strtolower(trim($payloadRecipient)) !== strtolower(trim($outboxRecipient))) {
+                $this->scrubGuestCandidate($tx, $outboxId);
+                return ['admitted' => false];
+            }
+
+            // Re-verify code digest against actual challenge
+            try {
+                $verificationKey = $this->resolveVerificationKey();
+                if ($challengeType === 'email_verification') {
+                    if (strtolower(trim((string) $challenge->email)) !== strtolower(trim($outboxRecipient))) {
+                        $this->scrubGuestCandidate($tx, $outboxId);
+                        return ['admitted' => false];
+                    }
+                    $expectedDigest = hash_hmac(
+                        'sha256',
+                        json_encode(['gza-guest-email-code:v1', (string) $challenge->id, (string) $challenge->email, (string) $session->id, $code], JSON_THROW_ON_ERROR),
+                        $verificationKey
+                    );
+                    if (!hash_equals((string) $challenge->code_digest, $expectedDigest)) {
+                        $this->scrubGuestCandidate($tx, $outboxId);
+                        return ['admitted' => false];
+                    }
+                } elseif ($challengeType === 'access_challenge') {
+                    if (strtolower(trim((string) $challenge->email_candidate)) !== strtolower(trim($outboxRecipient))) {
+                        $this->scrubGuestCandidate($tx, $outboxId);
+                        return ['admitted' => false];
+                    }
+                    $reference = (string) ($payload['reference'] ?? '');
+                    if ($reference === '' || $reference !== (string) $challenge->reference_candidate) {
+                        $this->scrubGuestCandidate($tx, $outboxId);
+                        return ['admitted' => false];
+                    }
+                    $expectedDigest = hash_hmac(
+                        'sha256',
+                        json_encode(['gza-guest-access-code:v1', (string) $challenge->id, (string) $challenge->reference_candidate, (string) $challenge->email_candidate, (string) $session->id, $code], JSON_THROW_ON_ERROR),
+                        $verificationKey
+                    );
+                    if (!hash_equals((string) $challenge->code_digest, $expectedDigest)) {
+                        $this->scrubGuestCandidate($tx, $outboxId);
+                        return ['admitted' => false];
+                    }
+                }
+            } catch (\Throwable) {
+                $this->scrubGuestCandidate($tx, $outboxId);
+                return ['admitted' => false];
+            }
+
+            // ALL VALIDATIONS PASSED: COMMIT SEND-ADMISSION BEFORE SMTP
+            $claimNonce = (string) Str::uuid();
+            $claimDeadline = $liveNow->addSeconds(120);
+            $messageIdUuid = (string) Str::uuid();
+            $providerMessageId = $messageIdUuid . '@gazaairport.com';
+
+            $tx->table('mvp_guest_mail_outbox')->where('id', $outboxId)->update([
+                'status' => 'processing',
+                'attempts' => $attempt,
+                'claim_nonce' => $claimNonce,
+                'claim_deadline' => $claimDeadline->toIso8601String(),
+                'provider_message_id' => $providerMessageId,
+                'updated_at' => $tx->raw('UTC_TIMESTAMP(6)'),
+            ]);
+
+            return [
+                'admitted' => true,
+                'outbox_id' => $outboxId,
+                'challenge_type' => $challengeType,
+                'challenge_id' => $challengeId,
+                'session_id' => $sessionId,
+                'claim_nonce' => $claimNonce,
+                'attempt' => $attempt,
+                'recipient' => $outboxRecipient,
+                'payload' => $payload,
+                'message_id_uuid' => $messageIdUuid,
+                'provider_message_id' => $providerMessageId,
+                'live_now_iso' => $liveNow->toIso8601String(),
+            ];
+        });
+
+        if ($admission === null) {
+            return false;
+        }
+
+        if ($admission['admitted'] !== true) {
+            return true; // Item was processed and scrubbed/expired without SMTP
+        }
+
+        // 2. External I/O Phase: Strictly at transactionLevel === 0
+        if ($db->transactionLevel() !== 0) {
+            throw new \LogicException('External I/O MUST transactionLevel 0');
+        }
+
+        $email = GuestAccessEmail::build(
+            $admission['payload'],
+            $config,
+            $admission['message_id_uuid'],
+            $admission['live_now_iso']
+        );
+
+        $outcome = 'failed';
+        $transport = null;
+        $deadlineExpired = false;
+        $outerTimeoutException = null;
+
+        try {
+            $transport = new EsmtpTransport($config['host'], $config['port'], $config['tls'] === 'tls');
+            $transport->setAutoTls($config['tls'] === 'starttls')->setRequireTls($config['tls'] !== 'none');
+            SmtpDeadline::configureTransportStream($transport, 3);
+
+            if ($config['username'] !== '') {
+                $transport->setUsername($config['username'])->setPassword($config['password']);
+            }
+
+            SmtpDeadline::runWithDeadline(function () use ($transport, $email, &$outcome) {
+                $transport->start();
+                $outcome = 'uncertain';
+                $transport->send($email);
+                $outcome = 'accepted';
+            }, 8);
+        } catch (SharedHostingTimeoutException $e) {
+            $deadlineExpired = true;
+            $outcome = 'uncertain';
+            $outerTimeoutException = $e;
+        } catch (SmtpDeadlineException) {
+            $deadlineExpired = true;
+        } catch (\Throwable) {
+            // Never leak secrets, tokens, email body, or SMTP conversation text
+        } finally {
+            if ($transport !== null) {
+                SmtpDeadline::abortTransport($transport);
+            }
+        }
+
+        // Hook executed at transactionLevel 0 before finalization transaction
+        if ($this->beforeFinalizeHook !== null) {
+            ($this->beforeFinalizeHook)();
+        }
+
+        // 3. Finalization Transaction:
+        // Canonical lock hierarchy: 1. Session -> 2. Challenge -> 3. Outbox
+        $db->transaction(function (ConnectionInterface $tx) use ($admission, $outcome): void {
+            $outboxId = $admission['outbox_id'];
+            $claimNonce = $admission['claim_nonce'];
+            $attempt = $admission['attempt'];
+            $challengeType = $admission['challenge_type'];
+            $challengeId = $admission['challenge_id'];
+            $sessionId = $admission['session_id'];
+            $providerMessageId = $admission['provider_message_id'];
+
+            $challengeTable = match ($challengeType) {
+                'email_verification' => 'mvp_guest_email_challenges',
+                'access_challenge' => 'mvp_guest_access_challenges',
+                default => null,
+            };
+
+            // 1. Lock Session FIRST
+            $session = $tx->table('passenger_sessions')
+                ->where('id', $sessionId)
+                ->lockForUpdate()
+                ->first();
+
+            // 2. Lock Challenge SECOND
+            $challenge = $challengeTable !== null
+                ? $tx->table($challengeTable)->where('id', $challengeId)->lockForUpdate()->first()
+                : null;
+
+            // 3. Lock Outbox THIRD
+            $outbox = $tx->table('mvp_guest_mail_outbox')
+                ->where('id', $outboxId)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$outbox) {
+                return;
+            }
+
+            // Check claim nonce, attempt, status to prevent stale overwrite
+            if ($outbox->claim_nonce !== $claimNonce
+                || (int) $outbox->attempts !== $attempt
+                || $outbox->status !== 'processing'
+            ) {
+                return;
+            }
+
+            // Sample fresh live clock strictly AFTER acquiring ALL locks
+            $liveNowRow = $tx->selectOne('SELECT UTC_TIMESTAMP(6) AS now');
+            $liveNow = CarbonImmutable::parse($liveNowRow->now);
+
+            // Invariant: Never restore scrubbed/expired/uncertain outbox
+            if (in_array($outbox->status, ['scrubbed', 'expired', 'uncertain'], true)) {
+                return;
+            }
+
+            // Validate claim_deadline: expired lease must become terminal uncertain, never accepted or blindly retried
+            if ($outbox->claim_deadline !== null && $liveNow->greaterThanOrEqualTo(CarbonImmutable::parse($outbox->claim_deadline))) {
+                $tx->table('mvp_guest_mail_outbox')->where('id', $outboxId)->update([
+                    'status' => 'uncertain',
+                    'encrypted_payload' => null,
+                    'claim_nonce' => null,
+                    'claim_deadline' => null,
+                    'updated_at' => $tx->raw('UTC_TIMESTAMP(6)'),
+                ]);
+                return;
+            }
+
+            // Check outbox lifetime expiration
+            if ($liveNow->greaterThanOrEqualTo(CarbonImmutable::parse($outbox->expires_at))) {
+                $tx->table('mvp_guest_mail_outbox')->where('id', $outboxId)->update([
+                    'status' => 'expired',
+                    'encrypted_payload' => null,
+                    'claim_nonce' => null,
+                    'claim_deadline' => null,
+                    'updated_at' => $tx->raw('UTC_TIMESTAMP(6)'),
+                ]);
+                return;
+            }
+
+            // Check proof authority freshness and session freshness before accepting/scrubbing
+            $proofFresh = $session !== null
+                && $session->revoked_at === null
+                && $session->auth_level === 'anonymous'
+                && $liveNow->lessThan(CarbonImmutable::parse($session->absolute_expires_at))
+                && $liveNow->lessThan(CarbonImmutable::parse($session->idle_expires_at))
+                && $challenge !== null
+                && $challenge->state === 'issued'
+                && $liveNow->lessThan(CarbonImmutable::parse($challenge->expires_at));
+
+            if (!$proofFresh) {
+                // Expired, revoked, or consumed proof must never deliver or be accepted
+                $tx->table('mvp_guest_mail_outbox')->where('id', $outboxId)->update([
+                    'status' => 'scrubbed',
+                    'encrypted_payload' => null,
+                    'claim_nonce' => null,
+                    'claim_deadline' => null,
+                    'updated_at' => $tx->raw('UTC_TIMESTAMP(6)'),
+                ]);
+                return;
+            }
+
+            if ($outcome === 'accepted') {
+                $tx->table('mvp_guest_mail_outbox')->where('id', $outboxId)->update([
+                    'status' => 'sent',
+                    'accepted_at' => $tx->raw('UTC_TIMESTAMP(6)'),
+                    'provider_message_id' => $providerMessageId,
+                    'encrypted_payload' => null, // scrubbed on terminal success
+                    'claim_nonce' => null,
+                    'claim_deadline' => null,
+                    'updated_at' => $tx->raw('UTC_TIMESTAMP(6)'),
+                ]);
+                return;
+            }
+
+            if ($outcome === 'uncertain') {
+                $tx->table('mvp_guest_mail_outbox')->where('id', $outboxId)->update([
+                    'status' => 'uncertain',
+                    'encrypted_payload' => null, // terminal uncertain scrubs payload
+                    'claim_nonce' => null,
+                    'claim_deadline' => null,
+                    'updated_at' => $tx->raw('UTC_TIMESTAMP(6)'),
+                ]);
+                return;
+            }
+
+            // Outcome is failed (pre-connect failure)
+            if ($attempt >= 5) {
+                $tx->table('mvp_guest_mail_outbox')->where('id', $outboxId)->update([
+                    'status' => 'failed',
+                    'encrypted_payload' => null, // max attempts exceeded, scrubbed
+                    'claim_nonce' => null,
+                    'claim_deadline' => null,
+                    'updated_at' => $tx->raw('UTC_TIMESTAMP(6)'),
+                ]);
+                return;
+            }
+
+            // Bounded retry with 60-second backoff
+            $tx->table('mvp_guest_mail_outbox')->where('id', $outboxId)->update([
+                'status' => 'failed',
+                'claim_nonce' => null,
+                'claim_deadline' => null,
+                'next_attempt_at' => $tx->raw("DATE_ADD(UTC_TIMESTAMP(6), INTERVAL 60 SECOND)"),
+                'updated_at' => $tx->raw('UTC_TIMESTAMP(6)'),
+            ]);
+        });
+
+        if ($outerTimeoutException !== null) {
+            throw $outerTimeoutException;
+        }
+
+        return true;
     }
 }

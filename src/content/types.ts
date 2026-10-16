@@ -1,4 +1,5 @@
 import type { ApprovedMediaId } from "../lib/media-policy.ts";
+import type { DestinationCode, DestinationPhotoId } from "../lib/destination-media-base.ts";
 
 export type LocalizedText = { en: string; ar: string };
 export type ContentKey = "home" | "travel" | "airport.past" | "airport.present" | "airport.future" |
@@ -112,9 +113,11 @@ export interface AirportPresentContent extends ContentEnvelope<"airport.present"
   globalHorizons: AirportPresentGlobalHorizons;
 }
 
+export type CoreDestinationCode = "AMM" | "CAI" | "DOH" | "DXB" | "IST" | "JED" | "RUH";
+
 export interface DestinationPhotoAssignment {
-  code: "AMM" | "CAI" | "DOH" | "DXB" | "IST" | "JED" | "RUH";
-  photoId: "city-amman" | "city-cairo" | "city-doha" | "city-dubai" | "city-istanbul" | "city-jeddah" | "city-riyadh";
+  code: DestinationCode;
+  photoId: DestinationPhotoId;
   focalPoint?: { x: number; y: number };
 }
 
@@ -130,7 +133,7 @@ export interface AirportFutureContent extends ContentEnvelope<"airport.future"> 
 }
 
 export interface DestinationEditorialEntry {
-  code: DestinationPhotoAssignment["code"];
+  code: CoreDestinationCode;
   seo: PageSeoContent;
   blurb: LocalizedText;
   goodToKnow: TravelPoint[];

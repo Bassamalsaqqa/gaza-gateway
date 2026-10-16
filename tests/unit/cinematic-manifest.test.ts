@@ -13,10 +13,10 @@ function fileSha256(filePath: string): string {
 describe("Future Airport Cinematic Manifest & Provenance Registry", () => {
   const workspaceRoot = process.cwd();
 
-  test("enforces strict future-concept-ai truth classification", () => {
+  test("preserves strict future-concept-ai classification with owner-approved neutral display copy", () => {
     assert.equal(CINEMATIC_MANIFEST.truthClass, "future-concept-ai");
-    assert.ok(CINEMATIC_MANIFEST.disclosure.en.includes("Visualized future concept"));
-    assert.ok(CINEMATIC_MANIFEST.disclosure.ar.includes("تصوّر توضيحي لمفهوم مستقبلي"));
+    assert.ok(CINEMATIC_MANIFEST.disclosure.en.includes("Architectural vision"));
+    assert.ok(CINEMATIC_MANIFEST.disclosure.ar.includes("رؤية معمارية"));
   });
 
   test("documents verified immutable original video master fingerprint", () => {

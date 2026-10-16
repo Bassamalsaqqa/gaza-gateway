@@ -1,21 +1,21 @@
-import { AppLink } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
-import { Check } from "lucide-react";
-import * as TabsPrimitive from "@radix-ui/react-tabs";
-import { LayoutGroup, motion, useReducedMotion } from "motion/react";
-import { useMemo, useState } from "react";
-import { btnClass, Container } from "@/components/kit";
+import { useMemo, useState, useEffect, useCallback } from "react";
+import { Container } from "@/components/kit";
 import { PublicPhotoHero } from "@/components/media/public-photo-hero";
 import { publishedTravel } from "@/content/published/travel";
 import { ContentPreviewNotice, useContentPreview } from "@/content/preview";
 import { pick, useI18n } from "@/lib/i18n";
-import { ResponsiveImage } from "@/components/responsive-image";
-import { cn } from "@/lib/utils";
-import { GazaSurface, SurfaceMedia, useSurfaceRecipe } from "@/design/surfaces";
-import { MEDIA } from "@/lib/media";
-import { useEffect } from "react";
 import { pageHead } from "@/lib/head";
 import { getBreadcrumbSchema } from "@/lib/structured-data";
+import { AppLink } from "@/components/app-link";
+import { btnClass } from "@/components/kit";
+import {
+  normalizeTravelSections,
+  resolveActiveSection,
+  TravelNav,
+  TravelSectionView,
+} from "@/components/travel-guide";
+import { Plane, Sparkles } from "lucide-react";
 
 type TravelSearch = {
   skinPreview?: 1;
@@ -53,13 +53,13 @@ export const Route = createFileRoute("/{-$locale}/travel")({
         title: publishedTravel.seo.title.en,
         description: publishedTravel.seo.description.en,
         socialTitle: "Travel Information — Gaza International Airport (GZA)",
-        socialDescription: "Documents, baggage, accessibility and passenger guidelines.",
+        socialDescription: "Guide to flight bookings, passenger documents, tickets, and airport history.",
       },
       ar: {
         title: publishedTravel.seo.title.ar,
         description: publishedTravel.seo.description.ar,
         socialTitle: "إرشادات السفر — مطار غزة الدولي (GZA)",
-        socialDescription: "الوثائق، الأمتعة، إمكانية الوصول وإرشادات المسافرين.",
+        socialDescription: "دليل حجوزات الرحلات، وثائق المسافر، التذاكر، وتاريخ المطار.",
       },
       image: "/social/gaza-airport.jpg",
       schema: [
@@ -75,40 +75,66 @@ export const Route = createFileRoute("/{-$locale}/travel")({
 
 function TravelPage() {
   const search = Route.useSearch();
-  const { t, lang } = useI18n();
+  const navigate = Route.useNavigate();
+  const { lang } = useI18n();
+  const isAr = lang === "ar";
+
   const { content, previewing, previewError, previewLoading } = useContentPreview("travel", publishedTravel);
-  const travelSections = useMemo(() => content.sections.filter((section) => section.visible), [content]);
-  const first = travelSections[0];
-  const initialSection =
-    search.section && travelSections.some((s) => s.id === search.section)
-      ? search.section
-      : first
-        ? first.id
-        : "";
-  const [active, setActive] = useState(initialSection);
-  const reduceMotion = useReducedMotion();
 
-  const { active: isGuideActive, recipe: guideRecipe } = useSurfaceRecipe(
-    "guide",
-    "travel.guide",
+  // Normalize visible sections and points
+  const travelSections = useMemo(
+    () => normalizeTravelSections(content.sections),
+    [content.sections],
   );
-  const mediaTreatment = guideRecipe.mediaTreatment;
 
-  // Sync active tab on search.section or hash changes
-  useEffect(() => {
-    if (search.section && travelSections.some((s) => s.id === search.section)) {
-      setActive(search.section);
-    } else if (typeof window !== "undefined" && window.location.hash) {
-      const hash = window.location.hash.replace("#", "");
-      if (travelSections.some((s) => s.id === hash)) {
-        setActive(hash);
-      }
+  // Read URL hash on client mount & listen for hash changes
+  const [hashSection, setHashSection] = useState<string>(() => {
+    if (typeof window !== "undefined" && window.location.hash) {
+      return window.location.hash.replace(/^[#/]+/, "").trim();
     }
-  }, [search.section, travelSections]);
+    return "";
+  });
+
+  useEffect(() => {
+    const handleHash = () => {
+      if (typeof window !== "undefined") {
+        setHashSection(window.location.hash.replace(/^[#/]+/, "").trim());
+      }
+    };
+    window.addEventListener("hashchange", handleHash);
+    return () => window.removeEventListener("hashchange", handleHash);
+  }, []);
+
+  // URL query parameter is primary source of truth; fallback to hash; fallback to first section
+  const activeId = useMemo(() => {
+    return resolveActiveSection(
+      travelSections,
+      search.section,
+      hashSection,
+    );
+  }, [travelSections, search.section, hashSection]);
+
+  // Navigate to update URL search param without oscillation
+  const handleSelectSection = useCallback(
+    (id: string) => {
+      if (id === activeId) return;
+      void navigate({
+        search: (prev) => ({
+          ...prev,
+          section: id,
+        }),
+        replace: true,
+      });
+    },
+    [activeId, navigate],
+  );
+
+  const activeSection = travelSections.find((s) => s.id === activeId) || travelSections[0];
 
   return (
     <>
       {previewing ? <ContentPreviewNotice error={previewError} loading={previewLoading} /> : null}
+
       <PublicPhotoHero
         mediaId="travel-info-hero"
         routeKey="travel"
@@ -117,269 +143,66 @@ function TravelPage() {
         focalPosition="50% 50%"
       />
 
-      <Container className="py-10">
-        <TabsPrimitive.Root
-          value={active}
-          onValueChange={setActive}
-          dir={lang === "ar" ? "rtl" : "ltr"}
-        >
-          <LayoutGroup id="travel-tabs">
-            <TabsPrimitive.List
-              aria-label={pick(lang, content.intro.title)}
-              className="flex overflow-x-auto border-b border-border"
-              loop
+      <Container className="py-6 sm:py-10">
+        {travelSections.length > 0 ? (
+          <>
+            {/* Guide Navigation Bar with roving focus & keyboard support */}
+            <TravelNav
+              sections={travelSections}
+              activeId={activeSection?.id ?? ""}
+              onSelect={handleSelectSection}
+              lang={lang}
+            />
+
+            {/* Active Section Surface */}
+            {activeSection ? (
+              <TravelSectionView section={activeSection} lang={lang} />
+            ) : null}
+
+            {/* Next Steps Footer */}
+            <section
+              aria-label={isAr ? "الخطوات التالية للمسافر" : "Traveler Next Steps"}
+              className="mt-10 sm:mt-12 rounded-2xl border border-border bg-card/60 p-5 sm:p-7 shadow-xs"
             >
-              {travelSections.map((item) => (
-                <TabsPrimitive.Trigger
-                  key={item.id}
-                  value={item.id}
-                  className={cn(
-                    "relative min-h-11 shrink-0 px-4 py-3 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-ring data-[state=active]:text-brand-deep",
-                  )}
-                >
-                  {pick(lang, item.title)}
-                  {active === item.id ? (
-                    <motion.span
-                      layoutId="travel-active-indicator"
-                      className="absolute inset-x-3 bottom-0 h-0.5 bg-primary"
-                      transition={
-                        reduceMotion
-                          ? { duration: 0 }
-                          : { duration: 0.22, ease: [0.22, 1, 0.36, 1] }
-                      }
-                    />
-                  ) : null}
-                </TabsPrimitive.Trigger>
-              ))}
-            </TabsPrimitive.List>
-          </LayoutGroup>
+              <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+                <div className="max-w-[58ch]">
+                  <h3 className="font-display text-lg sm:text-xl font-bold tracking-tight text-foreground">
+                    {isAr
+                      ? "استكشاف الرحلات وحجز التذاكر"
+                      : "Explore Routes & Flight Reservations"}
+                  </h3>
+                  <p className="mt-1.5 text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                    {isAr
+                      ? "اختر وجهتك عبر شبكة الخطوط الجوية الفلسطينية، واستلم تذكرتك المجانية، أو استرجع حجزك في أي وقت."
+                      : "Choose a destination across the Palestinian Airlines network, receive your free printable ticket, or retrieve an existing reservation anytime."}
+                  </p>
+                </div>
 
-          {travelSections.map((section) => {
-            const isAr = lang === "ar";
-
-            const textContent = (
-              <div>
-                <h2 className="text-2xl font-bold sm:text-3xl">{pick(lang, section.title)}</h2>
-                <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted-foreground">
-                  {pick(lang, section.body)}
-                </p>
-                <div className="mt-8 flex flex-wrap gap-2">
-                  <AppLink to="/flights" className={btnClass("outline", "md")}>
-                    {t("nav.flights")}
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <AppLink to="/flights" className={btnClass("primary", "md", "gap-2 text-xs sm:text-sm")}>
+                    <Plane className="size-4 shrink-0" aria-hidden="true" />
+                    <span>{isAr ? "استعراض المواعيد" : "Explore Timetables"}</span>
                   </AppLink>
-                  <AppLink to="/book" className={btnClass("primary", "md")}>
-                    {t("nav.book")}
+                  <AppLink to="/book" className={btnClass("outline", "md", "gap-2 text-xs sm:text-sm")}>
+                    <Sparkles className="size-4 shrink-0" aria-hidden="true" />
+                    <span>{isAr ? "حجز رحلة" : "Book Flight"}</span>
+                  </AppLink>
+                  <AppLink to="/manage" className={btnClass("ghost", "md", "text-xs sm:text-sm")}>
+                    <span>{isAr ? "إدارة الحجز" : "Manage Booking"}</span>
                   </AppLink>
                 </div>
               </div>
-            );
-
-            const checklistContent = (
-              <ul className="divide-y divide-border border-y border-border">
-                {section.points.filter((point) => point.visible).map((point) => (
-                  <li key={point.id} className="flex gap-3 py-4 text-sm leading-relaxed">
-                    <Check
-                      aria-hidden="true"
-                      className="mt-0.5 size-4 shrink-0 text-brand-deep"
-                    />
-                    <span>{pick(lang, point.text)}</span>
-                  </li>
-                ))}
-              </ul>
-            );
-
-            // ── Clean conditional at presentation boundary ──
-            // Normal mode (!isGuideActive): retain accepted production presentation.
-            // Guide article remains clean two-column article, and Accessibility renders
-            // a separate figure below the article with concept label and caption.
-            if (!isGuideActive) {
-              return (
-                <TabsPrimitive.Content
-                  key={section.id}
-                  value={section.id}
-                  className="pt-8 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
-                >
-                  <GazaSurface
-                    family="guide"
-                    as="article"
-                    baselineClassName="grid gap-7 lg:grid-cols-[minmax(0,0.9fr)_minmax(24rem,1.1fr)] lg:gap-12"
-                    className="grid gap-7 p-6 sm:p-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(24rem,1.1fr)] lg:gap-12"
-                  >
-                    {textContent}
-                    {checklistContent}
-                  </GazaSurface>
-
-                  {section.id === "accessibility" && (
-                    <figure className="mt-8 overflow-hidden rounded-2xl border border-border bg-card shadow-xs">
-                      <div className="relative aspect-[16/10] overflow-hidden bg-ink max-h-[380px]">
-                        <ResponsiveImage
-                          entry="passenger-assistance"
-                          sizes="(min-width: 1024px) 60vw, 100vw"
-                          className="size-full object-cover"
-                        />
-                        <span className="absolute bottom-2.5 start-3 rounded bg-ink/80 px-2 py-0.5 font-mono text-xs text-ink-muted">
-                          {t("media.conceptShortLabel")}
-                        </span>
-                      </div>
-                      <figcaption className="p-4 text-xs leading-relaxed text-muted-foreground border-t border-border">
-                        <span className="font-semibold text-foreground">
-                          {t("travel.assistanceConceptLabel")}{" "}
-                        </span>
-                        {t("travel.assistanceConceptNote")}
-                      </figcaption>
-                    </figure>
-                  )}
-                </TabsPrimitive.Content>
-              );
-            }
-
-            // ── Preview Mode (isGuideActive): Distinct treatments for Appearance Studio / skin preview ──
-            const activeMediaId =
-              mediaTreatment?.mediaId && mediaTreatment.mediaId in MEDIA
-                ? mediaTreatment.mediaId
-                : "passenger-assistance";
-            const activeMediaEntry = MEDIA[activeMediaId as keyof typeof MEDIA];
-            const activeTruthClass = activeMediaEntry?.truthClass ?? "future-concept-ai";
-            const activeTreatment = mediaTreatment?.treatment ?? "side";
-            const shouldShowMedia = activeTreatment !== "none";
-
-            const travelMedia = shouldShowMedia ? (
-              <SurfaceMedia
-                treatment={activeTreatment}
-                aspect={
-                  activeTreatment === "top"
-                    ? "16:9"
-                    : mediaTreatment?.aspect && mediaTreatment.aspect !== "auto"
-                      ? mediaTreatment.aspect
-                      : "16:10"
-                }
-                truthClass={activeTruthClass}
-                overlay={mediaTreatment?.overlay}
-                focalX={mediaTreatment?.focalX}
-                focalY={mediaTreatment?.focalY}
-                contextKind="guide"
-                className={
-                  activeTreatment === "cover" || activeTreatment === "watermark"
-                    ? "absolute inset-0 size-full -z-10 rounded-none border-0"
-                    : activeTreatment === "top"
-                      ? "w-full overflow-hidden rounded-2xl border border-border bg-card shadow-xs"
-                      : "overflow-hidden rounded-2xl border border-border bg-card shadow-xs size-full"
-                }
-              >
-                <div
-                  className={cn(
-                    "relative overflow-hidden bg-ink",
-                    activeTreatment === "cover" || activeTreatment === "watermark"
-                      ? "size-full"
-                      : "aspect-[16/10] max-h-[380px]",
-                  )}
-                >
-                  <ResponsiveImage
-                    entry={activeMediaId as keyof typeof MEDIA}
-                    sizes={
-                      activeTreatment === "top" || activeTreatment === "cover"
-                        ? "100vw"
-                        : "(min-width: 1024px) 40vw, 100vw"
-                    }
-                    className="size-full object-cover"
-                    style={{
-                      objectPosition: `${mediaTreatment?.focalX ?? 50}% ${mediaTreatment?.focalY ?? 50}%`,
-                    }}
-                  />
-                </div>
-                {activeTreatment !== "cover" && activeTreatment !== "watermark" ? (
-                  activeMediaEntry?.truthClass === "future-concept-ai" ? (
-                    <figcaption className="p-4 text-xs leading-relaxed text-muted-foreground border-t border-border">
-                      <span className="font-semibold text-foreground">
-                        {t("travel.assistanceConceptLabel")}{" "}
-                      </span>
-                      {t("travel.assistanceConceptNote")}
-                    </figcaption>
-                  ) : (
-                    <figcaption className="p-3 text-xs leading-relaxed text-muted-foreground border-t border-border">
-                      <span className="font-semibold text-foreground">
-                        {isAr ? activeMediaEntry?.altAr : activeMediaEntry?.altEn}
-                      </span>
-                    </figcaption>
-                  )
-                ) : null}
-              </SurfaceMedia>
-            ) : null;
-
-            return (
-              <TabsPrimitive.Content
-                key={section.id}
-                value={section.id}
-                className="pt-8 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
-              >
-                {activeTreatment === "top" && travelMedia ? (
-                  <GazaSurface
-                    family="guide"
-                    target="travel.guide"
-                    as="article"
-                    baselineClassName="grid gap-7 lg:grid-cols-[minmax(0,0.9fr)_minmax(24rem,1.1fr)] lg:gap-12"
-                    className="grid gap-7 p-6 sm:p-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(24rem,1.1fr)] lg:gap-12"
-                  >
-                    <div className="col-span-full order-first">{travelMedia}</div>
-                    {textContent}
-                    {checklistContent}
-                  </GazaSurface>
-                ) : activeTreatment === "side" && travelMedia ? (
-                  <GazaSurface
-                    family="guide"
-                    target="travel.guide"
-                    as="article"
-                    baselineClassName="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_minmax(18rem,1fr)]"
-                    className="grid gap-6 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_minmax(18rem,1fr)]"
-                  >
-                    {textContent}
-                    {checklistContent}
-                    <div className="lg:col-span-1 flex flex-col justify-start">
-                      {travelMedia}
-                    </div>
-                  </GazaSurface>
-                ) : activeTreatment === "cover" && travelMedia ? (
-                  <GazaSurface
-                    family="guide"
-                    target="travel.guide"
-                    as="article"
-                    baselineClassName="relative isolate overflow-hidden min-h-[460px] flex flex-col justify-end"
-                    className="relative isolate overflow-hidden min-h-[460px] flex flex-col justify-end p-4 sm:p-6"
-                  >
-                    {travelMedia}
-                    <div className="relative z-10 grid gap-7 p-6 sm:p-8 rounded-xl border border-border/60 bg-card/90 backdrop-blur-md lg:grid-cols-[minmax(0,0.9fr)_minmax(24rem,1.1fr)] lg:gap-12">
-                      {textContent}
-                      {checklistContent}
-                    </div>
-                  </GazaSurface>
-                ) : activeTreatment === "watermark" && travelMedia ? (
-                  <GazaSurface
-                    family="guide"
-                    target="travel.guide"
-                    as="article"
-                    baselineClassName="relative isolate overflow-hidden"
-                    className="relative isolate overflow-hidden grid gap-7 p-6 sm:p-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(24rem,1.1fr)] lg:gap-12"
-                  >
-                    {travelMedia}
-                    <div className="relative z-10">{textContent}</div>
-                    <div className="relative z-10">{checklistContent}</div>
-                  </GazaSurface>
-                ) : (
-                  <GazaSurface
-                    family="guide"
-                    target="travel.guide"
-                    as="article"
-                    baselineClassName="grid gap-7 lg:grid-cols-[minmax(0,0.9fr)_minmax(24rem,1.1fr)] lg:gap-12"
-                    className="grid gap-7 p-6 sm:p-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(24rem,1.1fr)] lg:gap-12"
-                  >
-                    {textContent}
-                    {checklistContent}
-                  </GazaSurface>
-                )}
-              </TabsPrimitive.Content>
-            );
-          })}
-        </TabsPrimitive.Root>
+            </section>
+          </>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-border p-8 sm:p-12 text-center text-muted-foreground">
+            <p className="text-sm sm:text-base font-medium">
+              {isAr
+                ? "لا توجد أقسام إرشادية معروضة حالياً."
+                : "No guide sections are currently available."}
+            </p>
+          </div>
+        )}
       </Container>
     </>
   );

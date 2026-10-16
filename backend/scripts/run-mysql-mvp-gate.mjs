@@ -770,6 +770,7 @@ async function main() {
         </testsuite>
         <testsuite name="ReferenceSchedules">
             <file>tests/Feature/ReferenceSchedules/ScheduleRoutesTest.php</file>
+            <file>tests/Feature/ReferenceSchedules/OfferingAvailabilityEndpointTest.php</file>
         </testsuite>
         <testsuite name="Editorial">
             <file>tests/Feature/Editorial/EditorialRoutesTest.php</file>
@@ -779,6 +780,10 @@ async function main() {
         </testsuite>
         <testsuite name="MvpReservations">
             <file>tests/Feature/MvpReservations/ReservationRoutesTest.php</file>
+            <file>tests/Feature/MvpReservations/GuestReservationRoutesTest.php</file>
+            <file>tests/Feature/MvpReservations/GuestReservationMailTest.php</file>
+            <file>tests/Feature/MvpReservations/GuestReservationMigrationTest.php</file>
+            <file>tests/Feature/MvpReservations/ReservationTripTest.php</file>
         </testsuite>
         <testsuite name="IdentityStaffAuth">
             <file>tests/Feature/IdentityStaff/StaffAuthenticationTest.php</file>
