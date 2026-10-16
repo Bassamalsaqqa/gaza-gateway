@@ -1,0 +1,120 @@
+{
+  "width": 1280,
+  "height": 720,
+  "lang": "en",
+  "dir": "ltr",
+  "scrollY": 0,
+  "progress": 0,
+  "visibility": "visible",
+  "video": {
+    "src": "http://127.0.0.1:5193/media/future/cinematic/mp4-7cb9fe96/scrub-720p-g6-crf25.mp4",
+    "time": 0,
+    "duration": 8,
+    "ready": 4,
+    "seeking": false,
+    "opacity": "1",
+    "fit": "cover",
+    "rect": {
+      "width": 1264.800048828125,
+      "height": 720
+    },
+    "width": 1280,
+    "height": 720
+  },
+  "poster": [
+    {
+      "src": "http://127.0.0.1:5193/media/future/cinematic/v-d66699d4/future-cinematic-poster.webp",
+      "complete": true,
+      "fit": "cover",
+      "opacity": "0",
+      "width": 960,
+      "height": 540
+    }
+  ],
+  "videos": [
+    {
+      "id": 0,
+      "src": "/media/future/cinematic/mp4-7cb9fe96/scrub-720p-g6-crf25.mp4",
+      "connected": true,
+      "loads": 1,
+      "pauses": 0
+    }
+  ],
+  "events": [
+    {
+      "name": "emptied",
+      "id": 0,
+      "time": 0,
+      "src": "/media/future/cinematic/mp4-7cb9fe96/scrub-720p-g6-crf25.mp4"
+    },
+    {
+      "name": "loadedmetadata",
+      "id": 0,
+      "time": 0,
+      "src": "/media/future/cinematic/mp4-7cb9fe96/scrub-720p-g6-crf25.mp4"
+    },
+    {
+      "name": "loadeddata",
+      "id": 0,
+      "time": 0,
+      "src": "/media/future/cinematic/mp4-7cb9fe96/scrub-720p-g6-crf25.mp4"
+    }
+  ],
+  "frames": [
+    {
+      "id": 0,
+      "time": 0
+    }
+  ],
+  "requests": [
+    {
+      "name": "http://127.0.0.1:5193/media/future/cinematic/v-d66699d4/future-cinematic-poster.webp",
+      "size": 300
+    },
+    {
+      "name": "https://www.gazaairport.com/assets/ticket-world-map-BlGIeYHr.webp",
+      "size": 0
+    },
+    {
+      "name": "http://127.0.0.1:5193/assets/past-024-640-CZzDadfq.webp",
+      "size": 0
+    },
+    {
+      "name": "https://www.gazaairport.com/assets/airport-past-body-CVuDaYVw.webp",
+      "size": 0
+    },
+    {
+      "name": "https://www.gazaairport.com/assets/airport-present-body-CSqGCo5K.webp",
+      "size": 0
+    },
+    {
+      "name": "http://127.0.0.1:5193/assets/airport-present-ruins-2008-768-hKybCK_5.webp",
+      "size": 0
+    },
+    {
+      "name": "http://127.0.0.1:5193/assets/aerial-day-640-B6sG86jN.webp",
+      "size": 0
+    },
+    {
+      "name": "https://www.gazaairport.com/assets/airport-future-body-Vm0bAN0n.webp",
+      "size": 0
+    },
+    {
+      "name": "http://127.0.0.1:5193/assets/past-024-480-C_4lL81f.webp",
+      "size": 0
+    },
+    {
+      "name": "http://127.0.0.1:5193/assets/airport-present-ruins-2008-480-UDgbsujI.webp",
+      "size": 0
+    },
+    {
+      "name": "http://127.0.0.1:5193/media/future/cinematic/v-d66699d4/future-cinematic-poster.webp",
+      "size": 300
+    },
+    {
+      "name": "http://127.0.0.1:5193/media/future/cinematic/mp4-7cb9fe96/scrub-720p-g6-crf25.mp4",
+      "size": 300
+    }
+  ],
+  "errors": []
+}

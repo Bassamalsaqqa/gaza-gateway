@@ -1,0 +1,116 @@
+{
+  "passed": true,
+  "checks": [
+    "Restored 75% scroll targets 6 seconds",
+    "Native first frame 0 stays hidden behind poster",
+    "Superseded 6 second presented frame stays hidden",
+    "Latest native 2 second frame alone reveals video",
+    "Hide releases old source and decoder",
+    "Cleanup cancels frame callback and ignores stale callbacks",
+    "Held seek times out to fallback and releases decoder"
+  ],
+  "native": {
+    "progress": 0.7500934351270444,
+    "requests": [
+      {
+        "id": 0,
+        "target": 6.000747481016355,
+        "released": true
+      },
+      {
+        "id": 0,
+        "target": 2.0007477091851635,
+        "released": true
+      },
+      {
+        "id": 1,
+        "target": 6.000747481016355,
+        "released": false
+      },
+      {
+        "id": 2,
+        "target": 6.000747481016355,
+        "released": false
+      }
+    ],
+    "frames": [
+      {
+        "id": 0,
+        "time": 0
+      },
+      {
+        "id": 0,
+        "time": 6
+      },
+      {
+        "id": 0,
+        "time": 2
+      },
+      {
+        "id": 1,
+        "time": 0
+      },
+      {
+        "id": 2,
+        "time": 0
+      }
+    ],
+    "loaded": [
+      {
+        "id": 0,
+        "time": 0
+      },
+      {
+        "id": 1,
+        "time": 0
+      },
+      {
+        "id": 2,
+        "time": 0
+      }
+    ],
+    "mediaErrors": [],
+    "ready": [
+      {
+        "time": 2.000747,
+        "frame": 2
+      }
+    ],
+    "errors": [
+      "The video could not be decoded in time."
+    ],
+    "videos": [
+      {
+        "id": 0,
+        "src": null,
+        "loads": 2,
+        "pauses": 1
+      },
+      {
+        "id": 1,
+        "src": null,
+        "loads": 2,
+        "pauses": 1
+      },
+      {
+        "id": 2,
+        "src": null,
+        "loads": 2,
+        "pauses": 1
+      }
+    ],
+    "cancelled": [
+      {
+        "id": 1,
+        "token": 2
+      },
+      {
+        "id": 2,
+        "token": 2
+      }
+    ],
+    "poster": "1",
+    "video": null,
+    "fallback": true
+  }
+}

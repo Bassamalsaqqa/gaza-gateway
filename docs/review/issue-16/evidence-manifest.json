@@ -1,0 +1,148 @@
+{
+  "implementation_sha": "e50776220c9ef0b8473ecc78160de921207e3ef8",
+  "latest_main_at_publication": "47c64df8d65935cc77487bda753dbbca6a2470b3",
+  "owner_confirmed_production_application_sha": "96538d9affdc843d08ef3c801f15c7f92dfd46b3",
+  "issue_15_certification": "outstanding",
+  "physical_mobile_certified": false,
+  "screenshot_context": {
+    "before": "Production read-only, frame 0; original contain renderer.",
+    "after": "Local exact e507762 cinematic source with read-only production EN/AR foreground markup and CSS, frame 0.",
+    "portrait_css_viewport": [
+      390,
+      844
+    ],
+    "landscape_css_viewport": [
+      844,
+      390
+    ],
+    "capture": "Actual connected Edge browser JPEGs; unretouched. Raster dimensions can differ from CSS viewport due to browser capture scaling and scrollbar."
+  },
+  "records": [
+    {
+      "file": "before-en-portrait.jpg",
+      "sha256": "7d90f7337f81a82d907ce5d6d9ef288cf1288a755ffcc0e8d2fea7953a5fe614",
+      "bytes": 33095,
+      "original_capture_or_write_time_utc": "2026-10-15T22:44:29.370408+00:00"
+    },
+    {
+      "file": "after-en-portrait.jpg",
+      "sha256": "79f0f509936c3374be717d992f87fdf88a8970acf5bce4ca3e74e9b91d86f81e",
+      "bytes": 41659,
+      "original_capture_or_write_time_utc": "2026-10-15T23:06:36.453629+00:00"
+    },
+    {
+      "file": "before-ar-portrait.jpg",
+      "sha256": "f7da4998681b10c06a1b1caecbff287ef04553c288e5aee604b02da77b3f4c2e",
+      "bytes": 25890,
+      "original_capture_or_write_time_utc": "2026-10-16T05:56:33.624884+00:00"
+    },
+    {
+      "file": "after-ar-portrait.jpg",
+      "sha256": "40028c37736bb3915c228510368a8dba18fdf5d8078cbc727a10a8e48e7b59e0",
+      "bytes": 37611,
+      "original_capture_or_write_time_utc": "2026-10-15T23:06:17.572563+00:00"
+    },
+    {
+      "file": "before-en-landscape.jpg",
+      "sha256": "b5b18ee6188d18a115d4e5099244687ec7775794a55c93890a174fc600edae83",
+      "bytes": 40226,
+      "original_capture_or_write_time_utc": "2026-10-15T22:45:01.925188+00:00"
+    },
+    {
+      "file": "after-en-landscape.jpg",
+      "sha256": "ed4edc5dfb9e43c0ea084ee8cb433a7ab5f7a178a3fa698471d9c9aacde9c859",
+      "bytes": 42651,
+      "original_capture_or_write_time_utc": "2026-10-15T23:06:44.951239+00:00"
+    },
+    {
+      "file": "before-ar-landscape.jpg",
+      "sha256": "b19a9f2ac49f17982407ca902afb7c04d196c8c328ce854e76914cf2fe63c77c",
+      "bytes": 37539,
+      "original_capture_or_write_time_utc": "2026-10-16T05:58:50.590315+00:00"
+    },
+    {
+      "file": "after-ar-landscape.jpg",
+      "sha256": "f2b8ca121dad5163f181b7039f0499ce3c5c40466a653ccf9bb2540ca220ec89",
+      "bytes": 39577,
+      "original_capture_or_write_time_utc": "2026-10-16T05:58:22.897547+00:00"
+    },
+    {
+      "file": "first-frame-receipt.json",
+      "sha256": "657925739ee963fc503e29b58b64ae431b698359edfd0c872a52fc696bad1618",
+      "bytes": 2021,
+      "original_capture_or_write_time_utc": "2026-10-15T23:06:52.791679+00:00"
+    },
+    {
+      "file": "first-frame-legacy-receipt.json",
+      "sha256": "327da2f01e6f5d444fdaffa06cf56cbc93382628e37e7336cbfcac37a815c3a6",
+      "bytes": 799,
+      "original_capture_or_write_time_utc": "2026-10-15T23:07:07.552566+00:00"
+    },
+    {
+      "file": "rotation-landscape.json",
+      "sha256": "9fec51ecc77d7f9a89f8556754af204f595a714817455c0c3f754f4ed589080e",
+      "bytes": 3237,
+      "original_capture_or_write_time_utc": "2026-10-15T22:57:10.012137+00:00"
+    },
+    {
+      "file": "ar-rotation-portrait.json",
+      "sha256": "f14cedc55b56afb878ba38772c0f91e3eed92dba7b7a8a876fb1aa5df4d8b9e0",
+      "bytes": 5329,
+      "original_capture_or_write_time_utc": "2026-10-15T22:57:37.955386+00:00"
+    },
+    {
+      "file": "browser-chrome-resize.json",
+      "sha256": "6eab0de310ad2ad66375eb257cb5e3dc47d337fc002246aa894f3d6a38dce617",
+      "bytes": 5329,
+      "original_capture_or_write_time_utc": "2026-10-15T22:57:58.369895+00:00"
+    },
+    {
+      "file": "1280x720-en.json",
+      "sha256": "45ca250f41d1bd0392658d2da452149fc2af6fb19ec408c45dacb1e8afc00b84",
+      "bytes": 2855,
+      "original_capture_or_write_time_utc": "2026-10-15T23:06:02.181727+00:00"
+    },
+    {
+      "file": "fallback-save-data.json",
+      "sha256": "606e59e473e10f1dac5afd082406d5476fa14b453cf039180c4cfc294c23cbc4",
+      "bytes": 1263,
+      "original_capture_or_write_time_utc": "2026-10-15T23:03:03.172231+00:00"
+    },
+    {
+      "file": "fallback-low-memory.json",
+      "sha256": "55887ad3941fb2b798fe163800361114f968d81c8b15a6c346f8cbf2dd8f8d91",
+      "bytes": 1263,
+      "original_capture_or_write_time_utc": "2026-10-15T23:03:11.249335+00:00"
+    },
+    {
+      "file": "fallback-reduced-motion-ar.json",
+      "sha256": "e18710971df67caf5398523a7c4f5c5fd5d915a3b275c01d9d504d01cc9793d9",
+      "bytes": 1263,
+      "original_capture_or_write_time_utc": "2026-10-15T23:03:18.796984+00:00"
+    },
+    {
+      "file": "fallback-native-media-error.json",
+      "sha256": "03732bd9a3338895be7b7f83b49a5576bbf2c48730453d7fe9cbcf86bcf25a87",
+      "bytes": 1688,
+      "original_capture_or_write_time_utc": "2026-10-15T23:03:28.262744+00:00"
+    },
+    {
+      "file": "ar-landscape-hero-final.json",
+      "sha256": "9936e6a90e6100f298cf81bd48e6dda14fd06cc68b0ae41e32fbc6f4754a6a52",
+      "bytes": 2508,
+      "original_capture_or_write_time_utc": "2026-10-16T05:57:28.383218+00:00"
+    },
+    {
+      "file": "focused-unit-tests.txt",
+      "sha256": "1677d14d99da988d1aea1973494892fe6ea4b35a69e503ff3433edc26df23526",
+      "bytes": 1048,
+      "original_capture_or_write_time_utc": "2026-10-16T05:56:56.299952+00:00"
+    },
+    {
+      "file": "typecheck.txt",
+      "sha256": "9a19c0c634ada2e2438f2c43141dc77785fa96546262e1ab46b6c3e4aa3ca9e9",
+      "bytes": 35,
+      "original_capture_or_write_time_utc": "2026-10-16T05:57:18.181635+00:00"
+    }
+  ]
+}

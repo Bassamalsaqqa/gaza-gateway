@@ -1,0 +1,141 @@
+{
+  "width": 844,
+  "height": 390,
+  "lang": "en",
+  "dir": "ltr",
+  "scrollY": 0,
+  "progress": 0,
+  "visibility": "visible",
+  "video": {
+    "src": "http://127.0.0.1:5193/media/future/cinematic/mobile-ccf5d232/mobile-landscape.mp4",
+    "time": 0,
+    "duration": 8,
+    "ready": 4,
+    "seeking": false,
+    "opacity": "1",
+    "fit": "cover",
+    "rect": {
+      "width": 828.7999877929688,
+      "height": 390.3999938964844
+    },
+    "width": 960,
+    "height": 504
+  },
+  "poster": [
+    {
+      "src": "http://127.0.0.1:5193/media/future/cinematic/mobile-a7f9e809/mobile-landscape.webp",
+      "complete": true,
+      "fit": "cover",
+      "opacity": "0",
+      "width": 960,
+      "height": 504
+    }
+  ],
+  "videos": [
+    {
+      "id": 0,
+      "src": null,
+      "connected": false,
+      "loads": 2,
+      "pauses": 1
+    },
+    {
+      "id": 1,
+      "src": "/media/future/cinematic/mobile-ccf5d232/mobile-landscape.mp4",
+      "connected": true,
+      "loads": 1,
+      "pauses": 0
+    }
+  ],
+  "events": [
+    {
+      "name": "emptied",
+      "id": 0,
+      "time": 0,
+      "src": "/media/future/cinematic/mobile-7f4323c0/mobile-portrait.mp4"
+    },
+    {
+      "name": "loadedmetadata",
+      "id": 0,
+      "time": 0,
+      "src": "/media/future/cinematic/mobile-7f4323c0/mobile-portrait.mp4"
+    },
+    {
+      "name": "loadeddata",
+      "id": 0,
+      "time": 0,
+      "src": "/media/future/cinematic/mobile-7f4323c0/mobile-portrait.mp4"
+    },
+    {
+      "name": "emptied",
+      "id": 1,
+      "time": 0,
+      "src": "/media/future/cinematic/mobile-ccf5d232/mobile-landscape.mp4"
+    },
+    {
+      "name": "loadedmetadata",
+      "id": 1,
+      "time": 0,
+      "src": "/media/future/cinematic/mobile-ccf5d232/mobile-landscape.mp4"
+    },
+    {
+      "name": "loadeddata",
+      "id": 1,
+      "time": 0,
+      "src": "/media/future/cinematic/mobile-ccf5d232/mobile-landscape.mp4"
+    }
+  ],
+  "frames": [
+    {
+      "id": 0,
+      "time": 0
+    },
+    {
+      "id": 1,
+      "time": 0
+    }
+  ],
+  "requests": [
+    {
+      "name": "https://www.gazaairport.com/assets/ticket-world-map-BlGIeYHr.webp",
+      "size": 0
+    },
+    {
+      "name": "https://www.gazaairport.com/assets/airport-past-body-CVuDaYVw.webp",
+      "size": 0
+    },
+    {
+      "name": "https://www.gazaairport.com/assets/airport-present-body-CSqGCo5K.webp",
+      "size": 0
+    },
+    {
+      "name": "http://127.0.0.1:5193/media/future/cinematic/mobile-4d93a238/mobile-portrait.webp",
+      "size": 300
+    },
+    {
+      "name": "http://127.0.0.1:5193/media/future/cinematic/mobile-7f4323c0/mobile-portrait.mp4",
+      "size": 300
+    },
+    {
+      "name": "http://127.0.0.1:5193/assets/past-024-480-C_4lL81f.webp",
+      "size": 0
+    },
+    {
+      "name": "http://127.0.0.1:5193/assets/airport-present-ruins-2008-480-UDgbsujI.webp",
+      "size": 0
+    },
+    {
+      "name": "http://127.0.0.1:5193/assets/aerial-day-640-B6sG86jN.webp",
+      "size": 0
+    },
+    {
+      "name": "http://127.0.0.1:5193/media/future/cinematic/mobile-a7f9e809/mobile-landscape.webp",
+      "size": 79420
+    },
+    {
+      "name": "https://www.gazaairport.com/assets/airport-future-body-Vm0bAN0n.webp",
+      "size": 0
+    }
+  ],
+  "errors": []
+}

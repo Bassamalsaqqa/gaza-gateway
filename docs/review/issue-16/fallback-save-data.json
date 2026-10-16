@@ -1,0 +1,54 @@
+{
+  "width": 390,
+  "height": 844,
+  "lang": "en",
+  "dir": "ltr",
+  "scrollY": 0,
+  "progress": 0,
+  "visibility": "visible",
+  "video": null,
+  "poster": [
+    {
+      "src": "http://127.0.0.1:5193/media/future/cinematic/mobile-4d93a238/mobile-portrait.webp",
+      "complete": true,
+      "fit": "cover",
+      "opacity": "1",
+      "width": 378,
+      "height": 672
+    }
+  ],
+  "videos": [],
+  "events": [],
+  "frames": [],
+  "requests": [
+    {
+      "name": "http://127.0.0.1:5193/media/future/cinematic/mobile-4d93a238/mobile-portrait.webp",
+      "size": 300
+    },
+    {
+      "name": "http://127.0.0.1:5193/assets/past-024-480-C_4lL81f.webp",
+      "size": 0
+    },
+    {
+      "name": "https://www.gazaairport.com/assets/ticket-world-map-BlGIeYHr.webp",
+      "size": 0
+    },
+    {
+      "name": "https://www.gazaairport.com/assets/airport-past-body-CVuDaYVw.webp",
+      "size": 0
+    },
+    {
+      "name": "http://127.0.0.1:5193/assets/airport-present-ruins-2008-480-UDgbsujI.webp",
+      "size": 0
+    },
+    {
+      "name": "https://www.gazaairport.com/assets/airport-present-body-CSqGCo5K.webp",
+      "size": 0
+    },
+    {
+      "name": "http://127.0.0.1:5193/assets/aerial-day-640-B6sG86jN.webp",
+      "size": 0
+    }
+  ],
+  "errors": []
+}

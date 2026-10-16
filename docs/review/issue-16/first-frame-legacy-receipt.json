@@ -1,0 +1,45 @@
+{
+  "passed": true,
+  "checks": [
+    "Restored 75% scroll targets 6 seconds",
+    "Native first frame 0 stays hidden behind poster",
+    "Legacy decoder reveals only after target seek",
+    "Legacy unmount releases decoder"
+  ],
+  "native": {
+    "progress": 0.7500934351270444,
+    "requests": [
+      {
+        "id": 0,
+        "target": 6.000747481016355,
+        "released": true
+      }
+    ],
+    "frames": [],
+    "loaded": [
+      {
+        "id": 0,
+        "time": 0
+      }
+    ],
+    "mediaErrors": [],
+    "ready": [
+      {
+        "time": 6.000747
+      }
+    ],
+    "errors": [],
+    "videos": [
+      {
+        "id": 0,
+        "src": null,
+        "loads": 2,
+        "pauses": 1
+      }
+    ],
+    "cancelled": [],
+    "poster": "1",
+    "video": null,
+    "fallback": true
+  }
+}

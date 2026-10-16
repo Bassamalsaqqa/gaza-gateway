@@ -1,0 +1,20 @@
+▶ Future Airport Cinematic Manifest & Provenance Registry
+  ✔ enforces strict future-concept-ai truth classification (0.6284ms)
+  ✔ documents verified immutable original video master fingerprint (0.1099ms)
+  ✔ verifies selected MP4 derivatives have pinned public assets (13.4503ms)
+  ✔ verifies poster and milestones exist with valid alt text and hashes in versioned directory (7.4388ms)
+  ✔ pins mobile framing, compressed media and aligned first-frame posters (14.6807ms)
+  ✔ ensures 4 chronological story phases with complete 0.0 to 1.0 coverage and honest copy (0.5329ms)
+✔ Future Airport Cinematic Manifest & Provenance Registry (38.2086ms)
+▶ Mobile cinematic source selection
+  ✔ resolveCinematicSourceMode routes breakpoints and orientations accurately (0.8245ms)
+  ✔ resolveCinematicVideoSrc selects authored crops and derivatives from manifest (0.1114ms)
+✔ Mobile cinematic source selection (1.5601ms)
+ℹ tests 8
+ℹ suites 2
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 153.2707
