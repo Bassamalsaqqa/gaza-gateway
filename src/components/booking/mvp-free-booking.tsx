@@ -20,10 +20,11 @@ import {
   TripReservationAttempt,
   tripClient,
   validateTripChronology,
+  type GuestTripCommand,
   type TripCommand,
   type TripResponse,
 } from "@/lib/reservations/trip-client";
-import type { ReservationCommand, ReservationDetail } from "@/lib/reservations/client";
+import type { GuestReservationCommand, ReservationCommand, ReservationDetail } from "@/lib/reservations/client";
 import type { PassengerAccount } from "@/lib/passenger/domain";
 import { MvpOfferingBoard } from "@/components/mvp-offering-board";
 
@@ -469,41 +470,83 @@ function BookingForm({
     try {
       if (isRoundTrip) {
         // --- Round-Trip Two-Leg Submission ---
-        let command: TripCommand;
+        let command: TripCommand | GuestTripCommand;
         try {
-          command = tripAttempt.current.prepare(principalScope, {
-            contact: { email: effectiveEmail, phone: effectivePhone },
-            legs: [
+          if (!account) {
+            command = tripAttempt.current.prepare(
+              principalScope,
               {
-                serviceId: offeringId,
-                passengers: passengers.map(p => ({
-                  id: p.id,
-                  type: p.type,
-                  firstName: p.firstName,
-                  lastName: p.lastName,
-                  dob: p.dob,
-                  nationality: p.nationality,
-                  document: p.document,
-                  seatCode: p.seatCode,
-                  mealId: p.mealId,
-                })),
+                contact: { email: effectiveEmail, phone: effectivePhone },
+                legs: [
+                  {
+                    serviceId: offeringId,
+                    passengers: passengers.map(p => ({
+                      id: p.id,
+                      name: p.firstName.trim(),
+                      type: p.type,
+                      seatCode: p.seatCode,
+                      dob: p.dob || null,
+                      nationality: p.nationality.trim() || null,
+                      document: p.document.trim() || null,
+                      mealId: p.mealId || null,
+                    })),
+                  },
+                  {
+                    serviceId: returnOfferingId!,
+                    passengers: passengers.map(p => ({
+                      id: p.id,
+                      name: p.firstName.trim(),
+                      type: p.type,
+                      seatCode: p.returnSeatCode,
+                      dob: p.dob || null,
+                      nationality: p.nationality.trim() || null,
+                      document: p.document.trim() || null,
+                      mealId: p.returnMealId || null,
+                    })),
+                  },
+                ],
               },
+              true,
+            );
+          } else {
+            command = tripAttempt.current.prepare(
+              principalScope,
               {
-                serviceId: returnOfferingId!,
-                passengers: passengers.map(p => ({
-                  id: p.id,
-                  type: p.type,
-                  firstName: p.firstName,
-                  lastName: p.lastName,
-                  dob: p.dob,
-                  nationality: p.nationality,
-                  document: p.document,
-                  seatCode: p.returnSeatCode,
-                  mealId: p.returnMealId,
-                })),
+                contact: { email: effectiveEmail, phone: effectivePhone },
+                legs: [
+                  {
+                    serviceId: offeringId,
+                    passengers: passengers.map(p => ({
+                      id: p.id,
+                      type: p.type,
+                      firstName: p.firstName,
+                      lastName: p.lastName,
+                      dob: p.dob,
+                      nationality: p.nationality,
+                      document: p.document,
+                      seatCode: p.seatCode,
+                      mealId: p.mealId,
+                    })),
+                  },
+                  {
+                    serviceId: returnOfferingId!,
+                    passengers: passengers.map(p => ({
+                      id: p.id,
+                      type: p.type,
+                      firstName: p.firstName,
+                      lastName: p.lastName,
+                      dob: p.dob,
+                      nationality: p.nationality,
+                      document: p.document,
+                      seatCode: p.returnSeatCode,
+                      mealId: p.returnMealId,
+                    })),
+                  },
+                ],
               },
-            ],
-          });
+              false,
+            );
+          }
         } catch {
           setPending(false);
           if (tripAttempt.current.locked) {
@@ -529,23 +572,48 @@ function BookingForm({
         void cache.invalidateQueries({ queryKey: ["mvp", "reservations"] });
       } else {
         // --- One-Way Single-Leg Submission ---
-        let command: ReservationCommand;
+        let command: ReservationCommand | GuestReservationCommand;
         try {
-          command = oneWayAttempt.current.prepare(principalScope, {
-            serviceId: offeringId,
-            contact: { email: effectiveEmail, phone: effectivePhone },
-            passengers: passengers.map(p => ({
-              id: p.id,
-              type: p.type,
-              firstName: p.firstName,
-              lastName: p.lastName,
-              dob: p.dob,
-              nationality: p.nationality,
-              document: p.document,
-              seatCode: p.seatCode,
-              mealId: p.mealId,
-            })),
-          });
+          if (!account) {
+            command = oneWayAttempt.current.prepare(
+              principalScope,
+              {
+                serviceId: offeringId,
+                contact: { email: effectiveEmail, phone: effectivePhone },
+                passengers: passengers.map(p => ({
+                  id: p.id,
+                  name: p.firstName.trim(),
+                  type: p.type,
+                  seatCode: p.seatCode,
+                  dob: p.dob || null,
+                  nationality: p.nationality.trim() || null,
+                  document: p.document.trim() || null,
+                  mealId: p.mealId || null,
+                })),
+              },
+              true,
+            );
+          } else {
+            command = oneWayAttempt.current.prepare(
+              principalScope,
+              {
+                serviceId: offeringId,
+                contact: { email: effectiveEmail, phone: effectivePhone },
+                passengers: passengers.map(p => ({
+                  id: p.id,
+                  type: p.type,
+                  firstName: p.firstName,
+                  lastName: p.lastName,
+                  dob: p.dob,
+                  nationality: p.nationality,
+                  document: p.document,
+                  seatCode: p.seatCode,
+                  mealId: p.mealId,
+                })),
+              },
+              false,
+            );
+          }
         } catch {
           setPending(false);
           if (oneWayAttempt.current.locked) {
@@ -566,8 +634,8 @@ function BookingForm({
         }
 
         const result = account
-          ? await reservationClient.create(command)
-          : await guestReservationClient.create(command);
+          ? await reservationClient.create(command as ReservationCommand)
+          : await guestReservationClient.create(command as GuestReservationCommand);
 
         if (!mountedRef.current) return;
         setConfirmedOneWay(result);
@@ -940,90 +1008,185 @@ function BookingForm({
                     )}
 
                     <div className="grid gap-4 sm:grid-cols-2">
-                      <Field
-                        label={ar ? "الاسم الأول" : "First name"}
-                        htmlFor={`${fieldId}-${index}-fn`}
-                      >
-                        <Input
-                          id={`${fieldId}-${index}-fn`}
-                          required
-                          autoComplete="given-name"
-                          value={person.firstName}
-                          maxLength={120}
-                          onChange={e => updatePassenger(index, { firstName: e.target.value })}
-                        />
-                      </Field>
+                      {account ? (
+                        <>
+                          <Field
+                            label={ar ? "الاسم الأول" : "First name"}
+                            htmlFor={`${fieldId}-${index}-fn`}
+                          >
+                            <Input
+                              id={`${fieldId}-${index}-fn`}
+                              required
+                              autoComplete="given-name"
+                              value={person.firstName}
+                              maxLength={120}
+                              onChange={e => updatePassenger(index, { firstName: e.target.value })}
+                            />
+                          </Field>
 
-                      <Field
-                        label={ar ? "اسم العائلة" : "Last name"}
-                        htmlFor={`${fieldId}-${index}-ln`}
-                      >
-                        <Input
-                          id={`${fieldId}-${index}-ln`}
-                          required
-                          autoComplete="family-name"
-                          value={person.lastName}
-                          maxLength={120}
-                          onChange={e => updatePassenger(index, { lastName: e.target.value })}
-                        />
-                      </Field>
+                          <Field
+                            label={ar ? "اسم العائلة" : "Last name"}
+                            htmlFor={`${fieldId}-${index}-ln`}
+                          >
+                            <Input
+                              id={`${fieldId}-${index}-ln`}
+                              required
+                              autoComplete="family-name"
+                              value={person.lastName}
+                              maxLength={120}
+                              onChange={e => updatePassenger(index, { lastName: e.target.value })}
+                            />
+                          </Field>
 
-                      <Field
-                        label={ar ? "تاريخ الميلاد" : "Date of birth"}
-                        htmlFor={`${fieldId}-${index}-dob`}
-                      >
-                        <Input
-                          id={`${fieldId}-${index}-dob`}
-                          type="date"
-                          required
-                          value={person.dob}
-                          max={offering.data.date}
-                          dir="ltr"
-                          onChange={e => updatePassenger(index, { dob: e.target.value })}
-                        />
-                      </Field>
+                          <Field
+                            label={ar ? "تاريخ الميلاد" : "Date of birth"}
+                            htmlFor={`${fieldId}-${index}-dob`}
+                          >
+                            <Input
+                              id={`${fieldId}-${index}-dob`}
+                              type="date"
+                              required
+                              value={person.dob}
+                              max={offering.data.date}
+                              dir="ltr"
+                              onChange={e => updatePassenger(index, { dob: e.target.value })}
+                            />
+                          </Field>
 
-                      <Field
-                        label={ar ? "الفئة العمرية" : "Age category"}
-                        htmlFor={`${fieldId}-${index}-type`}
-                      >
-                        <Select
-                          id={`${fieldId}-${index}-type`}
-                          value={person.type}
-                          onChange={e =>
-                            updatePassenger(index, { type: e.target.value as "adult" | "child" })
-                          }
-                        >
-                          <option value="adult">{ar ? "بالغ (١٢+)" : "Adult (12+)"}</option>
-                          <option value="child">{ar ? "طفل (٢–١١)" : "Child (2–11)"}</option>
-                        </Select>
-                      </Field>
+                          <Field
+                            label={ar ? "الفئة العمرية" : "Age category"}
+                            htmlFor={`${fieldId}-${index}-type`}
+                          >
+                            <Select
+                              id={`${fieldId}-${index}-type`}
+                              value={person.type}
+                              onChange={e =>
+                                updatePassenger(index, { type: e.target.value as "adult" | "child" })
+                              }
+                            >
+                              <option value="adult">{ar ? "بالغ (١٢+)" : "Adult (12+)"}</option>
+                              <option value="child">{ar ? "طفل (٢–١١)" : "Child (2–11)"}</option>
+                            </Select>
+                          </Field>
 
-                      <Field
-                        label={ar ? "الجنسية" : "Nationality"}
-                        htmlFor={`${fieldId}-${index}-nat`}
-                      >
-                        <Input
-                          id={`${fieldId}-${index}-nat`}
-                          required
-                          value={person.nationality}
-                          maxLength={120}
-                          onChange={e => updatePassenger(index, { nationality: e.target.value })}
-                        />
-                      </Field>
+                          <Field
+                            label={ar ? "الجنسية" : "Nationality"}
+                            htmlFor={`${fieldId}-${index}-nat`}
+                          >
+                            <Input
+                              id={`${fieldId}-${index}-nat`}
+                              required
+                              value={person.nationality}
+                              maxLength={120}
+                              onChange={e => updatePassenger(index, { nationality: e.target.value })}
+                            />
+                          </Field>
 
-                      <Field
-                        label={ar ? "وثيقة السفر (جواز أو هوية)" : "Travel document (Passport / ID)"}
-                        htmlFor={`${fieldId}-${index}-doc`}
-                      >
-                        <Input
-                          id={`${fieldId}-${index}-doc`}
-                          required
-                          value={person.document}
-                          maxLength={120}
-                          onChange={e => updatePassenger(index, { document: e.target.value })}
-                        />
-                      </Field>
+                          <Field
+                            label={ar ? "وثيقة السفر (جواز أو هوية)" : "Travel document (Passport / ID)"}
+                            htmlFor={`${fieldId}-${index}-doc`}
+                          >
+                            <Input
+                              id={`${fieldId}-${index}-doc`}
+                              required
+                              value={person.document}
+                              maxLength={120}
+                              onChange={e => updatePassenger(index, { document: e.target.value })}
+                            />
+                          </Field>
+                        </>
+                      ) : (
+                        <>
+                          <Field
+                            label={ar ? "اسم المسافر" : "Passenger name"}
+                            htmlFor={`${fieldId}-${index}-name`}
+                            className="sm:col-span-2"
+                          >
+                            <Input
+                              id={`${fieldId}-${index}-name`}
+                              required
+                              autoComplete="name"
+                              placeholder={
+                                ar
+                                  ? "الاسم الكامل (مثال: محمد عبد الله أو Jane Doe)"
+                                  : "Full name (e.g. Jane Doe or Ahmed Sharif)"
+                              }
+                              value={person.firstName}
+                              maxLength={120}
+                              onChange={e => updatePassenger(index, { firstName: e.target.value })}
+                            />
+                          </Field>
+
+                          <details className="sm:col-span-2 rounded-lg border border-border/60 bg-muted/20 p-3">
+                            <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground">
+                              {ar
+                                ? "+ تفاصيل إضافية اختيارية (تاريخ الميلاد، الوثيقة، الجنسية)"
+                                : "+ Optional additional details (Date of birth, document, nationality)"}
+                            </summary>
+                            <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                              <Field
+                                label={ar ? "تاريخ الميلاد (اختياري)" : "Date of birth (Optional)"}
+                                htmlFor={`${fieldId}-${index}-dob`}
+                              >
+                                <Input
+                                  id={`${fieldId}-${index}-dob`}
+                                  type="date"
+                                  value={person.dob}
+                                  max={offering.data.date}
+                                  dir="ltr"
+                                  onChange={e => updatePassenger(index, { dob: e.target.value })}
+                                />
+                              </Field>
+
+                              <Field
+                                label={ar ? "الفئة العمرية" : "Age category"}
+                                htmlFor={`${fieldId}-${index}-type`}
+                              >
+                                <Select
+                                  id={`${fieldId}-${index}-type`}
+                                  value={person.type}
+                                  onChange={e =>
+                                    updatePassenger(index, {
+                                      type: e.target.value as "adult" | "child",
+                                    })
+                                  }
+                                >
+                                  <option value="adult">{ar ? "بالغ (١٢+)" : "Adult (12+)"}</option>
+                                  <option value="child">{ar ? "طفل (٢–١١)" : "Child (2–11)"}</option>
+                                </Select>
+                              </Field>
+
+                              <Field
+                                label={ar ? "الجنسية (اختياري)" : "Nationality (Optional)"}
+                                htmlFor={`${fieldId}-${index}-nat`}
+                              >
+                                <Input
+                                  id={`${fieldId}-${index}-nat`}
+                                  value={person.nationality}
+                                  maxLength={120}
+                                  onChange={e =>
+                                    updatePassenger(index, { nationality: e.target.value })
+                                  }
+                                />
+                              </Field>
+
+                              <Field
+                                label={ar ? "وثيقة السفر (اختياري)" : "Travel document (Optional)"}
+                                htmlFor={`${fieldId}-${index}-doc`}
+                              >
+                                <Input
+                                  id={`${fieldId}-${index}-doc`}
+                                  value={person.document}
+                                  maxLength={120}
+                                  onChange={e =>
+                                    updatePassenger(index, { document: e.target.value })
+                                  }
+                                />
+                              </Field>
+                            </div>
+                          </details>
+                        </>
+                      )}
 
                       {/* Meal choices */}
                       <Field

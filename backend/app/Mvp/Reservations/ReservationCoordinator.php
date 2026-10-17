@@ -963,7 +963,7 @@ final class ReservationCoordinator
                 'id' => (string) $p->passenger_client_id,
                 'type' => (string) $p->type,
                 'firstName' => (string) $p->first_name,
-                'lastName' => (string) $p->last_name,
+                'lastName' => $p->last_name !== null ? (string) $p->last_name : null,
                 'seatCode' => (string) $p->seat_code,
                 'mealId' => $p->meal_id ? (string) $p->meal_id : null,
                 'mealLabel' => $meal['label'] ?? null,

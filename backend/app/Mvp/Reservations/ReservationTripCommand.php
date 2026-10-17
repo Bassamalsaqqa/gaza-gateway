@@ -40,7 +40,7 @@ final class ReservationTripCommand
      *     }>
      * }
      */
-    public static function parse(array $input): array
+    public static function parse(array $input, bool $isGuest = false): array
     {
         self::keys($input, ['submissionId', 'contact', 'legs']);
 
@@ -58,9 +58,18 @@ final class ReservationTripCommand
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             throw new InvalidArgumentException('Invalid reservation trip command: email.');
         }
-        $phone = self::text($contact['phone'] ?? null, 32, false);
-        if ($phone !== '' && preg_match('/\A\+?[0-9 ()-]{5,32}\z/', $phone) !== 1) {
-            throw new InvalidArgumentException('Invalid reservation trip command: phone.');
+        if (isset($contact['phone']) && $contact['phone'] !== null && $contact['phone'] !== '') {
+            $phone = self::text($contact['phone'], 32, false);
+            if ($phone !== '' && preg_match('/\A\+?[0-9 ()-]{5,32}\z/', $phone) !== 1) {
+                throw new InvalidArgumentException('Invalid reservation trip command: phone.');
+            }
+        } elseif (!$isGuest) {
+            $phone = self::text($contact['phone'] ?? null, 32, false);
+            if ($phone !== '' && preg_match('/\A\+?[0-9 ()-]{5,32}\z/', $phone) !== 1) {
+                throw new InvalidArgumentException('Invalid reservation trip command: phone.');
+            }
+        } else {
+            $phone = '';
         }
         $normalizedContact = ['email' => $email, 'phone' => $phone];
 
@@ -88,7 +97,7 @@ final class ReservationTripCommand
             ];
 
             // Delegate single-leg parsing to authoritative ReservationCommand parser
-            $parsedLegs[$idx] = ReservationCommand::parse($legInput);
+            $parsedLegs[$idx] = ReservationCommand::parse($legInput, $isGuest);
         }
 
         // Two different services required
@@ -124,6 +133,11 @@ final class ReservationTripCommand
             'contact' => $normalizedContact,
             'legs' => $parsedLegs,
         ];
+    }
+
+    public static function parseGuest(array $input): array
+    {
+        return self::parse($input, isGuest: true);
     }
 
     /**

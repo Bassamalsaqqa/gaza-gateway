@@ -1013,4 +1013,103 @@ final class GuestReservationRoutesTest extends TestCase
         $this->assertTrue($result['changed']);
         $this->assertSame('cancelled', DB::table('mvp_reservations')->where('reference', $ref)->value('status'));
     }
+
+    public function test_guest_minimal_name_and_email_stores_null_optionals_and_idempotent_replay(): void
+    {
+        $session = $this->guestSession();
+        $serviceId = $this->sampleServiceId();
+        $email = 'minimal-guest-' . Str::random(8) . '@example.test';
+
+        // 1. Verify guest email
+        $resChal = $this->http('POST', '/guest-reservations/email-challenges', $session, ['email' => $email]);
+        $outbox = DB::table('mvp_guest_mail_outbox')->where('challenge_id', $resChal->json('data.challengeId'))->first();
+        $code = json_decode(app('encrypter')->decrypt($outbox->encrypted_payload), true, 512, JSON_THROW_ON_ERROR)['code'];
+        $this->http('POST', '/guest-reservations/email-verifications', $session, ['challengeId' => $resChal->json('data.challengeId'), 'code' => $code])->assertOk();
+
+        // 2. Submit minimal command (single guest name, verified email, seatCode, no phone, no lastName/dob/nationality/document)
+        $subId = (string) Str::uuid();
+        $cmd = [
+            'submissionId' => $subId,
+            'serviceId' => $serviceId,
+            'passengers' => [
+                [
+                    'id' => 'p-1',
+                    'name' => 'Tariq Al-Husseini',
+                    'seatCode' => '22A',
+                ],
+            ],
+            'contact' => [
+                'email' => $email,
+            ],
+        ];
+
+        $res = $this->http('POST', '/guest-reservations', $session, $cmd);
+        $res->assertStatus(201);
+        $ref = $res->json('data.reservation.reference');
+        $resId = $res->json('data.reservation.id');
+
+        // 3. Inspect database: passenger optional columns are canonically NULL
+        $dbPassenger = DB::table('mvp_reservation_passengers')->where('reservation_id', $resId)->first();
+        $this->assertNotNull($dbPassenger);
+        $this->assertSame('Tariq Al-Husseini', $dbPassenger->first_name);
+        $this->assertNull($dbPassenger->last_name);
+        $this->assertNull($dbPassenger->dob);
+        $this->assertNull($dbPassenger->nationality);
+        $this->assertNull($dbPassenger->document);
+        $this->assertSame('adult', $dbPassenger->type);
+        $this->assertSame('22A', $dbPassenger->seat_code);
+
+        // 4. Response projection reflects null lastName and omitted phone
+        $this->assertSame('Tariq Al-Husseini', $res->json('data.reservation.passengers.0.firstName'));
+        $this->assertNull($res->json('data.reservation.passengers.0.lastName'));
+        $this->assertNull($res->json('data.ticket.tickets.0.passenger.lastName'));
+        $this->assertNull($res->json('data.ticket.tickets.0.passenger.nationality'));
+
+        // 5. Replay exact same minimal payload returns 200 with identical reference
+        $resReplay = $this->http('POST', '/guest-reservations', $session, $cmd);
+        $resReplay->assertStatus(200);
+        $this->assertSame($ref, $resReplay->json('data.reservation.reference'));
+        $this->assertNull($resReplay->json('data.reservation.passengers.0.lastName'));
+
+        // 6. Malformed optional DOB rejected with 422
+        $email2 = 'bad-dob-' . Str::random(8) . '@example.test';
+        $r2 = $this->http('POST', '/guest-reservations/email-challenges', $session, ['email' => $email2]);
+        $c2 = json_decode(app('encrypter')->decrypt(DB::table('mvp_guest_mail_outbox')->where('challenge_id', $r2->json('data.challengeId'))->first()->encrypted_payload), true, 512, JSON_THROW_ON_ERROR)['code'];
+        $this->http('POST', '/guest-reservations/email-verifications', $session, ['challengeId' => $r2->json('data.challengeId'), 'code' => $c2])->assertOk();
+
+        $cmdBadDob = [
+            'submissionId' => (string) Str::uuid(),
+            'serviceId' => $serviceId,
+            'passengers' => [
+                [
+                    'id' => 'p-1',
+                    'name' => 'Tariq Al-Husseini',
+                    'seatCode' => '22B',
+                    'dob' => '2000-02-30',
+                ],
+            ],
+            'contact' => [
+                'email' => $email2,
+            ],
+        ];
+        $this->http('POST', '/guest-reservations', $session, $cmdBadDob)->assertStatus(422);
+
+        // 7. Unknown key in guest command rejected with 422
+        $cmdBadKey = [
+            'submissionId' => (string) Str::uuid(),
+            'serviceId' => $serviceId,
+            'passengers' => [
+                [
+                    'id' => 'p-1',
+                    'name' => 'Tariq Al-Husseini',
+                    'seatCode' => '22C',
+                    'untrusted' => 1,
+                ],
+            ],
+            'contact' => [
+                'email' => $email2,
+            ],
+        ];
+        $this->http('POST', '/guest-reservations', $session, $cmdBadKey)->assertStatus(422);
+    }
 }

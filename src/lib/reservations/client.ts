@@ -16,16 +16,17 @@ const label = z.object({ en: z.string(), ar: z.string() }).strict();
 const meal = z.object({ id, label }).strict().nullable();
 const contact = z.object({ email: z.string().email().max(254), phone: z.string().max(32) }).strict();
 const commandContact = z.object({ email: z.string().trim().email().max(254), phone: z.string().trim().regex(/^(?:\+?[0-9 ()-]{5,32})?$/) }).strict();
+export const guestCommandContact = z.object({ email: z.string().trim().email().max(254), phone: z.string().trim().regex(/^(?:\+?[0-9 ()-]{5,32})?$/).optional().default("") }).strict();
 const flight = z.object({ serviceId: service, flightNumber: z.string().min(1), date, direction: z.enum(["out", "in"]).optional(),
   originCode: z.string().regex(/^[A-Z]{3}$/), destinationCode: z.string().regex(/^[A-Z]{3}$/), departTime: time, arriveTime: time,
   durationMinutes: z.number().int().positive().optional(), aircraftModel: z.string().min(1), ...offeringTimingFields }).strict();
 const passengerTicket = z.object({ ticketNumber: z.string().min(1), reference: ref, status, issuedAt: z.string().datetime({ offset: true }),
-  passenger: z.object({ id, type: z.enum(["adult", "child"]), firstName: z.string(), lastName: z.string(), nationality: z.string(), seatCode: seat, meal }).strict(), flight, contact }).strict();
+  passenger: z.object({ id, type: z.enum(["adult", "child"]), firstName: z.string(), lastName: z.string().nullable(), nationality: z.string().nullable(), seatCode: seat, meal }).strict(), flight, contact }).strict();
 const ticket = z.object({ reference: ref, status, issuedAt: z.string().datetime({ offset: true }), flight,
   tickets: z.array(passengerTicket).min(1).max(9), contact }).strict();
 export const reservationDetailSchema = z.object({ reservation: z.object({ id: z.string().uuid(), reference: ref, status, serviceId: service,
   flightNumber: z.string(), date, originCode: z.string(), destinationCode: z.string(), departTime: time, arriveTime: time, contact,
-  passengers: z.array(z.object({ id, type: z.enum(["adult", "child"]), firstName: z.string(), lastName: z.string(), seatCode: seat,
+  passengers: z.array(z.object({ id, type: z.enum(["adult", "child"]), firstName: z.string(), lastName: z.string().nullable(), seatCode: seat,
     mealId: id.nullable(), mealLabel: label.nullable() }).strict()).min(1).max(9), createdAt: z.string().min(1) }).strict(), ticket }).strict().superRefine((data, ctx) => {
     const r = data.reservation, t = data.ticket;
     const matchingFlight = (f: z.infer<typeof flight>) => f.serviceId === r.serviceId && f.flightNumber === r.flightNumber
@@ -35,7 +36,7 @@ export const reservationDetailSchema = z.object({ reservation: z.object({ id: z.
     if (!matchingFlight(t.flight) || !matchingContact(t.contact) || t.tickets.some(item => !matchingFlight(item.flight) || !matchingContact(item.contact))
       || r.reference !== t.reference || r.status !== t.status || r.serviceId !== t.flight.serviceId || t.tickets.length !== r.passengers.length
       || t.tickets.some(item => item.reference !== r.reference || item.status !== r.status || item.flight.serviceId !== r.serviceId
-        || !r.passengers.some(p => p.id === item.passenger.id && p.seatCode === item.passenger.seatCode && p.type === item.passenger.type && p.firstName === item.passenger.firstName && p.lastName === item.passenger.lastName))
+        || !r.passengers.some(p => p.id === item.passenger.id && p.seatCode === item.passenger.seatCode && p.type === item.passenger.type && p.firstName === item.passenger.firstName && (p.lastName ?? null) === (item.passenger.lastName ?? null)))
       || new Set(t.tickets.map(item => item.passenger.id)).size !== t.tickets.length
       || new Set(r.passengers.map(p => p.id)).size !== r.passengers.length || new Set(r.passengers.map(p => p.seatCode)).size !== r.passengers.length)
       ctx.addIssue({ code: "custom", message: "Reservation/ticket snapshot mismatch." });
@@ -79,6 +80,52 @@ export const reservationCommandSchema = z.object({ submissionId: z.string().uuid
     ctx.addIssue({ code: "custom", message: "Invalid passenger or seat assignments." });
 });
 export type ReservationCommand = z.infer<typeof reservationCommandSchema>;
+
+export const guestPassengerSchema = z.object({
+  id,
+  type: z.enum(["adult", "child"]).optional(),
+  name: z.string().trim().min(1).max(120).optional(),
+  firstName: z.string().trim().min(1).max(120).optional(),
+  lastName: z.string().trim().max(120).nullable().optional(),
+  dob: date.nullable().optional(),
+  nationality: z.string().trim().min(1).max(120).nullable().optional(),
+  document: z.string().trim().min(1).max(120).nullable().optional(),
+  seatCode: seat,
+  mealId: id.nullable().optional(),
+}).strict().superRefine((p, ctx) => {
+  if (p.name !== undefined && p.firstName !== undefined) {
+    ctx.addIssue({ code: "custom", message: "Ambiguous simultaneous name and firstName fields." });
+  }
+  if (!p.name?.trim() && !p.firstName?.trim()) {
+    ctx.addIssue({ code: "custom", message: "Passenger name is required." });
+  }
+});
+
+export const guestReservationCommandSchema = z.object({
+  submissionId: z.string().uuid(),
+  serviceId: service,
+  contact: guestCommandContact,
+  passengers: z.array(guestPassengerSchema).min(1).max(9),
+}).strict().superRefine((command, ctx) => {
+  const flightDate = decodeDatedOfferingId(command.serviceId)?.date;
+  const invalidAge = flightDate && command.passengers.some(p => {
+    if (!p.dob) return false;
+    const pType = p.type ?? "adult";
+    const age = Number(flightDate.slice(0, 4)) - Number(p.dob.slice(0, 4)) - (flightDate.slice(5) < p.dob.slice(5) ? 1 : 0);
+    return age > 120 || (pType === "adult" ? age < 12 : age < 2 || age > 11);
+  });
+  if (!command.passengers.some(p => (p.type ?? "adult") === "adult")) {
+    ctx.addIssue({ code: "custom", message: "At least one adult passenger is required." });
+  }
+  if (invalidAge) {
+    ctx.addIssue({ code: "custom", message: "Invalid passenger age for category." });
+  }
+  if (new Set(command.passengers.map(p => p.id)).size !== command.passengers.length || new Set(command.passengers.map(p => p.seatCode)).size !== command.passengers.length) {
+    ctx.addIssue({ code: "custom", message: "Invalid passenger or seat assignments." });
+  }
+});
+export type GuestReservationCommand = z.infer<typeof guestReservationCommandSchema>;
+
 export type ReservationDetail = z.infer<typeof reservationDetailSchema>;
 export type Occupancy = z.infer<typeof occupancySchema>;
 const cancellation = z.object({ reference: ref, status: z.literal("cancelled"), changed: z.boolean(), cancelledAt: z.string().nullable() }).strict();
@@ -97,7 +144,7 @@ export class ReservationClient {
     const data = await this.client().request({ method: "POST", path: "/reservations", realm: "passenger", body, statuses: [200, 201], schema: reservationDetailSchema });
     if (data.reservation.contact.email !== body.contact.email || data.reservation.contact.phone !== body.contact.phone
       || data.reservation.serviceId !== body.serviceId || data.reservation.passengers.length !== body.passengers.length
-      || data.reservation.passengers.some(p => !body.passengers.some(item => item.id === p.id && item.seatCode === p.seatCode && item.type === p.type && item.firstName.trim() === p.firstName && item.lastName.trim() === p.lastName)))
+      || data.reservation.passengers.some(p => !body.passengers.some(item => item.id === p.id && item.seatCode === p.seatCode && item.type === p.type && item.firstName.trim() === p.firstName && (item.lastName.trim() || null) === (p.lastName || null))))
       throw new MvpApiError("protocol");
     return data;
   }

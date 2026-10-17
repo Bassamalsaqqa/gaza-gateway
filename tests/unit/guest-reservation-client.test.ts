@@ -12,6 +12,16 @@ import {
   accessVerificationResponseSchema,
   guestCancellationSchema,
 } from "../../src/lib/reservations/guest-client.ts";
+import {
+  guestPassengerSchema,
+  guestReservationCommandSchema,
+  reservationCommandSchema,
+} from "../../src/lib/reservations/client.ts";
+import {
+  TripClient,
+  guestTripCommandSchema,
+  tripCommandSchema,
+} from "../../src/lib/reservations/trip-client.ts";
 import { createMvpApiClient, MvpApiError } from "../../src/lib/api/mvp-client.ts";
 import { encodeDatedOfferingId } from "../../src/lib/offerings/codec.ts";
 
@@ -347,4 +357,417 @@ test("timeout -> 429/401 -> reverify retry preserves same frozen UUID/body and p
       }),
     /Account context changed/i,
   );
+});
+
+test("minimal name + verified email one-way guest checkout succeeds with canonical null optional details", async () => {
+  const minimalDetail = {
+    reservation: {
+      id: crypto.randomUUID(),
+      reference: "GZA-MIN1",
+      status: "confirmed" as const,
+      serviceId,
+      flightNumber: "PS204",
+      date: "2026-12-20",
+      originCode: "GZA",
+      destinationCode: "AMM",
+      departTime: "09:30",
+      arriveTime: "10:30",
+      contact: { email: "guest.minimal@example.test", phone: "" },
+      passengers: [{
+        id: "p1",
+        type: "adult" as const,
+        firstName: "Tariq Al-Husseini",
+        lastName: null,
+        seatCode: "5B",
+        mealId: null,
+        mealLabel: null,
+      }],
+      createdAt: "2026-10-17 09:00:00+00",
+    },
+    ticket: {
+      reference: "GZA-MIN1",
+      status: "confirmed" as const,
+      issuedAt: "2026-10-17T09:00:00+00:00",
+      flight: {
+        serviceId,
+        flightNumber: "PS204",
+        date: "2026-12-20",
+        originCode: "GZA",
+        destinationCode: "AMM",
+        departTime: "09:30",
+        arriveTime: "10:30",
+        aircraftModel: "Boeing 737-400",
+      },
+      contact: { email: "guest.minimal@example.test", phone: "" },
+      tickets: [
+        {
+          reference: "GZA-MIN1",
+          status: "confirmed" as const,
+          issuedAt: "2026-10-17T09:00:00+00:00",
+          ticketNumber: "TKT-GZA-MIN1-1",
+          flight: {
+            serviceId,
+            flightNumber: "PS204",
+            date: "2026-12-20",
+            originCode: "GZA",
+            destinationCode: "AMM",
+            departTime: "09:30",
+            arriveTime: "10:30",
+            aircraftModel: "Boeing 737-400",
+          },
+          contact: { email: "guest.minimal@example.test", phone: "" },
+          passenger: {
+            id: "p1",
+            type: "adult" as const,
+            firstName: "Tariq Al-Husseini",
+            lastName: null,
+            seatCode: "5B",
+            nationality: null,
+            meal: null,
+          },
+        },
+      ],
+    },
+  };
+
+  const { client, calls } = mockApi((path, init) => {
+    if (path === "/guest-reservations" && init.method === "POST") {
+      return { status: 201, body: minimalDetail };
+    }
+    return { status: 404, body: { code: "not_found" } };
+  });
+
+  const guestClient = new GuestReservationClient(() => client);
+  const minimalCmd = {
+    submissionId: crypto.randomUUID(),
+    serviceId,
+    contact: { email: "guest.minimal@example.test" },
+    passengers: [
+      {
+        id: "p1",
+        firstName: "Tariq Al-Husseini",
+        seatCode: "5B",
+      },
+    ],
+  };
+
+  const result = await guestClient.create(minimalCmd);
+  assert.equal(result.reservation.reference, "GZA-MIN1");
+  assert.equal(result.reservation.passengers[0]?.firstName, "Tariq Al-Husseini");
+  assert.equal(result.reservation.passengers[0]?.lastName, null);
+  assert.equal(result.ticket.tickets[0]?.passenger.lastName, null);
+  assert.equal(result.ticket.tickets[0]?.passenger.nationality, null);
+  assert.equal(calls.length, 1);
+  assert.equal(guestClient.isAccessVerified("GZA-MIN1"), true);
+});
+
+test("minimal name + verified email roundtrip guest checkout succeeds with null optional details", async () => {
+  const outboundSvc = encodeDatedOfferingId("curated-out", "2026-12-20");
+  const returnSvc = encodeDatedOfferingId("curated-in", "2026-12-25");
+  const email = "trip.guest@example.test";
+
+  const minimalTripDetail = {
+    reservations: [
+      {
+        reservation: {
+          id: crypto.randomUUID(),
+          reference: "GZA-OUT1",
+          status: "confirmed" as const,
+          serviceId: outboundSvc,
+          flightNumber: "PS100",
+          date: "2026-12-20",
+          originCode: "GZA",
+          destinationCode: "AMM",
+          departTime: "08:00",
+          arriveTime: "09:00",
+          contact: { email, phone: "" },
+          passengers: [{
+            id: "p1",
+            type: "adult" as const,
+            firstName: "Layla",
+            lastName: null,
+            seatCode: "4A",
+            mealId: null,
+            mealLabel: null,
+          }],
+          createdAt: "2026-10-17 09:00:00+00",
+        },
+        ticket: {
+          reference: "GZA-OUT1",
+          status: "confirmed" as const,
+          issuedAt: "2026-10-17T09:00:00+00:00",
+          flight: {
+            serviceId: outboundSvc,
+            flightNumber: "PS100",
+            date: "2026-12-20",
+            originCode: "GZA",
+            destinationCode: "AMM",
+            departTime: "08:00",
+            arriveTime: "09:00",
+            aircraftModel: "Boeing 737-800",
+            departAt: "2026-12-20T08:00:00+03:00",
+            arriveAt: "2026-12-20T09:00:00+03:00",
+          },
+          contact: { email, phone: "" },
+          tickets: [{
+            reference: "GZA-OUT1",
+            status: "confirmed" as const,
+            issuedAt: "2026-10-17T09:00:00+00:00",
+            ticketNumber: "TKT-GZA-OUT1-1",
+            flight: {
+              serviceId: outboundSvc,
+              flightNumber: "PS100",
+              date: "2026-12-20",
+              originCode: "GZA",
+              destinationCode: "AMM",
+              departTime: "08:00",
+              arriveTime: "09:00",
+              aircraftModel: "Boeing 737-800",
+              departAt: "2026-12-20T08:00:00+03:00",
+              arriveAt: "2026-12-20T09:00:00+03:00",
+            },
+            contact: { email, phone: "" },
+            passenger: {
+              id: "p1",
+              type: "adult" as const,
+              firstName: "Layla",
+              lastName: null,
+              seatCode: "4A",
+              nationality: null,
+              meal: null,
+            },
+          }],
+        },
+      },
+      {
+        reservation: {
+          id: crypto.randomUUID(),
+          reference: "GZA-RET1",
+          status: "confirmed" as const,
+          serviceId: returnSvc,
+          flightNumber: "PS101",
+          date: "2026-12-25",
+          originCode: "AMM",
+          destinationCode: "GZA",
+          departTime: "14:00",
+          arriveTime: "15:00",
+          contact: { email, phone: "" },
+          passengers: [{
+            id: "p1",
+            type: "adult" as const,
+            firstName: "Layla",
+            lastName: null,
+            seatCode: "6F",
+            mealId: null,
+            mealLabel: null,
+          }],
+          createdAt: "2026-10-17 09:00:00+00",
+        },
+        ticket: {
+          reference: "GZA-RET1",
+          status: "confirmed" as const,
+          issuedAt: "2026-10-17T09:00:00+00:00",
+          flight: {
+            serviceId: returnSvc,
+            flightNumber: "PS101",
+            date: "2026-12-25",
+            originCode: "AMM",
+            destinationCode: "GZA",
+            departTime: "14:00",
+            arriveTime: "15:00",
+            aircraftModel: "Boeing 737-800",
+            departAt: "2026-12-25T14:00:00+03:00",
+            arriveAt: "2026-12-25T15:00:00+03:00",
+          },
+          contact: { email, phone: "" },
+          tickets: [{
+            reference: "GZA-RET1",
+            status: "confirmed" as const,
+            issuedAt: "2026-10-17T09:00:00+00:00",
+            ticketNumber: "TKT-GZA-RET1-1",
+            flight: {
+              serviceId: returnSvc,
+              flightNumber: "PS101",
+              date: "2026-12-25",
+              originCode: "AMM",
+              destinationCode: "GZA",
+              departTime: "14:00",
+              arriveTime: "15:00",
+              aircraftModel: "Boeing 737-800",
+              departAt: "2026-12-25T14:00:00+03:00",
+              arriveAt: "2026-12-25T15:00:00+03:00",
+            },
+            contact: { email, phone: "" },
+            passenger: {
+              id: "p1",
+              type: "adult" as const,
+              firstName: "Layla",
+              lastName: null,
+              seatCode: "6F",
+              nationality: null,
+              meal: null,
+            },
+          }],
+        },
+      },
+    ],
+  };
+
+  const { client, calls } = mockApi((path, init) => {
+    if (path === "/guest-reservation-trips" && init.method === "POST") {
+      return { status: 201, body: minimalTripDetail };
+    }
+    return { status: 404, body: { code: "not_found" } };
+  });
+
+  const tripClient = new TripClient(() => client);
+  const tripCmd = {
+    submissionId: crypto.randomUUID(),
+    contact: { email },
+    legs: [
+      {
+        serviceId: outboundSvc,
+        passengers: [{ id: "p1", firstName: "Layla", seatCode: "4A" }],
+      },
+      {
+        serviceId: returnSvc,
+        passengers: [{ id: "p1", firstName: "Layla", seatCode: "6F" }],
+      },
+    ],
+  };
+
+  const result = await tripClient.create(tripCmd, true);
+  assert.equal(result.reservations.length, 2);
+  assert.equal(result.reservations[0]?.reservation.reference, "GZA-OUT1");
+  assert.equal(result.reservations[1]?.reservation.reference, "GZA-RET1");
+  assert.equal(result.reservations[0]?.reservation.passengers[0]?.lastName, null);
+  assert.equal(result.reservations[1]?.reservation.passengers[0]?.lastName, null);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0]?.url, "https://127.0.0.1:18084/api/v1/guest-reservation-trips");
+});
+
+test("preserves full Arabic and single/long names without invented last name", () => {
+  const arabicPassenger = guestPassengerSchema.parse({
+    id: "p1",
+    firstName: "محمد عبد الله خليل النجار",
+    seatCode: "12A",
+  });
+  assert.equal(arabicPassenger.firstName, "محمد عبد الله خليل النجار");
+  assert.equal(arabicPassenger.lastName, undefined);
+  assert.equal(arabicPassenger.dob, undefined);
+  assert.equal(arabicPassenger.nationality, undefined);
+  assert.equal(arabicPassenger.document, undefined);
+
+  // Single moniker / patronymic name preserved intact
+  const singleNamePassenger = guestPassengerSchema.parse({
+    id: "p2",
+    firstName: "صباح",
+    seatCode: "12B",
+  });
+  assert.equal(singleNamePassenger.firstName, "صباح");
+  assert.equal(singleNamePassenger.lastName, undefined);
+
+  // Long composite name preserved
+  const longNamePassenger = guestPassengerSchema.parse({
+    id: "p3",
+    firstName: "Wolfgang Amadeus Mozart",
+    seatCode: "12C",
+  });
+  assert.equal(longNamePassenger.firstName, "Wolfgang Amadeus Mozart");
+  assert.equal(longNamePassenger.lastName, undefined);
+});
+
+test("guest schemas reject malformed optional fields and unknown keys strictly", () => {
+  // 1. Unknown key in guest passenger is rejected (strict mode)
+  assert.equal(
+    guestPassengerSchema.safeParse({
+      id: "p1",
+      firstName: "Ali",
+      seatCode: "1A",
+      untrustedInjection: "malicious",
+    }).success,
+    false,
+  );
+
+  // 2. Unknown key in root command is rejected
+  assert.equal(
+    guestReservationCommandSchema.safeParse({
+      submissionId: crypto.randomUUID(),
+      serviceId,
+      contact: { email: "guest@example.test" },
+      passengers: [{ id: "p1", firstName: "Ali", seatCode: "1A" }],
+      untrustedKey: true,
+    }).success,
+    false,
+  );
+
+  // 3. Malformed DOB is rejected
+  assert.equal(
+    guestPassengerSchema.safeParse({
+      id: "p1",
+      firstName: "Ali",
+      seatCode: "1A",
+      dob: "2000/05/15", // Not YYYY-MM-DD
+    }).success,
+    false,
+  );
+
+  // 4. Unknown key in guest trip command is rejected
+  assert.equal(
+    guestTripCommandSchema.safeParse({
+      submissionId: crypto.randomUUID(),
+      contact: { email: "guest@example.test" },
+      legs: [
+        {
+          serviceId,
+          passengers: [{ id: "p1", firstName: "Ali", seatCode: "1A" }],
+        },
+      ],
+      extraTripKey: "rejected",
+    }).success,
+    false,
+  );
+
+  // 5. Ambiguous simultaneous name and firstName is rejected
+  assert.equal(
+    guestPassengerSchema.safeParse({
+      id: "p1",
+      name: "Ali",
+      firstName: "Ali",
+      seatCode: "1A",
+    }).success,
+    false,
+  );
+});
+
+test("account passenger schema retains strict validation and rejects omitted optional fields", () => {
+  // Account command REQUIRES dob, nationality, document
+  const incompleteAccountPassenger = {
+    id: "p1",
+    type: "adult" as const,
+    firstName: "Kareem",
+    seatCode: "3A",
+  };
+
+  const incompleteAccountCommand = {
+    submissionId: crypto.randomUUID(),
+    serviceId,
+    contact: { email: "user@example.test", phone: "+970 599 123456" },
+    passengers: [incompleteAccountPassenger],
+  };
+
+  assert.equal(reservationCommandSchema.safeParse(incompleteAccountCommand).success, false);
+
+  const incompleteTripCommand = {
+    submissionId: crypto.randomUUID(),
+    contact: { email: "user@example.test", phone: "+970 599 123456" },
+    legs: [
+      {
+        serviceId,
+        passengers: [incompleteAccountPassenger],
+      },
+    ],
+  };
+
+  assert.equal(tripCommandSchema.safeParse(incompleteTripCommand).success, false);
 });

@@ -193,13 +193,13 @@ export function getSectionSummaryFacts(sectionId: string, lang: Lang): SummaryFa
       return [
         {
           label: isAr ? "البيانات المطلوبة" : "Required Details",
-          value: isAr ? "الاسم، الميلاد، الوثيقة" : "Name, DOB, Doc Ref",
-          detail: isAr ? "الاسم وتاريخ الميلاد والجنسية ورقم الوثيقة" : "Birth date, nationality & document ref",
+          value: isAr ? "الاسم والبريد" : "Name & Email",
+          detail: isAr ? "للضيف: اسم المسافر وبريد موثّق" : "Guest: passenger name & verified email",
         },
         {
-          label: isAr ? "تسجيل الوثيقة" : "Document Record",
-          value: isAr ? "سجل الحجز" : "Booking Record",
-          detail: isAr ? "يتم حفظ بيانات الوثائق في تفاصيل الحجز" : "Document details are saved in the booking record",
+          label: isAr ? "بيانات إضافية" : "Additional Details",
+          value: isAr ? "اختيارية للضيف" : "Optional for Guests",
+          detail: isAr ? "الميلاد والجنسية ورقم الوثيقة اختيارية للضيف" : "Birth date, nationality & document reference are optional for guests",
         },
         {
           label: isAr ? "إدارة الحجز" : "Access Code",
@@ -302,8 +302,8 @@ export function getSectionFaqs(sectionId: string, lang: Lang): SectionFaq[] {
             ? "هل يتم تدقيق وثائق السفر لدى جهات رسمية؟"
             : "Are travel documents or visas verified with authorities?",
           answer: isAr
-            ? "لا يتحقق هذا الموقع من وثائق السفر أو التأشيرات لدى جهات حكومية. يطلب النموذج رقم وثيقة السفر كمرجع ضمن سجل بيانات المسافر فقط."
-            : "This site does not validate travel documents or visas with government authorities. The form requests a document reference as part of the passenger booking record only.",
+            ? "لا يتحقق هذا الموقع من وثائق السفر أو التأشيرات لدى جهات حكومية. رقم الوثيقة اختياري للضيف ويُحفظ فقط إذا أدخله ضمن سجل بيانات المسافر."
+            : "This site does not validate travel documents or visas with government authorities. A guest document reference is optional and is stored in the passenger booking record only if supplied.",
         },
         {
           id: "doc-faq-2",

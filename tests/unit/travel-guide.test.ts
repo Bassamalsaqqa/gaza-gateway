@@ -148,7 +148,8 @@ describe("Travel Guide Redesign — Unit & Behavioral Invariant Tests", () => {
       const docFactsEn = getSectionSummaryFacts("documents", "en");
       assert.equal(docFactsEn.length, 3);
       // Confirms contract fields are accurately described
-      assert.ok(docFactsEn[0]?.value.includes("Name, DOB, Doc Ref"));
+      assert.equal(docFactsEn[0]?.value, "Name & Email");
+      assert.equal(docFactsEn[1]?.value, "Optional for Guests");
       assert.ok(docFactsEn[2]?.value.includes("6-Digit Code"));
 
       const bagFactsEn = getSectionSummaryFacts("baggage", "en");
@@ -240,7 +241,9 @@ describe("Travel Guide Redesign — Unit & Behavioral Invariant Tests", () => {
     it("accurately reflects backend form contract fields in documents section", () => {
       const docs = publishedTravel.sections.find((s) => s.id === "documents");
       assert.ok(docs);
-      assert.ok(docs.body.en.includes("document reference"));
+      assert.ok(docs.body.en.includes("passenger name and a verified email"));
+      assert.ok(docs.body.en.includes("optional"));
+      assert.ok(docs.points.some((p) => p.text.en.includes("document reference blank")));
       assert.ok(docs.points.some((p) => p.text.en.includes("6-digit code")));
     });
 

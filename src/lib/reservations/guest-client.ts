@@ -3,8 +3,10 @@ import type { MvpApiClient } from "../api/mvp-client.ts";
 import { MvpApiError } from "../api/mvp-client.ts";
 import { getMvpUiClient } from "../api/mvp-ui-runtime.ts";
 import {
+  guestReservationCommandSchema,
   reservationCommandSchema,
   reservationDetailSchema,
+  type GuestReservationCommand,
   type ReservationCommand,
   type ReservationDetail,
 } from "./client.ts";
@@ -157,8 +159,15 @@ export class GuestReservationClient {
   }
 
   /** Create guest reservation. Requires email verification on the backend. */
-  async create(command: ReservationCommand): Promise<ReservationDetail> {
-    const body = reservationCommandSchema.parse(command);
+  async create(command: GuestReservationCommand | ReservationCommand): Promise<ReservationDetail> {
+    const isStrictAccount =
+      "passengers" in command &&
+      command.passengers.length > 0 &&
+      "dob" in command.passengers[0]! &&
+      Boolean((command.passengers[0] as { dob?: unknown }).dob);
+    const body = isStrictAccount && reservationCommandSchema.safeParse(command).success
+      ? reservationCommandSchema.parse(command)
+      : guestReservationCommandSchema.parse(command);
     const normalizedEmail = body.contact.email.trim().toLowerCase();
 
     try {
@@ -180,12 +189,21 @@ export class GuestReservationClient {
         data.reservation.passengers.some(
           p =>
             !body.passengers.some(
-              item =>
-                item.id === p.id &&
-                item.seatCode === p.seatCode &&
-                item.type === p.type &&
-                item.firstName.trim() === p.firstName &&
-                item.lastName.trim() === p.lastName,
+              item => {
+                const nameMatches =
+                  ("name" in item && item.name?.trim() === p.firstName) ||
+                  ("firstName" in item && item.firstName?.trim() === p.firstName);
+                const lastMatches =
+                  ("lastName" in item ? (item.lastName?.trim() || null) : null) === (p.lastName || null);
+                const typeMatches = ("type" in item && item.type ? item.type : "adult") === p.type;
+                return (
+                  item.id === p.id &&
+                  item.seatCode === p.seatCode &&
+                  typeMatches &&
+                  nameMatches &&
+                  lastMatches
+                );
+              },
             ),
         )
       ) {

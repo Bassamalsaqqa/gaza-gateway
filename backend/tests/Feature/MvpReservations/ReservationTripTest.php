@@ -880,4 +880,91 @@ final class ReservationTripTest extends TestCase
         self::assertSame($ref1, $reservations[1]['reservation']['reference']);
         self::assertSame('confirmed', $reservations[1]['reservation']['status']);
     }
+
+    public function test_guest_minimal_trip_stores_null_optionals_and_replays_cleanly(): void
+    {
+        $guestSession = $this->guest();
+        $email = 'minimal-trip-' . Str::random(8) . '@example.test';
+        $this->verifyGuestEmail($guestSession, $email);
+
+        $outServiceId = $this->makeServiceId('trip-curated-flight', '2026-12-20');
+        $retServiceId = $this->makeServiceId('trip-curated-return-flight', '2026-12-22');
+
+        $subId = (string) Str::uuid();
+        $payload = [
+            'submissionId' => $subId,
+            'contact' => [
+                'email' => $email,
+            ],
+            'legs' => [
+                [
+                    'serviceId' => $outServiceId,
+                    'passengers' => [
+                        [
+                            'id' => 'p-1',
+                            'name' => 'Farah Husseini',
+                            'seatCode' => '7A',
+                        ],
+                    ],
+                ],
+                [
+                    'serviceId' => $retServiceId,
+                    'passengers' => [
+                        [
+                            'id' => 'p-1',
+                            'name' => 'Farah Husseini',
+                            'seatCode' => '8B',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        // 1. Initial creation (201)
+        $res = $this->http('POST', '/guest-reservation-trips', $guestSession, $payload);
+        $res->assertStatus(201);
+        $res->assertJsonPath('success', true);
+
+        $reservations = $res->json('data.reservations');
+        self::assertCount(2, $reservations);
+
+        $id0 = $reservations[0]['reservation']['id'];
+        $id1 = $reservations[1]['reservation']['id'];
+
+        // 2. Verify database records: passenger optionals are canonically NULL
+        foreach ([$id0, $id1] as $resId) {
+            $p = DB::table('mvp_reservation_passengers')->where('reservation_id', $resId)->first();
+            self::assertNotNull($p);
+            self::assertSame('Farah Husseini', $p->first_name);
+            self::assertNull($p->last_name);
+            self::assertNull($p->dob);
+            self::assertNull($p->nationality);
+            self::assertNull($p->document);
+            self::assertSame('adult', $p->type);
+        }
+
+        // 3. Response projection has null lastName
+        self::assertSame('Farah Husseini', $reservations[0]['reservation']['passengers'][0]['firstName']);
+        self::assertNull($reservations[0]['reservation']['passengers'][0]['lastName']);
+        self::assertNull($reservations[0]['ticket']['tickets'][0]['passenger']['lastName']);
+        self::assertNull($reservations[0]['ticket']['tickets'][0]['passenger']['nationality']);
+
+        // 4. Idempotent replay of same minimal payload returns 200 with identical IDs
+        $countsBefore = [
+            'reservations' => DB::table('mvp_reservations')->count(),
+            'passengers' => DB::table('mvp_reservation_passengers')->count(),
+        ];
+
+        $replayRes = $this->http('POST', '/guest-reservation-trips', $guestSession, $payload);
+        $replayRes->assertStatus(200);
+        self::assertSame($id0, $replayRes->json('data.reservations.0.reservation.id'));
+        self::assertSame($id1, $replayRes->json('data.reservations.1.reservation.id'));
+        self::assertSame($countsBefore['reservations'], DB::table('mvp_reservations')->count());
+        self::assertSame($countsBefore['passengers'], DB::table('mvp_reservation_passengers')->count());
+
+        // 5. Unknown key in trip command rejected with 422
+        $badPayload = $payload;
+        $badPayload['untrustedKey'] = 'exploit';
+        $this->http('POST', '/guest-reservation-trips', $guestSession, $badPayload)->assertStatus(422);
+    }
 }

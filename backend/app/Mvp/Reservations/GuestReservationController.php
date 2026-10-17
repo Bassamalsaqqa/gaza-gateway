@@ -120,7 +120,7 @@ final class GuestReservationController
         }
 
         try {
-            $command = ReservationCommand::parse($decoded);
+            $command = ReservationCommand::parseGuest($decoded);
         } catch (InvalidArgumentException) {
             return ReferenceResponse::error($request, 422, 'validation_error');
         }

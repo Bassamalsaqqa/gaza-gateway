@@ -71,15 +71,15 @@ export const publishedTravel = {
         "ar": "بيانات المسافر والتحقق"
       },
       "body": {
-        "en": "The reservation form requests passenger name, date of birth, nationality, and a document reference for the booking record. Keep your details accurate for verification.",
-        "ar": "يطلب نموذج الحجز اسم المسافر وتاريخ ميلاده وجنسيته ورقم وثيقة السفر لسجل الحجز. احرص على دقة البيانات للتحقق."
+        "en": "Guests can book with a passenger name and a verified email address. Additional passenger details are optional; account bookings retain their existing passenger-detail requirements.",
+        "ar": "يمكن للضيف الحجز باسم المسافر وبريد إلكتروني موثّق. بيانات المسافر الإضافية اختيارية؛ وتبقى متطلبات بيانات الحجز بالحساب كما هي."
       },
       "points": [
         {
           "id": "documents-1",
           "text": {
-            "en": "Complete passenger details including name, birth date, nationality, and document reference as shown on the form.",
-            "ar": "استكمال بيانات المسافر بما في ذلك الاسم وتاريخ الميلاد والجنسية ورقم الوثيقة كما يظهر في النموذج."
+            "en": "Enter each passenger's name and choose an available seat for each flight segment.",
+            "ar": "أدخل اسم كل مسافر واختر مقعداً متاحاً لكل رحلة."
           },
           "visible": true
         },
@@ -94,8 +94,8 @@ export const publishedTravel = {
         {
           "id": "documents-3",
           "text": {
-            "en": "Document references are recorded for the booking; keep your details handy when managing reservations.",
-            "ar": "يتم تسجيل أرقام الوثائق في سجل الحجز؛ يُرجى الاحتفاظ ببياناتك عند إدارة الحجز."
+            "en": "Guests may leave birth date, nationality and document reference blank. Manage your booking with its reference and an email verification code.",
+            "ar": "يمكن للضيف ترك تاريخ الميلاد والجنسية ورقم الوثيقة فارغة. لإدارة الحجز، استخدم رمز الحجز ورمز التحقق المرسل إلى بريدك."
           },
           "visible": true
         }

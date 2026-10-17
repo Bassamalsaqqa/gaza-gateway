@@ -60,7 +60,9 @@ final class ReservationTripController
         }
 
         try {
-            $command = ReservationTripCommand::parse($decoded);
+            $command = $isGuest
+                ? ReservationTripCommand::parseGuest($decoded)
+                : ReservationTripCommand::parse($decoded);
         } catch (InvalidArgumentException) {
             return ReferenceResponse::error($request, 422, 'validation_error');
         }
