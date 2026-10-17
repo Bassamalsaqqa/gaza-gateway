@@ -80,8 +80,26 @@ final class AnonymousSessionCleanup
             $nowIso = $this->getNow()->toIso8601String();
 
             if ($realm === 'passenger') {
-                $candidates = $this->db->select(
-                    'SELECT id FROM passenger_sessions
+                $hasGuestEmailChal = \Illuminate\Support\Facades\Schema::hasTable('mvp_guest_email_challenges');
+                $hasGuestAccessChal = \Illuminate\Support\Facades\Schema::hasTable('mvp_guest_access_challenges');
+
+                $guestFilterSql = '';
+                $guestBindings = [];
+
+                if ($hasGuestEmailChal) {
+                    $guestFilterSql .= ' AND NOT EXISTS (SELECT 1 FROM mvp_guest_email_challenges WHERE session_id = passenger_sessions.id AND state = \'issued\' AND expires_at > ?)';
+                    $guestBindings[] = $nowIso;
+                    // The consumed proof still owns a fresh session's grant through
+                    // cascading foreign keys. Retain its issuer until that grant ends.
+                    $guestFilterSql .= ' AND NOT EXISTS (SELECT 1 FROM mvp_guest_email_challenges c JOIN mvp_guest_email_grants g ON g.challenge_id = c.id WHERE c.session_id = passenger_sessions.id AND g.expires_at > ?)';
+                    $guestBindings[] = $nowIso;
+                }
+                if ($hasGuestAccessChal) {
+                    $guestFilterSql .= ' AND NOT EXISTS (SELECT 1 FROM mvp_guest_access_challenges WHERE session_id = passenger_sessions.id AND state = \'issued\' AND expires_at > ?)';
+                    $guestBindings[] = $nowIso;
+                }
+
+                $query = 'SELECT id FROM passenger_sessions
                      WHERE user_id IS NULL
                        AND auth_level = \'anonymous\'
                        AND (absolute_expires_at <= ? OR idle_expires_at <= ? OR revoked_at IS NOT NULL)
@@ -89,11 +107,15 @@ final class AnonymousSessionCleanup
                        AND NOT EXISTS (SELECT 1 FROM capacity_holds WHERE checkout_session_id = passenger_sessions.id)
                        AND NOT EXISTS (SELECT 1 FROM bookings WHERE checkout_session_id = passenger_sessions.id)
                        AND NOT EXISTS (SELECT 1 FROM booking_guest_challenges WHERE session_id = passenger_sessions.id)
-                       AND NOT EXISTS (SELECT 1 FROM booking_claim_proofs WHERE session_id = passenger_sessions.id)
-                     ORDER BY id ASC
+                       AND NOT EXISTS (SELECT 1 FROM booking_claim_proofs WHERE session_id = passenger_sessions.id)'
+                    . $guestFilterSql
+                    . ' ORDER BY id ASC
                      LIMIT ?
-                     FOR UPDATE SKIP LOCKED',
-                    [$nowIso, $nowIso, $batchSize]
+                     FOR UPDATE SKIP LOCKED';
+
+                $candidates = $this->db->select(
+                    $query,
+                    [$nowIso, $nowIso, ...$guestBindings, $batchSize]
                 );
 
                 if (empty($candidates)) {

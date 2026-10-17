@@ -301,7 +301,7 @@ final class GuestReservationMailTest extends TestCase
             ->where('id', $challengeId)
             ->update([
                 'state' => 'exhausted',
-                'failed_attempts' => 5,
+                'failed_attempts' => 10,
             ]);
 
         $dispatcher = app(IdentitySmtpDispatcher::class);
@@ -458,5 +458,131 @@ final class GuestReservationMailTest extends TestCase
         $this->assertNull($row->encrypted_payload);
         $this->assertNull($row->claim_nonce);
         $this->assertNull($row->claim_deadline);
+    }
+
+    public function test_queued_more_than_30_minutes_with_expired_session_still_delivers_successfully(): void
+    {
+        $sink = $this->startSink('accept');
+        try {
+            $info = $this->createGuestChallenge('delayed-30m@example.test');
+            $challengeId = $info['challengeId'];
+            $sessionId = $info['session']->sessionId;
+
+            // Session has been idle and absolute expired for 45 minutes (exceeding standard 30min session lifetime)
+            DB::table('passenger_sessions')
+                ->where('id', $sessionId)
+                ->update([
+                    'issued_at' => DB::raw('DATE_SUB(UTC_TIMESTAMP(6), INTERVAL 2 HOUR)'),
+                    'idle_expires_at' => DB::raw('DATE_SUB(UTC_TIMESTAMP(6), INTERVAL 45 MINUTE)'),
+                    'absolute_expires_at' => DB::raw('DATE_SUB(UTC_TIMESTAMP(6), INTERVAL 45 MINUTE)'),
+                    'revoked_at' => null, // NOT revoked
+                ]);
+
+            // Outbox was queued 45 minutes ago
+            DB::table('mvp_guest_mail_outbox')
+                ->where('challenge_id', $challengeId)
+                ->update([
+                    'created_at' => DB::raw('DATE_SUB(UTC_TIMESTAMP(6), INTERVAL 45 MINUTE)'),
+                    'updated_at' => DB::raw('DATE_SUB(UTC_TIMESTAMP(6), INTERVAL 45 MINUTE)'),
+                ]);
+
+            $dispatcher = app(IdentitySmtpDispatcher::class);
+            $processed = $dispatcher->runOne();
+            $this->assertTrue($processed, 'Dispatcher must deliver guest challenge even when original anonymous session is expired');
+
+            $outbox = DB::table('mvp_guest_mail_outbox')->where('challenge_id', $challengeId)->first();
+            $this->assertNotNull($outbox);
+            $this->assertSame('sent', $outbox->status);
+            $this->assertNotNull($outbox->accepted_at);
+            $this->assertNull($outbox->encrypted_payload);
+        } finally {
+            $this->stopSink($sink);
+        }
+    }
+
+    public function test_delivery_near_12h_truthful_expiration_and_code_not_in_subject(): void
+    {
+        $info = $this->createGuestChallenge('truthful-expiry@example.test');
+        $challengeId = $info['challengeId'];
+
+        $outbox = DB::table('mvp_guest_mail_outbox')->where('challenge_id', $challengeId)->first();
+        $this->assertNotNull($outbox);
+        $payload = json_decode(app(Encrypter::class)->decrypt($outbox->encrypted_payload), true, 512, JSON_THROW_ON_ERROR);
+        $code = $payload['code'];
+
+        $nowIso = CarbonImmutable::parse($payload['expires_at'])->subHours(12)->toIso8601String();
+        $email = \App\Mvp\Reservations\GuestAccessEmail::build(
+            $payload,
+            [
+                'senderEmail' => 'noreply@gazaairport.com',
+                'senderName' => 'Palestinian Airlines',
+                'replyTo' => 'support@gazaairport.com',
+            ],
+            (string) Str::uuid(),
+            $nowIso
+        );
+
+        // Code MUST NOT be in the email subject
+        $this->assertStringNotContainsString($code, $email->getSubject());
+        $this->assertSame('Gaza Gateway · Email Verification Code', $email->getSubject());
+
+        // Body must truthfully state 12 hours remaining
+        $this->assertStringContainsString('expires in 12 hours', $email->getTextBody());
+        $this->assertStringContainsString('صالح لمدة 12 ساعة', $email->getTextBody());
+        $this->assertStringContainsString('#challenge=' . $challengeId, $email->getTextBody());
+        $this->assertStringContainsString('#challenge=' . $challengeId, $email->getHtmlBody());
+
+        // Now test remaining expiration near 12h (e.g. 11 hours after issuance, 25 minutes remaining)
+        $near12hTime = CarbonImmutable::parse($payload['expires_at'])->subMinutes(25)->toIso8601String();
+        $emailNearExpiry = \App\Mvp\Reservations\GuestAccessEmail::build(
+            $payload,
+            [
+                'senderEmail' => 'noreply@gazaairport.com',
+                'senderName' => 'Palestinian Airlines',
+                'replyTo' => 'support@gazaairport.com',
+            ],
+            (string) Str::uuid(),
+            $near12hTime
+        );
+
+        $this->assertStringContainsString('expires in 25 minutes', $emailNearExpiry->getTextBody());
+        $this->assertStringContainsString('صالح لمدة 25 دقيقة', $emailNearExpiry->getTextBody());
+    }
+
+    public function test_session_cleanup_preserves_session_with_active_guest_challenge_until_own_expiry(): void
+    {
+        $info = $this->createGuestChallenge('cleanup-preserve@example.test');
+        $challengeId = $info['challengeId'];
+        $sessionId = $info['session']->sessionId;
+
+        // Session is expired past ordinary 30-minute idle/absolute horizon
+        DB::table('passenger_sessions')
+            ->where('id', $sessionId)
+            ->update([
+                'issued_at' => DB::raw('DATE_SUB(UTC_TIMESTAMP(6), INTERVAL 2 HOUR)'),
+                'idle_expires_at' => DB::raw('DATE_SUB(UTC_TIMESTAMP(6), INTERVAL 45 MINUTE)'),
+                'absolute_expires_at' => DB::raw('DATE_SUB(UTC_TIMESTAMP(6), INTERVAL 45 MINUTE)'),
+            ]);
+
+        $cleanup = app(\App\Identity\Sessions\AnonymousSessionCleanup::class);
+        $cleanup->cleanRealmBatch('passenger');
+
+        // Session must STILL exist because it owns an issued, unexpired guest challenge
+        $sessionRow = DB::table('passenger_sessions')->where('id', $sessionId)->first();
+        $this->assertNotNull($sessionRow, 'Session must survive ordinary cleanup while guest challenge is unexpired');
+
+        // Once the challenge expires (past 12h)
+        DB::table('mvp_guest_email_challenges')
+            ->where('id', $challengeId)
+            ->update([
+                'expires_at' => DB::raw('DATE_SUB(UTC_TIMESTAMP(6), INTERVAL 1 HOUR)'),
+                'state' => 'expired',
+            ]);
+
+        $cleanup->cleanRealmBatch('passenger');
+
+        // Now the session row can be cleaned up
+        $sessionRowAfter = DB::table('passenger_sessions')->where('id', $sessionId)->first();
+        $this->assertNull($sessionRowAfter, 'Session row is pruned once challenge is expired');
     }
 }

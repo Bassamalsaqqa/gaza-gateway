@@ -31,6 +31,10 @@ const MAX_RESEND_ATTEMPTS = 5;
  * - Cancelled tickets are never presented as valid travel documents.
  * - Ephemeral queries are cleaned up on unmount or identity reset.
  */
+import {
+  parseGuestAccessRecoveryHash,
+} from "@/lib/reservations/guest-recovery";
+
 export function MvpBookingAccess({ checkIn = false }: { checkIn?: boolean }) {
   const { lang } = useI18n();
   const ar = lang === "ar";
@@ -98,6 +102,19 @@ export function MvpBookingAccess({ checkIn = false }: { checkIn?: boolean }) {
       void cache.removeQueries({ queryKey: ["mvp", "guest-access", instanceId] });
     };
   }, [cache, instanceId]);
+
+  // Restore guest challenge locator, reference, and email from URL fragment if returning from email recovery link
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const rec = parseGuestAccessRecoveryHash(window.location.hash);
+    if (rec) {
+      if (rec.reference) setReference(rec.reference);
+      if (rec.email) setEmail(rec.email);
+      setChallengeId(rec.challengeId);
+      setStage("verify");
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    }
+  }, []);
 
   // Reset all session state back to lookup
   const handleReset = () => {

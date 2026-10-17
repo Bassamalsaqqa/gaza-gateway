@@ -24,6 +24,10 @@ import {
 } from "../../src/lib/reservations/trip-client.ts";
 import { createMvpApiClient, MvpApiError } from "../../src/lib/api/mvp-client.ts";
 import { encodeDatedOfferingId } from "../../src/lib/offerings/codec.ts";
+import {
+  parseGuestBookingRecoveryHash,
+  parseGuestAccessRecoveryHash,
+} from "../../src/lib/reservations/guest-recovery.ts";
 
 const serviceId = encodeDatedOfferingId("curated-flight", "2026-12-20");
 const contact = { email: "guest@example.test", phone: "+970 599 123456" };
@@ -770,4 +774,80 @@ test("account passenger schema retains strict validation and rejects omitted opt
   };
 
   assert.equal(tripCommandSchema.safeParse(incompleteTripCommand).success, false);
+});
+
+test("recovery initialization parses hash locator and submits verification against client mock granting booking state", async () => {
+  const hash = "#challenge=a1b2c3d4-e5f6-4a1b-8c2d-3e4f5a6b7c8d&email=recovered%40example.test";
+  const recovery = parseGuestBookingRecoveryHash(hash);
+  assert.ok(recovery);
+  assert.equal(recovery.challengeId, "a1b2c3d4-e5f6-4a1b-8c2d-3e4f5a6b7c8d");
+  assert.equal(recovery.email, "recovered@example.test");
+
+  // Client mock tracking invocations
+  const { client: api, calls } = mockApi((path) => {
+    if (path === "/guest-reservations/email-verifications") {
+      return {
+        status: 200,
+        body: { verified: true },
+      };
+    }
+    return { status: 404, body: {} };
+  });
+
+  const client = new GuestReservationClient(() => api);
+  assert.equal(client.isEmailVerified(recovery.email), false);
+
+  // Execute verification submission with recovered challenge and email
+  const response = await client.verifyEmail(recovery.challengeId, "654321", recovery.email);
+  assert.equal(response.verified, true);
+
+  // Assert server verification was invoked with exact payload
+  assert.equal(calls.length, 1);
+  assert.equal(new URL(calls[0]!.url).pathname, "/api/v1/guest-reservations/email-verifications");
+  assert.deepEqual(JSON.parse(calls[0]!.init.body as string), {
+    challengeId: "a1b2c3d4-e5f6-4a1b-8c2d-3e4f5a6b7c8d",
+    code: "654321",
+  });
+
+  // Assert in-memory booking grant state is active for the recovered email
+  assert.equal(client.isEmailVerified(recovery.email), true);
+
+  // Management access recovery hash
+  const accessHash = "#ref=GZA-7K8P&challenge=b2c3d4e5-f6a1-4b2c-9d3e-4f5a6b7c8d9e&email=recovered%40example.test";
+  const accessRecovery = parseGuestAccessRecoveryHash(accessHash);
+  assert.ok(accessRecovery);
+  assert.equal(accessRecovery.reference, "GZA-7K8P");
+  assert.equal(accessRecovery.challengeId, "b2c3d4e5-f6a1-4b2c-9d3e-4f5a6b7c8d9e");
+  assert.equal(accessRecovery.email, "recovered@example.test");
+
+  const { client: accessApi, calls: accessCalls } = mockApi((path, init) => {
+    if (path === "/guest-reservations/access-verifications") {
+      return {
+        status: 200,
+        body: {
+          verified: true,
+          reference: accessRecovery.reference,
+        },
+      };
+    }
+    return { status: 404, body: {} };
+  });
+
+  const accessClient = new GuestReservationClient(() => accessApi);
+  assert.equal(accessClient.isAccessVerified(accessRecovery.reference), false);
+
+  const accessResponse = await accessClient.verifyAccess(
+    accessRecovery.challengeId,
+    "123456",
+    accessRecovery.reference,
+    accessRecovery.email,
+  );
+  assert.equal(accessResponse.verified, true);
+  assert.equal(accessResponse.reference, "GZA-7K8P");
+  assert.equal(accessCalls.length, 1);
+  assert.deepEqual(JSON.parse(accessCalls[0]!.init.body as string), {
+    challengeId: "b2c3d4e5-f6a1-4b2c-9d3e-4f5a6b7c8d9e",
+    code: "123456",
+  });
+  assert.equal(accessClient.isAccessVerified("GZA-7K8P"), true);
 });

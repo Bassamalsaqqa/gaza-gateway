@@ -15,6 +15,7 @@ use App\Mvp\Reservations\ReservationCoordinator;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Encryption\Encrypter;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -288,7 +289,7 @@ final class GuestReservationRoutesTest extends TestCase
         $resOk = $this->http('POST', '/guest-reservations/email-challenges', $session, ['email' => 'tariq@example.test']);
         $resOk->assertStatus(202);
         $this->assertArrayHasKey('challengeId', $resOk->json('data'));
-        $this->assertSame(600, $resOk->json('data.expiresInSeconds'));
+        $this->assertSame(43200, $resOk->json('data.expiresInSeconds'));
     }
 
     public function test_email_challenge_issuance_and_outbox_queueing(): void
@@ -341,7 +342,7 @@ final class GuestReservationRoutesTest extends TestCase
         $res->assertStatus(403);
     }
 
-    public function test_code_failure_counter_persists_5_then_correct_still_rejected(): void
+    public function test_code_failure_counter_persists_10_then_correct_still_rejected(): void
     {
         $session = $this->guestSession();
         $email = 'verify-' . Str::random(8) . '@example.test';
@@ -356,8 +357,12 @@ final class GuestReservationRoutesTest extends TestCase
         $actualCode = $payload['code'];
         $wrongCode = $actualCode === '123456' ? '654321' : '123456';
 
-        // 4 wrong attempts increment counter and stay 'issued' (HTTP 422)
-        for ($i = 1; $i <= 4; $i++) {
+        // 9 wrong attempts increment counter and stay 'issued' (HTTP 422)
+        for ($i = 1; $i <= 9; $i++) {
+            if ($i === 5) {
+                RateLimiter::clear(md5('guest_reservations_verifyguest_ver_session:guest:' . $session['id']));
+                RateLimiter::clear(md5('guest_reservations_verifyguest_ver_ip:127.0.0.1'));
+            }
             $res = $this->http('POST', '/guest-reservations/email-verifications', $session, [
                 'challengeId' => $challengeId,
                 'code' => $wrongCode,
@@ -369,18 +374,18 @@ final class GuestReservationRoutesTest extends TestCase
             $this->assertSame('issued', $state);
         }
 
-        // 5th wrong attempt transitions state to 'exhausted'
-        $res5 = $this->http('POST', '/guest-reservations/email-verifications', $session, [
+        // 10th wrong attempt transitions state to 'exhausted'
+        $res10 = $this->http('POST', '/guest-reservations/email-verifications', $session, [
             'challengeId' => $challengeId,
             'code' => $wrongCode,
         ]);
-        $res5->assertStatus(422);
-        $state5 = DB::table('mvp_guest_email_challenges')->where('id', $challengeId)->value('state');
-        $this->assertSame('exhausted', $state5);
-        $failed5 = DB::table('mvp_guest_email_challenges')->where('id', $challengeId)->value('failed_attempts');
-        $this->assertSame(5, (int) $failed5);
+        $res10->assertStatus(422);
+        $state10 = DB::table('mvp_guest_email_challenges')->where('id', $challengeId)->value('state');
+        $this->assertSame('exhausted', $state10);
+        $failed10 = DB::table('mvp_guest_email_challenges')->where('id', $challengeId)->value('failed_attempts');
+        $this->assertSame(10, (int) $failed10);
 
-        // Even with correct code, exhausted challenge fails closed (422) with persisted failed_attempts = 5
+        // Even with correct code, exhausted challenge fails closed (422) with persisted failed_attempts = 10
         $resCorrect = $this->http('POST', '/guest-reservations/email-verifications', $session, [
             'challengeId' => $challengeId,
             'code' => $actualCode,
@@ -388,7 +393,7 @@ final class GuestReservationRoutesTest extends TestCase
         $resCorrect->assertStatus(422);
         $stateAfter = DB::table('mvp_guest_email_challenges')->where('id', $challengeId)->value('state');
         $this->assertSame('exhausted', $stateAfter);
-        $this->assertSame(5, (int) DB::table('mvp_guest_email_challenges')->where('id', $challengeId)->value('failed_attempts'));
+        $this->assertSame(10, (int) DB::table('mvp_guest_email_challenges')->where('id', $challengeId)->value('failed_attempts'));
 
         // --- B. Access Challenge Lockout ---
         $resValidChal = $this->http('POST', '/guest-reservations/email-challenges', $session, ['email' => $email]);
@@ -417,8 +422,12 @@ final class GuestReservationRoutesTest extends TestCase
         $actualAccessCode = $accessPayload['code'];
         $wrongAccessCode = $actualAccessCode === '123456' ? '654321' : '123456';
 
-        // 4 wrong access code attempts
-        for ($i = 1; $i <= 4; $i++) {
+        // 9 wrong access code attempts
+        for ($i = 1; $i <= 9; $i++) {
+            if ($i === 5) {
+                RateLimiter::clear(md5('guest_reservations_verifyguest_ver_session:guest:' . $sessionGuest2['id']));
+                RateLimiter::clear(md5('guest_reservations_verifyguest_ver_ip:127.0.0.1'));
+            }
             $r = $this->http('POST', '/guest-reservations/access-verifications', $sessionGuest2, [
                 'challengeId' => $accessChalId,
                 'code' => $wrongAccessCode,
@@ -429,14 +438,14 @@ final class GuestReservationRoutesTest extends TestCase
             $this->assertSame('issued', DB::table('mvp_guest_access_challenges')->where('id', $accessChalId)->value('state'));
         }
 
-        // 5th wrong attempt exhausts challenge
-        $r5 = $this->http('POST', '/guest-reservations/access-verifications', $sessionGuest2, [
+        // 10th wrong attempt exhausts challenge
+        $r10 = $this->http('POST', '/guest-reservations/access-verifications', $sessionGuest2, [
             'challengeId' => $accessChalId,
             'code' => $wrongAccessCode,
         ]);
-        $r5->assertStatus(422);
+        $r10->assertStatus(422);
         $this->assertSame('exhausted', DB::table('mvp_guest_access_challenges')->where('id', $accessChalId)->value('state'));
-        $this->assertSame(5, (int) DB::table('mvp_guest_access_challenges')->where('id', $accessChalId)->value('failed_attempts'));
+        $this->assertSame(10, (int) DB::table('mvp_guest_access_challenges')->where('id', $accessChalId)->value('failed_attempts'));
 
         // Correct code still rejected on exhausted access challenge
         $rCorrect = $this->http('POST', '/guest-reservations/access-verifications', $sessionGuest2, [
@@ -801,7 +810,7 @@ final class GuestReservationRoutesTest extends TestCase
         ]);
         $resGenuine->assertStatus(202);
         $this->assertArrayHasKey('challengeId', $resGenuine->json('data'));
-        $this->assertSame(600, $resGenuine->json('data.expiresInSeconds'));
+        $this->assertSame(43200, $resGenuine->json('data.expiresInSeconds'));
         $genuineChallengeId = $resGenuine->json('data.challengeId');
 
         // Genuine outbox mail exists
@@ -814,7 +823,7 @@ final class GuestReservationRoutesTest extends TestCase
         ]);
         $resDecoy1->assertStatus(202);
         $this->assertArrayHasKey('challengeId', $resDecoy1->json('data'));
-        $this->assertSame(600, $resDecoy1->json('data.expiresInSeconds'));
+        $this->assertSame(43200, $resDecoy1->json('data.expiresInSeconds'));
         $decoy1Id = $resDecoy1->json('data.challengeId');
 
         // Decoy 1 does NOT queue an outbox email
@@ -827,7 +836,7 @@ final class GuestReservationRoutesTest extends TestCase
         ]);
         $resDecoy2->assertStatus(202);
         $this->assertArrayHasKey('challengeId', $resDecoy2->json('data'));
-        $this->assertSame(600, $resDecoy2->json('data.expiresInSeconds'));
+        $this->assertSame(43200, $resDecoy2->json('data.expiresInSeconds'));
         $decoy2Id = $resDecoy2->json('data.challengeId');
         $this->assertFalse(DB::table('mvp_guest_mail_outbox')->where('challenge_id', $decoy2Id)->exists());
 
@@ -1111,5 +1120,242 @@ final class GuestReservationRoutesTest extends TestCase
             ],
         ];
         $this->http('POST', '/guest-reservations', $session, $cmdBadKey)->assertStatus(422);
+    }
+
+    public function test_fresh_session_can_redeem_unconsumed_challenge_and_grant_is_bound_to_new_session(): void
+    {
+        $session1 = $this->guestSession();
+        $email = 'fresh-sess-' . Str::random(8) . '@example.test';
+
+        // Session 1 requests email challenge
+        $resChal = $this->http('POST', '/guest-reservations/email-challenges', $session1, ['email' => $email]);
+        $resChal->assertStatus(202);
+        $challengeId = $resChal->json('data.challengeId');
+
+        $outbox = DB::table('mvp_guest_mail_outbox')->where('challenge_id', $challengeId)->first();
+        $this->assertNotNull($outbox);
+        $payload = json_decode(app('encrypter')->decrypt($outbox->encrypted_payload), true, 512, JSON_THROW_ON_ERROR);
+        $actualCode = $payload['code'];
+
+        // Session 1 expires / is abandoned
+        DB::table('passenger_sessions')->where('id', $session1['id'])->update([
+            'issued_at' => DB::raw('DATE_SUB(UTC_TIMESTAMP(6), INTERVAL 2 HOUR)'),
+            'idle_expires_at' => DB::raw('DATE_SUB(UTC_TIMESTAMP(6), INTERVAL 1 HOUR)'),
+            'absolute_expires_at' => DB::raw('DATE_SUB(UTC_TIMESTAMP(6), INTERVAL 1 HOUR)'),
+        ]);
+
+        // User arrives with Session 2 (completely fresh live anonymous session)
+        $session2 = $this->guestSession();
+        $resVerify = $this->http('POST', '/guest-reservations/email-verifications', $session2, [
+            'challengeId' => $challengeId,
+            'code' => $actualCode,
+        ]);
+        $resVerify->assertStatus(200);
+        $this->assertTrue($resVerify->json('data.verified'));
+
+        // Challenge is marked consumed
+        $challengeRow = DB::table('mvp_guest_email_challenges')->where('id', $challengeId)->first();
+        $this->assertSame('consumed', $challengeRow->state);
+
+        // Grant is bound strictly to Session 2 (the new fresh session)
+        $grant2 = DB::table('mvp_guest_email_grants')
+            ->where('session_id', $session2['id'])
+            ->where('email', strtolower($email))
+            ->first();
+        $this->assertNotNull($grant2);
+
+        // Session 2 can immediately complete booking
+        $serviceId = $this->sampleServiceId();
+        $resBooking = $this->http('POST', '/guest-reservations', $session2, $this->sampleCommand($serviceId, $email, '14A'));
+        $resBooking->assertStatus(201);
+
+        // Session 1 (even if resurrected) or another Session 3 has no grant
+        $session3 = $this->guestSession();
+        $resBooking3 = $this->http('POST', '/guest-reservations', $session3, $this->sampleCommand($serviceId, $email, '14B'));
+        $resBooking3->assertStatus(403);
+    }
+
+    public function test_fresh_session_access_challenge_redemption_and_management(): void
+    {
+        $session1 = $this->guestSession();
+        $email = 'access-fresh-' . Str::random(8) . '@example.test';
+
+        // Book reservation as guest
+        $vChal = $this->http('POST', '/guest-reservations/email-challenges', $session1, ['email' => $email]);
+        $vId = $vChal->json('data.challengeId');
+        $outbox1 = DB::table('mvp_guest_mail_outbox')->where('challenge_id', $vId)->first();
+        $vCode = json_decode(app('encrypter')->decrypt($outbox1->encrypted_payload), true, 512, JSON_THROW_ON_ERROR)['code'];
+        $this->http('POST', '/guest-reservations/email-verifications', $session1, ['challengeId' => $vId, 'code' => $vCode])->assertOk();
+
+        $serviceId = $this->sampleServiceId();
+        $resCreate = $this->http('POST', '/guest-reservations', $session1, $this->sampleCommand($serviceId, $email, '15A'));
+        $resCreate->assertStatus(201);
+        $ref = $resCreate->json('data.reservation.reference');
+
+        // Session 2 requests access challenge for reference
+        $session2 = $this->guestSession();
+        $resChal = $this->http('POST', '/guest-reservations/access-challenges', $session2, [
+            'reference' => $ref,
+            'email' => $email,
+        ]);
+        $resChal->assertStatus(202);
+        $accessChalId = $resChal->json('data.challengeId');
+
+        $outbox2 = DB::table('mvp_guest_mail_outbox')->where('challenge_id', $accessChalId)->first();
+        $this->assertNotNull($outbox2);
+        $actualAccessCode = json_decode(app('encrypter')->decrypt($outbox2->encrypted_payload), true, 512, JSON_THROW_ON_ERROR)['code'];
+
+        // Session 3 (fresh session on phone or new browser tab) redeems access challenge
+        $session3 = $this->guestSession();
+        $resVerify = $this->http('POST', '/guest-reservations/access-verifications', $session3, [
+            'challengeId' => $accessChalId,
+            'code' => $actualAccessCode,
+        ]);
+        $resVerify->assertStatus(200);
+        $this->assertTrue($resVerify->json('data.verified'));
+        $this->assertSame($ref, $resVerify->json('data.reference'));
+
+        // Session 3 can view detail, ticket, and cancel
+        $this->http('GET', "/guest-reservations/{$ref}", $session3)->assertOk();
+        $this->http('GET', "/guest-reservations/{$ref}/ticket", $session3)->assertOk();
+
+        // But Session 4 cannot access without grant
+        $session4 = $this->guestSession();
+        $this->http('GET', "/guest-reservations/{$ref}", $session4)->assertStatus(404);
+    }
+
+    public function test_single_use_atomic_consume_and_replay_rejection(): void
+    {
+        $session = $this->guestSession();
+        $email = 'double-verify-' . Str::random(8) . '@example.test';
+
+        $resChal = $this->http('POST', '/guest-reservations/email-challenges', $session, ['email' => $email]);
+        $challengeId = $resChal->json('data.challengeId');
+
+        $outbox = DB::table('mvp_guest_mail_outbox')->where('challenge_id', $challengeId)->first();
+        $payload = json_decode(app('encrypter')->decrypt($outbox->encrypted_payload), true, 512, JSON_THROW_ON_ERROR);
+        $code = $payload['code'];
+
+        // First verification succeeds
+        $res1 = $this->http('POST', '/guest-reservations/email-verifications', $session, [
+            'challengeId' => $challengeId,
+            'code' => $code,
+        ]);
+        $res1->assertStatus(200);
+
+        // Immediate second verification fails closed with 422 (single-use consumed)
+        $res2 = $this->http('POST', '/guest-reservations/email-verifications', $session, [
+            'challengeId' => $challengeId,
+            'code' => $code,
+        ]);
+        $res2->assertStatus(422);
+    }
+
+    public function test_wrong_code_attempts_persist_across_sessions_and_exhaust_at_10(): void
+    {
+        $session1 = $this->guestSession();
+        $email = 'persist-wrong-' . Str::random(8) . '@example.test';
+
+        $resChal = $this->http('POST', '/guest-reservations/email-challenges', $session1, ['email' => $email]);
+        $challengeId = $resChal->json('data.challengeId');
+
+        $outbox = DB::table('mvp_guest_mail_outbox')->where('challenge_id', $challengeId)->first();
+        $code = json_decode(app('encrypter')->decrypt($outbox->encrypted_payload), true, 512, JSON_THROW_ON_ERROR)['code'];
+        $wrongCode = $code === '123456' ? '654321' : '123456';
+
+        // Session 2 makes 5 wrong attempts
+        $session2 = $this->guestSession();
+        for ($i = 1; $i <= 5; $i++) {
+            $this->http('POST', '/guest-reservations/email-verifications', $session2, [
+                'challengeId' => $challengeId,
+                'code' => $wrongCode,
+            ])->assertStatus(422);
+        }
+        $this->assertSame(5, (int) DB::table('mvp_guest_email_challenges')->where('id', $challengeId)->value('failed_attempts'));
+
+        // Session 3 makes 5 wrong attempts (reaching 10 total)
+        $session3 = $this->guestSession();
+        for ($i = 6; $i <= 10; $i++) {
+            $this->http('POST', '/guest-reservations/email-verifications', $session3, [
+                'challengeId' => $challengeId,
+                'code' => $wrongCode,
+            ])->assertStatus(422);
+        }
+        $this->assertSame(10, (int) DB::table('mvp_guest_email_challenges')->where('id', $challengeId)->value('failed_attempts'));
+        $this->assertSame('exhausted', DB::table('mvp_guest_email_challenges')->where('id', $challengeId)->value('state'));
+
+        // Session 4 tries correct code, but challenge is exhausted
+        $session4 = $this->guestSession();
+        $this->http('POST', '/guest-reservations/email-verifications', $session4, [
+            'challengeId' => $challengeId,
+            'code' => $code,
+        ])->assertStatus(422);
+    }
+
+    public function test_expired_challenge_verification_is_rejected_and_marked_expired(): void
+    {
+        $session = $this->guestSession();
+        $email = 'expired-chal-' . Str::random(8) . '@example.test';
+
+        // 1. Email verification challenge expired
+        $resChal = $this->http('POST', '/guest-reservations/email-challenges', $session, ['email' => $email]);
+        $chalId = $resChal->json('data.challengeId');
+        $outbox = DB::table('mvp_guest_mail_outbox')->where('challenge_id', $chalId)->first();
+        $code = json_decode(app('encrypter')->decrypt($outbox->encrypted_payload), true, 512, JSON_THROW_ON_ERROR)['code'];
+
+        // Force challenge to be expired (expires_at in past)
+        DB::table('mvp_guest_email_challenges')
+            ->where('id', $chalId)
+            ->update(['expires_at' => CarbonImmutable::now()->subMinutes(5)->toIso8601String()]);
+
+        // Attempt verification on expired challenge -> 422
+        $resVerify = $this->http('POST', '/guest-reservations/email-verifications', $session, [
+            'challengeId' => $chalId,
+            'code' => $code,
+        ]);
+        $resVerify->assertStatus(422);
+
+        // State is marked expired in DB
+        $dbChal = DB::table('mvp_guest_email_challenges')->where('id', $chalId)->first();
+        $this->assertSame('expired', $dbChal->state);
+
+        // 2. Access challenge expired
+        // First create a reservation with a valid grant
+        $resValidChal = $this->http('POST', '/guest-reservations/email-challenges', $session, ['email' => $email]);
+        $vChalId = $resValidChal->json('data.challengeId');
+        $vOutbox = DB::table('mvp_guest_mail_outbox')->where('challenge_id', $vChalId)->first();
+        $vCode = json_decode(app('encrypter')->decrypt($vOutbox->encrypted_payload), true, 512, JSON_THROW_ON_ERROR)['code'];
+        $this->http('POST', '/guest-reservations/email-verifications', $session, ['challengeId' => $vChalId, 'code' => $vCode])->assertOk();
+
+        $serviceId = $this->sampleServiceId();
+        $resCreate = $this->http('POST', '/guest-reservations', $session, $this->sampleCommand($serviceId, $email, '16A'));
+        $resCreate->assertStatus(201);
+        $ref = $resCreate->json('data.reservation.reference');
+
+        // Request access challenge
+        $session2 = $this->guestSession();
+        $resAccessChal = $this->http('POST', '/guest-reservations/access-challenges', $session2, [
+            'reference' => $ref,
+            'email' => $email,
+        ]);
+        $accessChalId = $resAccessChal->json('data.challengeId');
+        $accessOutbox = DB::table('mvp_guest_mail_outbox')->where('challenge_id', $accessChalId)->first();
+        $accessCode = json_decode(app('encrypter')->decrypt($accessOutbox->encrypted_payload), true, 512, JSON_THROW_ON_ERROR)['code'];
+
+        // Force access challenge to be expired
+        DB::table('mvp_guest_access_challenges')
+            ->where('id', $accessChalId)
+            ->update(['expires_at' => CarbonImmutable::now()->subMinutes(5)->toIso8601String()]);
+
+        // Attempt verification on expired access challenge -> 422
+        $resAccessVerify = $this->http('POST', '/guest-reservations/access-verifications', $session2, [
+            'challengeId' => $accessChalId,
+            'code' => $accessCode,
+        ]);
+        $resAccessVerify->assertStatus(422);
+
+        // State is marked expired in DB
+        $dbAccessChal = DB::table('mvp_guest_access_challenges')->where('id', $accessChalId)->first();
+        $this->assertSame('expired', $dbAccessChal->state);
     }
 }

@@ -782,6 +782,7 @@ async function main() {
             <file>tests/Feature/MvpReservations/ReservationRoutesTest.php</file>
             <file>tests/Feature/MvpReservations/GuestReservationRoutesTest.php</file>
             <file>tests/Feature/MvpReservations/GuestReservationMailTest.php</file>
+            <file>tests/Feature/MvpReservations/GuestVerificationCleanupTest.php</file>
             <file>tests/Feature/MvpReservations/GuestReservationMigrationTest.php</file>
             <file>tests/Feature/MvpReservations/ReservationTripTest.php</file>
         </testsuite>

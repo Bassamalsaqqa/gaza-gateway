@@ -873,18 +873,14 @@ final class IdentitySmtpDispatcher
                 return ['admitted' => false];
             }
 
-            // Verify Session eligibility: anonymous, unrevoked, unexpired
-            if ($session->auth_level !== 'anonymous'
-                || $session->revoked_at !== null
-                || $liveNow->greaterThanOrEqualTo(CarbonImmutable::parse($session->absolute_expires_at))
-                || $liveNow->greaterThanOrEqualTo(CarbonImmutable::parse($session->idle_expires_at))
-            ) {
+            // Verify Challenge freshness and unexhausted state
+            if ($challenge->state !== 'issued' || (int) $challenge->failed_attempts >= 10) {
                 $this->scrubGuestCandidate($tx, $outboxId);
                 return ['admitted' => false];
             }
 
-            // Verify Challenge state: issued only
-            if ($challenge->state !== 'issued') {
+            // Verify Session security: if session exists, must not be explicitly revoked
+            if ($session !== null && $session->revoked_at !== null) {
                 $this->scrubGuestCandidate($tx, $outboxId);
                 return ['admitted' => false];
             }
@@ -928,7 +924,7 @@ final class IdentitySmtpDispatcher
                     }
                     $expectedDigest = hash_hmac(
                         'sha256',
-                        json_encode(['gza-guest-email-code:v1', (string) $challenge->id, (string) $challenge->email, (string) $session->id, $code], JSON_THROW_ON_ERROR),
+                        json_encode(['gza-guest-email-code:v2', (string) $challenge->id, (string) $challenge->email, $code], JSON_THROW_ON_ERROR),
                         $verificationKey
                     );
                     if (!hash_equals((string) $challenge->code_digest, $expectedDigest)) {
@@ -947,7 +943,7 @@ final class IdentitySmtpDispatcher
                     }
                     $expectedDigest = hash_hmac(
                         'sha256',
-                        json_encode(['gza-guest-access-code:v1', (string) $challenge->id, (string) $challenge->reference_candidate, (string) $challenge->email_candidate, (string) $session->id, $code], JSON_THROW_ON_ERROR),
+                        json_encode(['gza-guest-access-code:v2', (string) $challenge->id, (string) $challenge->reference_candidate, (string) $challenge->email_candidate, $code], JSON_THROW_ON_ERROR),
                         $verificationKey
                     );
                     if (!hash_equals((string) $challenge->code_digest, $expectedDigest)) {
@@ -1129,15 +1125,12 @@ final class IdentitySmtpDispatcher
                 return;
             }
 
-            // Check proof authority freshness and session freshness before accepting/scrubbing
-            $proofFresh = $session !== null
-                && $session->revoked_at === null
-                && $session->auth_level === 'anonymous'
-                && $liveNow->lessThan(CarbonImmutable::parse($session->absolute_expires_at))
-                && $liveNow->lessThan(CarbonImmutable::parse($session->idle_expires_at))
-                && $challenge !== null
+            // Check challenge freshness and ensure session was not explicitly revoked
+            $proofFresh = $challenge !== null
                 && $challenge->state === 'issued'
-                && $liveNow->lessThan(CarbonImmutable::parse($challenge->expires_at));
+                && (int) $challenge->failed_attempts < 10
+                && $liveNow->lessThan(CarbonImmutable::parse($challenge->expires_at))
+                && ($session === null || $session->revoked_at === null);
 
             if (!$proofFresh) {
                 // Expired, revoked, or consumed proof must never deliver or be accepted

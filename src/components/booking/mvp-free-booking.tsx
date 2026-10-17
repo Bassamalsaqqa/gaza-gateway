@@ -31,6 +31,11 @@ import { MvpOfferingBoard } from "@/components/mvp-offering-board";
 const GUEST_RESEND_COOLDOWN_SECONDS = 60;
 const MAX_GUEST_RESEND_ATTEMPTS = 5;
 
+import {
+  type GuestBookingRecoveryParams,
+  parseGuestBookingRecoveryHash,
+} from "@/lib/reservations/guest-recovery";
+
 interface MvpFreeBookingProps {
   offeringId?: string | undefined;
   returnOfferingId?: string | undefined;
@@ -40,6 +45,15 @@ export function MvpFreeBooking({ offeringId, returnOfferingId }: MvpFreeBookingP
   const { lang } = useI18n();
   const ar = lang === "ar";
   const account = usePassengerAccount();
+  const [recoveredGuestState, setRecoveredGuestState] = useState<GuestBookingRecoveryParams | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const rec = parseGuestBookingRecoveryHash(window.location.hash);
+    if (rec) {
+      setRecoveredGuestState(rec);
+    }
+  }, []);
 
   const isOutboundValid = Boolean(offeringId && decodeDatedOfferingId(offeringId));
   const isReturnValid = Boolean(returnOfferingId && decodeDatedOfferingId(returnOfferingId));
@@ -95,6 +109,8 @@ export function MvpFreeBooking({ offeringId, returnOfferingId }: MvpFreeBookingP
           account={account.data ?? null}
           offeringId={offeringId!}
           returnOfferingId={isReturnValid ? returnOfferingId : undefined}
+          initialRecovery={recoveredGuestState}
+          onRecoveryConsumed={() => setRecoveredGuestState(null)}
         />
       ) : (
         <MvpOfferingBoard />
@@ -135,10 +151,14 @@ function BookingForm({
   account,
   offeringId,
   returnOfferingId,
+  initialRecovery,
+  onRecoveryConsumed,
 }: {
   account: PassengerAccount | null;
   offeringId: string;
   returnOfferingId?: string | undefined;
+  initialRecovery?: GuestBookingRecoveryParams | null;
+  onRecoveryConsumed?: () => void;
 }) {
   const { lang } = useI18n();
   const ar = lang === "ar";
@@ -201,7 +221,15 @@ function BookingForm({
   const travelers = usePassengerTravelers();
 
   // Contact form state
-  const [email, setEmail] = useState(() => account?.email ?? "");
+  const [email, setEmail] = useState(() => {
+    if (account?.email) return account.email;
+    if (initialRecovery?.email) return initialRecovery.email;
+    if (typeof window !== "undefined") {
+      const rec = parseGuestBookingRecoveryHash(window.location.hash);
+      if (rec?.email) return rec.email;
+    }
+    return "";
+  });
   const [phone, setPhone] = useState(() => account?.phone ?? "");
   const emailRef = useRef(email);
   emailRef.current = email;
@@ -209,7 +237,14 @@ function BookingForm({
 
   // Guest email OTP verification state
   const [guestVerifiedEmail, setGuestVerifiedEmail] = useState<string | null>(null);
-  const [guestChallengeId, setGuestChallengeId] = useState<string | null>(null);
+  const [guestChallengeId, setGuestChallengeId] = useState<string | null>(() => {
+    if (initialRecovery?.challengeId) return initialRecovery.challengeId;
+    if (typeof window !== "undefined") {
+      const rec = parseGuestBookingRecoveryHash(window.location.hash);
+      if (rec?.challengeId) return rec.challengeId;
+    }
+    return null;
+  });
   const [guestOtpCode, setGuestOtpCode] = useState("");
   const [guestSendingCode, setGuestSendingCode] = useState(false);
   const [guestVerifyingCode, setGuestVerifyingCode] = useState(false);
@@ -218,7 +253,13 @@ function BookingForm({
   const [guestError, setGuestError] = useState<string | null>(null);
   const guestTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sendGen = useRef(0);
-  const challengeEmailRef = useRef<string | null>(null);
+  const challengeEmailRef = useRef<string | null>(
+    initialRecovery?.email ? initialRecovery.email.trim().toLowerCase() : (
+      typeof window !== "undefined"
+        ? (parseGuestBookingRecoveryHash(window.location.hash)?.email?.trim().toLowerCase() ?? null)
+        : null
+    ),
+  );
 
   // Guard against late completions and clear intervals after unmount
   useEffect(() => {
@@ -232,6 +273,22 @@ function BookingForm({
       }
     };
   }, []);
+
+  // Restore guest challenge locator and expected email from initialRecovery or URL fragment
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const rec = initialRecovery || parseGuestBookingRecoveryHash(window.location.hash);
+    if (rec) {
+      if (rec.challengeId) setGuestChallengeId(rec.challengeId);
+      if (rec.email) {
+        setEmail(rec.email);
+        emailRef.current = rec.email;
+        challengeEmailRef.current = rec.email.trim().toLowerCase();
+      }
+      onRecoveryConsumed?.();
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    }
+  }, [initialRecovery, onRecoveryConsumed]);
 
   // Passengers & seats
   const [passengers, setPassengers] = useState<BookingPassenger[]>(() => [
@@ -381,8 +438,19 @@ function BookingForm({
   const handleVerifyGuestCode = async () => {
     if (!guestChallengeId || guestOtpCode.length !== 6 || guestVerifyingCode) return;
     const currentGen = sendGen.current;
-    const targetEmail = challengeEmailRef.current;
-    if (!targetEmail || emailRef.current.trim().toLowerCase() !== targetEmail) {
+    const targetEmail = challengeEmailRef.current || emailRef.current.trim().toLowerCase();
+    if (!targetEmail || !targetEmail.includes("@")) {
+      setGuestError(
+        ar ? "يرجى إدخال بريد إلكتروني صالح قبل تأكيد الرمز." : "Please enter a valid email address before confirming code.",
+      );
+      return;
+    }
+    if (emailRef.current.trim().toLowerCase() !== targetEmail) {
+      setGuestError(
+        ar
+          ? "البريد الإلكتروني لا يطابق رمز التحقق المطلوب. اطلب رمزاً جديداً."
+          : "Entered email does not match challenge email. Please request a new verification code.",
+      );
       return;
     }
 

@@ -33,18 +33,17 @@ final class GuestAccessCoordinator
         $now = DatabaseClock::now();
         $challengeId = (string) Str::uuid();
         $code = sprintf('%06d', random_int(0, 999999));
-        $codeDigest = $this->computeEmailCodeDigest($challengeId, $email, $session->sessionId, $code);
+        $codeDigest = $this->computeEmailCodeDigest($challengeId, $email, $code);
 
-        $sessionAbsoluteExpiry = CarbonImmutable::parse($session->absoluteExpiresAt);
-        $expiresAt = $now->addSeconds(600);
-        if ($expiresAt->greaterThan($sessionAbsoluteExpiry)) {
-            $expiresAt = $sessionAbsoluteExpiry;
-        }
+        // Guest verification usable up to 43200s (12 hours) across sessions
+        $expiresAt = $now->addSeconds(43200);
 
         $payload = [
             'type' => 'email_verification',
             'recipient' => $email,
+            'challenge_id' => $challengeId,
             'code' => $code,
+            'expires_at' => $expiresAt->toIso8601String(),
         ];
         $encryptedPayload = $this->encrypter->encrypt(json_encode($payload, JSON_THROW_ON_ERROR));
 
@@ -111,9 +110,9 @@ final class GuestAccessCoordinator
                 return ['status' => 'session_expired'];
             }
 
+            // Challenge lookup is by challengeId (enables redemption with fresh anonymous session)
             $challenge = DB::table('mvp_guest_email_challenges')
                 ->where('id', $challengeId)
-                ->where('session_id', $session->sessionId)
                 ->lockForUpdate()
                 ->first();
 
@@ -123,30 +122,36 @@ final class GuestAccessCoordinator
 
             $expiresAt = CarbonImmutable::parse($challenge->expires_at);
 
-            if ($challenge->state !== 'issued' || $now->greaterThanOrEqualTo($expiresAt) || (int) $challenge->failed_attempts >= 5) {
+            // Ordinary expiry is independent of the proof, explicit revocation is not.
+            if (!DB::table('passenger_sessions')->where('id', $challenge->session_id)->whereNull('revoked_at')->exists()) {
+                return ['status' => 'invalid_or_expired'];
+            }
+
+            if ($challenge->state !== 'issued' || $now->greaterThanOrEqualTo($expiresAt) || (int) $challenge->failed_attempts >= 10) {
                 if ($challenge->state === 'issued' && $now->greaterThanOrEqualTo($expiresAt)) {
                     DB::table('mvp_guest_email_challenges')->where('id', $challengeId)->update(['state' => 'expired']);
                 }
                 return ['status' => 'invalid_or_expired'];
             }
 
-            $expectedDigest = $this->computeEmailCodeDigest($challengeId, (string) $challenge->email, $session->sessionId, $code);
+            $expectedDigest = $this->computeEmailCodeDigest($challengeId, (string) $challenge->email, $code);
 
             if (!hash_equals((string) $challenge->code_digest, $expectedDigest)) {
                 $failed = (int) $challenge->failed_attempts + 1;
                 DB::table('mvp_guest_email_challenges')->where('id', $challengeId)->update([
                     'failed_attempts' => $failed,
-                    'state' => $failed >= 5 ? 'exhausted' : 'issued',
+                    'state' => $failed >= 10 ? 'exhausted' : 'issued',
                 ]);
                 return ['status' => 'invalid_code'];
             }
 
-            // Valid code: consume challenge
+            // Valid code: consume challenge atomically
             DB::table('mvp_guest_email_challenges')->where('id', $challengeId)->update([
                 'state' => 'consumed',
                 'consumed_at' => $now->toIso8601String(),
             ]);
 
+            // Issue short grant bound to the CURRENT (potentially fresh) session
             $sessionAbsoluteExpiry = CarbonImmutable::parse($sessionRow->absolute_expires_at);
             $grantExpiresAt = $now->addSeconds(1800);
             if ($grantExpiresAt->greaterThan($sessionAbsoluteExpiry)) {
@@ -229,13 +234,10 @@ final class GuestAccessCoordinator
         $now = DatabaseClock::now();
         $challengeId = (string) Str::uuid();
         $code = sprintf('%06d', random_int(0, 999999));
-        $codeDigest = $this->computeAccessCodeDigest($challengeId, $reference, $email, $session->sessionId, $code);
+        $codeDigest = $this->computeAccessCodeDigest($challengeId, $reference, $email, $code);
 
-        $sessionAbsoluteExpiry = CarbonImmutable::parse($session->absoluteExpiresAt);
-        $expiresAt = $now->addSeconds(600);
-        if ($expiresAt->greaterThan($sessionAbsoluteExpiry)) {
-            $expiresAt = $sessionAbsoluteExpiry;
-        }
+        // Guest verification usable up to 43200s (12 hours) across sessions
+        $expiresAt = $now->addSeconds(43200);
 
         // Look up reservation by reference without exposing existence
         $res = DB::table('mvp_reservations')->where('reference', $reference)->first();
@@ -269,8 +271,10 @@ final class GuestAccessCoordinator
                 $payload = [
                     'type' => 'access_challenge',
                     'recipient' => (string) $res->contact_email,
+                    'challenge_id' => $challengeId,
                     'reference' => $reference,
                     'code' => $code,
+                    'expires_at' => $expiresAt->toIso8601String(),
                 ];
                 $encryptedPayload = $this->encrypter->encrypt(json_encode($payload, JSON_THROW_ON_ERROR));
 
@@ -316,9 +320,9 @@ final class GuestAccessCoordinator
                 return ['status' => 'session_expired'];
             }
 
+            // Challenge lookup is by challengeId (enables redemption with fresh anonymous session)
             $challenge = DB::table('mvp_guest_access_challenges')
                 ->where('id', $challengeId)
-                ->where('session_id', $session->sessionId)
                 ->lockForUpdate()
                 ->first();
 
@@ -328,7 +332,11 @@ final class GuestAccessCoordinator
 
             $expiresAt = CarbonImmutable::parse($challenge->expires_at);
 
-            if ($challenge->state !== 'issued' || $now->greaterThanOrEqualTo($expiresAt) || (int) $challenge->failed_attempts >= 5) {
+            if (!DB::table('passenger_sessions')->where('id', $challenge->session_id)->whereNull('revoked_at')->exists()) {
+                return ['status' => 'invalid_or_expired'];
+            }
+
+            if ($challenge->state !== 'issued' || $now->greaterThanOrEqualTo($expiresAt) || (int) $challenge->failed_attempts >= 10) {
                 if ($challenge->state === 'issued' && $now->greaterThanOrEqualTo($expiresAt)) {
                     DB::table('mvp_guest_access_challenges')->where('id', $challengeId)->update(['state' => 'expired']);
                 }
@@ -339,7 +347,6 @@ final class GuestAccessCoordinator
                 $challengeId,
                 (string) $challenge->reference_candidate,
                 (string) $challenge->email_candidate,
-                $session->sessionId,
                 $code
             );
 
@@ -348,7 +355,7 @@ final class GuestAccessCoordinator
                 $failed = (int) $challenge->failed_attempts + 1;
                 DB::table('mvp_guest_access_challenges')->where('id', $challengeId)->update([
                     'failed_attempts' => $failed,
-                    'state' => $failed >= 5 ? 'exhausted' : 'issued',
+                    'state' => $failed >= 10 ? 'exhausted' : 'issued',
                 ]);
                 return ['status' => 'invalid_code'];
             }
@@ -359,6 +366,7 @@ final class GuestAccessCoordinator
                 'consumed_at' => $now->toIso8601String(),
             ]);
 
+            // Issue short grant bound to the CURRENT (potentially fresh) session
             $sessionAbsoluteExpiry = CarbonImmutable::parse($sessionRow->absolute_expires_at);
             $grantExpiresAt = $now->addSeconds(1800);
             if ($grantExpiresAt->greaterThan($sessionAbsoluteExpiry)) {
@@ -612,16 +620,16 @@ final class GuestAccessCoordinator
         return $grant;
     }
 
-    private function computeEmailCodeDigest(string $challengeId, string $email, string $sessionId, string $code): string
+    private function computeEmailCodeDigest(string $challengeId, string $email, string $code): string
     {
         $key = $this->resolveVerificationKey();
-        return hash_hmac('sha256', json_encode(['gza-guest-email-code:v1', $challengeId, $email, $sessionId, $code], JSON_THROW_ON_ERROR), $key);
+        return hash_hmac('sha256', json_encode(['gza-guest-email-code:v2', $challengeId, $email, $code], JSON_THROW_ON_ERROR), $key);
     }
 
-    private function computeAccessCodeDigest(string $challengeId, string $reference, string $email, string $sessionId, string $code): string
+    private function computeAccessCodeDigest(string $challengeId, string $reference, string $email, string $code): string
     {
         $key = $this->resolveVerificationKey();
-        return hash_hmac('sha256', json_encode(['gza-guest-access-code:v1', $challengeId, $reference, $email, $sessionId, $code], JSON_THROW_ON_ERROR), $key);
+        return hash_hmac('sha256', json_encode(['gza-guest-access-code:v2', $challengeId, $reference, $email, $code], JSON_THROW_ON_ERROR), $key);
     }
 
     private function resolveVerificationKey(): string
