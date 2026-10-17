@@ -103,3 +103,12 @@ warning). Ticket/travel tests: 43/43 pass. Search availability, cinematic pinned
 media and documentary restrictions: 23/23 pass. These targeted checks follow the
 earlier integrated MySQL/security gates; no broad suite or production build ran.
 The review PR remains a draft pending the complete guest browser acceptance flow.
+
+## PR #18 independent review corrections (2026-10-17)
+
+See [the correction handback](PR18_REVIEW_CORRECTIONS_2026-10-17.md) for the
+minimal guest contract, nullable-data migration/rollback boundary, seat-aware
+capacity semantics, final focused gates and fresh EN/AR captures. It supersedes
+earlier guest-field requirements and schedule-only availability descriptions.
+Ticket source/assets remain unchanged; complete HTTPS browser acceptance is still
+pending the owner-handled local certificate warning. Main and production unchanged.

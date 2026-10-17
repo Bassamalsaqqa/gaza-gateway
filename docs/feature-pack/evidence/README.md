@@ -18,3 +18,9 @@ verification. No independent PDF measurement or complete EN/AR long-name/round-t
 screenshot matrix is claimed. The code retains 8 × 3.25-inch print geometry and one
 pass per segment. Focused functional/backend evidence is listed in the verification
 handoff; full guest browser acceptance remains a separate unresolved check.
+
+Final PR #18 review-correction captures (2026-10-17):
+travel-final-en-desktop-20261017.jpg and travel-final-ar-mobile-20261017.jpg
+show the final optional guest-detail guidance from current React/published content.
+These use a loopback frontend-only preview and do not certify a backend booking.
+Exact hashes: PR18_CORRECTION_CAPTURE_HASHES.json.
