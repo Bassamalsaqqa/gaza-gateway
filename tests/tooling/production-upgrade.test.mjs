@@ -21,7 +21,7 @@ function computeHash(bufferOrString) {
 /**
  * Creates a synthetic clean production release candidate fixture directory that satisfies ReleaseVerifier.
  */
-function createSyntheticReleasePackage(targetDir, overrides = {}) {
+export function createSyntheticReleasePackage(targetDir, overrides = {}) {
   const publicDir = path.join(targetDir, 'public');
   const privateDir = path.join(targetDir, 'private');
   const installerDir = path.join(targetDir, 'installer');
@@ -142,6 +142,8 @@ function createSyntheticReleasePackage(targetDir, overrides = {}) {
     '2026_10_13_000001_optional_initial_staff_mfa.php',
     '2026_10_14_000001_add_email_verification_codes.php',
     '2026_10_14_000002_expand_memorial_network.php',
+    '2026_10_16_000001_guest_reservations.php',
+    '2026_10_17_000001_optional_guest_passenger_details.php',
   ].slice(0, migrationCount);
 
   for (const name of migrationNames) {

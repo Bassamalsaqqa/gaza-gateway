@@ -16,6 +16,7 @@ final class HostPapaInstaller
     private string $app;
     private string $web;
     private string $package;
+    private bool $preserveMaintenance = false;
 
     public function __construct(array $argv)
     {
@@ -34,8 +35,12 @@ final class HostPapaInstaller
         }
     }
 
-    public function run($inheritedLock = null): void
+    public function run($inheritedLock = null, bool $preserveMaintenance = false): void
     {
+        $this->preserveMaintenance = false;
+        if ($preserveMaintenance && !is_resource($inheritedLock)) {
+            throw new RuntimeException('Outer maintenance preservation requires an inherited installer lock.');
+        }
         if (PHP_SAPI !== 'cli' || PHP_VERSION_ID < 80400) throw new RuntimeException('PHP 8.4+ CLI is required.');
         $action = $this->options['action'] ?? 'verify';
         if (!in_array($action, ['verify', 'install', 'migrate', 'rollback'], true)) throw new RuntimeException('Unsupported action.');
@@ -78,6 +83,14 @@ final class HostPapaInstaller
                 throw new RuntimeException('Inherited lock resource is not exclusively locked.');
             }
             $lock = $inheritedLock;
+            if ($preserveMaintenance) {
+                $maintenancePath = $this->app . '/shared/storage/framework/maintenance.php';
+                $this->safeAbsolute($maintenancePath);
+                if (!is_file($maintenancePath)) {
+                    throw new RuntimeException('Preserve maintenance requested but canonical maintenance file is missing.');
+                }
+                $this->preserveMaintenance = true;
+            }
         } else {
             $lock = fopen($lockPath, 'c');
             if (!$lock || !flock($lock, LOCK_EX | LOCK_NB)) throw new RuntimeException('Another installer is active.');
@@ -231,7 +244,9 @@ PHP;
         if ($hadStableCli) $this->copyFile($stableCli, $backup . '/.operator/hostpapa-cli', 0600);
         $this->write($backup . '/restore.json', json_encode(['previous_pointer' => $previous, 'files' => $ledger, 'private_cli_existed' => $hadStableCli], JSON_THROW_ON_ERROR), 0600);
         $maintenance = $this->app . '/shared/storage/framework/maintenance.php';
-        $this->write($maintenance, "<?php http_response_code(503); header('Content-Type: application/json'); header('Cache-Control: no-store'); echo json_encode(['success'=>false,'error'=>['code'=>'service_unavailable','message'=>'Maintenance in progress.'],'meta'=>['requestId'=>sprintf('%s-%s-4%s-8%s-%s',bin2hex(random_bytes(4)),bin2hex(random_bytes(2)),substr(bin2hex(random_bytes(2)),1),substr(bin2hex(random_bytes(2)),1),bin2hex(random_bytes(6))),'timestamp'=>gmdate('Y-m-d\\TH:i:s\\Z')]]); exit;\n");
+        if (!$this->preserveMaintenance) {
+            $this->write($maintenance, "<?php http_response_code(503); header('Content-Type: application/json'); header('Cache-Control: no-store'); echo json_encode(['success'=>false,'error'=>['code'=>'service_unavailable','message'=>'Maintenance in progress.'],'meta'=>['requestId'=>sprintf('%s-%s-4%s-8%s-%s',bin2hex(random_bytes(4)),bin2hex(random_bytes(2)),substr(bin2hex(random_bytes(2)),1),substr(bin2hex(random_bytes(2)),1),bin2hex(random_bytes(6))),'timestamp'=>gmdate('Y-m-d\\TH:i:s\\Z')]]); exit;\n");
+        }
         try {
             foreach ($names as $name) {
                 $src = $snapshot . '/' . $name; $dest = $this->web . '/' . $name;
@@ -252,7 +267,7 @@ PHP;
             if (!rename($stableCli . '.next', $stableCli)) throw new RuntimeException('Stable CLI switch failed.');
             $this->write($pointer . '.next', $id . "\n", 0600);
             if (!rename($pointer . '.next', $pointer)) throw new RuntimeException('Pointer switch failed.');
-            unlink($maintenance);
+            if (!$this->preserveMaintenance) unlink($maintenance);
         } catch (Throwable $e) {
             $restored = true;
             try {
@@ -274,7 +289,7 @@ PHP;
                     if (!rename($pointer . '.restore', $pointer)) $restored = false;
                 } elseif (is_file($pointer) && !unlink($pointer)) $restored = false;
             } catch (Throwable) { $restored = false; }
-            if ($restored) unlink($maintenance);
+            if ($restored && !$this->preserveMaintenance) unlink($maintenance);
             throw new RuntimeException($restored ? 'Static switch failed; previous files restored. Private backup retained.' : 'Static restoration incomplete; maintenance retained. Owner recovery required.');
         }
         echo "Private pre-switch static backup retained: " . basename($backup) . "\n";
@@ -405,7 +420,39 @@ PHP;
         return $raw;
     }
     private function overlap(string $a, string $b): bool { return $a === $b || str_starts_with($a, $b . '/') || str_starts_with($b, $a . '/'); }
-    private function directory(string $dir): void { $this->safeAbsolute($dir); $mode = isset($this->web) && ($dir === $this->web || str_starts_with($dir, $this->web . '/')) ? 0755 : 0700; if (!is_dir($dir) && !mkdir($dir, $mode, true)) throw new RuntimeException('Directory creation failed.'); }
+    private function directory(string $dir): void
+    {
+        $this->safeAbsolute($dir);
+        $dir = rtrim($dir, '/');
+        if ($dir === '') $dir = '/';
+        if (isset($this->home) && !str_starts_with($dir, $this->home . '/') && $dir !== $this->home) {
+            throw new RuntimeException('Directory path outside HOME rejected.');
+        }
+        if (is_link($dir)) throw new RuntimeException('Symlink directory rejected.');
+        if (file_exists($dir) && !is_dir($dir)) throw new RuntimeException('Directory target is not a directory.');
+        if (is_dir($dir)) return;
+        $missing = [];
+        $cursor = $dir;
+        while ($cursor !== '/' && $cursor !== '') {
+            if (is_link($cursor)) throw new RuntimeException('Symlink ancestor rejected.');
+            if (file_exists($cursor) && !is_dir($cursor)) throw new RuntimeException('Directory ancestor is not a directory.');
+            if (is_dir($cursor)) break;
+            $missing[] = $cursor;
+            $parent = dirname($cursor);
+            if ($parent === $cursor) break;
+            $cursor = $parent;
+        }
+        foreach (array_reverse($missing) as $path) {
+            $this->safeAbsolute($path);
+            if (is_link($path)) throw new RuntimeException('Symlink ancestor rejected.');
+            $isPublicSub = isset($this->web) && str_starts_with($path, $this->web . '/');
+            $isWebroot = isset($this->web) && $path === $this->web;
+            $mode = $isPublicSub ? 0755 : ($isWebroot ? 0750 : 0700);
+            if (!mkdir($path, $mode) && !is_dir($path)) throw new RuntimeException('Directory creation failed.');
+            if (is_link($path)) throw new RuntimeException('Symlink directory rejected.');
+            if (!chmod($path, $mode)) throw new RuntimeException('Directory mode update failed.');
+        }
+    }
     private function write(string $path, string $bytes, int $mode = 0600): void
     {
         $this->safeAbsolute($path); $this->directory(dirname($path));

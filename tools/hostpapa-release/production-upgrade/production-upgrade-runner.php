@@ -290,6 +290,27 @@ function makeMaintenancePayload(): string {
     return "<?php http_response_code(503); header('Content-Type: application/json'); header('Cache-Control: no-store'); echo json_encode(['success'=>false,'error'=>['code'=>'service_unavailable','message'=>'Maintenance in progress.'],'meta'=>['requestId'=>sprintf('%s-%s-4%s-8%s-%s',bin2hex(random_bytes(4)),bin2hex(random_bytes(2)),substr(bin2hex(random_bytes(2)),1),substr(bin2hex(random_bytes(2)),1),bin2hex(random_bytes(6))),'timestamp'=>gmdate('Y-m-d\\TH:i:s\\Z')]]); exit;\n";
 }
 
+function assertExactRuntimeConnection(PDO $pdo, string $expectedDb, string $expectedUser): void {
+    $identity = $pdo->query('SELECT DATABASE() AS db, CURRENT_USER() AS user')->fetch(PDO::FETCH_ASSOC);
+    $currentDb = (string)($identity['db'] ?? '');
+    $currentUser = (string)($identity['user'] ?? '');
+    if ($currentDb !== $expectedDb) {
+        throw new RuntimeException('Connected database does not match expected database.');
+    }
+    $username = strtok($currentUser, '@');
+    if ($username !== $expectedUser) {
+        throw new RuntimeException('Connected user does not match expected user.');
+    }
+}
+
+function openRuntimePdo(string $dsn, string $user, string $password): PDO {
+    return new PDO($dsn, $user, $password, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_TIMEOUT => 5,
+    ]);
+}
+
 $invocationId = bin2hex(random_bytes(8));
 $startTime = gmdate('Y-m-d\TH:i:s\Z');
 $phpVersion = PHP_VERSION;
@@ -568,7 +589,7 @@ try {
             throw new RuntimeException("Rollback requires target pointer {$targetReleaseId}, found {$activePointer}.");
         }
         if ($currentMigrations !== TARGET_MIGRATIONS) {
-            throw new RuntimeException("Rollback requires target 21 migrations in place, found {$currentMigrations}.");
+            throw new RuntimeException("Rollback requires target " . TARGET_MIGRATIONS . " migrations in place, found {$currentMigrations}.");
         }
         // Require target backend pin: release/SOURCE_COMMIT.txt
         $targetBackendPin = $appRoot . '/releases/' . $targetReleaseId . '/SOURCE_COMMIT.txt';
@@ -725,7 +746,10 @@ PHP;
             '--approval-file=' . $rollbackApprovalPath,
             '--confirm-rollback',
         ]);
-        $inst->run($installerLock);
+        if ((new ReflectionMethod(HostPapaInstaller::class, 'run'))->getNumberOfParameters() < 2) {
+            throw new RuntimeException('Bundled installer cannot preserve outer maintenance ownership.');
+        }
+        $inst->run($installerLock, true);
 
         // Post-rollback pointer verification
         $postRollbackPointer = trim((string)file_get_contents($pointerPath));
@@ -882,12 +906,36 @@ PHP;
     }
     $cronLeaseOwner = $leaseToken;
 
-    // Establish maintenance mode BEFORE taking backups
+    // Establish canonical maintenance mode BEFORE taking backups; refuse pre-existing maintenance.php and down
     $stage = 'maintenance';
     safePath($maintenancePath, $home);
-    if (!is_dir(dirname($maintenancePath))) mkdir(dirname($maintenancePath), 0700, true);
-    file_put_contents($maintenancePath, makeMaintenancePayload(), LOCK_EX);
-    chmod($maintenancePath, 0600);
+    $frameworkDir = dirname($maintenancePath);
+    safePath($frameworkDir, $home);
+    if (!is_dir($frameworkDir)) {
+        mkdir($frameworkDir, 0700, true);
+    }
+    $legacyDownPath = $frameworkDir . '/down';
+    safePath($legacyDownPath, $home);
+    if (is_file($maintenancePath) || is_file($legacyDownPath)) {
+        throw new RuntimeException('Pre-existing maintenance mode active (maintenance.php or down); upgrade refused.');
+    }
+
+    // Exclusive maintenance creation with checked write and chmod
+    $maintHandle = @fopen($maintenancePath, 'x');
+    if (!$maintHandle) {
+        throw new RuntimeException('Failed to exclusively create maintenance mode file; file may already exist or cannot be opened.');
+    }
+    $maintPayload = makeMaintenancePayload();
+    $writtenBytes = fwrite($maintHandle, $maintPayload);
+    fclose($maintHandle);
+    if ($writtenBytes !== strlen($maintPayload)) {
+        @unlink($maintenancePath);
+        throw new RuntimeException('Incomplete write of maintenance payload.');
+    }
+    if (!chmod($maintenancePath, 0600)) {
+        @unlink($maintenancePath);
+        throw new RuntimeException('Failed to set permissions on maintenance file.');
+    }
     $maintenanceSet = true;
     usleep(500000); // 500ms request drain
 
@@ -1038,10 +1086,14 @@ PHP;
         '--package-dir=' . $candidatePkgDir,
         '--approval-file=' . $approvalPath,
     ]);
-    $installerInstance->run($installerLock);
+    if ((new ReflectionMethod(HostPapaInstaller::class, 'run'))->getNumberOfParameters() < 2) {
+        throw new RuntimeException('Bundled installer cannot preserve outer maintenance ownership.');
+    }
+    $installerInstance->run($installerLock, true);
 
     // Post-install verification
     $stage = 'post_verify';
+
     if (trim(file_get_contents($pointerPath)) !== $targetReleaseId) {
         throw new RuntimeException('Pointer update verification failed.');
     }
@@ -1051,6 +1103,25 @@ PHP;
     if (!is_file($newSourceFile) || trim(file_get_contents($newSourceFile)) !== $targetSourceSha) {
         throw new RuntimeException('New release backend source commit verification failed.');
     }
+
+    // Open a fresh identity-verified runtime PDO at final comparison boundary.
+    // Discard stale preflight PDO from before >3 minute backup/copy;
+    // never silently retry or reconnect inside mutating or transactional steps.
+    if ($pdo instanceof PDO && $pdo->inTransaction()) {
+        throw new RuntimeException('Final verification cannot replace a connection with an active transaction.');
+    }
+    $pdo = null;
+    $runtimeHost = (string)($envVars['DB_HOST'] ?? $ddlHost);
+    $runtimePort = (int)($envVars['DB_PORT'] ?? $ddlPort);
+    $verifyDsn = "mysql:host={$runtimeHost};port={$runtimePort};dbname=" . EXPECTED_DB_NAME . ";charset=utf8mb4";
+    try {
+        $verifyPdo = openRuntimePdo($verifyDsn, EXPECTED_RUNTIME_USER, $runtimePassword);
+        assertExactRuntimeConnection($verifyPdo, EXPECTED_DB_NAME, EXPECTED_RUNTIME_USER);
+        $pdo = $verifyPdo;
+    } catch (PDOException $e) {
+        throw new UpgradeDiagnosticException('DATABASE_QUERY_FAILURE', $e);
+    }
+
     // Verify exact migration names in database
     $appliedMigrations = $pdo->query('SELECT migration FROM migrations ORDER BY id ASC')->fetchAll(PDO::FETCH_COLUMN);
     if (count($appliedMigrations) !== TARGET_MIGRATIONS) {
