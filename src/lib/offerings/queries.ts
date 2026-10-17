@@ -16,18 +16,19 @@ export function useOfferingAvailabilityQuery(
   destination: string,
   date: string,
   days = 28,
-  options?: { enabled?: boolean }
+  options?: { enabled?: boolean; partySize?: number }
 ) {
+  const partySize = options?.partySize ?? 1;
   const isValidRoute = (origin === "GZA" || destination === "GZA") && origin !== destination && origin.length === 3 && destination.length === 3;
   const isEnabled = options?.enabled ?? true;
 
   return useQuery({
-    queryKey: ["mvp", "offerings", "availability", origin, destination, date, days],
-    enabled: identityUiRequested && isEnabled && isValidRoute && isValidISODate(date) && days >= 1 && days <= 60,
+    queryKey: ["mvp", "offerings", "availability", origin, destination, date, days, partySize],
+    enabled: identityUiRequested && isEnabled && isValidRoute && isValidISODate(date) && days >= 1 && days <= 60 && partySize >= 1 && partySize <= 9,
     queryFn: async ({ signal }) => {
       const data = await getMvpUiClient().request({
         method: "GET",
-        path: `/offerings/availability?origin=${origin}&destination=${destination}&date=${date}&days=${days}`,
+        path: `/offerings/availability?origin=${origin}&destination=${destination}&date=${date}&days=${days}&partySize=${partySize}`,
         realm: "public",
         schema: offeringAvailabilityWireSchema,
         signal,

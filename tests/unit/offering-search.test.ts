@@ -8,6 +8,7 @@ import {
   getRankedAlternatives,
   isReturnChronologyValid,
   filterValidReturnOfferings,
+  isOfferingBookable,
 } from "../../src/lib/offerings/search.ts";
 import type { DatedOffering } from "../../src/lib/offerings/schema.ts";
 
@@ -42,6 +43,9 @@ function createMockOffering(overrides: Partial<DatedOffering>): DatedOffering {
     departAt: "2026-10-20T10:00:00+03:00",
     arriveAt: "2026-10-20T11:00:00+03:00",
     arrivalDate: "2026-10-20",
+    seatsRemaining: 120,
+    totalCapacity: 120,
+    bookable: true,
     ...overrides,
   };
 }
@@ -277,17 +281,25 @@ describe("Offering availability wire schema", () => {
       departAt: "2026-10-20T10:00:00+03:00",
       arriveAt: "2026-10-20T11:00:00+03:00",
       arrivalDate: "2026-10-20",
+      seatsRemaining: 168,
+      totalCapacity: 168,
+      bookable: true,
     };
 
     const payload = {
-      origin: "GZA",
-      destination: "AMM",
+      origin: "GZA" as const,
+      destination: "AMM" as const,
       date: "2026-10-20",
       days: 28,
+      partySize: 1,
       rangeStart: "2026-10-18",
       rangeEnd: "2026-11-14",
       offerings: [validOffering],
+      scheduledDates: ["2026-10-20"],
+      bookableDates: ["2026-10-20"],
       availableDates: ["2026-10-20"],
+      capacitySemantics: "snapshot_not_guaranteed" as const,
+      capacityNotice: "Advisory seat availability snapshot; booking completion locks definitive seats.",
     };
 
     const parsed = offeringAvailabilityWireSchema.safeParse(payload);
@@ -322,6 +334,9 @@ describe("Offering availability wire schema", () => {
       departAt: "2026-10-20T10:00:00+03:00",
       arriveAt: "2026-10-20T11:00:00+03:00",
       arrivalDate: "2026-10-20",
+      seatsRemaining: 168,
+      totalCapacity: 168,
+      bookable: true,
     };
 
     const base = {
@@ -329,10 +344,15 @@ describe("Offering availability wire schema", () => {
       destination: "AMM" as const,
       date: "2026-10-20",
       days: 28,
+      partySize: 1,
       rangeStart: "2026-10-18",
       rangeEnd: "2026-11-14",
       offerings: [validOffering],
+      scheduledDates: ["2026-10-20"],
+      bookableDates: ["2026-10-20"],
       availableDates: ["2026-10-20"],
+      capacitySemantics: "snapshot_not_guaranteed" as const,
+      capacityNotice: "Advisory seat availability snapshot; booking completion locks definitive seats.",
     };
 
     // 1. Range start > range end
@@ -359,5 +379,199 @@ describe("Offering availability wire schema", () => {
     assert.equal(offeringAvailabilityWireSchema.safeParse({ ...base, availableDates: ["2026-10-22", "2026-10-20"] }).success, false);
     // 12. availableDates does not match offerings dates set
     assert.equal(offeringAvailabilityWireSchema.safeParse({ ...base, availableDates: ["2026-10-20", "2026-10-21"] }).success, false);
+  });
+
+  it("validates capacity-aware payload distinguishing scheduledDates and bookableDates", async () => {
+    const { offeringAvailabilityWireSchema } = await import("../../src/lib/offerings/schema.ts");
+    const { encodeDatedOfferingId } = await import("../../src/lib/offerings/codec.ts");
+    const { seedFleetLayouts } = await import("../../src/lib/fleet/seed.ts");
+
+    const layout = seedFleetLayouts().a320neo;
+    const oBookable = {
+      id: encodeDatedOfferingId("sch-amm-01", "2026-10-20"),
+      scheduleId: "sch-amm-01",
+      date: "2026-10-20",
+      number: "PS 204",
+      direction: "out" as const,
+      originCode: "GZA" as const,
+      destinationCode: "AMM" as const,
+      departTime: "10:00",
+      arriveTime: "11:00",
+      durationMinutes: 60,
+      aircraftId: "a320neo",
+      aircraft: "Airbus A320neo",
+      layout,
+      revisions: { fleet: 1, network: 1, schedules: 1 },
+      classification: "commemorative" as const,
+      priceMinor: 0 as const,
+      originTimezone: "Asia/Gaza",
+      destinationTimezone: "Asia/Amman",
+      departAt: "2026-10-20T10:00:00+03:00",
+      arriveAt: "2026-10-20T11:00:00+03:00",
+      arrivalDate: "2026-10-20",
+      seatsRemaining: 42,
+      totalCapacity: 168,
+      bookable: true,
+    };
+
+    const oSoldOut = {
+      id: encodeDatedOfferingId("sch-amm-02", "2026-10-22"),
+      scheduleId: "sch-amm-02",
+      date: "2026-10-22",
+      number: "PS 206",
+      direction: "out" as const,
+      originCode: "GZA" as const,
+      destinationCode: "AMM" as const,
+      departTime: "14:00",
+      arriveTime: "15:00",
+      durationMinutes: 60,
+      aircraftId: "a320neo",
+      aircraft: "Airbus A320neo",
+      layout,
+      revisions: { fleet: 1, network: 1, schedules: 1 },
+      classification: "commemorative" as const,
+      priceMinor: 0 as const,
+      originTimezone: "Asia/Gaza",
+      destinationTimezone: "Asia/Amman",
+      departAt: "2026-10-22T14:00:00+03:00",
+      arriveAt: "2026-10-22T15:00:00+03:00",
+      arrivalDate: "2026-10-22",
+      seatsRemaining: 0,
+      totalCapacity: 168,
+      bookable: false,
+    };
+
+    const payload = {
+      origin: "GZA" as const,
+      destination: "AMM" as const,
+      date: "2026-10-20",
+      days: 28,
+      partySize: 2,
+      rangeStart: "2026-10-18",
+      rangeEnd: "2026-11-14",
+      offerings: [oBookable, oSoldOut],
+      scheduledDates: ["2026-10-20", "2026-10-22"],
+      bookableDates: ["2026-10-20"],
+      availableDates: ["2026-10-20"],
+      capacitySemantics: "snapshot_not_guaranteed" as const,
+      capacityNotice: "Advisory seat availability snapshot; booking completion locks definitive seats.",
+    };
+
+    const parsed = offeringAvailabilityWireSchema.safeParse(payload);
+    assert.equal(parsed.success, true);
+
+    // Rejects if bookableDates does not match availableDates
+    const mismatchPayload = {
+      ...payload,
+      availableDates: ["2026-10-20", "2026-10-22"], // Sold out date incorrectly included
+    };
+    assert.equal(offeringAvailabilityWireSchema.safeParse(mismatchPayload).success, false);
+
+    // Rejects forged availability when offering has seatsRemaining < partySize but claims bookable: true
+    const forgedPayload = {
+      ...payload,
+      offerings: [{ ...oBookable, seatsRemaining: 1, bookable: true }], // partySize is 2!
+    };
+    assert.equal(offeringAvailabilityWireSchema.safeParse(forgedPayload).success, false);
+
+    // Rejects when totalCapacity does not match physical layout geometry
+    const geometryMismatchPayload = {
+      ...payload,
+      offerings: [{ ...oBookable, totalCapacity: 999 }],
+    };
+    assert.equal(offeringAvailabilityWireSchema.safeParse(geometryMismatchPayload).success, false);
+  });
+});
+
+describe("Offering seat-aware bookability and ranking logic", () => {
+  it("determines offering bookability correctly with party sizes and fail-closed rules", () => {
+    // 1. Available seats >= party size
+    const oAvailable = createMockOffering({ seatsRemaining: 5, totalCapacity: 120, bookable: true });
+    assert.equal(isOfferingBookable(oAvailable, 1), true);
+    assert.equal(isOfferingBookable(oAvailable, 5), true);
+    assert.equal(isOfferingBookable(oAvailable, 6), false);
+
+    // 2. Fully booked (0 seats remaining)
+    const oSoldOut = createMockOffering({ seatsRemaining: 0, totalCapacity: 120, bookable: false });
+    assert.equal(isOfferingBookable(oSoldOut, 1), false);
+
+    // 3. Explicitly unbookable
+    const oUnbookable = createMockOffering({ seatsRemaining: 10, totalCapacity: 120, bookable: false });
+    assert.equal(isOfferingBookable(oUnbookable, 1), false);
+
+    // 4. Malformed/negative seats fails closed
+    const oNegative = createMockOffering({ seatsRemaining: -1, totalCapacity: 120, bookable: true });
+    assert.equal(isOfferingBookable(oNegative, 1), false);
+
+    // 5. Non-integer seats fails closed
+    const oNonInt = createMockOffering({ seatsRemaining: 2.5, totalCapacity: 120, bookable: true });
+    assert.equal(isOfferingBookable(oNonInt, 1), false);
+
+    // 6. Absent capacity fields fail closed (production never fails open!)
+    const oAbsent = { ...createMockOffering({}), seatsRemaining: undefined, bookable: undefined };
+    assert.equal(isOfferingBookable(oAbsent as unknown as DatedOffering, 1), false);
+  });
+
+  it("filters out fully booked offerings from ranked alternatives and exact matches", () => {
+    const oExactSoldOut = createMockOffering({
+      id: "exact-soldout",
+      date: "2026-10-20",
+      seatsRemaining: 0,
+      bookable: false,
+    });
+    const oAlt1SoldOut = createMockOffering({
+      id: "alt1-soldout",
+      date: "2026-10-22",
+      seatsRemaining: 0,
+      bookable: false,
+    });
+    const oAlt2Available = createMockOffering({
+      id: "alt2-avail",
+      date: "2026-10-25",
+      seatsRemaining: 12,
+      bookable: true,
+    });
+
+    const allOfferings = [oExactSoldOut, oAlt1SoldOut, oAlt2Available];
+
+    // getExactOfferings excludes sold-out flight on target date
+    const exact = getExactOfferings(allOfferings, "2026-10-20");
+    assert.equal(exact.length, 0);
+
+    // getRankedAlternatives must never rank 2026-10-22 since its offering is sold out
+    // Even if 2026-10-22 is passed in availableDates, isOfferingBookable filters it out!
+    const alts = getRankedAlternatives(allOfferings, ["2026-10-22", "2026-10-25"], "2026-10-20");
+    assert.equal(alts.length, 1);
+    assert.equal(alts[0].date, "2026-10-25");
+    assert.equal(alts[0].offerings[0].id, "alt2-avail");
+  });
+
+  it("honors party size when ranking alternatives", () => {
+    const oSmallParty = createMockOffering({
+      id: "o-small",
+      date: "2026-10-22",
+      seatsRemaining: 2, // only 2 seats left!
+      bookable: true,
+    });
+    const oLargeParty = createMockOffering({
+      id: "o-large",
+      date: "2026-10-25",
+      seatsRemaining: 10,
+      bookable: true,
+    });
+
+    const offerings = [oSmallParty, oLargeParty];
+    const availableDates = ["2026-10-22", "2026-10-25"];
+
+    // Party size 2: both dates are bookable
+    const altsFor2 = getRankedAlternatives(offerings, availableDates, "2026-10-20", 3, 2);
+    assert.equal(altsFor2.length, 2);
+    assert.equal(altsFor2[0].date, "2026-10-22");
+    assert.equal(altsFor2[1].date, "2026-10-25");
+
+    // Party size 3: 2026-10-22 has only 2 seats, so it MUST NOT be ranked
+    const altsFor3 = getRankedAlternatives(offerings, availableDates, "2026-10-20", 3, 3);
+    assert.equal(altsFor3.length, 1);
+    assert.equal(altsFor3[0].date, "2026-10-25");
   });
 });

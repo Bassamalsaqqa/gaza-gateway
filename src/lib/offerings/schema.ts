@@ -43,6 +43,9 @@ export const offeringWireSchema = z.object({
   revisions: z.object({ fleet: revision, network: revision, schedules: revision }).strict(),
   classification: z.literal("commemorative"), priceMinor: z.literal(0),
   ...offeringTimingFields,
+  seatsRemaining: z.number().int().min(0).optional(),
+  totalCapacity: z.number().int().min(0).optional(),
+  bookable: z.boolean().optional(),
 }).strict().refine(value => {
   const parsed = decodeDatedOfferingId(value.id);
   return parsed?.scheduleId === value.scheduleId && parsed.date === value.date && value.layout.aircraftId === value.aircraftId
@@ -61,10 +64,15 @@ export const offeringAvailabilityWireSchema = z.object({
   destination: z.enum(["GZA", ...NETWORK_CODES]),
   date,
   days: z.number().int().min(1).max(60),
+  partySize: z.number().int().min(1).max(9),
   rangeStart: date,
   rangeEnd: date,
   offerings: z.array(offeringWireSchema),
+  scheduledDates: z.array(date),
+  bookableDates: z.array(date),
   availableDates: z.array(date),
+  capacitySemantics: z.literal("snapshot_not_guaranteed"),
+  capacityNotice: z.string(),
 }).strict().refine((val) => {
   // 1. Coherent route: exactly one hub GZA
   if (!((val.origin === "GZA") !== (val.destination === "GZA"))) return false;
@@ -87,13 +95,42 @@ export const offeringAvailabilityWireSchema = z.object({
   );
   if (!allMatch) return false;
 
-  // 5. availableDates unique, sorted ascending, and exact set of returned offerings' dates
-  const isSorted = val.availableDates.every((d, i, arr) => i === 0 || arr[i - 1]! < d);
-  if (!isSorted) return false;
+  // 5. Every offering must have complete integer remaining/total and boolean bookable coherent with geometry and party
+  const validCapacity = val.offerings.every((o) => {
+    if (typeof o.seatsRemaining !== "number" || !Number.isInteger(o.seatsRemaining) || o.seatsRemaining < 0) return false;
+    if (typeof o.totalCapacity !== "number" || !Number.isInteger(o.totalCapacity) || o.totalCapacity < 0) return false;
+    if (typeof o.bookable !== "boolean") return false;
 
+    const physicalCapacity = o.layout.rows * o.layout.letters.length - o.layout.unavailable.length;
+    if (o.totalCapacity !== physicalCapacity) return false;
+    if (o.seatsRemaining > o.totalCapacity) return false;
+
+    // If bookable === true, seats remaining must be at least party size
+    if (o.bookable && o.seatsRemaining < val.partySize) return false;
+
+    return true;
+  });
+  if (!validCapacity) return false;
+
+  // 6. scheduledDates: unique, sorted ascending, and exact set of returned offerings' dates
+  const isScheduledSorted = val.scheduledDates.every((d, i, arr) => i === 0 || arr[i - 1]! < d);
+  if (!isScheduledSorted) return false;
   const offeringDates = Array.from(new Set(val.offerings.map((o) => o.date))).sort();
-  if (offeringDates.length !== val.availableDates.length) return false;
-  return offeringDates.every((d, i) => d === val.availableDates[i]);
+  if (offeringDates.length !== val.scheduledDates.length) return false;
+  if (!offeringDates.every((d, i) => d === val.scheduledDates[i])) return false;
+
+  // 7. bookableDates: unique, sorted ascending, and exact set of dates with bookable offerings
+  const isBookableSorted = val.bookableDates.every((d, i, arr) => i === 0 || arr[i - 1]! < d);
+  if (!isBookableSorted) return false;
+  const bookableDatesSet = Array.from(new Set(val.offerings.filter((o) => o.bookable === true).map((o) => o.date))).sort();
+  if (bookableDatesSet.length !== val.bookableDates.length) return false;
+  if (!bookableDatesSet.every((d, i) => d === val.bookableDates[i])) return false;
+
+  // 8. availableDates must strictly equal bookableDates
+  if (val.availableDates.length !== val.bookableDates.length) return false;
+  if (!val.availableDates.every((d, i) => d === val.bookableDates[i])) return false;
+
+  return true;
 });
 
 export type OfferingAvailability = z.infer<typeof offeringAvailabilityWireSchema>;

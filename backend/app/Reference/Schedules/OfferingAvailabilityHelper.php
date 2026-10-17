@@ -22,10 +22,15 @@ final class OfferingAvailabilityHelper
      *   destination: string,
      *   date: string,
      *   days: int,
+     *   partySize: int,
      *   rangeStart: string,
      *   rangeEnd: string,
      *   offerings: list<array<string, mixed>>,
-     *   availableDates: list<string>
+     *   scheduledDates: list<string>,
+     *   bookableDates: list<string>,
+     *   availableDates: list<string>,
+     *   capacitySemantics: string,
+     *   capacityNotice: string
      * }
      */
     public function getAvailability(
@@ -33,7 +38,8 @@ final class OfferingAvailabilityHelper
         string $destination,
         string $date,
         int $days = 28,
-        ?DateTimeImmutable $clockNow = null
+        ?DateTimeImmutable $clockNow = null,
+        int $partySize = 1
     ): array {
         if (!preg_match('/^[A-Z]{3}$/', $origin) || !preg_match('/^[A-Z]{3}$/', $destination)) {
             throw new ScheduleValidationException('Origin and destination must be 3-letter IATA codes.');
@@ -62,6 +68,10 @@ final class OfferingAvailabilityHelper
             throw new ScheduleValidationException('Days parameter must be between 1 and 60.');
         }
 
+        if ($partySize < 1 || $partySize > 9) {
+            throw new ScheduleValidationException('Party size must be between 1 and 9.');
+        }
+
         $direction = $isOut ? 'out' : 'in';
         $otherCode = $isOut ? $destination : $origin;
 
@@ -70,6 +80,7 @@ final class OfferingAvailabilityHelper
             $destination,
             $date,
             $days,
+            $partySize,
             $direction,
             $otherCode,
             $isOut,
@@ -77,12 +88,12 @@ final class OfferingAvailabilityHelper
         ): array {
             $gza = DB::table('airports')->where('code', 'GZA')->first();
             if ($gza === null || !$gza->active) {
-                return $this->emptyEnvelope($origin, $destination, $date, $days, $date, $date);
+                return $this->emptyEnvelope($origin, $destination, $date, $days, $date, $date, $partySize);
             }
 
             $dest = DB::table('airports')->where('code', $otherCode)->first();
             if ($dest === null || !$dest->active) {
-                return $this->emptyEnvelope($origin, $destination, $date, $days, $date, $date);
+                return $this->emptyEnvelope($origin, $destination, $date, $days, $date, $date, $partySize);
             }
 
             $originAirport = $isOut ? $gza : $dest;
@@ -119,7 +130,7 @@ final class OfferingAvailabilityHelper
                 ->get();
 
             if ($schedules->isEmpty()) {
-                return $this->emptyEnvelope($origin, $destination, $date, $days, $rangeStart, $rangeEnd);
+                return $this->emptyEnvelope($origin, $destination, $date, $days, $rangeStart, $rangeEnd, $partySize);
             }
 
             $aircraftRows = DB::table('aircraft')->where('active', true)->get()->keyBy('id');
@@ -268,20 +279,194 @@ final class OfferingAvailabilityHelper
                     ?: strcmp($a->id, $b->id)
             );
 
-            $offerings = array_map(static fn(OfferingDto $dto): array => $dto->toArray(), $results);
-            $availableDates = array_values(array_unique(array_map(static fn(OfferingDto $dto): string => $dto->date, $results)));
+            $offeringIds = array_map(static fn(OfferingDto $dto): string => $dto->id, $results);
+
+            // 1. Batch query materialized services in mvp_services (authoritative frozen layout & revisions)
+            $serviceRows = DB::table('mvp_services')
+                ->whereIn('id', $offeringIds)
+                ->get()
+                ->keyBy('id');
+
+            // 2. Batch query occupied seat claims in mvp_reservation_seat_claims
+            $claimedSeatsByService = [];
+            if ($serviceRows->isNotEmpty()) {
+                $claimRows = DB::table('mvp_reservation_seat_claims')
+                    ->whereIn('service_id', $serviceRows->keys()->all())
+                    ->select('service_id', 'seat_code')
+                    ->get();
+                foreach ($claimRows as $claim) {
+                    $claimedSeatsByService[(string) $claim->service_id][(string) $claim->seat_code] = true;
+                }
+            }
+
+            // 3. Compute bounded authoritative capacity and snapshot integrity for each offering
+            $offerings = [];
+            foreach ($results as $dto) {
+                $isMaterialized = $serviceRows->has($dto->id);
+                $serviceRow = $isMaterialized ? $serviceRows->get($dto->id) : null;
+
+                $isCompatible = true;
+                $authoritativeLayout = $dto->layout;
+                $authoritativeRevisions = $dto->revisions;
+
+                if ($isMaterialized && $serviceRow !== null) {
+                    $offeringArray = $dto->toArray();
+                    $currentTiming = array_intersect_key($offeringArray, array_flip(['originTimezone', 'destinationTimezone', 'departAt', 'arriveAt', 'arrivalDate']));
+
+                    try {
+                        $frozenLayout = json_decode((string) $serviceRow->layout_snapshot, true, 512, JSON_THROW_ON_ERROR);
+                        $frozenAircraft = json_decode((string) $serviceRow->aircraft_snapshot, true, 512, JSON_THROW_ON_ERROR);
+                        $frozenRevisions = json_decode((string) $serviceRow->reference_revisions, true, 512, JSON_THROW_ON_ERROR);
+
+                        // Match ReservationCoordinator lines 257-265 integrity predicate
+                        if ((string) $serviceRow->aircraft_id !== (string) $dto->aircraftId
+                            || $frozenLayout != $dto->layout
+                            || (string) $serviceRow->flight_number !== (string) $dto->number
+                            || (string) $serviceRow->depart_time !== (string) $dto->departTime
+                            || (string) $serviceRow->arrive_time !== (string) $dto->arriveTime
+                            || (int) $serviceRow->duration_minutes !== (int) $dto->durationMinutes
+                            || ($frozenAircraft['model'] ?? null) !== $dto->aircraft
+                            || (isset($frozenAircraft['timing']) && $frozenAircraft['timing'] != $currentTiming)
+                        ) {
+                            $isCompatible = false;
+                        } else {
+                            $authoritativeLayout = $frozenLayout;
+                            $authoritativeRevisions = $frozenRevisions;
+                        }
+                    } catch (\Throwable) {
+                        $isCompatible = false;
+                    }
+                }
+
+                // If incompatible: do not overwrite current DTO layout/revisions with frozen mixed-data; mark unbookable
+                $capacity = $this->calculateCapacity(
+                    $isCompatible ? $authoritativeLayout : $dto->layout,
+                    $claimedSeatsByService[$dto->id] ?? [],
+                    $partySize
+                );
+
+                if (!$isCompatible) {
+                    $capacity['bookable'] = false;
+                    $capacity['seatsRemaining'] = 0;
+                }
+
+                $item = $dto->toArray();
+                if ($isMaterialized && $isCompatible) {
+                    $item['layout'] = $authoritativeLayout;
+                    $item['revisions'] = $authoritativeRevisions;
+                }
+                $item['totalCapacity'] = $capacity['totalCapacity'];
+                $item['seatsRemaining'] = $capacity['seatsRemaining'];
+                $item['bookable'] = $capacity['bookable'];
+
+                $offerings[] = $item;
+            }
+
+            // 4. Distinguish scheduled dates from bookable dates
+            $scheduledDates = array_values(array_unique(array_map(static fn(array $o): string => $o['date'], $offerings)));
+            sort($scheduledDates);
+
+            $bookableDates = array_values(array_unique(array_map(
+                static fn(array $o): string => $o['date'],
+                array_filter($offerings, static fn(array $o): bool => $o['bookable'] === true)
+            )));
+            sort($bookableDates);
+
+            // Backward compatibility: availableDates reflects truly bookable dates
+            $availableDates = $bookableDates;
 
             return [
                 'origin' => $origin,
                 'destination' => $destination,
                 'date' => $date,
                 'days' => $days,
+                'partySize' => $partySize,
                 'rangeStart' => $rangeStart,
                 'rangeEnd' => $rangeEnd,
                 'offerings' => $offerings,
+                'scheduledDates' => $scheduledDates,
+                'bookableDates' => $bookableDates,
                 'availableDates' => $availableDates,
+                'capacitySemantics' => 'snapshot_not_guaranteed',
+                'capacityNotice' => 'Advisory seat availability snapshot; booking completion locks definitive seats.',
             ];
         });
+    }
+
+    /**
+     * @param array<string, bool> $occupiedSeatMap
+     * @return array{totalCapacity: int, seatsRemaining: int, bookable: bool}
+     */
+    private function calculateCapacity(mixed $layout, array $occupiedSeatMap, int $partySize): array
+    {
+        $failClosed = [
+            'totalCapacity' => 0,
+            'seatsRemaining' => 0,
+            'bookable' => false,
+        ];
+
+        if (!is_array($layout)) {
+            return $failClosed;
+        }
+
+        $rows = $layout['rows'] ?? null;
+        $letters = $layout['letters'] ?? null;
+        if (!is_int($rows) || $rows < 1 || $rows > 60 || !is_array($letters) || !array_is_list($letters)
+            || count($letters) < 2 || count($letters) > 10) {
+            return $failClosed;
+        }
+
+        $validSeatCodes = [];
+        $seenLetters = [];
+        foreach ($letters as $letter) {
+            if (!is_string($letter) || !preg_match('/^[A-Z]$/D', $letter) || isset($seenLetters[$letter])) {
+                return $failClosed;
+            }
+            $seenLetters[$letter] = true;
+            for ($r = 1; $r <= $rows; $r++) {
+                $validSeatCodes["{$r}{$letter}"] = true;
+            }
+        }
+
+        $unavailableList = $layout['unavailable'] ?? [];
+        if (!is_array($unavailableList) || !array_is_list($unavailableList)) {
+            return $failClosed;
+        }
+
+        $unavailableLookup = [];
+        foreach ($unavailableList as $uSeat) {
+            if (!is_string($uSeat)) {
+                return $failClosed;
+            }
+            $uSeat = strtoupper(trim($uSeat));
+            // Invalid unavailable seat format or seat outside geometry fails closed
+            if (!isset($validSeatCodes[$uSeat]) || isset($unavailableLookup[$uSeat])) {
+                return $failClosed;
+            }
+            $unavailableLookup[$uSeat] = true;
+        }
+
+        $bookablePhysicalSeats = count($validSeatCodes) - count($unavailableLookup);
+        if ($bookablePhysicalSeats < 0) {
+            return $failClosed;
+        }
+
+        // Validate occupied claims: claims outside valid geometry or on unavailable seats fail closed
+        foreach ($occupiedSeatMap as $seatCode => $_) {
+            if (!isset($validSeatCodes[$seatCode]) || isset($unavailableLookup[$seatCode])) {
+                return $failClosed;
+            }
+        }
+
+        $occupiedCount = count($occupiedSeatMap);
+        $seatsRemaining = max(0, $bookablePhysicalSeats - $occupiedCount);
+        $bookable = $seatsRemaining >= $partySize;
+
+        return [
+            'totalCapacity' => $bookablePhysicalSeats,
+            'seatsRemaining' => $seatsRemaining,
+            'bookable' => $bookable,
+        ];
     }
 
     /**
@@ -290,10 +475,15 @@ final class OfferingAvailabilityHelper
      *   destination: string,
      *   date: string,
      *   days: int,
+     *   partySize: int,
      *   rangeStart: string,
      *   rangeEnd: string,
      *   offerings: list<never>,
-     *   availableDates: list<never>
+     *   scheduledDates: list<never>,
+     *   bookableDates: list<never>,
+     *   availableDates: list<never>,
+     *   capacitySemantics: string,
+     *   capacityNotice: string
      * }
      */
     private function emptyEnvelope(
@@ -302,17 +492,23 @@ final class OfferingAvailabilityHelper
         string $date,
         int $days,
         string $rangeStart,
-        string $rangeEnd
+        string $rangeEnd,
+        int $partySize = 1
     ): array {
         return [
             'origin' => $origin,
             'destination' => $destination,
             'date' => $date,
             'days' => $days,
+            'partySize' => $partySize,
             'rangeStart' => $rangeStart,
             'rangeEnd' => $rangeEnd,
             'offerings' => [],
+            'scheduledDates' => [],
+            'bookableDates' => [],
             'availableDates' => [],
+            'capacitySemantics' => 'snapshot_not_guaranteed',
+            'capacityNotice' => 'Advisory seat availability snapshot; booking completion locks definitive seats.',
         ];
     }
 }

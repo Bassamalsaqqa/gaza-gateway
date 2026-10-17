@@ -8,10 +8,29 @@ export interface RankedDateAlternative {
 }
 
 /**
- * Filters offerings for exact calendar date matching.
+ * Authoritative check whether an offering has physical seats remaining for a party size.
+ * Fails closed on absent, malformed, non-integer, or insufficient capacity, or bookable !== true.
  */
-export function getExactOfferings(offerings: readonly DatedOffering[], targetDate: string): DatedOffering[] {
-  return offerings.filter((o) => o.date === targetDate);
+export function isOfferingBookable(offering: DatedOffering, partySize = 1): boolean {
+  if (offering.bookable !== true) return false;
+  if (typeof offering.seatsRemaining !== "number" || !Number.isInteger(offering.seatsRemaining)) {
+    return false;
+  }
+  if (offering.seatsRemaining < 1 || offering.seatsRemaining < partySize) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Filters offerings for exact calendar date matching with sufficient bookable capacity.
+ */
+export function getExactOfferings(
+  offerings: readonly DatedOffering[],
+  targetDate: string,
+  partySize = 1
+): DatedOffering[] {
+  return offerings.filter((o) => o.date === targetDate && isOfferingBookable(o, partySize));
 }
 
 /**
@@ -46,12 +65,15 @@ export function calendarDayDifference(dateA: string, dateB: string): number {
 
 /**
  * Returns alternative flight dates ranked by proximity to the searched target date.
+ * Fully booked offerings or offerings with insufficient capacity for partySize
+ * are never recommended or ranked as bookable.
  */
 export function getRankedAlternatives(
   offerings: readonly DatedOffering[],
   availableDates: readonly string[],
   targetDate: string,
-  limitPerDirection = 3
+  limitPerDirection = 3,
+  partySize = 1
 ): RankedDateAlternative[] {
   const previousDates = getNearestPreviousDates(availableDates, targetDate, limitPerDirection);
   const nextDates = getNearestNextDates(availableDates, targetDate, limitPerDirection);
@@ -59,7 +81,7 @@ export function getRankedAlternatives(
   const results: RankedDateAlternative[] = [];
 
   for (const date of nextDates) {
-    const matching = offerings.filter((o) => o.date === date);
+    const matching = offerings.filter((o) => o.date === date && isOfferingBookable(o, partySize));
     if (matching.length > 0) {
       results.push({
         date,
@@ -71,7 +93,7 @@ export function getRankedAlternatives(
   }
 
   for (const date of previousDates) {
-    const matching = offerings.filter((o) => o.date === date);
+    const matching = offerings.filter((o) => o.date === date && isOfferingBookable(o, partySize));
     if (matching.length > 0) {
       results.push({
         date,
@@ -124,12 +146,13 @@ export function isReturnChronologyValid(outbound: DatedOffering, returnOffering:
 }
 
 /**
- * Filters return offerings to only those departing after outbound arrival.
+ * Filters return offerings to only those departing after outbound arrival and having bookable capacity.
  */
 export function filterValidReturnOfferings(
   returnOfferings: readonly DatedOffering[],
-  outbound: DatedOffering | null
+  outbound: DatedOffering | null,
+  partySize = 1
 ): DatedOffering[] {
-  if (!outbound) return [...returnOfferings];
-  return returnOfferings.filter((ret) => isReturnChronologyValid(outbound, ret));
+  if (!outbound) return returnOfferings.filter((ret) => isOfferingBookable(ret, partySize));
+  return returnOfferings.filter((ret) => isReturnChronologyValid(outbound, ret) && isOfferingBookable(ret, partySize));
 }

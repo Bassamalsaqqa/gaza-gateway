@@ -62,6 +62,7 @@ final class OfferingController
         $destination = $request->query('destination');
         $date = $request->query('date');
         $rawDays = $request->query('days', '28');
+        $rawPartySize = $request->query('partySize') ?? $request->query('party_size') ?? '1';
 
         if (!is_string($origin) || !preg_match('/^[A-Z]{3}$/', $origin)) {
             return ReferenceResponse::error($request, 422, 'validation_error');
@@ -84,8 +85,17 @@ final class OfferingController
             return ReferenceResponse::error($request, 422, 'validation_error');
         }
 
+        if (!is_string($rawPartySize) || !preg_match('/^[1-9]$/', $rawPartySize)) {
+            return ReferenceResponse::error($request, 422, 'validation_error');
+        }
+
+        $partySize = (int) $rawPartySize;
+        if ($partySize < 1 || $partySize > 9) {
+            return ReferenceResponse::error($request, 422, 'validation_error');
+        }
+
         try {
-            $data = $this->availabilityHelper->getAvailability($origin, $destination, $date, $days);
+            $data = $this->availabilityHelper->getAvailability($origin, $destination, $date, $days, null, $partySize);
             return ReferenceResponse::success($request, $data);
         } catch (ScheduleValidationException) {
             return ReferenceResponse::error($request, 422, 'validation_error');

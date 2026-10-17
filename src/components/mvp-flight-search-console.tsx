@@ -142,11 +142,29 @@ function OfferingCardRow({
           <span>{ar ? "الأوقات محلية لكل مطار" : "Times local to each airport"}</span>
           <span> · </span>
           <bdi dir="ltr">{offering.aircraft}</bdi>
+          {typeof offering.seatsRemaining === "number" && (
+            <>
+              <span> · </span>
+              <span className={cn(offering.seatsRemaining <= 5 ? "font-semibold text-clay" : "")}>
+                {offering.seatsRemaining === 0
+                  ? (ar ? "المقاعد مكتملة" : "Sold out")
+                  : offering.bookable === false
+                    ? (ar ? "غير متاح (لراكب واحد)" : "Unavailable (1 passenger)")
+                    : (ar ? `${offering.seatsRemaining} مقاعد متاحة (لراكب واحد) · الفحص النهائي عند الحجز` : `${offering.seatsRemaining} seats available (1 passenger) · Final check at booking`)}
+              </span>
+            </>
+          )}
         </p>
       </div>
 
       <div>
-        {actionType === "select" ? (
+        {offering.seatsRemaining === 0 || offering.bookable === false ? (
+          <span className="inline-flex items-center justify-center rounded-md px-3 py-1.5 text-xs font-semibold bg-muted text-muted-foreground cursor-not-allowed">
+            {offering.seatsRemaining === 0
+              ? (ar ? "مكتملة" : "Sold out")
+              : (ar ? "غير متاح" : "Unavailable")}
+          </span>
+        ) : actionType === "select" ? (
           <button
             type="button"
             onClick={() => onSelect?.(offering)}
@@ -304,7 +322,7 @@ export function MvpFlightSearchConsole({ variant = "default" }: MvpFlightSearchC
   // Results calculation for outbound
   const effectiveOutboundDate = search?.outboundDate ?? outboundDate;
   const outboundOfferings = outboundAvail.data?.offerings ?? [];
-  const outboundAvailableDates = outboundAvail.data?.availableDates ?? [];
+  const outboundAvailableDates = outboundAvail.data?.bookableDates ?? outboundAvail.data?.availableDates ?? [];
   const exactOutboundResults = getExactOfferings(outboundOfferings, effectiveOutboundDate);
   const outboundAlternatives = getRankedAlternatives(
     outboundOfferings,
@@ -646,6 +664,11 @@ export function MvpFlightSearchConsole({ variant = "default" }: MvpFlightSearchC
                     <bdi dir="ltr">{search.outboundDate}</bdi>
                   </span>
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  {ar
+                    ? "المقاعد المعروضة استرشادية لراكب واحد · الفحص النهائي وتثبيت المقاعد عند إتمام الحجز (غير مضمونة مسبقاً)."
+                    : "Seats shown for 1 passenger · Final seat lock confirmed at booking completion (snapshot, not guaranteed)."}
+                </p>
 
                 {/* Case 1: Exact Outbound Flights Found */}
                 {exactOutboundResults.length > 0 ? (
@@ -761,6 +784,11 @@ export function MvpFlightSearchConsole({ variant = "default" }: MvpFlightSearchC
                       <bdi dir="ltr">{search.returnDate}</bdi>
                     </span>
                   </div>
+                  <p className="text-xs text-muted-foreground">
+                    {ar
+                      ? "المقاعد المعروضة استرشادية لراكب واحد · الفحص النهائي وتثبيت المقاعد عند إتمام الحجز (غير مضمونة مسبقاً)."
+                      : "Seats shown for 1 passenger · Final seat lock confirmed at booking completion (snapshot, not guaranteed)."}
+                  </p>
 
                   {!selectedOutbound ? (
                     <div className="rounded-xl border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
