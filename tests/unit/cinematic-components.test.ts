@@ -1,6 +1,9 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import { FrameScheduler } from "../../src/components/airport/cinematic/frame-scheduler.ts";
+import {
+  attachVideoScrubLifecycle,
+} from "../../src/components/airport/cinematic/video-scrub-controller.ts";
 
 class MockImageBitmap {
   public closed = false;
@@ -708,5 +711,391 @@ describe("Home Continuous Cinematic & Scroll Mapping Architecture", () => {
     // Negative progress fallback
     const pNeg = getActiveCinematicPhase(-0.5);
     assert.equal(pNeg.id, "daylight");
+  });
+});
+
+class DelayedNativeMediaHarness {
+  public src = "";
+  private _currentTime = 0;
+  get currentTime(): number {
+    return this._currentTime;
+  }
+  set currentTime(val: number) {
+    if (Math.abs(this._currentTime - val) > 0.0001) {
+      this._currentTime = val;
+      this.seeking = true;
+    }
+  }
+  public duration = 8.0;
+  public readyState = 0;
+  public seeking = false;
+  public error: { code: number; message: string } | null = null;
+  public paused = true;
+
+  private listeners = new Map<string, Set<(e: Event) => void>>();
+  private rVFCId = 0;
+  private pendingRVFCs = new Map<number, (now: number, metadata: Record<string, unknown>) => void>();
+
+  public loadCalls = 0;
+  public pauseCalls = 0;
+  public removeAttributeCalls: string[] = [];
+
+  addEventListener(event: string, listener: (e: Event) => void) {
+    if (!this.listeners.has(event)) {
+      this.listeners.set(event, new Set());
+    }
+    this.listeners.get(event)!.add(listener);
+  }
+
+  removeEventListener(event: string, listener: (e: Event) => void) {
+    this.listeners.get(event)?.delete(listener);
+  }
+
+  dispatchEvent(event: string) {
+    if (event === "seeked") {
+      this.seeking = false;
+    }
+    const list = this.listeners.get(event);
+    if (list) {
+      for (const listener of [...list]) {
+        listener({ type: event } as unknown as Event);
+      }
+    }
+  }
+
+  requestVideoFrameCallback(cb: (now: number, metadata: Record<string, unknown>) => void): number {
+    const id = ++this.rVFCId;
+    this.pendingRVFCs.set(id, cb);
+    return id;
+  }
+
+  cancelVideoFrameCallback(id: number) {
+    this.pendingRVFCs.delete(id);
+  }
+
+  triggerRVFC(mediaTime: number) {
+    const callbacks = [...this.pendingRVFCs.entries()];
+    this.pendingRVFCs.clear();
+    for (const [, cb] of callbacks) {
+      cb(performance.now(), {
+        presentationTime: performance.now(),
+        expectedDisplayTime: performance.now() + 16,
+        width: 1280,
+        height: 720,
+        mediaTime,
+        presentedFrames: 1,
+      });
+    }
+  }
+
+  load() {
+    this.loadCalls++;
+  }
+
+  pause() {
+    this.pauseCalls++;
+    this.paused = true;
+  }
+
+  removeAttribute(attr: string) {
+    this.removeAttributeCalls.push(attr);
+    if (attr === "src") this.src = "";
+  }
+
+  getListenerCount(event: string): number {
+    return this.listeners.get(event)?.size ?? 0;
+  }
+
+  getPendingRVFCCount(): number {
+    return this.pendingRVFCs.size;
+  }
+}
+
+describe("Native Video Scrub Lifecycle & Delayed Media Recovery Architecture", () => {
+  test("initial target=0 flush does not short-circuit before frame presentation and marks decoded on valid rVFC", () => {
+    const video = new DelayedNativeMediaHarness();
+    let readyCalls = 0;
+    const errorCalls: string[] = [];
+    let progress = 0;
+
+    const controller = attachVideoScrubLifecycle(video as unknown as HTMLVideoElement, {
+      videoSrc: "/media/future/cinematic/mp4-7cb9fe96/scrub-720p-g6-crf25.mp4",
+      getProgress: () => progress,
+      onReady: () => {
+        readyCalls++;
+      },
+      onError: (err) => {
+        errorCalls.push(err);
+      },
+    });
+
+    // 1. Initial state: video loading started, pending is true
+    assert.equal(video.src, "/media/future/cinematic/mp4-7cb9fe96/scrub-720p-g6-crf25.mp4");
+    assert.equal(video.loadCalls, 1);
+    assert.equal(controller.getState().isDecoded, false, "Poster barrier must remain active before presentation");
+
+    // 2. loadedmetadata arrives (readyState = 1)
+    video.readyState = 1;
+    video.dispatchEvent("loadedmetadata");
+    // Under regression, flush() short-circuited here because currentTime (0) == target (0) and set pending=false without markDecoded()
+    // In our fixed implementation, flush checks markDecoded, but readyState < 2 keeps decoded = false
+    assert.equal(controller.getState().isDecoded, false, "Must not mark decoded when readyState < 2");
+
+    // 3. rVFC arrives early (before loadeddata, exactly as observed in Chromium at 1247ms)
+    assert.ok(video.getPendingRVFCCount() > 0, "rVFC must be registered");
+    video.triggerRVFC(0.0);
+    assert.equal(controller.getState().presentedTime, 0.0);
+    assert.equal(controller.getState().isDecoded, false, "Must still wait for readyState >= 2");
+
+    // 4. loadeddata arrives (readyState = 4)
+    video.readyState = 4;
+    video.dispatchEvent("loadeddata");
+
+    // Fix verification: loadeddata verifies presented frame matching target 0.0 and marks decoded
+    assert.equal(
+      controller.getState().isDecoded,
+      true,
+      "Target 0.0 must be marked decoded once readyState >= 2 and frame presented",
+    );
+    assert.equal(readyCalls, 1, "onReady must fire exactly once");
+    assert.equal(errorCalls.length, 0, "No error must be emitted");
+    assert.equal(video.getPendingRVFCCount(), 0, "rVFC must be cancelled once decoded to avoid wasted decode work");
+
+    controller.dispose();
+  });
+
+  test("delayed seek recovery grants ONE bounded timeout extension and recovers if seeked arrives", () => {
+    const video = new DelayedNativeMediaHarness();
+    let readyCalls = 0;
+    const errorCalls: string[] = [];
+    const seekingStates: boolean[] = [];
+    let progress = 0;
+
+    // Use fast timeout for deterministic test execution
+    const controller = attachVideoScrubLifecycle(video as unknown as HTMLVideoElement, {
+      videoSrc: "/media/test.mp4",
+      getProgress: () => progress,
+      seekTimeoutMs: 50,
+      seekIntervalMs: 10,
+      onReady: () => {
+        readyCalls++;
+      },
+      onError: (err) => {
+        errorCalls.push(err);
+      },
+      onSeekStateChange: (s) => {
+        seekingStates.push(s);
+      },
+    });
+
+    // Make initial frame decoded
+    video.readyState = 4;
+    video.dispatchEvent("loadedmetadata");
+    video.triggerRVFC(0.0);
+    video.dispatchEvent("loadeddata");
+    assert.equal(controller.getState().isDecoded, true);
+
+    // Seek to 0.5 (target = 3.975s)
+    progress = 0.5;
+    controller.notifyProgress();
+    assert.equal(seekingStates.at(-1), true, "onSeekStateChange must indicate seeking");
+    assert.equal(video.seeking, true, "video.seeking must be true during seek");
+
+    // Wait 70ms: initial seek timeout (50ms) triggers ONE bounded recovery
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        assert.equal(controller.getState().seekRecoveryAttempted, true, "Must have attempted ONE bounded seek recovery");
+        assert.equal(errorCalls.length, 0, "Must NOT fail terminally on first seek timeout");
+
+        // Now simulate native decoder finishing seek within the recovery window
+        video.currentTime = 3.975;
+        video.dispatchEvent("seeked");
+
+        assert.equal(seekingStates.at(-1), false, "onSeekStateChange must return to false after seeked");
+        assert.equal(errorCalls.length, 0, "Recovery must succeed without error");
+
+        controller.dispose();
+        resolve();
+      }, 70);
+    });
+  });
+
+  test("exhausted seek recovery triggers terminal error if decoder stays stuck past bounded recovery", () => {
+    const video = new DelayedNativeMediaHarness();
+    const errorCalls: string[] = [];
+    let progress = 0;
+
+    const controller = attachVideoScrubLifecycle(video as unknown as HTMLVideoElement, {
+      videoSrc: "/media/test.mp4",
+      getProgress: () => progress,
+      seekTimeoutMs: 40,
+      seekIntervalMs: 10,
+      onError: (err) => {
+        errorCalls.push(err);
+      },
+    });
+
+    video.readyState = 4;
+    video.dispatchEvent("loadedmetadata");
+    video.triggerRVFC(0.0);
+    video.dispatchEvent("loadeddata");
+
+    // Seek and simulate decoder permanently stuck (never fires seeked)
+    progress = 0.8;
+    controller.notifyProgress();
+
+    // 40ms (attempt 1) + 40ms (recovery) = 80ms. Wait 105ms.
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        assert.equal(errorCalls.length, 1, "Must fail terminally after bounded recovery is exhausted");
+        assert.ok(errorCalls[0]!.includes("seek could not be completed"), "Error message must identify seek timeout");
+        controller.dispose();
+        resolve();
+      }, 105);
+    });
+  });
+
+  test("delayed load recovery grants ONE bounded timeout extension and recovers if media arrives", () => {
+    const video = new DelayedNativeMediaHarness();
+    let readyCalls = 0;
+    const errorCalls: string[] = [];
+
+    const controller = attachVideoScrubLifecycle(video as unknown as HTMLVideoElement, {
+      videoSrc: "/media/test.mp4",
+      getProgress: () => 0,
+      loadTimeoutMs: 50,
+      onReady: () => {
+        readyCalls++;
+      },
+      onError: (err) => {
+        errorCalls.push(err);
+      },
+    });
+
+    // Wait 70ms: initial load timeout (50ms) triggers ONE bounded load recovery
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        assert.equal(controller.getState().loadRecoveryAttempted, true, "Must have attempted ONE bounded load recovery");
+        assert.equal(video.loadCalls, 1, "Grace must not abort and restart a pending Range response");
+        assert.equal(errorCalls.length, 0, "Must NOT fail terminally on first load timeout");
+
+        // Now simulate delayed media arriving within the recovery window
+        video.readyState = 4;
+        video.dispatchEvent("loadedmetadata");
+        video.triggerRVFC(0.0);
+        video.dispatchEvent("loadeddata");
+
+        assert.equal(readyCalls, 1, "Must successfully mark decoded on delayed load arrival");
+        assert.equal(errorCalls.length, 0, "No error must be emitted on successful delayed load recovery");
+
+        controller.dispose();
+        resolve();
+      }, 70);
+    });
+  });
+
+  test("terminal media error triggers immediate failure without retrying", () => {
+    const video = new DelayedNativeMediaHarness();
+    const errorCalls: string[] = [];
+
+    const controller = attachVideoScrubLifecycle(video as unknown as HTMLVideoElement, {
+      videoSrc: "/media/bad-format.mp4",
+      getProgress: () => 0,
+      onError: (err) => {
+        errorCalls.push(err);
+      },
+    });
+
+    // Simulate native MEDIA_ERR_SRC_NOT_SUPPORTED
+    video.error = { code: 4, message: "MEDIA_ERR_SRC_NOT_SUPPORTED" };
+    video.dispatchEvent("error");
+
+    assert.equal(errorCalls.length, 1, "Must fail immediately on error event");
+    assert.ok(errorCalls[0]!.includes("code 4"), "Error message must report media error code");
+    assert.equal(controller.getState().loadRecoveryAttempted, false, "Must NOT attempt load recovery on terminal error");
+
+    controller.dispose();
+  });
+
+  test("teardown completely cleans up decoders, cancels rVFC, and ignores late events", () => {
+    const video = new DelayedNativeMediaHarness();
+    let readyCalls = 0;
+    const errorCalls: string[] = [];
+    const seekingStates: boolean[] = [];
+
+    const controller = attachVideoScrubLifecycle(video as unknown as HTMLVideoElement, {
+      videoSrc: "/media/test.mp4",
+      getProgress: () => 0,
+      onReady: () => {
+        readyCalls++;
+      },
+      onError: (err) => {
+        errorCalls.push(err);
+      },
+      onSeekStateChange: (s) => {
+        seekingStates.push(s);
+      },
+    });
+
+    assert.equal(video.getListenerCount("loadedmetadata"), 1);
+    assert.equal(video.getListenerCount("loadeddata"), 1);
+    assert.equal(video.getListenerCount("seeked"), 1);
+    assert.equal(video.getListenerCount("error"), 1);
+    assert.ok(video.getPendingRVFCCount() > 0);
+
+    // Dispose
+    controller.dispose();
+
+    // Verify all listeners removed
+    assert.equal(video.getListenerCount("loadedmetadata"), 0, "loadedmetadata listener must be removed");
+    assert.equal(video.getListenerCount("loadeddata"), 0, "loadeddata listener must be removed");
+    assert.equal(video.getListenerCount("seeked"), 0, "seeked listener must be removed");
+    assert.equal(video.getListenerCount("error"), 0, "error listener must be removed");
+    assert.equal(video.getPendingRVFCCount(), 0, "Pending rVFC must be cancelled");
+
+    // Verify decoder unload
+    assert.ok(video.pauseCalls > 0, "video.pause() must be called on teardown");
+    assert.ok(video.removeAttributeCalls.includes("src"), "video.removeAttribute('src') must be called");
+    assert.ok(video.loadCalls >= 2, "video.load() must be called to purge decoder buffer");
+
+    // Verify stale events after disposal do nothing
+    video.dispatchEvent("loadeddata");
+    video.dispatchEvent("error");
+    video.triggerRVFC(0.0);
+    assert.equal(readyCalls, 0, "No onReady calls after disposal");
+    assert.equal(errorCalls.length, 0, "No onError calls after disposal");
+  });
+
+  test("stale rVFC callback from previous timestamp is rejected and does not prematurely mark decoded", () => {
+    const video = new DelayedNativeMediaHarness();
+    let readyCalls = 0;
+    let progress = 0.5; // target = 3.975s
+
+    const controller = attachVideoScrubLifecycle(video as unknown as HTMLVideoElement, {
+      videoSrc: "/media/test.mp4",
+      getProgress: () => progress,
+      onReady: () => {
+        readyCalls++;
+      },
+    });
+
+    video.readyState = 4;
+    video.currentTime = 4.0;
+    video.dispatchEvent("loadedmetadata");
+    video.dispatchEvent("seeked");
+
+    // Simulate stale frame arriving from 0.0s (e.g. before seek completed)
+    video.triggerRVFC(0.0);
+    assert.equal(controller.getState().presentedTime, 0.0);
+    assert.equal(controller.getState().isDecoded, false, "Must reject frame with delta > tolerance");
+    assert.equal(readyCalls, 0, "Must not fire onReady on stale frame");
+
+    // Now simulate genuine frame arriving for 3.96s (within 0.075s tolerance of 4.0s)
+    video.triggerRVFC(3.96);
+    assert.equal(controller.getState().presentedTime, 3.96);
+    assert.equal(controller.getState().isDecoded, true, "Must mark decoded when presented frame matches target");
+    assert.equal(readyCalls, 1, "Must fire onReady on matching frame");
+
+    controller.dispose();
   });
 });
