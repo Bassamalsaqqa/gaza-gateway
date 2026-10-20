@@ -65,7 +65,7 @@ function DateChipsStrip({
                   : "bg-secondary text-foreground hover:bg-sand-deep border border-border/60"
               )}
             >
-              <bdi dir="ltr">{d.slice(5)}</bdi>
+              <bdi dir="ltr" className="whitespace-nowrap">{d.slice(5)}</bdi>
             </button>
           );
         })}
@@ -102,64 +102,118 @@ function OfferingCardRow({
   return (
     <li
       className={cn(
-        "flex flex-wrap items-center justify-between gap-4 transition-colors",
-        compact ? "py-3 first:pt-0 last:pb-0" : "p-4 sm:p-5",
-        isSelected && "bg-brand/10 border-primary/40 ring-1 ring-primary/30"
+        "flex flex-col items-stretch gap-4 transition-colors sm:flex-row sm:flex-wrap sm:items-center sm:justify-between",
+        compact ? "py-3 px-3 sm:px-4" : "p-4 sm:p-5",
+        isSelected
+          ? isCinematic
+            ? "bg-sand/15 border-primary/60 ring-1 ring-primary/40 text-sand"
+            : "bg-brand/10 border-primary/40 ring-1 ring-primary/30 text-foreground"
+          : isCinematic
+            ? "hover:bg-sand/5 text-sand"
+            : "hover:bg-muted/40 text-foreground"
       )}
     >
-      <div className="min-w-36 flex-1">
-        <div className="flex items-center gap-2">
-          <bdi dir="ltr">
-            <Code className={isCinematic ? "text-sand border-sand/30 bg-ink" : ""}>
+      <div className="min-w-0 sm:min-w-[140px] sm:flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <bdi dir="ltr" className="whitespace-nowrap">
+            <Code
+              className={cn(
+                "px-2 py-0.5 rounded text-xs font-mono font-bold tracking-normal",
+                isCinematic ? "text-sand border border-sand/30 bg-ink" : "bg-muted text-foreground border border-border"
+              )}
+            >
               {offering.number}
             </Code>
           </bdi>
           {isSelected && (
-            <span className="inline-flex items-center gap-1 text-xs font-bold text-brand-deep">
-              <Check className="size-3.5" aria-hidden="true" />
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 text-xs font-bold shrink-0",
+                isCinematic ? "text-sand" : "text-brand-deep"
+              )}
+            >
+              <Check className="size-3.5 shrink-0" aria-hidden="true" />
               <span>{selectedLabel ?? (ar ? "المحددة" : "Selected")}</span>
             </span>
           )}
         </div>
-        {cityName && <p className="mt-1 font-semibold">{cityName}</p>}
+        {cityName && (
+          <p className={cn("mt-1 font-semibold text-sm leading-normal", isCinematic ? "text-sand" : "text-foreground")}>
+            {cityName}
+          </p>
+        )}
         <div className="mt-1">
-          <bdi dir="ltr">
-            <Code className={isCinematic ? "text-sand/80 border-sand/20 bg-ink" : ""}>
+          <bdi dir="ltr" className="whitespace-nowrap">
+            <Code
+              className={cn(
+                "px-2 py-0.5 rounded text-xs font-mono tracking-normal",
+                isCinematic ? "text-sand/85 border border-sand/20 bg-ink/80" : "bg-muted/60 text-muted-foreground border border-border"
+              )}
+            >
               {offering.originCode} → {offering.destinationCode}
             </Code>
           </bdi>
         </div>
       </div>
 
-      <div>
-        <bdi dir="ltr">
-          <Code className={isCinematic ? "text-sand border-sand/30 bg-ink" : ""}>
+      <div className="min-w-0 sm:flex-1 sm:basis-60">
+        <bdi dir="ltr" className="whitespace-nowrap">
+          <Code
+            className={cn(
+              "px-2 py-0.5 rounded text-xs font-mono font-bold tracking-normal",
+              isCinematic ? "text-sand border border-sand/30 bg-ink" : "bg-muted text-foreground border border-border"
+            )}
+          >
             {offering.departTime} → {offering.arrivalDate && offering.arrivalDate !== offering.date ? `${offering.arrivalDate} · ` : ""}
             {offering.arriveTime}
           </Code>
         </bdi>
-        <p className={cn("mt-1 text-sm", isCinematic ? "text-sand/80" : "text-muted-foreground")}>
+        <p className={cn("mt-1 text-xs sm:text-sm leading-relaxed", isCinematic ? "text-sand/85" : "text-muted-foreground")}>
           <span>{ar ? "الأوقات محلية لكل مطار" : "Times local to each airport"}</span>
           <span> · </span>
-          <bdi dir="ltr">{offering.aircraft}</bdi>
+          <bdi dir="ltr" className="whitespace-nowrap">{offering.aircraft}</bdi>
           {typeof offering.seatsRemaining === "number" && (
             <>
               <span> · </span>
-              <span className={cn(offering.seatsRemaining <= 5 ? "font-semibold text-clay" : "")}>
+              <span
+                className={cn(
+                  offering.seatsRemaining <= 5
+                    ? isCinematic ? "font-bold text-accent" : "font-semibold text-clay"
+                    : ""
+                )}
+              >
                 {offering.seatsRemaining === 0
                   ? (ar ? "المقاعد مكتملة" : "Sold out")
                   : offering.bookable === false
                     ? (ar ? "غير متاح (لراكب واحد)" : "Unavailable (1 passenger)")
-                    : (ar ? `${offering.seatsRemaining} مقاعد متاحة (لراكب واحد) · الفحص النهائي عند الحجز` : `${offering.seatsRemaining} seats available (1 passenger) · Final check at booking`)}
+                    : (ar ? `${offering.seatsRemaining} مقاعد متاحة استرشادياً` : `${offering.seatsRemaining} indicative seats`)}
               </span>
+              {offering.seatsRemaining > 0 && offering.bookable !== false && (
+                <span className="text-[11px] opacity-80">
+                  {" "}
+                  (
+                  {ar
+                    ? "لراكب واحد · التأكيد عند إتمام الحجز"
+                    : "1 passenger · Confirmed at booking"}
+                  )
+                </span>
+              )}
             </>
           )}
         </p>
       </div>
 
-      <div>
+      <div className="shrink-0">
         {offering.seatsRemaining === 0 || offering.bookable === false ? (
-          <span className="inline-flex items-center justify-center rounded-md px-3 py-1.5 text-xs font-semibold bg-muted text-muted-foreground cursor-not-allowed">
+          <span
+            className={cn(
+              "inline-flex min-h-[44px] items-center justify-center rounded-md px-3.5 py-2 text-xs font-semibold cursor-not-allowed",
+              isCinematic
+                ? "bg-sand/15 border border-sand/20 text-sand/60"
+                : "bg-muted border border-border text-muted-foreground"
+            )}
+            aria-disabled="true"
+          >
             {offering.seatsRemaining === 0
               ? (ar ? "مكتملة" : "Sold out")
               : (ar ? "غير متاح" : "Unavailable")}
@@ -168,7 +222,7 @@ function OfferingCardRow({
           <button
             type="button"
             onClick={() => onSelect?.(offering)}
-            className={btnClass(isSelected ? "secondary" : "primary", "sm", "font-bold focus-visible:outline-2 focus-visible:outline-ring")}
+            className={btnClass(isSelected ? "secondary" : "primary", "sm", "min-h-[44px] font-bold focus-visible:outline-2 focus-visible:outline-ring")}
           >
             {isSelected
               ? selectedLabel ?? (ar ? "تم الاختيار" : "Selected")
@@ -178,7 +232,7 @@ function OfferingCardRow({
           <AppLink
             to="/book"
             search={{ offering: offering.id }}
-            className={btnClass("primary", "sm", "focus-visible:outline-2 focus-visible:outline-ring")}
+            className={btnClass("primary", "sm", "min-h-[44px] focus-visible:outline-2 focus-visible:outline-ring")}
           >
             {ar ? "احجز مجاناً" : "Book free"}
           </AppLink>
@@ -352,7 +406,12 @@ export function MvpFlightSearchConsole({ variant = "default" }: MvpFlightSearchC
     }
   );
 
-  const feedbackClass = cn("flex flex-wrap items-center gap-3 text-sm", isCinematic && "rounded-xl bg-sand/90 p-4 text-foreground");
+  const feedbackClass = cn(
+    "flex flex-wrap items-center justify-between gap-3 text-sm rounded-xl p-4 border",
+    isCinematic
+      ? "bg-sand/95 border-clay/50 text-foreground shadow-md"
+      : "bg-clay-soft/80 border-clay/30 text-foreground"
+  );
 
   return (
     <section aria-label={ar ? "البحث عن رحلة" : "Find a flight"} className="space-y-5">
@@ -362,12 +421,15 @@ export function MvpFlightSearchConsole({ variant = "default" }: MvpFlightSearchC
         data-testid="home-flight-search-ticket"
         className={
           isCinematic
-            ? "home-cinematic-search home-frosted-glass relative overflow-hidden rounded-2xl border-0 shadow-xl"
-            : "relative overflow-hidden rounded-2xl border border-clay/40 shadow-[var(--shadow-lift)]"
+            ? "home-cinematic-search home-frosted-glass relative rounded-2xl border-0 shadow-xl"
+            : "relative rounded-2xl border border-clay/40 shadow-[var(--shadow-lift)]"
         }
       >
         <div
-          className={isCinematic ? "pointer-events-none absolute inset-0 bg-ink/20" : "pointer-events-none absolute inset-0 bg-clay"}
+          className={cn(
+            "pointer-events-none absolute inset-0 overflow-hidden rounded-2xl",
+            isCinematic ? "bg-ink/20" : "bg-clay"
+          )}
           aria-hidden="true"
         >
           <img
@@ -410,19 +472,19 @@ export function MvpFlightSearchConsole({ variant = "default" }: MvpFlightSearchC
               <div
                 className={cn(
                   "inline-flex items-center rounded-lg p-1 text-xs font-semibold",
-                  isCinematic ? "bg-ink/60 border border-sand/20 text-sand" : "bg-muted/70 text-muted-foreground"
+                  isCinematic ? "bg-ink/70 border border-sand/30 text-sand" : "bg-muted/70 text-muted-foreground"
                 )}
               >
                 <label
                   className={cn(
-                    "cursor-pointer rounded-md px-3 py-1.5 transition-all select-none focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-1",
+                    "cursor-pointer rounded-md px-3 py-1.5 transition-all select-none min-h-[44px] inline-flex items-center focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-1",
                     tripType === "one-way"
                       ? isCinematic
-                        ? "bg-sand text-ink shadow-xs"
-                        : "bg-background text-foreground shadow-xs"
+                        ? "bg-sand text-ink font-bold shadow-xs"
+                        : "bg-background text-foreground font-bold shadow-xs"
                       : isCinematic
-                        ? "hover:text-sand/90"
-                        : "hover:text-foreground"
+                        ? "text-sand/80 hover:text-sand font-medium"
+                        : "text-muted-foreground hover:text-foreground"
                   )}
                 >
                   <input
@@ -437,14 +499,14 @@ export function MvpFlightSearchConsole({ variant = "default" }: MvpFlightSearchC
                 </label>
                 <label
                   className={cn(
-                    "cursor-pointer rounded-md px-3 py-1.5 transition-all select-none focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-1",
+                    "cursor-pointer rounded-md px-3 py-1.5 transition-all select-none min-h-[44px] inline-flex items-center focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-1",
                     tripType === "round-trip"
                       ? isCinematic
-                        ? "bg-sand text-ink shadow-xs"
-                        : "bg-background text-foreground shadow-xs"
+                        ? "bg-sand text-ink font-bold shadow-xs"
+                        : "bg-background text-foreground font-bold shadow-xs"
                       : isCinematic
-                        ? "hover:text-sand/90"
-                        : "hover:text-foreground"
+                        ? "text-sand/80 hover:text-sand font-medium"
+                        : "text-muted-foreground hover:text-foreground"
                   )}
                 >
                   <input
@@ -465,8 +527,8 @@ export function MvpFlightSearchConsole({ variant = "default" }: MvpFlightSearchC
           <div
             className={
               isCinematic
-                ? "mx-2 mb-2 overflow-hidden rounded-xl border-0 bg-sand/85 text-foreground sm:mx-4 sm:mb-4 shadow-sm"
-                : "mx-2 mb-2 overflow-hidden rounded-xl border border-border/40 bg-card sm:mx-5 sm:mb-5"
+                ? "mx-2 mb-2 rounded-xl border border-sand-deep/40 bg-sand/90 text-foreground sm:mx-4 sm:mb-4 shadow-sm"
+                : "mx-2 mb-2 rounded-xl border border-border/40 bg-card sm:mx-5 sm:mb-5"
             }
             data-flight-search-console="home-inner"
           >
@@ -478,9 +540,13 @@ export function MvpFlightSearchConsole({ variant = "default" }: MvpFlightSearchC
                     ? "grid gap-0 md:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)_minmax(0,1.2fr)_auto]"
                     : "grid gap-0 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto]"
               }
+              data-trip={tripType}
             >
               {/* Origin and Destination with Direction Reverse */}
-              <div className="flex min-w-0 items-center gap-2 p-4 sm:gap-3 sm:p-5">
+              <div
+                data-zone="route"
+                className="flex min-w-0 items-center gap-2 p-3.5 sm:gap-3 sm:p-5"
+              >
                 <div className="min-w-0 flex-1">
                   <AirportCombobox
                     value={direction === "out" ? "GZA" : selectedDestinationCode}
@@ -498,7 +564,7 @@ export function MvpFlightSearchConsole({ variant = "default" }: MvpFlightSearchC
                   className="flex size-11 shrink-0 items-center justify-center rounded-full border border-border text-brand-deep hover:bg-sand-deep focus-visible:outline-2 focus-visible:outline-ring"
                   onClick={handleReverseDirection}
                 >
-                  <ArrowRightLeft className="size-4" aria-hidden="true" />
+                  <ArrowRightLeft className="size-4 shrink-0" aria-hidden="true" />
                 </button>
                 <div className="min-w-0 flex-1">
                   <AirportCombobox
@@ -515,9 +581,10 @@ export function MvpFlightSearchConsole({ variant = "default" }: MvpFlightSearchC
 
               {/* Outbound Departure Date */}
               <div
+                data-zone="outbound-date"
                 className={
                   isCinematic
-                    ? "border-t border-sand-deep/40 p-4 sm:p-5 md:border-t-0 md:border-s"
+                    ? "p-3.5 sm:p-5"
                     : "border-t border-border/60 p-4 sm:p-5 md:border-t-0 md:border-s"
                 }
               >
@@ -557,9 +624,10 @@ export function MvpFlightSearchConsole({ variant = "default" }: MvpFlightSearchC
               {/* Return Date (When Round-Trip) */}
               {isRoundTrip && (
                 <div
+                  data-zone="return-date"
                   className={
                     isCinematic
-                      ? "border-t border-sand-deep/40 p-4 sm:p-5 md:border-t-0 md:border-s"
+                      ? "p-3.5 sm:p-5"
                       : "border-t border-border/60 p-4 sm:p-5 md:border-t-0 md:border-s"
                   }
                 >
@@ -588,20 +656,21 @@ export function MvpFlightSearchConsole({ variant = "default" }: MvpFlightSearchC
 
               {/* Submit Action Button */}
               <div
+                data-zone="submit"
                 className={
                   isCinematic
-                    ? "border-t border-sand-deep/40 p-4 sm:p-5 md:col-span-2 xl:col-span-1 xl:border-t-0 xl:border-s xl:self-stretch"
-                    : "border-t border-border/60 p-4 sm:p-5 md:col-span-2 lg:col-span-1 xl:border-t-0 xl:border-s xl:self-stretch"
+                    ? "p-3.5 sm:p-5 flex items-end"
+                    : "border-t border-border/60 p-4 sm:p-5 md:col-span-2 lg:col-span-1 xl:border-t-0 xl:border-s xl:self-stretch flex items-end"
                 }
               >
                 <button
                   type="submit"
                   disabled={!selectedDestinationCode || network.isError || network.isPending}
-                  className={btnClass("primary", "md", "min-h-12 w-full xl:h-full font-bold focus-visible:outline-2 focus-visible:outline-ring")}
+                  className={btnClass("primary", "md", "min-h-12 w-full font-bold focus-visible:outline-2 focus-visible:outline-ring")}
                 >
-                  <Search className="size-4" aria-hidden="true" />
-                  {ar ? "ابحث عن رحلة" : "Find a flight"}
-                  <Arrow className="size-4" aria-hidden="true" />
+                  <Search className="size-4 shrink-0" aria-hidden="true" />
+                  <span>{ar ? "ابحث عن رحلة" : "Find a flight"}</span>
+                  <Arrow className="size-4 shrink-0" aria-hidden="true" />
                 </button>
               </div>
             </div>
@@ -621,18 +690,47 @@ export function MvpFlightSearchConsole({ variant = "default" }: MvpFlightSearchC
 
       {/* Search Results Workspace */}
       {search && (
-        <div aria-live="polite" aria-atomic="false" className="space-y-6">
+        <div
+          aria-live="polite"
+          aria-atomic="false"
+          data-testid="search-results-workspace"
+          data-surface-tone={isCinematic ? "ink" : undefined}
+          className={cn(
+            "space-y-6 transition-all duration-200",
+            isCinematic
+              ? "home-search-workspace rounded-2xl p-4 sm:p-6 md:p-7 shadow-2xl text-ink-foreground"
+              : "rounded-2xl border border-border/80 bg-sand/40 p-4 sm:p-6 md:p-7 shadow-sm text-foreground"
+          )}
+        >
           {outboundAvail.isPending ? (
-            <p
+            <div
               role="status"
-              className={cn("text-sm", isCinematic ? "rounded-xl bg-ink/80 p-4 text-sand" : "text-muted-foreground")}
+              className={cn(
+                "flex items-center gap-3 rounded-xl p-4 sm:p-5 text-sm font-medium",
+                isCinematic
+                  ? "bg-ink/80 border border-sand/20 text-sand"
+                  : "bg-sand/90 border border-border text-foreground"
+              )}
             >
-              {ar ? "جارٍ البحث في مواعيد الرحلات المتاحة…" : "Searching available flight dates…"}
-            </p>
+              <span className="size-2 rounded-full bg-primary animate-pulse shrink-0" aria-hidden="true" />
+              <span>{ar ? "جارٍ البحث في مواعيد الرحلات المتاحة…" : "Searching available flight dates…"}</span>
+            </div>
           ) : outboundAvail.isError ? (
-            <div role="alert" className={feedbackClass}>
-              <span>{ar ? "تعذر تحميل الرحلات المتوفرة." : "Available flights could not be loaded."}</span>
-              <button type="button" className={btnClass("outline", "sm")} onClick={() => void outboundAvail.refetch()}>
+            <div
+              role="alert"
+              className={cn(
+                "flex flex-wrap items-center justify-between gap-3 text-sm rounded-xl p-4 border",
+                isCinematic
+                  ? "bg-sand/95 border-clay/50 text-foreground shadow-md"
+                  : "bg-clay-soft/80 border-clay/30 text-foreground"
+              )}
+            >
+              <span className="font-semibold">{ar ? "تعذر تحميل الرحلات المتوفرة." : "Available flights could not be loaded."}</span>
+              <button
+                type="button"
+                className={btnClass("outline", "sm", isCinematic ? "border-foreground/30 text-foreground hover:bg-sand-deep" : "")}
+                onClick={() => void outboundAvail.refetch()}
+              >
                 {ar ? "إعادة المحاولة" : "Try again"}
               </button>
             </div>
@@ -640,10 +738,10 @@ export function MvpFlightSearchConsole({ variant = "default" }: MvpFlightSearchC
             <div className="space-y-6">
               {/* --- OUTBOUND SECTION --- */}
               <div className="space-y-3">
-                <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border/60 pb-2">
-                  <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                <div className={cn("flex flex-wrap items-baseline justify-between gap-2 border-b pb-2.5", isCinematic ? "border-sand/20" : "border-border/60")}>
+                  <h3 className={cn("text-base font-bold flex items-center gap-2", isCinematic ? "text-sand" : "text-foreground")}>
                     {search.tripType === "round-trip" && (
-                      <span className="flex size-5 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground font-bold">
+                      <span className="flex size-5 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground font-bold shrink-0">
                         1
                       </span>
                     )}
@@ -656,28 +754,29 @@ export function MvpFlightSearchConsole({ variant = "default" }: MvpFlightSearchC
                           ? "الرحلات المتاحة"
                           : "Available Flights"}
                     </span>
-                    <span className="text-xs font-normal text-muted-foreground">
-                      <bdi dir="ltr">({outboundOrigin} → {outboundDest})</bdi>
+                    <span className={cn("text-xs font-normal", isCinematic ? "text-sand/80" : "text-muted-foreground")}>
+                      <bdi dir="ltr" className="whitespace-nowrap">({outboundOrigin} → {outboundDest})</bdi>
                     </span>
                   </h3>
-                  <span className="text-xs text-muted-foreground font-mono">
-                    <bdi dir="ltr">{search.outboundDate}</bdi>
+                  <span className={cn("text-xs font-mono", isCinematic ? "text-sand/80" : "text-muted-foreground")}>
+                    <bdi dir="ltr" className="whitespace-nowrap">{search.outboundDate}</bdi>
                   </span>
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className={cn("text-xs leading-relaxed", isCinematic ? "text-sand/80" : "text-muted-foreground")}>
                   {ar
-                    ? "المقاعد المعروضة استرشادية لراكب واحد · الفحص النهائي وتثبيت المقاعد عند إتمام الحجز (غير مضمونة مسبقاً)."
-                    : "Seats shown for 1 passenger · Final seat lock confirmed at booking completion (snapshot, not guaranteed)."}
+                    ? "المقاعد المعروضة استرشادية لراكب واحد حتى تأكيد الحجز (لا يوجد حجز مسبق للمقاعد)."
+                    : "Indicative seats shown for 1 passenger until booking confirms assignment (no pre-booking seat hold)."}
                 </p>
 
                 {/* Case 1: Exact Outbound Flights Found */}
                 {exactOutboundResults.length > 0 ? (
                   <ul
-                    className={
+                    className={cn(
+                      "divide-y rounded-xl border shadow-xl transition-colors",
                       isCinematic
-                        ? "divide-y divide-sand/20 rounded-xl border border-sand/30 bg-ink/90 text-ink-foreground shadow-xl"
-                        : "divide-y divide-border rounded-xl border border-border bg-card"
-                    }
+                        ? "divide-sand/20 border-sand/30 bg-ink/85 text-ink-foreground"
+                        : "divide-border border-border bg-card text-card-foreground"
+                    )}
                   >
                     {exactOutboundResults.map((item) => (
                       <OfferingCardRow
@@ -698,24 +797,25 @@ export function MvpFlightSearchConsole({ variant = "default" }: MvpFlightSearchC
                   /* Case 2: No Exact Flight, Show Ranked Date Alternatives */
                   <div className="space-y-3">
                     <div
-                      className={
+                      className={cn(
+                        "rounded-xl p-4 text-sm border shadow-sm",
                         isCinematic
-                          ? "rounded-xl bg-ink/80 text-sand p-4 text-sm border border-sand/30"
-                          : "rounded-xl bg-sand/80 border border-border p-4 text-sm"
-                      }
+                          ? "bg-ink/80 border-sand/30 text-sand"
+                          : "bg-sand/80 border-border text-foreground"
+                      )}
                     >
-                      <p className="font-semibold text-foreground">
+                      <p className={cn("font-semibold", isCinematic ? "text-sand" : "text-foreground")}>
                         {ar ? (
                           <>
-                            لا توجد رحلة متاحة لهذا المسار بتاريخ <bdi dir="ltr">{search.outboundDate}</bdi>.
+                            لا توجد رحلة متاحة لهذا المسار بتاريخ <bdi dir="ltr" className="whitespace-nowrap">{search.outboundDate}</bdi>.
                           </>
                         ) : (
                           <>
-                            No flight is available for this route on <bdi dir="ltr">{search.outboundDate}</bdi>.
+                            No flight is available for this route on <bdi dir="ltr" className="whitespace-nowrap">{search.outboundDate}</bdi>.
                           </>
                         )}
                       </p>
-                      <p className="mt-1 text-xs text-muted-foreground">
+                      <p className={cn("mt-1 text-xs", isCinematic ? "text-sand/80" : "text-muted-foreground")}>
                         {outboundAlternatives.length > 0
                           ? ar
                             ? "فيما يلي أقرب مواعيد الرحلات المتاحة على نفس المسار:"
@@ -727,13 +827,21 @@ export function MvpFlightSearchConsole({ variant = "default" }: MvpFlightSearchC
                     </div>
 
                     {outboundAlternatives.map((alt) => (
-                      <div key={alt.date} className="rounded-xl border border-border bg-card p-4 space-y-3">
-                        <div className="flex items-center justify-between gap-2 border-b border-border/40 pb-2">
-                          <span className="text-xs font-semibold text-primary flex items-center gap-1.5 font-mono">
-                            <Calendar className="size-3.5" aria-hidden="true" />
-                            <bdi dir="ltr">{alt.date}</bdi>
+                      <div
+                        key={alt.date}
+                        className={cn(
+                          "rounded-xl border p-4 space-y-3",
+                          isCinematic
+                            ? "border-sand/25 bg-ink/75 text-sand"
+                            : "border-border bg-card text-foreground"
+                        )}
+                      >
+                        <div className={cn("flex items-center justify-between gap-2 border-b pb-2", isCinematic ? "border-sand/20" : "border-border/40")}>
+                          <span className={cn("text-xs font-semibold flex items-center gap-1.5 font-mono", isCinematic ? "text-sand" : "text-primary")}>
+                            <Calendar className="size-3.5 shrink-0" aria-hidden="true" />
+                            <bdi dir="ltr" className="whitespace-nowrap">{alt.date}</bdi>
                           </span>
-                          <span className="text-xs text-muted-foreground">
+                          <span className={cn("text-xs font-medium", isCinematic ? "text-sand/80" : "text-muted-foreground")}>
                             {alt.relative === "next"
                               ? ar
                                 ? `بعد ${alt.differenceDays} يوم`
@@ -744,7 +852,7 @@ export function MvpFlightSearchConsole({ variant = "default" }: MvpFlightSearchC
                           </span>
                         </div>
 
-                        <ul className="divide-y divide-border/60">
+                        <ul className={cn("divide-y", isCinematic ? "divide-sand/20" : "divide-border/60")}>
                           {alt.offerings.map((item) => (
                             <OfferingCardRow
                               key={item.id}
@@ -769,29 +877,36 @@ export function MvpFlightSearchConsole({ variant = "default" }: MvpFlightSearchC
 
               {/* --- RETURN SECTION (When Round-Trip) --- */}
               {search.tripType === "round-trip" && (
-                <div className="space-y-3 pt-4 border-t border-border">
-                  <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border/60 pb-2">
-                    <h3 className="text-base font-bold text-foreground flex items-center gap-2">
-                      <span className="flex size-5 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground font-bold">
+                <div className={cn("space-y-3 pt-5 border-t", isCinematic ? "border-sand/20" : "border-border")}>
+                  <div className={cn("flex flex-wrap items-baseline justify-between gap-2 border-b pb-2.5", isCinematic ? "border-sand/20" : "border-border/60")}>
+                    <h3 className={cn("text-base font-bold flex items-center gap-2", isCinematic ? "text-sand" : "text-foreground")}>
+                      <span className="flex size-5 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground font-bold shrink-0">
                         2
                       </span>
                       <span>{ar ? "رحلة العودة" : "Return Flight"}</span>
-                      <span className="text-xs font-normal text-muted-foreground">
-                        <bdi dir="ltr">({returnOrigin} → {returnDest})</bdi>
+                      <span className={cn("text-xs font-normal", isCinematic ? "text-sand/80" : "text-muted-foreground")}>
+                        <bdi dir="ltr" className="whitespace-nowrap">({returnOrigin} → {returnDest})</bdi>
                       </span>
                     </h3>
-                    <span className="text-xs text-muted-foreground font-mono">
-                      <bdi dir="ltr">{search.returnDate}</bdi>
+                    <span className={cn("text-xs font-mono", isCinematic ? "text-sand/80" : "text-muted-foreground")}>
+                      <bdi dir="ltr" className="whitespace-nowrap">{search.returnDate}</bdi>
                     </span>
                   </div>
-                  <p className="text-xs text-muted-foreground">
+                  <p className={cn("text-xs leading-relaxed", isCinematic ? "text-sand/80" : "text-muted-foreground")}>
                     {ar
-                      ? "المقاعد المعروضة استرشادية لراكب واحد · الفحص النهائي وتثبيت المقاعد عند إتمام الحجز (غير مضمونة مسبقاً)."
-                      : "Seats shown for 1 passenger · Final seat lock confirmed at booking completion (snapshot, not guaranteed)."}
+                      ? "المقاعد المعروضة استرشادية لراكب واحد حتى تأكيد الحجز (لا يوجد حجز مسبق للمقاعد)."
+                      : "Indicative seats shown for 1 passenger until booking confirms assignment (no pre-booking seat hold)."}
                   </p>
 
                   {!selectedOutbound ? (
-                    <div className="rounded-xl border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
+                    <div
+                      className={cn(
+                        "rounded-xl border border-dashed p-4 text-center text-sm font-medium",
+                        isCinematic
+                          ? "border-sand/30 bg-ink/50 text-sand/85"
+                          : "border-border bg-sand/30 text-muted-foreground"
+                      )}
+                    >
                       <p>
                         {ar
                           ? "يرجى اختيار رحلة الذهاب أولاً لعرض رحلات العودة المتوافقة مع موعد الوصول."
@@ -799,24 +914,46 @@ export function MvpFlightSearchConsole({ variant = "default" }: MvpFlightSearchC
                       </p>
                     </div>
                   ) : returnAvail.isPending ? (
-                    <p role="status" className="text-sm text-muted-foreground">
-                      {ar ? "جارٍ البحث في مواعيد رحلات العودة المتاحة…" : "Searching available return flight dates…"}
-                    </p>
+                    <div
+                      role="status"
+                      className={cn(
+                        "flex items-center gap-3 rounded-xl p-4 sm:p-5 text-sm font-medium",
+                        isCinematic
+                          ? "bg-ink/80 border border-sand/20 text-sand"
+                          : "bg-sand/90 border border-border text-foreground"
+                      )}
+                    >
+                      <span className="size-2 rounded-full bg-primary animate-pulse shrink-0" aria-hidden="true" />
+                      <span>{ar ? "جارٍ البحث في مواعيد رحلات العودة المتاحة…" : "Searching available return flight dates…"}</span>
+                    </div>
                   ) : returnAvail.isError ? (
-                    <div role="alert" className={feedbackClass}>
-                      <span>{ar ? "تعذر تحميل رحلات العودة." : "Return flights could not be loaded."}</span>
-                      <button type="button" className={btnClass("outline", "sm")} onClick={() => void returnAvail.refetch()}>
+                    <div
+                      role="alert"
+                      className={cn(
+                        "flex flex-wrap items-center justify-between gap-3 text-sm rounded-xl p-4 border",
+                        isCinematic
+                          ? "bg-sand/95 border-clay/50 text-foreground shadow-md"
+                          : "bg-clay-soft/80 border-clay/30 text-foreground"
+                      )}
+                    >
+                      <span className="font-semibold">{ar ? "تعذر تحميل رحلات العودة." : "Return flights could not be loaded."}</span>
+                      <button
+                        type="button"
+                        className={btnClass("outline", "sm", isCinematic ? "border-foreground/30 text-foreground hover:bg-sand-deep" : "")}
+                        onClick={() => void returnAvail.refetch()}
+                      >
                         {ar ? "إعادة المحاولة" : "Try again"}
                       </button>
                     </div>
                   ) : exactReturnResults.length > 0 ? (
                     /* Exact Return Flights Found */
                     <ul
-                      className={
+                      className={cn(
+                        "divide-y rounded-xl border shadow-xl transition-colors",
                         isCinematic
-                          ? "divide-y divide-sand/20 rounded-xl border border-sand/30 bg-ink/90 text-ink-foreground shadow-xl"
-                          : "divide-y divide-border rounded-xl border border-border bg-card"
-                      }
+                          ? "divide-sand/20 border-sand/30 bg-ink/85 text-ink-foreground"
+                          : "divide-border border-border bg-card text-card-foreground"
+                      )}
                     >
                       {exactReturnResults.map((item) => (
                         <OfferingCardRow
@@ -836,19 +973,26 @@ export function MvpFlightSearchConsole({ variant = "default" }: MvpFlightSearchC
                   ) : (
                     /* No Exact Return Flight, Show Nearest Valid Return Alternatives */
                     <div className="space-y-3">
-                      <div className="rounded-xl bg-sand/80 border border-border p-4 text-sm">
-                        <p className="font-semibold text-foreground">
+                      <div
+                        className={cn(
+                          "rounded-xl p-4 text-sm border shadow-sm",
+                          isCinematic
+                            ? "bg-ink/80 border-sand/30 text-sand"
+                            : "bg-sand/80 border-border text-foreground"
+                        )}
+                      >
+                        <p className={cn("font-semibold", isCinematic ? "text-sand" : "text-foreground")}>
                           {ar ? (
                             <>
-                              لا توجد رحلة عودة بتاريخ <bdi dir="ltr">{search.returnDate}</bdi> بعد موعد وصول رحلة الذهاب.
+                              لا توجد رحلة عودة بتاريخ <bdi dir="ltr" className="whitespace-nowrap">{search.returnDate}</bdi> بعد موعد وصول رحلة الذهاب.
                             </>
                           ) : (
                             <>
-                              No return flight on <bdi dir="ltr">{search.returnDate}</bdi> departs after your outbound arrival.
+                              No return flight on <bdi dir="ltr" className="whitespace-nowrap">{search.returnDate}</bdi> departs after your outbound arrival.
                             </>
                           )}
                         </p>
-                        <p className="mt-1 text-xs text-muted-foreground">
+                        <p className={cn("mt-1 text-xs", isCinematic ? "text-sand/80" : "text-muted-foreground")}>
                           {returnAlternatives.length > 0
                             ? ar
                               ? "فيما يلي أقرب مواعيد العودة المتاحة المتوافقة مع رحلة الذهاب:"
@@ -860,13 +1004,21 @@ export function MvpFlightSearchConsole({ variant = "default" }: MvpFlightSearchC
                       </div>
 
                       {returnAlternatives.map((alt) => (
-                        <div key={alt.date} className="rounded-xl border border-border bg-card p-4 space-y-3">
-                          <div className="flex items-center justify-between gap-2 border-b border-border/40 pb-2">
-                            <span className="text-xs font-semibold text-primary flex items-center gap-1.5 font-mono">
-                              <Calendar className="size-3.5" aria-hidden="true" />
-                              <bdi dir="ltr">{alt.date}</bdi>
+                        <div
+                          key={alt.date}
+                          className={cn(
+                            "rounded-xl border p-4 space-y-3",
+                            isCinematic
+                              ? "border-sand/25 bg-ink/75 text-sand"
+                              : "border-border bg-card text-foreground"
+                          )}
+                        >
+                          <div className={cn("flex items-center justify-between gap-2 border-b pb-2", isCinematic ? "border-sand/20" : "border-border/40")}>
+                            <span className={cn("text-xs font-semibold flex items-center gap-1.5 font-mono", isCinematic ? "text-sand" : "text-primary")}>
+                              <Calendar className="size-3.5 shrink-0" aria-hidden="true" />
+                              <bdi dir="ltr" className="whitespace-nowrap">{alt.date}</bdi>
                             </span>
-                            <span className="text-xs text-muted-foreground">
+                            <span className={cn("text-xs font-medium", isCinematic ? "text-sand/80" : "text-muted-foreground")}>
                               {alt.relative === "next"
                                 ? ar
                                   ? `بعد ${alt.differenceDays} يوم`
@@ -877,7 +1029,7 @@ export function MvpFlightSearchConsole({ variant = "default" }: MvpFlightSearchC
                             </span>
                           </div>
 
-                          <ul className="divide-y divide-border/60">
+                          <ul className={cn("divide-y", isCinematic ? "divide-sand/20" : "divide-border/60")}>
                             {alt.offerings.map((item) => (
                               <OfferingCardRow
                                 key={item.id}
@@ -901,11 +1053,18 @@ export function MvpFlightSearchConsole({ variant = "default" }: MvpFlightSearchC
 
                   {/* Complete Round-Trip Selection & Book Link */}
                   {selectedOutbound && selectedReturn && (
-                    <div className="rounded-xl border-2 border-primary bg-primary/5 p-4 sm:p-5 mt-4 space-y-4">
+                    <div
+                      className={cn(
+                        "rounded-xl border-2 border-primary p-4 sm:p-5 mt-4 space-y-4 shadow-lg",
+                        isCinematic
+                          ? "bg-sand/95 text-foreground"
+                          : "bg-primary/5 text-foreground"
+                      )}
+                    >
                       <div className="flex items-center justify-between gap-2 border-b border-primary/20 pb-2">
-                        <span className="font-bold text-foreground text-sm flex items-center gap-2">
-                          <Check className="size-4 text-primary" aria-hidden="true" />
-                          {ar ? "تم اختيار رحلتي الذهاب والعودة" : "Both Outbound & Return Flights Selected"}
+                        <span className="font-bold text-foreground text-sm sm:text-base flex items-center gap-2">
+                          <Check className="size-4 text-primary shrink-0" aria-hidden="true" />
+                          <span>{ar ? "تم اختيار رحلتي الذهاب والعودة" : "Both Outbound & Return Flights Selected"}</span>
                         </span>
                         <span className="text-xs text-muted-foreground font-semibold">
                           {ar ? "حجز مجاني" : "Free Booking"}
@@ -913,22 +1072,22 @@ export function MvpFlightSearchConsole({ variant = "default" }: MvpFlightSearchC
                       </div>
 
                       <div className="grid gap-3 sm:grid-cols-2 text-sm">
-                        <div className="rounded-lg bg-card p-3 border border-border">
+                        <div className={cn("rounded-lg p-3 border", isCinematic ? "bg-card text-card-foreground border-sand-deep/60" : "bg-card border-border")}>
                           <p className="text-xs font-semibold text-muted-foreground">{ar ? "الذهاب" : "Outbound"}</p>
                           <p className="font-bold mt-0.5">
-                            <bdi dir="ltr">{selectedOutbound.number} · {selectedOutbound.originCode} → {selectedOutbound.destinationCode}</bdi>
+                            <bdi dir="ltr" className="whitespace-nowrap">{selectedOutbound.number} · {selectedOutbound.originCode} → {selectedOutbound.destinationCode}</bdi>
                           </p>
                           <p className="text-xs text-muted-foreground mt-1">
-                            <bdi dir="ltr">{selectedOutbound.date} · {selectedOutbound.departTime} → {selectedOutbound.arriveTime}</bdi>
+                            <bdi dir="ltr" className="whitespace-nowrap">{selectedOutbound.date} · {selectedOutbound.departTime} → {selectedOutbound.arriveTime}</bdi>
                           </p>
                         </div>
-                        <div className="rounded-lg bg-card p-3 border border-border">
+                        <div className={cn("rounded-lg p-3 border", isCinematic ? "bg-card text-card-foreground border-sand-deep/60" : "bg-card border-border")}>
                           <p className="text-xs font-semibold text-muted-foreground">{ar ? "العودة" : "Return"}</p>
                           <p className="font-bold mt-0.5">
-                            <bdi dir="ltr">{selectedReturn.number} · {selectedReturn.originCode} → {selectedReturn.destinationCode}</bdi>
+                            <bdi dir="ltr" className="whitespace-nowrap">{selectedReturn.number} · {selectedReturn.originCode} → {selectedReturn.destinationCode}</bdi>
                           </p>
                           <p className="text-xs text-muted-foreground mt-1">
-                            <bdi dir="ltr">{selectedReturn.date} · {selectedReturn.departTime} → {selectedReturn.arriveTime}</bdi>
+                            <bdi dir="ltr" className="whitespace-nowrap">{selectedReturn.date} · {selectedReturn.departTime} → {selectedReturn.arriveTime}</bdi>
                           </p>
                         </div>
                       </div>
@@ -937,10 +1096,10 @@ export function MvpFlightSearchConsole({ variant = "default" }: MvpFlightSearchC
                         <AppLink
                           to="/book"
                           search={{ offering: selectedOutbound.id, returnOffering: selectedReturn.id }}
-                          className={btnClass("primary", "md", "w-full font-bold text-base shadow-md focus-visible:outline-2 focus-visible:outline-ring")}
+                          className={btnClass("primary", "md", "w-full font-bold text-base shadow-md focus-visible:outline-2 focus-visible:outline-ring min-h-[48px]")}
                         >
-                          {ar ? "متابعة حجز رحلة الذهاب والعودة مجاناً" : "Book free round-trip"}
-                          <Arrow className="size-4" aria-hidden="true" />
+                          <span>{ar ? "متابعة حجز رحلة الذهاب والعودة مجاناً" : "Book free round-trip"}</span>
+                          <Arrow className="size-4 shrink-0" aria-hidden="true" />
                         </AppLink>
                       </div>
                     </div>

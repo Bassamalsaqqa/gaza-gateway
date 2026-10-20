@@ -58,8 +58,8 @@ export const Route = createFileRoute("/{-$locale}/")({
       en: {
         title: publishedHome.seo.title.en,
         description: publishedHome.seo.description.en,
-        socialTitle: "Gaza International Airport (GZA) — Palestinian Airlines",
-        socialDescription: "Flights from Gaza with Palestinian Airlines, and the story of the airport they leave from.",
+        socialTitle: "Gaza International Airport (GZA) — Palestine Airways Limited",
+        socialDescription: "Flights from Gaza with Palestine Airways Limited, and the story of the airport they leave from.",
       },
       ar: {
         title: publishedHome.seo.title.ar,
@@ -178,7 +178,7 @@ function Home() {
           </Container>
         </section>
 
-        {/* Floating Booking Console: Center responsive form ~960-1000px max width */}
+        {/* Floating Booking Console: Fluid centered console from 320px to 4K (~1040px measured max width) */}
         <section
           id="home-booking"
           tabIndex={-1}
@@ -186,7 +186,7 @@ function Home() {
           className="scroll-mt-[var(--header-height,72px)] outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
           <Container>
-            <div className="mx-auto w-full max-w-[1000px]">
+            <div className="mx-auto w-full max-w-[1040px]">
               {identityUiRequested ? (
                 <MvpFlightSearchConsole variant="cinematic" />
               ) : (

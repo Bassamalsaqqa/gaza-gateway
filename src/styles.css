@@ -548,16 +548,67 @@
 .home-search-layout,
 .home-offering-layout { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); }
 .home-search-layout > [data-zone],
+.home-offering-layout > [data-zone],
 .home-offering-layout > div { grid-column: 1 / -1; min-width: 0; }
+
+/* Internal borders for offering console zones */
+.home-offering-layout > [data-zone] {
+  border-top: 1px solid color-mix(in srgb, var(--sand-deep) 60%, transparent);
+}
+.home-offering-layout > [data-zone="route"] {
+  border-top: none;
+}
+
 @container (min-width: 600px) {
   .home-search-layout > [data-zone="route"] { grid-column: span 7; }
   .home-search-layout > [data-zone="dates"] { grid-column: span 5; }
   .home-search-layout > [data-zone="travellers"],
   .home-search-layout > [data-zone="cabin"],
   .home-search-layout > [data-zone="search-action"] { grid-column: span 4; }
-  .home-offering-layout > div:first-child { grid-column: span 7; }
-  .home-offering-layout > div:nth-child(2) { grid-column: span 5; }
+
+  /* One-way offering console at tablet */
+  .home-offering-layout:not([data-trip="round-trip"]) > [data-zone="route"],
+  .home-offering-layout:not([data-trip="round-trip"]) > div:first-child { grid-column: span 7; }
+  .home-offering-layout:not([data-trip="round-trip"]) > [data-zone="outbound-date"],
+  .home-offering-layout:not([data-trip="round-trip"]) > div:nth-child(2) {
+    grid-column: span 5;
+    border-top: none;
+    border-inline-start: 1px solid color-mix(in srgb, var(--sand-deep) 60%, transparent);
+  }
+  .home-offering-layout:not([data-trip="round-trip"]) > [data-zone="submit"] { grid-column: span 12; }
+
+  /* Round-trip offering console at tablet: route on top, paired dates in middle, submit below */
+  .home-offering-layout[data-trip="round-trip"] > [data-zone="route"] { grid-column: span 12; }
+  .home-offering-layout[data-trip="round-trip"] > [data-zone="outbound-date"] { grid-column: span 6; }
+  .home-offering-layout[data-trip="round-trip"] > [data-zone="return-date"] {
+    grid-column: span 6;
+    border-inline-start: 1px solid color-mix(in srgb, var(--sand-deep) 60%, transparent);
+  }
+  .home-offering-layout[data-trip="round-trip"] > [data-zone="submit"] { grid-column: span 12; }
 }
+
+@container (min-width: 960px) {
+  /* Large container side-by-side layout: all controls on a single measured row */
+  .home-offering-layout > [data-zone]:not([data-zone="route"]) {
+    border-top: none;
+    border-inline-start: 1px solid color-mix(in srgb, var(--sand-deep) 60%, transparent);
+  }
+
+  /* One-way: route (5), date (4), submit (3) */
+  .home-offering-layout:not([data-trip="round-trip"]) > [data-zone="route"],
+  .home-offering-layout:not([data-trip="round-trip"]) > div:first-child { grid-column: span 5; }
+  .home-offering-layout:not([data-trip="round-trip"]) > [data-zone="outbound-date"],
+  .home-offering-layout:not([data-trip="round-trip"]) > div:nth-child(2) { grid-column: span 4; }
+  .home-offering-layout:not([data-trip="round-trip"]) > [data-zone="submit"],
+  .home-offering-layout:not([data-trip="round-trip"]) > div:nth-child(3) { grid-column: span 3; }
+
+  /* Round-trip: route (4), outbound (3), return (3), submit (2) */
+  .home-offering-layout[data-trip="round-trip"] > [data-zone="route"] { grid-column: span 4; }
+  .home-offering-layout[data-trip="round-trip"] > [data-zone="outbound-date"] { grid-column: span 3; }
+  .home-offering-layout[data-trip="round-trip"] > [data-zone="return-date"] { grid-column: span 3; }
+  .home-offering-layout[data-trip="round-trip"] > [data-zone="submit"] { grid-column: span 2; }
+}
+
 
 /* Homepage Hero Viewport Adaptation */
 .home-hero-section {
@@ -734,5 +785,46 @@
   .home-flight-board-glass [id^="flight-details-"] {
     background-color: Canvas !important;
     color: CanvasText !important;
+  }
+}
+
+/* Scoped Home Search Workspace: Guaranteed robust dark-ink tint over cinema background */
+.home-search-workspace {
+  background-color: color-mix(in srgb, var(--ink) 95%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sand) 25%, transparent);
+}
+
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .home-search-workspace {
+    background-color: color-mix(in srgb, var(--ink) 92%, transparent);
+    -webkit-backdrop-filter: blur(16px) saturate(110%);
+    backdrop-filter: blur(16px) saturate(110%);
+  }
+}
+
+@supports (-webkit-backdrop-filter: blur(1px)) and (not (backdrop-filter: blur(1px))) {
+  .home-search-workspace {
+    background-color: color-mix(in srgb, var(--ink) 92%, transparent);
+    -webkit-backdrop-filter: blur(16px) saturate(110%);
+  }
+}
+
+@media (forced-colors: active) {
+  .home-search-workspace {
+    background-color: Canvas !important;
+    color: CanvasText !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    border: 1px solid CanvasText !important;
+  }
+}
+
+@media print {
+  .home-search-workspace {
+    background-color: transparent !important;
+    color: CanvasText !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    border: none !important;
   }
 }
