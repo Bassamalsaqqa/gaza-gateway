@@ -21,11 +21,11 @@ export const Route = createFileRoute("/{-$locale}/destinations/")({
       locale: params.locale,
       path: "/destinations",
       en: {
-        title: "Destinations — Palestinian Airlines from Gaza (GZA)",
+        title: "Destinations — Palestine Airways Limited from Gaza (GZA)",
         description:
-          "Explore the Palestinian Airlines route network from Gaza International Airport: Amman, Cairo, Istanbul, Doha, Dubai, Jeddah and Riyadh.",
+          "Explore the Palestine Airways Limited route network from Gaza International Airport: Amman, Cairo, Istanbul, Doha, Dubai, Jeddah and Riyadh.",
         socialTitle: "Destinations from Gaza International Airport (GZA)",
-        socialDescription: "Seven regional gateways in the opening Palestinian Airlines network from Gaza.",
+        socialDescription: "Seven regional gateways in the opening Palestine Airways Limited network from Gaza.",
       },
       ar: {
         title: "وجهات الرحلات — الخطوط الجوية الفلسطينية من غزة (GZA)",

@@ -6,11 +6,11 @@ export const publishedHome = {
   "schemaVersion": 1,
   "seo": {
     "title": {
-      "en": "Gaza International Airport (GZA) \u2014 Flights & Palestinian Airlines",
+      "en": "Gaza International Airport (GZA) \u2014 Flights & Palestine Airways Limited",
       "ar": "رحلات من غزة، وحكاية المطار الذي تنطلق منه."
     },
     "description": {
-      "en": "Search Palestinian Airlines flights from Gaza International Airport to Amman, Cairo, Istanbul, Doha, Dubai, Jeddah and Riyadh \u2014 and explore the airport's past, present and future.",
+      "en": "Search Palestine Airways Limited flights from Gaza International Airport to Amman, Cairo, Istanbul, Doha, Dubai, Jeddah and Riyadh \u2014 and explore the airport's past, present and future.",
       "ar": "ابحث في جداول الخطوط الجوية الفلسطينية إلى سبع محطات إقليمية، وتابع المغادرة والوصول، واستكشف ماضي مطار غزة الدولي وحاضره ومستقبله."
     }
   },
@@ -20,7 +20,7 @@ export const publishedHome = {
       "ar": "رحلات من غزة، وحكاية المطار الذي تنطلق منه."
     },
     "sub": {
-      "en": "Search Palestinian Airlines schedules to seven regional gateways, view departures and arrivals, and explore the past, present and future of Gaza International Airport.",
+      "en": "Search Palestine Airways Limited schedules to seven regional gateways, view departures and arrivals, and explore the past, present and future of Gaza International Airport.",
       "ar": "ابحث في جداول الخطوط الجوية الفلسطينية إلى سبع محطات إقليمية، وتابع المغادرة والوصول، واستكشف ماضي مطار غزة الدولي وحاضره ومستقبله."
     },
     "past": {
@@ -48,7 +48,7 @@ export const publishedHome = {
       "ar": "المخطط العام وتصاميم المبنى وتجربة المسافر القادمة."
     },
     "destTitle": {
-      "en": "Where Palestinian Airlines flies",
+      "en": "Where Palestine Airways Limited flies",
       "ar": "إلى أين تطير الخطوط الفلسطينية"
     },
     "destSub": {

@@ -30,7 +30,7 @@ export const Route = createFileRoute("/{-$locale}/admin/bookings/")({
     pageHead({
       locale: params.locale,
       path: "/admin/bookings",
-      en: { title: "Bookings — Gaza International Airport administration", description: "Passenger bookings on Palestinian Airlines services from Gaza." },
+      en: { title: "Bookings — Gaza International Airport administration", description: "Passenger bookings on Palestine Airways Limited services from Gaza." },
       ar: { title: "الحجوزات — إدارة مطار غزة الدولي", description: "حجوزات المسافرين على رحلات الخطوط الجوية الفلسطينية من غزة." },
       noindex: true,
     }),

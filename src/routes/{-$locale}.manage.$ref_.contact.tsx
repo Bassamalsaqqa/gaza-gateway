@@ -14,7 +14,7 @@ export const Route = createFileRoute("/{-$locale}/manage/$ref_/contact")({
       noindex: true,
       en: {
         title: "Contact details — Gaza International Airport (GZA)",
-        description: "Update the email address and phone number held for this Palestinian Airlines booking.",
+        description: "Update the email address and phone number held for this Palestine Airways Limited booking.",
       },
       ar: {
         title: "بيانات التواصل — مطار غزة الدولي (GZA)",

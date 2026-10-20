@@ -419,7 +419,7 @@ function MockAdminSettingsPage() {
                   ? [
                       text("se-airport", t("a2.se.airportName"), "Gaza International Airport"),
                       text("se-iata", t("a2.se.iata"), "GZA", "ltr"),
-                      text("se-airline", t("a2.se.airlineName"), "Palestinian Airlines"),
+                      text("se-airline", t("a2.se.airlineName"), "Palestine Airways Limited"),
                       text("se-code", t("a2.se.airlineCode"), "PS", "ltr"),
                       text("se-tz", t("a2.se.timezone"), "Asia/Gaza (UTC+3)", "ltr"),
                       text("se-terminals", t("a2.se.terminals"), "Terminal 1", "ltr"),

@@ -29,11 +29,11 @@ enum DispatchPurpose: string
     public function defaultSubject(): string
     {
         return match ($this) {
-            self::PassengerEmailVerification => 'Palestinian Airlines: Verify your email address',
-            self::PassengerPasswordReset => 'Palestinian Airlines: Reset your account password',
+            self::PassengerEmailVerification => 'Palestine Airways Limited: Verify your email address',
+            self::PassengerPasswordReset => 'Palestine Airways Limited: Reset your account password',
             self::StaffInvitation => 'Gaza Gateway: Admin invitation',
             self::StaffPasswordReset => 'Gaza Gateway: Admin password recovery',
-            self::BookingGuestChallenge => 'Palestinian Airlines: Booking verification code',
+            self::BookingGuestChallenge => 'Palestine Airways Limited: Booking verification code',
         };
     }
 }

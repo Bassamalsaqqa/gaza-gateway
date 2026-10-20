@@ -21,7 +21,7 @@ export const en: Dict = {
   // brand / chrome
   "brand.airport": "Gaza International Airport",
   "brand.airportShort": "Gaza Intl",
-  "brand.airline": "Palestinian Airlines",
+  "brand.airline": "Palestine Airways Limited",
   "nav.home": "Home",
   "nav.book": "Book",
   "nav.flights": "Flights",
@@ -98,16 +98,16 @@ export const en: Dict = {
   "cabin.business": "Business",
 
   // home
-  "home.kicker": "GZA · Palestinian Airlines",
+  "home.kicker": "GZA · Palestine Airways Limited",
   "home.h1": "Flights from Gaza, and the story of the airport they leave from.",
   "home.sub":
-    "Search Palestinian Airlines schedules to seven regional gateways, view departures and arrivals, and explore the past, present and future of Gaza International Airport.",
+    "Search Palestine Airways Limited schedules to seven regional gateways, view departures and arrivals, and explore the past, present and future of Gaza International Airport.",
   "home.exploreAirport": "Explore the airport",
   "home.viewFlights": "Departures & arrivals",
   "home.boardTitle": "Today at GZA",
   "home.boardSub": "Today's departures and arrivals from Gaza.",
   "home.fullBoard": "Open the full board",
-  "home.destTitle": "Where Palestinian Airlines flies",
+  "home.destTitle": "Where Palestine Airways Limited flies",
   "home.destSub": "Seven gateways in the opening route network.",
   "home.allDest": "All destinations",
   "home.storyKicker": "Past · Present · Future",
@@ -128,7 +128,7 @@ export const en: Dict = {
   "home.openArchive": "Open the archive",
   "search.tripType": "Trip type",
   "home.statusNotice": "Gaza International Airport · Published schedules",
-  "home.heroNotice": "Palestinian Airlines · Scheduled services",
+  "home.heroNotice": "Palestine Airways Limited · Scheduled services",
   "home.quickStatusTitle": "Flight status",
   "home.quickStatusSub": "Departures & arrivals",
   "home.quickCheckinTitle": "Online check-in",
@@ -146,7 +146,7 @@ export const en: Dict = {
 
   // flights board
   "flights.title": "Flight information",
-  "flights.sub": "Palestinian Airlines schedules at Gaza International Airport.",
+  "flights.sub": "Palestine Airways Limited schedules at Gaza International Airport.",
   "flights.departures": "Departures",
   "flights.arrivals": "Arrivals",
   "flights.date": "Date",
@@ -180,7 +180,7 @@ export const en: Dict = {
 
   // destinations
   "dest.title": "Destinations",
-  "dest.sub": "The opening Palestinian Airlines network from Gaza.",
+  "dest.sub": "The opening Palestine Airways Limited network from Gaza.",
   "dest.from": "From",
   "dest.flightTime": "Flight time",
   "dest.frequency": "Frequency",
@@ -331,7 +331,7 @@ export const en: Dict = {
     "This preview uses isolated test fixture inventory (CAP-PROOF) for capacity rule validation. Test flights cannot create live bookings or issue persistent reference numbers.",
   "book.fixtureNoticeBtn": "Preview",
   "book.prototypeNotice":
-    "Prototype reservation — Palestinian Airlines is currently in pre-operational demonstrator phase. No payment is collected and this confirmation serves as a prototype itinerary.",
+    "Prototype reservation — Palestine Airways Limited is currently in pre-operational demonstrator phase. No payment is collected and this confirmation serves as a prototype itinerary.",
 
   // manage booking
   "manage.title": "Manage booking",
@@ -489,7 +489,7 @@ export const en: Dict = {
 
   // account / auth
   "auth.signinTitle": "Sign in",
-  "auth.secureAccess": "Local passenger access for Palestinian Airlines journeys",
+  "auth.secureAccess": "Local passenger access for Palestine Airways Limited journeys",
   "auth.signinSub": "Access your trips, boarding passes and saved travelers.",
   "auth.registerTitle": "Create your account",
   "auth.registerSub": "Save travelers, keep trips together and check in faster.",

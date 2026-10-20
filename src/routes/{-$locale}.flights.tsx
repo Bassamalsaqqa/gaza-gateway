@@ -26,9 +26,9 @@ export const Route = createFileRoute("/{-$locale}/flights")({
       en: {
         title: "Departures & Arrivals — Gaza International Airport (GZA)",
         description:
-          "Live-style Palestinian Airlines departure and arrival information at Gaza International Airport, with flight numbers, times, gates and status.",
+          "Live-style Palestine Airways Limited departure and arrival information at Gaza International Airport, with flight numbers, times, gates and status.",
         socialTitle: "Flight Status Board — Gaza International Airport (GZA)",
-        socialDescription: "Departures and arrivals information board for Palestinian Airlines flights at GZA.",
+        socialDescription: "Departures and arrivals information board for Palestine Airways Limited flights at GZA.",
       },
       ar: {
         title: "المغادرات والوصول — مطار غزة الدولي (GZA)",

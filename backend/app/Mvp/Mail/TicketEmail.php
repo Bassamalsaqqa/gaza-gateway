@@ -109,7 +109,7 @@ final class TicketEmail
             $textAlign = $ar ? 'right' : 'left';
 
             $airportBrand = $ar ? 'مطار غزة الدولي' : 'Gaza International Airport';
-            $carrierName = $ar ? 'الخطوط الجوية الفلسطينية' : 'Palestinian Airlines';
+            $carrierName = $ar ? 'الخطوط الجوية الفلسطينية' : 'Palestine Airways Limited';
             $docTitle = $ar ? 'التذكرة / مسار الرحلة' : 'Ticket / Itinerary';
             $statusLabel = $isCancelled ? ($ar ? 'ملغى' : 'Cancelled') : ($ar ? 'مؤكد' : 'Confirmed');
             $refLabel = $ar ? 'مرجع الحجز' : 'Booking reference';
@@ -329,7 +329,7 @@ final class TicketEmail
                 . '<tr style="background:#F7F2E8;border-top:1px solid #D4CCBF;">'
                 . '<td class="email-pad-body" style="padding:16px 22px;text-align:center;font-size:11px;color:#5B625D;">'
                 . '<div style="font-size:13px;font-weight:bold;color:#23372D;margin-bottom:4px;">' . ($ar ? 'رحلات تربط الناس بمستقبل أجمل' : 'PEOPLE · PLACES · A BRIGHTER TOMORROW') . '</div>'
-                . '<div>' . ($ar ? 'الخطوط الجوية الفلسطينية · مطار غزة الدولي' : 'Gaza International Airport · Palestinian Airlines') . '</div>'
+                . '<div>' . ($ar ? 'الخطوط الجوية الفلسطينية · مطار غزة الدولي' : 'Gaza International Airport · Palestine Airways Limited') . '</div>'
                 . '</td>'
                 . '</tr>'
                 . '</table>';

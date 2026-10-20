@@ -18,7 +18,7 @@ export const Route = createFileRoute("/{-$locale}/register")({
         : "Create an account — Gaza International Airport (GZA)",
       description: isAr
         ? "أنشئ حساب مسافر لحفظ رحلات الخطوط الجوية الفلسطينية والمسافرين وتفضيلات السفر في مكان واحد."
-        : "Create a passenger account to keep your Palestinian Airlines trips, travellers and travel preferences together.",
+        : "Create a passenger account to keep your Palestine Airways Limited trips, travellers and travel preferences together.",
       locale: params.locale,
       path: "/register",
       noindex: true,

@@ -16,7 +16,7 @@ export const Route = createFileRoute("/{-$locale}/reset-password")({
         : "Password management — Gaza International Airport (GZA)",
       description: isAr
         ? "معلومات عن بيانات اعتماد المسافر المحلي لرحلات الخطوط الجوية الفلسطينية."
-        : "Information on local passenger credentials for Palestinian Airlines journeys.",
+        : "Information on local passenger credentials for Palestine Airways Limited journeys.",
       locale: params.locale,
       path: "/reset-password",
       noindex: true,

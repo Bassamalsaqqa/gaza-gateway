@@ -22,7 +22,7 @@ export const Route = createFileRoute("/{-$locale}/account/trips/")({
         : "My trips — Gaza International Airport (GZA)",
       description: isAr
         ? "جميع حجوزاتك مع الخطوط الجوية الفلسطينية من غزة، القادمة والسابقة."
-        : "All your Palestinian Airlines bookings from Gaza, upcoming and past.",
+        : "All your Palestine Airways Limited bookings from Gaza, upcoming and past.",
       locale: params.locale,
       path: "/account/trips",
       noindex: true,

@@ -72,7 +72,7 @@ final class GuestAccessEmail
             $subject = 'Gaza Gateway · Email Verification Code';
             $recoveryUrl = $challengeId !== '' ? "{$appUrl}/book#challenge={$challengeId}&email={$encodedRecipient}" : "{$appUrl}/book";
 
-            $text = "Palestinian Airlines / Gaza International Airport\n"
+            $text = "Palestine Airways Limited / Gaza International Airport\n"
                 . "Email Verification Code\n\n"
                 . "Your verification code is: {$code}\n"
                 . "{$expiryEn}\n"
@@ -90,7 +90,7 @@ final class GuestAccessEmail
             $html = '<section lang="en" dir="ltr" style="margin:0 auto 24px;max-width:600px;background:#fffaf0;border:1px solid #d7cebb;border-radius:16px;overflow:hidden">'
                 . '<header style="padding:24px;background:#304936;color:#fffaf0">'
                 . '<h1 style="margin:0;font-size:20px">Gaza International Airport</h1>'
-                . '<p style="margin:4px 0 0;font-size:14px;color:#d7cebb">Palestinian Airlines · Guest Verification</p>'
+                . '<p style="margin:4px 0 0;font-size:14px;color:#d7cebb">Palestine Airways Limited · Guest Verification</p>'
                 . '</header>'
                 . '<article style="padding:24px;color:#25352b">'
                 . '<p style="font-size:16px">Use the verification code below to verify your email address:</p>'
@@ -124,7 +124,7 @@ final class GuestAccessEmail
             $encodedRef = rawurlencode($reference);
             $recoveryUrl = $challengeId !== '' ? "{$appUrl}/manage#ref={$encodedRef}&challenge={$challengeId}&email={$encodedRecipient}" : "{$appUrl}/manage";
 
-            $text = "Palestinian Airlines / Gaza International Airport\n"
+            $text = "Palestine Airways Limited / Gaza International Airport\n"
                 . "Reservation Access Code: {$reference}\n\n"
                 . "Your access code is: {$code}\n"
                 . "{$expiryEn}\n"

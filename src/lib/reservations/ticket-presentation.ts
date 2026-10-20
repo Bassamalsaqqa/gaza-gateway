@@ -380,7 +380,7 @@ export function mapPassengerTicket(
       lang === "ar"
         ? "رسم معماري لأفق المدينة"
         : "Architectural skyline artwork",
-    carrierName: lang === "ar" ? "الخطوط الجوية الفلسطينية" : "Palestinian Airlines",
+    carrierName: lang === "ar" ? "الخطوط الجوية الفلسطينية" : "Palestine Airways Limited",
     carrierCode: "PS",
     hubName: lang === "ar" ? "مطار غزة الدولي" : "Gaza International Airport",
   };

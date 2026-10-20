@@ -48,7 +48,7 @@ function AboutPage() {
           </h2>
           <p className="mt-2 text-base leading-relaxed text-muted-foreground">
             {pick(lang, {
-              en: "Palestinian Airlines is the home carrier at GZA. The opening network links Gaza with seven regional gateways, flown by Airbus A320-family aircraft.",
+              en: "Palestine Airways Limited is the home carrier at GZA. The opening network links Gaza with seven regional gateways, flown by Airbus A320-family aircraft.",
               ar: "الخطوط الجوية الفلسطينية هي الناقل الوطني في مطار غزة الدولي. تربط الشبكة الافتتاحية غزة بسبع بوابات إقليمية بطائرات من عائلة إيرباص A320.",
             })}
           </p>

@@ -80,7 +80,7 @@ export const admin2En: Record<string, string> = {
 
   /* bookings */
   "a2.bk.title": "Bookings",
-  "a2.bk.sub": "Passenger bookings on Palestinian Airlines services from Gaza.",
+  "a2.bk.sub": "Passenger bookings on Palestine Airways Limited services from Gaza.",
   "a2.bk.new": "Create booking",
   "a2.bk.searchPlaceholder": "PNR, passenger, email, phone or flight",
   "a2.bk.date": "Travel date",

@@ -174,7 +174,7 @@ function TravelPage() {
                   <p className="mt-1.5 text-xs sm:text-sm text-muted-foreground leading-relaxed">
                     {isAr
                       ? "اختر وجهتك عبر شبكة الخطوط الجوية الفلسطينية، واستلم تذكرتك المجانية، أو استرجع حجزك في أي وقت."
-                      : "Choose a destination across the Palestinian Airlines network, receive your free printable ticket, or retrieve an existing reservation anytime."}
+                      : "Choose a destination across the Palestine Airways Limited network, receive your free printable ticket, or retrieve an existing reservation anytime."}
                   </p>
                 </div>
 

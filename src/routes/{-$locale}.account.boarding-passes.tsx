@@ -22,7 +22,7 @@ export const Route = createFileRoute("/{-$locale}/account/boarding-passes")({
         : "Boarding passes — Gaza International Airport (GZA)",
       description: isAr
         ? "جميع بطاقات صعود الطائرة لرحلات الخطوط الجوية الفلسطينية المسجلة، جاهزة للعرض والطباعة."
-        : "All boarding passes for your checked-in Palestinian Airlines flights, ready to view and print.",
+        : "All boarding passes for your checked-in Palestine Airways Limited flights, ready to view and print.",
       locale: params.locale,
       path: "/account/boarding-passes",
       noindex: true,

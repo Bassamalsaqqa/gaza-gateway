@@ -120,9 +120,9 @@ export function pageHead(options: PageHeadOptions) {
 
   if (!options.noindex) {
     links.push(
-      { rel: "alternate", hreflang: "en", hrefLang: "en", href: enHref },
-      { rel: "alternate", hreflang: "ar", hrefLang: "ar", href: arHref },
-      { rel: "alternate", hreflang: "x-default", hrefLang: "x-default", href: enHref },
+      { rel: "alternate", hrefLang: "en", href: enHref },
+      { rel: "alternate", hrefLang: "ar", href: arHref },
+      { rel: "alternate", hrefLang: "x-default", href: enHref },
     );
   }
 

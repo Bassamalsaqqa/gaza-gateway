@@ -23,7 +23,7 @@ export const Route = createFileRoute("/{-$locale}/manage/")({
         : "Manage booking — Gaza International Airport (GZA)",
       description: isAr
         ? "استرجع حجز الخطوط الجوية الفلسطينية برقم الحجز واسم العائلة لعرض الرحلات والمسافرين والمقاعد والأمتعة."
-        : "Retrieve a Palestinian Airlines booking with your reference and last name to view flights, passengers, seats and baggage.",
+        : "Retrieve a Palestine Airways Limited booking with your reference and last name to view flights, passengers, seats and baggage.",
       locale: params.locale,
       path: "/manage",
       noindex: true,

@@ -32,7 +32,7 @@ export const Route = createFileRoute("/{-$locale}/booking-confirmation/$ref")({
         : "Booking Confirmed — Gaza International Airport (GZA)",
       description: isAr
         ? "تم تأكيد حجز الخطوط الجوية الفلسطينية. احتفظ برقم الحجز لإدارة الرحلة لاحقاً."
-        : "Your Palestinian Airlines booking is confirmed. Keep your booking reference to manage the trip later.",
+        : "Your Palestine Airways Limited booking is confirmed. Keep your booking reference to manage the trip later.",
       locale: params.locale,
       path: "/booking-confirmation",
       noindex: true,

@@ -178,7 +178,7 @@ export async function runDatedServiceCutoverChecks({checkStep,browser,baseUrl}) 
             await page.goto(baseUrl + prefix + path + id);
             if (path === "/flight/") {
               await page.getByRole("button", { name: dict["fd.bookThis"], exact: true }).waitFor();
-              assert.equal(await page.title(), lang === "ar" ? "تفاصيل الرحلة — الخطوط الجوية الفلسطينية" : "Flight details — Palestinian Airlines");
+              assert.equal(await page.title(), lang === "ar" ? "تفاصيل الرحلة — الخطوط الجوية الفلسطينية" : "Flight details — Palestine Airways Limited");
             }
             else await page.getByText(id, { exact: true }).waitFor();
             assert.equal((await mountedCommand(page, { kind: "current", id })).id, id);

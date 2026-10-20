@@ -119,10 +119,10 @@ export const Route = createFileRoute("/{-$locale}/book")({
     return pageHead({
       title: isAr
         ? "حجز رحلة — الخطوط الجوية الفلسطينية من غزة (GZA)"
-        : "Book a flight — Palestinian Airlines from Gaza (GZA)",
+        : "Book a flight — Palestine Airways Limited from Gaza (GZA)",
       description: isAr
         ? "احجز رحلات الخطوط الجوية الفلسطينية من مطار غزة الدولي: اختر رحلتك والدرجة، وأضف المسافرين والمقاعد والأمتعة."
-        : "Book Palestinian Airlines flights from Gaza International Airport: choose your flight and fare, add passengers, seats and baggage, then confirm.",
+        : "Book Palestine Airways Limited flights from Gaza International Airport: choose your flight and fare, add passengers, seats and baggage, then confirm.",
       locale: params.locale,
       path: "/book",
       noindex: true,

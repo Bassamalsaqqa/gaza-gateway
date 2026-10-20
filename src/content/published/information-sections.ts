@@ -6,7 +6,7 @@ export const privacySections: { heading: LocalizedText; body: LocalizedText[] }[
     heading: { en: "About this notice", ar: "عن هذا الإشعار" },
     body: [
       {
-        en: "This website is a working prototype of the Gaza International Airport and Palestinian Airlines passenger experience. It is published for design review, not as an operating booking service.",
+        en: "This website is a working prototype of the Gaza International Airport and Palestine Airways Limited passenger experience. It is published for design review, not as an operating booking service.",
         ar: "هذا الموقع نموذج عملي لتجربة المسافر في مطار غزة الدولي والخطوط الجوية الفلسطينية، منشور لمراجعة التصميم وليس كخدمة حجز فعلية.",
       },
       {
@@ -71,7 +71,7 @@ export const termsSections: { heading: LocalizedText; body: LocalizedText[] }[] 
     heading: { en: "Scope", ar: "نطاق الاستخدام" },
     body: [
       {
-        en: "These terms cover your use of this website, which is a design prototype of the Gaza International Airport and Palestinian Airlines passenger experience. Using the site means you accept that it is a demonstration.",
+        en: "These terms cover your use of this website, which is a design prototype of the Gaza International Airport and Palestine Airways Limited passenger experience. Using the site means you accept that it is a demonstration.",
         ar: "تشمل هذه الشروط استخدامك لهذا الموقع، وهو نموذج تصميمي لتجربة المسافر في مطار غزة الدولي والخطوط الجوية الفلسطينية. استخدامك للموقع يعني إقرارك بأنه عرض تجريبي.",
       },
     ],
@@ -136,7 +136,7 @@ export const aboutCopy = [{
               ar: "افتُتح مطار غزة الدولي عام 1998 بصفته المطار المدني الذي يخدم غزة. يقدم هذا الموقع تاريخه وواقعه الراهن ورؤية مستقبله.",
             },
 {
-              en: "Palestinian Airlines is the home carrier at GZA. The opening network links Gaza with seven regional gateways, flown by Airbus A320-family aircraft.",
+              en: "Palestine Airways Limited is the home carrier at GZA. The opening network links Gaza with seven regional gateways, flown by Airbus A320-family aircraft.",
               ar: "الخطوط الجوية الفلسطينية هي الناقل الوطني في مطار غزة الدولي. تربط الشبكة الافتتاحية غزة بسبع بوابات إقليمية بطائرات من عائلة إيرباص A320.",
             },
 { en: "About the material", ar: "عن المواد المعروضة" },

@@ -232,7 +232,7 @@ abstract class SharedHostingMailTestCase extends BaseTestCase
             'host' => $host,
             'port' => $port,
             'tls' => $tls,
-            'senderName' => 'Palestinian Airlines',
+            'senderName' => 'Palestine Airways Limited',
             'senderEmail' => 'noreply@gazaairport.com',
             'replyTo' => 'support@gazaairport.com',
             'username' => 'synthetic-user',
@@ -260,7 +260,7 @@ abstract class SharedHostingMailTestCase extends BaseTestCase
 
         $payload = new OutboxPayload(
             recipient: $user['email'],
-            subject: 'Palestinian Airlines verification',
+            subject: 'Palestine Airways Limited verification',
             body: 'Verify token ' . $rawToken,
             purpose: $purpose->value,
             tokenOrCode: $rawToken,

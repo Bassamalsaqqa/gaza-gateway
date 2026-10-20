@@ -81,10 +81,10 @@ export function getWebSiteSchema(lang: "en" | "ar" = "en") {
     url: SITE_ORIGIN,
     name: isAr
       ? "مطار غزة الدولي والخطوط الجوية الفلسطينية"
-      : "Gaza International Airport & Palestinian Airlines",
+      : "Gaza International Airport & Palestine Airways Limited",
     description: isAr
       ? "الأرشيف التوثيقي والسرد التاريخي ورؤية المستقبل لمطار غزة الدولي والخطوط الجوية الفلسطينية."
-      : "Documentary archive, historical record and future vision of Gaza International Airport and Palestinian Airlines.",
+      : "Gaza International Airport: documentary archive, historical record and future vision, with the Palestine Airways Limited passenger experience.",
     inLanguage: ["en", "ar"],
   };
 }

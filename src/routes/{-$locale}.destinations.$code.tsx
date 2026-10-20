@@ -45,7 +45,7 @@ export const Route = createFileRoute("/{-$locale}/destinations/$code")({
     const enTitle =
       editorial?.seo.title.en ??
       (destination
-        ? `${cityEn} (${code}) from Gaza — Palestinian Airlines`
+        ? `${cityEn} (${code}) from Gaza — Palestine Airways Limited`
         : "Destination not in network — GZA");
     const arTitle =
       editorial?.seo.title.ar ??
@@ -56,8 +56,8 @@ export const Route = createFileRoute("/{-$locale}/destinations/$code")({
     const enDesc =
       editorial?.seo.description.en ??
       (destination
-        ? `Palestinian Airlines flights from Gaza International Airport to ${cityEn}. Route schedule, duration, and information.`
-        : "This destination is not part of the opening Palestinian Airlines network from Gaza.");
+        ? `Palestine Airways Limited flights from Gaza International Airport to ${cityEn}. Route schedule, duration, and information.`
+        : "This destination is not part of the opening Palestine Airways Limited network from Gaza.");
     const arDesc =
       editorial?.seo.description.ar ??
       (destination
@@ -249,7 +249,7 @@ function DestinationPage() {
                     id: "general-schedule",
                     visible: true,
                     text: {
-                      en: "Destination route in the Palestinian Airlines network vision.",
+                      en: "Destination route in the Palestine Airways Limited network vision.",
                       ar: "مسار وجهة ضمن رؤية شبكة الخطوط الجوية الفلسطينية.",
                     },
                   },

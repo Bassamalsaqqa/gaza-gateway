@@ -113,16 +113,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Gaza International Airport (GZA) — Palestinian Airlines" },
+      { title: "Gaza International Airport (GZA) — Palestine Airways Limited" },
       {
         name: "description",
         content:
-          "Flights from Gaza International Airport with Palestinian Airlines, plus the airport's past, present and future.",
+          "Flights from Gaza International Airport with Palestine Airways Limited, plus the airport's past, present and future.",
       },
       { property: "og:title", content: "Gaza International Airport (GZA)" },
       {
         property: "og:description",
-        content: "Book Palestinian Airlines flights from Gaza and explore the airport's history and future vision.",
+        content: "Book Palestine Airways Limited flights from Gaza and explore the airport's history and future vision.",
       },
       { property: "og:type", content: "website" },
       { property: "og:image", content: "/social/gaza-airport.jpg" },

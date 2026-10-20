@@ -35,7 +35,7 @@ final class GuestReservationMailTest extends TestCase
             'mvp-mail.identity_smtp_enabled' => true,
             'mvp-mail.allowed_hosts' => ['mailpit', '127.0.0.1', 'localhost'],
             'mvp-mail.sender_email' => 'noreply@gazaairport.com',
-            'mvp-mail.sender_name' => 'Palestinian Airlines',
+            'mvp-mail.sender_name' => 'Palestine Airways Limited',
         ]);
 
         $this->configureMailSettings();
@@ -98,7 +98,7 @@ final class GuestReservationMailTest extends TestCase
             'host' => '127.0.0.1',
             'port' => 1025,
             'tls' => 'none',
-            'senderName' => 'Palestinian Airlines',
+            'senderName' => 'Palestine Airways Limited',
             'senderEmail' => 'noreply@gazaairport.com',
             'replyTo' => 'support@gazaairport.com',
             'username' => 'synthetic-worker',
@@ -515,7 +515,7 @@ final class GuestReservationMailTest extends TestCase
             $payload,
             [
                 'senderEmail' => 'noreply@gazaairport.com',
-                'senderName' => 'Palestinian Airlines',
+                'senderName' => 'Palestine Airways Limited',
                 'replyTo' => 'support@gazaairport.com',
             ],
             (string) Str::uuid(),
@@ -538,7 +538,7 @@ final class GuestReservationMailTest extends TestCase
             $payload,
             [
                 'senderEmail' => 'noreply@gazaairport.com',
-                'senderName' => 'Palestinian Airlines',
+                'senderName' => 'Palestine Airways Limited',
                 'replyTo' => 'support@gazaairport.com',
             ],
             (string) Str::uuid(),

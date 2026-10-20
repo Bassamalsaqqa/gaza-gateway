@@ -334,6 +334,6 @@ it("live source quarantines raw flight generators and shares one resolver withou
   assert.match(registry, /new LocalFlightRepository\(coordinator, {\s*fleet,\s*resolver,/);
   const detail = readFileSync("src/routes/{-$locale}.flight.$flightId.tsx", "utf8");
   assert.match(detail, /useCurrentFlightQuery\(flight.id\)/);
-  assert.match(detail, /Flight details.*Palestinian Airlines/);
+  assert.match(detail, /Flight details.*Palestine Airways Limited/);
   assert.match(detail, /legacyFlightById/);
 });

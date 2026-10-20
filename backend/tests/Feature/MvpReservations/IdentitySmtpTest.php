@@ -121,7 +121,7 @@ final class IdentitySmtpTest extends TestCase
             'host' => 'mailpit',
             'port' => 1025,
             'tls' => 'none',
-            'senderName' => 'Palestinian Airlines',
+            'senderName' => 'Palestine Airways Limited',
             'senderEmail' => 'noreply@gazaairport.com',
             'replyTo' => 'support@gazaairport.com',
             'username' => 'synthetic-user',
@@ -263,7 +263,7 @@ final class IdentitySmtpTest extends TestCase
             $this->assertCount(1, $emlFiles);
             $content = file_get_contents($emlFiles[0]);
             $this->assertStringContainsString($data['user']['email'], $content);
-            $this->assertStringContainsString('Palestinian Airlines', $content);
+            $this->assertStringContainsString('Palestine Airways Limited', $content);
 
             // Second dispatch run must not re-process the accepted outbox
             $this->assertFalse($dispatcher->runOne());

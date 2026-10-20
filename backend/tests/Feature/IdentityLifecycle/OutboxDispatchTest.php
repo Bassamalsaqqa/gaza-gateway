@@ -103,7 +103,7 @@ class OutboxDispatchTest extends TestCase
         $payload = OutboxPayload::fromJson($decrypted);
         $this->assertSame($recipientEmail, $payload->getRecipient());
         $this->assertSame($proof->getRawToken(), $payload->getTokenOrCode());
-        $this->assertStringContainsString('Palestinian Airlines', $payload->getSubject());
+        $this->assertStringContainsString('Palestine Airways Limited', $payload->getSubject());
     }
 
     public function test_local_capture_keeps_outbox_queued_without_inventing_acceptance(): void

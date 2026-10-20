@@ -220,7 +220,7 @@ class OutboxService
                 }
                 $link = $origin . '/verify-email#token=' . rawurlencode($token);
                 $arabicLink = $origin . '/ar/verify-email#token=' . rawurlencode($token);
-                $body = "Palestinian Airlines — Verify your email\n\nOpen this link, then confirm your email:\n{$link}\n\nOr enter this 6-digit code: {$code}\nExpires: {$authoritativeExpiry}\nIf you did not create an account, ignore this message.\n\nالخطوط الجوية الفلسطينية — تأكيد بريدك الإلكتروني\n\nافتح الرابط ثم أكّد بريدك:\n{$arabicLink}\n\nأو أدخل رمز التحقق المكوّن من ٦ أرقام: {$code}\nينتهي في: {$authoritativeExpiry}\nإذا لم تنشئ حساباً، تجاهل هذه الرسالة.";
+                $body = "Palestine Airways Limited — Verify your email\n\nOpen this link, then confirm your email:\n{$link}\n\nOr enter this 6-digit code: {$code}\nExpires: {$authoritativeExpiry}\nIf you did not create an account, ignore this message.\n\nالخطوط الجوية الفلسطينية — تأكيد بريدك الإلكتروني\n\nافتح الرابط ثم أكّد بريدك:\n{$arabicLink}\n\nأو أدخل رمز التحقق المكوّن من ٦ أرقام: {$code}\nينتهي في: {$authoritativeExpiry}\nإذا لم تنشئ حساباً، تجاهل هذه الرسالة.";
             }
 
             $payload = new OutboxPayload(
@@ -445,7 +445,7 @@ class OutboxService
 
             $dispatchPurpose = DispatchPurpose::BookingGuestChallenge;
             $body = sprintf(
-                "Palestinian Airlines Booking Verification\n\nYour 6-digit verification code is: %s\n\nThis verification code expires at %s.\nIf you did not request this code, please disregard this message.",
+                "Palestine Airways Limited Booking Verification\n\nYour 6-digit verification code is: %s\n\nThis verification code expires at %s.\nIf you did not request this code, please disregard this message.",
                 $otpCode,
                 $expiresAt->toIso8601String()
             );
@@ -487,12 +487,12 @@ class OutboxService
     {
         return match ($purpose) {
             ProofPurpose::PassengerEmailVerification => sprintf(
-                "Dear Passenger,\n\nPlease verify your email address with Palestinian Airlines using this verification token:\n\n%s\n\nThis token expires at %s.\nIf you did not create an account, please disregard this email.",
+                "Dear Passenger,\n\nPlease verify your email address with Palestine Airways Limited using this verification token:\n\n%s\n\nThis token expires at %s.\nIf you did not create an account, please disregard this email.",
                 $rawToken,
                 $expires
             ),
             ProofPurpose::PassengerPasswordReset => sprintf(
-                "Dear Passenger,\n\nA password reset request was received for your Palestinian Airlines account.\n\nReset token: %s\n\nThis token expires at %s.\nIf you did not request this reset, please review your account security.",
+                "Dear Passenger,\n\nA password reset request was received for your Palestine Airways Limited account.\n\nReset token: %s\n\nThis token expires at %s.\nIf you did not request this reset, please review your account security.",
                 $rawToken,
                 $expires
             ),

@@ -96,7 +96,7 @@ final class TicketEmailPresentationTest extends TestCase
         // Header / Identity
         self::assertStringContainsString('Gaza International Airport', $html);
         self::assertStringContainsString('مطار غزة الدولي', $html);
-        self::assertStringContainsString('Palestinian Airlines', $html);
+        self::assertStringContainsString('Palestine Airways Limited', $html);
         self::assertStringContainsString('الخطوط الجوية الفلسطينية', $html);
 
         // Core dynamic booking fields

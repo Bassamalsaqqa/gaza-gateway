@@ -18,7 +18,7 @@ export const Route = createFileRoute("/{-$locale}/signin")({
         : "Sign in — Gaza International Airport (GZA)",
       description: isAr
         ? "سجّل الدخول لعرض رحلاتك وبطاقات صعود الطائرة والمسافرين المحفوظين وتفضيلاتك."
-        : "Sign in to view your Palestinian Airlines trips, boarding passes, saved travellers and preferences.",
+        : "Sign in to view your Palestine Airways Limited trips, boarding passes, saved travellers and preferences.",
       locale: params.locale,
       path: "/signin",
       noindex: true,

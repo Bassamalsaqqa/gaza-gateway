@@ -13,8 +13,8 @@ export function legacyDestinationPresentationByCode(code: string) {
   return {
     priceFrom: d.priceFrom, blurb: d.blurb, goodToKnow: d.goodToKnow,
     // Exact existing compiled public head metadata; that route remains unchanged in C1.
-    seoTitle: `${d.city.en} (${d.code}) from Gaza — Palestinian Airlines`,
-    seoDescription: `Palestinian Airlines flies from Gaza International Airport to ${d.city.en}. Flight time, weekly schedule, fares and booking.`,
+    seoTitle: `${d.city.en} (${d.code}) from Gaza — Palestine Airways Limited`,
+    seoDescription: `Palestine Airways Limited flies from Gaza International Airport to ${d.city.en}. Flight time, weekly schedule, fares and booking.`,
   };
 }
 

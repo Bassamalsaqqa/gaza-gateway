@@ -6,11 +6,11 @@ export const publishedDestinationsPresentation: DestinationsPresentationContent 
   schemaVersion: 1,
   seo: {
     title: {
-      en: "Destinations — Palestinian Airlines from Gaza (GZA)",
+      en: "Destinations — Palestine Airways Limited from Gaza (GZA)",
       ar: "الوجهات — الخطوط الجوية الفلسطينية من غزة (GZA)",
     },
     description: {
-      en: "Explore the Palestinian Airlines route network from Gaza International Airport: Amman, Cairo, Istanbul, Doha, Dubai, Jeddah and Riyadh.",
+      en: "Explore the Palestine Airways Limited route network from Gaza International Airport: Amman, Cairo, Istanbul, Doha, Dubai, Jeddah and Riyadh.",
       ar: "استكشف شبكة وجهات الخطوط الجوية الفلسطينية من مطار غزة الدولي: عمّان، القاهرة، إسطنبول، الدوحة، دبي، جدة والرياض.",
     },
     socialTitle: {
@@ -18,7 +18,7 @@ export const publishedDestinationsPresentation: DestinationsPresentationContent 
       ar: "الوجهات من مطار غزة الدولي",
     },
     socialDescription: {
-      en: "Seven regional gateways in the opening Palestinian Airlines network.",
+      en: "Seven regional gateways in the opening Palestine Airways Limited network.",
       ar: "سبع محطات إقليمية في شبكة الخطوط الجوية الفلسطينية الافتتاحية.",
     },
   },

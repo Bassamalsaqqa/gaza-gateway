@@ -16,7 +16,7 @@ export const Route = createFileRoute("/{-$locale}/boarding-pass/$ref/$leg/$pax")
         : "Boarding pass — Gaza International Airport (GZA)",
       description: isAr
         ? "بطاقة صعود الطائرة لرحلة الخطوط الجوية الفلسطينية: المسافر، الرحلة، المقعد، الصالة والبوابة."
-        : "Boarding pass for a checked-in Palestinian Airlines flight: passenger, flight, seat, terminal and gate.",
+        : "Boarding pass for a checked-in Palestine Airways Limited flight: passenger, flight, seat, terminal and gate.",
       locale: params.locale,
       path: "/boarding-pass",
       noindex: true,

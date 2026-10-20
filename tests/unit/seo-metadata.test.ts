@@ -60,13 +60,13 @@ describe("SEO, Metadata & Structured Data (Phase 11)", () => {
       const canonical = result.links.find((l) => l.rel === "canonical");
       assert.equal(canonical?.href, "https://www.gazaairport.com/destinations");
 
-      const hreflangEn = result.links.find((l) => l.rel === "alternate" && l.hreflang === "en");
+      const hreflangEn = result.links.find((l) => l.rel === "alternate" && l.hrefLang === "en");
       assert.equal(hreflangEn?.href, "https://www.gazaairport.com/destinations");
 
-      const hreflangAr = result.links.find((l) => l.rel === "alternate" && l.hreflang === "ar");
+      const hreflangAr = result.links.find((l) => l.rel === "alternate" && l.hrefLang === "ar");
       assert.equal(hreflangAr?.href, "https://www.gazaairport.com/ar/destinations");
 
-      const hreflangDefault = result.links.find((l) => l.rel === "alternate" && l.hreflang === "x-default");
+      const hreflangDefault = result.links.find((l) => l.rel === "alternate" && l.hrefLang === "x-default");
       assert.equal(hreflangDefault?.href, "https://www.gazaairport.com/destinations");
     });
 
@@ -192,13 +192,13 @@ describe("SEO, Metadata & Structured Data (Phase 11)", () => {
         const enOgUrl = enHead.meta.find((m) => m.property === "og:url");
         assert.equal(enOgUrl?.content, `https://www.gazaairport.com${item.path}`);
 
-        const enAltEn = enHead.links.find((l) => l.rel === "alternate" && l.hreflang === "en");
+        const enAltEn = enHead.links.find((l) => l.rel === "alternate" && l.hrefLang === "en");
         assert.equal(enAltEn?.href, `https://www.gazaairport.com${item.path}`);
 
-        const enAltAr = enHead.links.find((l) => l.rel === "alternate" && l.hreflang === "ar");
+        const enAltAr = enHead.links.find((l) => l.rel === "alternate" && l.hrefLang === "ar");
         assert.equal(enAltAr?.href, `https://www.gazaairport.com/ar${item.path}`);
 
-        const enAltDefault = enHead.links.find((l) => l.rel === "alternate" && l.hreflang === "x-default");
+        const enAltDefault = enHead.links.find((l) => l.rel === "alternate" && l.hrefLang === "x-default");
         assert.equal(enAltDefault?.href, `https://www.gazaairport.com${item.path}`);
 
         // Arabic head
@@ -215,10 +215,10 @@ describe("SEO, Metadata & Structured Data (Phase 11)", () => {
         const arOgUrl = arHead.meta.find((m) => m.property === "og:url");
         assert.equal(arOgUrl?.content, `https://www.gazaairport.com/ar${item.path}`);
 
-        const arAltEn = arHead.links.find((l) => l.rel === "alternate" && l.hreflang === "en");
+        const arAltEn = arHead.links.find((l) => l.rel === "alternate" && l.hrefLang === "en");
         assert.equal(arAltEn?.href, `https://www.gazaairport.com${item.path}`);
 
-        const arAltAr = arHead.links.find((l) => l.rel === "alternate" && l.hreflang === "ar");
+        const arAltAr = arHead.links.find((l) => l.rel === "alternate" && l.hrefLang === "ar");
         assert.equal(arAltAr?.href, `https://www.gazaairport.com/ar${item.path}`);
 
         // Zero /port contamination

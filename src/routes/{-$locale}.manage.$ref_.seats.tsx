@@ -32,7 +32,7 @@ export const Route = createFileRoute("/{-$locale}/manage/$ref_/seats")({
         : "Change seats — Gaza International Airport (GZA)",
       description: isAr
         ? "غيّر مقاعد حجز الخطوط الجوية الفلسطينية لكل رحلة في مسارك."
-        : "Change the seats on your Palestinian Airlines booking for each flight of your trip.",
+        : "Change the seats on your Palestine Airways Limited booking for each flight of your trip.",
       locale: params.locale,
       path: "/manage",
       noindex: true,

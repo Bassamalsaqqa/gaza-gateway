@@ -10,11 +10,11 @@ export const publishedDestinationsEditorial: DestinationsEditorialContent = {
     code: destination.code as DestinationEditorialEntry["code"],
     seo: {
       title: {
-        en: `${destination.city.en} (${destination.code}) from Gaza — Palestinian Airlines`,
+        en: `${destination.city.en} (${destination.code}) from Gaza — Palestine Airways Limited`,
         ar: `${destination.city.ar} (${destination.code}) من غزة — الخطوط الجوية الفلسطينية`,
       },
       description: {
-        en: `Palestinian Airlines flies from Gaza International Airport to ${destination.city.en}. Flight time, weekly schedule, fares and booking.`,
+        en: `Palestine Airways Limited flies from Gaza International Airport to ${destination.city.en}. Flight time, weekly schedule, fares and booking.`,
         ar: `الخطوط الجوية الفلسطينية من مطار غزة الدولي إلى ${destination.city.ar}. معلومات الوجهة والرحلات والحجز التجريبي.`,
       },
     },

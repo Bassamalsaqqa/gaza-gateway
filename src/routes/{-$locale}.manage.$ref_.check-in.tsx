@@ -40,7 +40,7 @@ export const Route = createFileRoute("/{-$locale}/manage/$ref_/check-in")({
         : "Check in — Gaza International Airport (GZA)",
       description: isAr
         ? "سجّل الوصول لرحلتك مع الخطوط الجوية الفلسطينية من غزة: اختر الرحلة والمسافرين وتفاصيل السفر والمقاعد."
-        : "Check in for your Palestinian Airlines flight from Gaza: choose the flight, passengers, travel details and seats.",
+        : "Check in for your Palestine Airways Limited flight from Gaza: choose the flight, passengers, travel details and seats.",
       locale: params.locale,
       path: "/check-in",
       noindex: true,

@@ -42,7 +42,7 @@ final class IdentitySmtpLinearizationTest extends SharedHostingMailTestCase
             $this->assertCount(1, $emlFiles);
             $content = file_get_contents($emlFiles[0]);
             $this->assertStringContainsString($data['user']['email'], $content);
-            $this->assertStringContainsString('Palestinian Airlines', $content);
+            $this->assertStringContainsString('Palestine Airways Limited', $content);
 
             // Second dispatch run must not re-process accepted outbox
             $this->assertFalse($dispatcher->runOne());

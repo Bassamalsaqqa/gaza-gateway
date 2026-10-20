@@ -69,7 +69,7 @@ export type Fare = {
   highlight?: boolean;
 };
 
-export const AIRLINE = { code: "PS", name: { en: "Palestinian Airlines", ar: "الخطوط الجوية الفلسطينية" } };
+export const AIRLINE = { code: "PS", name: { en: "Palestine Airways Limited", ar: "الخطوط الجوية الفلسطينية" } };
 
 export const GZA: Airport = {
   code: "GZA",

@@ -19,9 +19,9 @@ export const Route = createFileRoute("/{-$locale}/check-in")({
       path: "/check-in",
       noindex: true,
       en: {
-        title: "Online check-in — Palestinian Airlines from Gaza (GZA)",
+        title: "Online check-in — Palestine Airways Limited from Gaza (GZA)",
         description:
-          "Check in for your Palestinian Airlines flight from Gaza International Airport with your booking reference and family name.",
+          "Check in for your Palestine Airways Limited flight from Gaza International Airport with your booking reference and family name.",
       },
       ar: {
         title: "تسجيل الوصول عبر الإنترنت — الخطوط الجوية الفلسطينية من غزة",
