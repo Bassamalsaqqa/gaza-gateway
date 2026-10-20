@@ -216,15 +216,15 @@ test('builder rejects symlinks in installed-manifest path when supported', async
 test('builder constructor rejects omitted or empty profile with clear required error', () => {
   assert.throws(
     () => new ProductionUpgradeKitBuilder({ packageDir: path.join(root, 'scratch') }),
-    /--profile=installed_965_21 required/
+    /--profile=installed_697_23 required/
   );
   assert.throws(
     () => new ProductionUpgradeKitBuilder({ packageDir: path.join(root, 'scratch'), profile: '' }),
-    /--profile=installed_965_21 required/
+    /--profile=installed_697_23 required/
   );
   assert.throws(
     () => new ProductionUpgradeKitBuilder({ packageDir: path.join(root, 'scratch'), profile: '   ' }),
-    /--profile=installed_965_21 required/
+    /--profile=installed_697_23 required/
   );
 });
 
@@ -301,7 +301,7 @@ test('CLI fails before creating output when profile is omitted', () => {
   ], { encoding: 'utf8' });
 
   assert.notEqual(res.status, 0);
-  assert.match(res.stderr, /--profile=installed_965_21 required/);
+  assert.match(res.stderr, /--profile=installed_697_23 required/);
   assert.equal(fs.existsSync(outDir), false, 'outputDir must not be created when profile is omitted');
 });
 
@@ -316,7 +316,7 @@ test('CLI fails before creating output when profile is empty', () => {
   ], { encoding: 'utf8' });
 
   assert.notEqual(res.status, 0);
-  assert.match(res.stderr, /--profile=installed_965_21 required/);
+  assert.match(res.stderr, /--profile=installed_697_23 required/);
   assert.equal(fs.existsSync(outDir), false, 'outputDir must not be created when profile is empty');
 });
 
@@ -331,7 +331,7 @@ test('CLI rejects explicit legacy profile before creating output', () => {
   ], { encoding: 'utf8' });
 
   assert.notEqual(res.status, 0);
-  assert.match(res.stderr, /--profile=installed_965_21 required/);
+  assert.match(res.stderr, /--profile=installed_697_23 required/);
   assert.equal(fs.existsSync(outDir), false, 'outputDir must not be created when legacy profile is rejected');
 });
 
@@ -346,7 +346,7 @@ test('CLI rejects explicit b3_21 profile before creating output', () => {
   ], { encoding: 'utf8' });
 
   assert.notEqual(res.status, 0);
-  assert.match(res.stderr, /--profile=installed_965_21 required/);
+  assert.match(res.stderr, /--profile=installed_697_23 required/);
   assert.equal(fs.existsSync(outDir), false, 'outputDir must not be created when b3_21 profile is rejected');
 });
 

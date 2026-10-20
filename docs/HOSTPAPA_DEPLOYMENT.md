@@ -17,11 +17,37 @@ These are accepted deployment records, not a fresh private-host inspection on ev
 
 HostPapa shared cPanel is the sole production target: prebuilt React/Vite, Laravel 13/PHP 8.4+, MySQL/InnoDB and HostPapa SMTP. No production Node/Docker daemon, external backend, Actions or static-only `hostpapa-deploy` branch.
 
-## Stop condition for the next release
+## Guarded upgrade operator profile — installed_697_23
 
-The accepted [kit builder](../tools/hostpapa-release/production-upgrade/ProductionUpgradeKitBuilder.mjs) defines only `legacy_7a_19`, `b3_21` and `installed_965_21`. **None targets the installed 69743b4/23 baseline. No compatible next kit is prepared by this stabilization PR.** Do not invent a profile flag, rebind an old rendered runner, reuse an earlier ZIP or rely on a historical preflight.
+The production upgrade operator builder defines the mandatory production profile `installed_697_23` targeting installed baseline `69743b44066501e1b7a7be9e55181c5a9da13b3b` (release `rel_20261017T161436_69743b4_clean`, manifest `408b48ef4a23fc30191a8dcc556abf02d009d72fe13aa1e8f1277d7c39d5f2da`, 23 migration identities) to upgrade candidate `55dfa645e59e66c2da03744673fbb212a5077d51` (target 23 migrations). Earlier profiles (`installed_965_21`, `b3_21`, `legacy_7a_19`) are superseded and rejected on the production CLI.
 
-Source review/integration, package preparation, host preflight and final production GO are separate steps. The stabilization mission authorizes a review PR, not merging, packaging or deploying it.
+### Dedicated kit layout and commands
+
+- Kit directory: `/home/gaza5045/gaza-upgrade-package-697-55dfa64`
+- Release preparation CLI invocation:
+  ```bash
+  node scripts/prepare-hostpapa-production-upgrade.mjs \
+    --package-dir=scratch/.hostpapa-shared-release \
+    --output-dir=scratch/gaza-upgrade-package-697-55dfa64 \
+    --output-zip=scratch/gaza-upgrade-package-697-55dfa64.zip \
+    --source-sha=55dfa645e59e66c2da03744673fbb212a5077d51 \
+    --profile=installed_697_23 \
+    --installed-manifest=/path/to/immutable/baseline/release-manifest.json
+  ```
+- Private host read-only check:
+  ```bash
+  php /home/gaza5045/gaza-upgrade-package-697-55dfa64/production-upgrade-runner.php --check
+  ```
+- Private host guarded upgrade:
+  ```bash
+  php /home/gaza5045/gaza-upgrade-package-697-55dfa64/production-upgrade-runner.php --upgrade --confirm-upgrade
+  ```
+- Private host guarded rollback (schema-compatible barrier; guest schema preserved):
+  ```bash
+  php /home/gaza5045/gaza-upgrade-package-697-55dfa64/production-upgrade-runner.php --rollback --confirm-rollback
+  ```
+
+Package generation, host preflight transfer, and execution remain separate owner gates; this runbook describes operator profile instructions without claiming package generation, preflight pass, or deployment certification.
 
 ## Authorized release preparation
 
