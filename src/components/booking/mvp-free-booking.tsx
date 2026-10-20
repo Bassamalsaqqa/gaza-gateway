@@ -20,11 +20,15 @@ import {
   TripReservationAttempt,
   tripClient,
   validateTripChronology,
-  type GuestTripCommand,
   type TripCommand,
+  type GuestTripCommand,
   type TripResponse,
 } from "@/lib/reservations/trip-client";
 import type { GuestReservationCommand, ReservationCommand, ReservationDetail } from "@/lib/reservations/client";
+import { reservationCommandSchema } from "@/lib/reservations/client";
+import {
+  orchestrateGuestBooking,
+} from "@/lib/reservations/guest-orchestrator";
 import type { PassengerAccount } from "@/lib/passenger/domain";
 import { MvpOfferingBoard } from "@/components/mvp-offering-board";
 
@@ -247,7 +251,6 @@ function BookingForm({
   });
   const [guestOtpCode, setGuestOtpCode] = useState("");
   const [guestSendingCode, setGuestSendingCode] = useState(false);
-  const [guestVerifyingCode, setGuestVerifyingCode] = useState(false);
   const [guestCooldown, setGuestCooldown] = useState(0);
   const [guestResendCount, setGuestResendCount] = useState(0);
   const [guestError, setGuestError] = useState<string | null>(null);
@@ -312,7 +315,14 @@ function BookingForm({
   // Form submission status
   const [pending, setPending] = useState(false);
   const [locked, setLocked] = useState(false);
+  const [draftFrozen, setDraftFrozen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Synchronous guard and network tracking refs
+  const executingRef = useRef(false);
+  const postDispatchedRef = useRef(false);
+  const postAmbiguousRef = useRef(false);
+  const crossSessionRecoveryRequiredRef = useRef(false);
 
   // Sync account fields when account data resolves or updates (only if attempt is not locked)
   useEffect(() => {
@@ -354,14 +364,14 @@ function BookingForm({
 
   // Passenger update handler
   const updatePassenger = (index: number, patch: Partial<BookingPassenger>) => {
-    if (!locked && !pending) {
+    if (!locked && !pending && !draftFrozen) {
       setPassengers(current => current.map((p, i) => (i === index ? { ...p, ...patch } : p)));
     }
   };
 
   // Guest email modification handler
   const handleEmailChange = (newEmail: string) => {
-    if (locked || pending) return;
+    if (locked || pending || draftFrozen) return;
     const prevNorm = emailRef.current.trim().toLowerCase();
     const nextNorm = newEmail.trim().toLowerCase();
     emailRef.current = newEmail;
@@ -373,8 +383,11 @@ function BookingForm({
       setGuestChallengeId(null);
       setGuestOtpCode("");
       setGuestSendingCode(false);
-      setGuestVerifyingCode(false);
       setGuestError(null);
+      postDispatchedRef.current = false;
+      postAmbiguousRef.current = false;
+      crossSessionRecoveryRequiredRef.current = false;
+      setDraftFrozen(false);
       if (guestTimerRef.current) {
         clearInterval(guestTimerRef.current);
         guestTimerRef.current = null;
@@ -434,52 +447,10 @@ function BookingForm({
     }
   };
 
-  // Verify guest OTP code
-  const handleVerifyGuestCode = async () => {
-    if (!guestChallengeId || guestOtpCode.length !== 6 || guestVerifyingCode) return;
-    const currentGen = sendGen.current;
-    const targetEmail = challengeEmailRef.current || emailRef.current.trim().toLowerCase();
-    if (!targetEmail || !targetEmail.includes("@")) {
-      setGuestError(
-        ar ? "يرجى إدخال بريد إلكتروني صالح قبل تأكيد الرمز." : "Please enter a valid email address before confirming code.",
-      );
-      return;
-    }
-    if (emailRef.current.trim().toLowerCase() !== targetEmail) {
-      setGuestError(
-        ar
-          ? "البريد الإلكتروني لا يطابق رمز التحقق المطلوب. اطلب رمزاً جديداً."
-          : "Entered email does not match challenge email. Please request a new verification code.",
-      );
-      return;
-    }
-
-    setGuestVerifyingCode(true);
-    setGuestError(null);
-    try {
-      await guestReservationClient.verifyEmail(guestChallengeId, guestOtpCode, targetEmail);
-      if (!mountedRef.current || currentGen !== sendGen.current || emailRef.current.trim().toLowerCase() !== targetEmail) {
-        return;
-      }
-      setGuestVerifiedEmail(targetEmail);
-      setGuestChallengeId(null);
-    } catch {
-      if (!mountedRef.current || currentGen !== sendGen.current || emailRef.current.trim().toLowerCase() !== targetEmail) return;
-      setGuestError(
-        ar
-          ? "رمز التحقق غير صحيح أو منتهي الصلاحية. راجع الرمز وحاول مجدداً."
-          : "Invalid or expired verification code. Please check the code and try again.",
-      );
-    } finally {
-      if (mountedRef.current && currentGen === sendGen.current) {
-        setGuestVerifyingCode(false);
-      }
-    }
-  };
-
   // Confirm booking submission
   const confirmBooking = async () => {
-    if (pending) return;
+    if (executingRef.current || pending) return;
+    executingRef.current = true;
     setError(null);
 
     const effectiveEmail = (account ? account.email : email).trim().toLowerCase();
@@ -487,23 +458,6 @@ function BookingForm({
     const principalScope = account
       ? `account:${account.email.trim().toLowerCase()}`
       : `guest:${effectiveEmail}`;
-
-    // Verification check for guest checkout
-    if (!account) {
-      if (!effectiveEmail || !effectiveEmail.includes("@")) {
-        setError(ar ? "يرجى إدخال البريد الإلكتروني للتواصل." : "Please enter a valid contact email.");
-        return;
-      }
-      if (!guestVerifiedEmail || guestVerifiedEmail.toLowerCase() !== effectiveEmail) {
-        setError(
-          ar
-            ? "يرجى التحقق من بريدك الإلكتروني عبر الرمز المكوّن من ٦ أرقام قبل إتمام الحجز."
-            : "Please verify your email address using the 6-digit code before completing your booking.",
-        );
-        if (!guestChallengeId) void handleSendGuestCode();
-        return;
-      }
-    }
 
     // Chronology and route pair check for round-trip (fail closed)
     if (isRoundTrip) {
@@ -528,55 +482,211 @@ function BookingForm({
             ? "بيانات رحلة الذهاب والعودة غير صالحة أو غير متوافقة زمنياً وجغرافياً. يجب أن تكون المحطات متقابلة وموعد العودة بعد الوصول."
             : "Round-trip flights are invalid or temporally/geographically incompatible. Must have opposite airports and return departure strictly after outbound arrival.",
         );
+        executingRef.current = false;
         return;
       }
     }
 
     setPending(true);
-    setLocked(true);
 
     try {
-      if (isRoundTrip) {
-        // --- Round-Trip Two-Leg Submission ---
-        let command: TripCommand | GuestTripCommand;
-        try {
-          if (!account) {
-            command = tripAttempt.current.prepare(
-              principalScope,
-              {
-                contact: { email: effectiveEmail, phone: effectivePhone },
-                legs: [
-                  {
-                    serviceId: offeringId,
-                    passengers: passengers.map(p => ({
-                      id: p.id,
-                      name: p.firstName.trim(),
-                      type: p.type,
-                      seatCode: p.seatCode,
-                      dob: p.dob || null,
-                      nationality: p.nationality.trim() || null,
-                      document: p.document.trim() || null,
-                      mealId: p.mealId || null,
-                    })),
-                  },
-                  {
-                    serviceId: returnOfferingId!,
-                    passengers: passengers.map(p => ({
-                      id: p.id,
-                      name: p.firstName.trim(),
-                      type: p.type,
-                      seatCode: p.returnSeatCode,
-                      dob: p.dob || null,
-                      nationality: p.nationality.trim() || null,
-                      document: p.document.trim() || null,
-                      mealId: p.returnMealId || null,
-                    })),
-                  },
-                ],
-              },
-              true,
-            );
+      if (!account) {
+        // --- Guest Orchestration Path ---
+        if (!effectiveEmail || !effectiveEmail.includes("@")) {
+          setError(ar ? "يرجى إدخال البريد الإلكتروني للتواصل." : "Please enter a valid contact email.");
+          return;
+        }
+
+        if (postAmbiguousRef.current && !guestReservationClient.isEmailVerified(effectiveEmail)) {
+          crossSessionRecoveryRequiredRef.current = true;
+        }
+        if (crossSessionRecoveryRequiredRef.current) {
+          setError(
+            ar
+              ? "انتهت جلسة التحقق بعد إرسال الطلب وحالة الحجز غير مؤكدة. لمنع تكرار الحجز عبر جلسة جديدة، يرجى مراجعة بريدك الإلكتروني أو إدارة الحجز بالمعرف الأصلي."
+              : "Verification session expired after booking submission and outcome is uncertain. To prevent duplicate bookings across sessions, do not submit a new booking. Please check your confirmation email or Manage Booking (/manage).",
+          );
+          return;
+        }
+
+        const isAlreadyVerified = Boolean(
+          guestVerifiedEmail && guestVerifiedEmail.toLowerCase() === effectiveEmail && guestReservationClient.isEmailVerified(effectiveEmail),
+        );
+
+        if (!isAlreadyVerified && !guestChallengeId) {
+          await handleSendGuestCode();
+          setError(
+            ar
+              ? "أرسلنا رمز التحقق إلى بريدك. أدخل الرمز المكون من ٦ أرقام لإتمام الحجز."
+              : "We sent a verification code to your email. Enter the 6-digit code to complete booking.",
+          );
+          return;
+        }
+
+        // Freeze draft before verification
+        setDraftFrozen(true);
+
+        const result = await orchestrateGuestBooking({
+          guestClient: guestReservationClient,
+          tripClient,
+          oneWayAttempt: oneWayAttempt.current,
+          tripAttempt: tripAttempt.current,
+          isRoundTrip,
+          email: effectiveEmail,
+          phone: effectivePhone,
+          serviceId: offeringId,
+          returnServiceId: returnOfferingId,
+          passengers,
+          challengeId: guestChallengeId,
+          otpCode: guestOtpCode,
+          isEmailVerified: isAlreadyVerified,
+          postDispatched: postDispatchedRef.current,
+          postAmbiguous: postAmbiguousRef.current,
+          crossSessionRecoveryRequired: crossSessionRecoveryRequiredRef.current,
+        });
+
+        if (!mountedRef.current) return;
+
+        if (result.success) {
+          postDispatchedRef.current = false;
+          postAmbiguousRef.current = false;
+          crossSessionRecoveryRequiredRef.current = false;
+          setLocked(false);
+          setDraftFrozen(false);
+          setGuestVerifiedEmail(result.verifiedEmail);
+          if (result.type === "round-trip") {
+            setConfirmedTrip(result.receipt);
           } else {
+            setConfirmedOneWay(result.receipt);
+          }
+          void cache.invalidateQueries({ queryKey: ["mvp", "reservations"] });
+          return;
+        }
+
+        // Handle failure stages honestly
+        postDispatchedRef.current = result.postDispatched;
+        postAmbiguousRef.current = result.postAmbiguous;
+        crossSessionRecoveryRequiredRef.current = result.crossSessionRecoveryRequired;
+
+        if (result.verifiedEmail) {
+          setGuestVerifiedEmail(result.verifiedEmail);
+        } else if (
+          result.error === "session_expired" ||
+          result.error === "cross_session_recovery_required"
+        ) {
+          setGuestVerifiedEmail(null);
+        }
+
+        if (result.stage === "draft_validation") {
+          setDraftFrozen(false);
+          setLocked(false);
+          setError(
+            ar
+              ? "تحقق من الأسماء وتواريخ الميلاد والوثائق والمقاعد. الأعمار: بالغ ١٢+، طفل ٢–١١."
+              : "Check names, birth dates, documents, and seats. Adult: 12+, child: 2–11.",
+          );
+          return;
+        }
+
+        if (result.stage === "verifier") {
+          // Attempt is NOT locked because reservation POST was never sent
+          setLocked(false);
+          if (result.status === 429) {
+            setGuestCooldown(GUEST_RESEND_COOLDOWN_SECONDS);
+          }
+          setError(
+            result.status === 429
+              ? ar
+                ? "عدد محاولات كبير للتحقق. انتظر دقيقة قبل المحاولة مجدداً."
+                : "Too many verification attempts. Please wait a minute before trying again."
+              : result.error === "invalid_code_format"
+                ? ar
+                  ? "أدخل رمز التحقق المكوّن من ٦ أرقام للمتابعة."
+                  : "Please enter a valid 6-digit verification code."
+                : result.status === 422
+                  ? ar
+                    ? "رمز التحقق غير صحيح أو منتهي الصلاحية. راجع الرمز وحاول مجدداً."
+                    : "Invalid or expired verification code. Please check the code and try again."
+                  : result.status === 401 || result.status === 403 || result.status === 419
+                    ? ar
+                      ? "تعذر التحقق من هذه الجلسة. حاول مجدداً أو اطلب رمزاً جديداً. لم يتم إرسال طلب الحجز."
+                      : "Could not verify this session. Retry or request a new code. No booking was submitted."
+                    : ar
+                      ? "تعذر تأكيد التحقق من البريد. لم يتم إرسال طلب الحجز. حاول مجدداً بنفس الرمز."
+                      : "Could not confirm email verification. No booking was submitted. Please retry with the same code.",
+          );
+          return;
+        }
+
+        // stage === "submission"
+        if (result.error === "session_expired") {
+          setGuestChallengeId(null);
+          setGuestOtpCode("");
+          setError(ar ? "انتهت جلسة التحقق. اطلب رمزاً جديداً ثم أكمل نفس الحجز." : "Verification session expired. Request a new code to complete this same booking.");
+          return;
+        }
+        if (result.error === "rate_limited") {
+          setLocked(true);
+          setError(ar ? "طلبات كثيرة. انتظر دقيقة ثم أعد تأكيد نفس الطلب." : "Too many requests. Wait a minute, then retry this same confirmation.");
+          return;
+        }
+        if (result.error === "cross_session_recovery_required") {
+          setLocked(true);
+          setError(
+            ar
+              ? "انتهت جلسة التحقق بعد إرسال الطلب وحالة الحجز غير مؤكدة. لمنع تكرار الحجز عبر جلسة جديدة، يرجى مراجعة بريدك الإلكتروني أو إدارة الحجز بالمعرف الأصلي."
+              : "Verification session expired after booking submission and outcome is uncertain. To prevent duplicate bookings across sessions, do not submit a new booking. Please check your confirmation email or Manage Booking (/manage).",
+          );
+          return;
+        }
+
+        if (result.error === "conflict") {
+          setLocked(false);
+          setDraftFrozen(false);
+          setError(
+            ar
+              ? "تغيّر المقعد أو توفر الرحلة. تم تحديث المقاعد؛ اختر مقعداً متاحاً وحاول مجدداً."
+              : "A seat or flight availability changed. Seats were refreshed; please pick an available seat and retry.",
+          );
+          void occupancy.refetch();
+          void offering.refetch();
+          if (isRoundTrip) {
+            void returnOccupancy.refetch();
+            void returnOffering.refetch();
+          }
+          return;
+        }
+
+        if (result.error === "validation_error") {
+          setLocked(false);
+          setDraftFrozen(false);
+          setError(
+            ar
+              ? "تعذر قبول بيانات المسافر أو الوجبة أو المقعد. راجع الحقول المطلوبة."
+              : "Passenger, meal, or seat details were rejected. Please review required fields.",
+          );
+          return;
+        }
+
+        if (result.error === "ambiguous_outcome") {
+          setLocked(true);
+          setError(
+            ar
+              ? "نتيجة التأكيد غير معروفة. أعد المحاولة بنفس الطلب ولا تبدأ حجزاً آخر."
+              : "Confirmation outcome is uncertain. Retry this same confirmation request; do not submit a new booking.",
+          );
+          return;
+        }
+
+        setError(
+          ar ? "لم يتم تأكيد الحجز. حاول مجدداً." : "Booking was not confirmed. Please retry.",
+        );
+      } else {
+        // --- Authenticated Account Path (Preserved) ---
+        setLocked(true);
+        if (isRoundTrip) {
+          let command: TripCommand | GuestTripCommand;
+          try {
             command = tripAttempt.current.prepare(
               principalScope,
               {
@@ -614,54 +724,32 @@ function BookingForm({
               },
               false,
             );
-          }
-        } catch {
-          setPending(false);
-          if (tripAttempt.current.locked) {
+          } catch {
+            setPending(false);
+            if (tripAttempt.current.locked) {
+              setError(
+                ar
+                  ? "لا يمكن تغيير سياق الحساب أو البريد أثناء وجود محاولة حجز معلقة. يرجى إتمام الحجز الأصلي بنفس البيانات."
+                  : "Cannot switch account or guest context while an attempt is frozen. Please complete the original booking confirmation.",
+              );
+              return;
+            }
+            setLocked(false);
             setError(
               ar
-                ? "لا يمكن تغيير سياق الحساب أو البريد أثناء وجود محاولة حجز معلقة. يرجى إتمام الحجز الأصلي بنفس البيانات."
-                : "Cannot switch account or guest context while an attempt is frozen. Please complete the original booking confirmation.",
+                ? "تحقق من تعبئة جميع بيانات المسافرين والمقاعد لكلا الرحلتين. الأعمار: بالغ ١٢+، طفل ٢–١١."
+                : "Check passenger details, birth dates, and seat assignments for both legs. Adult: 12+, child: 2–11.",
             );
             return;
           }
-          setLocked(false);
-          setError(
-            ar
-              ? "تحقق من تعبئة جميع بيانات المسافرين والمقاعد لكلا الرحلتين. الأعمار: بالغ ١٢+، طفل ٢–١١."
-              : "Check passenger details, birth dates, and seat assignments for both legs. Adult: 12+, child: 2–11.",
-          );
-          return;
-        }
 
-        const result = await tripClient.create(command, !account);
-        if (!mountedRef.current) return;
-        setConfirmedTrip(result);
-        void cache.invalidateQueries({ queryKey: ["mvp", "reservations"] });
-      } else {
-        // --- One-Way Single-Leg Submission ---
-        let command: ReservationCommand | GuestReservationCommand;
-        try {
-          if (!account) {
-            command = oneWayAttempt.current.prepare(
-              principalScope,
-              {
-                serviceId: offeringId,
-                contact: { email: effectiveEmail, phone: effectivePhone },
-                passengers: passengers.map(p => ({
-                  id: p.id,
-                  name: p.firstName.trim(),
-                  type: p.type,
-                  seatCode: p.seatCode,
-                  dob: p.dob || null,
-                  nationality: p.nationality.trim() || null,
-                  document: p.document.trim() || null,
-                  mealId: p.mealId || null,
-                })),
-              },
-              true,
-            );
-          } else {
+          const result = await tripClient.create(command, false);
+          if (!mountedRef.current) return;
+          setConfirmedTrip(result);
+          void cache.invalidateQueries({ queryKey: ["mvp", "reservations"] });
+        } else {
+          let command: ReservationCommand | GuestReservationCommand;
+          try {
             command = oneWayAttempt.current.prepare(
               principalScope,
               {
@@ -681,33 +769,30 @@ function BookingForm({
               },
               false,
             );
-          }
-        } catch {
-          setPending(false);
-          if (oneWayAttempt.current.locked) {
+          } catch {
+            setPending(false);
+            if (oneWayAttempt.current.locked) {
+              setError(
+                ar
+                  ? "لا يمكن تغيير سياق الحساب أو البريد أثناء وجود محاولة حجز معلقة. يرجى إتمام الحجز الأصلي بنفس البيانات."
+                  : "Cannot switch account or guest context while an attempt is frozen. Please complete the original booking confirmation.",
+              );
+              return;
+            }
+            setLocked(false);
             setError(
               ar
-                ? "لا يمكن تغيير سياق الحساب أو البريد أثناء وجود محاولة حجز معلقة. يرجى إتمام الحجز الأصلي بنفس البيانات."
-                : "Cannot switch account or guest context while an attempt is frozen. Please complete the original booking confirmation.",
+                ? "تحقق من الأسماء وتواريخ الميلاد والوثائق والمقاعد. الأعمار: بالغ ١٢+، طفل ٢–١١."
+                : "Check names, birth dates, documents, and seats. Adult: 12+, child: 2–11.",
             );
             return;
           }
-          setLocked(false);
-          setError(
-            ar
-              ? "تحقق من الأسماء وتواريخ الميلاد والوثائق والمقاعد. الأعمار: بالغ ١٢+، طفل ٢–١١."
-              : "Check names, birth dates, documents, and seats. Adult: 12+, child: 2–11.",
-          );
-          return;
+
+          const result = await reservationClient.create(reservationCommandSchema.parse(command));
+          if (!mountedRef.current) return;
+          setConfirmedOneWay(result);
+          void cache.invalidateQueries({ queryKey: ["mvp", "reservations"] });
         }
-
-        const result = account
-          ? await reservationClient.create(command as ReservationCommand)
-          : await guestReservationClient.create(command as GuestReservationCommand);
-
-        if (!mountedRef.current) return;
-        setConfirmedOneWay(result);
-        void cache.invalidateQueries({ queryKey: ["mvp", "reservations"] });
       }
     } catch (failure) {
       if (!mountedRef.current) return;
@@ -716,24 +801,10 @@ function BookingForm({
         tripAttempt.current.rejected(status);
         setLocked(tripAttempt.current.locked);
       } else {
-        // Only 409 or 422 unlocks. 401, 403, 429, timeouts, and 5xx retain frozen attempt.
         if (status === 409 || status === 422) {
           oneWayAttempt.current.rejected(status);
         }
         setLocked(oneWayAttempt.current.locked);
-      }
-
-      if (status === 401 || status === 403) {
-        if (!account) {
-          setGuestVerifiedEmail(null);
-          guestReservationClient.invalidateEmailGrant(emailRef.current);
-          setGuestChallengeId(null);
-          setGuestOtpCode("");
-        }
-      }
-
-      if (status === 429) {
-        setGuestCooldown(GUEST_RESEND_COOLDOWN_SECONDS);
       }
 
       setError(
@@ -741,25 +812,17 @@ function BookingForm({
           ? ar
             ? "تغيّر المقعد أو توفر الرحلة. تم تحديث المقاعد؛ اختر مقعداً متاحاً وحاول مجدداً."
             : "A seat or flight availability changed. Seats were refreshed; please pick an available seat and retry."
-          : status === 401 || status === 403
+          : status === 422
             ? ar
-              ? "انتهت جلسة التحقق. يرجى إعادة التحقق من البريد قبل إعادة المحاولة."
-              : "Verification grant expired. Please re-verify your email before retrying."
-            : status === 429
+              ? "تعذر قبول بيانات المسافر أو الوجبة أو المقعد. راجع الحقول المطلوبة."
+              : "Passenger, meal, or seat details were rejected. Please review required fields."
+            : (isRoundTrip ? tripAttempt.current.locked : oneWayAttempt.current.locked)
               ? ar
-                ? "عدد محاولات كبير. انتظر دقيقة قبل المحاولة مجدداً."
-                : "Too many attempts. Please wait a minute before trying again."
-              : status === 422
-                ? ar
-                  ? "تعذر قبول بيانات المسافر أو الوجبة أو المقعد. راجع الحقول المطلوبة."
-                  : "Passenger, meal, or seat details were rejected. Please review required fields."
-                : (isRoundTrip ? tripAttempt.current.locked : oneWayAttempt.current.locked)
-                  ? ar
-                    ? "نتيجة التأكيد غير معروفة. أعد المحاولة بنفس الطلب ولا تبدأ حجزاً آخر."
-                    : "Confirmation outcome is uncertain. Retry this same confirmation request; do not submit a new booking."
-                  : ar
-                    ? "لم يتم تأكيد الحجز. حاول مجدداً."
-                    : "Booking was not confirmed. Please retry.",
+                ? "نتيجة التأكيد غير معروفة. أعد المحاولة بنفس الطلب ولا تبدأ حجزاً آخر."
+                : "Confirmation outcome is uncertain. Retry this same confirmation request; do not submit a new booking."
+              : ar
+                ? "لم يتم تأكيد الحجز. حاول مجدداً."
+                : "Booking was not confirmed. Please retry.",
       );
 
       if (status === 409) {
@@ -774,6 +837,7 @@ function BookingForm({
       if (mountedRef.current) {
         setPending(false);
       }
+      executingRef.current = false;
     }
   };
 
@@ -947,6 +1011,27 @@ function BookingForm({
         </div>
       )}
 
+      {/* Cross-session recovery required banner after ambiguous outcome and expired session */}
+      {crossSessionRecoveryRequiredRef.current && (
+        <div role="alert" className="space-y-3 rounded-xl border border-destructive bg-destructive/5 p-4 text-destructive">
+          <p className="font-semibold text-sm">
+            {ar
+              ? "تنبيه: انتهت جلسة التحقق بعد إرسال طلب الحجز وحالته غير مؤكدة."
+              : "Notice: Verification session expired after booking submission and outcome is uncertain."}
+          </p>
+          <p className="text-sm">
+            {ar
+              ? "لمنع تكرار الحجز عبر جلسة جديدة، تم قفل هذا الطلب. يرجى مراجعة بريدك الإلكتروني للتأكد من وصول التذكرة أو زيارة صفحة إدارة الحجز بالمعرف الأصلي."
+              : "To prevent duplicate bookings across sessions, replay under a fresh session is blocked. Please check your confirmation email or visit Manage Booking."}
+          </p>
+          <div className="flex gap-3">
+            <AppLink to="/manage" className={btnClass("primary", "sm")}>
+              {ar ? "إدارة الحجز" : "Manage booking"}
+            </AppLink>
+          </div>
+        </div>
+      )}
+
       {isLoading && (
         <p role="status" className="text-muted-foreground animate-pulse">
           {ar ? "جارٍ تحميل بيانات الرحلة والمقاعد…" : "Loading flight and seat data…"}
@@ -1022,7 +1107,22 @@ function BookingForm({
               void confirmBooking();
             }}
           >
-            <fieldset disabled={locked || pending} className="space-y-6">
+            <fieldset disabled={locked || pending || draftFrozen} className="space-y-6">
+              {draftFrozen && !locked && !crossSessionRecoveryRequiredRef.current && (
+                <div className="flex items-center justify-between rounded-lg border border-sand-deep/40 bg-sand/20 p-3">
+                  <span className="text-sm text-muted-foreground">
+                    {ar ? "تم تجميد مسودة الحجز للمطابقة مع رمز التحقق." : "Booking draft is frozen to match verification proof."}
+                  </span>
+                  <button
+                    type="button"
+                    className={btnClass("outline", "sm")}
+                    onClick={() => setDraftFrozen(false)}
+                  >
+                    {ar ? "تعديل المسودة" : "Edit draft"}
+                  </button>
+                </div>
+              )}
+
               {/* Passengers Section */}
               <div className="space-y-4">
                 <h2 className="text-xl font-semibold">{ar ? "المسافرون" : "Passengers"}</h2>
@@ -1036,6 +1136,7 @@ function BookingForm({
                       {passengers.length > 1 && (
                         <button
                           type="button"
+                          disabled={locked || pending || draftFrozen}
                           className={btnClass("ghost", "sm", "text-destructive")}
                           onClick={() => {
                             setPassengers(curr => curr.filter((_, i) => i !== index));
@@ -1312,7 +1413,7 @@ function BookingForm({
 
                 <button
                   type="button"
-                  disabled={passengers.length >= 9}
+                  disabled={locked || pending || draftFrozen || passengers.length >= 9}
                   className={btnClass("outline", "sm")}
                   onClick={() =>
                     setPassengers(curr => [...curr, emptyPassenger(nextId.current++)])
@@ -1527,7 +1628,7 @@ function BookingForm({
                               value={guestOtpCode}
                               onChange={setGuestOtpCode}
                               autoComplete="one-time-code"
-                              disabled={pending || guestVerifyingCode}
+                              disabled={pending}
                             >
                               <InputOTPGroup>
                                 <InputOTPSlot index={0} />
@@ -1541,18 +1642,22 @@ function BookingForm({
                           </div>
 
                           <button
-                            type="button"
-                            disabled={pending || guestOtpCode.length !== 6 || guestVerifyingCode}
+                            type="submit"
+                            disabled={
+                              pending ||
+                              guestOtpCode.length !== 6 ||
+                              executingRef.current ||
+                              crossSessionRecoveryRequiredRef.current
+                            }
                             className={btnClass("primary", "sm")}
-                            onClick={() => void handleVerifyGuestCode()}
                           >
-                            {guestVerifyingCode
+                            {pending
                               ? ar
-                                ? "جارٍ التحقق…"
-                                : "Verifying…"
+                                ? "جارٍ التحقق والحجز…"
+                                : "Verifying & booking…"
                               : ar
-                                ? "تأكيد الرمز"
-                                : "Verify code"}
+                                ? "التحقق وإتمام الحجز"
+                                : "Verify & complete booking"}
                           </button>
 
                           <button
@@ -1604,27 +1709,40 @@ function BookingForm({
               <button
                 type="submit"
                 className={btnClass("primary", "lg")}
-                disabled={pending || guestCooldown > 0}
+                disabled={
+                  pending ||
+                  crossSessionRecoveryRequiredRef.current
+                }
               >
                 {pending
                   ? ar
                     ? "جارٍ التأكيد…"
                     : "Confirming…"
-                  : guestCooldown > 0
-                    ? ar
-                      ? `يرجى الانتظار (${guestCooldown} ث)`
-                      : `Please wait (${guestCooldown}s)`
-                    : locked
+                  : crossSessionRecoveryRequiredRef.current
                       ? ar
-                        ? "إعادة تأكيد نفس الطلب"
-                        : "Retry same confirmation"
-                      : isRoundTrip
+                        ? "انتهت الجلسة – راجع البريد أو إدارة الحجز"
+                        : "Session expired – Check email / Manage booking"
+                      : locked
                         ? ar
-                          ? "تأكيد حجز الذهاب والعودة مجاناً"
-                          : "Confirm free round-trip booking"
-                        : ar
-                          ? "تأكيد الحجز المجاني"
-                          : "Confirm free booking"}
+                          ? "إعادة تأكيد نفس الطلب"
+                          : "Retry same confirmation"
+                        : !account &&
+                            (!guestVerifiedEmail ||
+                              guestVerifiedEmail.toLowerCase() !== email.trim().toLowerCase())
+                          ? guestChallengeId
+                            ? ar
+                              ? "التحقق وإتمام الحجز"
+                              : "Verify & complete booking"
+                            : ar
+                              ? "إرسال رمز التحقق والمتابعة"
+                              : "Send code & continue"
+                          : isRoundTrip
+                            ? ar
+                              ? "تأكيد حجز الذهاب والعودة مجاناً"
+                              : "Confirm free round-trip booking"
+                            : ar
+                              ? "تأكيد الحجز المجاني"
+                              : "Confirm free booking"}
               </button>
 
               <AppLink to="/manage" className={btnClass("outline", "md")}>

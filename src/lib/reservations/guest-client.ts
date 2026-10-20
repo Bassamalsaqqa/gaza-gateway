@@ -93,7 +93,8 @@ const GRANT_LIFETIME_MS = 30 * 60 * 1000;
  * - Session-scoped cookies and CSRF protection via passenger bootstrap.
  * - No tokens or PII stored in localStorage or URL parameters.
  * - In-memory verification grants expire after 30 minutes.
- * - Challenge lifetime: 10 minutes (600s), bounded to 5 attempts on the server.
+ * - Email challenge lifetime: 12 hours (43200s), bounded to 10 failed attempts on the server.
+ * - Access challenge lifetime: 12 hours (43200s), bounded to 10 failed attempts on the server.
  * - Generic error messages prevent booking or email enumeration.
  * - Lost grant (401/403) cleanly clears in-memory state for reverification.
  */
@@ -260,6 +261,15 @@ export class GuestReservationClient {
     });
 
     return result;
+  }
+
+  /** Record in-memory management access proof for a booking reference. */
+  recordVerifiedReference(reference: string, email: string): void {
+    ref.parse(reference);
+    this.verifiedReferences.set(reference, {
+      email: email.trim().toLowerCase(),
+      expiresAt: Date.now() + GRANT_LIFETIME_MS,
+    });
   }
 
   /** Check if a reference holds active in-memory management proof. */
