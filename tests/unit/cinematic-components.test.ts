@@ -816,7 +816,7 @@ describe("Native Video Scrub Lifecycle & Delayed Media Recovery Architecture", (
     const video = new DelayedNativeMediaHarness();
     let readyCalls = 0;
     const errorCalls: string[] = [];
-    let progress = 0;
+    const progress = 0;
 
     const controller = attachVideoScrubLifecycle(video as unknown as HTMLVideoElement, {
       videoSrc: "/media/future/cinematic/mp4-7cb9fe96/scrub-720p-g6-crf25.mp4",
@@ -1069,7 +1069,7 @@ describe("Native Video Scrub Lifecycle & Delayed Media Recovery Architecture", (
   test("stale rVFC callback from previous timestamp is rejected and does not prematurely mark decoded", () => {
     const video = new DelayedNativeMediaHarness();
     let readyCalls = 0;
-    let progress = 0.5; // target = 3.975s
+    const progress = 0.5; // target = 3.975s
 
     const controller = attachVideoScrubLifecycle(video as unknown as HTMLVideoElement, {
       videoSrc: "/media/test.mp4",
