@@ -1,37 +1,23 @@
 # Gaza Gateway
 
-> **Operative Production & Source Authority Notice — 2026-10-14:**
-> - **Installed Baseline**: The application is installed and running on the existing HostPapa shared cPanel account. Recorded installed application source is `b3afa9cf08fc746a9ff7e3e9fbee66c38244fb87` with 21 documented migration identities (independent read-only check at 2026-10-14T15:06:44Z returned health `ok`). The 21 migration baseline is documented, not freshly re-read live. Initial installation at `7a8f0fa2f25851c4f75422f86139e0bb020ea4de` (19 migrations) and early unverified H0 canary status are historical milestones superseded by this installed baseline.
-> - **Source Authority**: `main` at `fba490b8b78544b0be3217d6eeaf824af9c20bcc` is the active source authority, including merged PRs 6, 7, and 8 (new live Admin dashboard counts, customer directory requiring `admin.manage`, activity audit stream, staff management). These new Admin features are source-merged into `main` but **NOT deployed yet** to the live site.
-> - **Hosting & Cron Invariants**: The sole authorized production target is the existing HostPapa shared cPanel account: prebuilt React/Vite static frontend + Laravel 13 / PHP 8.4+ / MySQL (InnoDB) backend + HostPapa SMTP + single bounded one-minute cron dispatcher. The owner explicitly confirms direct provider support approval for the one-minute cron cadence on this account (reported 2026-10-14; email not independently inspected). The cadence policy question is resolved on owner attestation; preserve the existing single bounded dispatcher without duplicate jobs or cadence changes.
-> - **Product Scope**: Authentic commemorative / free persistent bookings stored in MySQL with confirmation tickets via HostPapa SMTP. Production has NO mock fallback. Strictly NO real payments, NO live airline operations, NO real check-in or real boarding passes, and NO GDS. Customer directory in Admin requires `admin.manage`; customer detail/edit and analytics unsupported are intentional; public contact form submission is owner-deferred.
-> - **Operative Guidance**: Follow the [operative full-stack upgrade guide](docs/HOSTPAPA_DEPLOYMENT.md). Current evidence and operative guide supersede old plans; no independent business-flow or SMTP-new-link certification is claimed from a healthy version check alone. Issues #9 (Gallery guard) and #10 (rollback race) remain open work; Issue #11 (prelookup) is assessment; do NOT mark fixed based on another worker. Do not claim a next operator or release package exists.
-> - **Historical Supersession**: Earlier phase/status, client simulation-only, and static-only deployment statements below are dated provenance superseded by this notice; historical source SHAs, review dispositions, and evidence records remain unchanged.
->
-> **Product**: Gaza International Airport (`GZA`) & Palestinian Airlines (`PS`)
-> **Production Domain**: [https://www.gazaairport.com](https://www.gazaairport.com)
-> **Current Source Status**: Source authority `main` (`fba490b8b78544b0be3217d6eeaf824af9c20bcc`) includes merged PRs 6, 7, and 8.
-> **Production / Installed Checkpoint**: Recorded installed application source `b3afa9cf08fc746a9ff7e3e9fbee66c38244fb87` (21 migration identities; health `ok` verified at 2026-10-14T15:06:44Z). New Admin features on `main` are not yet deployed.
-> **Immediate Next Step**: Review and local verification of open work (Issue #9 Gallery guard, Issue #10 rollback race; Issue #11 assessment); follow [docs/HOSTPAPA_DEPLOYMENT.md](docs/HOSTPAPA_DEPLOYMENT.md) for any future owner-authorized release. No release build, packaging, or deployment without explicit owner GO.
-> **Documentation Index**:
-> - [Master Engineering Roadmap (Phases 0–12)](roadmap.md)
-> - [System Architecture Specification](docs/ARCHITECTURE.md)
-> - [Archive Drafts, Rights & Provenance Administration](docs/ARCHIVE_ADMIN_MODEL.md)
-> - [Staff & Session Identity Model](docs/STAFF_MODEL.md)
-> - [Customer Directory Model](docs/CUSTOMER_DIRECTORY_MODEL.md)
-> - [Activity & Admin Audit Model](docs/ACTIVITY_MODEL.md)
-> - [Data Flow, State Stores & Pretend-Action Inventory](docs/DATA_FLOW.md)
-> - [Typed Editorial Content Model](docs/CONTENT_MODEL.md)
-> - [Contact Domain & Administrative Inbox Model](docs/CONTACT_MODEL.md)
-> - [Settings Model Architecture](docs/SETTINGS_MODEL.md)
-> - [Canonical Domain & Repository Architecture](docs/CANONICAL_REPOSITORIES.md)
-> - [HostPapa Deployment Architecture Guide](docs/HOSTPAPA_DEPLOYMENT.md)
-> - [Engineering Invariants & Agent Guidelines](AGENTS.md)
-> - [Routes Architecture & Conventions](src/routes/README.md)
+Bilingual Gaza International Airport and **Palestine Airways Limited** experience: persistent free commemorative bookings, dynamic tickets, guest email verification, Admin/CMS and a documentary archive. Arabic branding and historical airline names retain their approved forms. This is not real airline operation, paid ticketing or check-in.
 
+Recorded production and accepted `main`: `69743b44066501e1b7a7be9e55181c5a9da13b3b`, 23 migrations, deployed October 18. Status: `DEPLOYED_OWNER_TESTING_PENDING`. Current stabilization work is a review branch; publication does not change production.
 
----
+- [Engineering rules](AGENTS.md)
+- [HostPapa update runbook and exact installed baseline](docs/HOSTPAPA_DEPLOYMENT.md)
+- [Stabilization findings, evidence and limits](docs/stabilization/AUDIT_AND_STABILIZATION_REPORT_2026-10-19.md)
+- [Historical records](docs/archive/INDEX.md)
+- [Architecture](docs/ARCHITECTURE.md) and [product context](PRODUCT.md)
 
+HostPapa shared cPanel is the only production host: React/Vite, Laravel 13/PHP 8.4+, MySQL and SMTP. Production has no mock fallback. Preserve the current single `*/10` dispatcher; owner-reported one-minute permission is not an instruction to change it. No Actions, deployment, production mutation or destructive cleanup without the applicable owner authorization. Existing accounts, bookings, shared credentials and incident evidence must survive every update.
+
+For local work, use `npm ci` and `npm run dev`; use focused test files for the change. `npm run typecheck` and `npm run lint` are source gates. The production-config validation build is `npm run build:hostpapa` with the reviewed production environment flags. Building is distinct from preparing a ZIP or deploying it. Consult the runbook before release work: the old b3/965 kits do not target the installed 697/23 baseline.
+
+<details>
+<summary>Historical design brief and phase evidence ? superseded operating instructions</summary>
+
+The original notes below retain their paths and headings for earlier review citations. Static deployment, PostgreSQL/mock authority, payment/operations plans and old phase statuses are historical; current source, engineering rules and the runbook above control.
 
 ## Original Product Design Brief
 
@@ -1743,3 +1729,5 @@ The combined Phase 7 + 7B HostPapa release is `f68adcc60ec195f8099252b0d2d78da9a
 Editorial and archive proposals remain browser-local drafts, not public publication. HC-2/HC-3 rights, evidence, publication basis and documentary/future media separation remain unchanged. Earlier milestone sections are historical and do not override this checkpoint.
 
 Reviewed passenger source: 3697c65b0614860be293e422be4c067b84e41057. Initial staff HTTP source: 7570768514a5cecc4c591922cf9b76e3768e9290. Review-driven proof admission and timing correction: 899a4d3aa42db8384165a99266cfcd42f7f7a6d5. These are bounded local implementation checkpoints, not Phase 13B acceptance. PR #2 remains draft / CHANGES REQUESTED. No automatic Actions, merge, deployment or Phase 13C work is authorized.
+
+</details>
