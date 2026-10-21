@@ -110,10 +110,10 @@ function batch02ApprovedRows(?array $dates): array {
     }
     $schedules = [];
     foreach ([
-        ['osl-out','PS 241','out','OSL',[1,4],'08:15:00','12:25:00','Airbus A321neo','a321neo'],
-        ['osl-in','PS 242','in','OSL',[1,4],'14:00:00','20:10:00','Airbus A321neo','a321neo'],
-        ['arn-out','PS 243','out','ARN',[2,5],'08:30:00','12:20:00','Airbus A320neo','a320neo'],
-        ['arn-in','PS 244','in','ARN',[2,5],'14:00:00','19:50:00','Airbus A320neo','a320neo'],
+        ['osl-out','PS 241','out','OSL',[1,4],'08:15','12:25','Airbus A321neo','a321neo'],
+        ['osl-in','PS 242','in','OSL',[1,4],'14:00','20:10','Airbus A321neo','a321neo'],
+        ['arn-out','PS 243','out','ARN',[2,5],'08:30','12:20','Airbus A320neo','a320neo'],
+        ['arn-in','PS 244','in','ARN',[2,5],'14:00','19:50','Airbus A320neo','a320neo'],
     ] as [$suffix,$number,$direction,$destination,$days,$depart,$arrive,$aircraft,$aircraftId]) {
         $id = 'memorial-b01-' . $suffix;
         $schedules[$id] = ['id'=>$id,'number'=>$number,'direction'=>$direction,'destination'=>$destination,

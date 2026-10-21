@@ -22,7 +22,7 @@ function fixture(bool $partial=false):PDO{
  foreach(['network'=>'network','schedule'=>'schedules'] as $prefix=>$domain){$db->exec('CREATE TABLE '.$prefix.'_revision_control(domain TEXT PRIMARY KEY,revision INTEGER)');insert($db,$prefix.'_revision_control',['domain'=>$domain,'revision'=>4]);$db->exec('CREATE TABLE '.$prefix.'_revisions(domain TEXT,revision INTEGER,snapshot_json TEXT,snapshot_bytes TEXT,snapshot_hash TEXT,created_at TEXT,PRIMARY KEY(domain,revision))');}
  $seed=$approved['schedules']['memorial-b01-osl-out'];$seed['id']='memorial-b01-amm-out';$seed['destination']='AMM';$seed['from_date']='2029-11-01';$seed['until_date']='2031-11-01';
  insert($db,'schedules',$seed+['created_at'=>'2029-01-01 00:00:00.000000','updated_at'=>'2029-01-01 00:00:00.000000']);
- if($partial){$a=$approved['airports']['OSL'];$a['airport_name_en']='Owner existing Oslo';$a['block_minutes']=450;insert($db,'airports',$a+['created_at'=>'2029-01-01 00:00:00.000000','updated_at'=>'2029-01-01 00:00:00.000000']);$s=$approved['schedules']['memorial-b01-arn-in'];$s['depart_time']='15:45:00';$s['from_date']='2029-12-01';insert($db,'schedules',$s+['created_at'=>'2029-01-01 00:00:00.000000','updated_at'=>'2029-01-01 00:00:00.000000']);}
+ if($partial){$a=$approved['airports']['OSL'];$a['airport_name_en']='Owner existing Oslo';$a['block_minutes']=450;insert($db,'airports',$a+['created_at'=>'2029-01-01 00:00:00.000000','updated_at'=>'2029-01-01 00:00:00.000000']);$s=$approved['schedules']['memorial-b01-arn-in'];$s['depart_time']='15:45';$s['from_date']='2029-12-01';insert($db,'schedules',$s+['created_at'=>'2029-01-01 00:00:00.000000','updated_at'=>'2029-01-01 00:00:00.000000']);}
  return $db;
 }
 function apply(PDO $db,array $plan):void{
@@ -30,9 +30,10 @@ function apply(PDO $db,array $plan):void{
  foreach($plan['controls'] as $table=>[$domain,$old,$new]){$q=$db->prepare('UPDATE '.$table.' SET revision=? WHERE domain=?');$q->execute([$new,$domain]);}
 }
 function verify(PDO $db,array $plan):void{foreach($plan['exclude'] as $table=>[$column]){batch02PreservationQuery($db,$table,['`'.$column.'`'],$plan,true)->fetchAll();}}
+check(batch02ApprovedRows(null)['schedules']['memorial-b01-osl-out']['depart_time']==='08:15','approved time matches VARCHAR5 HH:mm migration storage');
 $db=fixture();$plan=batch02PreservationPlan($db);apply($db,$plan);verify($db,$plan);check(true,'complete approved additions and both canonical snapshots accepted');
 check($plan['expected']['schedules']['memorial-b01-osl-out']['from_date']==='2029-11-01'&&$plan['expected']['schedules']['memorial-b01-osl-out']['until_date']==='2031-11-01','baseline dates captured before migration');
-foreach([['airports','code','OSL','timezone','UTC'],['airports','code','OSL','airport_name_ar','wrong'],['airports','code','ARN','block_minutes',291],['schedules','id','memorial-b01-osl-out','depart_time','09:15:00'],['schedules','id','memorial-b01-arn-out','aircraft_id','other'],['schedules','id','memorial-b01-osl-in','active',0],['schedules','id','memorial-b01-arn-in','from_date','2029-10-01']] as [$table,$key,$id,$field,$bad]){
+foreach([['airports','code','OSL','timezone','UTC'],['airports','code','OSL','airport_name_ar','wrong'],['airports','code','ARN','block_minutes',291],['schedules','id','memorial-b01-osl-out','depart_time','09:15'],['schedules','id','memorial-b01-arn-out','aircraft_id','other'],['schedules','id','memorial-b01-osl-in','active',0],['schedules','id','memorial-b01-arn-in','from_date','2029-10-01']] as [$table,$key,$id,$field,$bad]){
  $q=$db->prepare("SELECT `$field` FROM `$table` WHERE `$key`=?");$q->execute([$id]);$old=$q->fetchColumn();$u=$db->prepare("UPDATE `$table` SET `$field`=? WHERE `$key`=?");$u->execute([$bad,$id]);rejected(fn()=>verify($db,$plan),"$table $field tampering rejected with same IDs/counts");$u->execute([$old,$id]);
 }
 foreach(['network_revisions','schedule_revisions'] as $table){
