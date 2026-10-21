@@ -27,15 +27,15 @@ const allAirports = [
 const fleet = seedFleetAircraft().map(aircraft => ({...aircraft, active: true}));
 const layouts = seedFleetLayouts();
 
-describe('Expanded 20-destination commemorative timetable curation', () => {
-  it('plans all 13 expanded destinations with deterministic IDs and unique PS numbers', () => {
+describe('Expanded 22-destination commemorative timetable curation', () => {
+  it('plans all 15 expanded destinations with deterministic IDs and unique PS numbers', () => {
     const from = firstUpcomingMonday('2026-10-13');
     const until = addDays(from, 365);
     const result = planExpandedTimetable({airports: allAirports, fleet, from, until, baseIndex: 7});
 
-    assert.equal(result.schedules.length, 26);
+    assert.equal(result.schedules.length, 30);
     const expectedExpandedCodes = [
-      'BEY', 'KWI', 'AUH', 'ATH', 'FCO', 'CDG', 'LHR', 'FRA', 'MAD', 'BOM', 'KUL', 'JFK', 'YYZ',
+      'BEY', 'KWI', 'AUH', 'ATH', 'FCO', 'CDG', 'LHR', 'FRA', 'MAD', 'BOM', 'KUL', 'JFK', 'YYZ', 'OSL', 'ARN',
     ];
 
     for (const [index, code] of expectedExpandedCodes.entries()) {
@@ -59,23 +59,23 @@ describe('Expanded 20-destination commemorative timetable curation', () => {
     }
 
     const numbers = new Set(result.schedules.map(s => s.number));
-    assert.equal(numbers.size, 26);
+    assert.equal(numbers.size, 30);
     const ids = new Set(result.schedules.map(s => s.id));
-    assert.equal(ids.size, 26);
+    assert.equal(ids.size, 30);
   });
 
-  it('covers all 20 destinations bidirectionally and audits the full commemorative network', () => {
+  it('covers all 22 destinations bidirectionally and audits the full commemorative network', () => {
     const from = '2026-10-19';
     const until = '2027-10-19';
     const plan = planFullNetworkTimetable({airports: allAirports, fleet, from, until});
 
-    assert.equal(plan.schedules.length, 40);
+    assert.equal(plan.schedules.length, 44);
     assert.equal(plan.coreSchedules.length, 14);
-    assert.equal(plan.expandedSchedules.length, 26);
+    assert.equal(plan.expandedSchedules.length, 30);
 
     // Verify all 20 schema codes are present
     const coveredDestinations = new Set(plan.schedules.map(s => s.destination));
-    assert.equal(coveredDestinations.size, 20);
+    assert.equal(coveredDestinations.size, 22);
     for (const code of NETWORK_CODES) {
       assert.ok(coveredDestinations.has(code), `Destination ${code} must be covered`);
       const outLeg = plan.schedules.find(s => s.destination === code && s.direction === 'out');
@@ -86,8 +86,8 @@ describe('Expanded 20-destination commemorative timetable curation', () => {
 
     // Verify flight numbers are unique across all 40 schedules (PS 201 to PS 240)
     const allNumbers = new Set(plan.schedules.map(s => s.number));
-    assert.equal(allNumbers.size, 40);
-    for (let i = 201; i <= 240; i++) {
+    assert.equal(allNumbers.size, 44);
+    for (let i = 201; i <= 244; i++) {
       assert.ok(allNumbers.has(`PS ${i}`), `Flight PS ${i} must exist in full network`);
     }
 
@@ -97,9 +97,9 @@ describe('Expanded 20-destination commemorative timetable curation', () => {
     assert.ok(plan.verification.legCount > 2800);
 
     // Network verification audit
-    assert.equal(plan.networkVerification.destinationCount, 20);
-    assert.equal(plan.networkVerification.scheduleCount, 40);
-    assert.equal(plan.networkVerification.bidirectionalPairCount, 20);
+    assert.equal(plan.networkVerification.destinationCount, 22);
+    assert.equal(plan.networkVerification.scheduleCount, 44);
+    assert.equal(plan.networkVerification.bidirectionalPairCount, 22);
     assert.equal(plan.networkVerification.aircraftCount, 3);
     assert.ok(plan.networkVerification.totalLegCount > 6000);
     assert.equal(
@@ -193,7 +193,7 @@ describe('Expanded 20-destination commemorative timetable curation', () => {
     const until = '2027-10-19';
     const result = planExpandedTimetable({airports: allAirports, fleet: fleetWithInactiveStandby, from, until, baseIndex: 7});
 
-    assert.equal(result.schedules.length, 26);
+    assert.equal(result.schedules.length, 30);
     for (const schedule of result.schedules) {
       assert.notEqual(schedule.aircraftId, 'b737800', `Schedule ${schedule.id} must not be assigned inactive b737800`);
       const assignedPlane = fleetWithInactiveStandby.find(a => a.id === schedule.aircraftId);

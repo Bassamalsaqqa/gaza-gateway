@@ -148,6 +148,20 @@ import toronto1200 from "@/assets/media/destinations/toronto-1200.webp";
 import toronto1600 from "@/assets/media/destinations/toronto-1600.webp";
 import toronto1920 from "@/assets/media/destinations/toronto-1920.webp";
 
+// Oslo (OSL)
+import oslo480 from "@/assets/media/destinations/oslo-480.webp";
+import oslo800 from "@/assets/media/destinations/oslo-800.webp";
+import oslo1200 from "@/assets/media/destinations/oslo-1200.webp";
+import oslo1600 from "@/assets/media/destinations/oslo-1600.webp";
+import oslo1920 from "@/assets/media/destinations/oslo-1920.webp";
+
+// Stockholm (ARN)
+import stockholm480 from "@/assets/media/destinations/stockholm-480.webp";
+import stockholm800 from "@/assets/media/destinations/stockholm-800.webp";
+import stockholm1200 from "@/assets/media/destinations/stockholm-1200.webp";
+import stockholm1600 from "@/assets/media/destinations/stockholm-1600.webp";
+import stockholm1920 from "@/assets/media/destinations/stockholm-1920.webp";
+
 import {
   DESTINATION_PHOTO_METADATA,
   isDestinationCode,
@@ -181,6 +195,8 @@ const newYorkSources = [newYork480, newYork800, newYork1200, newYork1600, newYor
 const parisSources = [paris480, paris800, paris1200, paris1600, paris1920];
 const romeSources = [rome480, rome800, rome1200, rome1600, rome1920];
 const torontoSources = [toronto480, toronto800, toronto1200, toronto1600, toronto1920];
+const osloSources = [oslo480, oslo800, oslo1200, oslo1600, oslo1920];
+const stockholmSources = [stockholm480, stockholm800, stockholm1200, stockholm1600, stockholm1920];
 
 function attachSources(
   meta: (typeof DESTINATION_PHOTO_METADATA)[DestinationPhotoId],
@@ -216,6 +232,8 @@ export const DESTINATION_PHOTOS: Record<DestinationPhotoId, DestinationPhoto> = 
   "city-paris": attachSources(DESTINATION_PHOTO_METADATA["city-paris"], parisSources),
   "city-rome": attachSources(DESTINATION_PHOTO_METADATA["city-rome"], romeSources),
   "city-toronto": attachSources(DESTINATION_PHOTO_METADATA["city-toronto"], torontoSources),
+  "city-oslo": attachSources(DESTINATION_PHOTO_METADATA["city-oslo"], osloSources),
+  "city-stockholm": attachSources(DESTINATION_PHOTO_METADATA["city-stockholm"], stockholmSources),
 };
 
 export const DESTINATION_PHOTO_BY_CODE: Partial<Record<DestinationCode, DestinationPhoto>> = {
@@ -239,6 +257,8 @@ export const DESTINATION_PHOTO_BY_CODE: Partial<Record<DestinationCode, Destinat
   CDG: DESTINATION_PHOTOS["city-paris"],
   FCO: DESTINATION_PHOTOS["city-rome"],
   YYZ: DESTINATION_PHOTOS["city-toronto"],
+  OSL: DESTINATION_PHOTOS["city-oslo"],
+  ARN: DESTINATION_PHOTOS["city-stockholm"],
 };
 
 export function getDestinationPhotoByCode(code: string): DestinationPhoto | undefined {

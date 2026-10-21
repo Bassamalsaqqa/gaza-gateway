@@ -58,6 +58,7 @@ export function createMvpApiClient(config: IdentityApiClientConfig, identity: ()
       const operation = async (): Promise<MvpEnvelope<T>> => {
         const requestId = input.requestId ?? generateCryptographicUuid();
         const headers: Record<string, string> = { Accept: "application/json", "X-Request-Id": requestId };
+        const isFormData = typeof FormData !== "undefined" && input.body instanceof FormData;
         if (input.method !== "GET") {
           const client = identity();
           const csrf = input.realm === "staff"
@@ -65,11 +66,16 @@ export function createMvpApiClient(config: IdentityApiClientConfig, identity: ()
             : await client.getAuthCsrfBootstrap({ signal: controller.signal });
           if (controller.signal.aborted) throw new MvpApiError("aborted");
           headers["X-CSRF-TOKEN"] = csrf.csrfToken;
-          headers["Content-Type"] = "application/json";
+          if (!isFormData) {
+            headers["Content-Type"] = "application/json";
+          }
         }
         const response = await fetchFn(resolved.baseUrl + input.path, {
           method: input.method, headers, credentials: "include", cache: "no-store", redirect: "error",
-          signal: controller.signal, ...(input.body !== undefined ? { body: JSON.stringify(input.body) } : {}),
+          signal: controller.signal,
+          ...(input.body !== undefined
+            ? { body: isFormData ? (input.body as BodyInit) : JSON.stringify(input.body) }
+            : {}),
         });
         if (!/^application\/json(?:;|$)/i.test(response.headers.get("content-type") ?? "")) throw new MvpApiError("protocol");
         // Count actual streamed UTF-8 bytes, including when Content-Length is absent or dishonest.

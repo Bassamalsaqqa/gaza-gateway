@@ -3,11 +3,15 @@ declare(strict_types=1);
 
 namespace App\Mvp\Mail;
 
+use App\Documents\DocumentRenderer;
 use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\Email;
 
 final class TicketEmail
 {
+    public const MAX_RAW_ATTACHMENT_BYTES = 10 * 1024 * 1024; // 10 MiB aggregate raw limit (~14 MiB MIME)
+    public const MAX_ATTACHMENT_PASSENGERS = 9;
+    public const MAX_RENDER_SECONDS = 4.0;
     public static function build(#[\SensitiveParameter] array $payload, #[\SensitiveParameter] array $config, string $attemptId, string $createdAt): Email
     {
         $email = (new Email())->from(new Address($config['senderEmail'], $config['senderName']))->to($payload['recipient'])
@@ -56,6 +60,8 @@ final class TicketEmail
             'KUL' => ['city' => ['en' => 'Kuala Lumpur', 'ar' => 'كوالالمبور'], 'name' => ['en' => 'Kuala Lumpur International', 'ar' => 'مطار كوالالمبور الدولي']],
             'JFK' => ['city' => ['en' => 'New York', 'ar' => 'نيويورك'], 'name' => ['en' => 'John F. Kennedy International', 'ar' => 'مطار جون إف كينيدي الدولي']],
             'YYZ' => ['city' => ['en' => 'Toronto', 'ar' => 'تورونتو'], 'name' => ['en' => 'Toronto Pearson International', 'ar' => 'مطار تورونتو بيرسون الدولي']],
+            'OSL' => ['city' => ['en' => 'Oslo', 'ar' => 'أوسلو'], 'name' => ['en' => 'Oslo Airport, Gardermoen', 'ar' => 'مطار أوسلو، غاردرموين']],
+            'ARN' => ['city' => ['en' => 'Stockholm', 'ar' => 'ستوكهولم'], 'name' => ['en' => 'Stockholm Arlanda Airport', 'ar' => 'مطار ستوكهولم أرلاندا']],
         ];
 
         $resolveCity = static function (string $code, string $lang) use ($airports): string {
@@ -101,6 +107,120 @@ final class TicketEmail
         $ticketsList = $ticket['tickets'] ?? [];
         if (!is_array($ticketsList) || count($ticketsList) === 0) {
             throw new \InvalidArgumentException('Ticket must contain at least one passenger ticket.');
+        }
+
+        $renderedAttachments = [];
+        $attachmentsOmitted = false;
+        $totalRawBytes = 0;
+
+        if (!$isCancelled && DocumentRenderer::isSupported()) {
+            if (count($ticketsList) > self::MAX_ATTACHMENT_PASSENGERS) {
+                // Maximum 9 passengers supported for email attachments
+                $attachmentsOmitted = true;
+            } else {
+                $renderer = new DocumentRenderer();
+                $safeRef = preg_replace('/[^a-zA-Z0-9_-]/', '-', $reference);
+                if ($safeRef === '') {
+                    $safeRef = 'ticket';
+                }
+
+                $renderSucceeded = true;
+                $candidateAttachments = [];
+                $renderStarted = hrtime(true);
+
+                try {
+                    foreach ($ticketsList as $idx => $item) {
+                        if ((hrtime(true) - $renderStarted) / 1e9 >= self::MAX_RENDER_SECONDS) {
+                            $renderSucceeded = false;
+                            $candidateAttachments = [];
+                            break;
+                        }
+                        $p = $item['passenger'] ?? [];
+                        $firstName = trim((string) ($p['firstName'] ?? ''));
+                        $lastName = trim((string) ($p['lastName'] ?? ''));
+                        $name = trim($firstName . ' ' . $lastName);
+                        if ($name === '') {
+                            $name = 'Passenger';
+                        }
+
+                        $rawSeat = trim((string) ($p['seatCode'] ?? ''));
+                        $cabin = null;
+                        if (!empty($item['cabin']) && is_string($item['cabin'])) {
+                            $cabin = trim($item['cabin']);
+                        } elseif (!empty($p['cabin']) && is_string($p['cabin'])) {
+                            $cabin = trim($p['cabin']);
+                        }
+
+                        // Pass actual selected $ar locale and relevant date; preserve English default
+                        $selectedLocale = (string) (
+                            $item['locale']
+                            ?? $item['lang']
+                            ?? $p['locale']
+                            ?? $p['lang']
+                            ?? $payload['locale']
+                            ?? $payload['lang']
+                            ?? $ticket['locale']
+                            ?? $ticket['lang']
+                            ?? 'en'
+                        );
+                        $itemLocale = $selectedLocale === 'ar' ? 'ar' : 'en';
+
+                        $ticketData = [
+                            'passenger' => $name,
+                            'passengerArabic' => !empty($p['passengerArabic']) ? (string) $p['passengerArabic'] : (!empty($p['arabicName']) ? (string) $p['arabicName'] : null),
+                            'fromCode' => $originCode,
+                            'toCode' => $destCode,
+                            'fromCity' => $resolveCity($originCode, 'en'),
+                            'toCity' => $resolveCity($destCode, 'en'),
+                            'fromCityArabic' => $resolveCity($originCode, 'ar'),
+                            'toCityArabic' => $resolveCity($destCode, 'ar'),
+                            'flight' => $flightNum,
+                            'travelDate' => DocumentRenderer::formatTicketDate($flightDate, $itemLocale),
+                            'date' => $flightDate,
+                            'departure' => $departTime,
+                            'gate' => !empty($flight['gate']) ? (string) $flight['gate'] : null,
+                            'seat' => $rawSeat !== '' ? $rawSeat : null,
+                            'cabin' => $cabin,
+                            'reference' => $reference,
+                            'status' => $status,
+                            'locale' => $itemLocale,
+                        ];
+
+                        $pngBytes = $renderer->renderTicket($ticketData);
+                        $totalRawBytes += strlen($pngBytes);
+
+                        if ($totalRawBytes > self::MAX_RAW_ATTACHMENT_BYTES
+                            || (hrtime(true) - $renderStarted) / 1e9 >= self::MAX_RENDER_SECONDS) {
+                            // Aggregate max 10 MiB raw exceeded!
+                            // Do NOT silently attach partial passengers!
+                            $renderSucceeded = false;
+                            $candidateAttachments = [];
+                            break;
+                        }
+
+                        $filename = sprintf('ticket-%s-%d.png', $safeRef, $idx + 1);
+                        $candidateAttachments[] = [
+                            'bytes' => $pngBytes,
+                            'filename' => $filename,
+                        ];
+                    }
+                } catch (\App\SharedHosting\SharedHostingTimeoutException $e) {
+                    throw $e;
+                } catch (\Throwable) {
+                    // Clean images on exceptions; bounded cleanup, no partial attachments
+                    $renderSucceeded = false;
+                    $candidateAttachments = [];
+                }
+
+                if ($renderSucceeded && count($candidateAttachments) === count($ticketsList)) {
+                    $renderedAttachments = $candidateAttachments;
+                } else {
+                    $attachmentsOmitted = true;
+                    $renderedAttachments = [];
+                }
+            }
+        } elseif (!$isCancelled) {
+            $attachmentsOmitted = true;
         }
 
         foreach (['en', 'ar'] as $lang) {
@@ -213,6 +333,11 @@ final class TicketEmail
             $text .= ($ar
                 ? 'لحجوزات الضيوف، أدخل مرجع حجزك وتحقق من بريدك الإلكتروني لعرض التذكرة أو طباعتها. يمكن لأصحاب الحسابات أيضاً تسجيل الدخول مباشرة.'
                 : 'For guest bookings, enter your reference and verify your email to view or print your ticket. Account holders may also sign in directly.') . "\n";
+            if ($attachmentsOmitted) {
+                $text .= ($ar
+                    ? "ملاحظة: صور التذاكر التذكارية متاحة للعرض والتحميل عبر الإنترنت من خلال بوابة إدارة الحجز أعلاه.\n"
+                    : "Notice: Commemorative ticket images are available to view and download online via the booking management portal above.\n");
+            }
             $text .= ($ar ? 'رحلات تربط الناس بمستقبل أجمل' : 'PEOPLE · PLACES · A BRIGHTER TOMORROW') . "\n\n";
 
             $statusBadgeColor = $isCancelled ? '#A92D32' : '#2F684A';
@@ -323,6 +448,13 @@ final class TicketEmail
                     ? 'لحجوزات الضيوف، أدخل مرجع حجزك وتحقق من بريدك الإلكتروني لعرض التذكرة أو طباعتها. يمكن لأصحاب الحسابات أيضاً تسجيل الدخول مباشرة.'
                     : 'For guest bookings, enter your reference and verify your email to view or print your ticket. Account holders may also sign in directly.')
                 . '</div>'
+                . ($attachmentsOmitted
+                    ? '<div style="margin-top:12px;padding:10px 14px;background:#F0ECE1;border:1px solid #D4CCBF;border-radius:6px;font-size:12px;color:#23372D;line-height:1.4;">'
+                        . ($ar
+                            ? '<strong>ملاحظة:</strong> صور التذاكر التذكارية بدقة عالية متاحة للعرض والتحميل عبر الإنترنت من خلال بوابة إدارة الحجز.'
+                            : '<strong>Notice:</strong> High-resolution commemorative ticket images are available to view and download online via the booking management portal.')
+                        . '</div>'
+                    : '')
                 . '</td>'
                 . '</tr>'
                 // Footer Slogan
@@ -358,8 +490,15 @@ final class TicketEmail
             . '</center>'
             . '</body></html>';
 
-        return $email->subject('Gaza Gateway · '.$ticket['reference'])
+        $email->subject('Gaza Gateway · '.$ticket['reference'])
             ->text($text)
             ->html($fullHtml);
+
+        foreach ($renderedAttachments as $att) {
+            $email->attach($att['bytes'], $att['filename'], 'image/png');
+        }
+        unset($renderedAttachments);
+
+        return $email;
     }
 }

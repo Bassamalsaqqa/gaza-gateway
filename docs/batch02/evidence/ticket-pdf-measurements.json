@@ -1,0 +1,70 @@
+[
+  {
+    "orientation": "portrait",
+    "page": 1,
+    "page_mm": [
+      209.89,
+      297.01
+    ],
+    "image_mm": [
+      190.24,
+      94.99
+    ],
+    "ratio": 2.0028,
+    "pixels": [
+      1774,
+      887
+    ]
+  },
+  {
+    "orientation": "portrait",
+    "page": 1,
+    "page_mm": [
+      209.89,
+      297.01
+    ],
+    "image_mm": [
+      190.24,
+      94.99
+    ],
+    "ratio": 2.0028,
+    "pixels": [
+      1774,
+      887
+    ]
+  },
+  {
+    "orientation": "landscape",
+    "page": 1,
+    "page_mm": [
+      297.01,
+      209.89
+    ],
+    "image_mm": [
+      190.24,
+      94.99
+    ],
+    "ratio": 2.0028,
+    "pixels": [
+      1774,
+      887
+    ]
+  },
+  {
+    "orientation": "landscape",
+    "page": 2,
+    "page_mm": [
+      297.01,
+      209.89
+    ],
+    "image_mm": [
+      190.24,
+      94.99
+    ],
+    "ratio": 2.0028,
+    "pixels": [
+      1774,
+      887
+    ]
+  }
+]

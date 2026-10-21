@@ -43,5 +43,7 @@ export const publishedDestinationsPresentation: DestinationsPresentationContent 
     { code: "CDG", photoId: "city-paris", focalPoint: { x: 60, y: 50 } },
     { code: "FCO", photoId: "city-rome", focalPoint: { x: 50, y: 40 } },
     { code: "YYZ", photoId: "city-toronto", focalPoint: { x: 50, y: 52 } },
+    { code: "OSL", photoId: "city-oslo", focalPoint: { x: 50, y: 50 } },
+    { code: "ARN", photoId: "city-stockholm", focalPoint: { x: 50, y: 50 } },
   ],
 };

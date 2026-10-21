@@ -27,16 +27,40 @@ final class MailSettings
                 'senderName' => '',
                 'senderEmail' => '',
                 'replyTo' => '',
+                'notificationEmail' => 'notifications@gazaairport.com',
+                'incomingCcEnabled' => false,
+                'incomingCcEmail' => '',
             ];
         }
         $c = json_decode(Crypt::decryptString($row->encrypted_config), true, 16, JSON_THROW_ON_ERROR);
         unset($c['username'], $c['password']);
-        return ['revision' => (int) $row->revision, 'configured' => true, ...$c];
+
+        $ccEmail = trim((string) ($c['incomingCcEmail'] ?? ''));
+        $ccValid = $ccEmail !== '' && filter_var($ccEmail, FILTER_VALIDATE_EMAIL) !== false;
+        $ccEnabled = (bool) ($c['incomingCcEnabled'] ?? false) && $ccValid;
+
+        $notifEmail = trim((string) ($c['notificationEmail'] ?? ''));
+        if ($notifEmail === '' || !filter_var($notifEmail, FILTER_VALIDATE_EMAIL)) {
+            $notifEmail = 'notifications@gazaairport.com';
+        }
+
+        return [
+            ...$c,
+            'revision' => (int) $row->revision,
+            'configured' => true,
+            'notificationEmail' => $notifEmail,
+            'incomingCcEnabled' => $ccEnabled,
+            'incomingCcEmail' => $ccEnabled ? $ccEmail : '',
+        ];
     }
 
     public function save(#[\SensitiveParameter] array $input, string $staffId, ?callable $reauthorize = null): array
     {
-        $allowed = ['expectedRevision', 'driver', 'host', 'port', 'tls', 'username', 'password', 'senderName', 'senderEmail', 'replyTo'];
+        $allowed = [
+            'expectedRevision', 'driver', 'host', 'port', 'tls', 'username', 'password',
+            'senderName', 'senderEmail', 'replyTo',
+            'notificationEmail', 'incomingCcEnabled', 'incomingCcEmail',
+        ];
         if (array_diff(array_keys($input), $allowed) || !is_int($input['expectedRevision'] ?? null)
             || !in_array($input['driver'] ?? null, ['capture', 'smtp'], true)
             || !in_array($input['tls'] ?? null, ['none', 'starttls', 'tls'], true)
@@ -44,11 +68,37 @@ final class MailSettings
             throw new InvalidArgumentException();
         }
 
-        foreach (['host' => 253, 'senderName' => 120, 'senderEmail' => 254, 'replyTo' => 254, 'username' => 254, 'password' => 1024] as $key => $max) {
-            if (in_array($key, ['username', 'password'], true) && !array_key_exists($key, $input)) {
+        foreach (['host' => 253, 'senderName' => 120, 'senderEmail' => 254, 'replyTo' => 254, 'username' => 254, 'password' => 1024, 'notificationEmail' => 254, 'incomingCcEmail' => 254] as $key => $max) {
+            if (in_array($key, ['username', 'password', 'notificationEmail', 'incomingCcEmail'], true) && !array_key_exists($key, $input)) {
                 continue;
             }
             if (!is_string($input[$key] ?? null) || strlen($input[$key]) > $max || preg_match('/[\x00-\x1f\x7f]/', $input[$key])) {
+                throw new InvalidArgumentException();
+            }
+        }
+
+        if (array_key_exists('incomingCcEnabled', $input) && !is_bool($input['incomingCcEnabled'])) {
+            throw new InvalidArgumentException();
+        }
+
+        if (array_key_exists('notificationEmail', $input)) {
+            if (!is_string($input['notificationEmail'])
+                || trim($input['notificationEmail']) === ''
+                || !filter_var(trim($input['notificationEmail']), FILTER_VALIDATE_EMAIL)) {
+                throw new InvalidArgumentException();
+            }
+        }
+
+        if (array_key_exists('incomingCcEmail', $input)) {
+            if (!is_string($input['incomingCcEmail'])
+                || (trim($input['incomingCcEmail']) !== '' && !filter_var(trim($input['incomingCcEmail']), FILTER_VALIDATE_EMAIL))) {
+                throw new InvalidArgumentException();
+            }
+        }
+
+        if (($input['incomingCcEnabled'] ?? false) === true) {
+            $checkEmail = trim((string) ($input['incomingCcEmail'] ?? ''));
+            if ($checkEmail === '' || !filter_var($checkEmail, FILTER_VALIDATE_EMAIL)) {
                 throw new InvalidArgumentException();
             }
         }
@@ -103,6 +153,33 @@ final class MailSettings
             $config['password'] = $input['password'] ?? $old['password'] ?? '';
             $config['usernameSet'] = $config['username'] !== '';
             $config['passwordSet'] = $config['password'] !== '';
+            if (array_key_exists('notificationEmail', $input)) {
+                $config['notificationEmail'] = trim($input['notificationEmail']);
+            } else {
+                $oldNotif = trim((string) ($old['notificationEmail'] ?? ''));
+                $config['notificationEmail'] = ($oldNotif !== '' && filter_var($oldNotif, FILTER_VALIDATE_EMAIL))
+                    ? $oldNotif
+                    : 'notifications@gazaairport.com';
+            }
+
+            // Effective enabled CC requires real non-empty CC including preserved old settings:
+            $ccEmailCandidate = array_key_exists('incomingCcEmail', $input)
+                ? trim((string) $input['incomingCcEmail'])
+                : trim((string) ($old['incomingCcEmail'] ?? ''));
+            $ccValid = $ccEmailCandidate !== '' && filter_var($ccEmailCandidate, FILTER_VALIDATE_EMAIL) !== false;
+
+            $ccEnabledCandidate = array_key_exists('incomingCcEnabled', $input)
+                ? (bool) $input['incomingCcEnabled']
+                : (bool) ($old['incomingCcEnabled'] ?? false);
+
+            if (array_key_exists('incomingCcEnabled', $input) && $input['incomingCcEnabled'] && !$ccValid) {
+                throw new InvalidArgumentException();
+            }
+
+            $effectiveCcEnabled = $ccEnabledCandidate && $ccValid;
+            $config['incomingCcEnabled'] = $effectiveCcEnabled;
+            $config['incomingCcEmail'] = $effectiveCcEnabled ? $ccEmailCandidate : '';
+
             DB::table('mvp_mail_settings')->updateOrInsert(
                 ['id' => 1],
                 [
@@ -120,6 +197,27 @@ final class MailSettings
     public function forWorker(): ?array
     {
         $row = DB::table('mvp_mail_settings')->where('id', 1)->first();
-        return $row ? ['revision' => (int) $row->revision, ...json_decode(Crypt::decryptString($row->encrypted_config), true, 16, JSON_THROW_ON_ERROR)] : null;
+        if (!$row) {
+            return null;
+        }
+        $c = json_decode(Crypt::decryptString($row->encrypted_config), true, 16, JSON_THROW_ON_ERROR);
+
+        $ccEmail = trim((string) ($c['incomingCcEmail'] ?? ''));
+        $ccValid = $ccEmail !== '' && filter_var($ccEmail, FILTER_VALIDATE_EMAIL) !== false;
+        $ccEnabled = (bool) ($c['incomingCcEnabled'] ?? false) && $ccValid;
+
+        $notifEmail = trim((string) ($c['notificationEmail'] ?? ''));
+        if ($notifEmail === '' || !filter_var($notifEmail, FILTER_VALIDATE_EMAIL)) {
+            $notifEmail = 'notifications@gazaairport.com';
+        }
+
+        return [
+            ...$c,
+            'revision' => (int) $row->revision,
+            'configured' => true,
+            'notificationEmail' => $notifEmail,
+            'incomingCcEnabled' => $ccEnabled,
+            'incomingCcEmail' => $ccEnabled ? $ccEmail : '',
+        ];
     }
 }

@@ -15,6 +15,8 @@ use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
 
 final class BookingMailWorker
 {
+    public const MAX_CAPTURE_BYTES = 16 * 1024 * 1024; // 16 MiB (16,777,216 bytes)
+
     public function __construct(private readonly MailSettings $settings) {}
 
     public function adoptIntents(?string $reservationId = null): void
@@ -261,7 +263,7 @@ final class BookingMailWorker
 
     private function capture(string $id, string $bytes): void
     {
-        if (strlen($bytes) > 131072) {
+        if (strlen($bytes) > self::MAX_CAPTURE_BYTES) {
             throw new \RuntimeException('Message exceeds capture bound.');
         }
         $root = config('mvp-mail.capture_path');

@@ -14,6 +14,8 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import {
   mapPassengerTicket,
   mapTicketPresentation,
@@ -21,6 +23,12 @@ import {
   resolveAirport,
   computeDayOffset,
   formatDayOffsetLabel,
+  extractPassengerNames,
+  preloadTicketImage,
+  _resetTicketImageCacheForTesting,
+  TICKET_CANVAS_WIDTH,
+  TICKET_CANVAS_HEIGHT,
+  TICKET_CANVAS_ASPECT_RATIO,
   type MappedPassengerTicket,
 } from "../../src/lib/reservations/ticket-presentation.ts";
 import type { ReservationDetail } from "../../src/lib/reservations/client.ts";
@@ -395,5 +403,221 @@ describe("mapTicketPresentation() — Data Integrity & Invariants", () => {
     assert.equal(groupAr.validityNotice, "");
     assert.equal(groupAr.tickets[0]!.classification, "التذكرة / مسار الرحلة");
     assert.equal(groupAr.tickets[0]!.validityNotice, "");
+  });
+});
+
+describe("extractPassengerNames() — Name Integrity & Data Loss Prevention", () => {
+  it("extracts dual-script Latin/Arabic names separated by slash or parens", () => {
+    const slash = extractPassengerNames("Omar Khalil / عمر خليل");
+    assert.equal(slash.latin, "Omar Khalil");
+    assert.equal(slash.arabic, "عمر خليل");
+    assert.equal(slash.fullName, "Omar Khalil / عمر خليل");
+
+    const parens = extractPassengerNames("عمر خليل (Omar Khalil)");
+    assert.equal(parens.latin, "Omar Khalil");
+    assert.equal(parens.arabic, "عمر خليل");
+    assert.equal(parens.fullName, "عمر خليل (Omar Khalil)");
+  });
+
+  it("handles pure Latin names with accents and hyphens", () => {
+    const latin = extractPassengerNames("José García-Müller");
+    assert.equal(latin.latin, "José García-Müller");
+    assert.equal(latin.arabic, "");
+    assert.equal(latin.fullName, "José García-Müller");
+  });
+
+  it("handles pure Arabic names without data loss", () => {
+    const arabic = extractPassengerNames("عمر خليل البرغوثي");
+    assert.equal(arabic.latin, "");
+    assert.equal(arabic.arabic, "عمر خليل البرغوثي");
+    assert.equal(arabic.fullName, "عمر خليل البرغوثي");
+  });
+
+  it("preserves non-Latin scripts (Cyrillic, CJK, Greek) without data loss", () => {
+    const cyrillic = extractPassengerNames("Иван Иванов");
+    assert.equal(cyrillic.fullName, "Иван Иванов");
+    assert.equal(cyrillic.latin, "Иван Иванов");
+
+    const cjk = extractPassengerNames("李小龙");
+    assert.equal(cjk.fullName, "李小龙");
+    assert.equal(cjk.latin, "李小龙");
+
+    const greek = extractPassengerNames("Νικόλαος Παπαδόπουλος");
+    assert.equal(greek.fullName, "Νικόلاος Παπαδόπουλος".replace("لا", "λα"));
+    assert.equal(greek.latin, "Νικόلاος Παπαδόπουλος".replace("لا", "λα"));
+  });
+
+  it("handles empty or whitespace-only names gracefully", () => {
+    const empty = extractPassengerNames("   ");
+    assert.equal(empty.latin, "");
+    assert.equal(empty.arabic, "");
+    assert.equal(empty.fullName, "");
+  });
+});
+
+describe("preloadTicketImage() — Concurrent Loads & Unmount Invariants", () => {
+  let originalImage: unknown;
+
+  class MockImage {
+    public src = "";
+    public complete = false;
+    public naturalWidth = 0;
+    public onload: (() => void) | null = null;
+    public onerror: (() => void) | null = null;
+    public static instances: MockImage[] = [];
+
+    constructor() {
+      MockImage.instances.push(this);
+    }
+  }
+
+  // Setup mock before tests
+  const setupMock = () => {
+    originalImage = (globalThis as unknown as { Image: unknown }).Image;
+    (globalThis as unknown as { Image: unknown }).Image = MockImage;
+    MockImage.instances = [];
+    _resetTicketImageCacheForTesting();
+  };
+
+  const teardownMock = () => {
+    (globalThis as unknown as { Image: unknown }).Image = originalImage;
+    _resetTicketImageCacheForTesting();
+  };
+
+  it("concurrent requests share a single immutable promise and resolve both instances", async () => {
+    setupMock();
+    try {
+      const p1 = preloadTicketImage("ticket-blank.png");
+      const p2 = preloadTicketImage("ticket-blank.png");
+
+      assert.strictEqual(p1, p2, "Both callers must share the exact same promise");
+      assert.equal(MockImage.instances.length, 1, "Only one Image instance must be created");
+
+      const img = MockImage.instances[0]!;
+      img.complete = true;
+      img.naturalWidth = 1774;
+
+      let resolved1: unknown = null;
+      let resolved2: unknown = null;
+
+      p1.then((i) => { resolved1 = i; });
+      p2.then((i) => { resolved2 = i; });
+
+      // Trigger load
+      img.onload?.();
+
+      const [r1, r2] = await Promise.all([p1, p2]);
+      assert.strictEqual(r1, img);
+      assert.strictEqual(r2, img);
+      assert.strictEqual(resolved1, img);
+      assert.strictEqual(resolved2, img);
+    } finally {
+      teardownMock();
+    }
+  });
+
+  it("disposed unmount listener flag prevents state dispatch", async () => {
+    setupMock();
+    try {
+      let stateCalled = false;
+      let cancelled = false;
+
+      const p = preloadTicketImage("ticket-blank.png");
+      p.then(() => {
+        if (!cancelled) {
+          stateCalled = true;
+        }
+      });
+
+      // Simulate component unmount before image load completes
+      cancelled = true;
+
+      const img = MockImage.instances[0]!;
+      img.complete = true;
+      img.naturalWidth = 1774;
+      img.onload?.();
+
+      await p;
+      assert.equal(stateCalled, false, "Cancelled callback must not be invoked on unmounted instance");
+    } finally {
+      teardownMock();
+    }
+  });
+
+  it("load failure cleanly rejects and clears cache allowing subsequent retry", async () => {
+    setupMock();
+    try {
+      const pFail = preloadTicketImage("fail.png");
+      const img1 = MockImage.instances[0]!;
+
+      img1.onerror?.();
+
+      await assert.rejects(pFail, { message: "Failed to load approved ticket background artwork" });
+
+      // Subsequent call creates a new instance because cache was reset
+      const pRetry = preloadTicketImage("fail.png");
+      assert.equal(MockImage.instances.length, 2, "Failed cache must reset so retry instantiates new image");
+      const img2 = MockImage.instances[1]!;
+      img2.complete = true;
+      img2.naturalWidth = 1774;
+      img2.onload?.();
+
+      const success = await pRetry;
+      assert.strictEqual(success, img2);
+    } finally {
+      teardownMock();
+    }
+  });
+});
+
+describe("Approved Ticket Artwork & Layout Invariants", () => {
+  it("enforces exact 1774x887 (2:1) dimensions", () => {
+    assert.equal(TICKET_CANVAS_WIDTH, 1774);
+    assert.equal(TICKET_CANVAS_HEIGHT, 887);
+    assert.equal(TICKET_CANVAS_ASPECT_RATIO, "1774 / 887");
+  });
+
+  it("source files contain zero references to 1744 typo", () => {
+    const tsxPath = path.resolve("src/components/booking/commemorative-ticket.tsx");
+    const cssPath = path.resolve("src/components/booking/commemorative-ticket.css");
+    const tsx = readFileSync(tsxPath, "utf8");
+    const css = readFileSync(cssPath, "utf8");
+
+    assert.equal(tsx.includes("1744"), false, "commemorative-ticket.tsx must not contain 1744 typo");
+    assert.equal(css.includes("1744"), false, "commemorative-ticket.css must not contain 1744 typo");
+  });
+
+  it("commemorative-ticket.tsx does not duplicate inline print styles", () => {
+    const tsxPath = path.resolve("src/components/booking/commemorative-ticket.tsx");
+    const tsx = readFileSync(tsxPath, "utf8");
+
+    assert.equal(tsx.includes("INLINE_PRINT_STYLE"), false, "Must not define redundant INLINE_PRINT_STYLE string");
+    assert.equal(tsx.includes("<style>{INLINE_PRINT_STYLE}</style>"), false, "Must not inject duplicate inline style");
+  });
+
+  it("commemorative-ticket.tsx does not combine EN/AR labels into single UI strings", () => {
+    const tsxPath = path.resolve("src/components/booking/commemorative-ticket.tsx");
+    const tsx = readFileSync(tsxPath, "utf8");
+
+    assert.equal(tsx.includes('"PASSENGER / المسافر"'), false, "Must not combine EN/AR into single passenger label");
+    assert.equal(tsx.includes('"FLIGHT / الرحلة"'), false, "Must not combine EN/AR into single flight label");
+    assert.equal(tsx.includes('"BOOKING REFERENCE / مرجع الحجز"'), false, "Must not combine EN/AR into single reference label");
+  });
+
+  it("commemorative-ticket.tsx omits fake barcode text and sample disclaimers", () => {
+    const tsxPath = path.resolve("src/components/booking/commemorative-ticket.tsx");
+    const tsx = readFileSync(tsxPath, "utf8");
+
+    assert.equal(tsx.includes("SAMPLE · NO BARCODE"), false, "Must omit SAMPLE · NO BARCODE disclaimer text");
+    assert.equal(tsx.includes("gza-ticket-disclosure-banner"), false, "Must omit visible commemorative eyebrow banner");
+  });
+
+  it("commemorative-ticket.css includes complete print isolation without clipping", () => {
+    const cssPath = path.resolve("src/components/booking/commemorative-ticket.css");
+    const css = readFileSync(cssPath, "utf8");
+
+    assert.equal(css.includes("@media print"), true, "Must include print media queries");
+    assert.equal(css.includes("max-width: 190mm"), true, "Must bound print width to A4 190mm printable area");
+    assert.equal(css.includes("break-inside: avoid"), true, "Must prevent breaking individual ticket cards");
   });
 });

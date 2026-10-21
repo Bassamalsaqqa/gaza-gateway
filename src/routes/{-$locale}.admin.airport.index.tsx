@@ -42,6 +42,7 @@ import type {
 } from "@/content/types";
 import {
   ArchiveCatalog,
+  ArchiveContributionsAdmin,
   ArchiveRecordEditorSheet,
   ArchiveRecordSheet,
   MediaCatalog,
@@ -54,12 +55,12 @@ import { GalleryPublication } from "@/components/admin/archive/GalleryPublicatio
 import { useArchiveAdminI18n } from "@/components/admin/archive/i18n";
 import { useArchiveDraftSnapshot } from "@/lib/archive/drafts/queries";
 
-type Tab = "past" | "present" | "future" | "gallery" | "archive" | "sources" | "media";
+type Tab = "past" | "present" | "future" | "gallery" | "archive" | "sources" | "media" | "contributions";
 type Lang = "en" | "ar";
 
 const VALID_TABS: readonly Tab[] = identityUiRequested
-  ? ["past", "present", "future", "gallery"]
-  : ["past", "present", "future", "archive", "sources", "media"];
+  ? ["past", "present", "future", "gallery", "contributions"]
+  : ["past", "present", "future", "archive", "sources", "media", "contributions"];
 
 export const Route = createFileRoute("/{-$locale}/admin/airport/")({
   validateSearch: (search: Record<string, unknown>): {
@@ -721,6 +722,7 @@ function AdminAirportPage() {
             { id: "present", label: t("a2.ap.tab.present") },
             { id: "future", label: t("a2.ap.tab.future") },
             { id: "gallery", label: lang === "ar" ? "نشر المعرض" : "Gallery Publication" },
+            { id: "contributions", label: lang === "ar" ? "مساهمات الأرشيف" : "Archive Contributions" },
             { id: "archive", label: t("a2.ap.tab.archive"), count: effectiveRecords.length },
             { id: "sources", label: t("a2.ap.tab.sources"), count: effectiveSources.length },
             { id: "media", label: t("a2.ap.tab.media"), count: intakeRecords.length },
@@ -1568,6 +1570,12 @@ function AdminAirportPage() {
           {/* ------------------------------------------------------------------ */}
           {identityUiRequested && tab === "gallery" && (
             <GalleryPublication onEditState={handleGalleryEditState} />
+          )}
+          {/* ------------------------------------------------------------------ */}
+          {/* TAB: CONTRIBUTIONS (Batch 02 Public Submissions & Curation)         */}
+          {/* ------------------------------------------------------------------ */}
+          {tab === "contributions" && (
+            <ArchiveContributionsAdmin />
           )}
 
           {/* ------------------------------------------------------------------ */}

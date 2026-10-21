@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\SharedHosting;
 
 use App\Identity\Sessions\AnonymousSessionCleanup;
+use App\Mvp\Archive\ArchiveMailWorker;
 use App\Mvp\Mail\BookingMailWorker;
 use App\Mvp\Mail\IdentitySmtpDispatcher;
 use Illuminate\Support\Facades\Log;
@@ -25,12 +26,14 @@ final class SharedHostingCronRunner
     public const DEFAULT_MAX_WALL_SECONDS = 25.0;
     public const DEFAULT_BATCH_LIMIT = 25;
     public const MESSAGE_BUDGET_SECONDS = 8.0;
+    public const DOCUMENT_MESSAGE_BUDGET_SECONDS = 13.0;
     public const COLD_OPERATION_BUDGET_SECONDS = 3.0;
 
     public function __construct(
         private readonly ?AnonymousSessionCleanup $sessionCleanup = null,
         private readonly ?BookingMailWorker $bookingMailWorker = null,
         private readonly ?IdentitySmtpDispatcher $identitySmtpDispatcher = null,
+        private readonly ?ArchiveMailWorker $archiveMailWorker = null,
     ) {}
 
     /**
@@ -122,6 +125,7 @@ final class SharedHostingCronRunner
             'rate_buckets_purged' => 0,
             'identity_mail_processed' => 0,
             'booking_mail_processed' => 0,
+            'archive_mail_processed' => 0,
             'wall_deadline_reached' => false,
             'timeout' => false,
             'mail_status' => 'disabled',
@@ -147,8 +151,15 @@ final class SharedHostingCronRunner
             }
 
             // Task C: Bounded Booking Mail processing (commemorative tickets)
-            if ($getRemainingSeconds() >= self::MESSAGE_BUDGET_SECONDS) {
+            if ($getRemainingSeconds() >= self::DOCUMENT_MESSAGE_BUDGET_SECONDS) {
                 $this->runBookingMail($summary, $getRemainingSeconds, $batchLimit);
+            } elseif (config('mvp-mail.enabled') === true) {
+                $summary['wall_deadline_reached'] = true;
+            }
+
+            // Task D: Bounded Archive & Contact Mail processing
+            if ($getRemainingSeconds() >= self::DOCUMENT_MESSAGE_BUDGET_SECONDS) {
+                $this->runArchiveMail($summary, $getRemainingSeconds, $batchLimit);
             } elseif (config('mvp-mail.enabled') === true) {
                 $summary['wall_deadline_reached'] = true;
             }
@@ -322,14 +333,14 @@ final class SharedHostingCronRunner
             }
 
             $count = 0;
-            while ($count < $batchLimit && $getRemaining() >= self::MESSAGE_BUDGET_SECONDS) {
+            while ($count < $batchLimit && $getRemaining() >= self::DOCUMENT_MESSAGE_BUDGET_SECONDS) {
                 if (!$worker->runOne()) {
                     break;
                 }
                 $count++;
             }
 
-            if ($getRemaining() < self::MESSAGE_BUDGET_SECONDS && $count < $batchLimit) {
+            if ($getRemaining() < self::DOCUMENT_MESSAGE_BUDGET_SECONDS && $count < $batchLimit) {
                 $summary['wall_deadline_reached'] = true;
             }
 
@@ -349,6 +360,42 @@ final class SharedHostingCronRunner
                 'code' => (int) $e->getCode(),
             ];
             Log::warning('SharedHostingCron: Booking mail exception', [
+                'class' => get_class($e),
+                'code' => (int) $e->getCode(),
+            ]);
+        }
+    }
+
+    private function runArchiveMail(array &$summary, callable $getRemaining, int $batchLimit): void
+    {
+        if (config('mvp-mail.enabled') !== true) {
+            return;
+        }
+
+        try {
+            $worker = $this->archiveMailWorker;
+            if ($worker === null && class_exists(ArchiveMailWorker::class)) {
+                $worker = app()->bound(ArchiveMailWorker::class) || app()->bound(\Illuminate\Database\ConnectionInterface::class)
+                    ? app(ArchiveMailWorker::class)
+                    : null;
+            }
+
+            if ($worker === null) {
+                return;
+            }
+
+            $count = $worker->runBatch($batchLimit, $getRemaining);
+            $summary['archive_mail_processed'] = $count;
+        } catch (\Throwable $e) {
+            if ($e instanceof SharedHostingTimeoutException) {
+                throw $e;
+            }
+            $summary['errors'][] = [
+                'task' => 'archive_mail',
+                'class' => get_class($e),
+                'code' => (int) $e->getCode(),
+            ];
+            Log::warning('SharedHostingCron: Archive mail exception', [
                 'class' => get_class($e),
                 'code' => (int) $e->getCode(),
             ]);

@@ -19,6 +19,16 @@ final class MvpReservationServiceProvider extends ServiceProvider
         $this->app->singleton(ReservationCoordinator::class);
         $this->app->singleton(\App\Mvp\Reservations\GuestAccessCoordinator::class);
         $this->app->singleton(\App\Mvp\Reservations\GuestReservationController::class);
+        $this->app->singleton(\App\Mvp\Archive\ArchiveDocumentRendererContract::class, \App\Documents\DocumentRenderer::class);
+        $this->app->singleton(\App\Mvp\Archive\ArchiveMailWorker::class, function ($app) {
+            $renderer = $app->bound(\App\Mvp\Archive\ArchiveDocumentRendererContract::class)
+                ? $app->make(\App\Mvp\Archive\ArchiveDocumentRendererContract::class)
+                : null;
+            return new \App\Mvp\Archive\ArchiveMailWorker(
+                $app->make(\App\Mvp\Mail\MailSettings::class),
+                $renderer
+            );
+        });
 
         $authorityClass = match (config('reservations.authority')) {
             'resolver' => OfferingResolverReservationAuthority::class,
@@ -30,6 +40,7 @@ final class MvpReservationServiceProvider extends ServiceProvider
     public function boot(): void
     {
         RateLimiter::for('contact_submission', static fn($request) => [Limit::perMinute(5)->by('contact_minute:'.$request->ip()), Limit::perHour(30)->by('contact_hour:'.$request->ip())]);
+        RateLimiter::for('archive_submission', static fn($request) => [Limit::perMinute(5)->by('archive_minute:'.$request->ip()), Limit::perHour(20)->by('archive_hour:'.$request->ip())]);
         RateLimiter::for('reservations_occupancy', static fn($request) =>
             Limit::perMinute(60)->by('res_occ:'.$request->ip()));
 

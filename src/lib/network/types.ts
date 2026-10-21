@@ -27,6 +27,8 @@ export const NETWORK_CODES = [
   "KUL",
   "JFK",
   "YYZ",
+  "OSL",
+  "ARN",
 ] as const;
 export type NetworkCode = (typeof NETWORK_CODES)[number];
 

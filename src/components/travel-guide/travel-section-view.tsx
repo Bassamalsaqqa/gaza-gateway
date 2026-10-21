@@ -79,8 +79,8 @@ export function TravelSectionView({ section, lang }: TravelSectionViewProps) {
         activeTreatment === "cover" || activeTreatment === "watermark"
           ? "absolute inset-0 size-full -z-10 rounded-none border-0"
           : activeTreatment === "top"
-            ? "w-full overflow-hidden rounded-2xl border border-border bg-card shadow-xs"
-            : "overflow-hidden rounded-2xl border border-border bg-card shadow-xs size-full"
+            ? "w-full overflow-hidden rounded-2xl border border-sand-deep bg-card shadow-xs"
+            : "overflow-hidden rounded-2xl border border-sand-deep bg-card shadow-xs size-full"
       }
     >
       <div
@@ -107,14 +107,14 @@ export function TravelSectionView({ section, lang }: TravelSectionViewProps) {
 
       {activeTreatment !== "cover" && activeTreatment !== "watermark" ? (
         activeMediaEntry?.truthClass === "future-concept-ai" ? (
-          <figcaption className="p-4 text-xs leading-relaxed text-muted-foreground border-t border-border">
+          <figcaption className="p-4 text-xs leading-relaxed text-muted-foreground border-t border-sand-deep">
             <span className="font-semibold text-foreground">
               {t("travel.assistanceConceptLabel")}{" "}
             </span>
             {t("travel.assistanceConceptNote")}
           </figcaption>
         ) : (
-          <figcaption className="p-3 text-xs leading-relaxed text-muted-foreground border-t border-border">
+          <figcaption className="p-3 text-xs leading-relaxed text-muted-foreground border-t border-sand-deep">
             <span className="font-semibold text-foreground">
               {isAr ? activeMediaEntry?.altAr : activeMediaEntry?.altEn}
             </span>
@@ -124,43 +124,41 @@ export function TravelSectionView({ section, lang }: TravelSectionViewProps) {
     </SurfaceMedia>
   ) : null;
 
-  // Editorial content block
+  // Editorial content block with solid ivory cards & deliberate hierarchy
   const editorialHeader = (
     <div className="min-w-0">
       <div className="flex flex-wrap items-center gap-2 text-xs">
-        <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 font-mono font-semibold text-brand-deep">
-          {meta.stepNumber}
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-sand-deep bg-card px-3 py-1 font-mono text-xs font-medium text-foreground shadow-xs">
+          <span className="rounded-full bg-brand px-2 py-0.5 text-[11px] font-bold text-primary-foreground shadow-xs" dir="ltr">
+            {meta.stepNumber}
+          </span>
+          <span className="font-semibold text-foreground">{meta.stageLabel}</span>
         </span>
-        <span className="font-medium text-muted-foreground">
-          {meta.stageLabel}
-        </span>
-        <span className="text-muted-foreground/50">•</span>
-        <span className="text-muted-foreground">
-          {meta.readTime}
-        </span>
+        <span className="text-muted-foreground" aria-hidden="true">•</span>
+        <span className="text-muted-foreground font-medium">{meta.readTime}</span>
       </div>
 
-      <h2 className="mt-3 font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl text-balance">
+      <h2 className="mt-3.5 font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl lg:text-4xl text-balance">
         {pick(lang, section.title)}
       </h2>
 
-      <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base sm:leading-relaxed max-w-[65ch]">
+      <p className="mt-3.5 text-sm sm:text-base leading-relaxed text-muted-foreground max-w-[65ch]">
         {pick(lang, section.body)}
       </p>
 
-      {/* Actual feature summary facts (grounded, no fake metrics) */}
+      {/* Actual feature summary facts in solid ivory cards */}
       {facts.length > 0 ? (
         <div className="mt-6 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
           {facts.map((f, i) => (
             <div
               key={i}
-              className="rounded-xl border border-border/70 bg-secondary/30 p-3 sm:p-3.5 transition-colors"
+              className="rounded-xl border border-sand-deep bg-card p-3.5 sm:p-4 shadow-xs transition-colors hover:border-brand hover:bg-sand-deep"
             >
-              <div className="text-[11px] font-medium text-muted-foreground">{f.label}</div>
-              <div className="mt-0.5 font-display text-base font-bold tracking-tight text-foreground sm:text-lg">
+              <div className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground">{f.label}</div>
+              <div className="mt-1 font-display text-base sm:text-lg font-bold tracking-tight text-brand-deep">
                 {f.value}
               </div>
-              <div className="mt-0.5 text-[11px] text-muted-foreground leading-snug">{f.detail}</div>
+              <div className="mt-1 text-xs text-muted-foreground leading-snug">{f.detail}</div>
             </div>
           ))}
         </div>
@@ -171,21 +169,23 @@ export function TravelSectionView({ section, lang }: TravelSectionViewProps) {
     </div>
   );
 
-  // Authentically rendered CMS points checklist (no fluff paragraphs, verbatim CMS text)
+  // Authentically rendered CMS points checklist with solid ivory/olive elements
   const checklistContent = (
     <div className="min-w-0 flex flex-col justify-start">
       <h3 className="font-display text-sm sm:text-base font-bold text-foreground mb-3 flex items-center gap-2">
-        <ShieldCheck className="size-4 text-brand-deep shrink-0" aria-hidden="true" />
+        <div className="flex size-6 shrink-0 items-center justify-center rounded-lg bg-brand text-primary-foreground shadow-xs">
+          <ShieldCheck className="size-3.5" aria-hidden="true" />
+        </div>
         <span>{isAr ? "إرشادات المسافر الأساسية" : "Core Traveler Guidelines"}</span>
       </h3>
 
-      <ul className="divide-y divide-border rounded-xl border border-border bg-card/70 shadow-xs">
+      <ul className="divide-y divide-sand-deep rounded-xl border border-sand-deep bg-card shadow-xs overflow-hidden">
         {visiblePoints.map((point) => (
           <li
             key={point.id}
             className="flex items-start gap-3 p-3.5 sm:p-4 text-xs sm:text-sm text-foreground leading-relaxed"
           >
-            <div className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-brand-deep">
+            <div className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-brand text-primary-foreground shadow-xs">
               <Check className="size-3" aria-hidden="true" />
             </div>
             <span className="flex-1">{pick(lang, point.text)}</span>
@@ -193,27 +193,27 @@ export function TravelSectionView({ section, lang }: TravelSectionViewProps) {
         ))}
       </ul>
 
-      {/* Meaningful progressive disclosure Q&A accordion */}
+      {/* Progressive disclosure Q&A accordion */}
       {faqs.length > 0 ? (
         <div className="mt-6">
           <h4 className="font-display text-xs sm:text-sm font-semibold text-muted-foreground mb-2.5 flex items-center gap-1.5">
-            <HelpCircle className="size-3.5 text-muted-foreground" aria-hidden="true" />
+            <HelpCircle className="size-3.5 text-brand-deep" aria-hidden="true" />
             <span>{isAr ? "أسئلة شائعة حول هذا القسم" : "Frequently Asked Questions"}</span>
           </h4>
 
           <Accordion
             type="single"
             collapsible
-            className="rounded-xl border border-border bg-card/50 px-3 shadow-xs divide-y divide-border"
+            className="rounded-xl border border-sand-deep bg-card px-3.5 sm:px-4 shadow-xs divide-y divide-sand-deep overflow-hidden"
           >
             {faqs.map((faq) => (
-              <AccordionItem key={faq.id} value={faq.id} className="border-border/70 py-0.5">
-                <AccordionTrigger className="text-start py-3 text-xs sm:text-sm font-medium hover:no-underline cursor-pointer group">
-                  <span className="pe-2 text-foreground group-hover:text-brand-deep transition-colors">
+              <AccordionItem key={faq.id} value={faq.id} className="border-sand-deep py-0.5">
+                <AccordionTrigger className="text-start py-3.5 text-xs sm:text-sm font-medium hover:no-underline cursor-pointer group">
+                  <span className="pe-2 text-foreground group-hover:text-brand-deep transition-colors font-medium">
                     {faq.question}
                   </span>
                 </AccordionTrigger>
-                <AccordionContent className="pb-3 text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                <AccordionContent className="pb-3.5 text-xs sm:text-sm text-muted-foreground leading-relaxed">
                   {faq.answer}
                 </AccordionContent>
               </AccordionItem>
@@ -232,7 +232,8 @@ export function TravelSectionView({ section, lang }: TravelSectionViewProps) {
         role="tabpanel"
         aria-labelledby={`travel-tab-${section.id}`}
         tabIndex={0}
-        className="focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
+        style={{ overflowAnchor: "none" }}
+        className="focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary [overflow-anchor:none]"
       >
         {activeTreatment === "top" && travelMedia ? (
           <GazaSurface
@@ -269,7 +270,7 @@ export function TravelSectionView({ section, lang }: TravelSectionViewProps) {
             className="relative isolate overflow-hidden min-h-[460px] flex flex-col justify-end p-4 sm:p-6"
           >
             {travelMedia}
-            <div className="relative z-10 grid gap-6 p-4 sm:p-6 lg:p-8 rounded-xl border border-border/60 bg-card/90 backdrop-blur-md lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-12">
+            <div className="relative z-10 grid gap-6 p-4 sm:p-6 lg:p-8 rounded-xl border border-sand-deep bg-sand lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-12">
               {editorialHeader}
               {checklistContent}
             </div>
@@ -309,7 +310,8 @@ export function TravelSectionView({ section, lang }: TravelSectionViewProps) {
       role="tabpanel"
       aria-labelledby={`travel-tab-${section.id}`}
       tabIndex={0}
-      className="focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
+      style={{ overflowAnchor: "none" }}
+      className="focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary [overflow-anchor:none]"
     >
       <GazaSurface
         family="guide"
@@ -324,7 +326,7 @@ export function TravelSectionView({ section, lang }: TravelSectionViewProps) {
 
       {/* For accessibility section, render the approved concept photo below */}
       {section.id === "accessibility" && (
-        <figure className="mt-8 overflow-hidden rounded-2xl border border-border bg-card shadow-xs">
+        <figure className="mt-8 overflow-hidden rounded-2xl border border-sand-deep bg-sand shadow-xs">
           <div className="relative aspect-[16/10] overflow-hidden bg-ink max-h-[360px]">
             <ResponsiveImage
               entry="passenger-assistance"
@@ -332,7 +334,7 @@ export function TravelSectionView({ section, lang }: TravelSectionViewProps) {
               className="size-full object-cover"
             />
           </div>
-          <figcaption className="p-3.5 sm:p-4 text-xs leading-relaxed text-muted-foreground border-t border-border">
+          <figcaption className="p-3.5 sm:p-4 text-xs leading-relaxed text-muted-foreground border-t border-sand-deep">
             <span className="font-semibold text-foreground">
               {t("travel.assistanceConceptLabel")}{" "}
             </span>

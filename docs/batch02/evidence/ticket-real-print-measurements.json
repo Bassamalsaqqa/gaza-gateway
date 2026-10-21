@@ -1,0 +1,48 @@
+[
+  {
+    "orientation": "portrait",
+    "pageCount": 1,
+    "pages": [
+      {
+        "widthMm": 209.89,
+        "heightMm": 297.01,
+        "images": [
+          {
+            "width": 1774,
+            "height": 887
+          },
+          {
+            "width": 1774,
+            "height": 887
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "orientation": "landscape",
+    "pageCount": 2,
+    "pages": [
+      {
+        "widthMm": 297.01,
+        "heightMm": 209.89,
+        "images": [
+          {
+            "width": 1774,
+            "height": 887
+          }
+        ]
+      },
+      {
+        "widthMm": 297.01,
+        "heightMm": 209.89,
+        "images": [
+          {
+            "width": 1774,
+            "height": 887
+          }
+        ]
+      }
+    ]
+  }
+]

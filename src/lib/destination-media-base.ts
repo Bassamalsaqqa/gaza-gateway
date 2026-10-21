@@ -25,7 +25,9 @@ export type DestinationPhotoId =
   | "city-new-york"
   | "city-paris"
   | "city-rome"
-  | "city-toronto";
+  | "city-toronto"
+  | "city-oslo"
+  | "city-stockholm";
 
 export const CORE_PHOTO_DESTINATION_CODES = [
   "AMM",
@@ -51,6 +53,8 @@ export const MEMORIAL_EXPANSION_DESTINATION_CODES = [
   "KUL",
   "JFK",
   "YYZ",
+  "OSL",
+  "ARN",
 ] as const;
 
 export const ALL_NETWORK_DESTINATION_CODES = [
@@ -74,6 +78,8 @@ export const ALL_NETWORK_DESTINATION_CODES = [
   "KUL",
   "JFK",
   "YYZ",
+  "OSL",
+  "ARN",
 ] as const;
 
 export type DestinationCode = (typeof ALL_NETWORK_DESTINATION_CODES)[number];
@@ -135,6 +141,8 @@ export const APPROVED_DESTINATION_PHOTO_IDS: readonly DestinationPhotoId[] = [
   "city-paris",
   "city-rome",
   "city-toronto",
+  "city-oslo",
+  "city-stockholm",
 ] as const;
 
 export const DESTINATION_PHOTO_METADATA: Record<DestinationPhotoId, DestinationPhotoMeta> = {
@@ -457,6 +465,38 @@ export const DESTINATION_PHOTO_METADATA: Record<DestinationPhotoId, DestinationP
       { width: 1920, height: 1280 },
     ],
     defaultFocalPoint: { x: 50, y: 52 },
+  },
+  "city-oslo": {
+    id: "city-oslo",
+    cityCode: "OSL",
+    cityNameEn: "Oslo",
+    cityNameAr: "أوسلو",
+    width: 1920,
+    height: 1080,
+    variants: [
+      { width: 480, height: 270 },
+      { width: 800, height: 450 },
+      { width: 1200, height: 675 },
+      { width: 1600, height: 900 },
+      { width: 1920, height: 1080 },
+    ],
+    defaultFocalPoint: { x: 50, y: 50 },
+  },
+  "city-stockholm": {
+    id: "city-stockholm",
+    cityCode: "ARN",
+    cityNameEn: "Stockholm",
+    cityNameAr: "ستوكهولم",
+    width: 1920,
+    height: 1280,
+    variants: [
+      { width: 480, height: 320 },
+      { width: 800, height: 533 },
+      { width: 1200, height: 800 },
+      { width: 1600, height: 1067 },
+      { width: 1920, height: 1280 },
+    ],
+    defaultFocalPoint: { x: 50, y: 50 },
   },
 };
 

@@ -1,0 +1,68 @@
+@font-face {
+  font-family: "Gza Ticket Latin";
+  src: url("../../assets/fonts/ticket/NotoSans-Regular.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Gza Ticket Latin";
+  src: url("../../assets/fonts/ticket/NotoSans-Bold.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Gza Ticket Arabic";
+  src: url("../../assets/fonts/ticket/NotoSansArabic-Regular.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Gza Ticket Arabic";
+  src: url("../../assets/fonts/ticket/NotoSansArabic-Bold.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+/**
+ * Gaza Gateway — Commemorative Archive Thank-You Tag Scoped CSS.
+ * Dimensions: 1122 x 1402 px (luggage tag aspect ratio).
+ * Preserves alpha transparent template shape and authentic brand tokens.
+ */
+
+.archive-tag-canvas-wrapper {
+  width: 100%;
+  max-width: 380px;
+  margin: 0 auto;
+  position: relative;
+  background: transparent;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.archive-tag-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1122 / 1402;
+  background: transparent;
+  filter: drop-shadow(0 6px 16px rgba(18, 59, 53, 0.12));
+}
+
+.archive-tag-canvas-wrapper[aria-busy="true"] canvas {
+  visibility: hidden;
+}
+
+@media print {
+  .archive-tag-actions,
+  .archive-tag-details-toggle {
+    display: none !important;
+  }
+}

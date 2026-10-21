@@ -42,8 +42,10 @@ describe("Destination Media Registry & Presentation Document", () => {
         "city-riyadh",
         "city-rome",
         "city-toronto",
+        "city-oslo",
+        "city-stockholm",
       ];
-      assert.equal(expectedIds.length, 20);
+      assert.equal(expectedIds.length, 22);
       assert.deepEqual(Object.keys(DESTINATION_PHOTO_METADATA).sort(), expectedIds.sort());
       assert.deepEqual([...APPROVED_DESTINATION_PHOTO_IDS].sort(), expectedIds.sort());
     });
@@ -63,7 +65,7 @@ describe("Destination Media Registry & Presentation Document", () => {
           count++;
         }
       }
-      assert.equal(count, 100);
+      assert.equal(count, 110);
     });
 
     it("maps every approved destination code to approved photo metadata with 5 variants", () => {
@@ -143,12 +145,12 @@ describe("Destination Media Registry & Presentation Document", () => {
       assert.equal(isContentKey("random.document"), false);
     });
 
-    it("validates the canonical published destinations presentation document with 20 items", () => {
+    it("validates the canonical published destinations presentation document with 22 items", () => {
       assert.equal(
         isValidContent("destinations.presentation", publishedDestinationsPresentation),
         true,
       );
-      assert.equal(publishedDestinationsPresentation.assignments.length, 20);
+      assert.equal(publishedDestinationsPresentation.assignments.length, 22);
       const health = contentHealth(publishedDestinationsPresentation);
       assert.equal(health.hasEnglish, true);
       assert.equal(health.hasArabic, true);

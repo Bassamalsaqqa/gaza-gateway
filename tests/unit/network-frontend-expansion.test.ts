@@ -6,10 +6,10 @@ import { networkDestinationSchema, networkStorageSchema } from '../../src/lib/ne
 import { airportWireSchema } from '../../src/lib/network/http-repository.ts';
 import { ALL_NETWORK_DESTINATION_CODES, APPROVED_DESTINATION_PHOTO_IDS, DESTINATION_PHOTO_METADATA } from '../../src/lib/destination-media-base.ts';
 
-describe('Twenty-destination memorial network compatibility', () => {
+describe('Twenty-two-destination memorial network compatibility', () => {
   const fixture = (code: string, blockMinutes = 750) => ({code, airportName:{en:'Synthetic airport',ar:'مطار اختباري'},city:{en:'Synthetic',ar:'اختبار'},country:{en:'Synthetic',ar:'اختبار'},timezone:'UTC',blockMinutes,active:true});
-  it('admits only the approved twenty destinations plus the GZA API hub', () => {
-    assert.equal(NETWORK_CODES.length,20);
+  it('admits only the approved twenty-two destinations plus the GZA API hub', () => {
+    assert.equal(NETWORK_CODES.length,22);
     assert.deepEqual(ALL_NETWORK_DESTINATION_CODES,NETWORK_CODES);
     for (const code of NETWORK_CODES) {
       assert.ok(networkDestinationSchema.safeParse(fixture(code)).success);
@@ -28,11 +28,13 @@ describe('Twenty-destination memorial network compatibility', () => {
     assert.ok(networkStorageSchema.safeParse(expanded).success);
     assert.equal(networkStorageSchema.safeParse({...expanded,destinations:[...expanded.destinations,fixture('BEY')]}).success,false);
   });
-  it('rejects invalid durations and admits all twenty genuine photo catalog entries', () => {
+  it('rejects invalid durations and admits all twenty-two genuine photo catalog entries', () => {
     for (const duration of [20,600,750,1440]) assert.ok(airportWireSchema.safeParse(fixture('JFK',duration)).success);
     for (const duration of [19,1441,NaN,Infinity]) assert.equal(airportWireSchema.safeParse(fixture('JFK',duration)).success,false);
-    assert.equal(APPROVED_DESTINATION_PHOTO_IDS.length,20);
-    assert.equal(Object.keys(DESTINATION_PHOTO_METADATA).length,20);
+    assert.equal(APPROVED_DESTINATION_PHOTO_IDS.length,22);
+    assert.equal(Object.keys(DESTINATION_PHOTO_METADATA).length,22);
+    assert.equal(Object.values(DESTINATION_PHOTO_METADATA).some(photo=>photo.cityCode==='OSL'),true);
+    assert.equal(Object.values(DESTINATION_PHOTO_METADATA).some(photo=>photo.cityCode==='ARN'),true);
     assert.equal(Object.values(DESTINATION_PHOTO_METADATA).some(photo=>photo.cityCode==='JFK'),true);
   });
 });

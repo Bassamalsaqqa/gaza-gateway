@@ -377,6 +377,62 @@
         "distanceKm": 9320,
         "photo": "none; neutral brand placeholder"
       }
+    },
+    {
+      "command": {
+        "code": "OSL",
+        "airportName": {
+          "en": "Oslo Airport, Gardermoen",
+          "ar": "مطار أوسلو، غاردرموين"
+        },
+        "city": {
+          "en": "Oslo",
+          "ar": "أوسلو"
+        },
+        "country": {
+          "en": "Norway",
+          "ar": "النرويج"
+        },
+        "timezone": "Europe/Oslo",
+        "blockMinutes": 310,
+        "active": true
+      },
+      "source": {
+        "ident": "ENGM",
+        "municipality": "Oslo",
+        "latitude": 60.19755,
+        "longitude": 11.100415,
+        "distanceKm": 3645,
+        "photo": "owner-supplied authentic city photography"
+      }
+    },
+    {
+      "command": {
+        "code": "ARN",
+        "airportName": {
+          "en": "Stockholm Arlanda Airport",
+          "ar": "مطار ستوكهولم أرلاندا"
+        },
+        "city": {
+          "en": "Stockholm",
+          "ar": "ستوكهولم"
+        },
+        "country": {
+          "en": "Sweden",
+          "ar": "السويد"
+        },
+        "timezone": "Europe/Stockholm",
+        "blockMinutes": 290,
+        "active": true
+      },
+      "source": {
+        "ident": "ESSA",
+        "municipality": "Stockholm",
+        "latitude": 59.649833,
+        "longitude": 17.92378,
+        "distanceKm": 3385,
+        "photo": "owner-supplied authentic city photography"
+      }
     }
   ]
 }

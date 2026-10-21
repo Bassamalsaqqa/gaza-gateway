@@ -1,5 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { publishedTravel } from "../../src/content/published/travel.ts";
 import { validateTravelContent } from "../../src/components/admin/cms/cms-validation.ts";
 import type { TravelContent, TravelGuideSection } from "../../src/content/types.ts";
@@ -12,6 +13,11 @@ import {
   getSectionFaqs,
   getSectionActions,
 } from "../../src/components/travel-guide/travel-helpers.ts";
+import {
+  HERITAGE_SHUTTLE_CITIES,
+  HERITAGE_SHUTTLE_ARCHIVE_URL,
+  HERITAGE_SHUTTLE_RECORD_COUNT,
+} from "../../src/components/travel-guide/travel-shuttle-data.ts";
 
 describe("Travel Guide Redesign — Unit & Behavioral Invariant Tests", () => {
   describe("Section Normalization (normalizeTravelSections)", () => {
@@ -260,6 +266,84 @@ describe("Travel Guide Redesign — Unit & Behavioral Invariant Tests", () => {
           assert.equal(pt.visible, true);
         }
       }
+    });
+  });
+  describe("Heritage-Inspired Ground-Shuttle Conceptual Network", () => {
+    it("contains exactly 6 regional destination hubs with canonical IDs", () => {
+      assert.equal(HERITAGE_SHUTTLE_CITIES.length, 6);
+      const expectedIds = ["jaffa", "ramallah", "hebron", "nablus", "jerusalem", "haifa"];
+      const actualIds = HERITAGE_SHUTTLE_CITIES.map((c) => c.id);
+      assert.deepEqual(actualIds, expectedIds);
+    });
+
+    it("cites the verified 96 pre-Nakba transportation archive without broken links", () => {
+      assert.equal(
+        HERITAGE_SHUTTLE_ARCHIVE_URL,
+        "https://www.palestineremembered.com/tags/Transportation-Co..html",
+      );
+      assert.equal(HERITAGE_SHUTTLE_RECORD_COUNT, 96);
+    });
+
+    it("maintains strict bilingual integrity without combining strings", () => {
+      for (const city of HERITAGE_SHUTTLE_CITIES) {
+        assert.ok(city.name.en.trim().length > 0);
+        assert.ok(city.name.ar.trim().length > 0);
+        assert.ok(city.corridor.en.trim().length > 0);
+        assert.ok(city.corridor.ar.trim().length > 0);
+        assert.ok(city.concept.en.trim().length > 0);
+        assert.ok(city.concept.ar.trim().length > 0);
+        assert.ok(!city.name.en.includes("/"));
+        assert.ok(!city.name.ar.includes("/"));
+      }
+    });
+
+    it("preserves conceptual framing without invented operator names or fake service schedules", () => {
+      const forbiddenOperators = ["syndicate", "registries", "concession", "franchise", "transit board"];
+      for (const city of HERITAGE_SHUTTLE_CITIES) {
+        const textEn = (city.concept.en + " " + city.corridor.en).toLowerCase();
+        for (const forbidden of forbiddenOperators) {
+          assert.ok(!textEn.includes(forbidden), `Found forbidden invented operator term "${forbidden}" in ${city.id}`);
+        }
+        assert.ok(!textEn.includes("daily departure"));
+        assert.ok(!textEn.includes("bay "));
+        assert.ok(!textEn.includes("fare:"));
+        assert.ok(!textEn.includes("timetable"));
+      }
+    });
+
+    it("verifies single concise concept line without duplicate badges or sidebar warning boxes", () => {
+      const shuttleSrc = readFileSync("src/components/travel-guide/travel-ground-shuttle.tsx", "utf8");
+      // Must not contain duplicate conceptual study badge
+      assert.doesNotMatch(shuttleSrc, /Conceptual Study/);
+      assert.doesNotMatch(shuttleSrc, /رؤية مستقبلية/);
+      // Must not contain sidebar warning box
+      assert.doesNotMatch(shuttleSrc, /Memorial Note:/);
+      assert.doesNotMatch(shuttleSrc, /ملاحظة تذكارية:/);
+      // Must use preventScroll: true on keyboard focus
+      assert.match(shuttleSrc, /focus\(\{\s*preventScroll:\s*true\s*\}\)/);
+    });
+  });
+
+  describe("Scroll Jump Mitigation & Anchor Invariants", () => {
+    it("ensures TravelNav uses container-only scrolling and avoids trigger.scrollIntoView", () => {
+      const navSrc = readFileSync("src/components/travel-guide/travel-nav.tsx", "utf8");
+      assert.doesNotMatch(navSrc, /scrollIntoView/);
+      assert.match(navSrc, /container\.scrollBy/);
+      assert.match(navSrc, /focus\(\{\s*preventScroll:\s*true\s*\}\)/);
+      assert.match(navSrc, /overflowAnchor:\s*["']none["']/);
+    });
+
+    it("ensures travel route captures scroll before navigate, uses layout effect and disables vertical anchor", () => {
+      const routeSrc = readFileSync("src/routes/{-$locale}.travel.tsx", "utf8");
+      assert.match(routeSrc, /pendingScrollYRef\.current\s*=\s*window\.scrollY/);
+      assert.match(routeSrc, /useIsomorphicLayoutEffect/);
+      assert.match(routeSrc, /resetScroll:\s*false/);
+      assert.match(routeSrc, /overflowAnchor:\s*["']none["']/);
+    });
+
+    it("ensures TravelSectionView sets overflow-anchor: none on tab panels", () => {
+      const viewSrc = readFileSync("src/components/travel-guide/travel-section-view.tsx", "utf8");
+      assert.match(viewSrc, /overflowAnchor:\s*["']none["']/);
     });
   });
 });

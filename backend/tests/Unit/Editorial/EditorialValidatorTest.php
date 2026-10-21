@@ -64,6 +64,8 @@ final class EditorialValidatorTest extends TestCase
             ['code' => 'CDG', 'photoId' => 'city-paris', 'focalPoint' => ['x' => 60, 'y' => 50]],
             ['code' => 'FCO', 'photoId' => 'city-rome', 'focalPoint' => ['x' => 50, 'y' => 40]],
             ['code' => 'YYZ', 'photoId' => 'city-toronto', 'focalPoint' => ['x' => 50, 'y' => 52]],
+            ['code' => 'OSL', 'photoId' => 'city-oslo', 'focalPoint' => ['x' => 50, 'y' => 50]],
+            ['code' => 'ARN', 'photoId' => 'city-stockholm', 'focalPoint' => ['x' => 50, 'y' => 50]],
         ];
     }
 
@@ -74,7 +76,7 @@ final class EditorialValidatorTest extends TestCase
         $this->assertTrue(true);
     }
 
-    public function test_admits_full_20_network_destination_presentation(): void
+    public function test_admits_full_22_network_destination_presentation(): void
     {
         $payload = $this->basePresentationPayload($this->full20Assignments());
         $this->validator->validate('destinations.presentation', $payload);
@@ -166,7 +168,7 @@ final class EditorialValidatorTest extends TestCase
     public function test_rejects_fewer_than_7_assignments(): void
     {
         $this->expectException(EditorialValidationException::class);
-        $this->expectExceptionMessage("destinations.presentation 'assignments' must contain between 7 and 20 items.");
+        $this->expectExceptionMessage("destinations.presentation 'assignments' must contain between 7 and 22 items.");
 
         $assignments = array_slice($this->legacyCore7Assignments(), 0, 6);
         $payload = $this->basePresentationPayload($assignments);

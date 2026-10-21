@@ -193,6 +193,8 @@ const presentationDestinationCode = z.enum([
   "CDG",
   "FCO",
   "YYZ",
+  "OSL",
+  "ARN",
 ]);
 const destinationPhotoId = z.enum([
   "city-amman",
@@ -215,6 +217,8 @@ const destinationPhotoId = z.enum([
   "city-paris",
   "city-rome",
   "city-toronto",
+  "city-oslo",
+  "city-stockholm",
 ]);
 const focalPoint = z.object({
   x: z.number().min(0).max(100),
@@ -229,7 +233,7 @@ const destinationsPresentation = z.object({
   ...envelope,
   id: z.literal("destinations.presentation"),
   kind: z.literal("destinations.presentation"),
-  assignments: z.array(destinationAssignment).min(7).max(20),
+  assignments: z.array(destinationAssignment).min(7).max(22),
 }).strict().refine(
   (doc) =>
     unique(doc.assignments.map((a) => a.code)) &&

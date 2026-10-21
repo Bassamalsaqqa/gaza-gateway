@@ -1,32 +1,43 @@
 /**
- * Gaza Gateway — Dynamic Commemorative E-Ticket / Itinerary Component.
+ * Gaza Gateway — Approved Commemorative E-Ticket / Itinerary Component.
  *
- * EXACT Physical Dimensions: 8 x 3.25 inches = 203.2 x 82.55 mm
- * Landscape Ratio: 32 / 13 = 2.461538
- * Composition: 960 x 390 px reference canvas
- * Distribution: Main 78% (748.8px), Stub 22% (211.2px) with vertical perforation
+ * EXACT Canvas Dimensions: 1774 x 887 px (2:1 aspect ratio).
+ * Artwork: Exact unchanged approved 1774x887 transparent PNG background
+ * (ticket-blank-approved.png) with dynamic 2D canvas overlay calibrated to
+ * exact reserved white spaces from the approved specification.
  *
- * Implements the approved ticket art direction with 100% dynamic, selectable
- * HTML/CSS, strict truth disclosures, bidi RTL/LTR isolation, mobile-friendly
- * detail summary, accessible Radix dialog zoom viewer, and zero mock fallback.
+ * Supersedes the legacy 32:13 (960 x 390) HTML reconstruction.
+ *
+ * Engineering invariants:
+ * - Unchanged approved 1774x887 blank PNG asset.
+ * - Dynamic canvas overlay uses exact calibrated demo pixel coordinates.
+ * - Uniform scaling across all viewport widths (320px to 4K).
+ * - Full accessible text summary preserved in DOM with ARIA roles.
+ * - Keyboard accessible Radix Dialog full-size zoom viewer.
+ * - Client-side high-resolution (1774x887) transparent PNG export download.
+ * - Print layout: A4 portrait and landscape, natural pagination, no clipping.
+ * - 100% data truthfulness: real confirmed reservation data, truthful cancelled
+ *   representation, no fabricated gate/seat/cabin or barcode.
+ * - One ticket per passenger and flight leg.
  */
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import "./commemorative-ticket.css";
 import { useI18n } from "@/lib/i18n";
 import type { ReservationDetail } from "@/lib/reservations/client";
 import {
   mapTicketPresentation,
+  formatTicketDate,
+  extractPassengerNames,
+  TICKET_CANVAS_WIDTH,
+  TICKET_CANVAS_HEIGHT,
+  preloadTicketImage,
+  type TicketLoadState,
   type MappedPassengerTicket,
   type TicketLang,
 } from "@/lib/reservations/ticket-presentation";
 
-import logoWebp from "@/assets/media/tickets/gaza-palestinian-airlines-logo.webp";
-import terminalPhotoWebp from "@/assets/media/tickets/terminal-concept-clean.webp";
-import oliveBranchSvg from "@/assets/media/tickets/olive-branch.svg";
-import oliveBranchFooterSvg from "@/assets/media/tickets/olive-branch-footer.svg";
-import skylineSvg from "@/assets/media/tickets/architectural-skyline-approximation.svg";
-import patternSvg from "@/assets/media/tickets/low-contrast-geometric-pattern.svg";
+import ticketBlankApprovedPng from "@/assets/media/tickets/ticket-blank-approved.png";
 
 import {
   Dialog,
@@ -35,264 +46,435 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Maximize2, Printer, Plane } from "lucide-react";
+import { Maximize2, Printer, Download } from "lucide-react";
+
+// Spec typography & colors from approved demo
+const INK = "#123b35";
+const MUTED = "#192d30";
+const CLAY = "#A92D32";
+const FONT_LATIN = '"Gza Ticket Latin", sans-serif';
+const FONT_ARABIC = '"Gza Ticket Arabic", sans-serif';
+
+interface TypeOpts {
+  x: number;
+  y: number;
+  maxWidth: number;
+  size?: number;
+  minSize?: number;
+  weight?: number | string;
+  color?: string;
+  align?: CanvasTextAlign;
+  font?: string;
+  dir?: "ltr" | "rtl";
+}
+
+function typeText(ctx: CanvasRenderingContext2D, str: string | null | undefined, opts: TypeOpts): void {
+  if (!str) return;
+  const {
+    x,
+    y,
+    maxWidth,
+    size = 26,
+    minSize = 14,
+    weight = 700,
+    color = INK,
+    align = "left",
+    font = FONT_LATIN,
+    dir = "ltr",
+  } = opts;
+
+  ctx.save();
+  ctx.textAlign = align;
+  ctx.textBaseline = "alphabetic";
+  ctx.direction = dir;
+  ctx.fillStyle = color;
+
+  const s = String(str);
+  let px = size;
+  while (px > minSize) {
+    ctx.font = `${weight} ${px}px ${font}`;
+    if (ctx.measureText(s).width <= maxWidth) break;
+    px -= 1;
+  }
+  ctx.font = `${weight} ${px}px ${font}`;
+  ctx.fillText(s, x, y, maxWidth);
+  ctx.restore();
+}
+
+function latinText(ctx: CanvasRenderingContext2D, s: string | null | undefined, o: TypeOpts): void {
+  typeText(ctx, String(s || "").toLocaleUpperCase("en-US"), o);
+}
+
+function bilingualCities(
+  ctx: CanvasRenderingContext2D,
+  city: string,
+  arabic: string | undefined,
+  x: number,
+  cityY: number,
+  maxWidth: number
+): void {
+  const value = (city || "").trim();
+  typeText(ctx, value, { x, y: cityY, size: 24, maxWidth, weight: 650, color: MUTED, font: FONT_LATIN });
+  if (arabic && arabic.trim()) {
+    ctx.save();
+    ctx.font = `650 24px ${FONT_LATIN}`;
+    const used = Math.min(ctx.measureText(value).width, maxWidth - 80);
+    ctx.restore();
+    typeText(ctx, arabic.trim(), {
+      x: x + used + 14,
+      y: cityY - 1,
+      size: 22,
+      minSize: 15,
+      maxWidth: Math.max(60, maxWidth - used - 14),
+      weight: 600,
+      color: MUTED,
+      font: FONT_ARABIC,
+      dir: "rtl",
+    });
+  }
+}
+
+/**
+ * Pure canvas painter using exact coordinates from owner-approved specification demo.
+ */
+function drawTicketOnCanvas(
+  canvas: HTMLCanvasElement,
+  image: HTMLImageElement | null,
+  ticket: MappedPassengerTicket,
+  lang: TicketLang = "en"
+): void {
+  const ctx = canvas.getContext("2d", { alpha: true });
+  if (!ctx) return;
+
+  const W = TICKET_CANVAS_WIDTH;
+  const H = TICKET_CANVAS_HEIGHT;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Background approved artwork
+  if (image && image.complete && image.naturalWidth > 0) {
+    ctx.drawImage(image, 0, 0, W, H);
+  }
+
+  const isRtl = lang === "ar";
+  const isCancelled = ticket.isCancelled;
+
+  // Passenger names (Latin & Arabic separation)
+  const paxNames = extractPassengerNames(ticket.passengerName);
+  const fromCity = (ticket.originCityEn || ticket.originCity || "").toUpperCase();
+  const fromCityArabic = ticket.originCityAr || "";
+  const toCity = (ticket.destinationCityEn || ticket.destinationCity || "").toUpperCase();
+  const toCityArabic = ticket.destinationCityAr || "";
+
+  // 1. Flight route: native pixel coordinates calibrated for 1774×887 artwork
+  latinText(ctx, ticket.originCode, { x: 96, y: 522, maxWidth: 230, size: 75, minSize: 45, weight: 800, color: INK });
+  latinText(ctx, ticket.destinationCode, { x: 569, y: 522, maxWidth: 230, size: 75, minSize: 45, weight: 800, color: INK });
+  bilingualCities(ctx, fromCity, fromCityArabic, 96, 558, 240);
+  bilingualCities(ctx, toCity, toCityArabic, 571, 558, 340);
+
+  // 2. Lower information row: each column bounded by the pre-printed gold rules
+  const gateValue = (ticket as unknown as { gateCode?: string }).gateCode || "—";
+  const seatValue = isCancelled
+    ? (isRtl ? "تم التحرير" : "RELEASED")
+    : (ticket.hasAssignedSeat ? ticket.seatCode : "—");
+  const cabinValue = ticket.cabin || "—";
+  const dateValue = formatTicketDate(ticket.date, lang) || ticket.formattedDate;
+
+  const cols: Array<[string, number, number, number, number, string?]> = [
+    [ticket.flightNumber, 115, 653, 135, 34],
+    [dateValue, 285, 653, 165, 28],
+    [ticket.departTime, 482, 653, 190, 34],
+    [gateValue, 717, 653, 136, 34],
+    [seatValue, 895, 653, 155, 34, isCancelled ? CLAY : MUTED],
+    [cabinValue, 1082, 653, 213, 29],
+  ];
+
+  for (const [value, colX, colY, colW, colSize, colorOverride] of cols) {
+    const isValAr = /[\u0600-\u06FF]/.test(value);
+    typeText(ctx, value, {
+      x: colX,
+      y: colY,
+      maxWidth: colW,
+      size: colSize,
+      minSize: 16,
+      color: colorOverride || MUTED,
+      weight: 750,
+      font: isValAr ? FONT_ARABIC : FONT_LATIN,
+      dir: isValAr ? "rtl" : "ltr",
+    });
+  }
+
+  // 3. Passenger and trip repetition on the detachable right stub
+  // Dynamic labels use selected language only (approved baked art stays unchanged)
+  const paxLabel = isRtl ? "المسافر" : "PASSENGER";
+  typeText(ctx, paxLabel, {
+    x: 1390,
+    y: 356,
+    maxWidth: 226,
+    size: 15,
+    minSize: 12,
+    color: MUTED,
+    weight: 700,
+    font: isRtl ? FONT_ARABIC : FONT_LATIN,
+    dir: isRtl ? "rtl" : "ltr",
+  });
+
+  if (paxNames.latin && paxNames.arabic) {
+    latinText(ctx, paxNames.latin, { x: 1390, y: 390, maxWidth: 226, size: 27, minSize: 16, color: INK, weight: 800 });
+    typeText(ctx, paxNames.arabic, {
+      x: 1390,
+      y: 415,
+      maxWidth: 218,
+      size: 18,
+      minSize: 13,
+      weight: 600,
+      color: MUTED,
+      font: FONT_ARABIC,
+      dir: "rtl",
+    });
+  } else if (paxNames.arabic && !paxNames.latin) {
+    typeText(ctx, paxNames.arabic, {
+      x: 1390,
+      y: 390,
+      maxWidth: 226,
+      size: 25,
+      minSize: 15,
+      weight: 800,
+      color: INK,
+      font: FONT_ARABIC,
+      dir: "rtl",
+    });
+  } else {
+    // Pure Latin, non-Latin (Cyrillic, Greek, CJK, etc.) or any full name: preserve all data!
+    const fullName = paxNames.fullName || ticket.passengerName;
+    const hasAr = /[\u0600-\u06FF]/.test(fullName);
+    typeText(ctx, fullName, {
+      x: 1390,
+      y: 390,
+      maxWidth: 226,
+      size: 27,
+      minSize: 15,
+      weight: 800,
+      color: INK,
+      font: hasAr ? FONT_ARABIC : FONT_LATIN,
+      dir: hasAr ? "rtl" : "ltr",
+    });
+  }
+
+  const flightLabel = isRtl ? "الرحلة" : "FLIGHT";
+  typeText(ctx, flightLabel, {
+    x: 1390,
+    y: 440,
+    maxWidth: 200,
+    size: 15,
+    minSize: 12,
+    weight: 700,
+    color: MUTED,
+    font: isRtl ? FONT_ARABIC : FONT_LATIN,
+    dir: isRtl ? "rtl" : "ltr",
+  });
+  latinText(ctx, ticket.flightNumber, { x: 1390, y: 471, maxWidth: 200, size: 27, minSize: 16, weight: 800, color: INK });
+  latinText(ctx, ticket.originCode, { x: 1390, y: 555, maxWidth: 86, size: 33, minSize: 20, weight: 800, color: INK });
+  latinText(ctx, ticket.destinationCode, { x: 1545, y: 555, maxWidth: 73, size: 33, minSize: 20, weight: 800, color: INK });
+  typeText(ctx, dateValue, {
+    x: 1390,
+    y: 638,
+    maxWidth: 226,
+    size: 25,
+    minSize: 14,
+    weight: 740,
+    color: MUTED,
+    font: isRtl ? FONT_ARABIC : FONT_LATIN,
+    dir: isRtl ? "rtl" : "ltr",
+  });
+  typeText(ctx, seatValue, {
+    x: 1390,
+    y: 696,
+    maxWidth: 108,
+    size: 25,
+    minSize: 15,
+    weight: 750,
+    color: isCancelled ? CLAY : MUTED,
+    font: isCancelled && isRtl ? FONT_ARABIC : FONT_LATIN,
+    dir: isCancelled && isRtl ? "rtl" : "ltr",
+  });
+  typeText(ctx, cabinValue, { x: 1480, y: 696, maxWidth: 111, size: 23, minSize: 13, weight: 750, color: MUTED });
+
+  // 4. Dynamic booking reference inside the intentionally reserved lower-left panel
+  const refLabel = isRtl ? "مرجع الحجز" : "BOOKING REFERENCE";
+  typeText(ctx, refLabel, {
+    x: 108,
+    y: 733,
+    maxWidth: 340,
+    size: 17,
+    minSize: 13,
+    weight: 600,
+    color: "#56665f",
+    font: isRtl ? FONT_ARABIC : FONT_LATIN,
+    dir: isRtl ? "rtl" : "ltr",
+  });
+  latinText(ctx, ticket.reference, { x: 109, y: 773, maxWidth: 340, size: 37, minSize: 19, weight: 800, color: INK });
+
+  // 5. Stub scanner area intentionally blank: no fake operational barcode, no sample disclaimer
+
+  // 6. Truthful cancellation representation (no confirmation status on confirmed art)
+  if (isCancelled) {
+    ctx.save();
+    // Authoritative single-language banner across the top
+    ctx.fillStyle = CLAY;
+    ctx.fillRect(0, 0, W, 44);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "#FFFFFF";
+    ctx.font = `800 17px ${isRtl ? FONT_ARABIC : FONT_LATIN}`;
+    ctx.direction = isRtl ? "rtl" : "ltr";
+    const cancelBannerText = isRtl
+      ? "ملغى · تم إلغاء هذا الحجز والمقعد محرر"
+      : "CANCELLED · RESERVATION CANCELLED — SEAT RELEASED";
+    ctx.fillText(cancelBannerText, W / 2, 22);
+    ctx.restore();
+  }
+}
+
+/**
+ * Downloads a high-resolution 1774x887 transparent PNG directly from canvas.
+ */
+function downloadTicketPng(
+  canvas: HTMLCanvasElement | null,
+  reference: string,
+  passengerName: string
+): void {
+  if (!canvas) return;
+  const safeRef = (reference || "sample").replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 32);
+  const safePax = (passengerName || "passenger").replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 24);
+  const filename = `gaza-airport-ticket-${safeRef}-${safePax}.png`;
+
+  if (typeof canvas.toBlob === "function") {
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.download = filename;
+      a.href = url;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }, "image/png");
+  } else {
+    const a = document.createElement("a");
+    a.download = filename;
+    a.href = canvas.toDataURL("image/png");
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+}
 
 export interface CommemorativeTicketCardProps {
   ticket: MappedPassengerTicket;
   lang: TicketLang;
+  onCanvasReady?: (canvas: HTMLCanvasElement) => void;
+  onStateChange?: (state: TicketLoadState) => void;
 }
 
 /**
- * Pure physical card rendering with strict 32:13 landscape aspect ratio (8 x 3.25 inches).
- * 78% Main Pass, 22% Perforated Stub with vertical dashed perforation.
+ * Physical card rendering with exact 2:1 landscape aspect ratio (1774 x 887 px).
+ * Renders the unchanged approved background PNG with the dynamic canvas overlay.
  */
-export function CommemorativeTicketCard({ ticket, lang }: CommemorativeTicketCardProps) {
+export function CommemorativeTicketCard({
+  ticket,
+  lang,
+  onCanvasReady,
+  onStateChange,
+}: CommemorativeTicketCardProps) {
   const isRtl = lang === "ar";
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [loadState, setLoadState] = useState<TicketLoadState>("loading");
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    let cancelled = false;
+    setLoadState("loading");
+    onStateChange?.("loading");
+
+    // Canvas-only faces are not requested by document.fonts.ready on their own.
+    // Load both scripts before painting so PNGs and the server use bundled fonts.
+    const fontPromise = typeof document !== "undefined" && document.fonts
+      ? Promise.all([
+          document.fonts.load(`700 27px ${FONT_LATIN}`, "PASSENGER"),
+          document.fonts.load(`400 24px ${FONT_LATIN}`, "GZA"),
+          document.fonts.load(`700 25px ${FONT_ARABIC}`, "المسافر"),
+          document.fonts.load(`400 22px ${FONT_ARABIC}`, "غزة"),
+        ]).then((faces) => {
+          if (faces.some((loaded) => loaded.length === 0)) {
+            throw new Error("Ticket font unavailable");
+          }
+        })
+      : Promise.resolve();
+
+    const imagePromise = preloadTicketImage(ticketBlankApprovedPng);
+
+    Promise.all([imagePromise, fontPromise])
+      .then(([img]) => {
+        if (cancelled || !isMountedRef.current) return;
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        drawTicketOnCanvas(canvas, img, ticket, lang);
+        setLoadState("ready");
+        onStateChange?.("ready");
+        onCanvasReady?.(canvas);
+      })
+      .catch((err) => {
+        if (cancelled || !isMountedRef.current) return;
+        console.error("Ticket artwork loading failed:", err);
+        setLoadState("error");
+        onStateChange?.("error");
+      });
+
+    return () => {
+      cancelled = true;
+      isMountedRef.current = false;
+    };
+  }, [ticket, lang, onCanvasReady, onStateChange]);
 
   return (
     <article
-      className={`gza-ticket ${ticket.isCancelled ? "gza-ticket-cancelled" : ""}`}
+      className={`gza-ticket-card-root ${ticket.isCancelled ? "is-cancelled" : ""}`}
       dir={isRtl ? "rtl" : "ltr"}
       lang={lang}
       aria-label={`${ticket.classification} · ${ticket.passengerName} · ${ticket.flightNumber}`}
     >
-      {/* Cancellation Banner inside Physical Card */}
-      {ticket.isCancelled && (
-        <div className="gza-ticket-cancelled-banner-inner" role="status">
-          {ticket.statusLabel} —{" "}
+      {/* Visible Error Notification on Load Failure */}
+      {loadState === "error" && (
+        <div className="gza-ticket-error-notice" role="alert">
           {isRtl
-            ? "تم إلغاء هذا الحجز والمقعد محرر"
-            : "This reservation is cancelled — seat released"}
+            ? "تعذر تحميل قالب التذكرة المعتمد. يرجى تحديث الصفحة."
+            : "Unable to load approved ticket background artwork. Please refresh the page."}
         </div>
       )}
 
-      {/* Main Ticket Area (78%) */}
-      <div className="gza-ticket-main">
-        {/* Row 1: Hero Banner with Future Concept Photo & Airline Branding (125fr) */}
-        <section className="gza-ticket-hero">
-          <div
-            className="gza-ticket-hero-photo"
-            style={{ backgroundImage: `url(${terminalPhotoWebp})` }}
-            role="img"
-            aria-label={isRtl ? "تصميم مبنى مطار غزة" : "Gaza airport terminal architecture"}
-          />
-          <div
-            className={isRtl ? "gza-ticket-hero-overlay-rtl" : "gza-ticket-hero-overlay-ltr"}
-            aria-hidden="true"
-          />
-          <img className="gza-ticket-hero-olive" src={oliveBranchSvg} alt="" aria-hidden="true" />
-
-          <div className="gza-ticket-hero-left">
-            <img
-              className="gza-ticket-logo"
-              src={logoWebp}
-              alt={ticket.carrierName}
-              width={135}
-              height={110}
-            />
-            <div className="gza-ticket-hero-separator" aria-hidden="true" />
-            <div className="gza-ticket-claim">
-              <span className="gza-ticket-hub-brand">{ticket.hubName}</span>
-              <br />
-              PEOPLE · PLACES
-              <br />
-              A BRIGHTER TOMORROW
-              <small className="gza-ticket-claim-sub" lang="ar">
-                أكثر من مجرد وجهة
-              </small>
-            </div>
-          </div>
-
-          <div className="gza-ticket-courtesy">
-            <strong lang="ar">من غزة إلى العالم</strong>
-            <span>FROM GAZA ... TO THE WORLD</span>
-          </div>
-        </section>
-
-        {/* Row 2: Central Route & Passenger Row (115fr) */}
-        <div className="gza-ticket-route-pax">
-          <div className="gza-ticket-route-col">
-            <div className="gza-ticket-station">
-              <div className="gza-ticket-station-label">{isRtl ? "من" : "FROM"}</div>
-              <div className="gza-ticket-station-iata" dir="ltr">
-                {ticket.originCode}
-              </div>
-              <div className="gza-ticket-station-city">{ticket.originCity}</div>
-            </div>
-
-            <div className="gza-ticket-flight-line" aria-hidden="true">
-              <Plane
-                className={`gza-ticket-flight-airplane ${isRtl ? "gza-ticket-flight-airplane-rtl" : ""}`}
-                aria-hidden="true"
-              />
-              <span className="gza-ticket-flight-tag" dir="ltr">
-                {ticket.flightNumber}
-              </span>
-            </div>
-
-            <div className="gza-ticket-station gza-ticket-station-dest">
-              <div className="gza-ticket-station-label">{isRtl ? "إلى" : "TO"}</div>
-              <div className="gza-ticket-station-iata" dir="ltr">
-                {ticket.destinationCode}
-              </div>
-              <div className="gza-ticket-station-city">{ticket.destinationCity}</div>
-            </div>
-          </div>
-
-          <div className="gza-ticket-pax-col">
-            <div className="gza-ticket-field-label">{isRtl ? "المسافر" : "PASSENGER"}</div>
-            <div className="gza-ticket-passenger-name" title={ticket.passengerName}>
-              {ticket.passengerName}
-            </div>
-            <div className="gza-ticket-passenger-tag">
-              {ticket.passengerTypeLabel} · {ticket.nationality}
-            </div>
-          </div>
-        </div>
-
-        {/* Row 3: Travel Essentials Bar (75fr) */}
-        <div className="gza-ticket-essentials">
-          <div className="gza-ticket-field">
-            <div className="gza-ticket-field-label">{isRtl ? "الرحلة" : "FLIGHT"}</div>
-            <div className="gza-ticket-field-value" dir="ltr">
-              {ticket.flightNumber}
-            </div>
-          </div>
-
-          <div className="gza-ticket-field">
-            <div className="gza-ticket-field-label">{isRtl ? "التاريخ" : "DATE"}</div>
-            <div className="gza-ticket-field-value">{ticket.formattedDate}</div>
-          </div>
-
-          <div className="gza-ticket-field">
-            <div className="gza-ticket-field-label">{isRtl ? "المغادرة" : "DEPART"}</div>
-            <div className="gza-ticket-field-value" dir="ltr">
-              {ticket.departTime}
-            </div>
-          </div>
-
-          <div className="gza-ticket-field">
-            <div className="gza-ticket-field-label">{isRtl ? "الوصول" : "ARRIVE"}</div>
-            <div className="gza-ticket-field-value" dir="ltr">
-              {ticket.arriveTime}
-              {ticket.dayOffsetLabel && (
-                <span
-                  className="gza-ticket-overnight-badge"
-                  title={ticket.formattedArrivalDate || undefined}
-                >
-                  {ticket.dayOffsetLabel}
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div className="gza-ticket-field">
-            <div className="gza-ticket-field-label">{isRtl ? "المقعد" : "SEAT"}</div>
-            <div
-              className={`gza-ticket-field-value ${ticket.isCancelled ? "gza-ticket-clay-tag" : ""}`}
-              dir={ticket.isCancelled ? undefined : "ltr"}
-            >
-              {ticket.isCancelled
-                ? isRtl
-                  ? "تم التحرير"
-                  : "RELEASED"
-                : ticket.hasAssignedSeat
-                  ? ticket.seatCode
-                  : "—"}
-            </div>
-          </div>
-        </div>
-
-        {/* Row 4: Decorative Footer Area & Notices (75fr) */}
-        <div className="gza-ticket-footer">
-          <div
-            className="gza-ticket-footer-pattern"
-            style={{ backgroundImage: `url(${patternSvg})` }}
-            aria-hidden="true"
-          />
-
-
-          <div className="gza-ticket-footer-bar">
-            <div className="gza-ticket-footer-verification">
-              <div><span className="gza-ticket-footer-meta-label">{isRtl ? "رقم التذكرة" : "TICKET"}</span><bdi dir="ltr">{ticket.ticketNumber}</bdi></div>
-              <div><span className="gza-ticket-footer-meta-label">{isRtl ? "مرجع الحجز" : "REFERENCE"}</span><bdi dir="ltr">{ticket.reference}</bdi></div>
-            </div>
-
-            <div className="gza-ticket-footer-message">
-              <strong lang="ar">رحلات تربط الناس بمستقبل أجمل</strong>
-              <small>JOURNEYS THAT BRING US CLOSER</small>
-            </div>
-
-            <img
-              className="gza-ticket-footer-skyline"
-              src={skylineSvg}
-              alt=""
-              aria-hidden="true"
-              title={ticket.skylineNotice}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Perforated Desktop Stub (22%) */}
-      <div
-        className={`gza-ticket-stub ${isRtl ? "gza-ticket-stub-rtl" : "gza-ticket-stub-ltr"}`}
-      >
-        {ticket.isCancelled && <span
-          className={`gza-ticket-status-tag ${ticket.isCancelled ? "gza-ticket-status-tag-cancelled" : ""}`}
-          role="status"
+      {/* Scalable High-Res Ticket Canvas */}
+      <div className="gza-ticket-canvas-wrapper" aria-busy={loadState === "loading"}>
+        <canvas
+          ref={canvasRef}
+          width={TICKET_CANVAS_WIDTH}
+          height={TICKET_CANVAS_HEIGHT}
+          className="gza-ticket-canvas"
+          role="img"
+          aria-label={`${ticket.classification} · ${ticket.passengerName} · ${ticket.flightNumber} · ${ticket.originCode} to ${ticket.destinationCode} · ${ticket.formattedDate}`}
         >
-          {ticket.statusLabel}
-        </span>}
-
-        <img className="gza-ticket-stub-logo" src={logoWebp} alt={ticket.carrierName} />
-
-        <div className="gza-ticket-stub-label">{isRtl ? "المسافر" : "PASSENGER"}</div>
-        <div className="gza-ticket-stub-value gza-ticket-stub-pax" title={ticket.passengerName}>
-          {ticket.passengerName}
-        </div>
-
-        <div className="gza-ticket-stub-label">{isRtl ? "الرحلة والمسار" : "FLIGHT & ROUTE"}</div>
-        <div className="gza-ticket-stub-route" dir="ltr">
-          {ticket.flightNumber} · {ticket.originCode}{" "}
-          <Plane
-            className={`size-3.5 inline-block ${isRtl ? "-scale-x-100" : ""}`}
-            aria-hidden="true"
-          />{" "}
-          {ticket.destinationCode}
-        </div>
-
-        <div className="gza-ticket-stub-label">{isRtl ? "التاريخ" : "DATE"}</div>
-        <div className="gza-ticket-stub-value">{ticket.formattedDate}</div>
-
-        <div className="gza-ticket-stub-label">{isRtl ? "المقعد" : "SEAT"}</div>
-        <div
-          className={`gza-ticket-stub-value ${ticket.isCancelled ? "gza-ticket-clay-tag" : ""}`}
-          dir={ticket.isCancelled ? undefined : "ltr"}
-        >
-          {ticket.isCancelled
-            ? isRtl
-              ? "تم التحرير"
-              : "RELEASED"
-            : ticket.hasAssignedSeat
-              ? ticket.seatCode
-              : "—"}
-        </div>
-
-        <div className="gza-ticket-stub-ref-box">
-          <div className="gza-ticket-stub-ref-code">
-            <span>{isRtl ? "المرجع: " : "REF: "}</span>
-            <bdi dir="ltr">{ticket.reference}</bdi>
-          </div>
-        </div>
-
-        <div className="gza-ticket-stub-band">
-          PEOPLE
-          <br />
-          PLACES
-          <br />
-          A BRIGHTER TOMORROW
-        </div>
+          {/* Accessible fallback text for screen readers */}
+          <p>
+            {ticket.classification}: {ticket.passengerName}, Flight {ticket.flightNumber},{" "}
+            {ticket.originCode} ({ticket.originCity}) to {ticket.destinationCode} ({ticket.destinationCity}),{" "}
+            Date: {ticket.formattedDate}, Departure: {ticket.departTime},{" "}
+            Seat: {ticket.isCancelled ? "Released" : ticket.hasAssignedSeat ? ticket.seatCode : "Unassigned"},{" "}
+            Reference: {ticket.reference}.
+          </p>
+        </canvas>
       </div>
     </article>
   );
@@ -305,8 +487,8 @@ export interface BookingDetailSummaryProps {
 
 /**
  * Mobile-friendly reservation and travel detail summary.
- * Placed outside the physical pass to keep the 8x3.25 pass clean while ensuring
- * all canonical secondary details (aircraft, meal, timezones, cabin) remain 100% accessible.
+ * Placed outside the physical pass to keep the pass clean while ensuring
+ * all canonical secondary details remain 100% accessible to screen readers.
  */
 export function BookingDetailSummary({ ticket, lang }: BookingDetailSummaryProps) {
   const isRtl = lang === "ar";
@@ -475,39 +657,31 @@ export interface CommemorativeTicketItemProps {
 export function CommemorativeTicketItem({ ticket, lang }: CommemorativeTicketItemProps) {
   const isRtl = lang === "ar";
   const [zoomOpen, setZoomOpen] = useState(false);
-  const zoomTriggerRef = React.useRef<HTMLButtonElement>(null);
-  const containerRef = React.useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(1);
+  const zoomTriggerRef = useRef<HTMLButtonElement>(null);
+  const activeCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [ticketReady, setTicketReady] = useState(false);
 
-  React.useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-
-    const updateScale = () => {
-      const width = el.clientWidth;
-      if (width > 0) {
-        // Physical design canvas is 960px wide
-        setScale(Math.min(1, width / 960));
-      }
-    };
-
-    updateScale();
-
-    if (typeof ResizeObserver !== "undefined") {
-      const ro = new ResizeObserver(() => {
-        updateScale();
-      });
-      ro.observe(el);
-      return () => ro.disconnect();
-    } else {
-      window.addEventListener("resize", updateScale);
-      return () => window.removeEventListener("resize", updateScale);
-    }
+  const handleCanvasReady = useCallback((canvas: HTMLCanvasElement) => {
+    activeCanvasRef.current = canvas;
   }, []);
+
+  const handleStateChange = useCallback((state: TicketLoadState) => {
+    setTicketReady(state === "ready");
+  }, []);
+
+  const handleDownload = useCallback(() => {
+    if (!ticketReady || !activeCanvasRef.current) return;
+    downloadTicketPng(activeCanvasRef.current, ticket.reference, ticket.passengerName);
+  }, [ticketReady, ticket.reference, ticket.passengerName]);
+
+  const handlePrint = useCallback(() => {
+    if (!ticketReady) return;
+    window.print();
+  }, [ticketReady]);
 
   return (
     <div className="gza-ticket-item-container">
-      {/* Explicit Cancelled Banner when booking is cancelled (screen-only, card has internal banner for print) */}
+      {/* Explicit Cancelled Status Banner (screen-only) */}
       {ticket.isCancelled && (
         <div className="gza-ticket-cancelled-banner print:hidden" role="status">
           {ticket.statusLabel} —{" "}
@@ -517,38 +691,54 @@ export function CommemorativeTicketItem({ ticket, lang }: CommemorativeTicketIte
         </div>
       )}
 
-      {/* Action Bar: Zoom Full Size (Print:hidden) */}
+      {/* Action Bar: Zoom, Download PNG, Print (Print:hidden) */}
       <div className="gza-ticket-actions print:hidden">
         <button
           type="button"
           className="gza-ticket-zoom-btn"
           ref={zoomTriggerRef}
           onClick={() => setZoomOpen(true)}
+          disabled={!ticketReady}
           aria-label={isRtl ? "عرض التذكرة بالحجم الكامل" : "View ticket full size"}
         >
           <Maximize2 className="size-3.5" aria-hidden="true" />
           <span>
-            {isRtl
-              ? "تكبير التذكرة (عرض كامل 8 × 3.25 بوصة)"
-              : "Full Size View (8 × 3.25 in)"}
+            {isRtl ? "عرض كامل (1774 × 887)" : "Full Size View (1774 × 887)"}
           </span>
+        </button>
+
+        <button
+          type="button"
+          className="gza-ticket-zoom-btn"
+          onClick={handleDownload}
+          disabled={!ticketReady}
+          aria-label={isRtl ? "تحميل صورة التذكرة بدقة كاملة" : "Download ticket image in full resolution"}
+        >
+          <Download className="size-3.5" aria-hidden="true" />
+          <span>{isRtl ? "تحميل PNG" : "Download PNG"}</span>
+        </button>
+
+        <button
+          type="button"
+          className="gza-ticket-zoom-btn"
+          onClick={handlePrint}
+          disabled={!ticketReady}
+          aria-label={isRtl ? "طباعة أو حفظ التذكرة كملف PDF" : "Print or save ticket as PDF"}
+        >
+          <Printer className="size-3.5" aria-hidden="true" />
+          <span>{isRtl ? "طباعة / PDF" : "Print / PDF"}</span>
         </button>
       </div>
 
-      {/* Physical Landscape Ticket (always 32/13 aspect ratio, scaled proportionally) */}
-      <div className="gza-ticket-scaler-wrapper" ref={containerRef}>
-        <div
-          className="gza-ticket-scalable-canvas"
-          style={{
-            transform: `scale(${scale})`,
-            transformOrigin: isRtl ? "top right" : "top left",
-          }}
-        >
-          <CommemorativeTicketCard ticket={ticket} lang={lang} />
-        </div>
-      </div>
+      {/* Pure 2:1 Physical Canvas Ticket */}
+      <CommemorativeTicketCard
+        ticket={ticket}
+        lang={lang}
+        onCanvasReady={handleCanvasReady}
+        onStateChange={handleStateChange}
+      />
 
-      {/* Mobile-Friendly Booking Detail Summary */}
+      {/* Mobile-Friendly Accessible Booking Detail Summary */}
       <BookingDetailSummary ticket={ticket} lang={lang} />
 
       {/* Accessible Zoom Modal Dialog */}
@@ -560,7 +750,7 @@ export function CommemorativeTicketItem({ ticket, lang }: CommemorativeTicketIte
             event.preventDefault();
             zoomTriggerRef.current?.focus();
           }}
-          className="gza-ticket-zoom-dialog max-w-6xl w-[96vw] max-h-[92vh] overflow-y-auto p-4 sm:p-6 bg-[#E7E1D7] border-[#CEC5B7]"
+          className="gza-ticket-zoom-dialog max-w-6xl w-[96vw] max-h-[92vh] overflow-y-auto p-4 sm:p-6 bg-[#FCF9F2] border-[#CEC5B7]"
           closeLabel={isRtl ? "إغلاق" : "Close"}
         >
           <DialogHeader>
@@ -571,33 +761,41 @@ export function CommemorativeTicketItem({ ticket, lang }: CommemorativeTicketIte
                 </DialogTitle>
                 <DialogDescription className="text-xs text-[#5B625D]">
                   {isRtl
-                    ? "عرض كامل للتذكرة بالأبعاد الفيزيائية 8 × 3.25 بوصة (203.2 × 82.55 مم). استخدم التمرير الأفقي لمعاينة التفاصيل."
-                    : "Full landscape 8 × 3.25 inch (203.2 × 82.55 mm) pass. Scroll horizontally to inspect fine details."}
+                    ? "معاينة كاملة للتذكرة بالأبعاد المعتمدة 1774 × 887 بكسل بنسبة 2:1."
+                    : "Full 2:1 approved commemorative ticket pass (1774 × 887 native pixels)."}
                 </DialogDescription>
               </div>
-              <button
-                type="button"
-                className="gza-ticket-zoom-btn"
-                onClick={() => window.print()}
-              >
-                <Printer className="size-3.5" aria-hidden="true" />
-                <span>{isRtl ? "طباعة / حفظ PDF" : "Print / save PDF"}</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="gza-ticket-zoom-btn"
+                  onClick={handleDownload}
+                  disabled={!ticketReady}
+                >
+                  <Download className="size-3.5" aria-hidden="true" />
+                  <span>{isRtl ? "تحميل PNG" : "Download PNG"}</span>
+                </button>
+                <button
+                  type="button"
+                  className="gza-ticket-zoom-btn"
+                  onClick={handlePrint}
+                  disabled={!ticketReady}
+                >
+                  <Printer className="size-3.5" aria-hidden="true" />
+                  <span>{isRtl ? "طباعة / حفظ PDF" : "Print / save PDF"}</span>
+                </button>
+              </div>
             </div>
           </DialogHeader>
 
-          {/* Horizontally Scrollable High-Res Canvas */}
-          <div className="overflow-x-auto py-4 px-1 -webkit-overflow-scrolling-touch">
-            <div
-              style={{
-                width: 960,
-                minWidth: 960,
-                height: 390,
-                aspectRatio: "32 / 13",
-                margin: "0 auto",
-              }}
-            >
-              <CommemorativeTicketCard ticket={ticket} lang={lang} />
+          {/* High-Res View Container */}
+          <div className="overflow-x-auto py-4 px-1" tabIndex={0} role="region" aria-label={isRtl ? "عرض التذكرة كاملة" : "Full ticket viewer"}>
+            <div className="min-w-[760px]">
+            <CommemorativeTicketCard
+              ticket={ticket}
+              lang={lang}
+              onCanvasReady={handleCanvasReady}
+            />
             </div>
           </div>
         </DialogContent>
@@ -606,125 +804,6 @@ export function CommemorativeTicketItem({ ticket, lang }: CommemorativeTicketIte
   );
 }
 
-const INLINE_PRINT_STYLE = `
-@page {
-  size: auto;
-  margin: 6mm 3mm;
-}
-@media print {
-  /* Isolate ticket print path and suppress surrounding website chrome when mounted */
-  body:has(#mvp-reservation-ticket) header,
-  body:has(#mvp-reservation-ticket) footer,
-  body:has(#mvp-reservation-ticket) nav,
-  body:has(#mvp-reservation-ticket) [data-site-header],
-  body:has(#mvp-reservation-ticket) [data-site-footer] {
-    display: none !important;
-  }
-  body:has(#mvp-reservation-ticket) > :not(#mvp-reservation-ticket):not(:has(#mvp-reservation-ticket)),
-  body *:has(#mvp-reservation-ticket) > :not(#mvp-reservation-ticket):not(:has(#mvp-reservation-ticket)) {
-    display: none !important;
-  }
-  html, body {
-    background: #FFFFFF !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-  body:has(#mvp-reservation-ticket) div:has(#mvp-reservation-ticket),
-  body:has(#mvp-reservation-ticket) main:has(#mvp-reservation-ticket) {
-    display: block !important;
-    position: static !important;
-    overflow: visible !important;
-    transform: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    min-height: 0 !important;
-    height: auto !important;
-    max-width: none !important;
-  }
-
-  /* Print root in normal static flow (prevents blank pages and multi-page clipping) */
-  #mvp-reservation-ticket {
-    position: static !important;
-    width: 100% !important;
-    margin: 0 auto !important;
-    padding: 0 !important;
-    background: transparent !important;
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    visibility: visible !important;
-  }
-  #mvp-reservation-ticket * {
-    visibility: visible !important;
-  }
-
-  /* Suppress non-printable UI chrome */
-  .gza-ticket-zoom-dialog,
-  .gza-ticket-actions,
-  .gza-ticket-detail-summary,
-  .gza-ticket-disclosure-banner,
-  .gza-ticket-cancelled-banner {
-    display: none !important;
-    visibility: hidden !important;
-  }
-
-  /* Multi-pass natural pagination: individual tickets do not break internally */
-  .gza-ticket-item-container {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-    margin: 0 auto 8mm auto !important;
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    width: 203.2mm !important;
-  }
-
-  /* Scale 960x390 canvas by exactly 0.8 to fit physical 203.2 x 82.55 mm (768 x 312 CSS px) */
-  .gza-ticket-scaler-wrapper {
-    max-width: none !important;
-    width: 203.2mm !important;
-    height: 82.55mm !important;
-    aspect-ratio: auto !important;
-    overflow: visible !important;
-    margin: 0 auto !important;
-    position: relative !important;
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-  }
-
-  .gza-ticket-scalable-canvas {
-    position: absolute !important;
-    top: 0 !important;
-    transform: scale(0.8) !important;
-    width: 960px !important;
-    height: 390px !important;
-  }
-
-  :not([dir="rtl"]) .gza-ticket-scalable-canvas {
-    left: 0 !important;
-    right: auto !important;
-    transform-origin: top left !important;
-  }
-
-  [dir="rtl"] .gza-ticket-scalable-canvas,
-  :dir(rtl) .gza-ticket-scalable-canvas {
-    right: 0 !important;
-    left: auto !important;
-    transform-origin: top right !important;
-  }
-
-  .gza-ticket {
-    width: 960px !important;
-    height: 390px !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    border: 1px solid #8E8372 !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-}
-`;
-
 export interface CommemorativeTicketPrintRegionProps {
   children: React.ReactNode;
   className?: string;
@@ -732,8 +811,7 @@ export interface CommemorativeTicketPrintRegionProps {
 
 /**
  * Single, bounded print container for multi-leg or composite ticket layouts.
- * Provides the canonical #mvp-reservation-ticket root and injects print isolation
- * styles only while mounted, preventing layout overlap between legs.
+ * Provides the canonical #mvp-reservation-ticket root.
  */
 export function CommemorativeTicketPrintRegion({
   children,
@@ -744,7 +822,6 @@ export function CommemorativeTicketPrintRegion({
       id="mvp-reservation-ticket"
       className={`mvp-reservation-ticket gza-ticket-print-region ${className}`.trim()}
     >
-      <style>{INLINE_PRINT_STYLE}</style>
       {children}
     </div>
   );
@@ -761,24 +838,16 @@ export function CommemorativeTicket({ data, printRoot = true }: CommemorativeTic
   const group = mapTicketPresentation(data, ticketLang);
 
   const content = (
-    <>
-      {/* Honest Commemorative Eyebrow Banner */}
-      <div className="gza-ticket-disclosure-banner" role="note">
-        <strong>{group.classification}</strong>
-      </div>
-
-      <div className="space-y-6">
-        {group.tickets.map((item) => (
-          <CommemorativeTicketItem key={item.ticketNumber} ticket={item} lang={ticketLang} />
-        ))}
-      </div>
-    </>
+    <div className="space-y-6">
+      {group.tickets.map((item) => (
+        <CommemorativeTicketItem key={item.ticketNumber} ticket={item} lang={ticketLang} />
+      ))}
+    </div>
   );
 
   if (printRoot) {
     return (
       <div id="mvp-reservation-ticket" className="mvp-reservation-ticket gza-ticket-wrapper">
-        <style>{INLINE_PRINT_STYLE}</style>
         {content}
       </div>
     );

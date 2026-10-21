@@ -1328,3 +1328,309 @@ test("orchestration distinguishes throttling from proof loss and retains uncerta
     }
   }
 });
+
+
+test("guided booking UX: guest name and email-first minimal submission succeeds without synthetic data", async () => {
+  const email = "guest.minimal@example.test";
+  const minimalDetail = {
+    reservation: {
+      id: crypto.randomUUID(),
+      reference: "GZA-MIN1",
+      status: "confirmed" as const,
+      serviceId,
+      flightNumber: "PS204",
+      date: "2026-12-20",
+      originCode: "GZA",
+      destinationCode: "AMM",
+      departTime: "09:30",
+      arriveTime: "10:30",
+      contact: { email, phone: "" },
+      passengers: [{
+        id: "p1",
+        type: "adult" as const,
+        firstName: "Tariq Al-Husseini",
+        lastName: null,
+        seatCode: "5B",
+        mealId: null,
+        mealLabel: null,
+      }],
+      createdAt: "2026-10-17 09:00:00+00",
+    },
+    ticket: {
+      reference: "GZA-MIN1",
+      status: "confirmed" as const,
+      issuedAt: "2026-10-17T09:00:00+00:00",
+      flight: {
+        serviceId,
+        flightNumber: "PS204",
+        date: "2026-12-20",
+        originCode: "GZA",
+        destinationCode: "AMM",
+        departTime: "09:30",
+        arriveTime: "10:30",
+        aircraftModel: "Boeing 737-400",
+      },
+      contact: { email, phone: "" },
+      tickets: [
+        {
+          reference: "GZA-MIN1",
+          status: "confirmed" as const,
+          issuedAt: "2026-10-17T09:00:00+00:00",
+          ticketNumber: "TKT-GZA-MIN1-1",
+          flight: {
+            serviceId,
+            flightNumber: "PS204",
+            date: "2026-12-20",
+            originCode: "GZA",
+            destinationCode: "AMM",
+            departTime: "09:30",
+            arriveTime: "10:30",
+            aircraftModel: "Boeing 737-400",
+          },
+          contact: { email, phone: "" },
+          passenger: {
+            id: "p1",
+            type: "adult" as const,
+            firstName: "Tariq Al-Husseini",
+            lastName: null,
+            seatCode: "5B",
+            nationality: null,
+            meal: null,
+          },
+        },
+      ],
+    },
+  };
+
+  const { client: guestApi } = mockApi((path, init) => {
+    const body = init?.body ? JSON.parse(String(init.body)) : {};
+
+    if (path === "/guest-reservations/email-challenges") {
+      return { status: 202, body: { challengeId: crypto.randomUUID(), expiresInSeconds: 43200 } };
+    }
+    if (path === "/guest-reservations/email-verifications") {
+      return { status: 200, body: { verified: true } };
+    }
+    if (path === "/guest-reservations") {
+      // Assert no fabricated data: dob, nationality, document are null/omitted
+      assert.equal(body.passengers[0].dob ?? null, null, "DoB must remain null when omitted");
+      assert.equal(body.passengers[0].nationality ?? null, null, "Nationality must remain null when omitted");
+      assert.equal(body.passengers[0].document ?? null, null, "Document must remain null when omitted");
+      assert.equal(body.passengers[0].name ?? body.passengers[0].firstName, "Tariq Al-Husseini");
+      return { status: 201, body: minimalDetail };
+    }
+    return { status: 404, body: {} };
+  });
+
+  const guestClient = new GuestReservationClient(() => guestApi);
+  const tripClientInstance = new TripClient(() => guestApi);
+  const attempt = new ReservationAttempt();
+
+  const challenge = await guestClient.requestEmailChallenge(email);
+  const result = await orchestrateGuestBooking({
+    guestClient,
+    tripClient: tripClientInstance,
+    oneWayAttempt: attempt,
+    tripAttempt: new TripReservationAttempt(),
+    isRoundTrip: false,
+    email,
+    serviceId,
+    passengers: [{ id: "p1", firstName: "Tariq Al-Husseini", seatCode: "5B" }],
+    challengeId: challenge.challengeId,
+    otpCode: "123456",
+    isEmailVerified: false,
+    postDispatched: false,
+    postAmbiguous: false,
+    crossSessionRecoveryRequired: false,
+  });
+
+  assert.equal(result.success, true);
+  if (result.success) {
+    assert.equal(result.type, "one-way");
+    assert.equal(result.verifiedEmail, email);
+  }
+});
+
+test("guided booking UX: roundtrip validation requires return seat and detects missing return leg assignment", async () => {
+  const returnServiceId = encodeDatedOfferingId("curated-flight-return", "2026-12-25");
+  const { client: guestApi } = mockApi(() => ({ status: 404, body: {} }));
+  const guestClient = new GuestReservationClient(() => guestApi);
+  const tripClientInstance = new TripClient(() => guestApi);
+  const attempt = new TripReservationAttempt();
+
+  // Missing return seatCode
+  const result = await orchestrateGuestBooking({
+    guestClient,
+    tripClient: tripClientInstance,
+    oneWayAttempt: new ReservationAttempt(),
+    tripAttempt: attempt,
+    isRoundTrip: true,
+    email: "roundtrip@example.test",
+    serviceId,
+    returnServiceId,
+    passengers: [{ id: "p1", firstName: "Sara", seatCode: "4A", returnSeatCode: "" }],
+    challengeId: crypto.randomUUID(),
+    otpCode: "654321",
+    isEmailVerified: true,
+    postDispatched: false,
+    postAmbiguous: false,
+    crossSessionRecoveryRequired: false,
+  });
+
+  assert.equal(result.success, false);
+  if (!result.success) {
+    assert.equal(result.stage, "draft_validation");
+  }
+});
+
+test("guided booking UX: verified OTP chains finalization preserving submissionId without retry key rotation", async () => {
+  let createdCallCount = 0;
+  const { client: guestApi } = mockApi((path) => {
+    if (path === "/guest-reservations/email-verifications") {
+      return { status: 200, body: { verified: true } };
+    }
+    if (path === "/guest-reservations") {
+      createdCallCount += 1;
+      return { status: 201, body: detail("GZA-CHAIN1") };
+    }
+    return { status: 404, body: {} };
+  });
+
+  const guestClient = new GuestReservationClient(() => guestApi);
+  const tripClientInstance = new TripClient(() => guestApi);
+  const attempt = new ReservationAttempt();
+
+  const challengeId = crypto.randomUUID();
+  const result = await orchestrateGuestBooking({
+    guestClient,
+    tripClient: tripClientInstance,
+    oneWayAttempt: attempt,
+    tripAttempt: new TripReservationAttempt(),
+    isRoundTrip: false,
+    email: "guest@example.test",
+    phone: "+970 599 123456",
+    serviceId,
+    passengers: [{ id: "p1", firstName: "Kareem", lastName: "Al-Masri", seatCode: "3A" }],
+    challengeId,
+    otpCode: "888999",
+    isEmailVerified: false,
+    postDispatched: false,
+    postAmbiguous: false,
+    crossSessionRecoveryRequired: false,
+  });
+
+  assert.equal(result.success, true);
+  assert.equal(createdCallCount, 1);
+  const preservedId = attempt.currentSubmissionId;
+  assert.ok(preservedId, "Submission ID must exist and be preserved");
+  assert.equal(attempt.locked, true, "Submission attempt preserves locked submission ID across invocation");
+});
+
+test("guided booking UX: wrong OTP code yields exactly one verification and no booking POST, then explicit retry chains finalization", async () => {
+  let verificationCalls = 0;
+  let bookingPostCalls = 0;
+
+  const { client: guestApi } = mockApi((path, init) => {
+    if (path === "/guest-reservations/email-verifications") {
+      verificationCalls += 1;
+      const body = JSON.parse(init.body as string);
+      if (body.code === "000000") {
+        return { status: 422, body: { code: "invalid_code" } };
+      }
+      if (body.code === "123456") {
+        return { status: 200, body: { verified: true } };
+      }
+      return { status: 400, body: { code: "unexpected_code" } };
+    }
+    if (path === "/guest-reservations") {
+      bookingPostCalls += 1;
+      return { status: 201, body: detail("GZA-REG1") };
+    }
+    return { status: 404, body: {} };
+  });
+
+  const guestClient = new GuestReservationClient(() => guestApi);
+  const tripClientInstance = new TripClient(() => guestApi);
+  const attempt = new ReservationAttempt();
+  const challengeId = crypto.randomUUID();
+
+  // Action 1: Single explicit submission with wrong code
+  const result1 = await orchestrateGuestBooking({
+    guestClient,
+    tripClient: tripClientInstance,
+    oneWayAttempt: attempt,
+    tripAttempt: new TripReservationAttempt(),
+    isRoundTrip: false,
+    email: "guest@example.test",
+    phone: "+970 599 123456",
+    serviceId,
+    passengers: [{ id: "p1", firstName: "Kareem", lastName: "Al-Masri", seatCode: "3A" }],
+    challengeId,
+    otpCode: "000000",
+    isEmailVerified: false,
+    postDispatched: false,
+    postAmbiguous: false,
+    crossSessionRecoveryRequired: false,
+  });
+
+  // Verify wrong-code isolation invariants:
+  assert.equal(result1.success, false);
+  if (!result1.success) {
+    assert.equal(result1.stage, "verifier");
+    assert.equal(result1.status, 422);
+    assert.equal(result1.postDispatched, false);
+    assert.equal(result1.postAmbiguous, false);
+  }
+  // Exactly ONE verification attempt executed; zero booking POSTs dispatched
+  assert.equal(verificationCalls, 1, "Wrong code must trigger exactly 1 verification call");
+  assert.equal(bookingPostCalls, 0, "No booking POST may be dispatched on verification failure");
+  // Frozen draft preserves submissionId across verifier failure without key rotation
+  const originalSubmissionId = attempt.currentSubmissionId;
+  assert.ok(originalSubmissionId, "Submission ID must be generated and preserved across verifier failure");
+
+  // Action 2: User explicitly corrects code to "123456" and triggers verification & chaining in same click
+  const result2 = await orchestrateGuestBooking({
+    guestClient,
+    tripClient: tripClientInstance,
+    oneWayAttempt: attempt,
+    tripAttempt: new TripReservationAttempt(),
+    isRoundTrip: false,
+    email: "guest@example.test",
+    phone: "+970 599 123456",
+    serviceId,
+    passengers: [{ id: "p1", firstName: "Kareem", lastName: "Al-Masri", seatCode: "3A" }],
+    challengeId,
+    otpCode: "123456",
+    isEmailVerified: false,
+    postDispatched: false,
+    postAmbiguous: false,
+    crossSessionRecoveryRequired: false,
+  });
+
+  assert.equal(result2.success, true);
+  if (result2.success) {
+    assert.equal(result2.type, "one-way");
+    assert.equal(result2.verifiedEmail, "guest@example.test");
+  }
+  // Total of exactly 2 verification calls across the two explicit user clicks
+  assert.equal(verificationCalls, 2, "Second explicit click must trigger exactly 1 more verification call");
+  // Chained finalization dispatched exactly 1 booking POST in the same click
+  assert.equal(bookingPostCalls, 1, "Successful verification must immediately chain booking POST");
+  assert.equal(attempt.locked, true, "Reservation attempt is now locked with confirmed booking");
+  assert.equal(attempt.currentSubmissionId, originalSubmissionId, "Must preserve identical submissionId across verifier retry");
+});
+
+test("guided booking UX: 12h recovery URL hash parser extracts challenge UUID and email for instant OTP dialog restoration", () => {
+  const challengeId = "b95b8d2a-4f5a-4b5c-8d1e-2f3a4b5c6d7e";
+  const validHash = `#challenge=${challengeId}&email=visitor%40example.test`;
+  const parsed = parseGuestBookingRecoveryHash(validHash);
+
+  assert.ok(parsed);
+  assert.equal(parsed?.challengeId, challengeId);
+  assert.equal(parsed?.email, "visitor@example.test");
+
+  // Rejects invalid UUID
+  assert.equal(parseGuestBookingRecoveryHash("#challenge=not-a-uuid&email=visitor@example.test"), null);
+  // Rejects empty hash
+  assert.equal(parseGuestBookingRecoveryHash(""), null);
+});

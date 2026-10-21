@@ -83,6 +83,7 @@ final class SharedHostingCronCommand extends Command
                 ['Rate Buckets Purged', $summary['rate_buckets_purged'] ?? 0],
                 ['Booking Mail Processed', $summary['booking_mail_processed'] ?? 0],
                 ['Identity Mail Processed', $summary['identity_mail_processed'] ?? 0],
+                ['Archive Mail Processed', $summary['archive_mail_processed'] ?? 0],
                 ['Wall Deadline Reached', $deadlineReached ? 'Yes' : 'No'],
                 ['Errors Count', count($summary['errors'] ?? [])],
                 ['Status', $status],

@@ -67,6 +67,7 @@ final class EditorialValidator
         'AMM', 'CAI', 'DOH', 'DXB', 'IST', 'JED', 'RUH',
         'AUH', 'ATH', 'BEY', 'FRA', 'KUL', 'KWI', 'LHR',
         'MAD', 'BOM', 'JFK', 'CDG', 'FCO', 'YYZ',
+        'OSL', 'ARN',
     ];
 
     public const DESTINATION_PHOTO_IDS = [
@@ -75,6 +76,7 @@ final class EditorialValidator
         'city-abu-dhabi', 'city-athens', 'city-beirut', 'city-frankfurt',
         'city-kuala-lumpur', 'city-kuwait-city', 'city-london', 'city-madrid',
         'city-mumbai', 'city-new-york', 'city-paris', 'city-rome', 'city-toronto',
+        'city-oslo', 'city-stockholm',
     ];
 
     public const HOME_COPY_KEYS = [
@@ -543,8 +545,8 @@ final class EditorialValidator
             throw new EditorialValidationException("destinations.presentation 'assignments' must be an array.");
         }
         $count = count($payload['assignments']);
-        if ($count < 7 || $count > 20) {
-            throw new EditorialValidationException("destinations.presentation 'assignments' must contain between 7 and 20 items.");
+        if ($count < 7 || $count > 22) {
+            throw new EditorialValidationException("destinations.presentation 'assignments' must contain between 7 and 22 items.");
         }
         $seen = [];
         foreach ($payload['assignments'] as $i => $item) {

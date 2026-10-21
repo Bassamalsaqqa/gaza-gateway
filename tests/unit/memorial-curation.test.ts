@@ -22,18 +22,18 @@ describe('Authenticated curation planning semantics (synthetic API adapter)',()=
   const state=snapshot();const original=structuredClone(state);
   assert.throws(()=>buildCurationPlan(state,{today:'2026-10-13'}),/Three distinct/);
   const corePlan=buildCurationPlan(state,{today:'2026-10-13',activateStandby:true,scope:'core'});
-  assert.equal(corePlan.additions.length,13);assert.equal(corePlan.fleetUpdates.length,1);assert.equal(corePlan.scheduleAdds.length,14);
+  assert.equal(corePlan.additions.length,15);assert.equal(corePlan.fleetUpdates.length,1);assert.equal(corePlan.scheduleAdds.length,14);
   const plan=buildCurationPlan(state,{today:'2026-10-13',activateStandby:true});
-  assert.equal(plan.additions.length,13);assert.equal(plan.fleetUpdates.length,1);assert.equal(plan.scheduleAdds.length,40);
-  assert.equal(plan.networkVerification?.destinationCount,20);
-  assert.equal(plan.networkVerification?.bidirectionalPairCount,20);
-  assert.equal(plan.networkVerification?.scheduleCount,40);
+  assert.equal(plan.additions.length,15);assert.equal(plan.fleetUpdates.length,1);assert.equal(plan.scheduleAdds.length,44);
+  assert.equal(plan.networkVerification?.destinationCount,22);
+  assert.equal(plan.networkVerification?.bidirectionalPairCount,22);
+  assert.equal(plan.networkVerification?.scheduleCount,44);
   assert.deepEqual(state,original);assert.equal(plan.classification,'commemorative');
  });
  it('is idempotent after complete and partial commits; never overwrites edited schedules',async()=> {
   const state=snapshot();let plan=buildCurationPlan(state,{today:'2026-10-13',activateStandby:true});
   const first=adapter(state,5);await assert.rejects(()=>applyCurationPlan(plan,first.api),/after 5 committed/);
-  plan=buildCurationPlan(state,{today:'2026-10-13',activateStandby:true});assert.equal(plan.additions.length,8);
+  plan=buildCurationPlan(state,{today:'2026-10-13',activateStandby:true});assert.equal(plan.additions.length,10);
   await applyCurationPlan(plan,adapter(state).api);
   plan=buildCurationPlan(state,{today:'2026-10-13',activateStandby:true});
   assert.equal(plan.additions.length+plan.fleetUpdates.length+plan.scheduleAdds.length+plan.scheduleExtensions.length,0);
@@ -47,7 +47,7 @@ describe('Authenticated curation planning semantics (synthetic API adapter)',()=
   const refreshed=buildCurationPlan(state,{today:'2026-10-13',activateStandby:true});await applyCurationPlan(refreshed,api.api);
   const existing=structuredClone(state.schedules);
   const extended=buildCurationPlan(state,{today:'2027-01-01',activateStandby:true});
-  assert.equal(extended.scheduleAdds.length,0);assert.equal(extended.scheduleExtensions.length,40);
+  assert.equal(extended.scheduleAdds.length,0);assert.equal(extended.scheduleExtensions.length,44);
   await applyCurationPlan(extended,adapter(state).api);
   for(const [index,schedule] of state.schedules.entries()) assert.deepEqual({...schedule,until:existing[index]!.until},existing[index]);
  });
@@ -69,6 +69,6 @@ describe('Authenticated curation planning semantics (synthetic API adapter)',()=
   state.schedules=[safeOut,safeIn];
   const plan=buildCurationPlan(state,{today:'2026-10-13',activateStandby:true});
   assert.ok(plan);
-  assert.equal(plan.networkVerification?.scheduleCount,42);
+  assert.equal(plan.networkVerification?.scheduleCount,46);
  });
 });

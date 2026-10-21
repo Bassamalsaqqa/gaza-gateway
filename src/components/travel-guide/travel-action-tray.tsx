@@ -20,13 +20,21 @@ export function TravelActionTray({ sectionId, lang }: TravelActionTrayProps) {
     <div
       role="group"
       aria-label={isAr ? "إجراءات القسم" : "Section actions"}
-      className="mt-8 flex flex-wrap items-center gap-3 border-t border-border/80 pt-6"
+      className="mt-8 flex flex-wrap items-center gap-3 border-t border-sand-deep pt-6"
     >
       {actions.map((act, idx) => (
         <AppLink
           key={idx}
           to={act.to}
-          className={btnClass(act.variant, "md", "gap-2")}
+          className={btnClass(
+            act.variant,
+            "md",
+            act.variant === "primary"
+              ? "gap-2 shadow-xs bg-brand text-primary-foreground hover:bg-brand-deep"
+              : act.variant === "outline"
+                ? "gap-2 border-sand-deep bg-card hover:bg-sand-deep text-foreground shadow-xs"
+                : "gap-2 text-foreground hover:bg-sand-deep",
+          )}
         >
           <span>{act.label}</span>
           {act.variant === "primary" ? (

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState, useEffect, useCallback } from "react";
+import { useMemo, useState, useEffect, useLayoutEffect, useCallback, useRef } from "react";
 import { Container } from "@/components/kit";
 import { PublicPhotoHero } from "@/components/media/public-photo-hero";
 import { publishedTravel } from "@/content/published/travel";
@@ -14,6 +14,7 @@ import {
   resolveActiveSection,
   TravelNav,
   TravelSectionView,
+  TravelGroundShuttle,
 } from "@/components/travel-guide";
 import { Plane, Sparkles } from "lucide-react";
 
@@ -73,11 +74,15 @@ export const Route = createFileRoute("/{-$locale}/travel")({
   component: TravelPage,
 });
 
+const useIsomorphicLayoutEffect =
+  typeof window !== "undefined" ? useLayoutEffect : useEffect;
+
 function TravelPage() {
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
   const { lang } = useI18n();
   const isAr = lang === "ar";
+  const pendingScrollYRef = useRef<number | null>(null);
 
   const { content, previewing, previewError, previewLoading } = useContentPreview("travel", publishedTravel);
 
@@ -114,20 +119,40 @@ function TravelPage() {
     );
   }, [travelSections, search.section, hashSection]);
 
-  // Navigate to update URL search param without oscillation
+  // Navigate to update URL search param without oscillation, capturing pre-selection vertical scroll
   const handleSelectSection = useCallback(
     (id: string) => {
       if (id === activeId) return;
+      if (typeof window !== "undefined") {
+        pendingScrollYRef.current = window.scrollY;
+      }
       void navigate({
         search: (prev) => ({
           ...prev,
           section: id,
         }),
-        replace: true,
+        replace: false,
+        resetScroll: false,
       });
     },
     [activeId, navigate],
   );
+
+  // Synchronously restore exact vertical scroll position if router/browser shifted it during tab change
+  useIsomorphicLayoutEffect(() => {
+    if (typeof window === "undefined") return;
+    if (pendingScrollYRef.current !== null) {
+      const targetY = pendingScrollYRef.current;
+      pendingScrollYRef.current = null;
+      if (Math.abs(window.scrollY - targetY) > 0.5) {
+        window.scrollTo({
+          top: targetY,
+          left: window.scrollX,
+          behavior: "instant",
+        });
+      }
+    }
+  }, [activeId]);
 
   const activeSection = travelSections.find((s) => s.id === activeId) || travelSections[0];
 
@@ -156,15 +181,20 @@ function TravelPage() {
 
             {/* Active Section Surface */}
             {activeSection ? (
-              <TravelSectionView section={activeSection} lang={lang} />
+              <div className="[overflow-anchor:none]" style={{ overflowAnchor: "none" }}>
+                <TravelSectionView section={activeSection} lang={lang} />
+              </div>
             ) : null}
+
+            {/* Concise Interactive Heritage-Inspired Ground-Shuttle Concept */}
+            <TravelGroundShuttle lang={lang} />
 
             {/* Next Steps Footer */}
             <section
               aria-label={isAr ? "الخطوات التالية للمسافر" : "Traveler Next Steps"}
-              className="mt-10 sm:mt-12 rounded-2xl border border-border bg-card/60 p-5 sm:p-7 shadow-xs"
+              className="mt-12 sm:mt-16 rounded-3xl border border-sand-deep bg-sand p-6 sm:p-8 lg:p-10 shadow-xs"
             >
-              <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+              <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
                 <div className="max-w-[58ch]">
                   <h3 className="font-display text-lg sm:text-xl font-bold tracking-tight text-foreground">
                     {isAr
@@ -179,15 +209,32 @@ function TravelPage() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2.5">
-                  <AppLink to="/flights" className={btnClass("primary", "md", "gap-2 text-xs sm:text-sm")}>
+                  <AppLink
+                    to="/flights"
+                    className={btnClass(
+                      "primary",
+                      "md",
+                      "gap-2 text-xs sm:text-sm bg-brand text-primary-foreground hover:bg-brand-deep shadow-xs",
+                    )}
+                  >
                     <Plane className="size-4 shrink-0" aria-hidden="true" />
                     <span>{isAr ? "استعراض المواعيد" : "Explore Timetables"}</span>
                   </AppLink>
-                  <AppLink to="/book" className={btnClass("outline", "md", "gap-2 text-xs sm:text-sm")}>
+                  <AppLink
+                    to="/book"
+                    className={btnClass(
+                      "outline",
+                      "md",
+                      "gap-2 text-xs sm:text-sm border border-sand-deep bg-card hover:bg-sand-deep text-foreground shadow-xs",
+                    )}
+                  >
                     <Sparkles className="size-4 shrink-0" aria-hidden="true" />
                     <span>{isAr ? "حجز رحلة" : "Book Flight"}</span>
                   </AppLink>
-                  <AppLink to="/manage" className={btnClass("ghost", "md", "text-xs sm:text-sm")}>
+                  <AppLink
+                    to="/manage"
+                    className={btnClass("ghost", "md", "text-xs sm:text-sm hover:bg-sand-deep text-foreground")}
+                  >
                     <span>{isAr ? "إدارة الحجز" : "Manage Booking"}</span>
                   </AppLink>
                 </div>

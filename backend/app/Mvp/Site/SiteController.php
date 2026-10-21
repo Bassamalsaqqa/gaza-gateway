@@ -4,10 +4,13 @@ namespace App\Mvp\Site;
 
 use App\Identity\Protocol\CookieSecurity;
 use App\Identity\Sessions\PassengerSessionStore;
+use App\Mvp\Mail\MailSettings;
 use App\Reference\Shared\ReferenceResponse;
 use App\Support\DatabaseClock;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 final class SiteController
@@ -104,6 +107,39 @@ final class SiteController
                     'email'=>$body['email'],'topic'=>$body['topic'],'message'=>$body['message'],'language'=>$body['language'],'booking_ref'=>$body['bookingRef'] ?: null,
                     'reply_draft'=>'', 'created_at'=>DatabaseClock::now(), 'updated_at'=>DatabaseClock::now()]);
                 $row=DB::table('contact_messages')->where('id',$id)->first();
+
+                // Bounded Outbox: Queue incoming contact notification for admin
+                if (Schema::hasTable('archive_mail_outbox')) {
+                    $mailSettings = app(MailSettings::class)->forWorker();
+                    $recipient = $mailSettings['notificationEmail'] ?? 'notifications@gazaairport.com';
+                    $cc = ($mailSettings['incomingCcEnabled'] ?? false) && !empty($mailSettings['incomingCcEmail'])
+                        ? $mailSettings['incomingCcEmail']
+                        : null;
+                    DB::table('archive_mail_outbox')->insert([
+                        'id' => (string) Str::uuid(),
+                        'purpose' => 'contact_notify',
+                        'contact_id' => $id,
+                        'contribution_id' => null,
+                        'recipient' => $recipient,
+                        'cc_recipient' => $cc,
+                        'encrypted_payload' => Crypt::encryptString(json_encode([
+                            'purpose' => 'contact_notify',
+                            'contactId' => $id,
+                            'senderName' => $body['senderName'],
+                            'email' => $body['email'],
+                            'topic' => $body['topic'],
+                            'language' => $body['language'],
+                            'message' => $body['message'],
+                            'bookingRef' => $body['bookingRef'] ?: null,
+                        ], JSON_THROW_ON_ERROR)),
+                        'status' => 'pending',
+                        'generation' => 1,
+                        'attempts' => 0,
+                        'next_attempt_at' => DatabaseClock::now(),
+                        'created_at' => DatabaseClock::now(),
+                        'updated_at' => DatabaseClock::now(),
+                    ]);
+                }
             }
             return ReferenceResponse::success($request,['id'=>$row->id,'createdAt'=>$this->iso($row->created_at),'status'=>'received'],202);
         });

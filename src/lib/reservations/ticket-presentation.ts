@@ -130,7 +130,111 @@ export const KNOWN_AIRPORTS: Record<string, AirportMeta> = {
     city: { en: "Toronto", ar: "تورونتو" },
     name: { en: "Toronto Pearson International", ar: "مطار تورونتو بيرسون الدولي" },
   },
+  OSL: {
+    code: "OSL",
+    city: { en: "Oslo", ar: "أوسلو" },
+    name: { en: "Oslo Airport, Gardermoen", ar: "مطار أوسلو، غاردرموين" },
+  },
+  ARN: {
+    code: "ARN",
+    city: { en: "Stockholm", ar: "ستوكهولم" },
+    name: { en: "Stockholm Arlanda Airport", ar: "مطار ستوكهولم أرلاندا" },
+  },
 };
+
+export const TICKET_CANVAS_WIDTH = 1774;
+export const TICKET_CANVAS_HEIGHT = 887;
+export const TICKET_CANVAS_ASPECT_RATIO = "1774 / 887";
+
+export type TicketLoadState = "loading" | "ready" | "error";
+
+let cachedTicketImagePromise: Promise<HTMLImageElement> | null = null;
+let cachedTicketImageElement: HTMLImageElement | null = null;
+
+/**
+ * Shared preloader for the approved ticket background image.
+ * Uses an immutable Promise so all mounted instances share the exact same load
+ * completion without overwriting each other's listeners.
+ */
+export function preloadTicketImage(src: string): Promise<HTMLImageElement> {
+  if (typeof window === "undefined" && typeof (globalThis as unknown as { Image: unknown }).Image === "undefined") {
+    return Promise.reject(new Error("preloading ticket image requires browser window or Image constructor"));
+  }
+  if (cachedTicketImageElement && cachedTicketImageElement.complete && cachedTicketImageElement.naturalWidth > 0) {
+    return Promise.resolve(cachedTicketImageElement);
+  }
+  if (!cachedTicketImagePromise) {
+    cachedTicketImagePromise = new Promise((resolve, reject) => {
+      const ImgConstructor =
+        typeof window !== "undefined"
+          ? window.Image
+          : ((globalThis as unknown as { Image: new () => HTMLImageElement }).Image);
+      const img = new ImgConstructor();
+      img.onload = () => {
+        cachedTicketImageElement = img;
+        resolve(img);
+      };
+      img.onerror = () => {
+        cachedTicketImagePromise = null;
+        cachedTicketImageElement = null;
+        reject(new Error("Failed to load approved ticket background artwork"));
+      };
+      img.src = src;
+    });
+  }
+  return cachedTicketImagePromise;
+}
+
+export function _resetTicketImageCacheForTesting(): void {
+  cachedTicketImagePromise = null;
+  cachedTicketImageElement = null;
+}
+
+export interface ExtractedPassengerNames {
+  latin: string;
+  arabic: string;
+  fullName: string;
+}
+
+/**
+ * Extracts and separates Latin and Arabic representations from passenger name strings.
+ * Preserves full passenger names without data loss across non-Latin scripts (Cyrillic, Greek,
+ * CJK, etc.) and mixed-script strings.
+ */
+export function extractPassengerNames(name: string): ExtractedPassengerNames {
+  const trimmed = (name || "").trim();
+  if (!trimmed) return { latin: "", arabic: "", fullName: "" };
+
+  // Explicit delimiter (slash or parens): "Primary / Secondary" or "Primary (Secondary)"
+  const delimiterMatch = /^([^/(]+?)\s*[/|(]\s*([^/)]+?)\)?$/.exec(trimmed);
+  if (delimiterMatch && delimiterMatch[1] && delimiterMatch[2]) {
+    const part1 = delimiterMatch[1].trim();
+    const part2 = delimiterMatch[2].trim();
+    const part1HasAr = /[\u0600-\u06FF]/.test(part1);
+    const part2HasAr = /[\u0600-\u06FF]/.test(part2);
+
+    if (!part1HasAr && part2HasAr) {
+      return { latin: part1, arabic: part2, fullName: trimmed };
+    }
+    if (part1HasAr && !part2HasAr) {
+      return { latin: part2, arabic: part1, fullName: trimmed };
+    }
+  }
+
+  const hasArabic = /[\u0600-\u06FF]/.test(trimmed);
+  const hasLatin = /[A-Za-z]/.test(trimmed);
+
+  if (hasArabic && !hasLatin) {
+    return { latin: "", arabic: trimmed, fullName: trimmed };
+  }
+  if (hasLatin && !hasArabic) {
+    return { latin: trimmed, arabic: "", fullName: trimmed };
+  }
+
+  // Non-Latin scripts (Cyrillic, Greek, CJK, etc.) or mixed scripts without clean delimiter:
+  // Preserves full name so no data is ever lost.
+  return { latin: trimmed, arabic: "", fullName: trimmed };
+}
 
 export function resolveAirport(code: string, lang: TicketLang): { code: string; city: string; airport: string } {
   const normalized = (code || "").trim().toUpperCase();
@@ -204,6 +308,10 @@ export interface MappedPassengerTicket {
   destinationCode: string;
   destinationCity: string;
   destinationAirport: string;
+  originCityEn?: string;
+  originCityAr?: string;
+  destinationCityEn?: string;
+  destinationCityAr?: string;
   date: string;
   formattedDate: string;
   departTime: string;
@@ -297,6 +405,12 @@ export function mapPassengerTicket(
   const f = item.flight;
   const origin = resolveAirport(f.originCode, lang);
   const destination = resolveAirport(f.destinationCode, lang);
+  const originMeta = KNOWN_AIRPORTS[(f.originCode || "").trim().toUpperCase()];
+  const destMeta = KNOWN_AIRPORTS[(f.destinationCode || "").trim().toUpperCase()];
+  const originCityEn = originMeta?.city.en || f.originCode;
+  const originCityAr = originMeta?.city.ar || "";
+  const destinationCityEn = destMeta?.city.en || f.destinationCode;
+  const destinationCityAr = destMeta?.city.ar || "";
 
   // Schema authority requires status: fail closed on missing or unvalidated status
   const rawStatus = item.status || reservation.status;
@@ -353,6 +467,10 @@ export function mapPassengerTicket(
     destinationCode: destination.code,
     destinationCity: destination.city,
     destinationAirport: destination.airport,
+    originCityEn,
+    originCityAr,
+    destinationCityEn,
+    destinationCityAr,
     date: f.date,
     formattedDate,
     departTime: f.departTime,

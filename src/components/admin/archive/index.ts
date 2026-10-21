@@ -8,3 +8,4 @@ export * from "./MediaVariantSheet";
 export * from "./ArchiveCatalog";
 export * from "./SourceCatalog";
 export * from "./MediaCatalog";
+export * from "./archive-contributions-admin";

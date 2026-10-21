@@ -5,6 +5,7 @@ import { ChapterNav } from "@/components/airport/chapter-nav";
 import { btnClass, Container, Panel } from "@/components/kit";
 import { ResponsiveImage } from "@/components/responsive-image";
 import { PublicPhotoHero } from "@/components/media/public-photo-hero";
+import { ArchiveContributionDialog } from "@/components/archive/archive-contribution-dialog";
 import { useI18n } from "@/lib/i18n";
 import { GazaSurface } from "@/design/surfaces";
 import pastBodyImg from "@/assets/media/decorative/airport/airport-past-body.webp";
@@ -126,13 +127,18 @@ function AirportPage() {
         <ChapterNav activeChapter="overview" className="mb-8" />
 
         {/* Narrative Dossier Introduction */}
-        <div className="mb-10 max-w-3xl">
-          <h2 className="type-title-lg text-foreground">
-            {t("airport.introTitle")}
-          </h2>
-          <p className="mt-3 text-base leading-relaxed text-muted-foreground">
-            {t("airport.introBody")}
-          </p>
+        <div className="mb-10 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+          <div className="max-w-2xl">
+            <h2 className="type-title-lg text-foreground">
+              {t("airport.introTitle")}
+            </h2>
+            <p className="mt-3 text-base leading-relaxed text-muted-foreground">
+              {t("airport.introBody")}
+            </p>
+          </div>
+          <div className="shrink-0">
+            <ArchiveContributionDialog />
+          </div>
         </div>
 
         {/* 3 Sequential Editorial Chapters */}
@@ -235,11 +241,15 @@ function AirportPage() {
                 {t("gallery.sub")}
               </p>
             </div>
-            <div className="mt-6">
+            <div className="mt-6 flex flex-col gap-2.5">
               <AppLink to="/gallery" className={btnClass("primary", "md", "w-full")}>
                 <BookOpen aria-hidden="true" className="size-4" />
                 <span>{t("home.openArchive")}</span>
               </AppLink>
+              <ArchiveContributionDialog
+                triggerButtonVariant="outline"
+                triggerClassName="w-full"
+              />
             </div>
           </div>
         </div>
