@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {BASELINE_PROFILES,renderRunnerForProfile} from '../../tools/hostpapa-release/production-upgrade/ProductionUpgradeKitBuilder.mjs';
 
@@ -28,8 +30,10 @@ test('rollback map order regression uses exact generated comparison block',()=>{
  const end=php.indexOf('// Verify compatibility predicate',start);
  assert.ok(start>0&&end>start);
  const block=php.slice(start,end);
- fs.mkdirSync('scratch',{recursive:true});
- fs.writeFileSync('scratch/rollback-map-order-test.php',`<?php
+ const directory=fs.mkdtempSync(path.join(os.tmpdir(),'gaza-rollback-order-'));
+ const fixture=path.join(directory,'comparison.php');
+ try {
+ fs.writeFileSync(fixture,`<?php
 $installedMigHashes=['b'=>'2','a'=>'1'];$candidateMigHashes=['a'=>'1','b'=>'2'];
 ${block}
 echo "ORDER_PASS\n";
@@ -37,4 +41,13 @@ $candidateMigHashes['a']='changed';try {
 ${block}
 throw new Exception('Accepted changed bytes');}catch(RuntimeException $e){echo "HASH_REJECT_PASS\n";}
 `);
+ const result=spawnSync(process.env.PHP_BINARY || 'php',[fixture],{encoding:'utf8',timeout:10000});
+ assert.ifError(result.error);
+ assert.equal(result.signal,null,'PHP fixture must not be terminated');
+ assert.equal(result.status,0,`PHP regression failed: ${result.stderr}`);
+ assert.equal(result.stderr,'');
+ assert.equal(result.stdout.replace(/\r\n/g,'\n'),'ORDER_PASS\nHASH_REJECT_PASS\n');
+ } finally {
+  fs.rmSync(directory,{recursive:true,force:true});
+ }
 });
