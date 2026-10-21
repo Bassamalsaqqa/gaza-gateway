@@ -31,6 +31,8 @@ function apply(PDO $db,array $plan):void{
 }
 function verify(PDO $db,array $plan):void{foreach($plan['exclude'] as $table=>[$column]){batch02PreservationQuery($db,$table,['`'.$column.'`'],$plan,true)->fetchAll();}}
 check(batch02ApprovedRows(null)['schedules']['memorial-b01-osl-out']['depart_time']==='08:15','approved time matches VARCHAR5 HH:mm migration storage');
+check(hash('sha256', implode('|', array_intersect_key(batch02ApprovedRows(null)['airports']['OSL'],array_flip(['airport_name_ar','city_ar','country_ar']))))==='a944e405207c86748f53c169225f5ab9f5811afe80edbb65e1ec696df00e820b','OSL exact approved UTF8 Arabic bytes');
+check(hash('sha256', implode('|', array_intersect_key(batch02ApprovedRows(null)['airports']['ARN'],array_flip(['airport_name_ar','city_ar','country_ar']))))==='df79a0047bbe1f226e1c72e9eef90aaadeccb32651e5b20e93523e84e49e653a','ARN exact approved UTF8 Arabic bytes');
 $db=fixture();$plan=batch02PreservationPlan($db);apply($db,$plan);verify($db,$plan);check(true,'complete approved additions and both canonical snapshots accepted');
 check($plan['expected']['schedules']['memorial-b01-osl-out']['from_date']==='2029-11-01'&&$plan['expected']['schedules']['memorial-b01-osl-out']['until_date']==='2031-11-01','baseline dates captured before migration');
 foreach([['airports','code','OSL','timezone','UTC'],['airports','code','OSL','airport_name_ar','wrong'],['airports','code','ARN','block_minutes',291],['schedules','id','memorial-b01-osl-out','depart_time','09:15'],['schedules','id','memorial-b01-arn-out','aircraft_id','other'],['schedules','id','memorial-b01-osl-in','active',0],['schedules','id','memorial-b01-arn-in','from_date','2029-10-01']] as [$table,$key,$id,$field,$bad]){

@@ -101,8 +101,8 @@ function batch02LoadSnapshotDtos(): void {
 function batch02ApprovedRows(?array $dates): array {
     $airports = [];
     foreach ([
-        ['OSL','Oslo Airport, Gardermoen','???? ?????? ?????????','Oslo','?????','Norway','???????','Europe/Oslo',310],
-        ['ARN','Stockholm Arlanda Airport','???? ???????? ???????','Stockholm','????????','Sweden','??????','Europe/Stockholm',290],
+        ['OSL','Oslo Airport, Gardermoen','مطار أوسلو، غاردرموين','Oslo','أوسلو','Norway','النرويج','Europe/Oslo',310],
+        ['ARN','Stockholm Arlanda Airport','مطار ستوكهولم أرلاندا','Stockholm','ستوكهولم','Sweden','السويد','Europe/Stockholm',290],
     ] as [$code,$name,$nameAr,$city,$cityAr,$country,$countryAr,$tz,$minutes]) {
         $airports[$code] = ['code'=>$code,'airport_name_en'=>$name,'airport_name_ar'=>$nameAr,
             'city_en'=>$city,'city_ar'=>$cityAr,'country_en'=>$country,'country_ar'=>$countryAr,
