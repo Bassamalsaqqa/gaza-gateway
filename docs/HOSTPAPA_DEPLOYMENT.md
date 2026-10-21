@@ -1,27 +1,16 @@
 ﻿# HostPapa full-stack update runbook
 
-## Recorded installed baseline — 19 October 2026
+## Installed baseline and Batch 02 candidate ? 21 October 2026
 
-| Pin | Recorded value |
-| --- | --- |
-| Application | `69743b44066501e1b7a7be9e55181c5a9da13b3b` |
-| Active release | `rel_20261017T161436_69743b4_clean` |
-| Release manifest SHA-256 | `408b48ef4a23fc30191a8dcc556abf02d009d72fe13aa1e8f1277d7c39d5f2da` |
-| Migration identities | 23 |
-| Deployment | 2026-10-18T06:35:45Z; `DEPLOYED_OWNER_TESTING_PENDING` |
-| Private application | `/home/gaza5045/gaza-gateway` |
-| Pointer | `/home/gaza5045/gaza-gateway/current-release.txt` |
-| Public root | `/home/gaza5045/public_html` |
+Installed source: `55dfa645e59e66c2da03744673fbb212a5077d51`, release `rel_20261020T043444_55dfa64_clean`, 23 migrations, immutable manifest SHA-256 `c9275e79156c4e5c08e267c429fd9034b337e69e71bafad7dc6e021609c89420`. These are retained deployment evidence, not fresh host certification.
 
-These are accepted deployment records, not a fresh private-host inspection on every documentation read. Reverify them before another update. Preserve private backups, shared configuration, credentials, business data and original failed-upgrade evidence. Actual production booking and mailbox acceptance remain owner checks.
+Accepted application main: `0aacf1452d47bbf5660f060a718409dfff32a54c`, 25 migrations. The separate operator successor uses mandatory `--profile=installed_55_23`; historical PR #20 is not merged or reused as an installer. The two Batch02 additions are allowlisted exactly, with all 23 baseline migration bytes unchanged. Generated rollback migration maps are sorted before strict comparison. Expanded schema refuses old-code rollback and requires forward repair; no migration DOWN or database restore is automatic.
 
-HostPapa shared cPanel is the sole production target: prebuilt React/Vite, Laravel 13/PHP 8.4+, MySQL/InnoDB and HostPapa SMTP. No production Node/Docker daemon, external backend, Actions or static-only `hostpapa-deploy` branch.
+The installed single `*/10` dispatcher must be preserved. No cron change, production upload, deployment or application-data mutation is authorized by operator source preparation. Final deployment requires separate exact-kit owner GO.
 
-## Stop condition for the next release
+Batch02 preservation retains digests of every pre-existing row, permitting only missing OSL/ARN airport rows, four exact Nordic schedule IDs, one appended canonical revision per changed domain and its exact +1 revision-control transition. Existing fleet must already be active; no fallback fleet inserts admitted. Existing business records, historical reference rows and all other control columns remain hashed. This specialization requires exact-kit rehearsal and independent operator review before release acceptance.
 
-The accepted [kit builder](../tools/hostpapa-release/production-upgrade/ProductionUpgradeKitBuilder.mjs) defines only `legacy_7a_19`, `b3_21` and `installed_965_21`. **None targets the installed 69743b4/23 baseline. No compatible next kit is prepared by this stabilization PR.** Do not invent a profile flag, rebind an old rendered runner, reuse an earlier ZIP or rely on a historical preflight.
-
-Source review/integration, package preparation, host preflight and final production GO are separate steps. The stabilization mission authorizes a review PR, not merging, packaging or deploying it.
+Read-only host preflight must certify real web-SAPI 10M uploads, 40M bounded request/post capacity, at least five files, finite memory; GD/FreeType/PNG, calendar and ar-php Arabic shaping; MySQL constraints; private upload paths/permissions; backup headroom/integrity; installed source/manifest/migrations and original cron. See [upload requirements](batch02/ARCHIVE_UPLOAD_HOSTPAPA_REQUIREMENTS.md). Never infer web PHP settings from CLI alone.
 
 ## Authorized release preparation
 
