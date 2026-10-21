@@ -1,5 +1,16 @@
 import { z } from "zod";
+import { resolveIdentityApiClientConfig, type IdentityApiClientConfig } from "../api/identity-client-config.ts";
+import { identityUiClientConfig } from "../api/identity-ui-config.ts";
 import { getMvpUiClient } from "../api/mvp-ui-runtime.ts";
+
+/** Direct downloads must use the same approved API origin and cookie path as requests. */
+export function archiveAttachmentDownloadUrl(config: IdentityApiClientConfig, id: string | number, fileId: string | number): string {
+  const resolved = resolveIdentityApiClientConfig(config);
+  if (!resolved.enabled || !resolved.baseUrl) throw new Error("Archive API is disabled.");
+  const contributionId = z.string().uuid().parse(id);
+  const attachmentId = z.string().uuid().parse(fileId);
+  return `${resolved.baseUrl}/admin/archive/contributions/${encodeURIComponent(contributionId)}/files/${encodeURIComponent(attachmentId)}/download`;
+}
 
 export const PROHIBITED_EXTENSIONS = [
   "svg", "svgz", "htm", "html", "xhtml", "shtml", "xml",
@@ -222,5 +233,5 @@ export const archiveContributionsClient = {
     }),
 
   getDownloadUrl: (id: string | number, fileId: string | number) =>
-    `/v1/admin/archive/contributions/${id}/files/${fileId}/download`,
+    archiveAttachmentDownloadUrl(identityUiClientConfig(import.meta.env ?? {}), id, fileId),
 };

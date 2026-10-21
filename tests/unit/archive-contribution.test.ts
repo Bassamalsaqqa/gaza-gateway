@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  archiveAttachmentDownloadUrl,
   archiveContributionSubmitSchema,
   contributionStatusSchema,
   contributionListItemSchema,
@@ -212,4 +213,17 @@ test("contributionDetailSchema validates full detail with files and audits", () 
   assert.equal(parsed.files.length, 1);
   assert.equal(parsed.audits.length, 1);
   assert.equal(parsed.files[0]?.mimeType, "image/png");
+});
+
+
+test("archive attachment download uses approved configured API origin and cookie path", () => {
+  const id = "00000000-0000-4000-8000-000000000001";
+  const file = "00000000-0000-4000-8000-000000000002";
+  const development = { enabled: true, nonProductionOptIn: true, baseUrl: "https://127.0.0.1:5186", environment: { MODE: "development", DEV: true } };
+  assert.equal(archiveAttachmentDownloadUrl(development, id, file), `https://127.0.0.1:5186/api/v1/admin/archive/contributions/${id}/files/${file}/download`);
+  const production = { enabled: true, productionOptIn: true, baseUrl: "https://www.gazaairport.com/api/v1", environment: { MODE: "production", PROD: true } };
+  assert.equal(archiveAttachmentDownloadUrl(production, id, file), `https://www.gazaairport.com/api/v1/admin/archive/contributions/${id}/files/${file}/download`);
+  assert.throws(() => archiveAttachmentDownloadUrl(development, "../escape", file));
+  assert.throws(() => archiveAttachmentDownloadUrl(development, id, 12));
+  assert.throws(() => archiveAttachmentDownloadUrl({ ...development, baseUrl: "https://evil.example/api/v1" }, id, file));
 });

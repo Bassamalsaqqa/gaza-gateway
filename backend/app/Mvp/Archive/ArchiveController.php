@@ -340,16 +340,35 @@ final class ArchiveController
 
         // Check JSON base64 encoded files
         $jsonFiles = $request->input('files');
+        if ($jsonFiles !== null && !is_array($jsonFiles)) {
+            abort(422);
+        }
         if (is_array($jsonFiles)) {
             if (count($jsonFiles) > self::MAX_FILES_PER_SUBMISSION) {
                 abort(422);
             }
             foreach ($jsonFiles as $item) {
-                if (!is_array($item) || !isset($item['filename'], $item['dataBase64'])) {
+                if (!is_array($item) || !isset($item['filename'], $item['dataBase64'])
+                    || !is_string($item['filename']) || !is_string($item['dataBase64'])) {
                     abort(422);
                 }
-                $origName = (string) $item['filename'];
-                $raw = base64_decode((string) $item['dataBase64'], true);
+                $origName = $item['filename'];
+                $encoded = $item['dataBase64'];
+                // Bound allocation before decoding. Padded base64 only; no whitespace normalization.
+                $encodedLength = strlen($encoded);
+                $maximumEncodedLength = 4 * intdiv(self::MAX_BYTES_PER_FILE + 2, 3);
+                if ($encodedLength === 0 || $encodedLength > $maximumEncodedLength
+                    || $encodedLength % 4 !== 0 || strspn($encoded, 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=') !== $encodedLength) {
+                    abort(422);
+                }
+                // Check the exact decoded length (including padding) before allocating raw bytes.
+                $padding = str_ends_with($encoded, '==') ? 2 : (str_ends_with($encoded, '=') ? 1 : 0);
+                $expectedBytes = intdiv($encodedLength, 4) * 3 - $padding;
+                if ($expectedBytes <= 0 || $expectedBytes > self::MAX_BYTES_PER_FILE
+                    || $totalBytes + $expectedBytes > self::MAX_TOTAL_BYTES) {
+                    abort(422);
+                }
+                $raw = base64_decode($encoded, true);
                 if ($raw === false) {
                     abort(422);
                 }

@@ -1,0 +1,12 @@
+{
+  "transport": "real loopback HTTPS with certificate verification; not browser",
+  "authenticatedStatus": 200,
+  "bytes": 70,
+  "sha256": "6b7fa434f92a8b80aab02d9bf1a12e49ffcae424e4013a1c4f68b67e3d2bbcd0",
+  "filename": "synthetic.png",
+  "contentDisposition": "attachment; filename=synthetic.png",
+  "nosniff": "nosniff",
+  "unauthenticatedStatus": 401,
+  "cookiePath": "/api/v1",
+  "downloadPath": "/api/v1/admin/archive/contributions/2e2015ca-83f0-468c-981a-3ffb734496c6/files/9f64bdc6-e2ee-43c7-8982-f23ec624e5cc/download"
+}

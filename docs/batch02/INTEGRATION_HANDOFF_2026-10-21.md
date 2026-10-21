@@ -66,3 +66,7 @@ Archive artwork SHA-256: `dabe1d812d5c72e6f8d45d6cd5fe67ad237779eea657c68efc4db1
 Independent source acceptance and owner integration authorization remain pending. Before a future release: verify actual installed baseline, HostPapa GD/FreeType/Arabic shaping and upload capabilities, guarded exact-source package/rehearsal/read-only preflight and final owner GO. No production certification is implied by local acceptance.
 
 Unrelated HostPapa operator changes remain in the parent checkout and are excluded from this PR. Main and production are unchanged. Cleanup inventory records recommendations only; no old evidence or hosting data was removed.
+
+## Independent-review correction delta
+
+See [PR21 focused correction evidence](PR21_FOCUSED_CORRECTIONS_2026-10-21.md): configured API download URL and predecode JSON upload bounds corrected; 1 frontend regression and 3 PHP tests/19 assertions passed. Real authenticated HTTPS attachment bytes/filename/hash verified (200), unauthenticated denied (401). Owner waived the blocked local browser retry; no real-browser download pass is claimed. Effective HostPapa request limits remain a release preflight gate. All earlier accepted Batch 02 features are unchanged.
