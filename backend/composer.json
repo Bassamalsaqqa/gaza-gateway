@@ -2,7 +2,7 @@
     "name": "gaza-gateway/backend",
     "type": "project",
     "description": "Gaza Gateway backend API foundation (Laravel 13, PHP 8.4, PostgreSQL 17)",
-    "license": "MIT",
+    "license": "proprietary",
     "require": {
         "php": "^8.4",
         "khaled.alshamaa/ar-php": "^7.0",

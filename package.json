@@ -1,4 +1,5 @@
 {
+  "license": "UNLICENSED",
   "name": "tanstack_start_ts",
   "private": true,
   "packageManager": "npm@11.11.0",

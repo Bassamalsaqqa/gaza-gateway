@@ -1,5 +1,9 @@
 # Gaza Gateway
 
+<!-- proprietary-license-notice: Bassamalsaqqa -->
+> **License:** Proprietary. Copyright (c) 2026 Bassamalsaqqa. All rights reserved for the original application code. Third-party components retain their own licenses. See [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+
 Bilingual Gaza International Airport and **Palestine Airways Limited** experience: persistent free commemorative bookings, dynamic tickets, guest email verification, Admin/CMS and a documentary archive. Arabic branding and historical airline names retain their approved forms. This is not real airline operation, paid ticketing or check-in.
 
 Recorded production and accepted `main`: `69743b44066501e1b7a7be9e55181c5a9da13b3b`, 23 migrations, deployed October 18. Status: `DEPLOYED_OWNER_TESTING_PENDING`. Current stabilization work is a review branch; publication does not change production.
