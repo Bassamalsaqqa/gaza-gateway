@@ -52,6 +52,19 @@ export const BASELINE_PROFILES = Object.freeze({
     kit_folder: 'gaza-upgrade-package-965',
     rollback_policy: 'guest_schema_irreversible_forward_repair',
   }),
+  installed_697_23: Object.freeze({
+    id: 'installed_697_23',
+    source_sha: '69743b44066501e1b7a7be9e55181c5a9da13b3b',
+    release_id: 'rel_20261017T161436_69743b4_clean',
+    manifest_sha256: '408b48ef4a23fc30191a8dcc556abf02d009d72fe13aa1e8f1277d7c39d5f2da',
+    migration_count: 23,
+    target_migration_count: 23,
+    database: 'gaza5045_gateway_live',
+    app_dir: '/home/gaza5045/gaza-gateway',
+    target_webroot: '/home/gaza5045/public_html',
+    kit_folder: 'gaza-upgrade-package-697-55dfa64',
+    rollback_policy: 'schema_compatible_23_reference_barrier',
+  }),
 });
 
 export const INSTALLED_PIN = BASELINE_PROFILES.legacy_7a_19;
@@ -214,6 +227,115 @@ const TARGET_MIGRATIONS = ${profile.target_migration_count};`;
 
     return rendered;
   }
+  if (profile.id === 'installed_697_23') {
+    let rendered = rawRunner;
+
+    // 1. Unique allowlisted kit folder
+    rendered = replaceExactAnchor(
+      rendered,
+      "$kitRoot = $home . '/gaza-upgrade-package';",
+      `$kitRoot = $home . '/${profile.kit_folder}';`
+    );
+
+    // 2. Exact immutable baseline constants and target migrations
+    const oldConstants = `const INSTALLED_SOURCE_SHA = '7a8f0fa2f25851c4f75422f86139e0bb020ea4de';
+const INSTALLED_RELEASE_ID = 'rel_20261013T082656_7a8f0fa_clean';
+const INSTALLED_MANIFEST_SHA = 'f4950ad28949c874e8055cabe5af049d4467acee1583a8c916f96bb50c2f1cdf';
+const INSTALLED_MIGRATIONS = 19;
+
+const TARGET_MIGRATIONS = 21;`;
+
+    const newConstants = `const INSTALLED_SOURCE_SHA = '${profile.source_sha}';
+const INSTALLED_RELEASE_ID = '${profile.release_id}';
+const INSTALLED_MANIFEST_SHA = '${profile.manifest_sha256}';
+const INSTALLED_MIGRATIONS = ${profile.migration_count};
+
+const TARGET_MIGRATIONS = ${profile.target_migration_count};`;
+
+    rendered = replaceExactAnchor(rendered, oldConstants, newConstants);
+
+    // 3. Rollback compatibility predicate: 21 reference airports (baseline 697 already supports nullable guests)
+    const oldRollback = `function assertRollbackCompatible(PDO $pdo): void {
+    $codes = ['GZA', 'AMM', 'CAI', 'DOH', 'DXB', 'IST', 'JED', 'RUH'];
+    $statement = $pdo->query('SELECT code, block_minutes FROM airports');
+    while ($row = $statement->fetch(PDO::FETCH_ASSOC)) {
+        if (!in_array($row['code'], $codes, true) || (int)$row['block_minutes'] > 600) {
+            throw new RuntimeException('Expanded reference authority requires a compatible forward repair; old-code rollback refused.');
+        }
+    }
+}`;
+
+    const newRollback = `function assertRollbackCompatible(PDO $pdo): void {
+    $codes = ['GZA', 'AMM', 'CAI', 'IST', 'DOH', 'DXB', 'JED', 'RUH', 'BEY', 'KWI', 'AUH', 'ATH', 'FCO', 'CDG', 'LHR', 'FRA', 'MAD', 'BOM', 'KUL', 'JFK', 'YYZ'];
+    $statement = $pdo->query('SELECT code, block_minutes FROM airports');
+    while ($row = $statement->fetch(PDO::FETCH_ASSOC)) {
+        $mins = (int)$row['block_minutes'];
+        if (!in_array($row['code'], $codes, true) || $mins < 20 || $mins > 1440) {
+            throw new RuntimeException('Expanded reference authority requires a compatible forward repair; old-code rollback refused.');
+        }
+    }
+}`;
+
+    rendered = replaceExactAnchor(rendered, oldRollback, newRollback);
+
+    // 4. Schema compatibility rollback verification: compare baseline and candidate migration identities and bytes
+    const oldRollbackBarrier = `        assertRollbackMigrationLedger($pdo, $expectedMigrationNames);
+
+        // Verify compatibility predicate: reference airports and destination limits
+        assertRollbackCompatible($pdo);`;
+
+    const newRollbackBarrier = `        assertRollbackMigrationLedger($pdo, $expectedMigrationNames);
+
+        // Verify schema compatibility: compare baseline and candidate migration identities and bytes
+        $installedMigHashes = [];
+        foreach ($installedManifest['private_files'] ?? [] as $f => $e) {
+            if (preg_match('#^backend/database/migrations/[a-zA-Z0-9_]+\\.php$#D', $f)) {
+                $installedMigHashes[$f] = $e['sha256'];
+            }
+        }
+        $candidateMigHashes = [];
+        foreach ($candidateManifest['private_files'] ?? [] as $f => $e) {
+            if (preg_match('#^backend/database/migrations/[a-zA-Z0-9_]+\\.php$#D', $f)) {
+                $candidateMigHashes[$f] = $e['sha256'];
+            }
+        }
+        if (count($installedMigHashes) !== count($candidateMigHashes) || $installedMigHashes !== $candidateMigHashes) {
+            throw new RuntimeException('Expanded or modified migration schema requires compatible forward repair; rollback refused.');
+        }
+
+        // Verify compatibility predicate: reference airports and destination limits
+        assertRollbackCompatible($pdo);`;
+
+    rendered = replaceExactAnchor(rendered, oldRollbackBarrier, newRollbackBarrier);
+
+    // 5. Preflight check verification message
+    rendered = replaceExactAnchor(
+      rendered,
+      'echo "PASS: verified baseline source 7a8f0fa, active release rel_20261013T082656_7a8f0fa_clean, 19 migrations, and upgrade candidate package.\\n";',
+      `echo "PASS: verified baseline source ${profile.source_sha.slice(0, 7)}, active release ${profile.release_id}, ${profile.migration_count} migrations, and upgrade candidate package.\\n";`
+    );
+
+    // 6. Target migration post-verify checks and output
+    rendered = replaceExactAnchor(
+      rendered,
+      'throw new RuntimeException("Expected 21 migrations after upgrade, found " . count($appliedMigrations));',
+      `throw new RuntimeException("Expected ${profile.target_migration_count} migrations after upgrade, found " . count($appliedMigrations));`
+    );
+
+    rendered = replaceExactAnchor(
+      rendered,
+      'echo "PASS: release installed, migrations verified at 21, previous bytes and consistent database dump retained.\\n";',
+      `echo "PASS: release installed, migrations verified at ${profile.target_migration_count}, previous bytes and consistent database dump retained.\\n";`
+    );
+
+    rendered = replaceExactAnchor(
+      rendered,
+      'echo "PASS: already-installed target source, private/public bytes and 21 migration identities verified; no upgrade or evidence rewrite.\\n";',
+      `echo "PASS: already-installed target source, private/public bytes and ${profile.target_migration_count} migration identities verified; no upgrade or evidence rewrite.\\n";`
+    );
+
+    return rendered;
+  }
   throw new Error(`Unsupported profile for rendering: ${profile.id}`);
 }
 
@@ -271,7 +393,7 @@ export class ProductionUpgradeKitBuilder {
     this.root = options.root ? path.resolve(options.root) : path.resolve(__dirname, '../../..');
 
     if (!options.profile || typeof options.profile !== 'string' || options.profile.trim() === '') {
-      throw new Error('--profile=installed_965_21 required (baseline profile must be explicitly specified; historical default has been removed).');
+      throw new Error('--profile=installed_697_23 required ( baseline profile must be explicitly specified; historical default has been removed).');
     }
     const profileId = options.profile.trim();
     if (!Object.prototype.hasOwnProperty.call(BASELINE_PROFILES, profileId)) {
@@ -290,7 +412,10 @@ export class ProductionUpgradeKitBuilder {
     if (this.expectedSourceSha === '96538d9affdc843d08ef3c801f15c7f92dfd46b3' && profileId === 'legacy_7a_19') {
       throw new Error('Release 96538d9affdc843d08ef3c801f15c7f92dfd46b3 requires --profile=b3_21; legacy profile is rejected for this release.');
     }
-    if (options.expectedMigrationCount === 23 && profileId !== 'installed_965_21') {
+    if (this.expectedSourceSha === '55dfa645e59e66c2da03744673fbb212a5077d51' && profileId !== 'installed_697_23') {
+      throw new Error('Release 55dfa645e59e66c2da03744673fbb212a5077d51 requires --profile=installed_697_23; earlier profiles are rejected for this release.');
+    }
+    if (options.expectedMigrationCount === 23 && profileId !== 'installed_965_21' && profileId !== 'installed_697_23') {
       throw new Error(`Target release with 23 migrations requires --profile=installed_965_21; profile ${profileId} is rejected.`);
     }
 
@@ -319,6 +444,7 @@ export class ProductionUpgradeKitBuilder {
       throw new Error(`Package directory does not exist or is not a directory: ${this.packageDir}`);
     }
 
+    let manifestJson = null;
     if (this.profileConfig.id !== 'legacy_7a_19') {
       if (!this.installedManifestPath) {
         throw new Error(`Profile ${this.profileConfig.id} requires explicit --installed-manifest=<path>`);
@@ -334,7 +460,7 @@ export class ProductionUpgradeKitBuilder {
       if (actualManifestSha !== this.installedBinding.manifest_sha256) {
         throw new Error(`Installed manifest checksum mismatch: expected ${this.installedBinding.manifest_sha256}, got ${actualManifestSha}`);
       }
-      const manifestJson = JSON.parse(fs.readFileSync(this.installedManifestPath, 'utf8'));
+      manifestJson = JSON.parse(fs.readFileSync(this.installedManifestPath, 'utf8'));
       if (manifestJson.source_sha !== this.installedBinding.source_sha) {
         throw new Error(`Installed manifest source_sha mismatch: expected ${this.installedBinding.source_sha}, got ${manifestJson.source_sha}`);
       }
@@ -393,6 +519,9 @@ export class ProductionUpgradeKitBuilder {
     if (manifest.source_sha === '96538d9affdc843d08ef3c801f15c7f92dfd46b3' && this.profileConfig.id === 'legacy_7a_19') {
       throw new Error('Release 96538d9affdc843d08ef3c801f15c7f92dfd46b3 requires --profile=b3_21; legacy profile is rejected for this release.');
     }
+    if (manifest.source_sha === '55dfa645e59e66c2da03744673fbb212a5077d51' && this.profileConfig.id !== 'installed_697_23') {
+      throw new Error('Release 55dfa645e59e66c2da03744673fbb212a5077d51 requires --profile=installed_697_23; earlier profiles are rejected for this release.');
+    }
 
     // Refuse dirty or test builds
     if (manifest.is_dirty !== false) {
@@ -430,7 +559,7 @@ export class ProductionUpgradeKitBuilder {
       .sort();
 
     const targetMigrationCount = this.profileConfig.target_migration_count || 21;
-    if (migrationFiles.length === 23 && this.profileConfig.id !== 'installed_965_21') {
+    if (migrationFiles.length === 23 && this.profileConfig.id !== 'installed_965_21' && this.profileConfig.id !== 'installed_697_23') {
       throw new Error(`Candidate release with 23 migrations requires --profile=installed_965_21; profile ${this.profileConfig.id} is rejected.`);
     }
     if (migrationFiles.length !== targetMigrationCount) {
@@ -444,6 +573,37 @@ export class ProductionUpgradeKitBuilder {
       if (!migrationFiles.includes('2026_10_16_000001_guest_reservations.php') ||
           !migrationFiles.includes('2026_10_17_000001_optional_guest_passenger_details.php')) {
         throw new Error('Package missing required PR18 guest migrations');
+      }
+    }
+
+    if (this.profileConfig.id === 'installed_697_23') {
+      // Schema compatibility verification: compare baseline and candidate migration identities and bytes to refuse incompatible
+      const baselineMigrations = {};
+      for (const [relPath, entry] of Object.entries(manifestJson.private_files || {})) {
+        if (/^backend\/database\/migrations\/[a-zA-Z0-9_]+\.php$/.test(relPath)) {
+          baselineMigrations[relPath] = entry.sha256;
+        }
+      }
+      const candidateMigrations = {};
+      for (const [relPath, entry] of Object.entries(manifest.private_files || {})) {
+        if (/^backend\/database\/migrations\/[a-zA-Z0-9_]+\.php$/.test(relPath)) {
+          candidateMigrations[relPath] = entry.sha256;
+        }
+      }
+      const baselineKeys = Object.keys(baselineMigrations).sort();
+      const candidateKeys = Object.keys(candidateMigrations).sort();
+
+      if (baselineKeys.length !== candidateKeys.length) {
+        throw new Error(`Schema compatibility failure: baseline has ${baselineKeys.length} migrations, candidate has ${candidateKeys.length} migrations.`);
+      }
+
+      for (const key of baselineKeys) {
+        if (!candidateMigrations[key]) {
+          throw new Error(`Schema compatibility failure: candidate missing baseline migration ${key}.`);
+        }
+        if (candidateMigrations[key] !== baselineMigrations[key]) {
+          throw new Error(`Schema compatibility failure: candidate migration ${key} bytes differ from baseline (expected ${baselineMigrations[key]}, got ${candidateMigrations[key]}).`);
+        }
       }
     }
 
