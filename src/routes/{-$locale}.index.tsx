@@ -684,6 +684,37 @@ function Home() {
           </Container>
         </section>
 
+        {/* Authored Discovery Invitation: Ayman Alazraq Art Project */}
+        <section aria-label={pick(lang, { en: "About the Project", ar: "عن المشروع" })}>
+          <Container>
+            <div className="rounded-2xl sm:rounded-3xl border border-sand/20 bg-ink/80 p-6 sm:p-8 text-ink-foreground shadow-xl backdrop-blur-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+              <div className="max-w-2xl space-y-2">
+                <span className="eyebrow text-clay-soft font-bold tracking-wider">
+                  {pick(lang, {
+                    en: "Gaza International Airport — Remade",
+                    ar: "مطار غزة الدولي — إعادة صياغة",
+                  })}
+                </span>
+                <p className="text-sm sm:text-base leading-relaxed text-ink-muted">
+                  {pick(lang, {
+                    en: "An ongoing internet-based art project by Ayman Alazraq about freedom of movement and the memory of Gaza's airport. Every commemorative reservation and imagined flight is an insistence on presence and refusal against erasure.",
+                    ar: "مشروع فني متواصل على الإنترنت لأيمن الأزرق يبحث في حرية الحركة وذاكرة مطار غزة. كل حجز تذكاري ورحلة متخيلة هي إصرار على الحضور ورفض للمحو.",
+                  })}
+                </p>
+              </div>
+              <AppLink
+                to="/about"
+                className={btnClass("secondary", "md", "self-start sm:self-center shrink-0 font-semibold shadow-xs")}
+              >
+                {pick(lang, {
+                  en: "Discover the Project",
+                  ar: "اكتشف المشروع",
+                })}
+              </AppLink>
+            </div>
+          </Container>
+        </section>
+
         {/* Archival Gallery Preview: Integrated Header + Floating Thumbnail Row */}
         <section data-testid="home-archive-preview" aria-label={pick(lang, content.copy.archiveTitle)}>
           <Container>

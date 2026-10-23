@@ -72,8 +72,8 @@ export const publishedHome = {
       "ar": "من الأرشيف"
     },
     "archiveSub": {
-      "en": "Verified documentary records and external primary sources documenting Gaza International Airport.",
-      "ar": "سجلات وثائقية معتمدة ومصادر أولية توثق مطار غزة الدولي."
+      "en": "Documentary records and external primary sources documenting Gaza International Airport.",
+      "ar": "سجلات وثائقية ومصادر أولية توثق مطار غزة الدولي."
     }
   },
   "sections": [

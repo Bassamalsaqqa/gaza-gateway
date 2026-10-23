@@ -1,4 +1,5 @@
 import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
+import { AppLink } from "@/components/app-link";
 import { siteClient } from "@/lib/settings/site-client";
 import { compiledContentHead } from "@/content/head";
 import { createFileRoute } from "@tanstack/react-router";
@@ -247,6 +248,36 @@ function ContactPage() {
 
       <Container className="grid gap-8 py-10 lg:grid-cols-[1.4fr_1fr]">
         <div>
+          {/* Project Identity & Curatorial Context */}
+          <div className="mb-6 rounded-2xl border border-border bg-card p-5 sm:p-6 text-foreground shadow-xs">
+            <span className="eyebrow text-brand font-bold">
+              {pick(lang, {
+                en: "Gaza International Airport — Remade",
+                ar: "مطار غزة الدولي — إعادة صياغة",
+              })}
+            </span>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              {pick(lang, {
+                en: "An internet-based art project and digital memorial by Ayman Alazraq. For conceptual background, history, and the artist's statement, visit the ",
+                ar: "مشروع فني على الإنترنت ونصب تذكاري رقمي لأيمن الأزرق. للاطلاع على الخلفية المفاهيمية والتاريخ وبيان الفنان، تفضل بزيارة ",
+              })}
+              <AppLink to="/about" className="font-semibold text-brand underline underline-offset-2 hover:text-brand-deep">
+                {pick(lang, { en: "About page", ar: "صفحة عن المشروع" })}
+              </AppLink>
+              {pick(lang, {
+                en: ". If you have historical photographs, documents, or personal records to share, please contribute them via our ",
+                ar: ". وإذا كانت لديك صور تاريخية أو وثائق أو ذكريات شخصية تود مشاركتها، فيرجى تقديمها عبر ",
+              })}
+              <AppLink to="/airport" hash="contribute" className="font-semibold text-brand underline underline-offset-2 hover:text-brand-deep">
+                {pick(lang, { en: "Archive Contribution section", ar: "قسم المساهمة في الأرشيف" })}
+              </AppLink>
+              {pick(lang, {
+                en: ". For general inquiries or technical feedback regarding this site, use the form below.",
+                ar: ". للاستفسارات العامة أو الملاحظات التقنية حول هذا الموقع، يمكنك استخدام النموذج أدناه.",
+              })}
+            </p>
+          </div>
+
           {search.settingsPreview === 1 && <Notice>{t("contact.previewNotice")}</Notice>}
           {search.settingsPreview === 1 && activeDraft !== null && (
             <div className="mb-4 text-xs font-semibold text-status-delayed bg-status-delayed/15 p-2.5 rounded-md border border-status-delayed/30">
