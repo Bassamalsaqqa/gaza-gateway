@@ -6,7 +6,7 @@
 
 Bilingual Gaza International Airport and **Palestine Airways Limited** experience: persistent free commemorative bookings, dynamic tickets, guest email verification, Admin/CMS and a documentary archive. Arabic branding and historical airline names retain their approved forms. This is not real airline operation, paid ticketing or check-in.
 
-Recorded production and accepted `main`: `69743b44066501e1b7a7be9e55181c5a9da13b3b`, 23 migrations, deployed October 18. Status: `DEPLOYED_OWNER_TESTING_PENDING`. Current stabilization work is a review branch; publication does not change production.
+Production application: `0aacf1452d47bbf5660f060a718409dfff32a54c`, 25 migrations, verified forward completion October 22. The active pointer and retained manifest were re-read October 23. Source main `6f52044b` adds licensing notices; source publication does not deploy. October 23 improvements remain on review branches.
 
 - [Engineering rules](AGENTS.md)
 - [HostPapa update runbook and exact installed baseline](docs/HOSTPAPA_DEPLOYMENT.md)
@@ -16,7 +16,7 @@ Recorded production and accepted `main`: `69743b44066501e1b7a7be9e55181c5a9da13b
 
 HostPapa shared cPanel is the only production host: React/Vite, Laravel 13/PHP 8.4+, MySQL and SMTP. Production has no mock fallback. Preserve the current single `*/10` dispatcher; owner-reported one-minute permission is not an instruction to change it. No Actions, deployment, production mutation or destructive cleanup without the applicable owner authorization. Existing accounts, bookings, shared credentials and incident evidence must survive every update.
 
-For local work, use `npm ci` and `npm run dev`; use focused test files for the change. `npm run typecheck` and `npm run lint` are source gates. The production-config validation build is `npm run build:hostpapa` with the reviewed production environment flags. Building is distinct from preparing a ZIP or deploying it. Consult the runbook before release work: the old b3/965 kits do not target the installed 697/23 baseline.
+For local work, use `npm ci` and `npm run dev`; use focused test files for the change. `npm run typecheck` and `npm run lint` are source gates. The production-config validation build is `npm run build:hostpapa` with the reviewed production environment flags. Building is distinct from preparing a ZIP or deploying it. Consult the runbook before release work: the historical kits do not target the installed 0aacf14/25 baseline for a new update.
 
 <details>
 <summary>Historical design brief and phase evidence ? superseded operating instructions</summary>

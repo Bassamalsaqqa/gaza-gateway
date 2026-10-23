@@ -25,14 +25,14 @@ export const Route = createFileRoute("/{-$locale}/destinations/")({
         description:
           "Explore the Palestine Airways Limited route network from Gaza International Airport: Amman, Cairo, Istanbul, Doha, Dubai, Jeddah and Riyadh.",
         socialTitle: "Destinations from Gaza International Airport (GZA)",
-        socialDescription: "Seven regional gateways in the opening Palestine Airways Limited network from Gaza.",
+        socialDescription: "Regional and international destinations in the Palestine Airways Limited network from Gaza.",
       },
       ar: {
         title: "وجهات الرحلات — الخطوط الجوية الفلسطينية من غزة (GZA)",
         description:
           "استكشف شبكة وجهات الخطوط الجوية الفلسطينية من مطار غزة الدولي: عمّان، القاهرة، إسطنبول، الدوحة، دبي، جدة، والرياض.",
         socialTitle: "وجهات الرحلات من مطار غزة الدولي (GZA)",
-        socialDescription: "سبع وجهات إقليمية في شبكة الخطوط الجوية الفلسطينية من غزة.",
+        socialDescription: "وجهات إقليمية ودولية في شبكة الخطوط الجوية الفلسطينية من غزة.",
       },
       image: "/social/gaza-airport.jpg",
       schema: [

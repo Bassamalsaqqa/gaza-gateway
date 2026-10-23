@@ -1,0 +1,12 @@
+PHPUnit 13.4.1 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.26
+Configuration: /app/phpunit.xml
+
+Time: 00:09.245, Memory: 50.50 MB
+
+OK (23 tests, 198 assertions)
+
+Focused follow-up (same isolated MySQL database; no suite repetition):
+AnalyticsHttpAcceptanceTest authenticated preview/settings retry and revision/step-up guard test
+OK (1 test, 15 assertions)

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ExternalLink, FileText, Play } from "lucide-react";
 import { useMemo } from "react";
 import { ChapterNav, ChapterPagination } from "@/components/airport/chapter-nav";
+import { telemetryClient } from "@/lib/analytics/telemetry-client";
 import { Container, Panel } from "@/components/kit";
 import { PublicPhotoHero } from "@/components/media/public-photo-hero";
 import { ResponsiveImage } from "@/components/responsive-image";
@@ -212,6 +213,9 @@ function PastPage() {
                             href={src.url}
                             target="_blank"
                             rel="noopener noreferrer"
+                            onClick={() => {
+                              telemetryClient.trackInteraction("archive_explore", lang === "ar" ? "/ar/airport/past" : "/airport/past");
+                            }}
                             className="inline-flex items-center gap-1 rounded-md border border-border bg-secondary/60 px-2.5 py-1 text-xs font-medium text-clay hover:border-clay/40 hover:bg-secondary focus-visible:outline-2 focus-visible:outline-ring"
                           >
                             <span>{pick(lang, { en: src.title, ar: src.titleAr ?? src.title })}</span>

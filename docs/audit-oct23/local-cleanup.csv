@@ -1,0 +1,300 @@
+path,files,bytes,disposition,reason
+scratch\phase13c-integration\node_modules,552,36467888,REMOVED_GENERATED,Untracked reproducible npm/build output; package lock/source preserved
+scratch\phase13c-integration\dist,745,28976738,REMOVED_GENERATED,Untracked reproducible npm/build output; package lock/source preserved
+scratch\phase6b-release-source-2749c267\node_modules,33054,310272014,REMOVED_GENERATED,Untracked reproducible npm/build output; package lock/source preserved
+scratch\phase6b-release-source-2749c267\dist,705,27144233,REMOVED_GENERATED,Untracked reproducible npm/build output; package lock/source preserved
+scratch\hostpapa-convergence\dist,746,28243286,REMOVED_GENERATED,Untracked reproducible npm/build output; package lock/source preserved
+scratch\phase10-source\dist,723,28032852,REMOVED_GENERATED,Untracked reproducible npm/build output; package lock/source preserved
+scratch\phase11-source\dist,724,28143600,REMOVED_GENERATED,Untracked reproducible npm/build output; package lock/source preserved
+scratch\phase7b-media-source\node_modules,544,36011806,REMOVED_GENERATED,Untracked reproducible npm/build output; package lock/source preserved
+scratch\phase7-cms-source\node_modules,545,35782751,REMOVED_GENERATED,Untracked reproducible npm/build output; package lock/source preserved
+scratch\phase7-cms-source\dist,723,27622718,REMOVED_GENERATED,Untracked reproducible npm/build output; package lock/source preserved
+scratch\agy-staff-access-worker\node_modules,476,22699620,REMOVED_GENERATED,Untracked reproducible npm/build output; package lock/source preserved
+scratch\google-worker-workspaces\r_e294627e23ce528c7631aff3\phase13b_transport10_20261010\worktree\node_modules,1,104,REMOVED_GENERATED,Untracked reproducible npm/build output; package lock/source preserved
+scratch\google-worker-workspaces\r_e294627e23ce528c7631aff3\security_source_map_js_122_manual_20261009\worktree\node_modules,32599,288696933,REMOVED_GENERATED,Untracked reproducible npm/build output; package lock/source preserved
+scratch\integration-production-20261015\node_modules,17,3033576,REMOVED_GENERATED,Untracked reproducible npm/build output; package lock/source preserved
+scratch\mission-20261014\cinematic-worker\node_modules,81,13929607,REMOVED_GENERATED,Untracked reproducible npm/build output; package lock/source preserved
+scratch\mission-20261014\gallery-worker\node_modules,95,16776619,REMOVED_GENERATED,Untracked reproducible npm/build output; package lock/source preserved
+scratch\phase13b-integration\node_modules,81,13917454,REMOVED_GENERATED,Untracked reproducible npm/build output; package lock/source preserved
+scratch\post-launch-batch01\node_modules,561,36630096,REMOVED_GENERATED,Untracked reproducible npm/build output; package lock/source preserved
+scratch\readiness-test-worker\node_modules,17,3033576,REMOVED_GENERATED,Untracked reproducible npm/build output; package lock/source preserved
+scratch\refinement-cinematic-20261014\node_modules,17,3033576,REMOVED_GENERATED,Untracked reproducible npm/build output; package lock/source preserved
+scratch/google-worker-workspaces,202518,2255623912,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+scratch/final-release-batch02,16514,2245109318,KEEP,Release/recovery evidence and possible private backups; do not blanket-delete
+scratch/release-operator-batch02,32638,1792818935,KEEP,Release/recovery evidence and possible private backups; do not blanket-delete
+scratch/post-launch-batch01,60177,1640533512,UNKNOWN,Inspect exact consumers before deletion
+scratch/hostpapa-convergence,67497,1296117315,UNKNOWN,Inspect exact consumers before deletion
+scratch/final-release-69743b4,23508,1118912010,KEEP,Release/recovery evidence and possible private backups; do not blanket-delete
+.ai,10104,1040826028,UNKNOWN,Inspect exact consumers before deletion
+scratch/phase13c-integration,73693,925107384,UNKNOWN,Inspect exact consumers before deletion
+scratch/integration-production-20261015,17118,668756148,UNKNOWN,Inspect exact consumers before deletion
+scratch/upgrade-operator-integration-20261015,16326,539805291,UNKNOWN,Inspect exact consumers before deletion
+scratch/final-release-55dfa64,10226,496055930,KEEP,Release/recovery evidence and possible private backups; do not blanket-delete
+scratch/pr18-release-candidate-23bbac2,23471,471474307,KEEP,Release/recovery evidence and possible private backups; do not blanket-delete
+scratch/mission-20261014,9167,430046873,UNKNOWN,Inspect exact consumers before deletion
+scratch/phase6b-release-source-2749c267,35769,419574461,KEEP,Release/recovery evidence and possible private backups; do not blanket-delete
+scratch/hostpapa-h3-package-worker,39027,335767617,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+scratch/batch02-20261021,6505,330915019,UNKNOWN,Inspect exact consumers before deletion
+node_modules,33161,325071128,UNKNOWN,Inspect exact consumers before deletion
+scratch/release-operator-20261020,9388,279434850,KEEP,Release/recovery evidence and possible private backups; do not blanket-delete
+.git,3286,254442778,KEEP,Git history or local agent configuration
+scratch/big-feature-pack-20261016,8318,245973451,UNKNOWN,Inspect exact consumers before deletion
+scratch/screenshots,240,204326927,UNKNOWN,Inspect exact consumers before deletion
+scratch/batch02-documents-worker,10162,194399259,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+scratch/oct23-performance,2867,160576076,KEEP,Active mission
+scratch/batch02-control,2372,160426906,UNKNOWN,Inspect exact consumers before deletion
+scratch/production-stabilization-20261019,3460,135201170,UNKNOWN,Inspect exact consumers before deletion
+scratch/phase13b-integration,6330,124347937,UNKNOWN,Inspect exact consumers before deletion
+scratch/phase7-cms-source,2853,119845328,UNKNOWN,Inspect exact consumers before deletion
+images_assets_to_be_used_in_website_after_proper_placement_and_compression,162,112380507,UNKNOWN,Inspect exact consumers before deletion
+scratch/phase11-source,2884,111336446,UNKNOWN,Inspect exact consumers before deletion
+scratch/mobile-cinematic-16,2072,110111483,UNKNOWN,Inspect exact consumers before deletion
+scratch/pr18-https-qa,3844,105420284,UNKNOWN,Inspect exact consumers before deletion
+scratch/feature-pack-media-worker,1841,104205132,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+scratch/agy-batch02-preservation,1989,102989004,UNKNOWN,Inspect exact consumers before deletion
+scratch/batch02-review-fixes,1985,102966019,UNKNOWN,Inspect exact consumers before deletion
+scratch/oct23-audit-analytics,1988,102959382,KEEP,Active mission
+scratch/oct23-backend-worker,1988,102959381,KEEP,Active mission
+scratch/phase7b-media-source,2129,94422774,UNKNOWN,Inspect exact consumers before deletion
+scratch/owner-release-preparation-23bbac2,7,91669354,KEEP,Release/recovery evidence and possible private backups; do not blanket-delete
+scratch/release-preparation-worktree,2807,88547149,KEEP,Release/recovery evidence and possible private backups; do not blanket-delete
+scratch/agy-staff-access-worker,2893,88418057,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+scratch/phase10-source,2125,81240749,UNKNOWN,Inspect exact consumers before deletion
+scratch/batch02-ticket-worker,1912,79649478,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+scratch/batch02-destinations-worker,1927,71260095,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+scratch/batch02-archive-worker,1912,69782012,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+scratch/admin-live-completion,2549,69573015,UNKNOWN,Inspect exact consumers before deletion
+scratch/admin-access-refinement,2730,68872392,UNKNOWN,Inspect exact consumers before deletion
+scratch/feature-pack-preview-worker,2476,67267667,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+scratch/batch02-booking-worker,1898,64679914,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+scratch/batch02-travel-worker,1897,64575885,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+scratch/agy-batch02-operator,1894,64566640,UNKNOWN,Inspect exact consumers before deletion
+scratch/pr18-guest12h-worker,2039,64066718,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+scratch/mvp-gallery-headless-20261012,4213,63916945,UNKNOWN,Inspect exact consumers before deletion
+scratch/release965-operator-worker,1881,63531499,KEEP,Release/recovery evidence and possible private backups; do not blanket-delete
+scratch/pr18-capacity-correction,2145,63295345,UNKNOWN,Inspect exact consumers before deletion
+scratch/stabilization-audit-worker,1889,62887537,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+scratch/stabilization-guest-worker,1885,62842644,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+scratch/stabilization-search-worker,1884,62842169,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+scratch/stabilization-video-worker,1887,62838392,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+scratch/stabilization-brand-worker,1883,62810221,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+scratch/pr18-guest-correction,1953,62111650,UNKNOWN,Inspect exact consumers before deletion
+scratch/chrome-profile-proof3,432,59815038,UNKNOWN,Inspect exact consumers before deletion
+scratch/mvp-identity-smtp-headless-20261012,3731,58465025,UNKNOWN,Inspect exact consumers before deletion
+scratch/phase9-source,1612,58329629,UNKNOWN,Inspect exact consumers before deletion
+scratch/phase8-visual-source,1604,56489664,UNKNOWN,Inspect exact consumers before deletion
+scratch/feature-pack-ticket-worker,1820,54557048,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+scratch/feature-pack-guest-worker,1960,49710976,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+scratch/feature-pack-trip-worker,1806,48455014,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+scratch/feature-pack-checkout-worker,1771,48154818,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+scratch/feature-pack-travel-worker,1769,48125362,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+scratch/feature-pack-search-worker,1761,48053163,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+scratch/feature-pack-schedule-worker,1755,47960915,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+new-citires,13,46944841,UNKNOWN,Inspect exact consumers before deletion
+scratch/refinement-cinematic-20261014,1719,45782928,UNKNOWN,Inspect exact consumers before deletion
+scratch/readiness-test-worker,1718,45780691,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+scratch/incident-verifier-worker,1705,42920259,KEEP,Release/recovery evidence and possible private backups; do not blanket-delete
+scratch/upgrade-safe-diagnostics-20261015,1702,42838053,UNKNOWN,Inspect exact consumers before deletion
+scratch/incident-media-worker,1703,42832263,KEEP,Release/recovery evidence and possible private backups; do not blanket-delete
+scratch/agy-pr13-explicit-profile,1702,42821243,UNKNOWN,Inspect exact consumers before deletion
+scratch/upgrade-incident-audit-20261015,1701,42781137,KEEP,Release/recovery evidence and possible private backups; do not blanket-delete
+scratch/upgrade-repeatable-kit-20261015,1700,42771323,UNKNOWN,Inspect exact consumers before deletion
+scratch/phase6b2a-correction01-screenshots,123,40819078,UNKNOWN,Inspect exact consumers before deletion
+scratch/hostpapa-h1-full-worker,2177,38954439,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+scratch/agy-admin-review-ui,1664,35661711,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-admin-layout-worker,1646,35560568,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+scratch/b01-production-upgrade-worker,1643,35525820,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+scratch/b01-browser-worker,1628,35249676,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+scratch/b01-release-worker,1614,35238755,KEEP,Release/recovery evidence and possible private backups; do not blanket-delete
+scratch/b01-network-worker,1613,35143252,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+scratch/b01-identity-worker,1611,35123943,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+scratch/hostpapa-optional-staff-mfa,1617,35097080,UNKNOWN,Inspect exact consumers before deletion
+scratch/hostpapa-mail-runtime-worker,1821,35009108,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+scratch/hostpapa-h4-first-owner-worker,1595,34984726,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+scratch/phase8-coordination,60,34776119,UNKNOWN,Inspect exact consumers before deletion
+scratch/hostpapa-h1-worker,1521,34590389,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+scratch/hostpapa-h2-runtime-worker,1552,34576352,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+scratch/hostpapa-mysql-identity-worker,1639,34359480,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+scratch/hostpapa-h0-worker,1528,34326569,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+scratch/mvp-manual-review-repairs01,1444,33568071,UNKNOWN,Inspect exact consumers before deletion
+scratch/mvp-manual-mail01,1444,33551312,UNKNOWN,Inspect exact consumers before deletion
+.output,716,28191054,UNKNOWN,Inspect exact consumers before deletion
+dist,723,27995820,UNKNOWN,Inspect exact consumers before deletion
+scratch/phase6b-hostpapa-release,549,25243970,KEEP,Release/recovery evidence and possible private backups; do not blanket-delete
+.hostpapa-release,535,24789322,KEEP,Release/recovery evidence and possible private backups; do not blanket-delete
+src,745,23396503,UNKNOWN,Inspect exact consumers before deletion
+scratch/phase6b2c2b-matrix,79,18896408,UNKNOWN,Inspect exact consumers before deletion
+scratch/chrome-test-tab,390,17622311,UNKNOWN,Inspect exact consumers before deletion
+scratch/chrome-test-hash,220,17376935,UNKNOWN,Inspect exact consumers before deletion
+scratch/phase13b-kickoff,1604,12763845,UNKNOWN,Inspect exact consumers before deletion
+scratch/google-worker-state,218,12110153,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+scratch/review-screenshots,26,11697526,UNKNOWN,Inspect exact consumers before deletion
+scratch/phase6b2a-screenshots,103,10110284,UNKNOWN,Inspect exact consumers before deletion
+scratch/mvp-kickoff,94,9654878,UNKNOWN,Inspect exact consumers before deletion
+public,17,7055482,UNKNOWN,Inspect exact consumers before deletion
+scratch/phase6b2a-evidence,115,6264008,UNKNOWN,Inspect exact consumers before deletion
+scratch/phase6b2c1-screenshots,55,5972164,UNKNOWN,Inspect exact consumers before deletion
+scratch/phase6b2c2a-screenshots,55,5048841,UNKNOWN,Inspect exact consumers before deletion
+backend,558,4822717,UNKNOWN,Inspect exact consumers before deletion
+scratch/phase6b-release-codex,64,4775407,KEEP,Release/recovery evidence and possible private backups; do not blanket-delete
+.playwright-mcp,157,4354075,UNKNOWN,Inspect exact consumers before deletion
+Gaza-Airport-Video.mp4,1,3912780,UNKNOWN,Inspect exact consumers before deletion
+scratch/phase12-accepted-phase13a-kickoff,307,3726551,UNKNOWN,Inspect exact consumers before deletion
+scrub-720p-g6-crf25.mp4,1,3487542,UNKNOWN,Inspect exact consumers before deletion
+docs,146,3344014,UNKNOWN,Inspect exact consumers before deletion
+scratch/correction01-screenshots,18,3327463,UNKNOWN,Inspect exact consumers before deletion
+scratch/phase10-coordination,33,3132611,UNKNOWN,Inspect exact consumers before deletion
+scrub-540p-g4-crf25.mp4,1,2998317,UNKNOWN,Inspect exact consumers before deletion
+tests,154,2929022,UNKNOWN,Inspect exact consumers before deletion
+scratch/phase6b2c1-evidence,41,2742162,UNKNOWN,Inspect exact consumers before deletion
+scratch/phase6a-codex-screenshots,31,2714715,UNKNOWN,Inspect exact consumers before deletion
+scratch/phase6a-c2-screenshots,31,2699084,UNKNOWN,Inspect exact consumers before deletion
+scratch/phase5d-correction-screenshots,21,2691883,UNKNOWN,Inspect exact consumers before deletion
+scratch/phase5d-screenshots,18,2610914,UNKNOWN,Inspect exact consumers before deletion
+ticket-visual.pdf,1,2599860,UNKNOWN,Inspect exact consumers before deletion
+scratch/docker-cleanup-20261010,35,2330848,UNKNOWN,Inspect exact consumers before deletion
+scratch/hostpapa-workers,174,2205228,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+scratch/production-incident-20261015,49,2068597,KEEP,Release/recovery evidence and possible private backups; do not blanket-delete
+scratch/phase6a-screenshots,18,1465068,UNKNOWN,Inspect exact consumers before deletion
+scratch/test_webp,5,1339442,UNKNOWN,Inspect exact consumers before deletion
+AI-Project-Playbook-v2.0,53,1251212,UNKNOWN,Inspect exact consumers before deletion
+scratch/hc3-correction03,5,1209644,UNKNOWN,Inspect exact consumers before deletion
+scratch/phase6b2a-correction01-evidence,24,1048253,UNKNOWN,Inspect exact consumers before deletion
+scratch/phase6b2c2b-correction01,12,963374,UNKNOWN,Inspect exact consumers before deletion
+screenshots,18,786186,UNKNOWN,Inspect exact consumers before deletion
+scratch/phase6b2c1-finalization-evidence,11,772694,UNKNOWN,Inspect exact consumers before deletion
+scratch/phase6a-final-docs-correction-01,14,722956,UNKNOWN,Inspect exact consumers before deletion
+scratch/phase6a-accepted-finalization,9,664202,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-ledger-incident-diagnostic-result,3,629168,KEEP,Release/recovery evidence and possible private backups; do not blanket-delete
+scripts,35,508887,UNKNOWN,Inspect exact consumers before deletion
+scratch/release-final-corrections-20261017,41,437118,KEEP,Release/recovery evidence and possible private backups; do not blanket-delete
+tools,33,365406,UNKNOWN,Inspect exact consumers before deletion
+scratch/phase9-coordination,22,274936,UNKNOWN,Inspect exact consumers before deletion
+package-lock.json,1,262659,UNKNOWN,Inspect exact consumers before deletion
+scratch/phase6b2c2a-evidence,6,248915,UNKNOWN,Inspect exact consumers before deletion
+Screenshot 2026-10-16 202125.png,1,242881,UNKNOWN,Inspect exact consumers before deletion
+Screenshot 2026-10-16 201636.png,1,237831,UNKNOWN,Inspect exact consumers before deletion
+Screenshot 2026-10-16 201512.png,1,233038,UNKNOWN,Inspect exact consumers before deletion
+visual-skin-system-replication-kit,30,213703,UNKNOWN,Inspect exact consumers before deletion
+uiable.md,1,177171,UNKNOWN,Inspect exact consumers before deletion
+scratch/phase6c-codex-review,1,163193,UNKNOWN,Inspect exact consumers before deletion
+scratch/phase6a-post-deployment-docs,3,146966,UNKNOWN,Inspect exact consumers before deletion
+scratch/phase12-independent-review-correction01,39,129792,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-stabilization-brand,7,117702,UNKNOWN,Inspect exact consumers before deletion
+scratch/oct23-control,14,117038,KEEP,Active mission
+scratch/phase11-agy-resume,5,106125,UNKNOWN,Inspect exact consumers before deletion
+scratch/mvp-gallery-headless-evidence-20261012,5,92493,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-stabilization-audit,8,92081,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-stabilization-search,8,84164,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-stabilization-video,8,80795,UNKNOWN,Inspect exact consumers before deletion
+scratch/mvp-pr-update-20261012,15,79896,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-final-package-69743b4,7,78977,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-stabilization-local-qa,8,78088,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-final-rehearsal-69743b4,7,72716,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-upgrade-incident-audit-result,5,71646,KEEP,Release/recovery evidence and possible private backups; do not blanket-delete
+scratch/agy-stabilization-audit-correction,8,71433,UNKNOWN,Inspect exact consumers before deletion
+scratch/test-diagnostics-fixtures,2,66942,UNKNOWN,Inspect exact consumers before deletion
+gaza_gateway_completion_plan,17,66744,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-production-package-result,5,66402,UNKNOWN,Inspect exact consumers before deletion
+scratch/incident-verifier-agy-correction,5,65214,KEEP,Release/recovery evidence and possible private backups; do not blanket-delete
+scratch/agy-runner-harness-review-result,5,64795,UNKNOWN,Inspect exact consumers before deletion
+scratch/masters,1,64619,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-stabilization-guest,7,61914,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-stabilization-guest-correction,7,61766,UNKNOWN,Inspect exact consumers before deletion
+.impeccable,2,61509,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-final-operator-doc-69743b4,7,60409,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-operator-697-20261020,4,60003,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-build-55dfa64-20261020,5,59576,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-final-exact-execution-69743b4,7,58951,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-update-workflow-result,5,58905,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-delivery-55dfa64,5,57463,UNKNOWN,Inspect exact consumers before deletion
+roadmap.md,1,56227,UNKNOWN,Inspect exact consumers before deletion
+scratch/incident-media-agy,5,56187,KEEP,Release/recovery evidence and possible private backups; do not blanket-delete
+scratch/agy-stabilization-inventory,8,54513,UNKNOWN,Inspect exact consumers before deletion
+scratch/mvp-identity-smtp-evidence-20261012,5,53981,UNKNOWN,Inspect exact consumers before deletion
+scratch/hostpapa-static-agy-20261012,8,53858,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-readonly-host-command-69743b4,7,52755,UNKNOWN,Inspect exact consumers before deletion
+README.md,1,52491,UNKNOWN,Inspect exact consumers before deletion
+scratch/incident-verifier-agy,4,51324,KEEP,Release/recovery evidence and possible private backups; do not blanket-delete
+scratch/mvp-manual-handoffs,6,50784,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-update-workflow-correction-result,5,49637,UNKNOWN,Inspect exact consumers before deletion
+GAZA_GATEWAY_MASTER_AI_AGENT_HANDOFF_ROADMAP_2026-10-06.md,1,49391,UNKNOWN,Inspect exact consumers before deletion
+scratch/phase11-agy-result,3,48641,UNKNOWN,Inspect exact consumers before deletion
+scratch/mvp-gallery-finish-evidence-20261012,5,48307,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-rehearsal-tooling-result,5,47974,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-operator-697-correction,5,47798,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-rehearsal-697-20261020,5,46663,UNKNOWN,Inspect exact consumers before deletion
+scratch/mvp-identity-smtp-correction-evidence-20261012,5,45990,UNKNOWN,Inspect exact consumers before deletion
+scratch/mvp-gallery-direct-evidence-20261012,4,45911,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-production-rehearsal-run-result,5,45464,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-profile-final-review-result,5,45457,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-runner-reporting-result,4,45082,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-build-inspect-final,5,44482,UNKNOWN,Inspect exact consumers before deletion
+scratch/release-agy-run-20261012,7,44393,KEEP,Release/recovery evidence and possible private backups; do not blanket-delete
+scratch/agy-production-finalize-result,5,44308,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-final-rehearsal-review-69743b4,7,44190,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-production-rehearsal-prepare-result,5,43512,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-idle-review-result,5,42838,UNKNOWN,Inspect exact consumers before deletion
+scratch/__pycache__,2,42466,UNKNOWN,Inspect exact consumers before deletion
+PRODUCT.md,1,41944,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-pr13-explicit-profile-result,4,40708,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-idle-runtime-result,5,40665,UNKNOWN,Inspect exact consumers before deletion
+scratch/mvp-gallery-followup-evidence-20261012,4,40208,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-idle-connection-result,5,38984,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-run-zip-rehearsal-result,5,37848,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-ledger-incident-isolated-result,3,37808,KEEP,Release/recovery evidence and possible private backups; do not blanket-delete
+scratch/agy-stabilization-video-correction,7,37137,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-production-build-result,5,36290,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-run-archive-only-result,5,35751,UNKNOWN,Inspect exact consumers before deletion
+scratch/readiness-agy-result,4,33775,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-rehearsal-archive-result,4,32474,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-runner-reporting-finish-result,3,30680,UNKNOWN,Inspect exact consumers before deletion
+GAZA_GATEWAY_POST_LAUNCH_REFINEMENT_BATCH_01_CODEX_MASTER_BRIEF.md,1,28993,UNKNOWN,Inspect exact consumers before deletion
+scratch/phase11-agy-finish,3,28700,UNKNOWN,Inspect exact consumers before deletion
+GAZA_GATEWAY_PRODUCTION_STABILIZATION_AUDIT_AND_CLEANUP_CODEX_MASTER_BRIEF_2026-10-19.md,1,28571,UNKNOWN,Inspect exact consumers before deletion
+GAZA_GATEWAY_OCT23_INDEPENDENT_AUDIT_ANALYTICS_DEBLOAT_CODEX_BRIEF.md,1,28427,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-release-hello-result,5,28237,KEEP,Release/recovery evidence and possible private backups; do not blanket-delete
+GAZA_GATEWAY_UX_TICKETS_ARCHIVE_BATCH_02_MASTER_BRIEF_2026-10-21.md,1,27789,UNKNOWN,Inspect exact consumers before deletion
+scratch/owner-files-before-main-integration-20261013,1,27444,UNKNOWN,Inspect exact consumers before deletion
+scratch/agy-hello-isolated-20261012,18,26291,UNKNOWN,Inspect exact consumers before deletion
+scratch/phase6b2a-domain-prepared,9,23967,UNKNOWN,Inspect exact consumers before deletion
+GAZA_GATEWAY_BIG_FEATURE_PACK_MASTER_BRIEF_2026-10-16.md,1,22692,UNKNOWN,Inspect exact consumers before deletion
+GAZA_GATEWAY_CINEMATIC_IMPLEMENTATION_PLAN_2026-10-14.md,1,21775,UNKNOWN,Inspect exact consumers before deletion
+worker-done.json,1,19579,UNKNOWN,Inspect exact consumers before deletion
+phase7b-foundation-unit.log,1,18162,UNKNOWN,Inspect exact consumers before deletion
+GAZA INTERNATIONAL AIRPORT 6-12.png,1,13309,UNKNOWN,Inspect exact consumers before deletion
+worker-report.md,1,11959,UNKNOWN,Inspect exact consumers before deletion
+scratch/phase12-correction03,1,11384,UNKNOWN,Inspect exact consumers before deletion
+AGENTS.md,1,7567,UNKNOWN,Inspect exact consumers before deletion
+.github,2,5083,UNKNOWN,Inspect exact consumers before deletion
+package.json,1,4421,UNKNOWN,Inspect exact consumers before deletion
+CODEX_LAUNCH_GAZA_GATEWAY_BATCH_01.txt,1,2838,UNKNOWN,Inspect exact consumers before deletion
+vite.config.hostpapa.ts,1,2795,UNKNOWN,Inspect exact consumers before deletion
+idle-diagnostic-report-20261015T084202Z-aa472e15.json,1,2712,UNKNOWN,Inspect exact consumers before deletion
+phase7b-task1-reviewed-smoke.log,1,2538,UNKNOWN,Inspect exact consumers before deletion
+.codex,2,2369,KEEP,Git history or local agent configuration
+deployment,2,2103,UNKNOWN,Inspect exact consumers before deletion
+eslint.config.js,1,1589,UNKNOWN,Inspect exact consumers before deletion
+scratch/batch02-state,2,1421,UNKNOWN,Inspect exact consumers before deletion
+scratch/final-correction-state,2,1396,UNKNOWN,Inspect exact consumers before deletion
+scratch/release-worker-state,2,1396,KEEP,Release/recovery evidence and possible private backups; do not blanket-delete
+vite.config.ts,1,1349,UNKNOWN,Inspect exact consumers before deletion
+.claude,1,1009,KEEP,Git history or local agent configuration
+.gitignore,1,864,UNKNOWN,Inspect exact consumers before deletion
+tsconfig.json,1,850,UNKNOWN,Inspect exact consumers before deletion
+components.json,1,465,UNKNOWN,Inspect exact consumers before deletion
+.prettierrc,1,113,UNKNOWN,Inspect exact consumers before deletion
+.prettierignore,1,105,UNKNOWN,Inspect exact consumers before deletion
+.wrangler,1,55,UNKNOWN,Inspect exact consumers before deletion
+scratch/docker-stabilization-diagnostic,3,7,UNKNOWN,Inspect exact consumers before deletion
+.tanstack,0,0,UNKNOWN,Inspect exact consumers before deletion
+gaza-gateway-code-only.zip,1,0,UNKNOWN,Inspect exact consumers before deletion
+gaza-gateway-src.zip,1,0,UNKNOWN,Inspect exact consumers before deletion
+scratch/batch02-workers,0,0,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+scratch/final-correction-workers,0,0,ARCHIVE_THEN_REMOVE,Retired worktree candidate; retain dirty/unpublished changes and evidence before git worktree removal
+scratch/mvp-pdf-review-tools,0,0,UNKNOWN,Inspect exact consumers before deletion
+scratch/oct23-workers,0,0,KEEP,Active mission
+scratch/phase7-task2,0,0,UNKNOWN,Inspect exact consumers before deletion
+scratch/release-worker-workspaces,0,0,KEEP,Release/recovery evidence and possible private backups; do not blanket-delete
+scratch/scratch,0,0,UNKNOWN,Inspect exact consumers before deletion
+scratch/worktrees,0,0,UNKNOWN,Inspect exact consumers before deletion

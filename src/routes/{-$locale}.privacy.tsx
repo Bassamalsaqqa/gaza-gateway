@@ -5,6 +5,7 @@ import { Container, Notice, PageHeader, Panel } from "@/components/kit";
 import { publishedInformationPages } from "@/content/published/information-pages";
 import { ContentPreviewNotice, useContentPreview } from "@/content/preview";
 import { pick, useI18n } from "@/lib/i18n";
+import { PrivacySettingsCard } from "@/components/analytics/privacy-settings-card";
 
 import { getBreadcrumbSchema } from "@/lib/structured-data";
 
@@ -47,6 +48,7 @@ function PrivacyPage() {
               </div>
             </Panel>
           ))}
+          <PrivacySettingsCard />
           <p className="text-sm text-muted-foreground">
             {t("legal.contactUs")}{" "}
             <AppLink to="/contact" className="font-semibold text-brand-deep underline">

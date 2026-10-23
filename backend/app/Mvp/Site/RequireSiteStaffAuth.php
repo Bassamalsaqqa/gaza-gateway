@@ -111,7 +111,10 @@ final class RequireSiteStaffAuth
 
     private function deriveRequiredPermission(Request $request): string
     {
-        if (str_contains($request->path(), '/settings/')) return 'admin.manage';
+        $path = $request->path();
+        if (str_contains($path, '/settings/') || str_starts_with($path, 'api/v1/admin/analytics/reports/')) {
+            return 'admin.manage';
+        }
         return $request->isMethod('GET') ? 'engagement.view' : 'engagement.edit';
     }
 }

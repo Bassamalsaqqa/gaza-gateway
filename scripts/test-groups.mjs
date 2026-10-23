@@ -16,7 +16,7 @@ export const unitGroups = Object.freeze({
   admin: [
     "staff-repository", "admin-session", "activity-repository", "admin-audit-orchestration", "customer-directory",
     "phase6c-source-guards", "phase6c-correction-01", "phase6c-correction-04", "phase6c-correction-05",
-    "settings", "contact-repository", "contact-correction", "phase6a-admin-commercial-desk",
+    "settings", "contact-repository", "contact-correction", "phase6a-admin-commercial-desk", "analytics-canonical-privacy",
   ],
   content: ["content", "content-storage", "content-inventory", "content-domains", "content-commands", "cms-website-editor", "cms-translations", "cms-edit-session", "phase7-content-boundaries"],
   archive: ["archive-foundation", "archive-drafts", "archive-admin-editor", "archive-admin-catalog", "phase7b-boundaries"],
