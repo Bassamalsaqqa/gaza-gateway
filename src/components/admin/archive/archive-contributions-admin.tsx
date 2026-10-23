@@ -6,6 +6,8 @@ import {
   type ContributionDetail,
   type ContributionStatus,
   type ContributionType,
+  type ContributionChapter,
+  type ContributionRightsStatus,
 } from "@/lib/archive/contributions-client";
 import { useStaffQuery } from "@/lib/staff";
 import { useAdmin } from "@/lib/admin-store";
@@ -31,17 +33,26 @@ export function ArchiveContributionsAdmin() {
   // Filters
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [chapterFilter, setChapterFilter] = useState<string>("all");
+  const [rightsFilter, setRightsFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   // Queries
   const listQuery = useQuery({
-    queryKey: ["archive-contributions", statusFilter, typeFilter, searchQuery],
+    queryKey: ["archive-contributions", statusFilter, typeFilter, chapterFilter, rightsFilter, searchQuery],
     queryFn: () => {
-      const params: { status?: string; type?: string; search?: string } = {
-        status: statusFilter,
-        type: typeFilter,
-      };
+      const params: {
+        status?: string;
+        type?: string;
+        chapter?: string;
+        rightsStatus?: string;
+        search?: string;
+      } = {};
+      if (statusFilter !== "all") params.status = statusFilter;
+      if (typeFilter !== "all") params.type = typeFilter;
+      if (chapterFilter !== "all") params.chapter = chapterFilter;
+      if (rightsFilter !== "all") params.rightsStatus = rightsFilter;
       if (searchQuery.trim()) {
         params.search = searchQuery.trim();
       }
@@ -164,6 +175,34 @@ export function ArchiveContributionsAdmin() {
     return pick(lang, labels[t] ?? { en: t, ar: t });
   };
 
+  const chapterLabel = (ch?: ContributionChapter | null) => {
+    if (!ch) return ar ? "غير محدد" : "Unspecified";
+    const labels: Record<ContributionChapter, { en: string; ar: string }> = {
+      historical: { en: "Historical archive", ar: "الأرشيف التاريخي" },
+      contemporary: { en: "Contemporary Document", ar: "وثيقة معاصرة" },
+      imagined_future: { en: "Imagined Future", ar: "رؤية مستقبلية" },
+    };
+    return pick(lang, labels[ch] ?? { en: ch, ar: ch });
+  };
+
+  const rightsTone = (r?: ContributionRightsStatus | null): "muted" | "neutral" | "brand" | "info" | "warn" | "danger" => {
+    switch (r) {
+      case "owned_authorized": return "brand";
+      case "reference_unconfirmed": return "warn";
+      default: return "muted";
+    }
+  };
+
+  const rightsLabel = (r?: ContributionRightsStatus | null) => {
+    if (!r) return ar ? "غير محدد" : "Unspecified";
+    const labels: Record<ContributionRightsStatus, { en: string; ar: string }> = {
+      owned_authorized: { en: "Owner / Authorized", ar: "مملوكة / مصرح بها" },
+      reference_unconfirmed: { en: "Reference — rights unconfirmed", ar: "إحالة — حقوق غير مؤكدة" },
+      unknown: { en: "Legacy / Unknown", ar: "سجل قديم / غير محدد" },
+    };
+    return pick(lang, labels[r] ?? { en: r, ar: r });
+  };
+
   return (
     <div className="space-y-5">
       {/* Filters Toolbar */}
@@ -175,8 +214,8 @@ export function ArchiveContributionsAdmin() {
             </h3>
             <p className="text-xs text-muted-foreground mt-0.5">
               {ar
-                ? "مراجعة وتوثيق المواد التاريخية المقدمة من الجمهور والتنزيل الآمن للمرفقات الخاصة."
-                : "Curatorial review, provenance verification and private attachment downloads for public archive contributions."}
+                ? "مراجعة وتوثيق المواد التاريخية المقدمة من الجمهور والتحقق من الحقوق والتنزيل الآمن للمرفقات الخاصة."
+                : "Curatorial review, provenance & rights verification, and private attachment downloads for archive contributions."}
             </p>
           </div>
           <Button
@@ -190,7 +229,7 @@ export function ArchiveContributionsAdmin() {
           </Button>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <div>
             <label className="block text-xs font-semibold text-muted-foreground mb-1">
               {ar ? "الحالة" : "Status"}
@@ -205,6 +244,36 @@ export function ArchiveContributionsAdmin() {
               <option value="accepted">{ar ? "مقبولة" : "Accepted"}</option>
               <option value="declined">{ar ? "مرفوضة" : "Declined"}</option>
               <option value="archived">{ar ? "مؤرشفة" : "Archived"}</option>
+            </Select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">
+              {ar ? "الفصل الأرشيفي" : "Chapter"}
+            </label>
+            <Select
+              value={chapterFilter}
+              onChange={(e) => setChapterFilter(e.target.value)}
+            >
+              <option value="all">{ar ? "جميع الفصول" : "All Chapters"}</option>
+              <option value="historical">{ar ? "الأرشيف التاريخي (١٩٩٨–٢٠٠١)" : "Historical Archive (1998–2001)"}</option>
+              <option value="contemporary">{ar ? "وثيقة معاصرة" : "Contemporary Document"}</option>
+              <option value="imagined_future">{ar ? "رؤية مستقبلية" : "Imagined Future"}</option>
+            </Select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1">
+              {ar ? "حالة الحقوق" : "Rights Status"}
+            </label>
+            <Select
+              value={rightsFilter}
+              onChange={(e) => setRightsFilter(e.target.value)}
+            >
+              <option value="all">{ar ? "جميع تصنيفات الحقوق" : "All Rights Statuses"}</option>
+              <option value="owned_authorized">{ar ? "مملوكة / مصرح بها" : "Owned / Authorized"}</option>
+              <option value="reference_unconfirmed">{ar ? "إحالة مرجعية" : "Public Reference"}</option>
+              <option value="unknown">{ar ? "سجل قديم / غير محدد" : "Legacy / Unknown"}</option>
             </Select>
           </div>
 
@@ -258,7 +327,8 @@ export function ArchiveContributionsAdmin() {
               <GazaTableRow>
                 <GazaTableHead>{ar ? "المرجع العام" : "Reference"}</GazaTableHead>
                 <GazaTableHead>{ar ? "المساهم" : "Contributor"}</GazaTableHead>
-                <GazaTableHead>{ar ? "النوع" : "Type"}</GazaTableHead>
+                <GazaTableHead>{ar ? "الفصل والنوع" : "Chapter & Type"}</GazaTableHead>
+                <GazaTableHead>{ar ? "حالة الحقوق" : "Rights"}</GazaTableHead>
                 <GazaTableHead>{ar ? "المرفقات" : "Files"}</GazaTableHead>
                 <GazaTableHead>{ar ? "الحالة" : "Status"}</GazaTableHead>
                 <GazaTableHead>{ar ? "تاريخ الاستلام" : "Received"}</GazaTableHead>
@@ -278,13 +348,23 @@ export function ArchiveContributionsAdmin() {
                     )}
                   </GazaTableCell>
                   <GazaTableCell className="text-xs">
-                    {typeLabel(row.contributionType)}
+                    <div className="font-medium text-foreground">{chapterLabel(row.chapter)}</div>
+                    <div className="text-muted-foreground">{typeLabel(row.contributionType)}</div>
+                  </GazaTableCell>
+                  <GazaTableCell>
+                    <AdminChip tone={rightsTone(row.rightsStatus)}>
+                      {rightsLabel(row.rightsStatus)}
+                    </AdminChip>
                   </GazaTableCell>
                   <GazaTableCell className="text-xs">
                     {(row.filesCount ?? 0) > 0 ? (
                       <span className="inline-flex items-center gap-1 font-semibold text-primary">
                         <FileText className="size-3.5" />
                         <span>{row.filesCount}</span>
+                      </span>
+                    ) : row.rightsStatus === "reference_unconfirmed" ? (
+                      <span className="text-amber-800 dark:text-amber-300 font-medium">
+                        {ar ? "إحالة (دون ملف)" : "Citation only"}
                       </span>
                     ) : (
                       <span className="text-muted-foreground">—</span>
@@ -340,9 +420,14 @@ export function ArchiveContributionsAdmin() {
                   <span className="font-mono font-bold text-sm text-primary" dir="ltr">
                     {detailQuery.data.publicReference}
                   </span>
-                  <AdminChip tone={statusTone(detailQuery.data.status)}>
-                    {statusLabel(detailQuery.data.status)}
-                  </AdminChip>
+                  <div className="flex items-center gap-2">
+                    <AdminChip tone={rightsTone(detailQuery.data.rightsStatus)}>
+                      {rightsLabel(detailQuery.data.rightsStatus)}
+                    </AdminChip>
+                    <AdminChip tone={statusTone(detailQuery.data.status)}>
+                      {statusLabel(detailQuery.data.status)}
+                    </AdminChip>
+                  </div>
                 </div>
 
                 <div className="grid gap-2 sm:grid-cols-2">
@@ -359,22 +444,82 @@ export function ArchiveContributionsAdmin() {
                   </div>
                 </div>
 
-                <div className="grid gap-2 sm:grid-cols-2 pt-1 border-t border-border">
+                <div className="grid gap-2 sm:grid-cols-2 pt-2 border-t border-border">
                   <div>
-                    <span className="text-xs text-muted-foreground uppercase">{ar ? "نوع المساهمة:" : "Type:"}</span>
-                    <div className="text-sm">{typeLabel(detailQuery.data.contributionType)}</div>
+                    <span className="text-xs text-muted-foreground uppercase">{ar ? "الفصل الأرشيفي:" : "Archive Chapter:"}</span>
+                    <div className="font-medium text-foreground">{chapterLabel(detailQuery.data.chapter)}</div>
                   </div>
                   <div>
-                    <span className="text-xs text-muted-foreground uppercase">{ar ? "تاريخ التقديم:" : "Submission Date:"}</span>
-                    <div className="text-xs text-muted-foreground" dir="ltr">{detailQuery.data.createdAt}</div>
+                    <span className="text-xs text-muted-foreground uppercase">{ar ? "نوع المادة:" : "Type:"}</span>
+                    <div className="text-sm">{typeLabel(detailQuery.data.contributionType)}</div>
                   </div>
                 </div>
 
-                <div className="pt-1">
+                {/* Extended Archival Metadata: Date, Location, Credit */}
+                {(detailQuery.data.approximateDate || detailQuery.data.location || detailQuery.data.credit) && (
+                  <div className="grid gap-2 sm:grid-cols-3 pt-2 border-t border-border">
+                    {detailQuery.data.approximateDate && (
+                      <div>
+                        <span className="text-xs text-muted-foreground uppercase">{ar ? "التاريخ أو الفترة التقريبية:" : "Approximate Date / Period:"}</span>
+                        <div className="text-sm text-foreground">{detailQuery.data.approximateDate}</div>
+                      </div>
+                    )}
+                    {detailQuery.data.location && (
+                      <div>
+                        <span className="text-xs text-muted-foreground uppercase">{ar ? "المكان الجغرافي:" : "Location:"}</span>
+                        <div className="text-sm text-foreground">{detailQuery.data.location}</div>
+                      </div>
+                    )}
+                    {detailQuery.data.credit && (
+                      <div>
+                        <span className="text-xs text-muted-foreground uppercase">{ar ? "نسبة المادة / الإسناد:" : "Credit / Attribution:"}</span>
+                        <div className="text-sm text-foreground">{detailQuery.data.credit}</div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Reference URL if provided */}
+                {detailQuery.data.referenceUrl && (
+                  <div className="pt-2 border-t border-border">
+                    <span className="text-xs text-muted-foreground uppercase">{ar ? "رابط الإحالة المرجعية:" : "Reference Link / Citation URL:"}</span>
+                    <div className="mt-0.5">
+                      {detailQuery.data.referenceUrl.startsWith("http://") || detailQuery.data.referenceUrl.startsWith("https://") ? (
+                        <a
+                          href={detailQuery.data.referenceUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-mono text-xs text-primary underline break-all hover:text-primary/80"
+                        >
+                          {detailQuery.data.referenceUrl}
+                        </a>
+                      ) : (
+                        <span className="font-mono text-xs text-foreground break-all">{detailQuery.data.referenceUrl}</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Source / Rights Context Note */}
+                {detailQuery.data.sourceNote && (
+                  <div className="pt-2 border-t border-border">
+                    <span className="text-xs text-muted-foreground uppercase">{ar ? "ملاحظة المصدر وتوثيق الحقوق:" : "Source & Rights Context Note:"}</span>
+                    <p className="mt-1 text-xs leading-relaxed text-foreground whitespace-pre-wrap bg-sand/30 p-2.5 rounded-md border border-border/60">
+                      {detailQuery.data.sourceNote}
+                    </p>
+                  </div>
+                )}
+
+                <div className="pt-2 border-t border-border">
                   <span className="text-xs text-muted-foreground uppercase">{ar ? "سياق المادة والوصف التوثيقي:" : "Description & Archival Context:"}</span>
                   <p className="mt-1 text-sm leading-relaxed text-foreground whitespace-pre-wrap bg-sand-deep/20 p-3 rounded-md border border-border/50">
                     {detailQuery.data.description}
                   </p>
+                </div>
+
+                <div className="pt-2 border-t border-border text-[11px] text-muted-foreground flex flex-wrap items-center justify-between gap-1">
+                  <span>{ar ? "تاريخ التقديم:" : "Submitted:"} <span dir="ltr" className="font-mono">{detailQuery.data.createdAt}</span></span>
+                  <span className="italic">{ar ? "إيصال استلام أرشيفي خاص — لا يُعد ترخيصاً بالنشر العام" : "Private intake receipt — not a public license"}</span>
                 </div>
               </div>
 
@@ -390,7 +535,9 @@ export function ArchiveContributionsAdmin() {
 
                 {detailQuery.data.files.length === 0 ? (
                   <p className="text-xs text-muted-foreground">
-                    {ar ? "لا توجد مرفقات رقمية مرفقة مع هذه المساهمة." : "No files attached with this contribution."}
+                    {detailQuery.data.rightsStatus === "reference_unconfirmed"
+                      ? (ar ? "هذه مساهمة مرجعية (إحالة/اقتباس)؛ لم يُسمح برفع مرفقات رقمية محمية بحقوق غير مصرح بها." : "This is a reference citation. Protected digital uploads were disabled for unconfirmed rights.")
+                      : (ar ? "لا توجد مرفقات رقمية مرفقة مع هذه المساهمة." : "No files attached with this contribution.")}
                   </p>
                 ) : (
                   <ul className="space-y-2">
