@@ -30,7 +30,7 @@ AGY Gemini3.8 Flash High implemented two isolated lanes. Coordinator independent
 | Reference choice/optional provenance | PASS | Actual390px browser interaction; uploads absent, citation/date present |
 | Other credited surfaces/legal pages | PASS for compiled preview | EN/AR390px browser reads, source tests; live CMS unchanged |
 | Live CMS publication | PENDING owner acceptance | [Revision-aware plan](CMS_PUBLICATION_PLAN.md), [actual public revision/hash comparison](LIVE_CMS_COMPARISON.md) |
-| PR24 real consent/beacon/authenticated Admin browser/report acceptance | Pre-release gate retained | Not represented by compiled editorial screenshots or HTTP unit acceptance |
+| PR24 real consent/collection/authenticated Admin browser/report acceptance | PASS locally | [Actual HTTPS browser/database receipt](ANALYTICS_BROWSER_ACCEPTANCE.md); focused duplicate-view correction included, no production certification claimed |
 | Release/operator/host compatibility | PENDING separate authorization | Installed0aacf145/25 requires new exact-source25-to27 operator; never reuse old PR22 kit |
 
 ## Screenshots

@@ -29,7 +29,9 @@ export function TelemetryRoot() {
   }, [isStaff, isAdminRoute]);
 
   useEffect(() => {
-    if (pathname && !isStaff && !isAdminRoute) {
+    // Let the canonicalizer clear the previous public location on private routes.
+    // It rejects Admin paths without recording them or starting collection.
+    if (pathname && !isStaff) {
       telemetryClient.onRouteChange(pathname);
     }
   }, [pathname, isStaff, isAdminRoute]);
