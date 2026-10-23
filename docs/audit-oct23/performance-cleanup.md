@@ -25,3 +25,5 @@ Approved ticket artwork and composition remain unchanged. The existing 1774 x 88
 Frontend/backend template and font copies serve different deployed runtimes; keep both. Local Docker harness files remain useful despite production using shared hosting. No tracked assets, evidence, source or Git history were deleted.
 
 `cleanup-manifest.csv` is an inventory, not a deletion receipt. Evidence removal requires an intact archive with hashes and an index plus explicit approval of exact paths. Historical capture scripts are UNKNOWN until their consumers are checked. Local reproducible dependency/build cleanup receipts are maintained with the audit integration branch.
+
+Actual Edge screenshots in evidence/ show the production-profile standalone staff sign-in page in EN and AR after hydration, with localized labels and RTL layout. A local static server mapped each original sign-in URL to its prerendered shell. No login or backend mutation was attempted. Public homepage content requires its backend API and was not certified by that static preview.
