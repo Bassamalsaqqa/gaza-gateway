@@ -1,0 +1,143 @@
+{
+  "installed_source": "0aacf1452d47bbf5660f060a718409dfff32a54c",
+  "installed_migrations": 25,
+  "review_candidate_migrations": 27,
+  "note": "LF-normalized source inventory; release manifest must hash exact packaged bytes separately. Prior25 unchanged. Analytics from PR24 plus one metadata extension.",
+  "files": [
+    {
+      "migration": "0001_01_01_000001_create_cache_table",
+      "sha256_lf": "50f783e3c4596a73b1352cbd6aaf925be660d124f6426e5ca2bfdb57f61b5b1a",
+      "role": "installed baseline"
+    },
+    {
+      "migration": "0001_01_01_000002_create_jobs_table",
+      "sha256_lf": "44fceb4e62052329aa7ceae849a52dd40f22c2a066e4bf27d6bb691923396c7c",
+      "role": "installed baseline"
+    },
+    {
+      "migration": "2026_10_09_000001_create_identity_core_tables",
+      "sha256_lf": "03f912e171c86f6d1ed0e552bc6039f49e015feddd7d86e9823fa16047db27e0",
+      "role": "installed baseline"
+    },
+    {
+      "migration": "2026_10_10_000001_create_identity_dependency_relations",
+      "sha256_lf": "2b8037f3168e875d6c103b98fc9e0296b29c79d1b03f7d809225c90559dc704b",
+      "role": "installed baseline"
+    },
+    {
+      "migration": "2026_10_10_000002_create_identity_remaining_persistence",
+      "sha256_lf": "a20de380d8ccc0a5bec016d0ecef233ac94c7b463665398ac6305ffe382dc88c",
+      "role": "installed baseline"
+    },
+    {
+      "migration": "2026_10_10_000003_create_identity_profile_audit",
+      "sha256_lf": "0195ff76b2a91d88f5590467259f831516eb5ece27334903569c720f39d4fbbe",
+      "role": "installed baseline"
+    },
+    {
+      "migration": "2026_10_10_000004_create_bootstrap_cleanup_indexes",
+      "sha256_lf": "899b17753374138f75f9833511cd3cc4159bcb55d4c51f3a7166c7aa934f1334",
+      "role": "installed baseline"
+    },
+    {
+      "migration": "2026_10_11_000001_create_reference_aircraft_tables",
+      "sha256_lf": "1cb28aade4cd346559716f80a1d5684710138a2f52ec3a5f094f6a0c5d4c3ebb",
+      "role": "installed baseline"
+    },
+    {
+      "migration": "2026_10_11_000002_enforce_route_safe_aircraft_ids",
+      "sha256_lf": "fc97e4c208a78c16ba7a13dc8e9170fc1c88f9d8bc99151760fe425a9c39a354",
+      "role": "installed baseline"
+    },
+    {
+      "migration": "2026_10_11_000003_create_network_reference_tables",
+      "sha256_lf": "63213e1b23c1a96093c048340a523aa885990e2900bcd22f2d8cc0dc9dcad008",
+      "role": "installed baseline"
+    },
+    {
+      "migration": "2026_10_11_000004_create_meal_reference_tables",
+      "sha256_lf": "aa461a91f7c004ec635850ccc667fffd2ad81a5ebb242b0e77e7dde589f12ef5",
+      "role": "installed baseline"
+    },
+    {
+      "migration": "2026_10_11_000005_create_schedule_reference_tables",
+      "sha256_lf": "647fefbfd47bd1b3843e392497e8df34a5c5ba1c8bce73dab838cb3333c339bd",
+      "role": "installed baseline"
+    },
+    {
+      "migration": "2026_10_11_000006_create_editorial_publication_tables",
+      "sha256_lf": "297bcd778b50f85e2ac996aeb07da2b22e5f71ab2976628b7303ccce86369f82",
+      "role": "installed baseline"
+    },
+    {
+      "migration": "2026_10_11_000007_create_mvp_reservation_tables",
+      "sha256_lf": "e3321d0a5a3f60ba67c6eda118b02b330e80373a443a48624124eee54d3934d7",
+      "role": "installed baseline"
+    },
+    {
+      "migration": "2026_10_11_000008_create_mvp_mail_tables",
+      "sha256_lf": "9b1fac3bda8aa4673bfdb76d9d5dcff416d4f87e632d575e6feb20c586788eb8",
+      "role": "installed baseline"
+    },
+    {
+      "migration": "2026_10_11_000009_create_mvp_site_tables",
+      "sha256_lf": "db8d10356945347cdcd3efad54e4edd4ec135ac5bc520f5a431c979eb2c5bf96",
+      "role": "installed baseline"
+    },
+    {
+      "migration": "2026_10_11_000010_create_mvp_gallery_tables",
+      "sha256_lf": "37dd7801e7954a0bdda0dfde2843081734ac27372b905cfffa5c0bfbae09f39b",
+      "role": "installed baseline"
+    },
+    {
+      "migration": "2026_10_11_000011_create_security_smtp_attempts_table",
+      "sha256_lf": "1a4d7945f6237d1fb5e9c5686b7fac72ea29331c57e4618d922d9969a835dcb5",
+      "role": "installed baseline"
+    },
+    {
+      "migration": "2026_10_13_000001_optional_initial_staff_mfa",
+      "sha256_lf": "08fc66b858645c0a7679cedb969a316f1b29e35fc73e865213b9e1791d76d297",
+      "role": "installed baseline"
+    },
+    {
+      "migration": "2026_10_14_000001_add_email_verification_codes",
+      "sha256_lf": "399b5c6e0bf3a07788f84c7b4f293acd6446112a8e65c353a6e99de0e4a2c7b0",
+      "role": "installed baseline"
+    },
+    {
+      "migration": "2026_10_14_000002_expand_memorial_network",
+      "sha256_lf": "a23e8bb5e94c854a522634b09c97b9f10929331e495810b0aace2c74edd557a4",
+      "role": "installed baseline"
+    },
+    {
+      "migration": "2026_10_16_000001_guest_reservations",
+      "sha256_lf": "e2546a1c97cc18b1c4b8aca4f31332b9ebff6518e9ad3f11096deb81fd2a4e0f",
+      "role": "installed baseline"
+    },
+    {
+      "migration": "2026_10_17_000001_optional_guest_passenger_details",
+      "sha256_lf": "f3913d47589e79c74bf443c886d2066b7ae0b4e475f8b3d01ce9c1bdc732c5e6",
+      "role": "installed baseline"
+    },
+    {
+      "migration": "2026_10_21_000001_add_osl_arn_destinations",
+      "sha256_lf": "a88d2a321e030a556d7b39902844ab96d7a19b1670bb283854ba308a1750facd",
+      "role": "installed baseline"
+    },
+    {
+      "migration": "2026_10_21_000001_create_archive_contributions_tables",
+      "sha256_lf": "5c935aa3f962eba379e28db6676af1e4687cf24b58c900a9668daeebe06ce49c",
+      "role": "installed baseline"
+    },
+    {
+      "migration": "2026_10_23_000001_create_analytics_and_monthly_reports_tables",
+      "sha256_lf": "0fd39b78d29271cbf0900bf7cf2b9b659608f6b73b02ff2c1c27fb27247d3767",
+      "role": "review candidate additive"
+    },
+    {
+      "migration": "2026_10_23_000002_add_contribution_metadata_fields",
+      "sha256_lf": "9c16002e083ddca5878de971e02d8443e23ad9a8c5523a83951e47664b35dae3",
+      "role": "review candidate additive"
+    }
+  ]
+}

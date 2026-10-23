@@ -13,7 +13,7 @@ The live About description still describes a working travel service/home carrier
 Existing published block IDs:
 
 - `about`: `about-airport`, `about-material`
-- `contact`: 
+- `contact`:
 - `privacy`: `privacy-section-1`, `privacy-section-2`, `privacy-section-3`, `privacy-section-4`, `privacy-section-5`, `privacy-section-6`
 - `terms`: `terms-section-1`, `terms-section-2`, `terms-section-3`, `terms-section-4`, `terms-section-5`, `terms-section-6`
 
