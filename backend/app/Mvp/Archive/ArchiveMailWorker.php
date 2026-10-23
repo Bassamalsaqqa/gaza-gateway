@@ -332,6 +332,14 @@ final class ArchiveMailWorker
                 "Booking Reference: " . ($payload['bookingRef'] ?? 'None') . "\n\n" .
                 "Message:\n" . ($payload['message'] ?? '—') . "\n"
             );
+        } elseif (in_array($purpose, ['analytics_report', 'analytics_preview'], true)) {
+            $period = (string) ($payload['period'] ?? 'latest');
+            $summary = (array) ($payload['summary'] ?? []);
+
+            $renderer = new \App\Analytics\AnalyticsReportRenderer();
+            $email->subject($renderer->buildSubject($period));
+            $email->html($renderer->renderHtml($summary, $period));
+            $email->text($renderer->renderPlainText($summary, $period));
         }
 
         return $email;

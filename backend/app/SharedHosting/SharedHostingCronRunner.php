@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\SharedHosting;
 
+use App\Analytics\AnalyticsMaintenanceRunner;
 use App\Identity\Sessions\AnonymousSessionCleanup;
 use App\Mvp\Archive\ArchiveMailWorker;
 use App\Mvp\Mail\BookingMailWorker;
@@ -34,6 +35,7 @@ final class SharedHostingCronRunner
         private readonly ?BookingMailWorker $bookingMailWorker = null,
         private readonly ?IdentitySmtpDispatcher $identitySmtpDispatcher = null,
         private readonly ?ArchiveMailWorker $archiveMailWorker = null,
+        private readonly ?AnalyticsMaintenanceRunner $analyticsRunner = null,
     ) {}
 
     /**
@@ -126,6 +128,8 @@ final class SharedHostingCronRunner
             'identity_mail_processed' => 0,
             'booking_mail_processed' => 0,
             'archive_mail_processed' => 0,
+            'analytics_events_purged' => 0,
+            'monthly_reports_processed' => 0,
             'wall_deadline_reached' => false,
             'timeout' => false,
             'mail_status' => 'disabled',
@@ -157,7 +161,14 @@ final class SharedHostingCronRunner
                 $summary['wall_deadline_reached'] = true;
             }
 
-            // Task D: Bounded Archive & Contact Mail processing
+            // Task D: Bounded Analytics retention purge and report enqueue (before outbox processing)
+            if ($getRemainingSeconds() >= self::COLD_OPERATION_BUDGET_SECONDS) {
+                $this->runAnalyticsTasks($summary, $getRemainingSeconds);
+            } elseif (config('analytics.enabled', true) === true) {
+                $summary['wall_deadline_reached'] = true;
+            }
+
+            // Task E: Bounded Archive, Contact, and Analytics Report Outbox processing
             if ($getRemainingSeconds() >= self::DOCUMENT_MESSAGE_BUDGET_SECONDS) {
                 $this->runArchiveMail($summary, $getRemainingSeconds, $batchLimit);
             } elseif (config('mvp-mail.enabled') === true) {
@@ -396,6 +407,43 @@ final class SharedHostingCronRunner
                 'code' => (int) $e->getCode(),
             ];
             Log::warning('SharedHostingCron: Archive mail exception', [
+                'class' => get_class($e),
+                'code' => (int) $e->getCode(),
+            ]);
+        }
+    }
+
+    private function runAnalyticsTasks(array &$summary, callable $getRemaining): void
+    {
+        if (config('analytics.enabled', true) !== true) {
+            return;
+        }
+
+        try {
+            $runner = $this->analyticsRunner;
+            if ($runner === null && class_exists(AnalyticsMaintenanceRunner::class)) {
+                $runner = app()->bound(AnalyticsMaintenanceRunner::class) || app()->bound(\Illuminate\Database\ConnectionInterface::class)
+                    ? app(AnalyticsMaintenanceRunner::class)
+                    : null;
+            }
+
+            if ($runner === null) {
+                return;
+            }
+
+            $res = $runner->run($getRemaining);
+            $summary['analytics_events_purged'] = (int) ($res['events_purged'] ?? 0);
+            $summary['monthly_reports_processed'] = (int) ($res['reports_processed'] ?? 0);
+        } catch (\Throwable $e) {
+            if ($e instanceof SharedHostingTimeoutException) {
+                throw $e;
+            }
+            $summary['errors'][] = [
+                'task' => 'analytics_maintenance',
+                'class' => get_class($e),
+                'code' => (int) $e->getCode(),
+            ];
+            Log::warning('SharedHostingCron: Analytics maintenance exception', [
                 'class' => get_class($e),
                 'code' => (int) $e->getCode(),
             ]);

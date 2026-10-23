@@ -4,6 +4,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { ChevronLeft, ChevronRight, ExternalLink, Info, Play, X } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { telemetryClient } from "@/lib/analytics/telemetry-client";
 import { AppLink } from "@/components/app-link";
 import { btnClass, Container, EmptyState } from "@/components/kit";
 import { PublicPhotoHero } from "@/components/media/public-photo-hero";
@@ -184,6 +185,7 @@ function GalleryPage() {
   const handleOpen = (index: number, id: string) => {
     setOpeningItemId(id);
     setOpenIndex(index);
+    telemetryClient.trackInteraction("archive_explore", lang === "ar" ? "/ar/gallery" : "/gallery");
   };
 
   const handleClose = () => {

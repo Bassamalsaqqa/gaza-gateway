@@ -1,4 +1,5 @@
 import { identityUiRequested } from "@/lib/api/identity-ui-runtime";
+import { telemetryClient } from "@/lib/analytics/telemetry-client";
 import { MvpFreeBooking } from "@/components/booking/mvp-free-booking";
 import { decodeDatedOfferingId } from "@/lib/offerings/codec";
 import { useCommercialOptions } from "@/lib/commercial/queries";
@@ -133,7 +134,15 @@ export const Route = createFileRoute("/{-$locale}/book")({
 
 
 function BookPage() {
+  const { lang } = useI18n();
   const { offering, returnOffering } = Route.useSearch();
+  const hasOffering = Boolean(offering && decodeDatedOfferingId(offering));
+
+  useEffect(() => {
+    if (hasOffering) {
+      telemetryClient.trackInteraction("booking_start", lang === "ar" ? "/ar/book" : "/book");
+    }
+  }, [hasOffering, lang]);
   return identityUiRequested ? <MvpFreeBooking offeringId={offering} returnOfferingId={returnOffering} /> : <MockBookPage />;
 }
 

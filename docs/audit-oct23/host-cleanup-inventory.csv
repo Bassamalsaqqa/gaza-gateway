@@ -1,0 +1,14 @@
+relative_to_home,reported_bytes,file_count,classification,reason
+gaza-gateway,1036115968,unknown,KEEP,"Live private application, releases, shared uploads/configuration/backups and cron wrapper; never blanket-remove."
+public_html,57176064,unknown,KEEP,Active static frontend and API routing.
+gaza-batch02-preflight-20261022,172273664,unknown,KEEP,Current recovery/preflight evidence; retain original failure markers and receipts.
+gaza-upgrade-package-55-batch02,227987456,unknown,KEEP,Batch02 execution provenance; inspect individual extracted code separately from protected incident evidence.
+gaza-live-package,155521024,unknown,UNKNOWN,Historic package; inspect contents and exact references before proposing deletion.
+gaza-upgrade-96538d9,175890432,unknown,UNKNOWN,Historic incident/release package; backup/evidence may be mixed with reproducible code.
+gaza-upgrade-package,148475904,unknown,UNKNOWN,Unclassified historic package; do not assume obsolete from name.
+gaza-upgrade-package-697-55dfa64,141500416,unknown,UNKNOWN,Historic release package; archive receipts/retained manifests and audit references first.
+gaza-upgrade-package-965,233095168,unknown,UNKNOWN,Historic incident/release package; exact consumer and preservation audit required.
+gaza-upgrade-package-b3,175919104,unknown,UNKNOWN,Historic installer/evidence; must not execute; retain provenance until separately archived.
+repositories,114049024,unknown,UNKNOWN,Inspect repository consumers and cPanel deployment configuration; source main remains GitHub authority.
+Old Wordpress Website,2613248,unknown,UNKNOWN,cPanel cached disk summary still lists this path; existence/contents not recursively verified.
+staging.gazaairport.com,0,unknown,UNKNOWN,Cached entry reports zero bytes; do not create or deploy staging.
