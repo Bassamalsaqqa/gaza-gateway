@@ -1,0 +1,55 @@
+{
+    "time": "2026-10-23T17:11:28+00:00",
+    "events": 31,
+    "sessions": 14,
+    "event_types": [
+        {
+            "event_type": "engagement",
+            "count": 10
+        },
+        {
+            "event_type": "page_view",
+            "count": 19
+        },
+        {
+            "event_type": "search",
+            "count": 2
+        }
+    ],
+    "recent": [
+        {
+            "event_type": "engagement",
+            "path": "\/about",
+            "created_at": "2026-10-23 17:09:06.212716"
+        },
+        {
+            "event_type": "engagement",
+            "path": "\/ar\/privacy",
+            "created_at": "2026-10-23 17:08:35.247932"
+        },
+        {
+            "event_type": "page_view",
+            "path": "\/about",
+            "created_at": "2026-10-23 17:08:35.241316"
+        },
+        {
+            "event_type": "page_view",
+            "path": "\/ar\/privacy",
+            "created_at": "2026-10-23 17:08:29.099899"
+        },
+        {
+            "event_type": "page_view",
+            "path": "\/ar\/privacy",
+            "created_at": "2026-10-23 17:08:08.781542"
+        }
+    ],
+    "reports": [
+        {
+            "purpose": "analytics_preview",
+            "status": "pending",
+            "generation": 1,
+            "attempts": 0
+        }
+    ],
+    "monthly_claims": 2
+}

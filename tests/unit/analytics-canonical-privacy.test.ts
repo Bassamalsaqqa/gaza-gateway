@@ -296,6 +296,25 @@ describe("Telemetry Client Network, Foreground/Background, and Preview Guard Inv
     assert.equal(networkCalls.length, 0);
   });
 
+  it("deduplicates repeated canonical location callbacks while allowing navigation away and back", () => {
+    const client = createTestClient();
+    setConsentStatus("granted");
+    client.start();
+    client.onRouteChange("/about");
+    client.onRouteChange("/about?qa=ignored#heading");
+    client.stop();
+    client.start();
+    client.onRouteChange("/about");
+    assert.equal(networkCalls.filter(call => call.payload.eventType === "page_view").length, 1);
+    client.onRouteChange("/airport");
+    client.onRouteChange("/about");
+    assert.equal(networkCalls.filter(call => call.payload.eventType === "page_view").length, 3);
+    client.onRouteChange("/admin/signin");
+    assert.equal(networkCalls.filter(call => call.payload.eventType === "page_view").length, 3);
+    client.onRouteChange("/about");
+    assert.equal(networkCalls.filter(call => call.payload.eventType === "page_view").length, 4);
+  });
+
   it("emits page_view and interaction events upon explicit consent", () => {
     const client = createTestClient();
     setConsentStatus("granted");

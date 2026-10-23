@@ -36,6 +36,7 @@ export class TelemetryClient {
   private shouldBeRunning = false;
   private isStaff = false;
   private activePath: string | null = null;
+  private lastViewedPath: string | null = null;
   private pendingEngagement: PendingEngagement | null = null;
   private lastActivityMs = 0;
   private engagementTickTimer: ReturnType<typeof setInterval> | null = null;
@@ -52,6 +53,7 @@ export class TelemetryClient {
             this.start();
             if (this.activePath) {
               this.emitEvent("page_view", this.activePath);
+              this.lastViewedPath = this.activePath;
             }
           }
         } else {
@@ -60,6 +62,7 @@ export class TelemetryClient {
           this.stop();
           this.shouldBeRunning = resumeWhenConsented;
           this.pendingEngagement = null;
+          this.lastViewedPath = null;
         }
       });
     }
@@ -71,6 +74,7 @@ export class TelemetryClient {
   public setStaffActive(active: boolean): void {
     this.isStaff = active;
     if (active) {
+      this.lastViewedPath = null;
       this.stop();
       this.pendingEngagement = null;
     } else if (this.shouldBeRunning && hasAnalyticsConsent() && !this.isRunning) {
@@ -195,13 +199,17 @@ export class TelemetryClient {
    * Handle route navigation.
    */
   public onRouteChange(rawPath: string): void {
+    const canonical = canonicalizePublicPath(rawPath);
+    // Hydration/remount callbacks for the same location are not a second visit.
+    // Preserve its pending engagement interval as well as its page-view count.
+    if (canonical && canonical === this.activePath && canonical === this.lastViewedPath) return;
+
     // 1. Flush engagement for previous path before transitioning
     if (hasAnalyticsConsent() && !this.isStaff && !isPreviewOrDiagnosticMode()) {
       this.flushEngagement();
     }
 
     // 2. Canonicalize path
-    const canonical = canonicalizePublicPath(rawPath);
     this.activePath = canonical;
 
     if (!canonical || this.isStaff || isPreviewOrDiagnosticMode()) {
@@ -218,6 +226,7 @@ export class TelemetryClient {
     // 3. Emit page_view event if consent is active
     if (hasAnalyticsConsent()) {
       this.emitEvent("page_view", canonical);
+      this.lastViewedPath = canonical;
     }
   }
 

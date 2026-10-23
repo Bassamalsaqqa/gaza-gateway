@@ -1,0 +1,14 @@
+[
+    {
+        "sha256":  "ea7abbcd4bb42ef3f62226e4228816aafebf6f60d0ce21830ad68b0b6f15030b",
+        "path":  "src/components/analytics/telemetry-root.tsx"
+    },
+    {
+        "sha256":  "6f993643bdfcdce6b6b59a264d18e14b168a6bfe22ae2e24d33c50e3452407ee",
+        "path":  "src/lib/analytics/telemetry-client.ts"
+    },
+    {
+        "sha256":  "4b6002f29f90d1952169153b1102daf122df8ae3d6529bdc6cbae2cb25014e56",
+        "path":  "tests/unit/analytics-canonical-privacy.test.ts"
+    }
+]

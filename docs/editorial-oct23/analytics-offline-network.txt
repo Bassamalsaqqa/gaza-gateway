@@ -1,0 +1,11 @@
+709. [POST] https://127.0.0.1:5230/api/v1/analytics/events => [503] Service Unavailable
+713. [GET] https://127.0.0.1:5230/api/v1/offerings/availability?origin=GZA&destination=AMM&date=2026-10-23&days=28&partySize=1 => [FAILED] net::ERR_ABORTED
+714. [GET] https://127.0.0.1:5230/api/v1/offerings/availability?origin=GZA&destination=AMM&date=2026-10-23&days=28&partySize=1 => [FAILED] net::ERR_ABORTED
+716. [POST] https://127.0.0.1:5230/api/v1/analytics/events => [503] Service Unavailable
+718. [GET] https://127.0.0.1:5230/api/v1/offerings/availability?origin=GZA&destination=AMM&date=2026-11-04&days=28&partySize=1 => [200] OK
+719. [POST] https://127.0.0.1:5230/api/v1/analytics/events => [503] Service Unavailable
+720. [GET] https://127.0.0.1:5230/api/v1/offerings/availability?origin=AMM&destination=GZA&date=2026-11-07&days=28&partySize=1 => [200] OK
+721. [POST] https://127.0.0.1:5230/api/v1/analytics/events => [503] Service Unavailable
+722. [POST] https://127.0.0.1:5230/api/v1/analytics/events => [503] Service Unavailable
+
+Note: 708 static requests not shown, run with "static" option to see them.
