@@ -246,7 +246,9 @@ final class ArchiveContributionTest extends TestCase
                 'contributorName' => 'Kareem Naji',
                 'contributorNameArabic' => 'كريم ناجي',
                 'email' => 'kareem.naji@example.org',
+                'chapter' => 'imagined_future',
                 'contributionType' => 'future_concept',
+                'rightsStatus' => 'owned_authorized',
                 'description' => 'Architectural vision and historical preservation concepts for Gaza Gateway terminal.',
                 'permissionConsent' => 'true',
                 'locale' => 'ar',
@@ -314,7 +316,9 @@ final class ArchiveContributionTest extends TestCase
                 'submissionId' => $subId,
                 'contributorName' => 'Samir Design',
                 'email' => 'samir@example.org',
+                'chapter' => 'imagined_future',
                 'contributionType' => 'design',
+                'rightsStatus' => 'owned_authorized',
                 'description' => 'Original schematic layout and architectural blueprints for the terminal building.',
                 'permissionConsent' => 'true',
                 'locale' => 'en',
@@ -343,7 +347,9 @@ final class ArchiveContributionTest extends TestCase
             'submissionId' => $subId,
             'contributorName' => 'Mona Tariq',
             'email' => 'mona.tariq@example.org',
+            'chapter' => 'historical',
             'contributionType' => 'photograph',
+            'rightsStatus' => 'owned_authorized',
             'description' => 'Archival photograph from 1998 inaugural ceremony.',
             'permissionConsent' => 'true',
             'locale' => 'en',
@@ -388,7 +394,9 @@ final class ArchiveContributionTest extends TestCase
             'submissionId' => $subId,
             'contributorName' => 'Original Contributor',
             'email' => 'orig@example.org',
+            'chapter' => 'historical',
             'contributionType' => 'photograph',
+            'rightsStatus' => 'owned_authorized',
             'description' => 'Original description for the archival contribution.',
             'permissionConsent' => 'true',
         ];
@@ -407,7 +415,9 @@ final class ArchiveContributionTest extends TestCase
             'submissionId' => $subId,
             'contributorName' => 'Different Contributor',
             'email' => 'orig@example.org',
+            'chapter' => 'historical',
             'contributionType' => 'photograph',
+            'rightsStatus' => 'owned_authorized',
             'description' => 'Tampered description payload attempting to mutate existing record.',
             'permissionConsent' => 'true',
         ];
@@ -435,7 +445,9 @@ final class ArchiveContributionTest extends TestCase
                 'submissionId' => $subId,
                 'contributorName' => 'Attacker',
                 'email' => 'attacker@example.org',
+                'chapter' => 'historical',
                 'contributionType' => 'document',
+                'rightsStatus' => 'owned_authorized',
                 'description' => 'A valid length description for an attempted HTML payload upload.',
                 'permissionConsent' => 'true',
             ],
@@ -461,7 +473,9 @@ final class ArchiveContributionTest extends TestCase
                 'submissionId' => $subId2,
                 'contributorName' => 'Attacker 2',
                 'email' => 'attacker2@example.org',
+                'chapter' => 'historical',
                 'contributionType' => 'photograph',
+                'rightsStatus' => 'owned_authorized',
                 'description' => 'Attempting double extension traversal with php segment in middle.',
                 'permissionConsent' => 'true',
             ],
@@ -890,5 +904,179 @@ final class ArchiveContributionTest extends TestCase
         $this->assertSame('Updated Sender Name', $updated['senderName']);
         $this->assertTrue($updated['incomingCcEnabled']);
         $this->assertSame('cc-alerts@gazaairport.com', $updated['incomingCcEmail']);
+    }
+
+    public function test_archive_metadata_full_stack_replay_rights_paths_and_admin_detail(): void
+    {
+        $session = $this->guestSession();
+        $subId = 'sub-meta-' . Str::random(16);
+
+        $file = UploadedFile::fake()->createWithContent(
+            'gza-apron-1999.png',
+            $this->tinyPngBytes,
+            'image/png'
+        );
+
+        $body = [
+            'submissionId' => $subId,
+            'contributorName' => 'Layla Masri',
+            'contributorNameArabic' => 'ليلى المصري',
+            'email' => 'layla.masri@example.org',
+            'chapter' => 'historical',
+            'contributionType' => 'photograph',
+            'approximateDate' => '1999-04',
+            'location' => 'GZA Main Terminal Apron',
+            'credit' => 'Photo by H. Masri',
+            'rightsStatus' => 'owned_authorized',
+            'sourceNote' => 'Family collection original photographic print',
+            'referenceUrl' => 'https://archive.org/details/gza-historical-photo',
+            'description' => 'Palestinian Airlines Boeing 727 boarding passengers during inauguration season.',
+            'permissionConsent' => 'true',
+            'locale' => 'en',
+        ];
+
+        // 1. Submit valid owned_authorized contribution with full metadata and file -> 202 Accepted
+        $res = $this->http('POST', '/archive/contributions', $session, $body, ['files' => [$file]]);
+        $res->assertStatus(202);
+        $data = $res->json('data');
+        $this->assertNotNull($data);
+        $publicRef = $data['reference'];
+        $this->assertMatchesRegularExpression('/\AGZA-ARC-[A-Z0-9]{8}\z/', $publicRef);
+
+        // 2. Assert full metadata persisted in database
+        $row = DB::table('archive_contributions')->where('submission_id', $subId)->first();
+        $this->assertNotNull($row);
+        $this->assertSame('historical', $row->chapter);
+        $this->assertSame('photograph', $row->contribution_type);
+        $this->assertSame('1999-04', $row->approximate_date);
+        $this->assertSame('GZA Main Terminal Apron', $row->location);
+        $this->assertSame('Photo by H. Masri', $row->credit);
+        $this->assertSame('owned_authorized', $row->rights_status);
+        $this->assertSame('Family collection original photographic print', $row->source_note);
+        $this->assertSame('https://archive.org/details/gza-historical-photo', $row->reference_url);
+
+        // 3. Assert outbox payloads contain metadata
+        $ack = DB::table('archive_mail_outbox')->where('contribution_id', $row->id)->where('purpose', 'archive_ack')->first();
+        $this->assertNotNull($ack);
+        $ackPayload = json_decode(Crypt::decryptString($ack->encrypted_payload), true, 16, JSON_THROW_ON_ERROR);
+        $this->assertSame('historical', $ackPayload['chapter']);
+        $this->assertSame('owned_authorized', $ackPayload['rightsStatus']);
+        $this->assertSame('1999-04', $ackPayload['approximateDate']);
+
+        $notify = DB::table('archive_mail_outbox')->where('contribution_id', $row->id)->where('purpose', 'archive_notify')->first();
+        $this->assertNotNull($notify);
+        $notifyPayload = json_decode(Crypt::decryptString($notify->encrypted_payload), true, 16, JSON_THROW_ON_ERROR);
+        $this->assertSame('historical', $notifyPayload['chapter']);
+        $this->assertSame('owned_authorized', $notifyPayload['rightsStatus']);
+        $this->assertSame('GZA Main Terminal Apron', $notifyPayload['location']);
+        $this->assertSame('Photo by H. Masri', $notifyPayload['credit']);
+
+        $worker = new ArchiveMailWorker(new MailSettings(), $this->createRendererContractDouble());
+        $mailConfig = ['senderName' => 'Gaza Gateway Test', 'senderEmail' => 'notifications@example.invalid'];
+        $ackMessage = $worker->buildMessage($ack, $ackPayload, $mailConfig, 'metadata-ack');
+        $this->assertStringContainsString('1999-04', (string) $ackMessage->getTextBody());
+        $this->assertStringContainsString('Archive / Historical', (string) $ackMessage->getTextBody());
+        $this->assertCount(0, $ackMessage->getCc());
+        $this->assertCount(1, $ackMessage->getAttachments());
+        $notificationMessage = $worker->buildMessage($notify, $notifyPayload, $mailConfig, 'metadata-notify');
+        $this->assertStringContainsString('Photo by H. Masri', (string) $notificationMessage->getTextBody());
+        $this->assertStringContainsString('Family collection original photographic print', (string) $notificationMessage->getTextBody());
+        $this->assertStringContainsString('Content-Type:', $notificationMessage->toString());
+
+
+        // 4. Idempotent replay: identical metadata + same file -> 200 OK
+        $replayFile = UploadedFile::fake()->createWithContent('gza-apron-1999.png', $this->tinyPngBytes, 'image/png');
+        $resReplay = $this->http('POST', '/archive/contributions', $session, $body, ['files' => [$replayFile]]);
+        $resReplay->assertStatus(200);
+        $this->assertSame($publicRef, $resReplay->json('data.reference'));
+
+        // Idempotent replay with altered metadata -> 409 Conflict
+        $tamperedBody = $body;
+        $tamperedBody['approximateDate'] = '2000-01'; // Altered metadata field
+        $resTampered = $this->http('POST', '/archive/contributions', $session, $tamperedBody, ['files' => [$replayFile]]);
+        $resTampered->assertStatus(409);
+
+        // 5. owned_authorized requires at least one upload -> 422
+        $noFileBody = $body;
+        $noFileBody['submissionId'] = 'sub-nofile-' . Str::random(16);
+        $resNoFile = $this->http('POST', '/archive/contributions', $session, $noFileBody);
+        $resNoFile->assertStatus(422);
+
+        // 6. reference_unconfirmed path:
+        // Valid reference submission without files -> 202 Accepted
+        $refSubId = 'sub-ref-' . Str::random(16);
+        $refBody = [
+            'submissionId' => $refSubId,
+            'contributorName' => 'Tariq Qassim',
+            'email' => 'tariq.qassim@example.org',
+            'chapter' => 'contemporary',
+            'contributionType' => 'document',
+            'rightsStatus' => 'reference_unconfirmed',
+            'sourceNote' => 'United Nations OCHA Report 2002 on airport damage infrastructure',
+            'referenceUrl' => 'https://ochaopt.org/reports/gza-infra',
+            'description' => 'UN survey document assessing damages to Gaza airport runway and passenger terminal.',
+            'permissionConsent' => 'true',
+            'locale' => 'en',
+        ];
+        $resRef = $this->http('POST', '/archive/contributions', $session, $refBody);
+        $resRef->assertStatus(202);
+
+        // reference_unconfirmed attempting file upload -> 422 Unprocessable (rejected before decoding)
+        $refWithFileBody = $refBody;
+        $refWithFileBody['submissionId'] = 'sub-ref-err-' . Str::random(16);
+        $resRefFile = $this->http('POST', '/archive/contributions', $session, $refWithFileBody, ['files' => [$file]]);
+        $resRefFile->assertStatus(422);
+
+        // reference_unconfirmed missing citation note and URL -> 422 Unprocessable
+        $refMissingNoteBody = $refBody;
+        $refMissingNoteBody['submissionId'] = 'sub-ref-nonote-' . Str::random(16);
+        unset($refMissingNoteBody['sourceNote'], $refMissingNoteBody['referenceUrl']);
+        $resRefMissing = $this->http('POST', '/archive/contributions', $session, $refMissingNoteBody);
+        $resRefMissing->assertStatus(422);
+
+        // 7. Optional types reject arrays cleanly with 422 (no array-to-string warning)
+        $arrayFieldBody = $body;
+        $arrayFieldBody['submissionId'] = 'sub-array-' . Str::random(16);
+        $arrayFieldBody['approximateDate'] = ['invalid', 'array'];
+        $resArray = $this->http('POST', '/archive/contributions', $session, $arrayFieldBody, ['files' => [$file]]);
+        $resArray->assertStatus(422);
+
+        // 8. Staff Admin detail and private attachment download
+        $staff = $this->staffSession();
+        $adminListRes = $this->http('GET', '/admin/archive/contributions', $staff, null, [], [], CookieSecurity::COOKIE_STAFF);
+        $adminListRes->assertStatus(200);
+        $items = $adminListRes->json('data.items');
+        $this->assertNotEmpty($items);
+        $foundItem = collect($items)->firstWhere('publicReference', $publicRef);
+        $this->assertNotNull($foundItem);
+        $this->assertSame('historical', $foundItem['chapter']);
+        $this->assertSame('owned_authorized', $foundItem['rightsStatus']);
+
+        $adminDetailRes = $this->http('GET', "/admin/archive/contributions/{$row->id}", $staff, null, [], [], CookieSecurity::COOKIE_STAFF);
+        $adminDetailRes->assertStatus(200);
+        $detail = $adminDetailRes->json('data');
+        $this->assertSame($publicRef, $detail['publicReference']);
+        $this->assertSame('historical', $detail['chapter']);
+        $this->assertSame('owned_authorized', $detail['rightsStatus']);
+        $this->assertSame('1999-04', $detail['approximateDate']);
+        $this->assertSame('GZA Main Terminal Apron', $detail['location']);
+        $this->assertSame('Photo by H. Masri', $detail['credit']);
+        $this->assertCount(1, $detail['files']);
+
+        $fileId = $detail['files'][0]['id'];
+        $downloadRes = $this->http('GET', "/admin/archive/contributions/{$row->id}/files/{$fileId}/download", $staff, null, [], [], CookieSecurity::COOKIE_STAFF);
+        $downloadRes->assertStatus(200);
+        $this->assertSame('image/png', $downloadRes->headers->get('Content-Type'));
+        $this->assertSame('nosniff', $downloadRes->headers->get('X-Content-Type-Options'));
+
+        $privateFile = DB::table('archive_contribution_files')->where('id', $fileId)->first();
+        $this->assertSame($this->tinyPngBytes, file_get_contents(storage_path('app/private/archive_contributions/' . $privateFile->storage_key)));
+        $guestDownload = $this->http('GET', "/admin/archive/contributions/{$row->id}/files/{$fileId}/download", $session);
+        $this->assertContains($guestDownload->status(), [401, 403]);
+        $this->assertSame(2, DB::table('archive_mail_outbox')->where('contribution_id', $row->id)->count());
+        $migration = require database_path('migrations/2026_10_23_000002_add_contribution_metadata_fields.php');
+        try { $migration->down(); $this->fail('Populated provenance must prevent destructive DOWN.'); }
+        catch (\RuntimeException $error) { $this->assertStringContainsString('contraction refused', $error->getMessage()); }
+
     }
 }

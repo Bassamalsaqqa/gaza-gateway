@@ -258,28 +258,66 @@ final class ArchiveMailWorker
             $ref = (string) ($payload['reference'] ?? 'GZA-ARC');
             $name = (string) ($payload['contributorName'] ?? 'Contributor');
             $type = (string) ($payload['contributionType'] ?? 'historical materials');
+            $chapter = (string) ($payload['chapter'] ?? '');
+            $rights = (string) ($payload['rightsStatus'] ?? '');
+            $approxDate = !empty($payload['approximateDate']) ? (string) $payload['approximateDate'] : null;
+
             $displayName = ($isArabic && !empty($payload['contributorNameArabic']))
                 ? (string) $payload['contributorNameArabic']
                 : $name;
 
             if ($isArabic) {
+                $chapterLabel = match ($chapter) {
+                    'historical' => 'الأرشيف / مواد تاريخية',
+                    'contemporary' => 'توثيق معاصر',
+                    'imagined_future' => 'مستقبل متخيّل',
+                    default => $chapter,
+                };
+                $rightsLabel = match ($rights) {
+                    'owned_authorized' => 'حقوق مصرحة ومملوكة للمساهم',
+                    'reference_unconfirmed' => 'إحالة توثيقية — حقوق قيد التحقق',
+                    default => 'حقوق قيد المراجعة',
+                };
+                $dateLine = $approxDate ? "التاريخ التقريبي: {$approxDate}\n" : '';
+                $chapterLine = $chapterLabel ? "الفصل التوثيقي: {$chapterLabel}\n" : '';
+
                 $email->subject("أرشيف مطار غزة — إشعار استلام مساهمة [{$ref}]");
                 $email->text(
                     "عزيزي {$displayName}،\n\n" .
                     "شكراً لمساهمتك في الأرشيف الرقمي لمطار غزة الدولي (مطار ياسر عرفات الدولي).\n\n" .
                     "الرمز المرجعي العام للأرشيف: {$ref}\n" .
-                    "تصنيف المساهمة: {$type}\n\n" .
+                    $chapterLine .
+                    "تصنيف المساهمة: {$type}\n" .
+                    "حالة الحقوق: {$rightsLabel}\n" .
+                    $dateLine . "\n" .
                     "تم استلام المواد وإدراجها ضمن المراجعة التوثيقية الخاصة. هذا الرمز يحدد مساهمتك ولا يتضمن أي بيانات اتصال شخصية.\n\n" .
                     "ملاحظة تذكارية: هذا إشعار توثيقي تذكاري وليس حجز طيران أو وثيقة سفر.\n\n" .
                     "— الخطوط الجوية الفلسطينية وأرشيف مطار غزة الدولي الرقمي"
                 );
             } else {
+                $chapterLabel = match ($chapter) {
+                    'historical' => 'Archive / Historical',
+                    'contemporary' => 'Contemporary documentation',
+                    'imagined_future' => 'Imagined future',
+                    default => $chapter,
+                };
+                $rightsLabel = match ($rights) {
+                    'owned_authorized' => 'Owned / Authorized Rights',
+                    'reference_unconfirmed' => 'Archival Reference — Rights Unconfirmed',
+                    default => 'Under Curatorial Review',
+                };
+                $dateLine = $approxDate ? "Approximate Date: {$approxDate}\n" : '';
+                $chapterLine = $chapterLabel ? "Chapter: {$chapterLabel}\n" : '';
+
                 $email->subject("Gaza Airport Archive — Contribution Acknowledgment [{$ref}]");
                 $email->text(
                     "Dear {$name},\n\n" .
                     "Thank you for contributing to the digital archive of Gaza International Airport (Yasser Arafat International Airport).\n\n" .
                     "Public Archive Reference: {$ref}\n" .
-                    "Contribution Category: {$type}\n\n" .
+                    $chapterLine .
+                    "Contribution Category: {$type}\n" .
+                    "Rights Status: {$rightsLabel}\n" .
+                    $dateLine . "\n" .
                     "Your materials have been received into private curatorial review. This reference identifies your contribution and contains no personal contact information.\n\n" .
                     "Commemorative Note: This is an archival preservation acknowledgment, not an airline booking or travel credential.\n\n" .
                     "— Palestine Airways Limited & Gaza International Airport Digital Archive"
@@ -305,6 +343,13 @@ final class ArchiveMailWorker
             $ref = (string) ($payload['reference'] ?? 'GZA-ARC');
             $name = (string) ($payload['contributorName'] ?? 'Contributor');
             $type = (string) ($payload['contributionType'] ?? 'item');
+            $chapter = (string) ($payload['chapter'] ?? '—');
+            $rights = (string) ($payload['rightsStatus'] ?? '—');
+            $approxDate = (string) ($payload['approximateDate'] ?? '—');
+            $location = (string) ($payload['location'] ?? '—');
+            $credit = (string) ($payload['credit'] ?? '—');
+            $sourceNote = (string) ($payload['sourceNote'] ?? '—');
+            $refUrl = (string) ($payload['referenceUrl'] ?? '—');
             $filesCount = (int) ($payload['filesCount'] ?? 0);
 
             $email->subject("[Archive Contribution] New submission [{$ref}] from {$name}");
@@ -313,7 +358,14 @@ final class ArchiveMailWorker
                 "Reference: {$ref}\n" .
                 "Contributor: {$name}\n" .
                 "Email: " . ($payload['email'] ?? '—') . "\n" .
+                "Chapter: {$chapter}\n" .
                 "Type: {$type}\n" .
+                "Rights Status: {$rights}\n" .
+                "Approximate Date: {$approxDate}\n" .
+                "Location: {$location}\n" .
+                "Credit / Source: {$credit}\n" .
+                "Reference Link: {$refUrl}\n" .
+                "Source / Provenance Notes: {$sourceNote}\n" .
                 "Attached Files: {$filesCount}\n\n" .
                 "Description:\n" . ($payload['description'] ?? '—') . "\n\n" .
                 "Access the staff admin portal to review materials and private attachments."
