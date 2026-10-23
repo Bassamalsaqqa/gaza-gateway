@@ -42,3 +42,7 @@ AGY Gemini3.8 Flash High implemented two isolated lanes. Coordinator independent
 See [focused receipts](FOCUSED_EVIDENCE.md), [responsive measurements](responsive-measurements.json), [combined build budget](combined-build-measurements.json) and [local Docker cleanup](DOCKER_CLEANUP.md).
 
 No deployment, production ZIP, live CMS write, cron change, hosting/file/evidence deletion, dependency upgrade, Actions or main merge. All Rights Reserved LICENSE, copyright, third-party notices and private/proprietary package metadata preserved. Production remains last verified0aacf145/25. The October13 cron wrapper and incident evidence stay protected.
+
+## Accepted-source follow-up
+
+The three nonblocking independent-review items are corrected in the PR25 follow-up: HTTP/HTTPS reference validation shared with the form, explicit409 guidance retaining the draft/UUID, and accurate citation-required wording. [Focused correction receipt](REVIEW_POLISH_RECEIPT.md), [minimal next release gates](NEXT_RELEASE_GATES.md). Earlier visual/build/fingerprint receipts are historical accepted-source evidence, not a final production certification of this follow-up.

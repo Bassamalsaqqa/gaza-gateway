@@ -3,11 +3,13 @@ import { Button, Input, Select, Textarea } from "@/components/kit";
 import { useI18n } from "@/lib/i18n";
 import {
   archiveContributionsClient,
+  archiveReferenceUrlSchema,
   type ContributionChapter,
   type ContributionType,
   type ContributionRightsStatus,
   type ContributionSubmissionReceipt,
 } from "@/lib/archive/contributions-client";
+import { MvpApiError } from "@/lib/api/mvp-client";
 import { ArchiveThankYouTag } from "./archive-thank-you-tag";
 import {
   Archive,
@@ -172,6 +174,14 @@ export function ArchiveContributionForm({
     if (busy) return;
     setErrorNotice(null);
 
+    if (referenceUrl.trim() && !archiveReferenceUrlSchema.safeParse(referenceUrl).success) {
+      setErrorNotice(ar
+        ? "أدخل رابط مصدر كاملاً يبدأ بـ HTTP أو HTTPS، مثل https://example.org/archive."
+        : "Enter a complete HTTP or HTTPS source link, such as https://example.org/archive.");
+      document.getElementById("contrib-ref-url")?.focus();
+      return;
+    }
+
     if (!consent) {
       setErrorNotice(
         ar
@@ -245,10 +255,14 @@ export function ArchiveContributionForm({
 
       const res = await archiveContributionsClient.submit(formData);
       setReceipt(res);
-    } catch {
+    } catch (error: unknown) {
       // Form drafts and selected files are retained in state for retry with identical UUID
       setErrorNotice(
-        ar
+        error instanceof MvpApiError && error.status === 409
+          ? ar
+            ? "قد تكون المساهمة السابقة قد استُلمت بالفعل، لكن تفاصيل هذه المحاولة تختلف عنها. احتفظنا بمسودتك وملفاتك. أعد المحاولة بالتفاصيل الأصلية دون تغيير إن كانت متاحة، أو تواصل معنا عبر صفحة الاتصال قبل تقديم مساهمة جديدة لتجنب التكرار."
+            : "Your earlier submission may already have been received, but this attempt has different details. Your draft and files are preserved. Retry with the unchanged original details if available, or contact us through the Contact page before starting another contribution to avoid duplicates."
+          : ar
           ? "تعذر إرسال المساهمة حالياً. بياناتك محفوظة، يرجى التحقق من الاتصال والمحاولة مجدداً."
           : "Unable to submit contribution at this time. Your draft is preserved; please verify inputs and retry."
       );
@@ -578,10 +592,10 @@ export function ArchiveContributionForm({
               <Link2 className="size-4" />
               <span>{ar ? "بيانات الاستشهاد والإحالة التوثيقية" : "Archival Citation & Provenance"}</span>
             </div>
-            <p className="text-xs text-muted-foreground leading-relaxed">
+            <p id="contrib-reference-help" className="text-xs text-muted-foreground leading-relaxed">
               {ar
-                ? "لا تقم برفع ملفات محمية بحقوق طرف ثالث. أدخل رابط المادة أو معلومات المصدر وسيتولى القيمون التحقق منها وفق معايير الأرشيف."
-                : "Do not upload third-party protected files. Provide a citation link or archival provenance notes below for curatorial assessment."}
+                ? "لا ترفع ملفات محمية بحقوق طرف ثالث. يلزم رابط مصدر يبدأ بـ HTTP أو HTTPS، أو معلومات استشهاد؛ يكفي أحدهما للمراجعة الخاصة."
+                : "Do not upload third-party protected files. Provide an HTTP/HTTPS source link or a citation note; either one is sufficient for private review."}
             </p>
 
             <div className="grid gap-3 sm:grid-cols-2">
@@ -591,6 +605,7 @@ export function ArchiveContributionForm({
                 </label>
                 <Input
                   id="contrib-ref-url"
+                  aria-describedby="contrib-reference-help"
                   type="url"
                   dir="ltr"
                   maxLength={2000}
@@ -602,10 +617,11 @@ export function ArchiveContributionForm({
 
               <div>
                 <label htmlFor="contrib-source-note" className="block text-xs font-semibold text-muted-foreground mb-1">
-                  {ar ? "مصدر المادة / اسم الناشر *" : "Source / Archive Citation *"}
+                  {ar ? "مصدر المادة / اسم الناشر (اختياري مع الرابط)" : "Source / Archive Citation (optional with a link)"}
                 </label>
                 <Input
                   id="contrib-source-note"
+                  aria-describedby="contrib-reference-help"
                   maxLength={5000}
                   value={sourceNote}
                   onChange={(e) => setSourceNote(e.target.value)}

@@ -74,6 +74,12 @@ export const contributionStatusSchema = z.enum([
 
 export type ContributionStatus = z.infer<typeof contributionStatusSchema>;
 
+/** References are recorded for private review, never fetched by the server. */
+export const archiveReferenceUrlSchema = z.string().trim().max(2000).url().refine(
+  value => /^https?:\/\//i.test(value),
+  { message: "Use a complete HTTP or HTTPS reference URL." },
+);
+
 export const archiveContributionSubmitSchema = z.object({
   contributorName: z.string().min(2).max(120),
   contributorNameAr: z.string().max(120).optional().nullable(),
@@ -85,7 +91,7 @@ export const archiveContributionSubmitSchema = z.object({
   credit: z.string().max(254).optional().nullable(),
   rightsStatus: z.enum(["owned_authorized", "reference_unconfirmed"]),
   sourceNote: z.string().max(5000).optional().nullable(),
-  referenceUrl: z.string().url().max(2000).optional().nullable(),
+  referenceUrl: archiveReferenceUrlSchema.optional().nullable(),
   description: z.string().min(10).max(5000),
   permissionConsent: z.literal(true),
   submissionId: z.string().max(64).optional(),
