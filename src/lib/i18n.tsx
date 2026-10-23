@@ -8,27 +8,38 @@ import {
   type ReactNode,
 } from "react";
 import { dirOf, langFromPath, swapLangPath, type Lang } from "./locale";
-import { adminEn, adminAr } from "./i18n-admin";
-import { admin2En, admin2Ar } from "./i18n-admin2";
 import { networkEn, networkAr } from "./i18n-network";
 import { servicesEn, servicesAr } from "./i18n-services";
 import { en, ar, type Dict } from "./i18n-public.ts";
 
-export type { Lang };
+export type { Lang, Dict };
 
-const enAll: Dict = { ...en, ...adminEn, ...admin2En, ...networkEn, ...servicesEn };
-const arAll: Dict = { ...ar, ...adminAr, ...admin2Ar, ...networkAr, ...servicesAr };
+// Scoped fallbacks for the minimal ops keys invoked across public pages/providers
+const publicFallbackEn: Dict = {
+  "adm.ops.retry": "Retry",
+  "adm.ops.loading": "Loading repository data…",
+  "a2.ac.auditWarning": "Changes saved, but activity log could not be recorded in this browser.",
+};
+
+const publicFallbackAr: Dict = {
+  "adm.ops.retry": "حاول مجددًا",
+  "adm.ops.loading": "جارٍ تحميل بيانات المستودع…",
+  "a2.ac.auditWarning": "تم حفظ التعديلات بنجاح، ولكن تعذر تسجيل سجل النشاط في هذا المتصفح.",
+};
+
+const enAll: Dict = { ...en, ...networkEn, ...servicesEn, ...publicFallbackEn };
+const arAll: Dict = { ...ar, ...networkAr, ...servicesAr, ...publicFallbackAr };
 
 const dictionaries: Record<Lang, Dict> = { en: enAll, ar: arAll };
 
-type I18nValue = {
+export type I18nValue = {
   lang: Lang;
   dir: "ltr" | "rtl";
   setLang: (lang: Lang) => void;
   t: (key: string, vars?: Record<string, string | number>) => string;
 };
 
-const I18nContext = createContext<I18nValue | null>(null);
+export const I18nContext = createContext<I18nValue | null>(null);
 const STORAGE_KEY = "gza.lang";
 
 export function I18nProvider({ children }: { children: ReactNode }) {
