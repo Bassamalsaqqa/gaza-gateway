@@ -1,0 +1,24 @@
+{
+  "combined_base": "8a218e138785955a81774a19e48e90a74850e7ab",
+  "normalization": "LF text, SHA256; review-source identity, not production package checksum",
+  "runtime_patch_files": {
+    "backend/app/Mvp/Archive/ArchiveController.php": "070414d361a5ba6b2341ac8261b2877f504ccb9c821832bfcefbd0b46385a761",
+    "backend/app/Mvp/Archive/ArchiveMailWorker.php": "ac25c8653db3b09f95be10e3c6ed9f026553692028bb17cdb5160a062ba6b9ce",
+    "backend/database/migrations/2026_10_23_000002_add_contribution_metadata_fields.php": "9c16002e083ddca5878de971e02d8443e23ad9a8c5523a83951e47664b35dae3",
+    "src/components/admin/archive/archive-contributions-admin.tsx": "6a68c556e80eb3b1fd821cfeb6f82f8b1dcfefc60a6155ce9b0aaaf1fea5e55b",
+    "src/components/archive/archive-contribution-dialog.tsx": "716ae80f9fe52c6c20166da0b34f854f9a8f813b53f1f2acbc44fa56fb288fc8",
+    "src/components/archive/archive-contribution-form.tsx": "49c99d725ec59bb2cdf528a44b77b5720360eb5ca3c1f6271bdbbc08f7f94d5c",
+    "src/components/site-footer.tsx": "d0ca52325caf941139b77309d0ce4ad9e07db13bd6751828cca10b3be816e63c",
+    "src/content/published/home.ts": "8864170e2ce9d734461577b044e7a7c5134b1533f5dc4100c46018c55ae02cce",
+    "src/content/published/information-pages.ts": "49922aa6c4287d15da39409debaf315e86589a0300f9f6b7475ad012cd7f19e0",
+    "src/content/published/information-sections.ts": "e96a66a45faac2cde67208c22c0fce9dce6f0bafc9502bd12cf12efa8242b84f",
+    "src/lib/archive/contributions-client.ts": "01d8a6999d93548d827b6d5f380bdef167ce1dfe3203f54fb7c5ec0ba5488007",
+    "src/routes/{-$locale}.about.tsx": "b3f52f32c5b6ffaf7eb24bd7ca1188d23eea5fe3d82fa8364f6cbc83f3d39e99",
+    "src/routes/{-$locale}.admin.analytics.tsx": "86f9fd93bf258f991d38295aa67d2a6585611c03390915944c9f83f2dcd35103",
+    "src/routes/{-$locale}.airport.future.tsx": "e55ebb308ccc63cf080e940bc7c5324a739c57aa174db4ee769b3c782027ac68",
+    "src/routes/{-$locale}.airport.index.tsx": "acc169880268b56b334070a7b1280b1206a7d456b6db7bd61519fb2204f22ee7",
+    "src/routes/{-$locale}.contact.tsx": "5e6a4f3fdf89f3cb14f07ca3be3a680bcfc7db2467618c16ed71ff8d2bff0a94",
+    "src/routes/{-$locale}.index.tsx": "83d99f0a8b3e8dbab9245c4db3e7d13ea70e0d0f37a91ea5bfa58ecea5d033f8"
+  },
+  "runtime_patch_manifest_sha256": "e1552e9e6da05b05d6cff9820d3ac9248df055c07a270a036a54e84bdf10a13b"
+}

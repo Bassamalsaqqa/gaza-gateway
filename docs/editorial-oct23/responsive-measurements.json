@@ -1,0 +1,178 @@
+[
+  {
+    "requestedWidth": 335,
+    "path": "/airport",
+    "viewport": 335,
+    "clientWidth": 320,
+    "scrollWidth": 320,
+    "direction": "ltr",
+    "forms": 1,
+    "nestedInteractive": 0,
+    "anchorFocus": "contribute"
+  },
+  {
+    "requestedWidth": 335,
+    "path": "/about",
+    "viewport": 335,
+    "clientWidth": 320,
+    "scrollWidth": 320,
+    "direction": "ltr",
+    "forms": 0,
+    "nestedInteractive": 0,
+    "anchorFocus": ""
+  },
+  {
+    "requestedWidth": 335,
+    "path": "/ar/airport",
+    "viewport": 335,
+    "clientWidth": 320,
+    "scrollWidth": 320,
+    "direction": "rtl",
+    "forms": 1,
+    "nestedInteractive": 0,
+    "anchorFocus": "contribute"
+  },
+  {
+    "requestedWidth": 335,
+    "path": "/ar/about",
+    "viewport": 335,
+    "clientWidth": 320,
+    "scrollWidth": 320,
+    "direction": "rtl",
+    "forms": 0,
+    "nestedInteractive": 0,
+    "anchorFocus": ""
+  },
+  {
+    "requestedWidth": 405,
+    "path": "/airport",
+    "viewport": 406,
+    "clientWidth": 390,
+    "scrollWidth": 390,
+    "direction": "ltr",
+    "forms": 1,
+    "nestedInteractive": 0,
+    "anchorFocus": "contribute"
+  },
+  {
+    "requestedWidth": 405,
+    "path": "/about",
+    "viewport": 406,
+    "clientWidth": 390,
+    "scrollWidth": 390,
+    "direction": "ltr",
+    "forms": 0,
+    "nestedInteractive": 0,
+    "anchorFocus": ""
+  },
+  {
+    "requestedWidth": 405,
+    "path": "/ar/airport",
+    "viewport": 406,
+    "clientWidth": 390,
+    "scrollWidth": 390,
+    "direction": "rtl",
+    "forms": 1,
+    "nestedInteractive": 0,
+    "anchorFocus": "contribute"
+  },
+  {
+    "requestedWidth": 405,
+    "path": "/ar/about",
+    "viewport": 406,
+    "clientWidth": 390,
+    "scrollWidth": 390,
+    "direction": "rtl",
+    "forms": 0,
+    "nestedInteractive": 0,
+    "anchorFocus": ""
+  },
+  {
+    "requestedWidth": 783,
+    "path": "/airport",
+    "viewport": 783,
+    "clientWidth": 768,
+    "scrollWidth": 768,
+    "direction": "ltr",
+    "forms": 1,
+    "nestedInteractive": 0,
+    "anchorFocus": "contribute"
+  },
+  {
+    "requestedWidth": 783,
+    "path": "/about",
+    "viewport": 783,
+    "clientWidth": 768,
+    "scrollWidth": 768,
+    "direction": "ltr",
+    "forms": 0,
+    "nestedInteractive": 0,
+    "anchorFocus": ""
+  },
+  {
+    "requestedWidth": 783,
+    "path": "/ar/airport",
+    "viewport": 783,
+    "clientWidth": 768,
+    "scrollWidth": 768,
+    "direction": "rtl",
+    "forms": 1,
+    "nestedInteractive": 0,
+    "anchorFocus": "contribute"
+  },
+  {
+    "requestedWidth": 783,
+    "path": "/ar/about",
+    "viewport": 783,
+    "clientWidth": 768,
+    "scrollWidth": 768,
+    "direction": "rtl",
+    "forms": 0,
+    "nestedInteractive": 0,
+    "anchorFocus": ""
+  },
+  {
+    "requestedWidth": 1455,
+    "path": "/airport",
+    "viewport": 1455,
+    "clientWidth": 1440,
+    "scrollWidth": 1440,
+    "direction": "ltr",
+    "forms": 1,
+    "nestedInteractive": 0,
+    "anchorFocus": "contribute"
+  },
+  {
+    "requestedWidth": 1455,
+    "path": "/about",
+    "viewport": 1455,
+    "clientWidth": 1440,
+    "scrollWidth": 1440,
+    "direction": "ltr",
+    "forms": 0,
+    "nestedInteractive": 0,
+    "anchorFocus": ""
+  },
+  {
+    "requestedWidth": 1455,
+    "path": "/ar/airport",
+    "viewport": 1455,
+    "clientWidth": 1440,
+    "scrollWidth": 1440,
+    "direction": "rtl",
+    "forms": 1,
+    "nestedInteractive": 0,
+    "anchorFocus": "contribute"
+  },
+  {
+    "requestedWidth": 1455,
+    "path": "/ar/about",
+    "viewport": 1455,
+    "clientWidth": 1440,
+    "scrollWidth": 1440,
+    "direction": "rtl",
+    "forms": 0,
+    "nestedInteractive": 0,
+    "anchorFocus": ""
+  }
+]

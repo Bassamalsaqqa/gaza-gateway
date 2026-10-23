@@ -1,0 +1,56 @@
+{
+  "source": "c0efc20877af30ac5a1a3fa04a54ed437f9c4bfa",
+  "dirty": true,
+  "flags": {
+    "VITE_IDENTITY_UI_MODE": "backend",
+    "VITE_HOSTPAPA_PROFILE": "production",
+    "VITE_IDENTITY_PRODUCTION_OPT_IN": "true",
+    "VITE_IDENTITY_NONPRODUCTION_OPT_IN": "false",
+    "VITE_IDENTITY_API_BASE_URL": "https://www.gazaairport.com/api/v1"
+  },
+  "measurement": "Unique script/modulepreload JS references in prerendered HTML; local gzip estimate, not field network/Web Vitals. One combined build, no production package.",
+  "pages": {
+    "index.html": {
+      "preloaded_js_files": 65,
+      "raw_js_bytes": 1473265,
+      "gzip_js_bytes": 407906,
+      "admin_dictionary_in_initial_chunks": false
+    },
+    "ar/index.html": {
+      "preloaded_js_files": 65,
+      "raw_js_bytes": 1473265,
+      "gzip_js_bytes": 407906,
+      "admin_dictionary_in_initial_chunks": false
+    },
+    "airport/index.html": {
+      "preloaded_js_files": 61,
+      "raw_js_bytes": 1256479,
+      "gzip_js_bytes": 357161,
+      "admin_dictionary_in_initial_chunks": false
+    },
+    "ar/airport/index.html": {
+      "preloaded_js_files": 61,
+      "raw_js_bytes": 1256479,
+      "gzip_js_bytes": 357161,
+      "admin_dictionary_in_initial_chunks": false
+    },
+    "about/index.html": {
+      "preloaded_js_files": 47,
+      "raw_js_bytes": 1201624,
+      "gzip_js_bytes": 339159,
+      "admin_dictionary_in_initial_chunks": false
+    },
+    "ar/about/index.html": {
+      "preloaded_js_files": 47,
+      "raw_js_bytes": 1201624,
+      "gzip_js_bytes": 339159,
+      "admin_dictionary_in_initial_chunks": false
+    },
+    "admin/_shell.html": {
+      "preloaded_js_files": 52,
+      "raw_js_bytes": 1484516,
+      "gzip_js_bytes": 423637,
+      "admin_dictionary_in_initial_chunks": true
+    }
+  }
+}
