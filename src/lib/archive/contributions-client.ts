@@ -47,6 +47,22 @@ export const contributionTypeSchema = z.enum([
 
 export type ContributionType = z.infer<typeof contributionTypeSchema>;
 
+export const contributionChapterSchema = z.enum([
+  "historical",
+  "contemporary",
+  "imagined_future",
+]);
+
+export type ContributionChapter = z.infer<typeof contributionChapterSchema>;
+
+export const contributionRightsStatusSchema = z.enum([
+  "owned_authorized",
+  "reference_unconfirmed",
+  "unknown",
+]);
+
+export type ContributionRightsStatus = z.infer<typeof contributionRightsStatusSchema>;
+
 export const contributionStatusSchema = z.enum([
   "submitted",
   "received",
@@ -62,12 +78,30 @@ export const archiveContributionSubmitSchema = z.object({
   contributorName: z.string().min(2).max(120),
   contributorNameAr: z.string().max(120).optional().nullable(),
   contributorEmail: z.string().email().max(160),
+  chapter: contributionChapterSchema,
   contributionType: contributionTypeSchema,
   approximateDate: z.string().max(100).optional().nullable(),
-  description: z.string().min(10).max(3000),
+  location: z.string().max(200).optional().nullable(),
+  credit: z.string().max(254).optional().nullable(),
+  rightsStatus: z.enum(["owned_authorized", "reference_unconfirmed"]),
+  sourceNote: z.string().max(5000).optional().nullable(),
+  referenceUrl: z.string().url().max(2000).optional().nullable(),
+  description: z.string().min(10).max(5000),
   permissionConsent: z.literal(true),
   submissionId: z.string().max(64).optional(),
-}).strict();
+}).strict().superRefine((data, ctx) => {
+  if (data.rightsStatus === "reference_unconfirmed") {
+    const note = data.sourceNote?.trim() ?? "";
+    const url = data.referenceUrl?.trim() ?? "";
+    if (!note && !url) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Reference citation, link, or provenance note is required for unconfirmed rights references.",
+        path: ["sourceNote"],
+      });
+    }
+  }
+});
 
 export type ArchiveContributionSubmit = z.infer<typeof archiveContributionSubmitSchema>;
 
@@ -114,7 +148,14 @@ export const contributionListItemSchema = z.object({
   contributorNameAr: z.string().nullable().optional(),
   email: z.string().optional(),
   contributorEmail: z.string().optional(),
+  chapter: contributionChapterSchema.nullable().optional(),
   contributionType: contributionTypeSchema,
+  rightsStatus: contributionRightsStatusSchema.nullable().optional(),
+  approximateDate: z.string().nullable().optional(),
+  location: z.string().nullable().optional(),
+  credit: z.string().nullable().optional(),
+  sourceNote: z.string().nullable().optional(),
+  referenceUrl: z.string().nullable().optional(),
   status: contributionStatusSchema,
   curatorNotes: z.string().optional(),
   assignedStaffId: z.string().nullable().optional(),
@@ -141,8 +182,14 @@ export const contributionDetailSchema = z.object({
   contributorNameAr: z.string().nullable().optional(),
   email: z.string().optional(),
   contributorEmail: z.string().optional(),
+  chapter: contributionChapterSchema.nullable().optional(),
   contributionType: contributionTypeSchema,
+  rightsStatus: contributionRightsStatusSchema.nullable().optional(),
   approximateDate: z.string().nullable().optional(),
+  location: z.string().nullable().optional(),
+  credit: z.string().nullable().optional(),
+  sourceNote: z.string().nullable().optional(),
+  referenceUrl: z.string().nullable().optional(),
   description: z.string(),
   permissionConsent: z.boolean(),
   status: contributionStatusSchema,
@@ -170,10 +217,18 @@ export const archiveContributionsClient = {
       schema: contributionSubmissionReceiptSchema,
     }),
 
-  list: (params?: { status?: string; type?: string; search?: string }) => {
+  list: (params?: {
+    status?: string;
+    type?: string;
+    chapter?: string;
+    rightsStatus?: string;
+    search?: string;
+  }) => {
     const searchParams = new URLSearchParams();
     if (params?.status && params.status !== "all") searchParams.set("status", params.status);
     if (params?.type && params.type !== "all") searchParams.set("type", params.type);
+    if (params?.chapter && params.chapter !== "all") searchParams.set("chapter", params.chapter);
+    if (params?.rightsStatus && params.rightsStatus !== "all") searchParams.set("rightsStatus", params.rightsStatus);
     if (params?.search) searchParams.set("search", params.search);
     const query = searchParams.size ? `?${searchParams.toString()}` : "";
     return getMvpUiClient().request({

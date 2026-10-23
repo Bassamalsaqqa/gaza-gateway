@@ -53,6 +53,21 @@ final class ArchiveController
         return $value;
     }
 
+    private function optionalText(mixed $value, int $min, int $max): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+        if (!is_string($value)) {
+            abort(422);
+        }
+        $value = trim($value);
+        if ($value === '') {
+            return null;
+        }
+        return $this->text($value, $min, $max);
+    }
+
     private function iso(mixed $value): string
     {
         if ($value instanceof \DateTimeInterface) {
@@ -81,11 +96,11 @@ final class ArchiveController
         // Extract input fields
         $submissionId = $this->text($request->input('submissionId') ?? $request->input('submission_id'), 1, 200);
         $contributorName = $this->text($request->input('contributorName') ?? $request->input('contributor_name'), 2, 120);
-        $contributorNameAr = $request->filled('contributorNameArabic')
-            ? $this->text($request->input('contributorNameArabic'), 1, 120)
-            : ($request->filled('contributorNameAr')
-                ? $this->text($request->input('contributorNameAr'), 1, 120)
-                : ($request->filled('contributor_name_ar') ? $this->text($request->input('contributor_name_ar'), 1, 120) : null));
+        $contributorNameAr = $this->optionalText(
+            $request->input('contributorNameArabic') ?? $request->input('contributorNameAr') ?? $request->input('contributor_name_ar'),
+            1,
+            120
+        );
         $email = strtolower($this->text($request->input('email') ?? $request->input('contributorEmail') ?? $request->input('contributor_email'), 3, 254));
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             abort(422);
@@ -109,22 +124,97 @@ final class ArchiveController
             ? $rawLocale
             : (str_starts_with((string) $request->header('Accept-Language', ''), 'ar') ? 'ar' : 'en');
 
+        // Extract metadata: chapter, rights status, and optional provenance fields
+        $rawChapter = $request->input('chapter');
+        $chapter = $this->text($rawChapter, 1, 32);
+        if (!in_array($chapter, ['historical', 'contemporary', 'imagined_future'], true)) {
+            abort(422);
+        }
+
+        $rawRights = $request->input('rightsStatus') ?? $request->input('rights_status');
+        $rightsStatus = $this->text($rawRights, 1, 32);
+        if (!in_array($rightsStatus, ['owned_authorized', 'reference_unconfirmed'], true)) {
+            abort(422);
+        }
+
+        $approximateDate = $this->optionalText(
+            $request->input('approximateDate') ?? $request->input('approximate_date'),
+            1,
+            100
+        );
+
+        $location = $this->optionalText($request->input('location'), 1, 200);
+
+        $credit = $this->optionalText(
+            $request->input('credit') ?? $request->input('creatorCredit') ?? $request->input('creator_credit'),
+            1,
+            254
+        );
+
+        $sourceNote = $this->optionalText(
+            $request->input('sourceNote') ?? $request->input('source_note'),
+            1,
+            5000
+        );
+
+        $rawRefUrl = $request->input('referenceUrl') ?? $request->input('reference_url');
+        $referenceUrl = $this->optionalText($rawRefUrl, 7, 2000);
+        if ($referenceUrl !== null) {
+            if (!filter_var($referenceUrl, FILTER_VALIDATE_URL) || !preg_match('#^https?://#i', $referenceUrl)) {
+                abort(422);
+            }
+        }
+
+        // Early rejection for reference_unconfirmed: reject ALL upload payloads before decoding
+        if ($rightsStatus === 'reference_unconfirmed') {
+            $hasMultipart = $request->file('files') !== null && (!is_array($request->file('files')) || count($request->file('files')) > 0);
+            $hasJsonUpload = $request->input('files') !== null && (!is_array($request->input('files')) || count($request->input('files')) > 0);
+            if ($hasMultipart || $hasJsonUpload) {
+                abort(422);
+            }
+            if ($sourceNote === null && $referenceUrl === null) {
+                abort(422);
+            }
+        }
+
         // Process file uploads (multipart or JSON base64)
         $processedFiles = $this->processUploadedFiles($request);
+
+        // Validation by rights status:
+        // 1. owned_authorized requires at least one upload (1-5 files)
+        // 2. reference_unconfirmed rejects all file uploads
+        if ($rightsStatus === 'owned_authorized') {
+            if (count($processedFiles) < 1) {
+                abort(422);
+            }
+        } elseif ($rightsStatus === 'reference_unconfirmed') {
+            if (count($processedFiles) > 0) {
+                abort(422);
+            }
+        }
 
         $writtenPaths = [];
         try {
             return DB::transaction(function () use (
                 $request, $submissionId, $contributorName, $contributorNameAr,
-                $email, $type, $description, $locale, $processedFiles, &$writtenPaths
+                $email, $chapter, $type, $approximateDate, $location, $credit,
+                $rightsStatus, $sourceNote, $referenceUrl, $description,
+                $locale, $processedFiles, &$writtenPaths
             ) {
-                // Compute idempotency hash
+                // Compute idempotency hash including full contribution metadata
                 $metaForHash = [
                     'submissionId' => $submissionId,
                     'contributorName' => $contributorName,
                     'contributorNameArabic' => $contributorNameAr ?? '',
                     'email' => $email,
+                    'chapter' => $chapter,
                     'contributionType' => $type,
+                    'approximateDate' => $approximateDate ?? '',
+                    'location' => $location ?? '',
+                    'credit' => $credit ?? '',
+                    'rightsStatus' => $rightsStatus,
+                    'sourceNote' => $sourceNote ?? '',
+                    'referenceUrl' => $referenceUrl ?? '',
                     'description' => $description,
                     'locale' => $locale,
                     'fileHashes' => array_column($processedFiles, 'sha256'),
@@ -153,7 +243,7 @@ final class ArchiveController
                 $contributionId = (string) Str::uuid();
                 $now = DatabaseClock::now();
 
-                // Insert core contribution record
+                // Insert core contribution record with metadata
                 DB::table('archive_contributions')->insert([
                     'id' => $contributionId,
                     'public_reference' => $publicRef,
@@ -162,7 +252,14 @@ final class ArchiveController
                     'contributor_name' => $contributorName,
                     'contributor_name_ar' => $contributorNameAr,
                     'email' => $email,
+                    'chapter' => $chapter,
                     'contribution_type' => $type,
+                    'approximate_date' => $approximateDate,
+                    'location' => $location,
+                    'credit' => $credit,
+                    'rights_status' => $rightsStatus,
+                    'source_note' => $sourceNote,
+                    'reference_url' => $referenceUrl,
                     'description' => $description,
                     'permission_consent' => true,
                     'status' => 'received',
@@ -234,7 +331,10 @@ final class ArchiveController
                             'reference' => $publicRef,
                             'contributorName' => $contributorName,
                             'contributorNameArabic' => $contributorNameAr,
+                            'chapter' => $chapter,
                             'contributionType' => $type,
+                            'approximateDate' => $approximateDate,
+                            'rightsStatus' => $rightsStatus,
                             'description' => $description,
                             'locale' => $locale,
                             'filesCount' => count($processedFiles),
@@ -267,7 +367,14 @@ final class ArchiveController
                             'contributorName' => $contributorName,
                             'contributorNameArabic' => $contributorNameAr,
                             'email' => $email,
+                            'chapter' => $chapter,
                             'contributionType' => $type,
+                            'approximateDate' => $approximateDate,
+                            'location' => $location,
+                            'credit' => $credit,
+                            'rightsStatus' => $rightsStatus,
+                            'sourceNote' => $sourceNote,
+                            'referenceUrl' => $referenceUrl,
                             'description' => $description,
                             'filesCount' => count($processedFiles),
                         ], JSON_THROW_ON_ERROR)),
@@ -534,6 +641,16 @@ final class ArchiveController
             $query->where('contribution_type', $type);
         }
 
+        $chapter = $request->query('chapter');
+        if ($chapter && $chapter !== 'all') {
+            $query->where('chapter', $chapter);
+        }
+
+        $rights = $request->query('rightsStatus') ?? $request->query('rights');
+        if ($rights && $rights !== 'all') {
+            $query->where('rights_status', $rights);
+        }
+
         $search = $request->query('search');
         if ($search && is_string($search) && strlen($search) <= 200) {
             $query->where(function ($q) use ($search) {
@@ -554,7 +671,14 @@ final class ArchiveController
                 'contributorName' => $r->contributor_name,
                 'contributorNameArabic' => $r->contributor_name_ar,
                 'email' => $r->email,
+                'chapter' => $r->chapter,
                 'contributionType' => $r->contribution_type,
+                'approximateDate' => $r->approximate_date,
+                'location' => $r->location,
+                'credit' => $r->credit,
+                'rightsStatus' => $r->rights_status,
+                'sourceNote' => $r->source_note,
+                'referenceUrl' => $r->reference_url,
                 'status' => $r->status,
                 'curatorNotes' => $r->curator_notes,
                 'assignedStaffId' => $r->assigned_staff_id,
@@ -613,7 +737,14 @@ final class ArchiveController
             'contributorName' => $row->contributor_name,
             'contributorNameArabic' => $row->contributor_name_ar,
             'email' => $row->email,
+            'chapter' => $row->chapter,
             'contributionType' => $row->contribution_type,
+            'approximateDate' => $row->approximate_date,
+            'location' => $row->location,
+            'credit' => $row->credit,
+            'rightsStatus' => $row->rights_status,
+            'sourceNote' => $row->source_note,
+            'referenceUrl' => $row->reference_url,
             'description' => $row->description,
             'permissionConsent' => (bool) $row->permission_consent,
             'status' => $row->status,

@@ -3,6 +3,8 @@ import { test } from "node:test";
 import {
   archiveAttachmentDownloadUrl,
   archiveContributionSubmitSchema,
+  contributionChapterSchema,
+  contributionRightsStatusSchema,
   contributionStatusSchema,
   contributionListItemSchema,
   contributionDetailSchema,
@@ -10,13 +12,18 @@ import {
 } from "../../src/lib/archive/contributions-client.ts";
 import { mailSettingsSchema } from "../../src/lib/mail/client.ts";
 
-test("archiveContributionSubmitSchema validates compliant submission data", () => {
+test("archiveContributionSubmitSchema validates compliant submission data with metadata", () => {
   const valid = {
     contributorName: "Layla Al-Masri",
     contributorNameAr: "ليلى المصري",
     contributorEmail: "layla.masri@example.org",
+    chapter: "historical" as const,
     contributionType: "photograph" as const,
     approximateDate: "1999-04",
+    location: "GZA Passenger Terminal",
+    credit: "Photo by L. Al-Masri",
+    rightsStatus: "owned_authorized" as const,
+    sourceNote: "Original photographic print from opening week.",
     description: "Photograph of the main arrivals terminal atrium during Palestinian Airlines flight arrival.",
     permissionConsent: true,
     submissionId: "sub-12345-abcde",
@@ -26,31 +33,72 @@ test("archiveContributionSubmitSchema validates compliant submission data", () =
   assert.equal(parsed.contributorName, "Layla Al-Masri");
   assert.equal(parsed.contributorNameAr, "ليلى المصري");
   assert.equal(parsed.contributorEmail, "layla.masri@example.org");
+  assert.equal(parsed.chapter, "historical");
   assert.equal(parsed.contributionType, "photograph");
+  assert.equal(parsed.rightsStatus, "owned_authorized");
+  assert.equal(parsed.location, "GZA Passenger Terminal");
+  assert.equal(parsed.credit, "Photo by L. Al-Masri");
+  assert.equal(parsed.sourceNote, "Original photographic print from opening week.");
   assert.equal(parsed.permissionConsent, true);
 
-  // Explicitly test future_concept and design types
-  const futureParsed = archiveContributionSubmitSchema.parse({
+  // Test contemporary and imagined_future chapters
+  const contemporary = archiveContributionSubmitSchema.parse({
     ...valid,
+    chapter: "contemporary",
+    contributionType: "document",
+  });
+  assert.equal(contemporary.chapter, "contemporary");
+
+  const future = archiveContributionSubmitSchema.parse({
+    ...valid,
+    chapter: "imagined_future",
     contributionType: "future_concept",
   });
-  assert.equal(futureParsed.contributionType, "future_concept");
+  assert.equal(future.chapter, "imagined_future");
+  assert.equal(future.contributionType, "future_concept");
+});
 
-  const designParsed = archiveContributionSubmitSchema.parse({
-    ...valid,
-    contributionType: "design",
+test("archiveContributionSubmitSchema validates reference path with citation note", () => {
+  const referenceValid = {
+    contributorName: "Sami Qudwa",
+    contributorEmail: "sami@example.org",
+    chapter: "historical" as const,
+    contributionType: "document" as const,
+    rightsStatus: "reference_unconfirmed" as const,
+    sourceNote: "ICAO Civil Aviation Archive Record 1998, Document Ref #441",
+    description: "Archival reference to Palestinian Civil Aviation Authority registration bulletin.",
+    permissionConsent: true,
+  };
+
+  const parsed = archiveContributionSubmitSchema.parse(referenceValid);
+  assert.equal(parsed.rightsStatus, "reference_unconfirmed");
+  assert.equal(parsed.sourceNote, "ICAO Civil Aviation Archive Record 1998, Document Ref #441");
+
+  // Rejects reference_unconfirmed when both sourceNote and referenceUrl are missing or empty
+  assert.throws(() => {
+    archiveContributionSubmitSchema.parse({
+      ...referenceValid,
+      sourceNote: "   ",
+      referenceUrl: null,
+    });
   });
-  assert.equal(designParsed.contributionType, "design");
 });
 
 test("archiveContributionSubmitSchema rejects missing consent, invalid email, or short description", () => {
+  const base = {
+    contributorName: "Test User",
+    contributorEmail: "user@example.com",
+    chapter: "historical" as const,
+    contributionType: "document" as const,
+    rightsStatus: "owned_authorized" as const,
+    description: "A sufficiently long description of the historical artifact.",
+    permissionConsent: true,
+  };
+
   // Rejects consent === false
   assert.throws(() => {
     archiveContributionSubmitSchema.parse({
-      contributorName: "Test User",
-      contributorEmail: "user@example.com",
-      contributionType: "document",
-      description: "A sufficiently long description of the historical artifact.",
+      ...base,
       permissionConsent: false,
     });
   });
@@ -58,22 +106,32 @@ test("archiveContributionSubmitSchema rejects missing consent, invalid email, or
   // Rejects invalid email
   assert.throws(() => {
     archiveContributionSubmitSchema.parse({
-      contributorName: "Test User",
+      ...base,
       contributorEmail: "not-an-email",
-      contributionType: "document",
-      description: "A sufficiently long description of the historical artifact.",
-      permissionConsent: true,
     });
   });
 
   // Rejects short description (<10 chars)
   assert.throws(() => {
     archiveContributionSubmitSchema.parse({
-      contributorName: "Test User",
-      contributorEmail: "user@example.com",
-      contributionType: "document",
+      ...base,
       description: "Too short",
-      permissionConsent: true,
+    });
+  });
+
+  // Rejects invalid chapter
+  assert.throws(() => {
+    archiveContributionSubmitSchema.parse({
+      ...base,
+      chapter: "invalid_chapter" as any,
+    });
+  });
+
+  // Rejects invalid rights status
+  assert.throws(() => {
+    archiveContributionSubmitSchema.parse({
+      ...base,
+      rightsStatus: "unauthorized" as any,
     });
   });
 });
