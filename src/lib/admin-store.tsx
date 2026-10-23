@@ -24,7 +24,7 @@ export type { FlightOverride } from "./domain/flight";
 
 type Toast = { id: number; message: string };
 
-type AdminSessionStaff = Pick<Staff, "id" | "name" | "email" | "role" | "status"> & Partial<Pick<Staff, "title">>;
+type AdminSessionStaff = Pick<Staff, "id" | "name" | "email" | "role" | "status"> & Partial<Pick<Staff, "title">> & { mfaEnabled?: boolean };
 
 type AdminValue = {
   ready: boolean;
@@ -126,6 +126,7 @@ function RealAdminProvider({ children }: { children: ReactNode }) {
       email: staffProfile.email,
       role: staffProfile.role,
       status: "active",
+      mfaEnabled: staffProfile.mfaEnabled,
     };
   }, [staffProfile]);
 

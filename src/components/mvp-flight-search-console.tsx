@@ -1,6 +1,7 @@
 import { useId, useMemo, useState, type FormEvent } from "react";
 import { ArrowLeft, ArrowRight, ArrowRightLeft, Check, Calendar, Search } from "lucide-react";
 import { AppLink } from "@/components/app-link";
+import { telemetryClient } from "@/lib/analytics/telemetry-client";
 import { cn } from "@/lib/utils";
 import { AirportCombobox } from "@/components/airport-combobox";
 import { Code, Field, Input, btnClass } from "@/components/kit";
@@ -360,8 +361,10 @@ export function MvpFlightSearchConsole({ variant = "default" }: MvpFlightSearchC
   };
 
   const submit = (event: FormEvent) => {
+
     event.preventDefault();
     if (!selectedDestinationCode || network.isError || !outboundDate || outboundDate < todayISO()) return;
+    telemetryClient.trackInteraction("search", lang === "ar" ? "/ar/flights" : "/flights", `${outboundOrigin}-${outboundDest}`);
     setSelectedOutbound(null);
     setSelectedReturn(null);
     setSearch({

@@ -19,6 +19,7 @@ import { useNetworkQuery } from "@/lib/network/queries";
  */
 
 import { useAppNavigate } from "@/components/app-link";
+import { telemetryClient } from "@/lib/analytics/telemetry-client";
 import { ArrowLeft, ArrowRight, ArrowRightLeft, Plane, Search } from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { AirportCombobox } from "./airport-combobox";
@@ -303,6 +304,7 @@ export function FlightSearchForm({
     const isPreview = isSkinPreviewActive();
     const isStudio = isStudioPreviewActive();
     const scenario = getStudioScenarioParam();
+    telemetryClient.trackInteraction("search", lang === "ar" ? "/ar/flights" : "/flights", `${criteria.origin}-${criteria.destination}`);
     void navigate({
       to: "/book",
       search: {

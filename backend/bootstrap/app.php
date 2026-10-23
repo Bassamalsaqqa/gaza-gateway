@@ -30,6 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\Identity\VerifyApplicationCsrfHeader::class,
             \Illuminate\Foundation\Http\Middleware\PreventRequestsDuringMaintenance::class,
             \Illuminate\Http\Middleware\ValidatePostSize::class,
+            \App\Http\Middleware\Analytics\GuardAnalyticsCollectorBody::class,
             \Illuminate\Foundation\Http\Middleware\TrimStrings::class,
             \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
         ]);
@@ -61,10 +62,12 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->trimStrings(except: [
             $isIdentityRequest,
+            static fn (Request $r): bool => rawurldecode($r->path()) === 'api/v1/analytics/events',
         ]);
 
         $middleware->convertEmptyStringsToNull(except: [
             $isIdentityRequest,
+            static fn (Request $r): bool => rawurldecode($r->path()) === 'api/v1/analytics/events',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

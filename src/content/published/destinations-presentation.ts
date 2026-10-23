@@ -18,8 +18,8 @@ export const publishedDestinationsPresentation: DestinationsPresentationContent 
       ar: "الوجهات من مطار غزة الدولي",
     },
     socialDescription: {
-      en: "Seven regional gateways in the opening Palestine Airways Limited network.",
-      ar: "سبع محطات إقليمية في شبكة الخطوط الجوية الفلسطينية الافتتاحية.",
+      en: "Regional and international destinations in the Palestine Airways Limited network.",
+      ar: "وجهات إقليمية ودولية في شبكة الخطوط الجوية الفلسطينية الافتتاحية.",
     },
   },
   assignments: [

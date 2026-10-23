@@ -24,6 +24,7 @@ import { btnClass } from "@/components/kit";
 import { PublicNotFound } from "@/components/public-not-found";
 import { SkinPreviewListener, SkinStyle } from "@/components/skin-provider";
 import { SurfaceGrammarProvider } from "@/design/surfaces";
+import { TelemetryRoot } from "@/components/analytics/telemetry-root";
 
 const StudioFrameListenerLazy = lazy(() =>
   import("@/components/studio-frame-listener").then((m) => ({ default: m.StudioFrameListener })),
@@ -198,7 +199,7 @@ function RootComponent() {
 /** The staff workspace has its own chrome, so it opts out of the public shell. */
 function SiteFrame() {
   const path = stripLocale(usePathname());
-  const isAdmin = path === "/admin" || path.startsWith("/admin/");
+  const isAdmin = path === "/admin" || path.startsWith("/admin/") || path.startsWith("/admin_");
   const isHome = path === "/" || path === "";
 
   return (
@@ -217,6 +218,7 @@ function SiteFrame() {
           <SiteFooter />
         </div>
       )}
+      {!isAdmin && <TelemetryRoot />}
       <BackToTop />
     </>
   );

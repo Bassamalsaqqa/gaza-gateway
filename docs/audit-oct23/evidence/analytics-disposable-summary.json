@@ -1,0 +1,63 @@
+{
+    "data": {
+        "period": "30d",
+        "periodStart": "2026-09-23T09:07:31.190833Z",
+        "periodEnd": "2026-10-23T09:07:31.190833Z",
+        "timezone": "Asia\/Hebron",
+        "traffic": {
+            "pageViews": 7,
+            "uniqueSessions": 9,
+            "uniqueVisitors": 9,
+            "totalEngagementSeconds": 0,
+            "avgEngagementSecondsPerSession": 0
+        },
+        "interactions": {
+            "searches": 2,
+            "bookingStarts": 0,
+            "archiveExplores": 0
+        },
+        "authoritativeBusinessSuccess": {
+            "confirmedBookings": 0,
+            "archiveContributions": 0,
+            "conversionRate": null,
+            "conversionRateNotice": "unsupported (authoritative business records are independent of first-party client analytics)"
+        },
+        "topPages": [
+            {
+                "path": "\/flights",
+                "views": 7,
+                "engagementSeconds": 0
+            }
+        ],
+        "countries": [
+            {
+                "country": "XX",
+                "pageViews": 7
+            }
+        ],
+        "referrerHosts": [],
+        "dailyTrend": [
+            {
+                "date": "2026-10-23",
+                "dateUtc": "2026-10-23",
+                "pageViews": 7,
+                "uniqueVisitors": 9,
+                "engagementSeconds": 0
+            }
+        ],
+        "dailyTrendTimezone": "UTC",
+        "routeSearches": [
+            {
+                "route": "GZA-AMM",
+                "count": 2
+            }
+        ],
+        "bookingRoutes": [],
+        "metadata": {
+            "retentionPolicy": "raw events eligible for bounded deletion after 90 days",
+            "rawRetentionDays": 90,
+            "captureSince": "2026-10-23 09:01:38.743929",
+            "dataCoverage": "opt-in session estimates; bounded 90-day retention target"
+        }
+    }
+}
