@@ -3,6 +3,7 @@ import { test } from "node:test";
 import {
   archiveAttachmentDownloadUrl,
   archiveContributionSubmitSchema,
+  archiveReferenceUrlSchema,
   contributionChapterSchema,
   contributionRightsStatusSchema,
   contributionStatusSchema,
@@ -11,6 +12,23 @@ import {
   isForbiddenFileExtension,
 } from "../../src/lib/archive/contributions-client.ts";
 import { mailSettingsSchema } from "../../src/lib/mail/client.ts";
+
+test("archive reference URLs accept only complete HTTP/HTTPS links, including URL-only references", () => {
+  for (const url of ["https://example.org/archive/item?ref=1", "http://example.org/item", "HTTPS://example.org/item"]) {
+    assert.equal(archiveReferenceUrlSchema.safeParse(url).success, true, url);
+  }
+  for (const url of ["mailto:curator@example.org", "ftp://example.org/item", "javascript:alert(1)", "data:text/plain,archive", "example.org/item", "https://", "https:example.org", "//example.org/item"]) {
+    assert.equal(archiveReferenceUrlSchema.safeParse(url).success, false, url);
+  }
+  const input = {
+    contributorName: "Test Contributor", contributorEmail: "test@example.invalid",
+    chapter: "historical", contributionType: "document", rightsStatus: "reference_unconfirmed",
+    description: "A citation supplied for private curatorial assessment.", permissionConsent: true,
+  };
+  assert.equal(archiveContributionSubmitSchema.safeParse({ ...input, referenceUrl: "https://example.org/archive" }).success, true);
+  assert.equal(archiveContributionSubmitSchema.safeParse({ ...input, sourceNote: "Family collection catalogue" }).success, true);
+  assert.equal(archiveContributionSubmitSchema.safeParse({ ...input, referenceUrl: "ftp://example.org/archive", sourceNote: "A valid citation does not excuse an invalid supplied URL" }).success, false);
+});
 
 test("archiveContributionSubmitSchema validates compliant submission data with metadata", () => {
   const valid = {
