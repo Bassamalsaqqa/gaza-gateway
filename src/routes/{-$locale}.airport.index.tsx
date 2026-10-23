@@ -1,11 +1,11 @@
 import { AppLink } from "@/components/app-link";
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowRight, BookOpen, Layers, ShieldAlert } from "lucide-react";
+import { Archive, ArrowRight, BookOpen, Layers, ShieldAlert, Sparkles } from "lucide-react";
 import { ChapterNav } from "@/components/airport/chapter-nav";
 import { btnClass, Container, Panel } from "@/components/kit";
 import { ResponsiveImage } from "@/components/responsive-image";
 import { PublicPhotoHero } from "@/components/media/public-photo-hero";
-import { ArchiveContributionDialog } from "@/components/archive/archive-contribution-dialog";
+import { ArchiveContributionForm } from "@/components/archive/archive-contribution-form";
 import { useI18n } from "@/lib/i18n";
 import { GazaSurface } from "@/design/surfaces";
 import pastBodyImg from "@/assets/media/decorative/airport/airport-past-body.webp";
@@ -110,7 +110,8 @@ const chapterCards = [
 ] as const;
 
 function AirportPage() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
+  const isAr = lang === "ar";
 
   return (
     <>
@@ -126,6 +127,31 @@ function AirportPage() {
         {/* Persistent Chapter Sequence Navigation */}
         <ChapterNav activeChapter="overview" className="mb-8" />
 
+        {/* Attributed Project Lead — Ayman Alazraq Artist Statement Connection */}
+        <div className="mb-8 rounded-2xl border border-border bg-sand p-5 sm:p-6 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="space-y-1.5 max-w-3xl">
+              <div className="flex items-center gap-2">
+                <span className="inline-block size-2 rounded-full bg-clay" />
+                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  {isAr ? "مشروع فني عبر الإنترنت للفنان أيمن الأزرق" : "An internet-based art project by Ayman Alazraq"}
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-foreground leading-relaxed">
+                {isAr
+                  ? "«مطار غزة الدولي — معاد صياغته»: مشروع فني يوثق تاريخ المطار والخطوط الجوية الفلسطينية، ويستحضر الذاكرة والحق في حرية الحركة والتنقل كشكل من أشكال المقاومة في وجه الإلغاء."
+                  : "“Gaza International Airport — Remade” is an art project documenting airport heritage and Palestinian Airlines, asserting the right to free movement, return, and remembrance against erasure."}
+              </p>
+            </div>
+            <AppLink
+              to="/about"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border bg-card px-3.5 py-2 text-xs font-semibold text-primary hover:border-primary/60 hover:bg-sand-deep/40 transition-all"
+            >
+              <span>{isAr ? "عن المشروع وتاريخه ←" : "About the project & history →"}</span>
+            </AppLink>
+          </div>
+        </div>
+
         {/* Narrative Dossier Introduction */}
         <div className="mb-10 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-2xl">
@@ -137,7 +163,13 @@ function AirportPage() {
             </p>
           </div>
           <div className="shrink-0">
-            <ArchiveContributionDialog />
+            <a
+              href="#contribute"
+              className={btnClass("primary", "md", "gap-2 inline-flex items-center cursor-pointer")}
+            >
+              <Archive aria-hidden="true" className="size-4" />
+              <span>{isAr ? "المساهمة في الأرشيف" : "Contribute to Archive"}</span>
+            </a>
           </div>
         </div>
 
@@ -203,8 +235,18 @@ function AirportPage() {
           ))}
         </ul>
 
+        {/* Inline Archival Contribution Section (Sole Form Instance on /airport) */}
+        <section
+          id="contribute"
+          tabIndex={-1}
+          aria-label={isAr ? "المساهمة في الأرشيف التوثيقي لمطار غزة الدولي" : "Contribute to the Gaza Airport Digital Archive"}
+          className="mt-14 scroll-mt-24 focus:outline-none"
+        >
+          <ArchiveContributionForm />
+        </section>
+
         {/* Curatorial Standard & Archival Notice */}
-        <div className="mt-12 grid gap-6 lg:grid-cols-[1.5fr_1fr]">
+        <div className="mt-14 grid gap-6 lg:grid-cols-[1.5fr_1fr]">
           <Panel
             data-decorative-asset="airport-sources-metadata"
             data-testid="airport-sources-metadata"
@@ -246,10 +288,13 @@ function AirportPage() {
                 <BookOpen aria-hidden="true" className="size-4" />
                 <span>{t("home.openArchive")}</span>
               </AppLink>
-              <ArchiveContributionDialog
-                triggerButtonVariant="outline"
-                triggerClassName="w-full"
-              />
+              <a
+                href="#contribute"
+                className={btnClass("outline", "md", "w-full inline-flex items-center justify-center gap-2 cursor-pointer")}
+              >
+                <Archive aria-hidden="true" className="size-4" />
+                <span>{isAr ? "المساهمة في الأرشيف" : "Contribute to Archive"}</span>
+              </a>
             </div>
           </div>
         </div>
