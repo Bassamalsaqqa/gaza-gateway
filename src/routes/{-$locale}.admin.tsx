@@ -4,6 +4,7 @@ import { AppLink, usePathname } from "@/components/app-link";
 import { btnClass } from "@/components/kit";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { AdminSkeleton } from "@/components/admin/admin-kit";
+import { AdminTranslationBoundary } from "@/components/admin/admin-translation-boundary";
 import { useAdmin } from "@/lib/admin-store";
 import { pick, useI18n } from "@/lib/i18n";
 import { stripLocale } from "@/lib/locale";
@@ -11,8 +12,16 @@ import { isDomainAvailableInServerMode } from "@/lib/admin";
 import { ShieldAlert } from "lucide-react";
 
 export const Route = createFileRoute("/{-$locale}/admin")({
-  component: AdminLayout,
+  component: AdminRouteWrapper,
 });
+
+function AdminRouteWrapper() {
+  return (
+    <AdminTranslationBoundary>
+      <AdminLayout />
+    </AdminTranslationBoundary>
+  );
+}
 
 export function AdminUnavailableDomainNotice() {
   const { lang } = useI18n();

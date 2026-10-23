@@ -1,0 +1,75 @@
+{
+  "baseline": {
+    "index.html": {
+      "preloaded_js_files": 64,
+      "raw_js_bytes": 1565568,
+      "gzip_js_bytes": 429560,
+      "admin_dictionary_in_initial_chunks": true
+    },
+    "ar/index.html": {
+      "preloaded_js_files": 64,
+      "raw_js_bytes": 1565568,
+      "gzip_js_bytes": 429560,
+      "admin_dictionary_in_initial_chunks": true
+    },
+    "flights/index.html": {
+      "preloaded_js_files": 51,
+      "raw_js_bytes": 1431609,
+      "gzip_js_bytes": 405553,
+      "admin_dictionary_in_initial_chunks": true
+    },
+    "admin/_shell.html": {
+      "preloaded_js_files": 50,
+      "raw_js_bytes": 1449687,
+      "gzip_js_bytes": 410855,
+      "admin_dictionary_in_initial_chunks": true
+    },
+    "ar/admin/_shell.html": {
+      "preloaded_js_files": 50,
+      "raw_js_bytes": 1449687,
+      "gzip_js_bytes": 410855,
+      "admin_dictionary_in_initial_chunks": true
+    }
+  },
+  "after": {
+    "index.html": {
+      "preloaded_js_files": 64,
+      "raw_js_bytes": 1438046,
+      "gzip_js_bytes": 395430,
+      "admin_dictionary_in_initial_chunks": false
+    },
+    "ar/index.html": {
+      "preloaded_js_files": 64,
+      "raw_js_bytes": 1438046,
+      "gzip_js_bytes": 395430,
+      "admin_dictionary_in_initial_chunks": false
+    },
+    "flights/index.html": {
+      "preloaded_js_files": 51,
+      "raw_js_bytes": 1304087,
+      "gzip_js_bytes": 371430,
+      "admin_dictionary_in_initial_chunks": false
+    },
+    "admin/_shell.html": {
+      "preloaded_js_files": 51,
+      "raw_js_bytes": 1450960,
+      "gzip_js_bytes": 411848,
+      "admin_dictionary_in_initial_chunks": true
+    },
+    "ar/admin/_shell.html": {
+      "preloaded_js_files": 51,
+      "raw_js_bytes": 1450960,
+      "gzip_js_bytes": 411848,
+      "admin_dictionary_in_initial_chunks": true
+    }
+  },
+  "source": "6f52044b88e56b005bf11ee96b274580fd6d8a11",
+  "flags": {
+    "VITE_IDENTITY_UI_MODE": "backend",
+    "VITE_HOSTPAPA_PROFILE": "production",
+    "VITE_IDENTITY_PRODUCTION_OPT_IN": "true",
+    "VITE_IDENTITY_NONPRODUCTION_OPT_IN": "false",
+    "VITE_IDENTITY_API_BASE_URL": "https://www.gazaairport.com/api/v1"
+  },
+  "measurement": "Unique script/modulepreload JS URLs in prerendered HTML; gzip estimate, not field Web Vitals or network transfer."
+}

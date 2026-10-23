@@ -7,6 +7,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { AppLink, useAppNavigate } from "@/components/app-link";
 import { Field, Input, btnClass } from "@/components/kit";
 import { AdminChip } from "@/components/admin/admin-kit";
+import { AdminTranslationBoundary } from "@/components/admin/admin-translation-boundary";
 import { MOCK_PASSPHRASE } from "@/lib/admin";
 import { useStaffQuery } from "@/lib/staff";
 import { useAdmin } from "@/lib/admin-store";
@@ -28,7 +29,7 @@ export const Route = createFileRoute("/{-$locale}/admin_/signin")({
       },
       noindex: true,
     }),
-  component: AdminSignInPage,
+  component: () => <AdminTranslationBoundary><AdminSignInPage /></AdminTranslationBoundary>,
 });
 
 function AdminSignInPage() {
