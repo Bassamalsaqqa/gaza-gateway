@@ -134,6 +134,42 @@ function FuturePage() {
         {/* Persistent Chapter Sequence Navigation */}
         <ChapterNav activeChapter="future" className="mb-8" />
 
+        {/* Authored Project Quote & Concept Labeling */}
+        <div className="mb-10 rounded-2xl border border-clay/30 bg-sand/20 p-6 sm:p-8 text-foreground shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+            <div className="space-y-2 max-w-2xl">
+              <span className="eyebrow text-clay font-bold tracking-wider">
+                {pick(lang, {
+                  en: "Conceptual Vision · Art Project",
+                  ar: "رؤية مفاهيمية · مشروع فني",
+                })}
+              </span>
+              <blockquote className="font-display text-lg sm:text-xl font-semibold leading-snug text-foreground">
+                “{pick(lang, {
+                  en: "We will keep imagining our future. We will rebuild Gaza.",
+                  ar: "سنواصل تخيل مستقبلنا. سنعيد بناء غزة.",
+                })}”
+              </blockquote>
+              <p className="text-xs sm:text-sm text-muted-foreground">
+                {pick(lang, {
+                  en: "Ayman Alazraq — Gaza International Airport (GZA) — Remade. Architectural concepts are illustrative artistic studies and do not represent an operational civil airport.",
+                  ar: "أيمن الأزرق — مطار غزة الدولي (GZA) — إعادة صياغة. التصاميم المعمارية هي دراسات فنية توضيحية ولا تمثل مطاراً مدنياً عاملاً.",
+                })}
+              </p>
+            </div>
+            <AppLink
+              to="/about"
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand hover:underline self-start sm:self-center shrink-0"
+            >
+              {pick(lang, {
+                en: "About the Project",
+                ar: "عن المشروع",
+              })}
+              <ArrowRight aria-hidden="true" className="size-4 rtl:rotate-180" />
+            </AppLink>
+          </div>
+        </div>
+
         {/* Concise non-duplicative planning prose */}
         <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
           {pick(lang, content.copy.notice)}

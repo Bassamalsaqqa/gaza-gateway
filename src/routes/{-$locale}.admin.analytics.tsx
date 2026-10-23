@@ -535,7 +535,7 @@ function AdminAnalyticsPage() {
                           <Ltr>{data.authoritativeBusinessSuccess.archiveContributions.toLocaleString("en-GB")}</Ltr>
                         </div>
                         <span className="text-[11px] text-muted-foreground">
-                          {pick(lang, { en: "Verified submissions", ar: "مشاركات موثقة" })}
+                          {pick(lang, { en: "Received archive contributions", ar: "مساهمات أرشيفية مستلمة" })}
                         </span>
                       </div>
                       <div className="rounded-lg bg-secondary p-3 border border-border space-y-1">

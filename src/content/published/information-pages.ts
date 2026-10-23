@@ -1,8 +1,9 @@
 import { en, ar } from "../../lib/i18n-public.ts";
-import { privacySections, termsSections, aboutCopy } from "./information-sections.ts";
+import { privacySections, termsSections, aboutSections, aboutCopy } from "./information-sections.ts";
 import type { InformationalPagesContent, InformationalPageBlock, LocalizedText } from "../types.ts";
 
 const label = (key: string): LocalizedText => ({ en: en[key]!, ar: ar[key]! });
+
 function legalBlocks(prefix: string, sections: { heading: LocalizedText; body: LocalizedText[] }[]): InformationalPageBlock[] {
   return sections.map((section, index) => ({
     id: `${prefix}-section-${index + 1}`, visible: true,
@@ -10,33 +11,41 @@ function legalBlocks(prefix: string, sections: { heading: LocalizedText; body: L
   }));
 }
 
+function aboutPageBlocks(sections: { id: string; heading: LocalizedText; body: LocalizedText[] }[]): InformationalPageBlock[] {
+  return sections.map((section) => ({
+    id: section.id,
+    visible: true,
+    title: structuredClone(section.heading),
+    paragraphs: structuredClone(section.body),
+  }));
+}
+
 export const publishedInformationPages: InformationalPagesContent = {
   id: "pages.information", kind: "pages.information", schemaVersion: 1,
   seo: {
-    title: { en: "Information — Gaza International Airport", ar: "معلومات — مطار غزة الدولي" },
-    description: { en: "About this prototype, contact, privacy and terms of use.", ar: "عن النموذج التجريبي والتواصل والخصوصية وشروط الاستخدام." },
+    title: { en: "Information — Gaza International Airport (GZA) — Remade", ar: "معلومات — مطار غزة الدولي (GZA) — إعادة صياغة" },
+    description: { en: "About this art project, contact, privacy notice and terms of use.", ar: "عن هذا المشروع الفني والتواصل وإشعار الخصوصية وشروط الاستخدام." },
   },
   pages: [
     {
-      id: "about", title: label("about.title"), description: structuredClone(aboutCopy[0]!),
+      id: "about",
+      title: { en: "Gaza International Airport (GZA) — Remade", ar: "مطار غزة الدولي (GZA) — إعادة صياغة" },
+      description: { en: "An internet-based art project by Ayman Alazraq", ar: "مشروع فني على الإنترنت لأيمن الأزرق" },
       seo: {
-        title: { en: "About — Gaza International Airport and Palestine Airways Limited", ar: "عن المطار — مطار غزة الدولي والخطوط الجوية الفلسطينية" },
-        socialTitle: { en: "About Gaza International Airport", ar: "عن مطار غزة الدولي" },
-        socialDescription: { en: "The airport, the airline, and how this site treats its sources.", ar: "المطار وشركة الطيران وكيفية التعامل مع مصادر الموقع." },
-        description: { en: "About this project: Gaza International Airport (GZA), the Palestine Airways Limited (PS) passenger experience, and how the archive material is handled.", ar: "عن المشروع: مطار غزة الدولي وتجربة المسافر في الخطوط الجوية الفلسطينية وكيفية التعامل مع مواد الأرشيف." },
+        title: { en: "About — Gaza International Airport (GZA) — Remade", ar: "عن المشروع — مطار غزة الدولي (GZA) — إعادة صياغة" },
+        socialTitle: { en: "Gaza International Airport (GZA) — Remade", ar: "مطار غزة الدولي (GZA) — إعادة صياغة" },
+        socialDescription: { en: "An internet-based art project by Ayman Alazraq: history, memory, and the claim to freedom of movement.", ar: "مشروع فني على الإنترنت لأيمن الأزرق: التاريخ، والذاكرة، والمطالبة بحرية الحركة." },
+        description: { en: "About Gaza International Airport (GZA) — Remade: an internet-based art project by Ayman Alazraq exploring Palestinian memory, freedom of movement, and the history of Gaza's airport.", ar: "عن مشروع مطار غزة الدولي (GZA) — إعادة صياغة: مشروع فني على الإنترنت لأيمن الأزرق يبحث في الذاكرة الفلسطينية وحرية الحركة وتاريخ مطار غزة." },
       },
-      blocks: [
-        { id: "about-airport", visible: true, title: label("brand.airport"), paragraphs: [structuredClone(aboutCopy[1]!)] },
-        { id: "about-material", visible: true, title: structuredClone(aboutCopy[3]!), paragraphs: [structuredClone(aboutCopy[4]!)] },
-      ],
+      blocks: aboutPageBlocks(aboutSections),
     },
     {
       id: "contact", title: label("contact.title"), description: label("contact.sub"),
       seo: {
         title: { en: "Contact — Gaza International Airport (GZA)", ar: "اتصل بنا — مطار غزة الدولي (GZA)" },
         socialTitle: { en: "Contact Gaza International Airport", ar: "التواصل مع مطار غزة الدولي" },
-        socialDescription: { en: "Passenger, media and archive enquiries.", ar: "استفسارات المسافرين والإعلام والأرشيف." },
-        description: { en: "Contact Gaza International Airport and Palestine Airways Limited: passenger enquiries, media and archive contributions, plus phone and email details.", ar: "التواصل مع مطار غزة الدولي والخطوط الجوية الفلسطينية: استفسارات المسافرين والمساهمات الإعلامية والأرشيفية." },
+        socialDescription: { en: "General, media, and archive enquiries for the art project.", ar: "استفسارات عامة ومشاركات إعلامية وأرشيفية للمشروع الفني." },
+        description: { en: "Contact Gaza International Airport (GZA) — Remade: general enquiries, media, and archive contributions.", ar: "التواصل مع مشروع مطار غزة الدولي (GZA) — إعادة صياغة: استفسارات عامة ومشاركات إعلامية وأرشيفية." },
       },
       // Telephone, inbox topics, email and address remain Settings/Contact authority.
       blocks: [],
@@ -46,8 +55,8 @@ export const publishedInformationPages: InformationalPagesContent = {
       seo: {
         title: { en: "Privacy notice — Gaza International Airport (GZA)", ar: "إشعار الخصوصية — مطار غزة الدولي (GZA)" },
         socialTitle: { en: "Privacy notice — Gaza International Airport", ar: "إشعار الخصوصية — مطار غزة الدولي" },
-        socialDescription: { en: "How this prototype website handles the information you enter.", ar: "كيفية التعامل مع المعلومات المُدخلة في الموقع التجريبي." },
-        description: { en: "How this Gaza International Airport prototype website handles the details you enter when searching flights, booking or creating an account.", ar: "كيف يتعامل موقع مطار غزة الدولي التجريبي مع البيانات المُدخلة عند البحث والحجز وإنشاء الحساب." },
+        socialDescription: { en: "How this website handles commemorative bookings, accounts, and private archive submissions.", ar: "كيف يتعامل هذا الموقع مع الحجوزات التذكارية والحسابات ومشاركات الأرشيف الخاصة." },
+        description: { en: "Privacy notice for Gaza International Airport (GZA) — Remade: details on installed backend commemorative bookings, email OTP, private archive submissions, and opt-in first-party analytics.", ar: "إشعار الخصوصية لمشروع مطار غزة الدولي — إعادة صياغة: تفاصيل الحجوزات التذكارية على الخادم، ورموز التحقق بالبريد، ومشاركات الأرشيف الخاصة، والتحليلات الاختيارية." },
       },
       blocks: legalBlocks("privacy", privacySections),
     },
@@ -56,8 +65,8 @@ export const publishedInformationPages: InformationalPagesContent = {
       seo: {
         title: { en: "Terms of use — Gaza International Airport (GZA)", ar: "شروط الاستخدام — مطار غزة الدولي (GZA)" },
         socialTitle: { en: "Terms of use — Gaza International Airport", ar: "شروط الاستخدام — مطار غزة الدولي" },
-        socialDescription: { en: "The terms that apply to using this prototype website.", ar: "الشروط المنطبقة على استخدام هذا الموقع التجريبي." },
-        description: { en: "The terms that apply to using this Gaza International Airport and Palestine Airways Limited prototype website, including flight information and demo bookings.", ar: "شروط استخدام الموقع التجريبي لمطار غزة الدولي والخطوط الجوية الفلسطينية، بما في ذلك معلومات الرحلات والحجوزات التجريبية." },
+        socialDescription: { en: "Terms of use for this art project and commemorative passenger experience.", ar: "شروط استخدام هذا المشروع الفني وتجربة المسافر التذكارية." },
+        description: { en: "Terms of use for Gaza International Airport (GZA) — Remade: conditions governing commemorative bookings, artistic flight concepts, archive submissions, and no commercial carriage.", ar: "شروط استخدام مشروع مطار غزة الدولي — إعادة صياغة: الشروط الحاكمة للحجوزات التذكارية ومفاهيم الطيران الفنية ومشاركات الأرشيف وعدم وجود نقل تجاري." },
       },
       blocks: legalBlocks("terms", termsSections),
     },

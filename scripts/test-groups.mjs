@@ -18,7 +18,7 @@ export const unitGroups = Object.freeze({
     "phase6c-source-guards", "phase6c-correction-01", "phase6c-correction-04", "phase6c-correction-05",
     "settings", "contact-repository", "contact-correction", "phase6a-admin-commercial-desk", "analytics-canonical-privacy",
   ],
-  content: ["content", "content-storage", "content-inventory", "content-domains", "content-commands", "cms-website-editor", "cms-translations", "cms-edit-session", "phase7-content-boundaries"],
+  content: ["editorial-oct23-identity","content", "content-storage", "content-inventory", "content-domains", "content-commands", "cms-website-editor", "cms-translations", "cms-edit-session", "phase7-content-boundaries"],
   archive: ["archive-foundation", "archive-drafts", "archive-admin-editor", "archive-admin-catalog", "phase7b-boundaries"],
   ui: ["travel-guide", "ticket-presentation", "admin-activity-presentation", "surface-grammar", "studio-protocol", "public-media", "destination-media", "i18n-parity", "format", "phase9-translations", "network-status", "cms-translations", "seo-metadata"],
   contracts: ["backend-contracts", "backend-identity-contracts", "backend-foundation-contracts"],
