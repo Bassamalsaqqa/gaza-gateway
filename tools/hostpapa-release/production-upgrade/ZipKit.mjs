@@ -78,7 +78,7 @@ export function writeZipArchive(entries, destinationFile) {
     // Central directory header (46 bytes + filename)
     const centralHeader = Buffer.alloc(46 + filenameBuf.length);
     centralHeader.writeUInt32LE(0x02014b50, 0); // signature
-    centralHeader.writeUInt16LE(20, 4);         // version made by
+    centralHeader.writeUInt16LE((3 << 8) | 20, 4); // Unix attributes, ZIP version 2.0
     centralHeader.writeUInt16LE(20, 6);         // version needed
     centralHeader.writeUInt16LE(0, 8);          // flags
     centralHeader.writeUInt16LE(method, 10);    // compression method
@@ -92,7 +92,7 @@ export function writeZipArchive(entries, destinationFile) {
     centralHeader.writeUInt16LE(0, 32);         // file comment length
     centralHeader.writeUInt16LE(0, 34);         // disk number start
     centralHeader.writeUInt16LE(0, 36);         // internal attributes
-    centralHeader.writeUInt32LE((0o100644 << 16) >>> 0, 38); // external attributes (regular file rw-r--r--)
+    centralHeader.writeUInt32LE((0o100600 << 16) >>> 0, 38); // Private kit; installer sets final public modes.
     centralHeader.writeUInt32LE(offset, 42);    // relative offset of local header
     filenameBuf.copy(centralHeader, 46);
 
