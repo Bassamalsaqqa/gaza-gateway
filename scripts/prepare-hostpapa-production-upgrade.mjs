@@ -80,11 +80,11 @@ async function main() {
   const options = parseArgs();
 
   if (!options.profile || options.profile.trim() === '') {
-    console.error('Error: --profile=installed_965_21 required (profile cannot be omitted or empty; historical default removed).');
+    console.error('Error: explicit --profile is required; application 26e3155 requires --profile=installed_0aac_25 (no historical default).');
     process.exit(1);
   }
   if (options.profile !== 'installed_965_21' && options.profile !== 'installed_0aac_25') {
-    console.error(`Error: --profile=installed_965_21 required (or --profile=installed_0aac_25; profile "${options.profile}" is rejected; archive profiles are available via builder API for local historical replay only).`);
+    console.error(`Error: profile "${options.profile}" is rejected; application 26e3155 requires --profile=installed_0aac_25. installed_965_21 is retained only for its historical target.`);
     process.exit(1);
   }
 

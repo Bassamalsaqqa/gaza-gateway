@@ -238,10 +238,10 @@ test('profile registry contains closed installed_0aac_25 profile with exact pinn
   assert.equal(p.migration_count, 25);
   assert.equal(p.target_migration_count, 27);
   assert.equal(p.kit_folder, 'gaza-upgrade-package-0aac');
-  assert.equal(p.rollback_policy, 'schema_compatible_25_forward_repair_analytics');
+  assert.equal(p.rollback_policy, 'forward_only_27_analytics_provenance');
 });
 
-test('renderRunnerForProfile renders exact 0aac constants, folder, target 27 migrations, 23-airport rollback and guest bounds', () => {
+test('renderRunnerForProfile renders exact 0aac constants, folder, target 27 migrations, and closed forward-only rollback predicate (superseding 23-airport and guest bounds)', () => {
   const rendered = renderRunnerForProfile('installed_0aac_25');
 
   // Verify kit root folder
@@ -254,13 +254,14 @@ test('renderRunnerForProfile renders exact 0aac constants, folder, target 27 mig
   assert.ok(rendered.includes("const INSTALLED_MIGRATIONS = 25;"));
   assert.ok(rendered.includes("const TARGET_MIGRATIONS = 27;"));
 
-  // Verify 23-airport rollback list including OSL and ARN
-  assert.ok(rendered.includes("'OSL', 'ARN'"));
-  assert.ok(rendered.includes("$mins < 20 || $mins > 1440"));
+  // Outdated guest-null / airport rules must NOT be rendered for actual 0aac baseline
+  assert.ok(!rendered.includes("'OSL', 'ARN'"));
+  assert.ok(!rendered.includes('Guest reservation data requires a compatible forward repair'));
+  assert.ok(!rendered.includes('Guest passenger data requires a compatible forward repair'));
 
-  // Verify guest rollback forward repair assertions
-  assert.ok(rendered.includes('Guest reservation data requires a compatible forward repair; old-code rollback refused.'));
-  assert.ok(rendered.includes('Guest passenger data requires a compatible forward repair; old-code rollback refused.'));
+  // Verify closed forward-only recovery predicate with clear 27-migration analytics/provenance reason
+  assert.ok(rendered.includes('function assertRollbackCompatible(PDO $pdo): void {'));
+  assert.ok(rendered.includes("throw new RuntimeException('Candidate 27-migration release with analytics telemetry and archive provenance requires reviewed forward repair; blind old-code rollback refused.');"));
 
   // Verify preflight PASS message
   assert.ok(rendered.includes('PASS: verified baseline source 0aacf14, active release rel_20261021T164700_0aacf14_clean, 25 migrations, and upgrade candidate package.'));
@@ -269,6 +270,64 @@ test('renderRunnerForProfile renders exact 0aac constants, folder, target 27 mig
   assert.ok(rendered.includes('Expected 27 migrations after upgrade'));
   assert.ok(rendered.includes('PASS: release installed, migrations verified at 27'));
   assert.ok(rendered.includes('27 migration identities verified'));
+
+  // Executed PHP fixture: extract actual generated predicate and invoke with SQLite memory PDO;
+  // assert RuntimeException regardless of baseline guest/tables
+  const fnMatch = rendered.match(/function assertRollbackCompatible\(PDO \$pdo\): void\s*\{[\s\S]*?\n\}/);
+  assert.ok(fnMatch, 'assertRollbackCompatible definition must be extractable from rendered runner');
+  const extractedFn = fnMatch[0];
+
+  const phpScript = `
+${extractedFn}
+
+\$pdo = new PDO('sqlite::memory:');
+\$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+// Test 1: Empty database (no tables created)
+\$threwEmpty = false;
+try {
+    assertRollbackCompatible(\$pdo);
+} catch (RuntimeException \$e) {
+    \$threwEmpty = true;
+    if (strpos(\$e->getMessage(), '27-migration') === false || strpos(\$e->getMessage(), 'analytics') === false || strpos(\$e->getMessage(), 'provenance') === false) {
+        fwrite(STDERR, "Exception message missing required tokens: " . \$e->getMessage() . "\\n");
+        exit(1);
+    }
+}
+if (!\$threwEmpty) {
+    fwrite(STDERR, "assertRollbackCompatible failed to throw on empty database\\n");
+    exit(2);
+}
+
+// Test 2: Database with populated baseline airport and guest tables
+\$pdo->exec("CREATE TABLE airports (code TEXT, block_minutes INTEGER)");
+\$pdo->exec("INSERT INTO airports VALUES ('GZA', 60), ('OSL', 120)");
+\$pdo->exec("CREATE TABLE mvp_reservations (id INTEGER, owner_user_id INTEGER)");
+\$pdo->exec("INSERT INTO mvp_reservations VALUES (1, 100)");
+\$pdo->exec("CREATE TABLE mvp_reservation_passengers (id INTEGER, last_name TEXT, dob TEXT, nationality TEXT, document TEXT)");
+\$pdo->exec("INSERT INTO mvp_reservation_passengers VALUES (1, 'Al-Masri', '1990-01-01', 'PS', 'P0001')");
+
+\$threwPopulated = false;
+try {
+    assertRollbackCompatible(\$pdo);
+} catch (RuntimeException \$e) {
+    \$threwPopulated = true;
+    if (strpos(\$e->getMessage(), 'reviewed forward repair') === false) {
+        fwrite(STDERR, "Exception message missing reviewed forward repair: " . \$e->getMessage() . "\\n");
+        exit(3);
+    }
+}
+if (!\$threwPopulated) {
+    fwrite(STDERR, "assertRollbackCompatible failed to throw on populated baseline database\\n");
+    exit(4);
+}
+
+echo "UNCONDITIONAL_FORWARD_REPAIR_VERIFIED";
+`;
+
+  const res = spawnSync('php', ['-r', phpScript], { encoding: 'utf8' });
+  assert.equal(res.status, 0, `PHP fixture execution failed: ${res.stderr}`);
+  assert.ok(res.stdout.includes('UNCONDITIONAL_FORWARD_REPAIR_VERIFIED'));
 });
 
 test('builder constructor rejects target 27 migrations when profile is not installed_0aac_25', () => {

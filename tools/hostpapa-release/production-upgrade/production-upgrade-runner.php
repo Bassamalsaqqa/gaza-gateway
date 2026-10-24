@@ -48,6 +48,7 @@ const ALLOWED_REASON_CODES = [
     'TARGET_MAINTENANCE_ACTIVE',
     'DATABASE_QUERY_FAILURE',
     'DEADLINE_EXCEEDED',
+    'DEADLINE_UNAVAILABLE',
     'UNEXPECTED_ERROR',
 ];
 
@@ -436,6 +437,9 @@ $activeCheckpoint = 'initialization';
 
 function setPhaseBudget(string $phase, int $seconds, string $checkpoint = ''): void {
     global $activePhase, $activeCheckpoint;
+    if (!function_exists('pcntl_alarm') || !function_exists('pcntl_signal') || !function_exists('pcntl_async_signals')) {
+        throw new UpgradeDiagnosticException('DEADLINE_UNAVAILABLE');
+    }
     $activePhase = $phase;
     $activeCheckpoint = $checkpoint ?: $phase;
     if (function_exists('pcntl_alarm')) {
@@ -810,7 +814,7 @@ try {
     $app->loadEnvironmentFrom('.env');
     $kernel = $app->make(\Illuminate\Contracts\Console\Kernel::class);
     $kernel->bootstrap();
-    $lock = \Illuminate\Support\Facades\Cache::lock('shared_hosting:cron:lease', 450, $token);
+    $lock = \Illuminate\Support\Facades\Cache::lock('shared_hosting:cron:lease', 2700, $token);
     if (!$lock->get()) exit(5);
     echo "LEASE_OK";
 } catch (\Throwable) { exit(6); }
@@ -1059,7 +1063,7 @@ try {
     $app->loadEnvironmentFrom('.env');
     $kernel = $app->make(\Illuminate\Contracts\Console\Kernel::class);
     $kernel->bootstrap();
-    $lock = \Illuminate\Support\Facades\Cache::lock('shared_hosting:cron:lease', 450, $token);
+    $lock = \Illuminate\Support\Facades\Cache::lock('shared_hosting:cron:lease', 2700, $token);
     if (!$lock->get()) exit(5);
     echo "LEASE_OK";
 } catch (\Throwable) { exit(6); }
@@ -1072,7 +1076,7 @@ PHP;
 
     // Establish canonical maintenance mode BEFORE taking backups; refuse pre-existing maintenance.php and down
     $stage = 'maintenance';
-    setPhaseBudget('maintenance', 60, 'maintenance_enable');
+    setPhaseBudget('maintenance', 180, 'maintenance_enable');
     safePath($maintenancePath, $home);
     $frameworkDir = dirname($maintenancePath);
     safePath($frameworkDir, $home);
@@ -1126,7 +1130,7 @@ PHP;
 
     // Verified Private Backups during maintenance
     $stage = 'backup_database';
-    setPhaseBudget('backup', 300, 'backup_start');
+    setPhaseBudget('backup', 900, 'backup_start');
     $backupRunId = gmdate('Ymd_His') . '_' . bin2hex(random_bytes(4));
     $backupDir = $appRoot . '/shared/backups/upgrade_' . $backupRunId;
     safePath($backupDir, $home);
@@ -1176,7 +1180,7 @@ PHP;
     $stage = 'backup_public';
     $publicBackupPath = $backupDir . '/preupgrade-public.tar.gz';
     safePath($publicBackupPath, $home);
-    runBounded([$tarBin, '-czf', $publicBackupPath, '-C', $webroot, '.'], 120);
+    runBounded([$tarBin, '-czf', $publicBackupPath, '-C', $webroot, '.'], 180);
     if (!is_file($publicBackupPath) || filesize($publicBackupPath) < 1024) {
         throw new RuntimeException('Public webroot backup failed or too small.');
     }
@@ -1192,7 +1196,7 @@ PHP;
     // immutable release. Batch 01 adds the stable app/bin wrapper for later use.
     if (is_dir($appRoot . '/bin')) $privateEntries[] = 'bin';
     runBounded([$tarBin, '-czf', $privateBackupPath, '--exclude=shared/storage/logs', '--exclude=shared/storage/framework/cache',
-        '-C', $appRoot, ...$privateEntries], 120);
+        '-C', $appRoot, ...$privateEntries], 300);
     if (!is_file($privateBackupPath) || filesize($privateBackupPath) < 1024) {
         throw new RuntimeException('Private state backup failed or too small.');
     }
@@ -1248,7 +1252,7 @@ PHP;
 
     // Execute verified installer in-process with inherited lock
     $stage = 'install';
-    setPhaseBudget('install', 300, 'installer_start');
+    setPhaseBudget('install', 900, 'installer_start');
     require_once $installerPath;
     $installerInstance = new HostPapaInstaller([
         $installerPath,
@@ -1263,7 +1267,7 @@ PHP;
 
     // Post-install verification
     $stage = 'post_verify';
-    setPhaseBudget('post_verify', 180, 'post_verify_start');
+    setPhaseBudget('post_verify', 300, 'post_verify_start');
 
     if (trim(file_get_contents($pointerPath)) !== $targetReleaseId) {
         throw new RuntimeException('Pointer update verification failed.');

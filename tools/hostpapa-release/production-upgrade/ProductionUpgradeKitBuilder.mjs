@@ -63,7 +63,7 @@ export const BASELINE_PROFILES = Object.freeze({
     app_dir: '/home/gaza5045/gaza-gateway',
     target_webroot: '/home/gaza5045/public_html',
     kit_folder: 'gaza-upgrade-package-0aac',
-    rollback_policy: 'schema_compatible_25_forward_repair_analytics',
+    rollback_policy: 'forward_only_27_analytics_provenance',
   }),
 });
 
@@ -254,7 +254,7 @@ const TARGET_MIGRATIONS = ${profile.target_migration_count};`;
 
     rendered = replaceExactAnchor(rendered, oldConstants, newConstants);
 
-    // 3. Rollback compatibility predicate: 23 reference airports (including OSL and ARN) + guest guards
+    // 3. Rollback compatibility predicate: unconditionally refuse blind code rollback for 27 migrations
     const oldRollback = `function assertRollbackCompatible(PDO $pdo): void {
     $codes = ['GZA', 'AMM', 'CAI', 'DOH', 'DXB', 'IST', 'JED', 'RUH'];
     $statement = $pdo->query('SELECT code, block_minutes FROM airports');
@@ -266,22 +266,7 @@ const TARGET_MIGRATIONS = ${profile.target_migration_count};`;
 }`;
 
     const newRollback = `function assertRollbackCompatible(PDO $pdo): void {
-    $codes = ['GZA', 'AMM', 'CAI', 'IST', 'DOH', 'DXB', 'JED', 'RUH', 'BEY', 'KWI', 'AUH', 'ATH', 'FCO', 'CDG', 'LHR', 'FRA', 'MAD', 'BOM', 'KUL', 'JFK', 'YYZ', 'OSL', 'ARN'];
-    $statement = $pdo->query('SELECT code, block_minutes FROM airports');
-    while ($row = $statement->fetch(PDO::FETCH_ASSOC)) {
-        $mins = (int)$row['block_minutes'];
-        if (!in_array($row['code'], $codes, true) || $mins < 20 || $mins > 1440) {
-            throw new RuntimeException('Expanded reference authority requires a compatible forward repair; old-code rollback refused.');
-        }
-    }
-    $guestReservations = (int)$pdo->query('SELECT COUNT(*) FROM mvp_reservations WHERE owner_user_id IS NULL')->fetchColumn();
-    if ($guestReservations > 0) {
-        throw new RuntimeException('Guest reservation data requires a compatible forward repair; old-code rollback refused.');
-    }
-    $guestPassengers = (int)$pdo->query('SELECT COUNT(*) FROM mvp_reservation_passengers WHERE last_name IS NULL OR dob IS NULL OR nationality IS NULL OR document IS NULL')->fetchColumn();
-    if ($guestPassengers > 0) {
-        throw new RuntimeException('Guest passenger data requires a compatible forward repair; old-code rollback refused.');
-    }
+    throw new RuntimeException('Candidate 27-migration release with analytics telemetry and archive provenance requires reviewed forward repair; blind old-code rollback refused.');
 }`;
 
     rendered = replaceExactAnchor(rendered, oldRollback, newRollback);

@@ -1,6 +1,6 @@
 # Owner-controlled CMS publication plan
 
-**Preparation only. No draft, published record or production configuration was written.** Public reads and exact response hashes are in [LIVE_CMS_COMPARISON.md](LIVE_CMS_COMPARISON.md). Current published `pages.information`, `home` and `airport.future` are revision1, dated October13. Unpublished owner drafts have not been inspected; their absence is not assumed.
+**Preparation only. No draft, published record or production configuration was written.** Public reads and exact response hashes are in [LIVE_CMS_COMPARISON.md](LIVE_CMS_COMPARISON.md). Current published `pages.information`, `home` and `airport.future` are revision1, dated October13. Authenticated read-only inspection on October23 found currentRevision2, publishedRevision1 and draftRevision null for all three documents. This describes server-side drafts at that instant; browser-local unsaved edits and later drift are not ruled out.
 
 ## Scope and editable content
 
@@ -26,4 +26,4 @@ The current home document has stale operating-airline/seven-gateway overrides; r
 
 Use the existing revision-aware CMS restore/draft/preview/publish workflow with recorded prior revision and fresh expectedRevision if a later authorized correction is needed. Restoration is a new audited transition, not a SQL overwrite or deletion of history. No host staging, cron change, operator execution or production mutation is part of this plan.
 
-Source PRs23/24 and this stacked editorial PR require separate acceptance/integration. A later application release targets installed `0aacf145`/25, candidate27 migrations; the historical PR22 operator must not be reused. New exact-source operator, private-data/blob preservation, backups, host compatibility/preflight and explicit owner GO remain release gates.
+Source integration is complete: PR23, PR24, and PR26 are merged into main (`26e31557f894c5a744da47d7abb9b25172c21e8c`, tree `ff4a194a9f68e4bbc8b7cd1c1449327bd67ee6bd`); PR25 was superseded. Local main and origin are synchronized; dirty primary checkout is preserved. Source integration is no longer pending. Arabic/legal owner acceptance and revision-safe CMS publication remain separate from application release. A later application release targets installed `0aacf145`/25, candidate 27 migrations; the historical PR22 operator must not be reused. New operator reviewed independently (no old PR22 blind reuse), exact-source packaging, private-data/blob preservation, backups, host compatibility/preflight and explicit owner GO remain release gates.
