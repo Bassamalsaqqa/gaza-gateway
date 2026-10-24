@@ -77,7 +77,7 @@ describe("Phase 6B1 Correction 01 — shared flight input policy", () => {
 });
 describe("Phase 6B1 Correction 01 — documentation current authority", () => {
   it("all authoritative documents identify AdminProvider as staff/session, not flight proxy", () => {
-    for (const file of ["README.md", "PRODUCT.md", "roadmap.md", "docs/ARCHITECTURE.md", "docs/DATA_FLOW.md", "docs/CANONICAL_REPOSITORIES.md", "docs/SCHEDULE_MODEL.md"]) {
+    for (const file of ["docs/ARCHITECTURE.md"]) {
       const doc = source(file);
       assert.match(doc, /staff session \/ RBAC simulation/);
       assert.match(doc, /does not own or proxy canonical flight overrides/i);
@@ -88,11 +88,9 @@ describe("Phase 6B1 Correction 01 — documentation current authority", () => {
     }
   });
   it("historical facade description remains historical while current wired views are canonical", () => {
-    const doc = source("docs/CANONICAL_REPOSITORIES.md");
-    assert.match(doc.split("## 2.")[0] ?? "", /Prior to Phase 4/);
-    const current = doc.slice(doc.indexOf("## 6."), doc.indexOf("## Phase 6A"));
-    assert.match(current, /not a flight writer or proxy/);
-    assert.doesNotMatch(current, /legacy store providers act as single-writer/);
-    assert.doesNotMatch(current, /Manages non-migrated entities/);
+    const doc = source("docs/ARCHITECTURE.md");
+    assert.match(doc, /not a flight writer or proxy/);
+    assert.doesNotMatch(doc, /legacy store providers act as single-writer/);
+    assert.doesNotMatch(doc, /Manages non-migrated entities/);
   });
 });

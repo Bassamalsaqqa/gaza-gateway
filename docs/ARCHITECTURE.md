@@ -1,365 +1,147 @@
-# System Architecture — Gaza Airport & Palestinian Airlines
+# Gaza Gateway — System Architecture
 
-> **Operative Production & Source Authority Notice — 2026-10-14:**
-> - **Installed Baseline**: The application is installed and running on the existing HostPapa shared cPanel account. Recorded installed application source is `b3afa9cf08fc746a9ff7e3e9fbee66c38244fb87` with 21 documented migration identities (independent read-only check at 2026-10-14T15:06:44Z returned health `ok`). The 21 migration baseline is documented, not freshly re-read live. Initial installation at `7a8f0fa2f25851c4f75422f86139e0bb020ea4de` (19 migrations) and early unverified H0 canary status are historical milestones superseded by this installed baseline.
-> - **Source Authority**: `main` at `fba490b8b78544b0be3217d6eeaf824af9c20bcc` is the active source authority, including merged PRs 6, 7, and 8 (new live Admin dashboard counts, customer directory requiring `admin.manage`, activity audit stream, staff management). These new Admin features are source-merged into `main` but **NOT deployed yet** to the live site.
-> - **Hosting & Cron Invariants**: The sole authorized production target is the existing HostPapa shared cPanel account: prebuilt React/Vite static frontend + Laravel 13 / PHP 8.4+ / MySQL (InnoDB) backend + HostPapa SMTP + single bounded one-minute cron dispatcher. The owner explicitly confirms direct provider support approval for the one-minute cron cadence on this account (reported 2026-10-14; email not independently inspected). The cadence policy question is resolved on owner attestation; preserve the existing single bounded dispatcher without duplicate jobs or cadence changes.
-> - **Product Scope**: Authentic commemorative / free persistent bookings stored in MySQL with confirmation tickets via HostPapa SMTP. Production has NO mock fallback. Strictly NO real payments, NO live airline operations, NO real check-in or real boarding passes, and NO GDS. Customer directory in Admin requires `admin.manage`; customer detail/edit and analytics unsupported are intentional; public contact form submission is owner-deferred.
-> - **Operative Guidance**: Follow the [operative full-stack upgrade guide](HOSTPAPA_DEPLOYMENT.md). Current evidence and operative guide supersede old plans; no independent business-flow or SMTP-new-link certification is claimed from a healthy version check alone. Issues #9 (Gallery guard) and #10 (rollback race) remain open work; Issue #11 (prelookup) is assessment; do NOT mark fixed based on another worker. Do not claim a next operator or release package exists.
-> - **Historical Supersession**: Earlier phase/status, client simulation-only, and static-only deployment statements below are dated provenance superseded by this notice; historical source SHAs, review dispositions, and evidence records remain unchanged.
->
-> **Repository**: `Bassamalsaqqa/gaza-gateway`
-> **Production Domain**: `https://www.gazaairport.com`
-> **Current Source Status**: Source authority `main` (`fba490b8b78544b0be3217d6eeaf824af9c20bcc`) includes merged PRs 6, 7, and 8.
-> **Production / Installed Checkpoint**: Recorded installed application source `b3afa9cf08fc746a9ff7e3e9fbee66c38244fb87` (21 migration identities; health `ok` verified at 2026-10-14T15:06:44Z). New Admin features on `main` are not yet deployed.
-> **Immediate Next Step**: Review and local verification of open work (Issue #9 Gallery guard, Issue #10 rollback race; Issue #11 assessment); follow [HOSTPAPA_DEPLOYMENT.md](HOSTPAPA_DEPLOYMENT.md) for any future owner-authorized release. No release build, packaging, or deployment without explicit owner GO.
-
+This document defines the architectural structure, domain boundaries, data flows, canonical repository ownership, and technical contracts of the Gaza Gateway platform.
 
 ---
 
+## 1. Technical Stack Overview
 
-## 1. Technical Stack & Build Environment
+Gaza Gateway is a full-stack web application designed for high-fidelity bilingual (Arabic/English) historical and artistic presentation with persistent free reservations, dynamic ticket rendering, administrative controls, and documentary archive management.
 
-| Layer | Technology | Version | Purpose & Implementation Reality |
-| :--- | :--- | :--- | :--- |
-| **Runtime & Test Runner** | Node.js / npm | Node v24.12.0 / npm 11.11.0 | Built-in test runner (`node --test --experimental-strip-types`), `package.json` scripts (`npm test`, `npm run test:smoke`). |
-| **Frontend Framework** | React | 19.2.0 | Component hierarchy, hooks, context providers. |
-| **Routing & SSR Engine** | TanStack Start / Router | Router 1.170.18 / Start 1.168.32 | File-based flat routing, route loaders, SSR hydration, head management. Auto-generated `src/routeTree.gen.ts`. |
-| **Bundler & Build Tool** | Vite / Nitro | Vite 8.1.5 / Nitro 3.0.260603-beta | Multi-target build configurations: SSR Cloudflare/Nitro (`npm run build`) and pure static HostPapa artifact (`npm run build:hostpapa`). |
-| **Styling & Design Tokens** | Tailwind CSS | 4.2.1 | CSS variables (`@theme inline`), oklch tokens in `src/styles.css`, semantic typography (`.type-*`), RTL cursive protection. |
-| **Component Primitives** | Radix UI Headless | Various (^1.1 - ^2.2) | Accessible headless primitives (`RadioGroup`, `Dialog`, `AlertDialog`, `Popover`, `Select`, `Switch`, `Tabs`, `Accordion`). |
-| **Icons** | Lucide React | 0.575.0 | Aviation, navigation, and UI control icons. |
-| **State & Cache Layer** | React Context & Query | React Query 5.101.1 | `<QueryClientProvider>` and `<RepositoryProvider>` mounted at root; hierarchical query keys (`bookingDraftKeys`, `bookingKeys`, `flightKeys`, `passengerKeys`), repository hooks (`useBookingDraftQuery`, `useUpdateBookingDraftMutation`, `useBookingsQuery`, `useFlightSearchQuery`, `useBookingEffectiveFlights`, etc.). |
+```
++---------------------------------------------------------------------------------+
+|                                 CLIENT TIER                                     |
+|  React 19  *  TypeScript  *  Tailwind CSS 4  *  Radix UI  *  TanStack Router     |
++---------------------------------------------------------------------------------+
+                                       |
+                   HTTPS / JSON API    |   Bilingual Routes (EN: / , AR: /ar)
+                   Cookie Session/CSRF |   Static Assets & Range 206 MP4
+                                       v
++---------------------------------------------------------------------------------+
+|                              PRODUCTION HOSTING                                 |
+|                       HostPapa Shared cPanel (`gaza5045`)                       |
+|                                                                                 |
+|  +----------------------------+       +--------------------------------------+  |
+|  |   Web Root (public_html)   |       |   Private Core (/home/gaza5045/...)  |  |
+|  | - Prebuilt Vite Bundle     |       | - Laravel 13 / PHP 8.4+ Application  |  |
+|  | - Media & Video Streams    |       | - Symlinked Release Pointer          |  |
+|  | - Public Entrypoints       |       | - Private Backups & Upload Storage   |  |
+|  +----------------------------+       +--------------------------------------+  |
+|                                                          |                      |
+|                               +--------------------------+                      |
+|                               v                          v                      |
+|                      +------------------+       +------------------+            |
+|                      |   MySQL/InnoDB   |       |  HostPapa SMTP   |            |
+|                      |  27 Migrations   |       |  Queued Outbox   |            |
+|                      +------------------+       +------------------+            |
+|                                                                                 |
+|  cPanel Cron Dispatcher: Single */10 schedule running October 13 wrapper        |
++---------------------------------------------------------------------------------+
+```
 
-
----
-
-
-## 2. Canonical Domain & Repository Architecture (Phase 4, 5A, 5B & 5C Reality)
-
-Phase 4 resolved pre-existing public/admin state disconnects by introducing two backend-ready, bounded domain aggregates with asynchronous contracts, persistent schema `gza.repo.v1`, and central React Query hooks. Phase 4.0.1 confirmed canonical booking authority in admin views. Phase 5A converged passenger identity, account state, and saved travelers into a canonical `gza.passenger.v1` store managed by `PassengerRepository`. Phase 5B converged booking draft state into `BookingDraftRepository` (`gza.booking.draft.v1`) and connected public flight discovery directly to `FlightRepository`. Phase 5C converges public Manage Trip, Check-in, and Boarding Pass surfaces onto canonical repositories and effective flights:
-
-### 2.1 The Canonical Repositories
-1. **`BookingDraftRepository` (`src/lib/booking-draft/repository.ts`)**:
-   - Single source of truth and single writer for the active booking wizard draft.
-   - Backed by `gza.booking.draft.v1` (`{ schemaVersion: 1, status: "active" | "cleared", revision, updatedAt, source, draft }`).
-   - Implements 5 distinct storage states (`missing`, `active`, `cleared`, `malformed`, `unavailable`), one-time migration from `gza.store.v1.draft`, and tombstone anti-resurrection.
-   - Serialized mutation queue prevents lost updates during concurrent edits.
-   - Synchronizes across browser tabs via `storage` events without echo write loops.
-2. **`BookingRepository` (`src/lib/repositories/booking-repository.ts`)**:
-   - Single source of truth and single writer for completed bookings.
-   - Enforces bookability invariants, deterministic stable passenger IDs (`pax-${ref}-${index}`), and fixture isolation.
-   - `create` executes inside a shared coordinator transaction, re-resolves effective flights against live `flightOverrides`, checks station clock departure cutoffs and inventory capacity, and enforces idempotency via client `submissionId`.
-   - Exposes bounded, typed command methods for public passenger operations: `cancel`, `updateContact`, `updateSeats`, `updateExtras`, and `completeCheckIn`.
-   - Each command validates within the shared coordinator transaction, prevents mutations on cancelled bookings, enforces checked-in seat protection in `updateSeats`, recalculates totals using canonical pricing (`bookingTotal`), and guarantees atomic rollback on storage failure.
-   - Backed by `gza.repo.v1` (`bookings[]`).
-3. **`FlightRepository` (`src/lib/repositories/flight-repository.ts`)**:
-   - Manages deterministic flight schedules composed with mutable operational flight overrides via pure `getEffectiveFlight()`.
-   - Exposes `searchFlights(origin, destination, date, options)` for bidirectional route queries with effective operational status and party capacity filtering.
-   - Exposes `getMonthlyServiceMap(origin, destination, yearMonth, paxCount)` for batched calendar availability and lowest bookable fare derivation.
-   - Stores overrides in `gza.repo.v1` (`flightOverrides`).
-   - Powers the bounded multi-query hook `useBookingEffectiveFlights(booking)` to resolve live operational status, gates, terminals, and revised departure times for booked itineraries.
-4. **`PassengerRepository` (`src/lib/passenger/repository.ts`)**:
-   - Single source of truth and single writer for passenger identity, account profile/preferences, and saved companions (`Traveler[]`).
-   - Backed by `gza.passenger.v1` (`{ schemaVersion: 1, account: PassengerAccount | null, travelers: Traveler[] }`) with one-time migration from `gza.store.v1` only when the canonical passenger key is absent.
-   - Present empty/cleared passenger state is authoritative and never resurrects legacy store records.
-   - Enforces normalized lowercase email identity, profile email immutability, and deterministic stable traveler IDs (`crypto.randomUUID()` with fallback).
-5. **`ContactRepository` (`src/lib/contact/repository.ts`)**:
-   - Single source of truth and single writer for public contact enquiries and administrative inbox state.
-   - Backed by `gza.contact.v1` (`{ schemaVersion: 1, revision, messages: ContactMessage[] }`).
-   - Transactional mutations via `ContactStorageCoordinator`: serialized mutex queue, rollback on `StorageCommitError`, anti-resurrection of demo seeds on valid empty storage (`messages: []`), fail-safe malformed recovery without clobbering disk, and cross-tab synchronization.
-   - Exposes query methods (`list`, `getById`, `countNew`) and mutation methods (`create`, `setStatus`, `addInternalNote`, `setAssignee`, `saveReplyDraft`).
-   - Decoupled from `SettingsRepository` (`gza.settings.draft.v1`) and `BookingRepository` (`gza.repo.v1`).
-
-### 2.2 Post-Phase-5D Ownership Matrix
-
-| Aggregate / Entity | Primary Writer | Primary Storage Key | Consumers (Public & Admin) | Phase 5D Boundary | Future Target |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Contact Enquiries & Inbox** | `ContactRepository` (`src/lib/contact/`) | `gza.contact.v1` (`schemaVersion: 1`) | Public Contact (`/contact`), Admin Inbox (`/admin/inbox`), Admin Shell badge, Dashboard attention items | **Canonical Repository** (real local mutations; no email delivery or backend transport) | Phase 13 (Backend Support Desk / CRM) |
-| **Booking Draft** | `BookingDraftRepository` (`src/lib/booking-draft/`) | `gza.booking.draft.v1` (`schemaVersion: 1`) | Public Booking Wizard (`/book`), Flight Detail CTA (`/flight/$flightId`), Flight Search Form (`FlightSearchForm`) | **Canonical Repository** | Phase 13 (Backend Cart/Session) |
-| **Passenger State (Account & Travelers)** | `PassengerRepository` (`src/lib/passenger/`) | `gza.passenger.v1` (`account`, `travelers`) | Site Header, `/account/*`, `/book` (saved traveler pickers), `/signin`, `/register`, `/verify-email`, `/account/security` | **Canonical Repository** | Phase 13 (Backend Auth & DB) |
-| **Booking** | `BookingRepository` | `gza.repo.v1` (`bookings[]`) | Public confirmation, Manage Booking (`/manage/*`), Check-in (`/check-in`, `/manage/:ref/check-in`), Boarding Pass (`/boarding-pass/*`), Account Trips (`/account/trips`), Admin Bookings table/detail/search, Admin Check-in Desk (`/admin/check-in`), Admin Counter Booking (`/admin/bookings/new`) | **Converged (Phase 4, 5B, 5C, 6A)** with single-writer pattern, React Query invalidation, typed commercial commands (`cancel`, `updateContact`, `updateSeats`, `updateExtras`, `completeCheckIn`, `undoCheckIn`), canonical stored total recalculation (`bookingTotal`), channel truth (`web`/`desk`), and checked-in seat protection | Phase 6A Complete / Accepted Source / Accepted Release / Deployed by Owner (Commercial Desk; SHA `59e2e0ce9b56bc492d7c7a2bfc5a0df15fd58fea`) |
-| **Flight Overrides** | `FlightRepository` | `gza.repo.v1` (`flightOverrides{}`) | Public flight board/detail, Public booking discovery, Calendar date picker, Manage & Boarding Pass effective flights, Admin flights/dashboard | **Canonical Repository** | Phase 6 |
-| **Flight Schedules** | `src/lib/data.ts` (deterministic generator) | In-memory reference | `FlightRepository`, flight search, route generation | **Preserved Baseline** | Phase 6B2C2 |
-| **Legacy Store Key** | Preserved read-only migration source | `gza.store.v1` | One-time migration to `gza.booking.draft.v1` when draft key is missing | **Closed Legacy Key**: ZERO active draft writers | Deprecated |
-| **Staff Session** | `src/lib/admin-store.tsx` (`useAdmin`) | `gza.admin.v1` (`staffId`) | Admin Shell, permission guards, role switcher | **Preserved Legacy Key** | Phase 6 |
-| **Commercial catalog** | `CommercialCatalogRepository` | `gza.commercial.v1` | Public/Admin commercial consumers; historic Booking pricing snapshots | **Complete / Accepted Source / Accepted Release / Deployed by Owner (6B2A)** | Aircraft/network excluded |
-| **Fleet & dynamic layouts** | `FleetRepository` | `gza.fleet.v1` | Dynamic fleet identity, cabin classes, dynamic seat layouts, and booking snapshots | **Complete / Accepted Source (6B2B)** | A320, A321, B737 seeds; derived capacity |
-| **Recurring schedule planning** | `ScheduleRepository` | `gza.schedule.v1` | Admin Schedule Manager; destination related schedules | **Complete / Accepted Source (6B1)** | Planning only; materialization deferred |
-| **Network reference** | `NetworkRepository` | `gza.network.v1` | Admin Destinations and Schedule route validation | **Complete / Accepted Source (6B2C1)** | Dated-flight materialization deferred to C2 |
-| **Published editorial content** | `src/content/published/` | Compiled typed source | Eight typed documents consumed by public routes and canonical admin inventory/search | **Canonical Published Content** | Phase 7 editing in progress |
-| **Historical Archive & Source Registry (HC-2 / HC-3)** | `src/lib/archive/` (`catalog.ts`, `sources.ts`, `schema.ts`, `types.ts`) | Compiled typed catalog & registry | Public Gallery (`/gallery`), Home archive spotlight, Airport Past documentary strips & sources panel (`/airport/past`) | **Canonical Archive Foundation** (67 catalog records, 37 public photographs, 1 public document, 4 verified external video references, explicit publication basis: `rights-cleared`, `product-owner-directed-display`, `external-embed`) | Phase 7B (Provenance Admin) |
-| **Local editorial draft** | Shared registry ContentRepository | `gza.content.draft.v1` | Explicit previews; reviewed Home/Travel/Airport/destination/informational-page editors | **Browser-local, not published** | Backend publication deferred |
-| **CMS administration** | `src/content/`, shared editor primitives | Existing draft envelope | Typed validation, conflict handling, receipt-based audit and reviewed CMS editors | **Phase 7 Implemented / Awaiting Independent Review** | Media/provenance controls deferred to Phase 7B |
-| **Settings (Contact & Appearance)** | `SettingsRepository` (`src/lib/settings/`) | `gza.settings.draft.v1` | Public Contact (`?settingsPreview=1`), Appearance Studio (`?skinPreview=1`), Admin Settings | **Authoritative Settings Draft** | Complete (Phase 4C) |
-| **Appearance Legacy Key** | Read once for migration | `gza.skin.preview.v1` | Migrated once to canonical `gza.settings.draft.v1`; untouched; no dual writes | **Dormant Legacy Key** | Deprecated |
-
-### 2.3 Installed Full-Stack Architecture, Boundaries & Security Declarations
-
-- **Installed Production Reality vs Local Simulation**: In the installed HostPapa production environment, free persistent commemorative bookings, passenger account identity, and administrative operations are backed by the private Laravel 13 / PHP 8.4+ / MySQL backend and HostPapa SMTP. Production has NO mock fallback. Browser-local repository stores (`gza.repo.v1`, `gza.passenger.v1`, `gza.contact.v1`, `gza.booking.draft.v1`) remain preserved in source exclusively as isolated prototype and regression test fixtures.
-- **Financial & Booking Mutations**: The booking workflow provides authentic, free commemorative reservations with PNR issuance. No real payment gateway, payment card processor, or commercial ticketing merchant exists. Real check-in, live boarding passes, and commercial airline operations are strictly non-existent. Contact form submission is deferred by owner decision.
-- **Staff, Customer Directory & Privacy**: Customer directory in Admin requires `admin.manage`. Customer detail/edit views and analytics remain intentionally unsupported. Passwords and credentials are never stored in client bundles or repositories.
-- **React Query Status**: Centralized query keys (`bookingKeys`, `flightKeys`, `passengerKeys`) and reactive subscription invalidation ensure public, account, and admin views stay synchronized without full-page reloads.
-
+### Production vs. Development Authority
+- **Production Authority:** The live website runs exclusively against the private Laravel 13 / MySQL backend with real database mutations and HostPapa SMTP dispatch. Production has **no mock fallback** or simulated endpoints.
+- **Local Development Fixtures:** Browser-local storage keys (`gza.repo.v1`, `gza.booking.draft.v1`, `gza.passenger.v1`) exist solely as test harnesses and offline development fixtures. Frontend mock repositories remain default in dev unless explicit backend opt-in is configured.
 
 ---
 
+## 2. Frontend Architecture & Routing
 
-## 3. Startup Bundle Isolation & Surface Architecture
+### 2.1 File-Based Flat Routing
+Routing is implemented using TanStack Router with a flat file structure under `src/routes/`:
+- **Root Layout:** `__root.tsx` establishes HTML `lang`/`dir`, head metadata, and global providers (`QueryClientProvider`).
+- **Locale Wrapper:** `{-$locale}.tsx` parses the optional locale prefix serving English (`/`) and Arabic (`/ar`).
+- **Admin Workspace:** `{-$locale}.admin.*.tsx` wraps administrative surfaces under `<AdminShell />`. Unauthenticated requests redirect to `{-$locale}.admin_.signin.tsx` (the trailing underscore bypasses the admin shell layout).
+- **Auto-generated Tree:** `src/routeTree.gen.ts` is compiled automatically by `@tanstack/router-plugin`. Hand edits are strictly prohibited.
 
-### 3.1 Runtime vs Editor Separation
+### 2.2 Directionality & LTR Technical Identifiers
+All views render separate translated strings via `useI18n()` and `t()` keys. Never concatenate strings into combined labels (e.g. no "Flights / رحلات").
 
-In Phase 3.9, the surface system was split to eliminate startup bundle bloat:
-
-- **Lightweight Runtime (`src/design/surfaces/runtime-targets.ts`)**:
-  - Contains only target type identifiers (`TargetId`), semantic family mapping (`TARGET_FAMILY_MAP`), media allowance policy (`TARGET_MEDIA_ALLOWED`), canonical truth class allowlists, and recipe resolution logic (`resolveTargetRecipe`, `sanitizeTargetOverride`).
-  - **Zero imports of `MEDIA`** or editor UI metadata.
-  - Loaded by ordinary public pages and `SurfaceProvider`.
-- **Editor Registry (`src/design/surfaces/targets.ts`)**:
-  - Contains rich authoring metadata: target labels, human descriptions, preview routes, test scenarios, and editor allowlists.
-  - Imported **exclusively** by the Appearance Studio inspector (`src/components/admin/appearance-studio/`), keeping it out of the public initial JS graph.
-- **Measured Bundle Impact**:
-  - Root entry chunk: reduced from **465,009 bytes** (`index-dS7DcdvJ.js`) to **404,998 bytes** (`index-lGVaPZJr.js`), a **60,011 byte (~13%) net reduction**.
-  - Heavy Hero Patterns catalog (~104 kB) and Appearance Studio (~91 kB) are strictly code-split into lazy chunks.
-  - Public initial assets scanned: 0 traces of Studio protocol (`GZA_STUDIO_PARENT_INIT`), 0 traces of editor registry, 0 traces of Topography or Circuit Board SVG geometry.
-
-
----
-
-
-## 4. Truth Classification & Media Registry
-
-### 4.1 Canonical Media Truth Classification
-
-All imagery across the platform is classified under five strict truth types defined in `src/lib/media-policy.ts`:
-
-1. **`"future-concept-ai"`**: AI-generated conceptual architectural visualizations provided by the project owner. Must always carry visible illustrative disclosure badges and notices. Never presented as historical or present evidence.
-2. **`"historical-documentary"`**: Authentic archival photography documenting Gaza International Airport and Palestinian Airlines operations (e.g. passenger terminal in 2000, Palestinian Airlines aircraft on tarmac in 2000, and documented ruins in June 2008). Never tagged with future concepts; carries authentic editorial date context (`Archive · 2000`, `Airport site · documented June 2008` / `موقع المطار · موثق في يونيو/حزيران 2008`).
-3. **`"illustrative-photo"`**: Genuine illustrative aviation and editorial photography supporting public informational surfaces (e.g. destinations, travel guidelines, manage booking, check-in, passenger sign-in). Ordinary illustrative photos render cleanly without technical badges, while internal policy strictly prevents them from documentary targets like `airport.chapter-card`.
-4. **`"brand-mark"`**: Official insignia, logo, and emblem assets of Palestinian Airlines and Gaza International Airport.
-5. **`"placeholder"`**: Generic visual placeholders for layout testing and development.
-
-### 4.2 Asset & Content Ingestion Protocol
-
-Future asset and copy drops must adhere to the following protocol:
-1. **Preserve Masters**: Raw master assets must be placed in source storage without destructive lossy overwrites.
-2. **Classify Truth & Rights**: Every asset must have an assigned `TruthClass`, historical era, and provenance documentation before code inclusion.
-3. **Generate Optimized Variants**: Build WebP variants at standard widths (`640w`, `960w`, `1280w`, `1376w`, or native bounds like `1109w`) with explicit intrinsic aspect ratios.
-4. **Register in `src/lib/media.ts`**: Declare stable semantic IDs (`future-hero`, `airport-archive-hero-2000`, `airport-present-ruins-2008`, etc.) and bilingual accessible alt text (`altEn`, `altAr`).
-5. **Content Edits**: Home, Travel, Past, and Present compiled records are typed under `src/content/published/`. Admin Travel drafts are browser-local and never publish globally. Approved publication requires a source update and verified static release.
-
-### 4.3 Public Media Hero & Quick-Action Rail Architecture
-
-- **`PublicPhotoHero` (`src/components/media/public-photo-hero.tsx`)**: Reusable bounded hero rendering responsive photography via `ResponsiveImage` (intrinsic dimensions, standard srcSet/sizes, eager loading), directional dark overlay behind localized text (EN left-to-right gradient, AR right-to-left gradient), route-specific focal positioning, authentic archival date eyebrow for historical documentary assets, and stable route markers (`data-public-hero="{routeKey}"`). Implemented across `/airport`, `/airport/past`, `/airport/present`, `/gallery`, `/destinations`, `/travel`, `/manage`, `/check-in`. Photographs are strictly never mirrored.
-- **Home Utility Rail (`data-home-utility-rail="true"`)**: Single grouped rail with no gaps displaying 4 utility cards (`flight-status`, `check-in`, `travel-guidelines`, `airport-heritage`). Decorative image slices maintain seamless connectivity across all four cards by mirroring only the decorative image layer (`ltr:scale-x-[-1]`) in English LTR, while Arabic RTL keeps natural unmirrored artwork.
-- **Passenger Auth Shell (`PassengerAuthShell`)**: Sign-in route (`/signin`) features an optional photographic panel (`data-auth-media="signin"`) showing `signin-photo`, desktop two-column form priority, and compact mobile photo band, preserving fallback for other auth views.
-
-### 4.4 Historical Archive Authority & Authoritative Source Registry (HC-2 / HC-3 Complete / Accepted Source)
-
-- **Canonical Archive Authority (`src/lib/archive/`)**:
-  - `ARCHIVE_CATALOG`: 67 records (58 owner intake records, 8 unpublished video intake records, 1 licensed Gisha record). Owner intake includes 37 owner-directed published records (36 photographs and 1 document), 18 held records, 1 staging record and 2 exclusions. With Gisha, public local media totals 37 photographs and 1 document. Four verified external video projections make 42 Gallery items without promoting internal video ArchiveRecords to published local media.
-  - Public archive selector: `getPublishedArchiveRecords()` exposes only schema-valid published records with approved media references and explicit publication basis. Owner-directed display preserves unknown rights and cautious evidence status; it does not establish copyright clearance. Staging, held, excluded, or duplicate records are never exposed to public views. Verified external videos are separately derived by `getVerifiedVideoReferences()` from `SOURCE_REGISTRY`.
-  - Public Gallery (`/gallery`, `/ar/gallery`): Entirely decoupled from legacy `galleryItems`. Renders responsive media cards from `getPublishedArchiveRecords()`, supports dynamic medium, historical phase and subject filtering, and includes a singleton-safe lightbox (Escape key, focus trap/return, scroll lock, disabled prev/next buttons when a single record is present).
-  - Home Archive Spotlight: Uses six curated records from `getFeaturedArchiveRecords(6)`, derived from the canonical published collection instead of legacy mock slices.
-- **Authoritative Source Registry (`SOURCE_REGISTRY`)**:
-  - Contains 13 verified contemporary external records (9 text/treaty/document/official records: `src-oslo-ii-1995`, `src-ap-1998-opening`, `src-ap-1998-clinton`, `src-worldbank-2007`, `src-unsco-2000`, `src-unrwa-2001`, `src-icao-council-2002`, `src-gisha-2008`, `src-saleh-hegab-airport`; 4 verified external video references: `src-video-ap-1998-opening`, `src-video-clinton-1998`, `src-video-aljazeera-2009`, `src-video-afp-2018`).
-  - Public external references are curated outbound links (`getAllSourceRecords()`), cleanly separated from reusable archive media.
-- **Airport Past Chapter Architecture (`/airport/past`, `/ar/airport/past`)**:
-  - Uses `PublicPhotoHero` with `airport-archive-hero-2000` (`routeKey="past"`).
-  - Seeded timeline placeholder photos removed. Timeline chapters (planning, opening, operations, closure, memory) are fully typed, each with `evidence: "verified"` and valid, resolvable citations in `SOURCE_REGISTRY`.
-- **Hero Metadata Clearance Gap Documented**:
-  - `airport-archive-hero-2000` and `gallery-aircraft-archive-2000` retain approved historical-documentary hero status for `/airport/past` and existing media references, but lack explicit photographer/license provenance for general public archive catalog redistribution.
-
+> [!IMPORTANT]
+> **Technical Identifiers Invariant:** The following technical identifiers must remain strictly Left-to-Right (LTR) even when rendered in Arabic RTL pages:
+> - Flight numbers: `PS 204`, `PS 201`
+> - Booking references / PNRs: `GZA-7K8P`
+> - IATA airport codes: `GZA`, `AMM`, `CAI`, `IST`, `DOH`, `DXB`, `JED`, `RUH`
+> - ISO dates and times: `2026-10-25`, `14:30`
+> - Telephone numbers and email addresses
 
 ---
 
+## 3. Canonical Repository & Data Ownership
 
-## 5. Durable Local Regression Foundation
+Every operational domain has a single canonical repository owning data persistence, mutations, and query invariants. No domain logic delegates to ad-hoc session state or untracked client singletons.
 
-Phase 3.9 and Phase 4 established a permanent, lightweight local test foundation using Node 24 native capabilities:
+### 3.1 Flights & Recurring Schedules
+- **Repositories:** `FlightRepository` and `ScheduleRepository`.
+- **Authority Boundary:** `AdminProvider` manages staff session / RBAC simulation only; it does not own or proxy canonical flight overrides. It is not a flight writer or proxy. Operational flight mutations execute directly against `FlightRepository` and `ScheduleRepository`.
+- **Persistence:** Operational flight overrides (`status`, `gate`, `estimatedDeparture`, `cancellationReason`) are persisted canonically. An empty gate is intentionally preserved (`—`); desk views do not invent default gates.
+- **Schedules:** Timetables, recurring frequency patterns, and seasonal effective dates are owned by `ScheduleRepository`.
 
-- **Unit Test Runner**: `npm test` runs `node --test --experimental-strip-types tests/unit/*.test.ts`. Phase 4B adds content validation and draft repository tests. Counts are release measurements, not architecture constants.
-  - `repositories.test.ts`: Canonical normalization, deterministic stable passenger IDs, pure flight override composition, synthetic fixture detection, idempotent legacy store migration (`gza.store.v1`, `gza.admin.v1`), corruption recovery, booking repository CRUD and subscriber notifications, flight repository overrides, and central query key factory stability.
-  - `booking-rules.test.ts`: Operational status semantics, departure clock checks, inventory limits, localized label mapping, and flight-detail bookability guards.
-  - `draft-recovery.test.ts`: Passenger details preservation across search criteria adjustments, stale flight clearance, seat clearance, and step gating.
-  - `surface-grammar.test.ts`: Target ID validation, family inheritance vs component overrides, media truth filtering, and config sanitization.
-  - `studio-protocol.test.ts`: Message schema parsing, version validation (`1.0.0`), route traversal protection (`isValidStudioRoutePath`).
-  - `i18n-parity.test.ts`: 100% key parity between English and Arabic dictionaries across public, admin, and admin2 catalogs.
-- **Browser Smoke Test**: `npm run test:smoke` runs `tests/smoke/browser-smoke.mjs` using Playwright with system Edge/Chrome. Phase 4B adds bilingual Travel draft, preview, published immunity and discard proof to prior checks:
-  - English & Arabic public homepages (`/`, `/ar`)
-  - Booking wizard & capacity proof (`/book`, `/ar/book`)
-  - URL scenario isolation proof (`/book?scenario=...`, `/ar/book?scenario=...`)
-  - Admin Appearance Studio & controls interaction (`/admin/settings?tab=appearance`)
-  - Arabic Appearance Studio & RTL arrow navigation (`/ar/admin/settings?tab=appearance`)
-  - Flight detail bookability & unbookable states (`/flight/*`)
-  - Arabic flight detail & technical LTR formatting (`/ar/flight/*`)
-  - Cross-public/admin PNR identity proof (Check 9: PNR visible across public confirmation, admin table, and admin detail)
-  - Operational flight override reflection proof (Check 10: Delayed status and revised gate reflected on public detail)
+### 3.2 Commercial Catalog & Pricing Authority
+- **Repository:** `CommercialCatalogRepository` (`gza.commercial.v1`).
+- **Authority Boundary:** Canonical catalog defines fares, cabins (Economy, Premium, Business), baggage allowances, and amenity bundles. Fares and fees are USD minor units (cents) mapped consistently.
+- **Zero Session Pricing:** Pricing rules are strictly catalog-driven. There is no session-only pricing or ephemeral commercial ops state.
 
+### 3.3 Fleet Identity & Seat Geometry Authority
+- **Repository:** `FleetRepository` (`gza.fleet.v1`).
+- **Authority Boundary:** Aircraft profiles (Boeing 737-200, Fokker 50, Bombardier Dash 8) and cabin seat maps are immutable.
+- **Seat Geometry:** Seat rows, letter assignments, cabin zones, and emergency exit legroom geometry are owned canonically. Runtime code contains zero references to session-only aircraft or seat-map operational state.
+
+### 3.4 Network & Destinations Authority
+- **Repository:** `NetworkRepository` (`gza.network.v1`).
+- **Authority Boundary:** Destination records (`id`, `destination` and `direction` are immutable and never silently repaired or replaced).
+- **Inactive Destinations:** Inactive destinations are permitted in the catalog without corrupting route lookups.
+- **Persistence Invariant:** Changes must persist before adopting or notifying. No product-domain `OpsState` remains; no session-only destination ops state exists. Public Flight generation, Flight IDs, and Booking Flight resolution are unchanged.
+
+### 3.5 Dated-Service Discovery & Booking Cutover
+- **Boundary:** Dated-service generation links schedule patterns to discrete operational dates.
+- **Cutover Rules:** Planning deactivation is not retroactive cancellation. Existing confirmed bookings for previously deactivated flight dates remain valid and serviceable. Valid empty results are handled gracefully without application errors.
+
+### 3.6 Free Symbolic Bookings & Guest Ownership
+- **Repository:** `BookingRepository` (`gza.booking.v1`).
+- **Domain Invariant:** Free commemorative bookings with deterministic PNR generation (`GZA-XXXX`). Completed bookings bind passenger records, seat assignments, cabin class, and contact metadata.
+- **Idempotency:** Booking creation enforces idempotency via unique `submissionId` headers to eliminate duplicate bookings on client retries.
+- **Admin Check-in Desk:** Canonical repository-backed functionality (not simulation). Check-in status (`too_early`, `open`, `closed`, `unavailable`) enforces strict time-window rules based on scheduled flight departure epochs.
+
+### 3.7 CMS Content & Draft Authority
+- **Repository:** `ContentRepository` (`gza.content.draft.v1`).
+- **Draft vs. Published Separation:** Public endpoints serve exclusively records matching `publishedRevision`. Saving a draft is not publishing; saving or discarding a draft does not alter public pages.
+- **Concurrency & Conflicts:** CMS mutations submit `expectedRevision` matching current editorial revision. Concurrent conflicting writes are rejected with explicit conflict status (`draft_conflict`).
+
+### 3.8 Archive & Media Draft Authority
+- **Repository:** `LocalArchiveDraftRepository` (`gza.archive.draft.v1`).
+- **Studio Isolation:** Archive draft authority is independent, registry-owned, and Studio-isolated. Saving or discarding a local draft does not change the public Gallery/Past/Home.
+- **Public vs. Quarantine Intake:** Guest contributions from public upload forms land directly in private quarantine storage outside `public_html`. Items require staff moderation and rights verification before publication.
+
+### 3.9 Settings & Appearance Authority
+- **Repository:** `SettingsRepository` (`gza.settings.draft.v1.site.appearance`).
+- **Design Tokens:** Warm Mediterranean limestone (`--sand`, `--sand-deep`), crisp Mediterranean sunlight (`--background`, `--card`), deep olive brand (`--brand`, `--primary`), baked terracotta clay (`--clay`), and dark ink archival framing (`--ink`).
+- **Preview Isolation:** Appearance experiments operate via explicit query flags (`?skinPreview=1`) or within the Admin Appearance Lab, ensuring zero drift for standard visitors.
+
+### 3.10 Staff Identity & RBAC Authority
+- **Authority:** Backend `backend/config/identity.php` and operation policies enforce `dashboard.view`, `ops.view`, `ops.edit`, `content.view`, `content.edit`, `commercial.view`, `commercial.edit`, `engagement.view`, `engagement.edit` and `admin.manage`. Frontend legacy permission labels are not server authorization.
+- **Concurrency Sentinel:** Sentinel table locking (`staff_directory_control`) protects staff profile mutations and directory updates against race conditions.
 
 ---
 
-
-## 6. Completed Foundation & Remaining Work
-
-1. **Typed Content & CMS Schema (Phase 4B complete)**:
-   - Typed bilingual Home, Travel and Airport Past records; compiled published source, validated browser-local drafts and explicit preview. Full media management remains Phase 7B.
-2. **Settings & Appearance Store Convergence (Phase 4C complete)**:
-   - Unified multi-document settings envelope (`gza.settings.draft.v1`) with independent Contact and Appearance drafts, one-time legacy migration with untouched legacy key, transactional failure resilience, and explicit preview immunity.
-3. **Public Workflows Convergence (Phase 5 Complete / Accepted Source: Phase 5A, Phase 5B, Phase 5C and Phase 5D complete)**:
-   - Direct binding of passenger account management, saved companions, and public booking wizard state into repository queries and mutations. Phase 5A converged canonical passenger identity, account state, and saved travelers on `PassengerRepository` (`gza.passenger.v1`). Phase 5B converged booking wizard draft (`BookingDraftRepository` on `gza.booking.draft.v1`) and effective flight discovery (`FlightRepository`). Phase 5C converged Manage, Check-in, and Boarding Pass onto canonical repositories, typed commands, check-in eligibility window (24h to 60m), and live effective flights, accepted and merged into main. Phase 5D converged public Contact and Admin Inbox through the browser-local ContactRepository; no transport or email delivery was added.
-4. **Historical Archive Foundation & Publication (HC-2 Complete / Accepted Source on main)**:
-   - Decoupled public gallery from legacy fixtures, introduced canonical `getPublishedArchiveRecords()`, 13-record `SOURCE_REGISTRY` (9 text/treaty/official/archive sources, 4 verified external video references), source-backed Airport Past timeline across 5 chapters citing Oslo II, The New York Times, The Washington Post, World Bank, UNSCO, UNRWA, ICAO, Gisha, and Saleh & Hegab, singleton-safe lightbox, and 58-item intake audit. Accepted and merged into main.
-5. **Admin Workflows Convergence (Phase 6)**:
-   - **Phase 6A (Admin Commercial Desk Convergence — Complete / Accepted Source / Accepted Release / Deployed by Owner; SHA `59e2e0ce9b56bc492d7c7a2bfc5a0df15fd58fea`)**: Direct repository binding for Admin Check-in Desk (`/admin/check-in`), Admin Booking Detail commercial mutations (`/admin/bookings/$ref`), and Counter Booking creation (`/admin/bookings/new`) onto `BookingRepository` and `FlightRepository` (`gza.repo.v1`); canonical stored creation total calculation (`bookingTotal()`), channel truth (`BookingChannel = "web" | "desk"`), typed `undoCheckIn` mutation via `coordinator.conditionalMutate` with genuine no-op, adapter truth without fabricated facts, capacity snapshot gating (effective `seatsLeft` snapshot checked at selection and transactional create; no decrement/new ledger), and zero mock fixtures in production runtime. Reconciled onto main; accepted HostPapa release deployed by owner (see historical Phase 6A checkpoint above).
-   - **Phase 6B (Operations Configuration Persistence — Complete / Accepted Source / Accepted Release / Deployed by Owner)**: Operational flight quick-edit and schedule master template persistence.
-   - **Phase 6C (Admin Directory Staff & Activity Convergence — Complete / Accepted Source)**: Customer directory, staff management, and audit activity logging.
-6. **SEO & Head Metadata Parity (Phase 11)**:
-   - Arabic homepage `<title>` and `<meta name="description">` parity.
-   - Comprehensive OpenGraph and Twitter card metadata for Arabic routes.
-   - Automated `sitemap.xml` and `robots.txt` generation.
-   - Structured JSON-LD metadata for airline and airport entities.
-7. **Backend Readiness & API Contracts (Phase 12–13)**:
-   - Server-side database, authenticated REST/tRPC endpoints, and live payment processing.
-
-## Phase 6B1 accepted source (historical completed production phase)
-
-Phase 6B1 — Dated Flight Operations & Recurring Schedule Persistence — is **Complete / Accepted Source / Accepted Release / Deployed by Owner** (accepted engineering SHA: `b2e37ba4f7d2b0ae66a444747340acfe818a3832`), a historical completed production phase reconciled onto main and deployed by Bassam (release `f8c0d0bdc579c5c2719670c8387fa543d8d6a170`, deployed runtime source `bcf284df3f0d7b24ec59372bb038ed9ae1e8c934`). Admin dated-flight reads and booking/check-in metrics use canonical repository queries; override writers commit through FlightRepository. Recurring planning schedules have a separate `ScheduleRepository` / `gza.schedule.v1` authority, independent of dated-flight generation. Schedule edits do not change Public Flights, booking search or persisted flight IDs. In accepted Phase 6B2B source, aircraft and seat layouts use `FleetRepository`; Network reference configuration now uses NetworkRepository in Phase 6B2C1; public editorial and merchandising fixtures remain compiled. Commercial product configuration uses `CommercialCatalogRepository`; there is no monolithic durable OpsState. See [Schedule model](SCHEDULE_MODEL.md) for the storage and planning boundary.
-
-Phase 6B is **Complete / Accepted Source / Accepted Release / Deployed by Owner** (deployed production release: `8e3136c22156c9acf800d25e94e8cd3d29a8bfc8`, deployed runtime source: `2749c26714258871c32bd2b14a75fc4e87a68b62`). Phase 6B consolidated Phase 6B1, Phase 6B2A, Phase 6B2B, Phase 6B2C1, and Phase 6B2C2 (6B2C2A & 6B2C2B). Historical production releases include Phase 6B2A (release `2751e22be91ad74eacc9213489a57a21baf04807`, runtime source `ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`, engineering `1c5e6b6259add7b59199725f6b23324e8d1c58eb`), Phase 6B1 (release `f8c0d0bdc579c5c2719670c8387fa543d8d6a170`), Phase 6A (release `b5cff4db4b6e087907a9733ffd841880439fbfdb`), and Phase 5D (release `898adc36701f138b54787fa14caecf55321b453f`).
-
-Phase 6C — Admin Directory Staff & Activity Convergence is **Implemented / Awaiting Independent Review**; Phase 6 as a whole is Pending Phase 6C Independent Acceptance. Phase 7 and Phase 7B remain Planned / Unstarted. Deployment was owner-confirmed (HTTP 200 confirmed live; no independent live bundle verification claimed).
-
-AdminProvider owns staff session / RBAC simulation and toast/UI helpers only. Product-domain OpsState is eliminated; NetworkRepository owns airport references and network lifecycle in `gza.network.v1`. It does not own or proxy canonical flight overrides. Admin Flight List, Flight Detail, Dashboard and shared Quick Edit use FlightRepository query/mutation hooks directly; FlightRepository is the dated/effective-flight authority. ScheduleRepository owns recurring planning and structured effects; DatedServiceResolver now projects current service discovery from Schedule and Network authority.
-
-## Phase 6B2A — Sellable Commercial Catalog & Pricing Authority
-
-**Complete / Accepted Source / Accepted Release / Deployed by Owner (historical checkpoint)**, accepted engineering SHA: `1c5e6b6259add7b59199725f6b23324e8d1c58eb`; deployed runtime source: `ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`; owner-deployed release: `2751e22be91ad74eacc9213489a57a21baf04807`. Deployment was confirmed by the product owner; Git/source/release provenance was independently checked after deployment. Phase 6B1 remains a historical completed phase (release `f8c0d0bdc579c5c2719670c8387fa543d8d6a170`, runtime source `bcf284df3f0d7b24ec59372bb038ed9ae1e8c934`).
-
-`CommercialCatalogRepository` owns fares, cabin pricing, baggage, meals and assistance on browser-local `gza.commercial.v1`. Public booking, Manage, account meal preferences and the commercial Admin Products tabs share its query/mutation path. Fixed fare/cabin IDs and Essential/Economy multiplier anchors remain structural. Retired services remain resolvable; new selections require active options. BookingRepository independently reads the catalog at command time and commits a versioned pricing snapshot with its calculated total. Existing PNR mutations use their historical snapshot; snapshotless PNRs resolve a literal frozen legacy basis and seal it only on a real mutation. Catalog and booking stores are separate aggregates, not a server-grade multi-store ACID transaction. See [COMMERCIAL_MODEL.md](COMMERCIAL_MODEL.md) for the complete contract.
-
-AdminProvider owns staff session / RBAC simulation and toast/UI helpers only. Product-domain OpsState is eliminated; NetworkRepository owns airport references and network lifecycle in `gza.network.v1`. Aircraft and seat maps are canonicalized under `FleetRepository` (`gza.fleet.v1`). Existing Flight IDs remain compatibility identities; current services use stable Schedule-derived IDs with canonical Network and Schedule facts, retaining additive `aircraftId` linkage. Phase 6B is Complete / Accepted Source / Accepted Release / Deployed by Owner. Phase 6C is Complete / Accepted Source; Phase 7 and Phase 7B are Planned / Unstarted. No backend, payment, or GDS; deployment is owner-confirmed.
-
-## Phase 6B2B — Fleet Identity, Seat Layout & Booking Seat Authority
-
-**Complete / Accepted Source**
-
-Phase 6B2B implements canonical fleet and dynamic seat layout authority while preserving deployed Phase 6B2A as the active production checkpoint (release `2751e22be91ad74eacc9213489a57a21baf04807`, runtime source `ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`, accepted engineering SHA `1c5e6b6259add7b59199725f6b23324e8d1c58eb`).
-
-- **Canonical Fleet Repository (`gza.fleet.v1`)**: Governs the fleet model and dynamic seat layouts with deterministic seeds for A320 (`a320neo`, 168 seats), A321 (`a321neo`, 196 usable seats), and B737-800 (`b737800`, 162 seats). Supports persistent layouts with derived capacity and cabin classes.
-- **Stable Aircraft Identity**: Additive `aircraftId` on `Flight` and `Schedule` maintains byte-for-byte backwards compatibility with legacy flight identifiers (`PS100-...`), flight numbers, routes, and dates. Operational flight overrides support dynamic aircraft assignment without mutating baseline schedules.
-- **Dynamic Seat Authority & UI Components**: `SeatMap` dynamically renders layout geometry (rows, letters, aisles, emergency exits, wing markers, class partitions, lavatories, galleys, bassinet and accessible seats), roving keyboard tabindex, ARIA selection counts, and physical LTR rendering inside Arabic RTL containers.
-- **Booking Seat Layout Snapshots (`BookingSeatLayoutsV1`)**: Confirmed PNRs store immutable per-leg layout snapshots on creation, preserving historical seating geometry regardless of subsequent fleet reconfigurations. Legacy bookings without snapshots resolve the frozen 28-row baseline layout without mutation. Current booking drafts dynamically resolve active fleet layouts.
-- **Transactional Cross-PNR Occupancy**: `BookingRepository` enforces seat uniqueness across all active bookings sharing the same flight ID during creation, seat changes, and check-in completion, preventing seat double-booking collisions across PNRs.
-- **Operational Boundaries**: Coarse `seatsLeft` snapshots remain operational metrics. Fleet and booking storage maintain separate aggregate command boundaries. No automated equipment re-accommodation, schedule materialization, destination persistence, or server inventory ledger is introduced.
-- **Subsequent Phases**: Phase 6B2C2A is Complete / Accepted Source; Phase 6B2C2B is Complete / Accepted Source; Phase 6C — Admin Directory Staff & Activity Convergence, Phase 7, and Phase 7B remain Planned / Unstarted.
-
-## Phase 6B2B accepted-source checkpoint
-
-**Phase 6B2B — Fleet Identity, Seat Layout & Booking Seat Authority: Complete / Accepted Source.** ChatGPT independently accepted engineering at `7f8a2bef613fa0cd37af4f05684c98aebe94d23e` (Correction 01 parent: `1463dee30782d0cc35514c5af55d3f0abfbe32a8`).
-
-Accepted Phase 6B2B source: `d0a411cb8a882298eb32a3222478fbc782ba5556`. Its release and deployment are intentionally pending.
-
-Release status: **Not yet Accepted Release**. Deployment status: **Not yet Deployed**. No Phase 6B2B HostPapa release has been created. Independent accepted-source review precedes any release construction.
-
-Production remains **Phase 6B2A — Complete / Accepted Source / Accepted Release / Deployed by Owner**: release `2751e22be91ad74eacc9213489a57a21baf04807`, runtime source `ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`. Deployment is owner-confirmed; no independent live-browser verification is claimed.
-
-Phase 6B2C2A is **Complete / Accepted Source**; Phase 6B2C2B remains **Complete / Accepted Source**. Phase 6C, Phase 7 and Phase 7B remain Planned / Unstarted. Phase 6B as a whole is Complete / Accepted Source.
-
-## Phase 6B2C1 - Network Reference Authority & Destination Operations Convergence
-
-**Complete / Accepted Source.** Independently accepted engineering SHA: `9846f9ad90760a5e47ca231a838d146c4d7096a0`. C1 has no Accepted Release and is not deployed. The accepted-source checkpoint is the source-finalization commit on main following this engineering SHA; its immutable SHA is recorded in the finalization handback. Engineering baseline: `d0a411cb8a882298eb32a3222478fbc782ba5556`. NetworkRepository owns fixed AMM/CAI/IST/DOH/DXB/JED/RUH airport names, city/country names, timezone, block duration and active lifecycle in `gza.network.v1`. No product-domain OpsState remains in AdminProvider.
-
-Admin Destination Basics persist operational fields; planning frequency and Route summaries come from ScheduleRepository. Compiled starting fares, public copy and SEO remain read-only. ContentRepository photograph/focal-point preview drafts remain independent and unpublished. First-time Schedule creation validates known Network identity, including inactive destinations. Exact committed replay consults neither Network nor Fleet. Schedule id, destination and direction are immutable; safe non-route edits and stored history remain usable during Network failure.
-
-Phase 6B2B is Complete / Accepted Source; their release/deployment is intentionally pending. Production remains **Phase 6B2A - Complete / Accepted Source / Accepted Release / Deployed by Owner**, release `2751e22be91ad74eacc9213489a57a21baf04807`, runtime source `ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`. No independent live-browser production verification is claimed.
-
-Phase 6B2C2 - Network & Dated-Service Materialization: Phase 6B2C2A is Complete / Accepted Source; Phase 6B2C2B is Complete / Accepted Source. Public Flight generation, Flight IDs and Booking Flight resolution are unchanged in C1. Phase 6C/7/7B remain Planned / Unstarted; Phase 6B as a whole is Complete / Accepted Source. See [NETWORK_MODEL.md](NETWORK_MODEL.md) for persistence, lifecycle and failure isolation.
-
-## Phase 6B2C2A - Stable Dated-Service Materialization Foundation
-
-**Complete / Accepted Source.** Establishes pure, deterministic projection of recurring schedules onto concrete calendar dates with structured operational effects (`cancelled`, `time`, `aircraft`, `extra`). Versioned URL-safe reversible codec `svc1-<base64url>-<date>` preserves exact Schedule identity without loss. Schedule lifecycle eliminates destructive `remove`; `active = false` is the sole retirement mechanism.
-
-*Historical note (at time of Phase 6B2C2A)*: Prior production was Phase 6B2A (`2751e22be91ad74eacc9213489a57a21baf04807`, runtime source `ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`). Current production is the consolidated Phase 6B owner deployment (`8e3136c22156c9acf800d25e94e8cd3d29a8bfc8`, source `2749c26714258871c32bd2b14a75fc4e87a68b62`). Phase 6C is Implemented / Awaiting Independent Review; Phase 7 and Phase 7B remain Planned / Unstarted. See [DATED_SERVICE_MODEL.md](DATED_SERVICE_MODEL.md).
-
-## Phase 6B2C2A accepted-source checkpoint
-
-**Phase 6B2C2A Complete / Accepted Source.** ChatGPT independently accepted engineering at `429ca82dfa3db0453feeab5b53bb45e9e14cf45a` (reviewed original implementation: `2e1a3e626c48836384cb22ed57a4d6c4a13e7be3`). Accepted C2A source is `412fc2b4f79e01da0607b5bca44e01d76156a634`; the source-finalization handback records its provenance. C2A has no Accepted Release and is not deployed.
-
-Phase 6B2B and Phase 6B2C1 are Complete / Accepted Source; their release/deployment is intentionally pending. Production remains owner-deployed Phase 6B2A, Complete / Accepted Source / Accepted Release / Deployed by Owner: release `2751e22be91ad74eacc9213489a57a21baf04807`, runtime source `ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`. Phase 6B2C2B remains Complete / Accepted Source; Phase 6C, Phase 7 and Phase 7B remain Planned / Unstarted. Phase 6B as a whole is Complete / Accepted Source. The historical C2A finalization performed no public or Booking discovery cutover, stored identity migration, release or deployment. C2B current behavior is described below.
-
-## Phase 6B2C2B - Canonical Dated-Service Discovery & Booking Cutover
-
-**Complete / Accepted Source.** Baseline accepted source: `412fc2b4f79e01da0607b5bca44e01d76156a634`. Phase 6B2C2A remains Complete / Accepted Source (accepted engineering `429ca82dfa3db0453feeab5b53bb45e9e14cf45a`). Phase 6B as a whole is Complete / Accepted Source.
-
-Current authority is NetworkRepository + ScheduleRepository + read-only compiled route merchandising price, projected by the shared DatedServiceResolver into `svc1-*` Flights, then composed with canonical FlightOverride. Current search, monthly sellability, Home/public boards, Admin search and new public/desk Booking creation use this chain. Valid empty Schedule storage produces zero current services; corrupt Schedule/Network authority fails truthfully without legacy discovery fallback.
-
-New Booking commands resolve current service IDs only. Committed submission replay precedes every external authority read. Command-time Commercial/Fleet/Schedule/Network snapshots are composed with transaction-current FlightOverrides, and Flight/pricing/seat-layout snapshots plus total commit together in `gza.repo.v1`. This is browser command-time snapshot composition, not multi-store ACID.
-
-Broad Flight lookup retains stored Booking Flight snapshots for history. Operational boards retain only confirmed-PNR snapshots and relevant override-only legacy Flights; cancelled PNRs cannot independently retain a retired board row. Current bases take precedence when available. Existing PNR mutations can fall back to their stored Flight plus current override during planning removal or authority corruption. Historical pricing and seat-layout snapshots remain authoritative. Planning deactivation is not retroactive cancellation: explicit structured cancellation or FlightOverride cancellation supplies operational truth.
-
-The frozen legacy generator is compatibility-only. There is no generated Flight persistence store, hardcoded cutover date, PNR/draft/override identity migration, backend or cross-device claim. Browser-local `svc1-*` Flight Detail uses generic static metadata because prerender cannot read local Schedule/Network state. Booking route selectors use active Network routes; compiled destination information pages remain available.
-
-Production remains **Phase 6B2A - Complete / Accepted Source / Accepted Release / Deployed by Owner**, runtime source `ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`, release `2751e22be91ad74eacc9213489a57a21baf04807`. Phase 6B2B, Phase 6B2C1 and Phase 6B2C2A release/deployment remain intentionally pending. C2B engineering is accepted and source is finalized; C2B has no Accepted Release and is not deployed. Phase 6C / 7 / 7B remain Planned / Unstarted.
-
-
-## Phase 6B2C2B accepted-source checkpoint
-
-**Phase 6B2C2B Complete / Accepted Source. Phase 6B Complete / Accepted Source.** ChatGPT independently accepted engineering at `b4cd96a3eda97ae1442119c4fde03c0a463c7cb4` (original implementation: `ff46f8e7ab606731be679eaedbada9e07d09e91a`; accepted C2A baseline: `412fc2b4f79e01da0607b5bca44e01d76156a634`). Acceptance is recorded in the owner-supplied 2026-10-06 master handoff. The accepted-source candidate is the docs/status-only finalization commit introducing this checkpoint; its exact SHA is recorded in the publication handback. Independent accepted-source verification precedes main fast-forward.
-
-PNR-facing Flight reads use `(Booking reference, leg)`: current service when available, otherwise that exact leg's stored Flight, then current FlightOverride. Historical pricing and seat-layout snapshots remain unchanged. Admin Check-in can discover confirmed PNRs using their own snapshots during planning failure, with an explicit localized warning. Public/new-sale authority still fails truthfully. Cancelled PNRs preserve their own history without independently resurrecting retired operational board rows.
-
-Production remains **Phase 6B2A — Complete / Accepted Source / Accepted Release / Deployed by Owner**, runtime source `ae8c1e8071cf7f6412247f043e16a3ec2c88bd73`, release `2751e22be91ad74eacc9213489a57a21baf04807`. Phase 6B2B, Phase 6B2C1, Phase 6B2C2A and Phase 6B2C2B release/deployment remain pending. Phase 6B has no consolidated Accepted Release and is not deployed as a consolidated milestone. No live production verification is claimed by this finalization.
-
-**Next milestone:** independently verify accepted source, then construct/review the consolidated Phase 6B HostPapa release for owner deployment and production reconciliation. Phase 6C / 7 / 7B remain Planned / Unstarted. This finalization changes no runtime implementation. The immutable planning snapshot is [the 2026-10-06 master handoff](../GAZA_GATEWAY_MASTER_AI_AGENT_HANDOFF_ROADMAP_2026-10-06.md); its pre-finalization refs/status are historical snapshot facts, not moving current refs.
-
-## Phase 6B consolidated release & Phase 6C status (historical checkpoint)
-
-Phase 6 engineering implementation is complete. Phase 6 and Phase 6C are **Complete / Accepted Source**, published to main at `4374e9f37cd6f23798cfd20ccfa7e43bcec77f89`. Accepted Phase 6C engineering and Correction 05: `d5dd2942fad517cc5f1be353ad206511cc0724cc`; original implementation: `3ac3c8a078f7ffa82b411744b656c3575a3955c4`.
-
-The final Phase 6 static package is published on HostPapa at `421101d294674aaa503565cfc4df9fafb62527ba`, packaging source `4374e9f37cd6f23798cfd20ccfa7e43bcec77f89`. Owner deployment of that package has not been confirmed. Phase 6C is not deployed.
-
-Confirmed production remains **Phase 6B - Complete / Accepted Source / Accepted Release / Deployed by Owner**: release `8e3136c22156c9acf800d25e94e8cd3d29a8bfc8`, deployed runtime source `2749c26714258871c32bd2b14a75fc4e87a68b62`. Deployment is confirmed by the product owner. No independent live bundle verification claimed for this reconciliation.
-
-## Current checkpoint — HostPapa production installation & source authority (2026-10-14)
-
-*The Phase 13A and Phase 13B sections below are historical development progression checkpoints preserved as provenance; they are superseded by the installed full-stack HostPapa production application and active source authority on `main`.*
-
-- **Installed Production Baseline**: HostPapa shared cPanel hosting is the active production runtime. Recorded installed source is `b3afa9cf08fc746a9ff7e3e9fbee66c38244fb87` with 21 migration identities (independent read-only check at 2026-10-14T15:06:44Z returned health `ok`). Full-stack environment: React/Vite + Laravel 13 / PHP 8.4+ / MySQL + HostPapa SMTP + single bounded one-minute cron (approved by provider support per owner attestation). Production has no mock fallback.
-- **Source Authority**: `main` at `fba490b8b78544b0be3217d6eeaf824af9c20bcc` includes merged PRs 6, 7, and 8 (new live Admin dashboard counts, customer directory requiring `admin.manage`, activity audit stream, staff access). Source additions are merged into `main` but **NOT deployed yet** to the live site.
-- **Active Truth & Boundaries**: Authentic commemorative / free persistent bookings in MySQL with tickets via HostPapa SMTP; no payments, check-in, real operations, or GDS. Customer directory requires `admin.manage`, customer detail/edit and analytics unsupported are intentional, contact submission owner-deferred.
-- **Operative Deployment & Open Issues**: All upgrades must follow the [operative full-stack upgrade guide](HOSTPAPA_DEPLOYMENT.md). Issues #9 (Gallery guard) and #10 (rollback race) remain open work; Issue #11 (prelookup) is assessment. Do not claim a next operator or release package exists.
-
-## Current checkpoint — Phase 13A
-
-*Historical accepted-foundation checkpoint; superseded by the current Phase 13B checkpoint below.*
-
-Phase 6, Phase 7 and Phase 7B are **Complete / Accepted Source**. Phase 7 was independently accepted at `6b0240f1692beecc3f030775c0a25a68758a279b`; Phase 7B was independently accepted and published to main at `deb9f6e2a4246f4f5c70ca1b56797ccf0588388e`.
-
-The combined Phase 7 + 7B HostPapa release is `f68adcc60ec195f8099252b0d2d78da9a7c5ef4e`, packaging source `deb9f6e2a4246f4f5c70ca1b56797ccf0588388e`. Deployment is recorded on the product owner's instruction to consider it done; Codex performed no cPanel deployment or independent live verification. The release also includes accepted Phase 6C.
-
-**Phase 8 — Visual System & Assets Finalization: Complete / Accepted Source**, independently accepted and published to main at `55981908a75a38de31538c387d103e548c04f91d`. No separate Phase 8 release was constructed.
-
-**Phase 9 — Arabic, RTL, Accessibility & Responsive Certification: Complete / Accepted Source**, independently accepted and published to main at `f3d7377720c951ea659c076d2e8128d10c1a827a`. See [Phase 9 implementation and evidence](PHASE9_ACCESSIBILITY_RTL.md). **Phase 10 — Durable Regression & CI Hardening: Complete / Accepted Source**, independently accepted and published to main at `277e07a29188ab5ca07df008c011f42ec964641b`. **Phase 11 — SEO, Performance & HostPapa Certification: Complete / Accepted Source** at `e1b4e3c62238357209990e80b00cc4635f621b76`. See [focused regression and CI policy](REGRESSION_AND_CI.md). **Phase 12 — Backend Readiness & API Contracts: Complete / Accepted Source**, advanced under owner-supplied acceptance instructions at `7dab821d7d205b41ae925e013fe9c69a97a7e875`. Deliverables remain design/contracts and development tooling, not deployed or functioning runtime. Consolidated Phase 8–11 release a47afded49e900b75c907e7230ca4dfef5b3f91e is published on origin/hostpapa-deploy from source e1b4e3c62238357209990e80b00cc4635f621b76; live cPanel deployment remains unverified and owner-managed.
-
-**Phase 13A local backend foundation is Local Engineering Accepted / Remote Staging Gates Deferred**, independently accepted by owner-supplied ChatGPT review at `91a918caf0b22e565a43f52e46cf85ca4eb4825c` (not deployed; external staging and backend CI gates remain deferred and unmet). Implementation covers isolated Laravel 13 / PHP 8.4 / PostgreSQL 17 infrastructure migrations and system endpoints only. Frontend mock repositories remain default. Typed client operates only via explicit nonproduction opt-in without authentication. Phase 13B identity is authorized / preparation underway; no runtime authentication implemented yet; Phase 13C–G remain Planned / Unstarted; no authentication, domain inventory, booking persistence, payments or CMS publication have been implemented. Original Phase 13A reachable staging and backend CI definition-of-done gates remain deferred and unmet under owner prohibition on provisioning and automatic GitHub Actions. Local proof does not satisfy remote gates; no paid services, DNS, real credentials, or traffic cutover are authorized or provisioned. Reference final documentation at [docs/backend/phase13a-foundation.md](./backend/phase13a-foundation.md), [docs/backend/phase13a-runtime.md](./backend/phase13a-runtime.md), [docs/backend/phase13a-system-client.md](./backend/phase13a-system-client.md), and [docs/backend/phase13a-provider-seams.md](./backend/phase13a-provider-seams.md).
-
-Editorial and archive proposals remain browser-local drafts, not public publication. HC-2/HC-3 rights, evidence, publication basis and documentary/future media separation remain unchanged. Earlier milestone sections are historical and do not override this checkpoint.
-
-
-## Current checkpoint — Phase 13B
-
-
-Phase 6, Phase 7 and Phase 7B are **Complete / Accepted Source**. Phase 7 was independently accepted at `6b0240f1692beecc3f030775c0a25a68758a279b`; Phase 7B was independently accepted and published to main at `deb9f6e2a4246f4f5c70ca1b56797ccf0588388e`.
-
-The combined Phase 7 + 7B HostPapa release is `f68adcc60ec195f8099252b0d2d78da9a7c5ef4e`, packaging source `deb9f6e2a4246f4f5c70ca1b56797ccf0588388e`. Deployment is recorded on the product owner's instruction to consider it done; Codex performed no cPanel deployment or independent live verification. The release also includes accepted Phase 6C.
-
-**Phase 8 — Visual System & Assets Finalization: Complete / Accepted Source**, independently accepted and published to main at `55981908a75a38de31538c387d103e548c04f91d`. No separate Phase 8 release was constructed.
-
-**Phase 9 — Arabic, RTL, Accessibility & Responsive Certification: Complete / Accepted Source**, independently accepted and published to main at `f3d7377720c951ea659c076d2e8128d10c1a827a`. See [Phase 9 implementation and evidence](PHASE9_ACCESSIBILITY_RTL.md). **Phase 10 — Durable Regression & CI Hardening: Complete / Accepted Source**, independently accepted and published to main at `277e07a29188ab5ca07df008c011f42ec964641b`. **Phase 11 — SEO, Performance & HostPapa Certification: Complete / Accepted Source** at `e1b4e3c62238357209990e80b00cc4635f621b76`. See [focused regression and CI policy](REGRESSION_AND_CI.md). **Phase 12 — Backend Readiness & API Contracts: Complete / Accepted Source**, advanced under owner-supplied acceptance instructions at `7dab821d7d205b41ae925e013fe9c69a97a7e875`. Deliverables remain design/contracts and development tooling, not deployed or functioning runtime. Consolidated Phase 8–11 release a47afded49e900b75c907e7230ca4dfef5b3f91e is published on origin/hostpapa-deploy from source e1b4e3c62238357209990e80b00cc4635f621b76; live cPanel deployment remains unverified and owner-managed.
-
-**Phase 13A local backend foundation is Local Engineering Accepted / Remote Staging Gates Deferred**, independently accepted by owner-supplied ChatGPT review at `91a918caf0b22e565a43f52e46cf85ca4eb4825c` (not deployed; external staging and backend CI gates remain deferred and unmet). Implementation covers isolated Laravel 13 / PHP 8.4 / PostgreSQL 17 infrastructure migrations and system endpoints only. Frontend mock repositories remain default. All 46 identity operations and isolated EN/AR identity screens are implemented locally; frontend mocks remain default. The explicit nonproduction preview imports no browser-local identity. Final local verification is cumulative; independent acceptance and remote gates remain pending. Phase 13B Local Identity Implemented / Awaiting Independent Review; passenger authentication/profile/travelers and staff authentication/credential/directory/MFA HTTP operations are implemented locally; guest ownership and EN/AR UI are implemented behind explicit nonproduction opt-in; focused local evidence is cumulative and phase acceptance remains pending; Phase 13C–G remain Planned / Unstarted; No domain inventory, booking workflow, payments or CMS publication has been implemented. Original Phase 13A reachable staging and backend CI definition-of-done gates remain deferred and unmet under owner prohibition on provisioning and automatic GitHub Actions. Local proof does not satisfy remote gates; no paid services, DNS, real credentials, or traffic cutover are authorized or provisioned. Reference final documentation at [docs/backend/phase13a-foundation.md](./backend/phase13a-foundation.md), [docs/backend/phase13a-runtime.md](./backend/phase13a-runtime.md), [docs/backend/phase13a-system-client.md](./backend/phase13a-system-client.md), and [docs/backend/phase13a-provider-seams.md](./backend/phase13a-provider-seams.md).
-
-Editorial and archive proposals remain browser-local drafts, not public publication. HC-2/HC-3 rights, evidence, publication basis and documentary/future media separation remain unchanged. Earlier milestone sections are historical and do not override this checkpoint.
-
-Reviewed passenger source: 3697c65b0614860be293e422be4c067b84e41057. Initial staff HTTP source: 7570768514a5cecc4c591922cf9b76e3768e9290. Review-driven proof admission and timing correction: 899a4d3aa42db8384165a99266cfcd42f7f7a6d5. These are bounded local implementation checkpoints, not Phase 13B acceptance. PR #2 remains draft / CHANGES REQUESTED. No automatic Actions, merge, deployment or Phase 13C work is authorized.
+## 4. Analytics, Privacy & Scope Boundaries
+
+- **Consent-First:** Telemetry is strictly opt-in, honoring browser `Do Not Track` (DNT) and `Global Privacy Control` (GPC).
+- **Staff Exclusion:** Authenticated staff actions and admin sessions are excluded from public analytics figures.
+- **Attribution Truth:** Confirmed booking and archive submission totals are computed from backend database records, never from client-claimed conversion pixels.
+- **Art Project Scope:** Gaza Gateway provides commemorative art installations, symbolic free bookings, dynamic tickets, and historical archive dossiers. It conducts **no real flight operations, payments, commercial ticketing, live airline check-in, or GDS integrations**.
+
+---
+
+## 5. Machine Contracts & API Specifications
+
+Authoritative machine contracts and schema definitions are maintained in `docs/backend/`:
+
+| Contract File | Purpose & Scope |
+|---|---|
+| **[docs/backend/README.md](backend/README.md)** | Comprehensive backend contract guide: wire format, schemas, relational data model, RBAC permissions, and storage key classification |
+| **[docs/backend/openapi.v1.json](backend/openapi.v1.json)** | Complete OpenAPI 3.1.0 specification (140 operations across 132 paths) |
+| **[docs/backend/operation-policies.v1.json](backend/operation-policies.v1.json)** | Machine authorization rules and HTTP policies per operation |
+| **[docs/backend/identity-lifecycle.v1.json](backend/identity-lifecycle.v1.json)** | Passenger and staff identity state machine definitions |
+| **[docs/backend/inventory-payment.v1.json](backend/inventory-payment.v1.json)** | Free booking inventory reservation and ticket generation contract |
+| **[docs/backend/publication-lifecycle.v1.json](backend/publication-lifecycle.v1.json)** | CMS revision, draft staging, and publication concurrency contract |

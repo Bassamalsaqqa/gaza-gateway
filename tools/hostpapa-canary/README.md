@@ -8,7 +8,7 @@
 
 ## 1. Overview & Architectural Invariants
 
-As mandated by `AGENTS.md` and `GAZA_GATEWAY_HOSTPAPA_SHARED_HOSTING_MASTER_EXECUTION_PLAN_2026-10-12.md`:
+As mandated by `AGENTS.md` and `docs/HOSTPAPA_DEPLOYMENT.md`:
 - **Shared-Hosting Target Only:** The entire commemorative product (frontend, Laravel 13 API, MySQL 8.4, SMTP, bounded cron) runs on the owner's existing HostPapa shared cPanel hosting account.
 - **Zero External Infrastructure:** No Render, no VPS, no external PostgreSQL, no Docker runtime on production, no Node daemon, no external queue workers.
 - **Strict Database Isolation:** The canary must **NEVER** run on production databases or touch real application tables. It strictly requires an explicitly designated, disposable database (e.g. `<cpaneluser>_canary_test`) with dual confirmation (`CONFIRMED_DISPOSABLE_DATABASE_NAME`) and only touches tables prefixed with `canary_h0_tmp_`.

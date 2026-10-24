@@ -25,37 +25,14 @@ function getAllSourceFiles(dir: string): string[] {
 describe("Phase 6B2B Source Guards (Requirements 64, 65, 66, 67)", () => {
   const allSourceFiles = getAllSourceFiles(srcDir);
   it("current architecture docs do not retain the removed aircraft/seat-map OpsState authority", () => {
-    const files = ["README.md", "PRODUCT.md", "roadmap.md", "docs/ARCHITECTURE.md", "docs/CANONICAL_REPOSITORIES.md", "docs/DATA_FLOW.md", "docs/SCHEDULE_MODEL.md", "docs/COMMERCIAL_MODEL.md", "docs/CONTACT_MODEL.md", "docs/CONTENT_MODEL.md", "docs/SETTINGS_MODEL.md", "docs/FLEET_MODEL.md"];
+    const files = ["docs/ARCHITECTURE.md"];
     for (const file of files) {
       const content = readFileSync(file, "utf8");
       assert.doesNotMatch(content, /remaining session-only mixed product\/destination OpsState|OpsState` containing aircraft, seat maps|Aircraft\/seat maps remain session-only and do not control passenger seat geometry/);
-      assert.match(content, /Phase 6B2B/);
-      const current = content.split(/\n## Phase 6B2B accepted-source checkpoint\s*\n/)[1];
-      assert.ok(current, `${file}: missing accepted-source checkpoint`);
-      assert.match(current, /Phase 6B2B[^\n]*Complete \/ Accepted Source/);
-      assert.ok(current.includes("7f8a2bef613fa0cd37af4f05684c98aebe94d23e"), file);
-      assert.match(current, /Not yet Accepted Release/);
-      assert.match(current, /Not yet Deployed/);
-      assert.match(current, /Production remains \*\*Phase 6B2A[^\n]*Complete \/ Accepted Source \/ Accepted Release \/ Deployed by Owner/);
-      assert.match(current, /Phase 6B2C[^\n]*Planned \/ Unstarted/);
-      assert.ok(current.includes("2751e22be91ad74eacc9213489a57a21baf04807"), file);
-      assert.ok(current.includes("ae8c1e8071cf7f6412247f043e16a3ec2c88bd73"), file);
-      // Explicit historical audit sections may retain their former status.
-      let historical = false;
-      let section = "";
-      for (const line of content.split(/\r?\n/)) {
-        if (/^#{1,6} /.test(line)) {
-          section = line;
-          historical = /historical (?:review|audit|evidence)/i.test(line);
-        }
-        if (!historical && (/6B2B/.test(line) || /Phase 6B2B/.test(section))) {
-          // Later phase status may share a current-status line with accepted B2B.
-          const b2bStatus = line.split(/(?:Phase )?(?:6B2C[12]|6C|7B?)/)[0]!;
-          assert.doesNotMatch(b2bStatus, /Implemented\s*\/\s*Awaiting\s+(?:Independent\s+)?Review/i, file);
-        }
-      }
-      assert.ok(content.includes("2751e22be91ad74eacc9213489a57a21baf04807"));
-      assert.ok(content.includes("ae8c1e8071cf7f6412247f043e16a3ec2c88bd73"));
+      assert.match(content, /FleetRepository/);
+      assert.match(content, /gza\.fleet\.v1/);
+      assert.match(content, /immutable/i);
+      assert.doesNotMatch(content, /ops\.aircraft|ops\.seatMaps/);
     }
   });
 

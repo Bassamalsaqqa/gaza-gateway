@@ -143,16 +143,11 @@ describe("Phase 12: Backend Architecture & Documentation Package", () => {
   it("verifies all authoritative documentation artifacts exist and are non-empty in docs/backend/", () => {
     const requiredDocs = [
       "README.md",
-      "ADR-001-platform.md",
-      "deployment-topology.md",
-      "data-model.md",
       "openapi.v1.json",
       "operation-policies.v1.json",
-      "api-contract.md",
-      "auth-rbac.md",
-      "migration-map.md",
-      "threat-model.md",
-      "phase13-sequencing.md",
+      "identity-lifecycle.v1.json",
+      "inventory-payment.v1.json",
+      "publication-lifecycle.v1.json",
     ];
 
     for (const doc of requiredDocs) {
@@ -163,29 +158,24 @@ describe("Phase 12: Backend Architecture & Documentation Package", () => {
     }
   });
 
-  it("verifies all 10 canonical admin permissions are documented in auth-rbac.md", () => {
-    const authDoc = fs.readFileSync(path.join(docsBackendDir, "auth-rbac.md"), "utf-8");
+  it("verifies all 10 canonical admin permissions are documented in README.md", () => {
+    const authDoc = fs.readFileSync(path.join(docsBackendDir, "README.md"), "utf-8");
     for (const perm of CANONICAL_PERMISSIONS) {
-      assert.ok(authDoc.includes(perm), `auth-rbac.md must document permission: ${perm}`);
+      assert.ok(authDoc.includes(perm), `README.md must document permission: ${perm}`);
     }
   });
 
-  it("verifies staff directory sentinel locking is documented in auth-rbac.md and data-model.md", () => {
-    const authDoc = fs.readFileSync(path.join(docsBackendDir, "auth-rbac.md"), "utf-8");
-    const dataModelDoc = fs.readFileSync(path.join(docsBackendDir, "data-model.md"), "utf-8");
+  it("verifies staff directory sentinel locking is documented in README.md", () => {
+    const doc = fs.readFileSync(path.join(docsBackendDir, "README.md"), "utf-8");
 
     assert.ok(
-      authDoc.includes("staff_directory_control"),
-      "auth-rbac.md must document staff_directory_control sentinel locking",
-    );
-    assert.ok(
-      dataModelDoc.includes("staff_directory_control"),
-      "data-model.md must define staff_directory_control table",
+      doc.includes("staff_directory_control"),
+      "README.md must document staff_directory_control sentinel locking",
     );
   });
 
-  it("verifies all 17 genuine local storage authorities are classified in migration-map.md without fabricated keys", () => {
-    const migrationDoc = fs.readFileSync(path.join(docsBackendDir, "migration-map.md"), "utf-8");
+  it("verifies all 17 genuine local storage authorities are classified in README.md without fabricated keys", () => {
+    const doc = fs.readFileSync(path.join(docsBackendDir, "README.md"), "utf-8");
     const genuineKeys = [
       "gza.repo.v1",
       "gza.passenger.v1",
@@ -208,8 +198,8 @@ describe("Phase 12: Backend Architecture & Documentation Package", () => {
 
     for (const key of genuineKeys) {
       assert.ok(
-        migrationDoc.includes(`\`${key}\``),
-        `migration-map.md must document genuine storage key: ${key}`,
+        doc.includes(`\`${key}\``),
+        `README.md must document genuine storage key: ${key}`,
       );
     }
 
@@ -225,8 +215,8 @@ describe("Phase 12: Backend Architecture & Documentation Package", () => {
     ];
     for (const fabKey of fabricatedKeys) {
       assert.ok(
-        !migrationDoc.includes(`\`${fabKey}\``),
-        `migration-map.md must not include fabricated key: ${fabKey}`,
+        !doc.includes(`\`${fabKey}\``),
+        `README.md must not include fabricated key: ${fabKey}`,
       );
     }
   });

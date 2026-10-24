@@ -14,7 +14,6 @@ it("archive draft authority is independent, registry-owned and Studio-isolated",
   const repository = readFileSync("src/lib/archive/drafts/repository.ts", "utf8");
   assert.doesNotMatch(repository, /from ["'][^"']*(?:react|admin-store|content\/repository|booking-repository)/);
   assert.match(repository, /gza\.archive\.draft\.v1/);
-  const model = readFileSync("docs/ARCHIVE_ADMIN_MODEL.md", "utf8");
-  assert.match(model, /Phase 7B Complete \/ Accepted Source at `deb9f6e2a4246f4f5c70ca1b56797ccf0588388e`/);
+  const model = readFileSync("docs/ARCHITECTURE.md", "utf8");
   assert.match(model, /Saving or discarding a local draft does not change the public Gallery\/Past\/Home/);
 });
