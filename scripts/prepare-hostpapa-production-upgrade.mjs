@@ -46,8 +46,9 @@ Options:
   --output-dir=<path>         Output kit directory (default: scratch/production-upgrade-kit)
   --output-zip=<path>         Output kit zip file (default: scratch/production-upgrade-kit.zip)
   --source-sha=<sha>          Expected git commit SHA
-  --profile=installed_965_21  Baseline profile (mandatory: installed_965_21; historical profiles are archived)
-  --installed-manifest=<path> Path to verified immutable baseline release-manifest.json (required for installed_965_21)
+  --profile=installed_0aac_25 Baseline for application 26e3155 / 27 migrations (mandatory and explicit)
+  --installed-manifest=<path> Path to verified immutable installed release-manifest.json
+                              installed_965_21 is retained only for its historical target
   --no-zip                    Skip zip generation
   --help                      Show this message
 `);
@@ -79,11 +80,11 @@ async function main() {
   const options = parseArgs();
 
   if (!options.profile || options.profile.trim() === '') {
-    console.error('Error: --profile=installed_965_21 required (profile cannot be omitted or empty; historical default removed).');
+    console.error('Error: explicit --profile is required; application 26e3155 requires --profile=installed_0aac_25 (no historical default).');
     process.exit(1);
   }
-  if (options.profile !== 'installed_965_21') {
-    console.error(`Error: --profile=installed_965_21 required (production CLI accepts ONLY explicit --profile=installed_965_21; profile "${options.profile}" is rejected; archive profiles are available via builder API for local historical replay only).`);
+  if (options.profile !== 'installed_965_21' && options.profile !== 'installed_0aac_25') {
+    console.error(`Error: profile "${options.profile}" is rejected; application 26e3155 requires --profile=installed_0aac_25. installed_965_21 is retained only for its historical target.`);
     process.exit(1);
   }
 

@@ -47,6 +47,8 @@ const ALLOWED_REASON_CODES = [
     'TARGET_SCHEMA_MISMATCH',
     'TARGET_MAINTENANCE_ACTIVE',
     'DATABASE_QUERY_FAILURE',
+    'DEADLINE_EXCEEDED',
+    'DEADLINE_UNAVAILABLE',
     'UNEXPECTED_ERROR',
 ];
 
@@ -117,30 +119,152 @@ function assertRollbackMigrationLedger(PDO $pdo, array $expected): void {
     }
 }
 
-function preservationDigests(PDO $pdo, ?array $tables = null): array {
-    // Preserve durable application records, including credentials/settings ciphertext,
-    // without emitting them. Cache/lease/heartbeat bookkeeping is intentionally mutable.
-    if ($tables === null) {
-        $tables = $pdo->query("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA='gaza5045_gateway_live' AND TABLE_TYPE='BASE TABLE' ORDER BY TABLE_NAME")->fetchAll(PDO::FETCH_COLUMN);
-        $tables = array_values(array_filter($tables, static fn(string $table): bool => !in_array($table, ['migrations', 'cache', 'cache_locks'], true)
-            && !str_contains($table, 'heartbeat')));
+function tableExists(PDO $pdo, string $table): bool {
+    if (!preg_match('/^[A-Za-z0-9_]+$/D', $table)) return false;
+    $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+    if ($driver === 'sqlite') {
+        return (bool)$pdo->query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='$table'")->fetchColumn();
     }
-    $digests = [];
+    return (bool)$pdo->query("SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '$table'")->fetchColumn();
+}
+
+function getTableColumns(PDO $pdo, string $table): array {
+    if (!preg_match('/^[A-Za-z0-9_]+$/D', $table)) throw new RuntimeException('Invalid table name.');
+    $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+    if ($driver === 'sqlite') {
+        $colRows = $pdo->query("PRAGMA table_info(`$table`)")->fetchAll(PDO::FETCH_ASSOC);
+        $cols = [];
+        foreach ($colRows as $c) {
+            $cols[] = (string)$c['name'];
+        }
+        return $cols;
+    }
+    $colRows = $pdo->query("SHOW COLUMNS FROM `$table`")->fetchAll(PDO::FETCH_ASSOC);
+    $cols = [];
+    foreach ($colRows as $col) {
+        $colName = (string)($col['Field'] ?? '');
+        if (!preg_match('/^[A-Za-z0-9_]+$/D', $colName)) throw new RuntimeException('Invalid column name.');
+        $cols[] = $colName;
+    }
+    return $cols;
+}
+
+function captureBaselineProjections(PDO $pdo): array {
+    $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+    if ($driver === 'sqlite') {
+        $tables = $pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")->fetchAll(PDO::FETCH_COLUMN);
+    } else {
+        $tables = $pdo->query("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_TYPE='BASE TABLE' ORDER BY TABLE_NAME")->fetchAll(PDO::FETCH_COLUMN);
+    }
+    $tables = array_values(array_filter($tables, static fn(string $table): bool => !in_array($table, ['migrations', 'cache', 'cache_locks'], true)
+        && !str_contains($table, 'heartbeat')));
+
+    $projections = [];
+    foreach ($tables as $table) {
+        $projections[$table] = getTableColumns($pdo, $table);
+    }
+    return $projections;
+}
+
+function captureBaselineRowCounts(PDO $pdo, array $tables): array {
+    $counts = [];
     foreach ($tables as $table) {
         if (!preg_match('/^[A-Za-z0-9_]+$/D', $table)) throw new RuntimeException('Invalid preservation table.');
-        $pk = $pdo->query("SHOW KEYS FROM `$table` WHERE Key_name='PRIMARY'")->fetchAll(PDO::FETCH_ASSOC);
-        usort($pk, static fn(array $a, array $b): int => (int)$a['Seq_in_index'] <=> (int)$b['Seq_in_index']);
-        if (!$pk) throw new RuntimeException('Preservation table lacks deterministic primary-key ordering.');
-        $columns = array_map(static function (array $row): string {
-            if (!preg_match('/^[A-Za-z0-9_]+$/D', $row['Column_name'])) throw new RuntimeException('Invalid primary key.');
-            return '`'.$row['Column_name'].'`';
-        }, $pk);
-        $rows = $pdo->query("SELECT * FROM `$table` ORDER BY ".implode(',', $columns));
+        $counts[$table] = (int)$pdo->query("SELECT COUNT(*) FROM `$table`")->fetchColumn();
+    }
+    return $counts;
+}
+
+function preservationDigests(PDO $pdo, ?array $projections = null): array {
+    // Preserve durable application records, including credentials/settings ciphertext,
+    // without emitting them. Cache/lease/heartbeat bookkeeping is intentionally mutable.
+    if ($projections === null) {
+        $projections = captureBaselineProjections($pdo);
+    }
+    if (isset($projections[0]) && is_string($projections[0])) {
+        $tableList = $projections;
+        $projections = [];
+        foreach ($tableList as $tbl) {
+            $projections[$tbl] = getTableColumns($pdo, $tbl);
+        }
+    }
+    $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+    $digests = [];
+    foreach ($projections as $table => $columns) {
+        if (!preg_match('/^[A-Za-z0-9_]+$/D', $table)) throw new RuntimeException('Invalid preservation table.');
+        if ($driver === 'sqlite') {
+            $colRows = $pdo->query("PRAGMA table_info(`$table`)")->fetchAll(PDO::FETCH_ASSOC);
+            $pkCols = [];
+            foreach ($colRows as $col) {
+                if ((int)$col['pk'] > 0) {
+                    $pkCols[(int)$col['pk']] = '`' . $col['name'] . '`';
+                }
+            }
+            ksort($pkCols);
+            $pkColumns = array_values($pkCols);
+            if (!$pkColumns) throw new RuntimeException('Preservation table lacks deterministic primary-key ordering.');
+        } else {
+            $pk = $pdo->query("SHOW KEYS FROM `$table` WHERE Key_name='PRIMARY'")->fetchAll(PDO::FETCH_ASSOC);
+            usort($pk, static fn(array $a, array $b): int => (int)$a['Seq_in_index'] <=> (int)$b['Seq_in_index']);
+            if (!$pk) throw new RuntimeException('Preservation table lacks deterministic primary-key ordering.');
+            $pkColumns = array_map(static function (array $row): string {
+                if (!preg_match('/^[A-Za-z0-9_]+$/D', $row['Column_name'])) throw new RuntimeException('Invalid primary key.');
+                return '`'.$row['Column_name'].'`';
+            }, $pk);
+        }
+        $colSql = implode(', ', array_map(static fn(string $c): string => '`'.$c.'`', $columns));
+        $rows = $pdo->query("SELECT $colSql FROM `$table` ORDER BY ".implode(',', $pkColumns));
         $hash = hash_init('sha256');
-        while ($row = $rows->fetch(PDO::FETCH_ASSOC)) hash_update($hash, json_encode($row, JSON_THROW_ON_ERROR).'\n');
+        while ($row = $rows->fetch(PDO::FETCH_ASSOC)) hash_update($hash, json_encode($row, JSON_THROW_ON_ERROR)."\n");
         $digests[$table] = hash_final($hash);
     }
     return $digests;
+}
+
+function validateAdditiveMetadataDefaults(PDO $pdo): void {
+    if (!tableExists($pdo, 'archive_contributions')) {
+        return;
+    }
+    $cols = getTableColumns($pdo, 'archive_contributions');
+    if (!in_array('chapter', $cols, true)) {
+        return;
+    }
+    $invalidCount = (int)$pdo->query("
+        SELECT COUNT(*) FROM archive_contributions
+        WHERE chapter IS NOT NULL
+           OR approximate_date IS NOT NULL
+           OR location IS NOT NULL
+           OR credit IS NOT NULL
+           OR rights_status <> 'unknown'
+           OR source_note IS NOT NULL
+           OR reference_url IS NOT NULL
+    ")->fetchColumn();
+
+    if ($invalidCount > 0) {
+        throw new RuntimeException("Preexisting archive_contributions rows have unexpected non-default metadata ({$invalidCount} invalid rows).");
+    }
+}
+
+function validateNewAnalyticsTables(PDO $pdo): void {
+    $emptyTables = ['analytics_sessions', 'analytics_events', 'analytics_monthly_reports'];
+    foreach ($emptyTables as $table) {
+        if (tableExists($pdo, $table)) {
+            $cnt = (int)$pdo->query("SELECT COUNT(*) FROM `$table`")->fetchColumn();
+            if ($cnt !== 0) {
+                throw new RuntimeException("Expected new analytics table {$table} to be empty, found {$cnt} rows.");
+            }
+        }
+    }
+    if (tableExists($pdo, 'analytics_report_settings')) {
+        $cnt = (int)$pdo->query("SELECT COUNT(*) FROM `analytics_report_settings`")->fetchColumn();
+        if ($cnt !== 1) {
+            throw new RuntimeException("Expected analytics_report_settings to have exactly 1 default row, found {$cnt} rows.");
+        }
+        $row = $pdo->query("SELECT id, revision, enabled, recipient_email, updated_by FROM `analytics_report_settings` WHERE id = 1")->fetch(PDO::FETCH_ASSOC);
+        if (!$row || (int)$row['id'] !== 1 || (int)$row['revision'] !== 1 || (int)$row['enabled'] !== 0 || (string)$row['recipient_email'] !== 'notifications@gazaairport.com' || (string)$row['updated_by'] !== '00000000-0000-0000-0000-000000000000') {
+            throw new RuntimeException("Seeded analytics_report_settings row values do not match expected defaults.");
+        }
+    }
 }
 
 function privateInput(string $path, string $home, int $limit = 65536, bool $mutate = false): string {
@@ -290,6 +414,49 @@ function makeMaintenancePayload(): string {
     return "<?php http_response_code(503); header('Content-Type: application/json'); header('Cache-Control: no-store'); echo json_encode(['success'=>false,'error'=>['code'=>'service_unavailable','message'=>'Maintenance in progress.'],'meta'=>['requestId'=>sprintf('%s-%s-4%s-8%s-%s',bin2hex(random_bytes(4)),bin2hex(random_bytes(2)),substr(bin2hex(random_bytes(2)),1),substr(bin2hex(random_bytes(2)),1),bin2hex(random_bytes(6))),'timestamp'=>gmdate('Y-m-d\\TH:i:s\\Z')]]); exit;\n";
 }
 
+function digestDerivedRoutes(PDO $pdo): ?string {
+    $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+    if ($driver === 'sqlite') {
+        $hasRoutes = (bool)$pdo->query("SELECT 1 FROM sqlite_master WHERE type='view' AND name='routes'")->fetchColumn();
+    } else {
+        $hasRoutes = (bool)$pdo->query("SELECT 1 FROM information_schema.VIEWS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='routes'")->fetchColumn();
+    }
+    if (!$hasRoutes) {
+        return null;
+    }
+    $rows = $pdo->query('SELECT id, origin_code, destination_code, direction, block_minutes, active FROM routes ORDER BY id ASC');
+    $hash = hash_init('sha256');
+    while ($row = $rows->fetch(PDO::FETCH_ASSOC)) {
+        hash_update($hash, json_encode($row, JSON_THROW_ON_ERROR) . "\n");
+    }
+    return hash_final($hash);
+}
+
+$activePhase = 'preflight';
+$activeCheckpoint = 'initialization';
+
+function setPhaseBudget(string $phase, int $seconds, string $checkpoint = ''): void {
+    global $activePhase, $activeCheckpoint;
+    if (!function_exists('pcntl_alarm') || !function_exists('pcntl_signal') || !function_exists('pcntl_async_signals')) {
+        throw new UpgradeDiagnosticException('DEADLINE_UNAVAILABLE');
+    }
+    $activePhase = $phase;
+    $activeCheckpoint = $checkpoint ?: $phase;
+    if (function_exists('pcntl_alarm')) {
+        pcntl_alarm($seconds);
+    }
+}
+
+function handleDeadlineExceeded(): void {
+    if (function_exists('pcntl_alarm')) {
+        pcntl_alarm(0);
+    }
+    global $stage, $activePhase, $activeCheckpoint;
+    $phaseName = $activePhase ?? $stage ?? 'runner';
+    $checkpoint = $activeCheckpoint ?? 'unknown';
+    throw new UpgradeDiagnosticException('DEADLINE_EXCEEDED', new RuntimeException("Runner deadline exceeded during phase {$phaseName} (checkpoint: {$checkpoint}); inspect private receipt."));
+}
+
 function assertExactRuntimeConnection(PDO $pdo, string $expectedDb, string $expectedUser): void {
     $identity = $pdo->query('SELECT DATABASE() AS db, CURRENT_USER() AS user')->fetch(PDO::FETCH_ASSOC);
     $currentDb = (string)($identity['db'] ?? '');
@@ -356,12 +523,10 @@ try {
 
     if (function_exists('pcntl_async_signals') && function_exists('pcntl_signal') && function_exists('pcntl_alarm')) {
         pcntl_async_signals(true);
-        pcntl_signal(SIGALRM, static function (): void {
-            fwrite(STDERR, "FAIL: runner deadline exceeded (390s); inspect private receipt.\n");
-            exit(1);
-        });
-        pcntl_alarm(390);
+        pcntl_signal(SIGALRM, 'handleDeadlineExceeded');
+        setPhaseBudget('preflight', 180, 'preflight_start');
     }
+
 
     // Acquire kit lock EX NB
     $kitLockPath = $kitRoot . '/production-upgrade.lock';
@@ -623,6 +788,7 @@ try {
 
         // Issue #10: Guard acquisition FIRST before compatibility assertion or mutation
         $stage = 'rollback_guards';
+        setPhaseBudget('rollback', 300, 'rollback_start');
 
         // 1. Acquire installer lock EX NB
         $installerLockPath = $appRoot . '/shared/installer.lock';
@@ -648,7 +814,7 @@ try {
     $app->loadEnvironmentFrom('.env');
     $kernel = $app->make(\Illuminate\Contracts\Console\Kernel::class);
     $kernel->bootstrap();
-    $lock = \Illuminate\Support\Facades\Cache::lock('shared_hosting:cron:lease', 450, $token);
+    $lock = \Illuminate\Support\Facades\Cache::lock('shared_hosting:cron:lease', 2700, $token);
     if (!$lock->get()) exit(5);
     echo "LEASE_OK";
 } catch (\Throwable) { exit(6); }
@@ -864,6 +1030,7 @@ PHP;
     // MODE: --upgrade
     // -------------------------------------------------------------
     $stage = 'acquire_locks';
+    setPhaseBudget('locks', 60, 'acquire_locks');
     // Acquire installer lock EX NB
     $installerLockPath = $appRoot . '/shared/installer.lock';
     safePath($installerLockPath, $home);
@@ -882,6 +1049,7 @@ PHP;
 
     // Acquire persistent cron lease on old real app: FAIL CLOSED!
     $stage = 'cron_lease';
+    setPhaseBudget('cron_lease', 60, 'cron_lease');
     $leaseToken = bin2hex(random_bytes(16));
     $leaseScript = <<<'PHP'
 set_time_limit(30);
@@ -895,7 +1063,7 @@ try {
     $app->loadEnvironmentFrom('.env');
     $kernel = $app->make(\Illuminate\Contracts\Console\Kernel::class);
     $kernel->bootstrap();
-    $lock = \Illuminate\Support\Facades\Cache::lock('shared_hosting:cron:lease', 450, $token);
+    $lock = \Illuminate\Support\Facades\Cache::lock('shared_hosting:cron:lease', 2700, $token);
     if (!$lock->get()) exit(5);
     echo "LEASE_OK";
 } catch (\Throwable) { exit(6); }
@@ -908,6 +1076,7 @@ PHP;
 
     // Establish canonical maintenance mode BEFORE taking backups; refuse pre-existing maintenance.php and down
     $stage = 'maintenance';
+    setPhaseBudget('maintenance', 180, 'maintenance_enable');
     safePath($maintenancePath, $home);
     $frameworkDir = dirname($maintenancePath);
     safePath($frameworkDir, $home);
@@ -946,7 +1115,10 @@ PHP;
     }
 
     $stage = 'critical_baseline';
-    $tableHashesBefore = preservationDigests($pdo);
+    $baselineProjections = captureBaselineProjections($pdo);
+    $tableHashesBefore = preservationDigests($pdo, $baselineProjections);
+    $baselineCountsBefore = captureBaselineRowCounts($pdo, array_keys($baselineProjections));
+    $routesHashBefore = digestDerivedRoutes($pdo);
     $runtimeEnvHash = hash_file('sha256', $runtimeEnvPath);
 
     // Ensure shared/config/.env exists for the installer
@@ -958,6 +1130,7 @@ PHP;
 
     // Verified Private Backups during maintenance
     $stage = 'backup_database';
+    setPhaseBudget('backup', 900, 'backup_start');
     $backupRunId = gmdate('Ymd_His') . '_' . bin2hex(random_bytes(4));
     $backupDir = $appRoot . '/shared/backups/upgrade_' . $backupRunId;
     safePath($backupDir, $home);
@@ -1007,7 +1180,7 @@ PHP;
     $stage = 'backup_public';
     $publicBackupPath = $backupDir . '/preupgrade-public.tar.gz';
     safePath($publicBackupPath, $home);
-    runBounded([$tarBin, '-czf', $publicBackupPath, '-C', $webroot, '.'], 120);
+    runBounded([$tarBin, '-czf', $publicBackupPath, '-C', $webroot, '.'], 180);
     if (!is_file($publicBackupPath) || filesize($publicBackupPath) < 1024) {
         throw new RuntimeException('Public webroot backup failed or too small.');
     }
@@ -1023,7 +1196,7 @@ PHP;
     // immutable release. Batch 01 adds the stable app/bin wrapper for later use.
     if (is_dir($appRoot . '/bin')) $privateEntries[] = 'bin';
     runBounded([$tarBin, '-czf', $privateBackupPath, '--exclude=shared/storage/logs', '--exclude=shared/storage/framework/cache',
-        '-C', $appRoot, ...$privateEntries], 120);
+        '-C', $appRoot, ...$privateEntries], 300);
     if (!is_file($privateBackupPath) || filesize($privateBackupPath) < 1024) {
         throw new RuntimeException('Private state backup failed or too small.');
     }
@@ -1079,6 +1252,7 @@ PHP;
 
     // Execute verified installer in-process with inherited lock
     $stage = 'install';
+    setPhaseBudget('install', 900, 'installer_start');
     require_once $installerPath;
     $installerInstance = new HostPapaInstaller([
         $installerPath,
@@ -1093,6 +1267,7 @@ PHP;
 
     // Post-install verification
     $stage = 'post_verify';
+    setPhaseBudget('post_verify', 300, 'post_verify_start');
 
     if (trim(file_get_contents($pointerPath)) !== $targetReleaseId) {
         throw new RuntimeException('Pointer update verification failed.');
@@ -1133,10 +1308,24 @@ PHP;
         }
     }
 
-    $afterDigests = preservationDigests($pdo, array_keys($tableHashesBefore));
-    if ($tableHashesBefore !== $afterDigests || hash_file('sha256', $runtimeEnvPath) !== $runtimeEnvHash) {
-        throw new RuntimeException('Existing database records or shared configuration changed during upgrade; maintenance retained.');
+    $afterDigests = preservationDigests($pdo, $baselineProjections);
+    $afterCounts = captureBaselineRowCounts($pdo, array_keys($baselineProjections));
+    $routesHashAfter = digestDerivedRoutes($pdo);
+    if ($tableHashesBefore !== $afterDigests) {
+        throw new RuntimeException('Existing database records changed during upgrade; maintenance retained.');
     }
+    if ($baselineCountsBefore !== $afterCounts) {
+        throw new RuntimeException('Existing database row counts changed during upgrade; maintenance retained.');
+    }
+    if ($routesHashBefore !== null && $routesHashBefore !== $routesHashAfter) {
+        throw new RuntimeException('Derived routes changed during upgrade; maintenance retained.');
+    }
+    if (hash_file('sha256', $runtimeEnvPath) !== $runtimeEnvHash) {
+        throw new RuntimeException('Shared configuration changed during upgrade; maintenance retained.');
+    }
+
+    validateAdditiveMetadataDefaults($pdo);
+    validateNewAnalyticsTables($pdo);
 
     // Fully verified success: remove maintenance mode
     if (is_file($maintenancePath)) {
@@ -1171,6 +1360,9 @@ PHP;
     echo "PASS: release installed, migrations verified at 21, previous bytes and consistent database dump retained.\n";
     if (function_exists('pcntl_alarm')) pcntl_alarm(0);
 } catch (Throwable $e) {
+    if (function_exists('pcntl_alarm')) {
+        pcntl_alarm(0);
+    }
     if (isset($pdo) && $pdo instanceof PDO && $pdo->inTransaction()) {
         try { $pdo->rollBack(); } catch (\Throwable) {}
     }
@@ -1248,7 +1440,10 @@ PHP;
                 'stage' => $stage,
                 'preflight_checkpoint' => $stage === 'preflight' ? $preflightCheckpoint : null,
                 'preflight_substep' => $stage === 'preflight' ? $preflightSubstep : null,
+                'failure_checkpoint' => $activeCheckpoint ?? ($stage === 'preflight' ? $preflightCheckpoint : $stage),
                 'reason_code' => $reasonCode,
+                'recovery_disposition' => 'STOP_FOR_REVIEWED_FORWARD_COMPLETION',
+                'guarded_recovery_note' => 'Partial DDL or timeout requires reviewed forward completion; automatic dump import, rollback, or blind retry is forbidden.',
                 'sqlstate' => $sqlstate,
                 'driver_code' => $driverCode,
                 'error_class' => $errorClass,

@@ -1,20 +1,21 @@
-﻿# HostPapa full-stack update runbook
+# HostPapa full-stack update runbook
 
-## Installed baseline ? re-read 23 October 2026
+## Installed baseline ? read-only checks October 23?24, 2026
 
 | Pin | Verified value |
 | --- | --- |
 | Application | `0aacf1452d47bbf5660f060a718409dfff32a54c` |
 | Active release | `rel_20261021T164700_0aacf14_clean` |
 | Release manifest SHA-256 | `efb2e5378fe3403715f2f6d10ea8c4493a5c177bcd916b8d7dccfac4dd88c800` |
-| Migration identities | 25 in retained exact manifest and October 22 live ledger |
+| Migration identities | 25 in retained exact manifest and October 24 read-only live ledger |
 | Verified completion | 2026-10-22T07:43:08Z; `FORWARD_COMPLETION_VERIFIED` |
 | Private application | `/home/gaza5045/gaza-gateway` |
 | Pointer | `/home/gaza5045/gaza-gateway/current-release.txt` |
 | Public root | `/home/gaza5045/public_html` |
 | Source main at mission start | `6f52044b88e56b005bf11ee96b274580fd6d8a11` (licensing-only successor) |
+| Current accepted app main | `26e31557f894c5a744da47d7abb9b25172c21e8c` (tree `ff4a194a9f68e4bbc8b7cd1c1449327bd67ee6bd`; candidate 27 migrations) |
 
-The pointer and manifest bytes were downloaded read-only through cPanel on October 23 and match the October 22 genuine recovery receipt. The October 23 readiness endpoint reports database connected, migrations up to date and queue healthy; this does not replace an exact live ledger read before the next release. Do not equate Git main with installed source. Preserve all private backups, shared configuration and original incident evidence.
+The pointer and manifest bytes were downloaded read-only through cPanel on October 23 and match the October 22 genuine recovery receipt. The October 23 readiness endpoint reports database connected, migrations up to date and queue healthy; The October 24 authenticated SELECT separately confirmed the exact 25-row live ledger; recheck during the final exact-kit host preflight. Do not equate Git main with installed source. Accepted source main is `26e31557f894c5a744da47d7abb9b25172c21e8c` (tree `ff4a194a9f68e4bbc8b7cd1c1449327bd67ee6bd`, PR23/24/26 merged, PR25 superseded, candidate 27 migrations; local main/origin synchronized, dirty primary preserved). Source integration is no longer pending. Preserve all private backups, shared configuration and original incident evidence.
 
 HostPapa shared cPanel remains the sole production target: prebuilt React/Vite, Laravel 13/PHP 8.4+, MySQL/InnoDB, SMTP, private files and the existing bounded dispatcher. No production Node/Docker daemon, external backend, Actions or static-only `hostpapa-deploy` branch.
 
@@ -22,7 +23,7 @@ HostPapa shared cPanel remains the sole production target: prebuilt React/Vite, 
 
 The original owner-authorized upgrade applied migration UP, then its fixed 390-second alarm stopped execution before activation. Its failure evidence and attempt markers were retained. A separate one-shot guarded forward completion verified the immutable package, backups, staged release, exact ledger, file permissions, and 82 original durable tables against the retained SQL backup before and after activation. Shared environment bytes matched the retained private backup. Maintenance was removed only after verification, and the owned cron lease was released. Never manufacture an original-run success receipt or clear the failed markers.
 
-The production-derived `routes` view adds four routes for Oslo/Stockholm. Recovery verified complete approved route values, normalized only unspecified inbound array tie ordering, and checked snapshot JSON/bytes/hash consistency. The historical PR22 helper omitted derived routes; its 390-second deadline and exit-based failure receipt also need correction before reuse. **PR22 `173e51a` remains separate operator provenance; do not blindly merge it or rerun its 23-migration baseline.** The next upgrade needs an independently reviewed `0aacf14`/25 baseline profile.
+The production-derived `routes` view adds four routes for Oslo/Stockholm. Recovery verified complete approved route values, normalized only unspecified inbound array tie ordering, and checked snapshot JSON/bytes/hash consistency. The historical PR22 helper omitted derived routes; its 390-second deadline and exit-based failure receipt also need correction before reuse. **PR22 `173e51a` remains separate operator provenance; do not blindly merge it or rerun its 23-migration baseline.** The next upgrade needs an independently reviewed `0aacf14`/25 baseline profile targeting candidate 27 migrations.
 
 Retained production evidence (private, never copy credentials/backups to Git or AGY):
 
@@ -31,11 +32,11 @@ Retained production evidence (private, never copy credentials/backups to Git or 
 - Kit ZIP SHA-256 `c770dbb40591629db7340285c766ef66cee7a5aaa3b965a3cdb0c0b02ca2c292`; runner `2c59bac19faf8a4512cb81b242578aaffd3ce921a59ec3db817488418d99682a`.
 - Package root `.htaccess` SHA-256 `2dba81e95cc03e9b4e47cddda07e50f1e6230251bba59690e38a965e42b10e4f`. Separately owner-approved `LimitRequestBody 41943040` override produces `21724477d484edc2fa517c44b2e09b3ae752c9bd9b26b2389ba58102a586a486`. Actual pre-upgrade loopback checks observed HTTP 413 above the bound and accepted a 35,000,000-byte valid envelope. A later zero-body headers-only probe timed out and is not additional proof.
 
-Source review, integration, package preparation, host preflight and final production GO remain separate gates. The current mission authorizes local review branches, not production mutation or destructive cleanup.
+Source integration is complete (PR23/24/26 merged, PR25 superseded, source integration no longer pending). Browser acceptance is complete with limitations. Arabic/legal owner acceptance and revision-safe CMS publication remain separate. The current mission authorizes safe local cleanup, minimal operative documentation, offline CMS reconciliation, exact-source package preparation and read-only host preflight. Production mutation, CMS publication and deployment still require separate authorization.
 
 ## Authorized release preparation
 
-1. After source acceptance and explicit release-preparation authorization, reverify installed pointer, immutable manifest bytes, source SHA and all migration identities read-only. A mismatch stops preparation.
+1. After explicit release-preparation authorization, reverify installed pointer, immutable manifest bytes, accepted source SHA (`26e31557f894c5a744da47d7abb9b25172c21e8c`) and all migration identities (installed 25, candidate 27) read-only. A mismatch stops preparation.
 2. Extend the reviewed operator for that exact baseline, preserving lock/lease, one-shot markers, maintenance, manifest verification, backups, preservation digests and schema-compatible rollback barriers. Review that change; never relax guards.
 3. Build from a clean checkout of the actual accepted source SHA with the production HostPapa configuration. Pin application and operator SHAs separately. Generate one full-stack package, immutable release manifest and matching upgrade kit.
 4. Verify package/manifest/template/rendered-runner/installer hashes, locked production dependencies, migration identities and public/private permissions. Keep private configuration outside the public root. Exclude secrets, local fixtures, private receipts and backups from Git and the public payload.
