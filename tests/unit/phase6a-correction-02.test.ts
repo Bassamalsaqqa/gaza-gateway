@@ -266,7 +266,7 @@ describe("Phase 6A Correction 02 — truthful commercial presentation", () => {
       for (const phrase of stale) assert.ok(!phrase.test(current), `${path}: ${phrase}`);
       assert.ok(doc.includes("Planned / Unstarted"), path);
     }
-    const inventory = source("docs/CONTENT_MODEL.md");
+    const inventory = source("docs/ARCHITECTURE.md");
     assert.match(inventory, /Admin Check-in Desk[^\n]+Canonical repository-backed functionality/);
     assert.ok(!/Check-in desk, analytics, CRM and operational simulation/.test(inventory));
     // An explicitly historical paragraph is outside the current-status contract.

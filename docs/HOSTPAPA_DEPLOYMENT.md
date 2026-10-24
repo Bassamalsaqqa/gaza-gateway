@@ -1,63 +1,179 @@
-﻿# HostPapa full-stack update runbook
+# HostPapa Full-Stack Deployment & Operations Runbook
 
-## Installed baseline ? re-read 23 October 2026
+This runbook defines the operative deployment protocol, production baseline, safety gates, operational procedures, and recovery workflows for the Gaza Gateway platform on HostPapa shared hosting.
 
-| Pin | Verified value |
-| --- | --- |
-| Application | `0aacf1452d47bbf5660f060a718409dfff32a54c` |
-| Active release | `rel_20261021T164700_0aacf14_clean` |
-| Release manifest SHA-256 | `efb2e5378fe3403715f2f6d10ea8c4493a5c177bcd916b8d7dccfac4dd88c800` |
-| Migration identities | 25 in retained exact manifest and October 22 live ledger |
-| Verified completion | 2026-10-22T07:43:08Z; `FORWARD_COMPLETION_VERIFIED` |
-| Private application | `/home/gaza5045/gaza-gateway` |
-| Pointer | `/home/gaza5045/gaza-gateway/current-release.txt` |
-| Public root | `/home/gaza5045/public_html` |
-| Source main at mission start | `6f52044b88e56b005bf11ee96b274580fd6d8a11` (licensing-only successor) |
+---
 
-The pointer and manifest bytes were downloaded read-only through cPanel on October 23 and match the October 22 genuine recovery receipt. The October 23 readiness endpoint reports database connected, migrations up to date and queue healthy; this does not replace an exact live ledger read before the next release. Do not equate Git main with installed source. Preserve all private backups, shared configuration and original incident evidence.
+## 1. Installed Production Baseline
 
-HostPapa shared cPanel remains the sole production target: prebuilt React/Vite, Laravel 13/PHP 8.4+, MySQL/InnoDB, SMTP, private files and the existing bounded dispatcher. No production Node/Docker daemon, external backend, Actions or static-only `hostpapa-deploy` branch.
+The live production application is installed at `rel_20261024T045400_26e3155_clean` (application commit `26e3155`, Git tree `ff4a194`, 27 migrations applied). Full verified baseline identities, SHA-256 release package digests, and active backup paths are maintained in [docs/STATUS.md](STATUS.md).
 
-## Batch 02 recovery record and next-release stop condition
+> [!IMPORTANT]
+> **Baseline Separation & Upgrade Kits:** The 25→27 upgrade kit used on October 24 is historical and must **never** be rerun for future updates. Any subsequent release requires a freshly authored, independently reviewed upgrade operator bound strictly to the active `26e3155` / 27-migration baseline.
 
-The original owner-authorized upgrade applied migration UP, then its fixed 390-second alarm stopped execution before activation. Its failure evidence and attempt markers were retained. A separate one-shot guarded forward completion verified the immutable package, backups, staged release, exact ledger, file permissions, and 82 original durable tables against the retained SQL backup before and after activation. Shared environment bytes matched the retained private backup. Maintenance was removed only after verification, and the owned cron lease was released. Never manufacture an original-run success receipt or clear the failed markers.
+---
 
-The production-derived `routes` view adds four routes for Oslo/Stockholm. Recovery verified complete approved route values, normalized only unspecified inbound array tie ordering, and checked snapshot JSON/bytes/hash consistency. The historical PR22 helper omitted derived routes; its 390-second deadline and exit-based failure receipt also need correction before reuse. **PR22 `173e51a` remains separate operator provenance; do not blindly merge it or rerun its 23-migration baseline.** The next upgrade needs an independently reviewed `0aacf14`/25 baseline profile.
+## 2. Production Environment & Hosting Invariants
 
-Retained production evidence (private, never copy credentials/backups to Git or AGY):
+- **Sole Production Host:** HostPapa shared cPanel (`gaza5045`). Strictly no external backends, cloud databases, Docker containers, Node daemons, or GitHub Actions deployment pipelines.
+- **Observed Runtime:** PHP 8.5.12 (CLI and LiteSpeed web SAPI); CloudLinux MySQL 8.4 (InnoDB default engine).
+- **Filesystem Boundaries:**
+  - `public_html/`: Prebuilt static frontend assets, favicon, video streams, and public entrypoint `.htaccess`.
+  - `/home/gaza5045/gaza-gateway/`: Private Laravel application, shared storage, environment configuration (`.env`), private archive uploads, and release directory tree.
+  - Active pointer: `/home/gaza5045/gaza-gateway/current-release.txt` identifies the active release directory.
+- **Request Boundaries:**
+  - Apache `.htaccess`: `LimitRequestBody 41943040` (40 MiB bound).
+  - Application layer: 10 MiB per file, 25 MiB total per archive contribution submission.
+- **Cron Dependency:** Single `*/10` cPanel cron job invokes the October 13 wrapper script. Never modify or delete the wrapper while the cron job references it.
 
-- `/home/gaza5045/gaza-batch02-preflight-20261022/forward-completion-receipt.json` and original `deployment-*`/`recovery-audit*` records.
-- `/home/gaza5045/gaza-gateway/shared/backups/upgrade_20261022_045504_a8a94f57/` contains the SQL, public/private archives and receipt.
-- Kit ZIP SHA-256 `c770dbb40591629db7340285c766ef66cee7a5aaa3b965a3cdb0c0b02ca2c292`; runner `2c59bac19faf8a4512cb81b242578aaffd3ce921a59ec3db817488418d99682a`.
-- Package root `.htaccess` SHA-256 `2dba81e95cc03e9b4e47cddda07e50f1e6230251bba59690e38a965e42b10e4f`. Separately owner-approved `LimitRequestBody 41943040` override produces `21724477d484edc2fa517c44b2e09b3ae752c9bd9b26b2389ba58102a586a486`. Actual pre-upgrade loopback checks observed HTTP 413 above the bound and accepted a 35,000,000-byte valid envelope. A later zero-body headers-only probe timed out and is not additional proof.
+---
 
-Source review, integration, package preparation, host preflight and final production GO remain separate gates. The current mission authorizes local review branches, not production mutation or destructive cleanup.
+## 3. Pre-Release Protocol & Required Gates
 
-## Authorized release preparation
+Every production update must pass four independent gates in strict sequence:
 
-1. After source acceptance and explicit release-preparation authorization, reverify installed pointer, immutable manifest bytes, source SHA and all migration identities read-only. A mismatch stops preparation.
-2. Extend the reviewed operator for that exact baseline, preserving lock/lease, one-shot markers, maintenance, manifest verification, backups, preservation digests and schema-compatible rollback barriers. Review that change; never relax guards.
-3. Build from a clean checkout of the actual accepted source SHA with the production HostPapa configuration. Pin application and operator SHAs separately. Generate one full-stack package, immutable release manifest and matching upgrade kit.
-4. Verify package/manifest/template/rendered-runner/installer hashes, locked production dependencies, migration identities and public/private permissions. Keep private configuration outside the public root. Exclude secrets, local fixtures, private receipts and backups from Git and the public payload.
-5. Rehearse the exact bytes locally against the recorded baseline and disposable database. Verify backups, preserved records/configuration, one-shot behavior and compatible recovery. Rehearsal is not a production success receipt.
+### Gate 1: Source Acceptance & Separate Provenance
+- Application source changes must be merged into `main` after independent review.
+- Application commit and upgrade operator code must maintain separate provenance. Documentation changes do not alter application binaries.
 
-## Read-only host preflight
+### Gate 2: Read-Only Production Preflight
+Before uploading release packages, perform read-only preflight verification:
+1. Verify the installed pointer (`rel_20261024T045400_26e3155_clean`) and manifest bytes.
+2. Confirm exactly 27 migrations in the database ledger.
+3. Validate available disk space and inode headroom.
+4. Verify database connectivity and current environment hash.
+5. If preflight detects any discrepancy, **stop immediately**. Do not proceed with deployment.
 
-Only after owner authorization to transfer the kit and run preflight:
+### Gate 3: Local Exact-Kit Rehearsal
+1. Use `node scripts/build-hostpapa-update.mjs --help` and the reviewed release tooling to build one clean, exact-source full-stack candidate with explicit mode, approved HTTPS origin, output directory and locked production dependencies. This builder alone does not produce a baseline-certified upgrade operator.
+2. Generate the immutable release manifest.
+3. Rehearse the full upgrade flow locally against a disposable database populated with the production schema and fixture data.
+4. Verify that pre-switch backups, one-shot markers, and maintenance mode engage and disengage cleanly.
 
-1. Use a new private target directory. Verify all uploaded hashes before execution; never overwrite earlier evidence.
-2. Run only the reviewed runner's `--check` path with its reviewed one-shot invocation. Validate baseline, candidate manifest/permissions, schema, backup prerequisites and headroom without staging/applying an update. Diagnostic files may be recorded; no application/data mutation is permitted.
-3. If a temporary cron is separately authorized because Terminal is unavailable, use a unique atomic noclobber guard and remove only that temporary job after completion. Preserve the application job and all guards/logs.
-4. Interpret the exact checkpoint/reason code. Retain markers and evidence on failure, determine the cause, and prepare a reviewed correction. Never clear markers or retry blindly.
+### Gate 4: Owner GO
+Deployment requires explicit, written owner authorization identifying the specific package hash. Past release approvals do not authorize future releases.
 
-The existing dispatcher was observed healthy at `*/10` on October 23. The owner reports HostPapa approval of one-minute cron; the email was not independently inspected. Preserve cadence and the single dispatcher unless separately authorized.
+---
 
-## Final deployment and recovery
+## 4. Execution & Safety Gates
 
-Return exact source/operator/package hashes, preflight evidence, verified backup locations and compatibility limits. Wait for a separate explicit GO naming the candidate. Execute the matching guarded upgrade exactly once; never rerun an old installer.
+When owner authorization is received, the upgrade operator executes under strict safety controls:
 
-The operator must acquire the installer lock and cron lease, retain the attempt marker, enter maintenance, verify consistent private/database/public backups, apply only reviewed migration UP operations, switch the release and verify immutable bytes, permissions, preserved durable data/configuration and runtime health. Final verification must establish a **fresh runtime PDO connection after long backup/copy work**, avoiding MySQL inactivity error 4031. Never rewrite failed verification as success.
+```
+[Start Upgrade]
+       |
+       v
+[1. Acquire Locks] --------> Installer flock(LOCK_EX | LOCK_NB) + Cron Lease
+       |
+       v
+[2. Set One-Shot Marker] --> Record attempt ID; prevent concurrent executions
+       |
+       v
+[3. Enter Maintenance] ----> Write maintenance.php (HTTP 503 JSON)
+       |
+       v
+[4. Verified Consistent Backups] ---> Dump MySQL DB, backup public assets, shared configuration & private files
+       |
+       v
+[5. Run Migrations UP] ----> Execute new migrations (Careful: MySQL DDL autocommits!)
+       |
+       v
+[6. Atomic Pointer Switch]-> Point current-release.txt to new release directory
+       |
+       v
+[7. Fresh PDO Check] ------> Re-establish NEW database connection (avoid timeout 4031)
+       |
+       v
+[8. Post-Verification] ----> Verify complete migration identities/hashes, preservation, private files, manifest and health
+       |
+       v
+[9. Release Maintenance] --> Unlink maintenance.php, release cron lease & lock
+```
 
-Verify source through reviewed release identity checks, not generic health alone. Preserve legitimate post-update data. MySQL DDL autocommits: never automatically import an old dump or roll migrations down over live records. Rollback requires owner authorization and the actual schema-compatible barrier; otherwise use forward repair. Preserve original incident evidence and attempt markers.
+### Critical Operational Safeguards:
+- **MySQL DDL Autocommit:** In MySQL, DDL statements (`CREATE TABLE`, `ALTER TABLE`) cause an implicit transaction commit. DDL changes cannot be rolled back via SQL transactions. If a migration fails partway through DDL execution, automatic rollback is impossible; forward recovery using a reviewed repair script is mandatory.
+- **Fresh Final PDO Connection:** Backing up and copying large application files may take several minutes. To prevent MySQL inactivity disconnects (`MySQL server has gone away` / error 4031), the operator must discard stale preflight connections and open a fresh, identity-verified PDO connection for final post-switch checks.
+- **Installer Lock & Cron Lease:** Upgrades must run with an exclusive flock on `/home/gaza5045/gaza-gateway/shared/installer.lock`. The cron dispatcher checks this lease and pauses scheduled tasks while maintenance is active.
 
-See the [historical index](archive/INDEX.md) and [qualified Issue 15 reconciliation](production/ISSUE_15_PRESERVATION_RECONCILIATION_2026-10-17.md). Older 7a8, b3 and 965 commands are historical provenance, not executable instructions for the installed baseline.
+---
+
+## 5. Rollback & Forward Recovery Protocols
+
+### Scenario A: Failure Prior to Schema Mutation
+If file staging, permission checks, or backup steps fail before database migrations are applied:
+1. Inspect actual pointer, public files and receipts. If recovery is required, use the reviewed operator procedure to restore a compatible previous release; do not improvise a pointer edit.
+2. Restore any replaced static files from the pre-switch backup.
+3. Release maintenance only after the previous application, public assets, preserved data and health checks are verified.
+4. Release the installer lock and cron lease.
+5. Retain all failure logs and attempt markers for post-incident analysis.
+
+### Scenario B: Failure During or After Database Migrations
+If an error occurs after migrations begin:
+1. **Do not attempt an automatic database restore or run `migrate:rollback` blindly.**
+2. Keep maintenance mode engaged (`HTTP 503`).
+3. Inspect the migration ledger to determine exactly which migrations succeeded and which failed.
+4. Prepare an independently reviewed forward-repair patch.
+5. Execute the forward repair under owner supervision.
+6. Once verification passes, release maintenance and resume normal cron dispatch.
+
+---
+
+## 6. Day-to-Day Operations & Administration
+
+### 6.1 Admin Portal & Access Control
+- English Admin: `https://www.gazaairport.com/admin`
+- Arabic Admin: `https://www.gazaairport.com/ar/admin`
+- Sign-in Entrypoint: `https://www.gazaairport.com/admin/signin`
+- Staff accounts use cookie-based sessions with CSRF protection and 10 canonical permissions.
+- Inactive sessions expire automatically according to configured session timeouts.
+
+### 6.2 Safe CMS Publication Workflow
+Editorial content for Homepage, Informational dossiers, Destinations, and Travel Guides is managed with optimistic revision locking:
+
+```
+[Draft Created / Edited]
+         |
+         v
+[Draft Saved (currentRevision increments)] ----> Stored in CMS database; unexposed to public
+         |
+         v
+[Bilingual Preview (EN & AR)] -----------------> Verified on preview surface
+         |
+         v
+[Publish Request with expectedRevision] -------> Verified against current revision
+         |
+         v
+[Published (publishedRevision updated)] -------> Immediately served to public visitors
+```
+
+1. **Public vs. Draft Separation:** Public endpoints serve exclusively records matching `publishedRevision`. Saving a draft (`currentRevision`) does not alter public pages until an explicit publish action occurs.
+2. **Conflict Prevention (`expectedRevision`):** Every publication request must submit an `expectedRevision` payload field matching the current database revision. If another staff member published in the interim, the request is rejected with a conflict error (`draft_conflict`).
+3. **Bilingual Verification:** Before publishing, preview both English and Arabic views to confirm layout, typography, and text flow.
+4. **Preserve Custom Fields:** Editorial writes must preserve contact details, artist statement blocks, and owner SEO titles.
+
+### 6.3 Archive Contribution Intake & Moderation
+- **Private Storage:** Uploaded visitor contributions are written to private storage outside `public_html` at:
+  `/home/gaza5045/gaza-gateway/shared/storage/app/private/archive_contributions/`
+- **Request Boundaries:** 10 MiB per file, 25 MiB total per submission envelope, 40 MiB web-server bound.
+- **Staff Moderation:** Contributions remain in private quarantine until an authorized staff member reviews rights/provenance. Intake moderation does not automatically publish uploaded files to the gallery.
+
+### 6.4 Mail Subsystem & Outbox Management
+- **Transactional Ledger:** Outbound messages are recorded with statuses: `pending`, `accepted`, `failed`, or `uncertain`.
+- **No Blind Resends:** Never execute blanket resends on `uncertain` or `failed` records. Historical uncertain messages must remain logged for audit rather than resent blindly.
+- **Monthly Analytics Reporting:** Automated monthly analytics reporting is opt-in and currently **turned off** (`notifications@gazaairport.com`). Do not enable automated reporting without explicit owner instruction.
+
+### 6.5 Cron Dispatcher & Scheduled Tasks
+- Single cPanel cron job configured every 10 minutes (`*/10`). Its live dependency is `/home/gaza5045/gaza-gateway/releases/rel_20261013T082656_7a8f0fa_clean/bin/hostpapa-cli`, invoked through `/usr/local/bin/php` with `shared-hosting:cron --max-seconds=25 --batch-limit=25`. Do not recreate the job from abbreviated documentation; re-read and preserve its complete installed command and log redirection.
+- Preserve the actual installed cron command and its log redirection; the dated command above identifies the live wrapper dependency. Cron runs acquire an exclusive database lease. If an execution takes longer than expected, the lease prevents concurrent job execution and duplicate email dispatch.
+
+---
+
+## 7. Common Incident Triage & Troubleshooting
+
+| Symptom | Likely Cause | Recommended Action |
+|---|---|---|
+| **HTTP 503 "Service Unavailable"** | Canonical maintenance file remains active. | Check for `/home/gaza5045/gaza-gateway/shared/storage/framework/maintenance.php`. Do not remove it merely because a process exited: verify the reviewed recovery/cutover conditions and preservation receipts first. |
+| **HTTP 413 "Payload Too Large"** | Archive upload exceeds 10 MiB or Apache 40 MiB limit. | Verify file sizes; confirm `.htaccess` contains `LimitRequestBody 41943040`. |
+| **Database Error 4031 ("Inactivity Timeout")** | Long-running task kept connection idle over MySQL wait timeout. | Ensure maintenance scripts close stale connections and re-open a fresh PDO connection before final verification. |
+| **Cron tasks not processing queue** | Installer lock or stale database lease present. | Check if `/home/gaza5045/gaza-gateway/shared/installer.lock` is held by an abandoned process. Inspect the implemented lease storage read-only; never clear locks or attempt markers blindly. |
+| **CMS Edit Conflict (`draft_conflict`)** | Concurrent edit or stale client revision token. | Reload the editorial document in the admin workspace to fetch latest `currentRevision`, re-apply changes, and publish. |

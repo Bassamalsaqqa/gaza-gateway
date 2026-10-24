@@ -77,19 +77,11 @@ const expectationsFixturePath = process.argv[3]
 
 const REQUIRED_DOCS = [
   "README.md",
-  "ADR-001-platform.md",
-  "deployment-topology.md",
-  "data-model.md",
   "openapi.v1.json",
   "operation-policies.v1.json",
   "identity-lifecycle.v1.json",
   "inventory-payment.v1.json",
   "publication-lifecycle.v1.json",
-  "api-contract.md",
-  "auth-rbac.md",
-  "migration-map.md",
-  "threat-model.md",
-  "phase13-sequencing.md",
 ];
 
 console.log("=== Validating Gaza Gateway Backend Contracts ===");

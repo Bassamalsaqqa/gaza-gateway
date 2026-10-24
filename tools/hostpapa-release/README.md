@@ -18,7 +18,7 @@ Code pointer replacement is atomic. Static copying is **not** atomic and is not 
 
 Migrations are UP-only, with approved temporary DDL credentials held in memory. Runtime credentials are a separate account with only DML access. MySQL DDL autocommits: code/static rollback never undoes schema or application data. A tested database backup/restore and actual cPanel install remain release gates.
 
-See `docs/production/H3_CPANEL_RELEASE_AND_ROLLBACK.md` for owner steps and evidence limits.
+See `docs/HOSTPAPA_DEPLOYMENT.md` for owner steps and evidence limits.
 
 ## Batch 01 build entry point
 
